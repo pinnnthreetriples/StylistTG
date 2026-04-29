@@ -1,19 +1,32 @@
 # Frontend Architecture Notes
 
-StylistTG currently uses React + Vite with a lightweight URL contract and TanStack Query for server state.
+StylistTG uses React + Vite, TanStack Router for canonical navigation, and TanStack Query for server state.
 
 ## Route Contract
 
-Current routes are intentionally small:
+TanStack Router is the canonical routing layer. Current canonical routes:
 
 - `/` - account list
-- `/?view=settings` - settings/readiness
-- `/?view=auth-batch` - batch account auth
-- `/?account_id=<id>` - profile editor for an account
+- `/settings` - settings/readiness
+- `/auth/batch` - batch account auth
+- `/accounts/$accountId` - account workspace default/profile
+- `/accounts/$accountId/profile` - profile editor focus
+- `/accounts/$accountId/jobs` - job progress/history focus
+- `/accounts/$accountId/stories` - stories focus
+- `/accounts/$accountId/music` - profile music focus
+- `/accounts/$accountId/debug` - technical details/debug focus
 
-Use `src/lib/routes.ts` for route string creation in new code and tests. Keep route helpers narrow: do not add future-only routes until the UI actually supports them.
+Use `src/lib/routes.ts` for route string creation in new code and tests. Do not add ad-hoc route strings inside components.
 
-`src/lib/appView.ts` parses the current top-level `view` value. `src/lib/appNavigation.ts` owns pure navigation-state transitions. `src/hooks/useAppNavigation.ts` binds those helpers to browser history and React transitions.
+`src/router.tsx` defines the route tree, route loaders, and legacy query URL redirects.
+
+Legacy compatibility redirects:
+
+- `/?view=settings` -> `/settings`
+- `/?view=auth-batch` -> `/auth/batch`
+- `/?account_id=<id>` -> `/accounts/<id>`
+
+Old query URLs are compatibility inputs only. Do not reintroduce query-param phase routing as a primary navigation model.
 
 ## Server State
 
@@ -21,6 +34,7 @@ TanStack Query is the canonical server-state layer.
 
 Core files:
 
+- `src/router.tsx` - TanStack Router route tree and route-level prefetch.
 - `src/lib/queryClient.ts` - shared default options.
 - `src/lib/queries.ts` - query keys, query options, cache helpers.
 - `src/hooks/queries/useAccountsQueries.ts` - accounts list and prefetching.
@@ -37,15 +51,9 @@ Rules:
 - Prefer targeted cache updates or scoped invalidation after mutations.
 - Full skeletons are for cold loads only. If cached data exists, render it and show background refresh state lightly.
 
-## Future Routing
+## Route Expansion Rules
 
-Do not mix feature work with a full router migration.
-
-The next routing step, when needed, should be a dedicated slice:
-
-1. Keep `src/lib/routes.ts` as the route manifest.
-2. Move path/search parsing into route-level adapters.
-3. Preserve existing URL compatibility or provide redirects.
-4. Keep TanStack Query keys stable during routing migration.
-
-TanStack Router can be introduced later if nested pages, typed search params, route loaders, or route-level preloading become a real constraint. The current architecture is prepared for that without forcing the migration now.
+- Add new product areas as TanStack Router routes first, then wire UI.
+- Keep old query URLs as redirects only when compatibility is needed.
+- Use route loaders with existing query options and `queryClient.ensureQueryData`/`prefetchQuery`.
+- Keep TanStack Query keys stable when adding or moving routes.

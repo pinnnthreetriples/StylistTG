@@ -11,6 +11,19 @@ export type CachedDashboardHydration = {
   nextForm: FormState
 }
 
+export function buildDashboardHydration(
+  storage: Pick<Storage, 'getItem'> | null,
+  accountId: string,
+  dashboard: DashboardState,
+): CachedDashboardHydration {
+  const baselineForm = buildDashboardFormState(dashboard)
+  return {
+    dashboard,
+    baselineForm,
+    nextForm: readStoredDashboardFormDraft(storage, accountId) ?? baselineForm,
+  }
+}
+
 export function readCachedDashboardHydration(
   storage: Pick<Storage, 'getItem'> | null,
   accountId: string,
@@ -20,10 +33,5 @@ export function readCachedDashboardHydration(
     return null
   }
 
-  const baselineForm = buildDashboardFormState(dashboard)
-  return {
-    dashboard,
-    baselineForm,
-    nextForm: readStoredDashboardFormDraft(storage, accountId) ?? baselineForm,
-  }
+  return buildDashboardHydration(storage, accountId, dashboard)
 }

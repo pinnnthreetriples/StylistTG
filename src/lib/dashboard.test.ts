@@ -21,7 +21,6 @@ import {
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
   resolveDashboardIdentity,
-  resolveAccountId,
   shouldConfirmRealTelegramExecution,
   syncStateLabels,
   splitDisplayName,
@@ -29,16 +28,6 @@ import {
 
 afterEach(() => {
   vi.useRealTimers()
-})
-
-describe('resolveAccountId', () => {
-  it('prefers query parameter over env fallback', () => {
-    expect(resolveAccountId('?account_id=query-id', 'env-id')).toBe('query-id')
-  })
-
-  it('returns env fallback when query parameter is absent', () => {
-    expect(resolveAccountId('', 'env-id')).toBe('env-id')
-  })
 })
 
 describe('splitDisplayName', () => {

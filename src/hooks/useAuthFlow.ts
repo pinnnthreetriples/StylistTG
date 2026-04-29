@@ -19,7 +19,6 @@ import {
   refreshAuthRuntime,
   startOtp,
   submitPassword,
-  syncAccountIdQueryParam,
   updateAuthRuntimeMode,
   type AuthErrorMessage,
   type AuthPhase,
@@ -97,13 +96,11 @@ export function useAuthFlow({
 
   const applyAccountContext = useCallback((nextAccountId: string) => {
     persistAccountId(window.localStorage, nextAccountId)
-    syncAccountIdQueryParam(nextAccountId)
     setAccountId(nextAccountId)
   }, [])
 
   const clearAccountContext = useCallback(() => {
     if (accountId) clearStoredAccountId(window.localStorage)
-    syncAccountIdQueryParam(null)
     setAccountId(null)
   }, [accountId])
 

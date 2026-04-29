@@ -91,7 +91,7 @@ export const ProfileEditor = memo(function ProfileEditor({
   return (
     <>
       {/* ════════ BLOCK 1: PROFILE ════════ */}
-      <div className="section-card bg-white rounded-xl border border-gray-200 p-4 mb-4 delay-1">
+      <div id="account-workspace-profile" className="section-card bg-white rounded-xl border border-gray-200 p-4 mb-4 delay-1">
         <div className="mb-3 flex flex-col gap-1 border-b border-gray-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
             {syncStateLabels.telegramCurrent}
@@ -231,28 +231,32 @@ export const ProfileEditor = memo(function ProfileEditor({
       </div>
 
       {/* ════════ BLOCK 2: MUSIC ════════ */}
-      <MusicBlock
-        profileAudio={profileAudio}
-        profileAudioAction={profileAudioAction}
-        selectedAudioName={selectedAudioName}
-        isUploadingAudio={isUploadingAudio}
-        onChooseAudio={onChooseAudio}
-        onKeepAudio={onKeepAudio}
-        onRemoveAudio={onRemoveAudio}
-      />
+      <div id="account-workspace-music">
+        <MusicBlock
+          profileAudio={profileAudio}
+          profileAudioAction={profileAudioAction}
+          selectedAudioName={selectedAudioName}
+          isUploadingAudio={isUploadingAudio}
+          onChooseAudio={onChooseAudio}
+          onKeepAudio={onKeepAudio}
+          onRemoveAudio={onRemoveAudio}
+        />
+      </div>
 
       {/* ════════ BLOCK 3: STORIES ════════ */}
-      <StoriesBlock
-        stories={stories}
-        storyPosts={storyPosts}
-        storyCapabilities={storyCapabilities}
-        isUploadingStory={isUploadingStory}
-        deletingStoryPostId={deletingStoryPostId}
-        onChooseStoryImage={onChooseStoryImage}
-        onUpdateStory={onUpdateStory}
-        onRemoveStory={onRemoveStory}
-        onDeleteStoryPost={onDeleteStoryPost}
-      />
+      <div id="account-workspace-stories">
+        <StoriesBlock
+          stories={stories}
+          storyPosts={storyPosts}
+          storyCapabilities={storyCapabilities}
+          isUploadingStory={isUploadingStory}
+          deletingStoryPostId={deletingStoryPostId}
+          onChooseStoryImage={onChooseStoryImage}
+          onUpdateStory={onUpdateStory}
+          onRemoveStory={onRemoveStory}
+          onDeleteStoryPost={onDeleteStoryPost}
+        />
+      </div>
 
       {/* ════════ BLOCK 4: CHANGE SUMMARY ════════ */}
       <div className="section-card bg-white rounded-xl border border-gray-200 p-4 delay-4">

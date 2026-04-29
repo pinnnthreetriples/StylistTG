@@ -2,15 +2,16 @@
  * App – root application controller.
  *
  * Responsibilities:
- *  - Phase-based routing (account-list → auth → dashboard)
+ *  - Rendering the screen selected by TanStack Router
+ *  - Managing auth/dashboard phases inside account workspace routes
  *  - Composing the three custom hooks: useAuthFlow, useDashboard, useProfileDraft
- *  - Rendering the matching screen for the current phase
  *  - Wiring hidden file inputs for photo / audio / story upload
  */
 
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
@@ -35,7 +36,6 @@ import {
 } from '@/lib/dashboard'
 import { useDashboardInitialState } from '@/hooks/useDashboardInitialState'
 import { useAccountSelectionFlow } from '@/hooks/useAccountSelectionFlow'
-import { useAppNavigation } from '@/hooks/useAppNavigation'
 import { useAuthBootstrap } from '@/hooks/useAuthBootstrap'
 import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboardActions } from '@/hooks/useDashboardActions'
@@ -47,19 +47,38 @@ import {
   useDeleteStoryPostMutation,
   useRefreshRuntimeMutation,
 } from '@/hooks/queries/useDashboardMutations'
-import { readAccountListView } from '@/lib/appView'
-import { resolveInitialNavigationState } from '@/lib/appNavigation'
+import type { AuthPhase } from '@/lib/auth'
+import { appRoutes, type AppRouteState } from '@/lib/routes'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()
 
-function App() {
+function initialAuthPhaseForRoute(route: AppRouteState, hasInitialDashboard: boolean): AuthPhase {
+  if (route.screen !== 'account') return 'auth-phone'
+  return hasInitialDashboard ? 'dashboard' : 'auth-loading'
+}
+
+function workspaceSectionId(route: AppRouteState): string | null {
+  if (route.screen !== 'account') return null
+  if (route.section === 'profile') return null
+  if (route.section === 'jobs') return 'account-workspace-jobs'
+  if (route.section === 'debug') return 'account-workspace-debug'
+  return `account-workspace-${route.section}`
+}
+
+function toVisibleAuthPhase(
+  phase: AuthPhase,
+): 'auth-loading' | 'auth-phone' | 'auth-code' | 'auth-password' | 'auth-refreshing' | 'auth-error' {
+  if (phase === 'dashboard') return 'auth-loading'
+  return phase
+}
+
+function App({ route }: { route: AppRouteState }) {
   const queryClient = useQueryClient()
-  const { initialAccountId, initialDashboard, initialForm } = useDashboardInitialState()
-  const initialNavigation = resolveInitialNavigationState({
-    hasInitialAccountId: Boolean(initialAccountId),
-    hasInitialDashboard: Boolean(initialDashboard),
-    initialView: readAccountListView(window.location.search),
-  })
+  const navigate = useNavigate()
+  const [, startNavigationTransition] = useTransition()
+  const routeAccountId = route.screen === 'account' ? route.accountId : null
+  const activeAccountId = routeAccountId ?? null
+  const { initialAccountId, initialBundle, initialDashboard, initialForm } = useDashboardInitialState(routeAccountId, queryClient)
 
   // ── File input refs (wiring hidden <input type="file"> elements) ─────────────
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -91,7 +110,10 @@ function App() {
   }, [])
 
   // ── Auth flow ─────────────────────────────────────────────────────────────────
-  const auth = useAuthFlow({ initialAccountId, initialPhase: initialNavigation.phase } as Parameters<typeof useAuthFlow>[0])
+  const auth = useAuthFlow({
+    initialAccountId,
+    initialPhase: initialAuthPhaseForRoute(route, Boolean(initialDashboard)),
+  } as Parameters<typeof useAuthFlow>[0])
   const {
     authPhase,
     authStep,
@@ -123,21 +145,30 @@ function App() {
     _skipNextBootstrapRef: skipNextAuthBootstrapRef,
   } = auth as typeof auth & { _skipNextBootstrapRef: React.MutableRefObject<boolean> }
 
-  const {
-    accountListView,
-    showTopLevelView,
-    transitionToPhase,
-  } = useAppNavigation({
-    accountId,
-    initialNavigation,
-    setAuthPhase,
-    skipNextAuthBootstrapRef,
-  })
+  const transitionToPhase = useCallback(
+    (phase: AuthPhase) => {
+      startNavigationTransition(() => setAuthPhase(phase))
+    },
+    [setAuthPhase],
+  )
+
+  const navigateToRoute = useCallback(
+    (href: string) => {
+      void navigate({ href })
+    },
+    [navigate],
+  )
+
+  const navigateToAccount = useCallback(
+    (nextAccountId: string) => navigateToRoute(appRoutes.account(nextAccountId)),
+    [navigateToRoute],
+  )
 
   // ── Dashboard data + job polling ──────────────────────────────────────────────
   const dashboardHook = useDashboard({
-    accountId,
+    accountId: activeAccountId,
     authPhase,
+    initialBundle,
     pollingIntervalMs: JOB_POLLING_INTERVAL_MS,
   })
   const {
@@ -160,7 +191,7 @@ function App() {
 
   // ── Profile draft (form + uploads + job creation) ─────────────────────────────
   const draft = useProfileDraft({
-    accountId,
+    accountId: activeAccountId,
     dashboard,
     initialForm,
     initialDashboard,
@@ -200,7 +231,7 @@ function App() {
 
   // ── Derived dashboard readiness ───────────────────────────────────────────────
   const dashboardReady = Boolean(
-    accountId && dashboard?.account.account_id === accountId && isFormInitialized,
+    activeAccountId && dashboard?.account.account_id === activeAccountId && isFormInitialized,
   )
   const dashboardReadyRef = useRef(dashboardReady)
 
@@ -229,7 +260,7 @@ function App() {
   })
 
   useAuthBootstrap({
-    accountId,
+    accountId: activeAccountId,
     applyAuthStateResponse,
     authPhase,
     clearAccountContext,
@@ -266,21 +297,22 @@ function App() {
     setSubmittedPreview,
     skipNextAuthBootstrapRef,
     transitionToPhase,
+    navigateToAccount,
   })
 
   // ── If dashboard phase but form not ready, trigger load ───────────────────────
   useEffect(() => {
-    if (!accountId || authPhase !== 'dashboard' || dashboardReady) return
+    if (!activeAccountId || authPhase !== 'dashboard' || dashboardReady) return
     const id = window.setTimeout(
       () =>
-        void loadDashboardState(accountId, formRef, formBaselineRef, formInitializedRef, setForm),
+        void loadDashboardState(activeAccountId, formRef, formBaselineRef, formInitializedRef, setForm),
       0,
     )
     return () => window.clearTimeout(id)
-  }, [accountId, authPhase, dashboardReady, loadDashboardState, formRef, formBaselineRef, formInitializedRef, setForm])
+  }, [activeAccountId, authPhase, dashboardReady, loadDashboardState, formRef, formBaselineRef, formInitializedRef, setForm])
 
   useTerminalJobRefresh({
-    accountId,
+    accountId: activeAccountId,
     currentJobState: currentJob?.job_state,
     formBaselineRef,
     formInitializedRef,
@@ -306,13 +338,13 @@ function App() {
     handleDeleteStoryPost,
     handleRefreshRuntime,
   } = useDashboardActions({
-    accountId,
+    accountId: activeAccountId,
     changedItems,
     clearAccountContext,
     clearSelectedPhotoPreview,
     confirmDiagnostics: dashboard?.diagnostics,
     createProfileJob: draft.handleCreateJob,
-    deleteStoryPost: (post) => deleteStoryPostMutation.mutateAsync({ accountId: accountId!, postId: post.id }),
+    deleteStoryPost: (post) => deleteStoryPostMutation.mutateAsync({ accountId: activeAccountId!, postId: post.id }),
     formBaselineRef,
     formInitializedRef,
     formRef,
@@ -334,39 +366,82 @@ function App() {
     setSubmittedPreview,
     setTwoFaPassword,
     terminalJobStates,
-    transitionToPhase,
   })
+
+  const handleDashboardBackToAccounts = useCallback(() => {
+    handleBackToAccounts()
+    navigateToRoute(appRoutes.accounts())
+  }, [handleBackToAccounts, navigateToRoute])
+
+  useEffect(() => {
+    if (route.screen !== 'account' || accountId === route.accountId) return
+    const id = window.setTimeout(() => {
+      clearSelectedPhotoPreview()
+      setSubmittedPreview(null)
+      setApiError(null)
+      setHiddenJobPanelKey(null)
+      setIsRealExecutionConfirmOpen(false)
+      setIsRefreshingRuntime(false)
+      applyAccountContext(route.accountId)
+      transitionToPhase('auth-loading')
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [
+    accountId,
+    applyAccountContext,
+    clearSelectedPhotoPreview,
+    route,
+    setIsRefreshingRuntime,
+    transitionToPhase,
+  ])
+
+  useEffect(() => {
+    if (!dashboardReady) return
+    const targetId = workspaceSectionId(route)
+    if (!targetId) return
+    const id = window.setTimeout(() => {
+      if (route.screen === 'account' && (route.section === 'jobs' || route.section === 'debug')) {
+        setHiddenJobPanelKey(null)
+      }
+      document.getElementById(targetId)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [dashboardReady, route])
 
   // ── Render routing ────────────────────────────────────────────────────────────
 
-  if (authPhase === 'auth-loading' && accountId) {
-    return <DashboardSkeleton />
-  }
-
-  if (authPhase === 'dashboard' && !dashboardReady) {
-    return <DashboardSkeleton />
-  }
-
-  if (authPhase === 'account-list') {
+  if (route.screen === 'accounts' || route.screen === 'settings') {
     return (
       <AccountList
-        activeTab={accountListView === 'settings' ? 'settings' : 'accounts'}
-        onAddBatch={() => showTopLevelView('auth-batch')}
+        activeTab={route.screen === 'settings' ? 'settings' : 'accounts'}
+        onAddBatch={() => navigateToRoute(appRoutes.authBatch())}
         onSelectAccount={selectAccount}
-        onTabChange={(tab) => showTopLevelView(tab)}
+        onTabChange={(tab) => navigateToRoute(tab === 'settings' ? appRoutes.settings() : appRoutes.accounts())}
       />
     )
   }
 
-  if (authPhase === 'auth-batch') {
+  if (route.screen === 'auth-batch') {
     return (
       <BulkAuthScreen
-        onBack={() => showTopLevelView('accounts')}
+        onBack={() => navigateToRoute(appRoutes.accounts())}
         onTestDcChange={handleBatchTestDcChange}
         testDcEnabled={testDcEnabled}
         testDcPending={isUpdatingTestDc}
       />
     )
+  }
+
+  if (route.screen === 'account' && accountId !== route.accountId) {
+    return <DashboardSkeleton />
+  }
+
+  if (authPhase === 'auth-loading' && activeAccountId) {
+    return <DashboardSkeleton />
+  }
+
+  if (authPhase === 'dashboard' && !dashboardReady) {
+    return <DashboardSkeleton />
   }
 
   if (authPhase !== 'dashboard') {
@@ -387,7 +462,7 @@ function App() {
         onResetPhone={handleResetAuthPhone}
         onStart={handleStartOtp}
         onTestDcChange={handleTestDcChange}
-        phase={authPhase}
+        phase={toVisibleAuthPhase(authPhase)}
         phoneNumber={phoneNumber}
         step={authStep}
       />
@@ -405,7 +480,7 @@ function App() {
         isBootRefreshing={isBootRefreshing}
         isLoading={isLoading}
         isRefreshingRuntime={isRefreshingRuntime}
-        onBack={handleBackToAccounts}
+        onBack={handleDashboardBackToAccounts}
         onRefresh={handleRefreshRuntime}
       />
 
@@ -471,13 +546,15 @@ function App() {
       />
 
       {shouldShowJobPanel ? (
-        <JobStepPanel
-          currentJob={currentJob}
-          items={jobDisplayItems}
-          onHide={jobPanelKey ? () => setHiddenJobPanelKey(jobPanelKey) : undefined}
-          progressSummary={jobProgressSummary}
-          resultSummary={jobResultSummary}
-        />
+        <div id={route.screen === 'account' && route.section === 'debug' ? 'account-workspace-debug' : 'account-workspace-jobs'}>
+          <JobStepPanel
+            currentJob={currentJob}
+            items={jobDisplayItems}
+            onHide={jobPanelKey ? () => setHiddenJobPanelKey(jobPanelKey) : undefined}
+            progressSummary={jobProgressSummary}
+            resultSummary={jobResultSummary}
+          />
+        </div>
       ) : null}
 
       {isRealExecutionConfirmOpen ? (

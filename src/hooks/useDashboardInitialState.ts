@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
+import type { QueryClient } from '@tanstack/react-query'
 
-import { readStoredAccountId, resolveInitialAccountId } from '@/lib/auth'
-import { shouldIgnoreStoredAccountForView } from '@/lib/appView'
 import { readStoredDashboardCache } from '@/lib/dashboardCache'
 import { buildDashboardFormState, type FormState } from '@/lib/dashboard'
+import { getCachedDashboardBundle } from '@/lib/queries'
 
 export const emptyDashboardForm: FormState = {
   firstName: '',
@@ -16,24 +16,23 @@ export const emptyDashboardForm: FormState = {
   stories: [],
 }
 
-export function useDashboardInitialState() {
-  const initialAccountId = useMemo(
-    () =>
-      resolveInitialAccountId(
-        window.location.search,
-        shouldIgnoreStoredAccountForView(window.location.search) ? null : readStoredAccountId(window.localStorage),
-        undefined,
-      ),
-    [],
+export function useDashboardInitialState(routeAccountId: string | null, queryClient: QueryClient) {
+  const initialAccountId = routeAccountId
+  const initialBundle = useMemo(
+    () => (initialAccountId ? getCachedDashboardBundle(queryClient, initialAccountId) ?? null : null),
+    [initialAccountId, queryClient],
   )
   const initialDashboard = useMemo(
-    () => readStoredDashboardCache(window.localStorage, initialAccountId),
-    [initialAccountId],
+    () =>
+      initialAccountId
+        ? initialBundle?.dashboard ?? readStoredDashboardCache(window.localStorage, initialAccountId)
+        : null,
+    [initialAccountId, initialBundle],
   )
   const initialForm = useMemo(
     () => (initialDashboard ? buildDashboardFormState(initialDashboard) : emptyDashboardForm),
     [initialDashboard],
   )
 
-  return { initialAccountId, initialDashboard, initialForm }
+  return { initialAccountId, initialBundle, initialDashboard, initialForm }
 }

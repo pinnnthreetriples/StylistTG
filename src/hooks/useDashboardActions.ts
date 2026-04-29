@@ -2,7 +2,6 @@ import type React from 'react'
 
 import type { JobDetail, JobSummary, ProfilePreview, StoryPost } from '@/lib/api'
 import { normalizeError } from '@/lib/appErrors'
-import type { AuthPhase } from '@/lib/auth'
 import {
   shouldConfirmRealTelegramExecution,
   type ApiError,
@@ -43,7 +42,6 @@ export function useDashboardActions({
   setSubmittedPreview,
   setTwoFaPassword,
   terminalJobStates,
-  transitionToPhase,
 }: {
   accountId: string | null
   changedItems: ChangeItem[]
@@ -83,7 +81,6 @@ export function useDashboardActions({
   setSubmittedPreview: React.Dispatch<React.SetStateAction<ProfilePreview | null>>
   setTwoFaPassword: (value: string) => void
   terminalJobStates: ReadonlySet<string>
-  transitionToPhase: (phase: AuthPhase) => void
 }) {
   function handleBackToAccounts() {
     clearSelectedPhotoPreview()
@@ -101,7 +98,6 @@ export function useDashboardActions({
     setPhoneNumber('')
     setOtpCode('')
     setTwoFaPassword('')
-    transitionToPhase('account-list')
   }
 
   async function handleRefreshRuntime() {

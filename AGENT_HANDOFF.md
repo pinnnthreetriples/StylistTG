@@ -286,7 +286,6 @@ Use the account-update workflow for new profile/audio/story work unless there is
 Main orchestrator:
 
 - `src/App.tsx`
-- `src/hooks/useAppNavigation.ts`
 - `src/hooks/useAccountSelectionFlow.ts`
 - `src/hooks/useAuthBootstrap.ts`
 - `src/hooks/useDashboardActions.ts`
@@ -353,27 +352,34 @@ Important query rules:
 
 ## Frontend Navigation
 
-Account-list-level screens use URL state:
+TanStack Router is the canonical frontend routing layer. Route tree:
 
 - `/` for accounts
-- `?view=settings`
-- `?view=auth-batch`
-- `?account_id=...` for the current profile editor contract
+- `/settings`
+- `/auth/batch`
+- `/accounts/$accountId`
+- `/accounts/$accountId/profile`
+- `/accounts/$accountId/jobs`
+- `/accounts/$accountId/stories`
+- `/accounts/$accountId/music`
+- `/accounts/$accountId/debug`
 
 Helper:
 
-- `src/lib/appView.ts`
-- `src/lib/appNavigation.ts`
 - `src/lib/routes.ts`
+- `src/router.tsx`
 
 Rules:
 
 - Refresh on settings should stay on settings.
 - Refresh on batch auth should stay on batch auth.
-- Back from batch auth should return to `accounts`.
-- Dashboard account URLs still use the existing `account_id` search-param contract.
-- Use `src/lib/routes.ts` for new links/tests so a future router migration has one route-contract source.
-- Do not migrate to TanStack Router as part of unrelated feature work. Split that into a dedicated routing migration when the app has enough nested pages to justify it.
+- Browser back/forward is owned by TanStack Router, not manual `popstate` listeners.
+- Use `src/lib/routes.ts` for route strings; do not add ad-hoc route strings in components.
+- Old query URLs are compatibility redirects only:
+  - `/?view=settings` -> `/settings`
+  - `/?view=auth-batch` -> `/auth/batch`
+  - `/?account_id=...` -> `/accounts/...`
+- Do not reintroduce query-param/phase routing as the primary navigation model.
 
 ## Batch Account Addition
 
@@ -406,7 +412,7 @@ Test DC:
 
 - It is a dev/advanced mode.
 - Ordinary Telegram accounts do not authorize there.
-- Disabling Test DC inside batch form must stay on `?view=auth-batch`, not redirect to old single auth UI.
+- Disabling Test DC inside batch form must stay on `/auth/batch`, not redirect to old single auth UI.
 
 ## Profile Draft Persistence
 

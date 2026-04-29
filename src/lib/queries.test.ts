@@ -62,6 +62,7 @@ describe('query cache configuration', () => {
     ])
     expect(jobDetailQueryOptions('job-1').queryKey).toEqual(['job', 'job-1'])
     expect(jobStepsQueryOptions('job-1').queryKey).toEqual(['job', 'job-1', 'steps'])
+    expect(queryKeys.job.stateBundle('job-1')).toEqual(['job', 'job-1', 'stateBundle'])
   })
 
   it('keeps dashboard sub-resource keys under the account prefix for future pages', () => {

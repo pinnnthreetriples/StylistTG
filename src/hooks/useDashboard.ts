@@ -34,20 +34,24 @@ const TERMINAL_JOB_STATES = new Set([
 export function useDashboard({
   accountId,
   authPhase,
+  initialBundle,
   pollingIntervalMs,
 }: {
   accountId: string | null
   authPhase: string
+  initialBundle?: DashboardBundle | null
   pollingIntervalMs: number
 }) {
   type DashboardPayload = DashboardBundle['dashboard']
   const queryClient = useQueryClient()
 
-  const [dashboard, setDashboard] = useState<DashboardPayload | null>(null)
-  const [jobs, setJobs] = useState<JobSummary[]>([])
+  const [dashboard, setDashboard] = useState<DashboardPayload | null>(initialBundle?.dashboard ?? null)
+  const [jobs, setJobs] = useState<JobSummary[]>(initialBundle?.jobs ?? [])
   const [currentJob, setCurrentJob] = useState<JobDetail | null>(null)
   const [currentSteps, setCurrentSteps] = useState<JobStep[]>([])
-  const [storyCapabilities, setStoryCapabilities] = useState<StoryCapabilities | null>(null)
+  const [storyCapabilities, setStoryCapabilities] = useState<StoryCapabilities | null>(
+    initialBundle?.storyCapabilities ?? null,
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [isBootRefreshing, setIsBootRefreshing] = useState(false)
   const [terminalJobRefreshSeq, setTerminalJobRefreshSeq] = useState(0)

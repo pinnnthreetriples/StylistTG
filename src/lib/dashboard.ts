@@ -127,11 +127,6 @@ type DashboardFormDraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeIt
 
 const dashboardFormDraftStoragePrefix = 'stylisttg.dashboard.formDraft.'
 
-export function resolveAccountId(search: string, fallback: string | undefined): string | null {
-  const params = new URLSearchParams(search)
-  return params.get('account_id') ?? fallback ?? null
-}
-
 export function splitDisplayName(value: string | null | undefined): {
   firstName: string
   lastName: string

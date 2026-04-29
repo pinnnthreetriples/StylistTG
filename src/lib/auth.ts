@@ -6,12 +6,10 @@ const RUNTIME_REFRESH_TIMEOUT_MS = 45000
 const ACCOUNT_STORAGE_KEY = 'stylisttg.account_id'
 
 export type AuthPhase =
-  | 'account-list'
   | 'auth-loading'
   | 'auth-phone'
   | 'auth-code'
   | 'auth-password'
-  | 'auth-batch'
   | 'auth-refreshing'
   | 'dashboard'
   | 'auth-error'
@@ -43,15 +41,6 @@ export type AuthRuntimeMode = {
   tdlib_production_auth_enabled: boolean
 }
 
-export function resolveInitialAccountId(
-  search: string,
-  storedAccountId: string | null,
-  fallback: string | undefined,
-): string | null {
-  const params = new URLSearchParams(search)
-  return params.get('account_id') ?? storedAccountId ?? fallback ?? null
-}
-
 export function readStoredAccountId(storage: Pick<Storage, 'getItem'> | null): string | null {
   return storage?.getItem(ACCOUNT_STORAGE_KEY) ?? null
 }
@@ -70,13 +59,6 @@ export function clearStoredAccountId(storage: Pick<Storage, 'removeItem'> | null
 export function shouldRunAuthBootstrap(accountId: string | null, phase: AuthPhase): boolean {
   if (!accountId) return false
   return ['auth-loading', 'auth-code', 'auth-password', 'auth-error', 'auth-refreshing'].includes(phase)
-}
-
-export function syncAccountIdQueryParam(accountId: string | null): void {
-  void accountId
-  const url = new URL(window.location.href)
-  url.searchParams.delete('account_id')
-  window.history.replaceState({}, '', url)
 }
 
 export function nextAuthPhaseFromState(state: AuthStateResponse): AuthPhase {

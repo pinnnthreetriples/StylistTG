@@ -1,19 +1,78 @@
-import type { AccountListView } from '@/lib/appView'
+export type AccountWorkspaceSection = 'profile' | 'jobs' | 'stories' | 'music' | 'debug'
 
-export type AppRouteName = 'accounts' | 'settings' | 'auth-batch' | 'account-profile'
+export type AppRouteState =
+  | { screen: 'accounts' }
+  | { screen: 'settings' }
+  | { screen: 'auth-batch' }
+  | { screen: 'account'; accountId: string; section: AccountWorkspaceSection }
 
-export function accountListRoute(view: AccountListView = 'accounts'): string {
-  if (view === 'accounts') return '/'
-  return `/?view=${encodeURIComponent(view)}`
+export type AppRouteName =
+  | 'accounts'
+  | 'settings'
+  | 'auth-batch'
+  | 'account'
+  | 'account-profile'
+  | 'account-jobs'
+  | 'account-stories'
+  | 'account-music'
+  | 'account-debug'
+
+export function accountListRoute(): string {
+  return '/'
 }
 
 export function accountProfileRoute(accountId: string): string {
-  return `/?account_id=${encodeURIComponent(accountId)}`
+  return `/accounts/${encodeURIComponent(accountId)}/profile`
+}
+
+export function accountRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}`
+}
+
+export function accountJobsRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/jobs`
+}
+
+export function accountStoriesRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/stories`
+}
+
+export function accountMusicRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/music`
+}
+
+export function accountDebugRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/debug`
 }
 
 export const appRoutes = {
-  accounts: () => accountListRoute('accounts'),
-  settings: () => accountListRoute('settings'),
-  authBatch: () => accountListRoute('auth-batch'),
+  accounts: accountListRoute,
+  settings: () => '/settings',
+  authBatch: () => '/auth/batch',
+  account: accountRoute,
   accountProfile: accountProfileRoute,
+  accountJobs: accountJobsRoute,
+  accountStories: accountStoriesRoute,
+  accountMusic: accountMusicRoute,
+  accountDebug: accountDebugRoute,
 } as const
+
+export function accountWorkspaceRoute(accountId: string, section: AccountWorkspaceSection): string {
+  if (section === 'profile') return appRoutes.accountProfile(accountId)
+  if (section === 'jobs') return appRoutes.accountJobs(accountId)
+  if (section === 'stories') return appRoutes.accountStories(accountId)
+  if (section === 'music') return appRoutes.accountMusic(accountId)
+  return appRoutes.accountDebug(accountId)
+}
+
+export function resolveLegacyQueryRoute(search: string): string | null {
+  const params = new URLSearchParams(search)
+  const accountId = params.get('account_id')
+  if (accountId) return appRoutes.account(accountId)
+
+  const view = params.get('view')
+  if (view === 'settings') return appRoutes.settings()
+  if (view === 'auth-batch') return appRoutes.authBatch()
+
+  return null
+}

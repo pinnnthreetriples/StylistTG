@@ -40,6 +40,7 @@ export const queryKeys = {
   job: {
     detail: (jobId: string) => ['job', jobId] as const,
     steps: (jobId: string) => ['job', jobId, 'steps'] as const,
+    stateBundle: (jobId: string) => ['job', jobId, 'stateBundle'] as const,
   },
 }
 
@@ -193,7 +194,7 @@ export async function fetchJobStateQuery(
   const [jobAndSteps, latestJob, jobs] = await Promise.all([
     options?.queryFn
       ? queryClient.fetchQuery({
-          queryKey: ['job', jobId, 'stateBundle'],
+          queryKey: queryKeys.job.stateBundle(jobId),
           queryFn: options.queryFn,
           staleTime: 0,
         })

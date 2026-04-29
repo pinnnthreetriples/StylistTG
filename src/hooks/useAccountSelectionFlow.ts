@@ -4,15 +4,19 @@ import type React from 'react'
 
 import { normalizeError } from '@/lib/appErrors'
 import type { ProfilePreview } from '@/lib/api'
-import { writeAccountListView } from '@/lib/appView'
 import {
   nextAuthPhaseFromState,
   type AuthPhase,
   type AuthStateResponse,
 } from '@/lib/auth'
 import type { ApiError, FormState } from '@/lib/dashboard'
-import { readCachedDashboardHydration } from '@/lib/dashboardNavigation'
-import { authStateQueryOptions, type DashboardBundle } from '@/lib/queries'
+import { buildDashboardHydration, readCachedDashboardHydration } from '@/lib/dashboardNavigation'
+import {
+  authStateQueryOptions,
+  dashboardBundleQueryOptions,
+  getCachedDashboardBundle,
+  type DashboardBundle,
+} from '@/lib/queries'
 
 export function useAccountSelectionFlow({
   applyAccountContext,
@@ -30,6 +34,7 @@ export function useAccountSelectionFlow({
   setSubmittedPreview,
   skipNextAuthBootstrapRef,
   transitionToPhase,
+  navigateToAccount,
 }: {
   applyAccountContext: (accountId: string) => void
   applyAuthStateResponse: (state: AuthStateResponse) => boolean
@@ -53,10 +58,14 @@ export function useAccountSelectionFlow({
   setSubmittedPreview: React.Dispatch<React.SetStateAction<ProfilePreview | null>>
   skipNextAuthBootstrapRef: React.MutableRefObject<boolean>
   transitionToPhase: (phase: AuthPhase) => void
+  navigateToAccount: (accountId: string) => void
 }) {
   const hydrateCachedDashboard = useCallback(
     (accountId: string): boolean => {
-      const cached = readCachedDashboardHydration(window.localStorage, accountId)
+      const cachedBundle = getCachedDashboardBundle(queryClient, accountId)
+      const cached = cachedBundle
+        ? buildDashboardHydration(window.localStorage, accountId, cachedBundle.dashboard)
+        : readCachedDashboardHydration(window.localStorage, accountId)
       if (!cached) return false
 
       setDashboard(cached.dashboard)
@@ -73,6 +82,7 @@ export function useAccountSelectionFlow({
       formBaselineRef,
       formInitializedRef,
       formRef,
+      queryClient,
       setApiError,
       setDashboard,
       setForm,
@@ -83,21 +93,37 @@ export function useAccountSelectionFlow({
 
   const selectAccount = useCallback(
     (accountId: string) => {
-      writeAccountListView('accounts', 'replace')
       skipNextAuthBootstrapRef.current = false
-      const hydrated = hydrateCachedDashboard(accountId)
-      applyAccountContext(accountId)
-      transitionToPhase(hydrated ? 'dashboard' : 'auth-loading')
-      if (!hydrated) return
-
-      setIsBootRefreshing(true)
       void (async () => {
+        const hydrated = hydrateCachedDashboard(accountId)
+        if (hydrated) {
+          applyAccountContext(accountId)
+          transitionToPhase('dashboard')
+          navigateToAccount(accountId)
+          setIsBootRefreshing(true)
+        }
+
         try {
-          const authState = await queryClient.fetchQuery(authStateQueryOptions(accountId))
+          const [authState] = await Promise.all([
+            queryClient.ensureQueryData(authStateQueryOptions(accountId)),
+            hydrated
+              ? Promise.resolve()
+              : queryClient.ensureQueryData(dashboardBundleQueryOptions(accountId)),
+          ])
           if (nextAuthPhaseFromState(authState) !== 'dashboard') {
+            applyAccountContext(accountId)
+            navigateToAccount(accountId)
             applyAuthStateResponse(authState)
             return
           }
+
+          if (!hydrated) {
+            hydrateCachedDashboard(accountId)
+            applyAccountContext(accountId)
+            transitionToPhase('dashboard')
+            navigateToAccount(accountId)
+          }
+
           const loaded = await loadDashboardState(
             accountId,
             formRef,
@@ -123,6 +149,7 @@ export function useAccountSelectionFlow({
       formRef,
       hydrateCachedDashboard,
       loadDashboardState,
+      navigateToAccount,
       queryClient,
       setApiError,
       setForm,

@@ -1,63 +1,21 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
   buildAuthErrorMessage,
   nextAuthPhaseFromState,
-  resolveInitialAccountId,
   shouldClearStoredAccountForAuthState,
   shouldRunAuthBootstrap,
   type AuthStateResponse,
 } from '@/lib/auth'
 import type { ApiError } from '@/lib/dashboard'
 
-describe('resolveInitialAccountId', () => {
-  it('prefers query parameter over local storage and env fallback', () => {
-    expect(resolveInitialAccountId('?account_id=query-id', 'stored-id', 'env-id')).toBe('query-id')
-  })
-
-  it('uses local storage when query parameter is absent', () => {
-    expect(resolveInitialAccountId('', 'stored-id', 'env-id')).toBe('stored-id')
-  })
-
-  it('falls back to env when query and local storage are empty', () => {
-    expect(resolveInitialAccountId('', null, 'env-id')).toBe('env-id')
-  })
-})
-
-describe('syncAccountIdQueryParam', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('removes account_id from the visible url after bootstrap', async () => {
-    const { syncAccountIdQueryParam } = await import('@/lib/auth')
-    let href = 'http://localhost:5173/?account_id=legacy-id&tab=profile'
-    vi.stubGlobal('window', {
-      get location() {
-        return new URL(href)
-      },
-      history: {
-        replaceState: (_state: unknown, _title: string, url: URL) => {
-          href = url.toString()
-        },
-      },
-    })
-
-    syncAccountIdQueryParam('account-1')
-
-    expect(window.location.search).toBe('?tab=profile')
-  })
-})
-
 describe('shouldRunAuthBootstrap', () => {
   it('does not bootstrap without an account id', () => {
     expect(shouldRunAuthBootstrap(null, 'dashboard')).toBe(false)
   })
 
-  it('does not interrupt account list, phone auth, or batch auth screens', () => {
-    expect(shouldRunAuthBootstrap('acc-1', 'account-list')).toBe(false)
+  it('does not interrupt phone auth screens', () => {
     expect(shouldRunAuthBootstrap('acc-1', 'auth-phone')).toBe(false)
-    expect(shouldRunAuthBootstrap('acc-1', 'auth-batch')).toBe(false)
   })
 
   it('runs bootstrap for transitional auth phases only', () => {

@@ -15,6 +15,20 @@ There is no WebSocket/SSE contract.
 
 Frontend route/query architecture is documented in `docs/frontend-architecture.md`.
 
+Canonical frontend routes are:
+
+- `/`
+- `/settings`
+- `/auth/batch`
+- `/accounts/$accountId`
+- `/accounts/$accountId/profile`
+- `/accounts/$accountId/jobs`
+- `/accounts/$accountId/stories`
+- `/accounts/$accountId/music`
+- `/accounts/$accountId/debug`
+
+Legacy query URLs are compatibility redirects only.
+
 ## Error DTO
 
 All structured API errors use this shape:
@@ -414,13 +428,23 @@ Important:
 
 ## Frontend URL Contract
 
-Account-list-level views:
+Canonical frontend routes:
 
-- `?view=accounts`
-- `?view=settings`
-- `?view=auth-batch`
+- `/`
+- `/settings`
+- `/auth/batch`
+- `/accounts/$accountId`
+- `/accounts/$accountId/profile`
+- `/accounts/$accountId/jobs`
+- `/accounts/$accountId/stories`
+- `/accounts/$accountId/music`
+- `/accounts/$accountId/debug`
 
-Dashboard account context continues to use account context/query state.
+Legacy query URLs are compatibility redirects only:
+
+- `/?view=settings` -> `/settings`
+- `/?view=auth-batch` -> `/auth/batch`
+- `/?account_id=<id>` -> `/accounts/<id>`
 
 ## Polling Model
 

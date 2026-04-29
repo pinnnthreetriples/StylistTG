@@ -56,6 +56,15 @@ export type RealExecutionChangeGroups = {
   stories: ChangeItem[]
 }
 
+export const syncStateLabels = {
+  telegramCurrent: 'Текущее в Telegram',
+  appKnown: 'Известно приложению',
+  draft: 'Черновик изменений',
+} as const
+
+export const appKnownMediaSyncNote =
+  'Фото, музыка и истории могут быть известны приложению только после изменений через StylistTG.'
+
 const changeOperationLabels: Record<ChangeItem['operation'], string> = {
   set_name: 'Имя',
   set_bio: 'Описание',

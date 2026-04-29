@@ -240,6 +240,12 @@ function jobStepDetail(step: JobStep, displayStatus = step.status): string {
 function jobStepIssueKey(step: JobStep): string | null {
   const payloadMessage =
     typeof step.result_payload_json?.message === 'string' ? step.result_payload_json.message : null
+  if (step.error_code === 'tdlib_profile_step_failed' && step.step_type === 'add_profile_audio') {
+    return 'PROFILE_AUDIO_ADD_FAILED'
+  }
+  if (step.error_code === 'tdlib_profile_step_failed' && step.step_type === 'remove_profile_audio') {
+    return 'PROFILE_AUDIO_REMOVE_FAILED'
+  }
   if (payloadMessage?.includes('Unknown class "uploadFile"')) {
     return 'TDLIB_UNSUPPORTED_UPLOAD_FILE_METHOD'
   }

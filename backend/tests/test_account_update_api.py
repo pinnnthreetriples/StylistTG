@@ -341,6 +341,31 @@ def test_account_update_create_blocks_story_jobs_for_unvalidated_tdlib_live_path
     assert message == "stories live TDLib execution is not enabled"
 
 
+def test_account_update_preview_blocks_stories_when_disabled(db_session, monkeypatch) -> None:
+    account = create_account(db_session, external_ref="primary")
+    account.account_state = AccountState.EXECUTION_USABLE
+    story = seed_story_asset(db_session)
+    db_session.commit()
+    monkeypatch.setattr("app.services.account_update_jobs.settings.stories_enabled", False)
+
+    app.dependency_overrides[get_session] = override_session(db_session)
+    client = TestClient(app)
+    response = client.post(
+        "/api/account-update/preview",
+        json={
+            "account_id": account.id,
+            "profile": {"name": "Stylist TG"},
+            "stories": [{"action": "post_image", "asset_id": story.id}],
+        },
+    )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["can_create_job"] is False
+    assert payload["blocking_errors"] == ["stories are disabled"]
+
+
 def test_account_update_create_allows_story_image_when_tdlib_live_enabled(db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE

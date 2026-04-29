@@ -13,6 +13,7 @@ import {
   formatRelativeTimestamp,
   groupRealExecutionChanges,
   isSupportedProfileAudioFile,
+  appKnownMediaSyncNote,
   persistStoredDashboardFormDraft,
   readStoredDashboardFormDraft,
   reconcileStoredDashboardFormDraft,
@@ -21,6 +22,7 @@ import {
   resolveDashboardIdentity,
   resolveAccountId,
   shouldConfirmRealTelegramExecution,
+  syncStateLabels,
   splitDisplayName,
 } from '@/lib/dashboard'
 
@@ -142,6 +144,18 @@ describe('isSupportedProfileAudioFile', () => {
   it('rejects unsupported profile audio formats before upload', () => {
     expect(isSupportedProfileAudioFile({ name: 'voice.ogg', type: 'audio/ogg' })).toBe(false)
     expect(isSupportedProfileAudioFile({ name: 'voice.wav', type: 'audio/wav' })).toBe(false)
+  })
+})
+
+describe('sync clarity labels', () => {
+  it('keeps stable product wording for Telegram, app-known, and draft states', () => {
+    expect(syncStateLabels).toEqual({
+      telegramCurrent: 'Текущее в Telegram',
+      appKnown: 'Известно приложению',
+      draft: 'Черновик изменений',
+    })
+    expect(appKnownMediaSyncNote).toContain('Фото, музыка и истории')
+    expect(appKnownMediaSyncNote).toContain('StylistTG')
   })
 })
 

@@ -3,6 +3,7 @@
  */
 
 import { Loader2, Music2, Play, RotateCcw, Trash2, UploadCloud } from 'lucide-react'
+import { appKnownMediaSyncNote, syncStateLabels } from '@/lib/dashboard'
 
 interface MusicBlockProps {
   profileAudio: {
@@ -43,6 +44,9 @@ export function MusicBlock({
             Музыка профиля
           </h2>
         </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          {profileAudioAction === 'keep' ? syncStateLabels.appKnown : syncStateLabels.draft}
+        </span>
       </div>
 
       {isEmpty ? (
@@ -94,6 +98,11 @@ export function MusicBlock({
                       ? 'Новый файл готов к задаче'
                       : profileAudio?.performer ?? 'Музыка профиля'}
                 </p>
+                {profileAudioAction === 'keep' && profileAudio?.source_asset_id ? (
+                  <p className="mt-0.5 text-[10px] leading-snug text-gray-400">
+                    {appKnownMediaSyncNote}
+                  </p>
+                ) : null}
               </div>
             </div>
 

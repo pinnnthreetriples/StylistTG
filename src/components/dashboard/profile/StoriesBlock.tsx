@@ -8,6 +8,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type StoryCapabilities, type StoryDraftPayload, type StoryPost } from '@/lib/api'
+import { appKnownMediaSyncNote, syncStateLabels } from '@/lib/dashboard'
+import { labelStoryCapabilityWarning } from '@/lib/uiLabels'
 
 interface StoriesBlockProps {
   stories: StoryDraftPayload[]
@@ -57,11 +59,11 @@ export function StoriesBlock({
           </div>
           {storyCapabilities?.warnings.length ? (
             <p className="mt-1 text-[10px] text-honey-600">
-              {formatStoryCapabilityWarning(storyCapabilities.warnings[0])}
+              {labelStoryCapabilityWarning(storyCapabilities.warnings[0])}
             </p>
           ) : (
             <p className="mt-0.5 text-[10px] text-gray-400">
-              Для публикации вместе с обновлением профиля
+              {stories.length > 0 ? syncStateLabels.draft : 'Для публикации вместе с обновлением профиля'}
             </p>
           )}
         </div>
@@ -142,7 +144,10 @@ export function StoriesBlock({
       {storyPosts.length > 0 && (
         <div className="mt-5 border-t border-gray-100 pt-3">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Сейчас в профиле
+            Сейчас в профиле · {syncStateLabels.appKnown}
+          </p>
+          <p className="mb-2 text-[10px] leading-snug text-gray-400">
+            {appKnownMediaSyncNote}
           </p>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {storyPosts.slice(0, 5).map((post) => (
@@ -338,16 +343,6 @@ export function StoriesBlock({
       )}
     </div>
   )
-}
-
-function formatStoryCapabilityWarning(warning: string): string {
-  if (warning === 'stories live TDLib publishing is disabled') {
-    return 'Публикация историй через TDLib пока выключена.'
-  }
-  if (warning === 'story video preparation is limited until ffprobe and ffmpeg are available') {
-    return 'Видео можно добавить, но без ffmpeg/ffprobe доступна только базовая проверка файла.'
-  }
-  return warning
 }
 
 function formatStoryStatus(status: string): string {

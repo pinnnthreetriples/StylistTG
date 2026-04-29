@@ -51,6 +51,16 @@ describe('buildPreviewStatus', () => {
     ).toEqual(['Публикация историй через TDLib пока выключена'])
   })
 
+  it('labels disabled stories in Russian', () => {
+    expect(
+      buildPreviewStatus({
+        ...basePreview,
+        can_create_job: false,
+        blocking_errors: ['stories are disabled'],
+      }).items,
+    ).toEqual(['Истории выключены в настройках приложения'])
+  })
+
   it('explains deduplicated previews', () => {
     expect(
       buildPreviewStatus({

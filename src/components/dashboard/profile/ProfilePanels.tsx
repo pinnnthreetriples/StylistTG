@@ -16,6 +16,8 @@ import { type StoryCapabilities, type StoryDraftPayload, type StoryPost } from '
 import {
   buildChangeItems,
   formatChangeOperationLabel,
+  appKnownMediaSyncNote,
+  syncStateLabels,
   type CurrentProfile,
   type FormState,
 } from '@/lib/dashboard'
@@ -90,6 +92,14 @@ export const ProfileEditor = memo(function ProfileEditor({
     <>
       {/* ════════ BLOCK 1: PROFILE ════════ */}
       <div className="section-card bg-white rounded-xl border border-gray-200 p-4 mb-4 delay-1">
+        <div className="mb-3 flex flex-col gap-1 border-b border-gray-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+            {syncStateLabels.telegramCurrent}
+          </span>
+          <span className="text-[10px] text-gray-400">
+            Текстовые поля подтягиваются из Telegram. {appKnownMediaSyncNote}
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row gap-5">
           {/* Avatar */}
           <AvatarBlock

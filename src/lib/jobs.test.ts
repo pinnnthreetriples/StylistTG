@@ -166,6 +166,40 @@ describe('buildJobStepItems', () => {
     ])
   })
 
+  it('specializes generic TDLib profile audio add and remove failures', () => {
+    const steps: JobStep[] = [
+      {
+        step_key: 'add_profile_audio',
+        step_type: 'add_profile_audio',
+        status: 'failed',
+        verification_attempted: false,
+        verification_result: null,
+        uncertain_reason: null,
+        error_code: 'tdlib_profile_step_failed',
+        error_class: 'TdlibProfileQueryError',
+        started_at: null,
+        finished_at: null,
+      },
+      {
+        step_key: 'remove_profile_audio',
+        step_type: 'remove_profile_audio',
+        status: 'failed',
+        verification_attempted: false,
+        verification_result: null,
+        uncertain_reason: null,
+        error_code: 'tdlib_profile_step_failed',
+        error_class: 'TdlibProfileQueryError',
+        started_at: null,
+        finished_at: null,
+      },
+    ]
+
+    expect(buildJobStepItems(steps, null).map((item) => item.detail)).toEqual([
+      'Telegram не добавил музыку в профиль',
+      'Telegram не удалил музыку из профиля',
+    ])
+  })
+
   it('formats dynamic story step keys without leaking technical names', () => {
     const preview = {
       steps: [

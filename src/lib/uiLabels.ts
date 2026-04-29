@@ -55,6 +55,7 @@ const errorLabels: Record<string, string> = {
   STORY_POST_FAILED: 'Telegram не опубликовал историю',
   STORY_POST_NOT_FOUND: 'История не найдена',
   STORY_PRIVACY_PRESET_UNSUPPORTED: 'Этот режим приватности истории не поддерживается',
+  STORIES_DISABLED: 'Истории выключены в настройках приложения',
   STORIES_TDLIB_LIVE_DISABLED: 'Публикация историй через TDLib пока выключена',
   CAN_POST_STORY_PREMIUM_NEEDED: 'Для публикации истории нужен Premium',
   CAN_POST_STORY_ACTIVE_STORY_LIMIT_EXCEEDED:
@@ -73,7 +74,10 @@ const errorLabels: Record<string, string> = {
   TDLIB_GET_ME_MISSING_ID: 'TDLib не вернул идентификатор аккаунта',
   TDLIB_SAVED_MESSAGES_CHAT_MISSING_ID: 'TDLib не вернул чат для подготовки музыки',
   TDLIB_UNSUPPORTED_UPLOAD_FILE_METHOD: 'Использовался неподдерживаемый способ загрузки музыки',
+  tdlib_profile_step_failed: 'Telegram не применил шаг профиля',
   PROFILE_AUDIO_UPLOAD_NOT_COMPLETED: 'Telegram не подтвердил загрузку музыки',
+  PROFILE_AUDIO_ADD_FAILED: 'Telegram не добавил музыку в профиль',
+  PROFILE_AUDIO_REMOVE_FAILED: 'Telegram не удалил музыку из профиля',
   PROFILE_AUDIO_MESSAGE_SEND_FAILED: 'Telegram не смог подготовить музыку профиля',
   PROFILE_AUDIO_MESSAGE_SEND_TIMEOUT: 'Telegram не подтвердил подготовку музыки',
   PROFILE_AUDIO_FILE_ID_MISSING: 'Telegram не вернул файл музыки',
@@ -89,6 +93,9 @@ const errorLabels: Record<string, string> = {
   missing_tdlib_credentials: 'Не настроены TDLib API ID/API hash',
   unexpected_auth_state: 'Неожиданное состояние авторизации',
   stories_live_TDLib_execution_is_not_enabled: 'Публикация историй через TDLib пока выключена',
+  stories_are_disabled: 'Истории выключены в настройках приложения',
+  stories_live_TDLib_publishing_requires_TDLib_profile_execution:
+    'Публикация историй будет доступна после включения TDLib-исполнения профиля',
   'stories_live_TDLib_publishing_is_disabled': 'Публикация историй пока выключена',
   'story_video_preparation_is_limited_until_ffprobe_and_ffmpeg_are_available':
     'Видео проверяется в ограниченном режиме без ffmpeg/ffprobe',
@@ -121,6 +128,10 @@ export function labelIssue(value: string | null | undefined): string {
 }
 
 export function labelBlockingItem(value: string): string {
+  return labelIssue(normalizeKey(value))
+}
+
+export function labelStoryCapabilityWarning(value: string): string {
   return labelIssue(normalizeKey(value))
 }
 

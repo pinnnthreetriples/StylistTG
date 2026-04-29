@@ -14,7 +14,8 @@ def build_story_capabilities(session: Session, account_id: str, *, config: Setti
 
     ffprobe_available = _binary_available(config.ffprobe_path, "ffprobe")
     ffmpeg_available = _binary_available(config.ffmpeg_path, "ffmpeg")
-    live_enabled = config.stories_enabled and config.stories_tdlib_live_enabled
+    tdlib_execution_enabled = config.profile_execution_adapter == "tdlib"
+    live_enabled = config.stories_enabled and tdlib_execution_enabled and config.stories_tdlib_live_enabled
     return {
         "account_id": account_id,
         "stories_enabled": config.stories_enabled,
@@ -38,7 +39,11 @@ def _binary_available(configured_path: str | None, fallback_name: str) -> bool:
 
 def _warnings(config: Settings, ffprobe_available: bool, ffmpeg_available: bool) -> list[str]:
     warnings: list[str] = []
-    if config.stories_enabled and not config.stories_tdlib_live_enabled:
+    if not config.stories_enabled:
+        warnings.append("stories are disabled")
+    elif config.profile_execution_adapter != "tdlib":
+        warnings.append("stories live TDLib publishing requires TDLib profile execution")
+    elif not config.stories_tdlib_live_enabled:
         warnings.append("stories live TDLib publishing is disabled")
     if not ffprobe_available or not ffmpeg_available:
         warnings.append("story video preparation is limited until ffprobe and ffmpeg are available")

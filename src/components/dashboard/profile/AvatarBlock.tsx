@@ -3,7 +3,7 @@
  */
 
 import { Camera, Loader2, Trash2 } from 'lucide-react'
-import { composeDisplayName, type CurrentProfile } from '@/lib/dashboard'
+import { composeDisplayName, syncStateLabels, type CurrentProfile } from '@/lib/dashboard'
 
 interface AvatarBlockProps {
   photoPreviewUrl: string | null
@@ -79,6 +79,11 @@ export function AvatarBlock({
 
       {/* Caption */}
       <div className="text-center w-full max-w-[120px]">
+        {hasSelectedPhoto ? (
+          <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+            {syncStateLabels.appKnown}
+          </p>
+        ) : null}
         <p className="text-[10px] text-gray-400 leading-tight">
           {selectedPhotoName ?? (!hasSelectedPhoto ? 'JPG, PNG до 5 МБ' : null)}
         </p>

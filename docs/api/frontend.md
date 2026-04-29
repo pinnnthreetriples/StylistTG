@@ -13,6 +13,8 @@ The frontend is polling-first:
 
 There is no WebSocket/SSE contract.
 
+Frontend route/query architecture is documented in `docs/frontend-architecture.md`.
+
 ## Error DTO
 
 All structured API errors use this shape:

@@ -286,6 +286,12 @@ Use the account-update workflow for new profile/audio/story work unless there is
 Main orchestrator:
 
 - `src/App.tsx`
+- `src/hooks/useAppNavigation.ts`
+- `src/hooks/useAccountSelectionFlow.ts`
+- `src/hooks/useAuthBootstrap.ts`
+- `src/hooks/useDashboardActions.ts`
+- `src/hooks/useDashboardPresentation.ts`
+- `src/hooks/useTerminalJobRefresh.ts`
 
 Auth:
 
@@ -328,24 +334,46 @@ API client/types:
 - `src/lib/http.ts`
 - `src/lib/uiLabels.ts`
 
+Server-state/query layer:
+
+- `src/lib/queryClient.ts` - app-wide TanStack Query defaults.
+- `src/lib/queries.ts` - canonical query keys and query options.
+- `src/hooks/queries/useAccountsQueries.ts`
+- `src/hooks/queries/useSettingsQueries.ts`
+- `src/hooks/queries/useDashboardMutations.ts`
+- `src/hooks/useDashboardJobPolling.ts`
+
+Important query rules:
+
+- Reuse `queryKeys` and query option helpers; do not invent ad-hoc string keys in components.
+- Account-scoped dashboard data must live under `queryKeys.dashboard.account(accountId)` so account cleanup removes all related cached state.
+- `dashboardBundleQueryOptions(accountId)` is the current fast editor bootstrap path.
+- Granular options (`dashboardProfileQueryOptions`, `storyDraftsQueryOptions`, `storyCapabilitiesQueryOptions`, jobs/job steps) are available for future route/page splits.
+- Use targeted cache updates/invalidation after mutations. Avoid global query invalidation unless a change truly affects the whole app.
+
 ## Frontend Navigation
 
 Account-list-level screens use URL state:
 
-- `?view=accounts`
+- `/` for accounts
 - `?view=settings`
 - `?view=auth-batch`
+- `?account_id=...` for the current profile editor contract
 
 Helper:
 
 - `src/lib/appView.ts`
+- `src/lib/appNavigation.ts`
+- `src/lib/routes.ts`
 
 Rules:
 
 - Refresh on settings should stay on settings.
 - Refresh on batch auth should stay on batch auth.
 - Back from batch auth should return to `accounts`.
-- Dashboard account URLs still use account context/query state.
+- Dashboard account URLs still use the existing `account_id` search-param contract.
+- Use `src/lib/routes.ts` for new links/tests so a future router migration has one route-contract source.
+- Do not migrate to TanStack Router as part of unrelated feature work. Split that into a dedicated routing migration when the app has enough nested pages to justify it.
 
 ## Batch Account Addition
 

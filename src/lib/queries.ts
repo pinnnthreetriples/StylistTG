@@ -30,6 +30,7 @@ export const queryKeys = {
   dashboard: {
     root: ['dashboard'] as const,
     account: (accountId: string) => ['dashboard', accountId] as const,
+    profile: (accountId: string) => ['dashboard', accountId, 'profile'] as const,
     jobs: (accountId: string) => ['dashboard', accountId, 'jobs'] as const,
     latestJob: (accountId: string) => ['dashboard', accountId, 'latestJob'] as const,
     storyDrafts: (accountId: string) => ['dashboard', accountId, 'storyDrafts'] as const,
@@ -108,10 +109,31 @@ export function dashboardBundleQueryOptions(accountId: string) {
   })
 }
 
+export function dashboardProfileQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.dashboard.profile(accountId),
+    queryFn: () => fetchDashboard(accountId),
+  })
+}
+
 export function latestJobsQueryOptions(accountId: string) {
   return queryOptions({
     queryKey: queryKeys.dashboard.jobs(accountId),
     queryFn: () => fetchLatestJobs(accountId),
+  })
+}
+
+export function storyDraftsQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.dashboard.storyDrafts(accountId),
+    queryFn: () => fetchStoryDrafts(accountId),
+  })
+}
+
+export function storyCapabilitiesQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.dashboard.storyCapabilities(accountId),
+    queryFn: () => fetchStoryCapabilities(accountId),
   })
 }
 

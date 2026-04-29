@@ -6,6 +6,7 @@ import {
   accountsQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
+  dashboardProfileQueryOptions,
   fetchDashboardBundleQuery,
   fetchJobStateQuery,
   getCachedDashboardBundle,
@@ -17,6 +18,8 @@ import {
   removeAccountFromAccountsCache,
   removeAccountScopedQueries,
   settingsBundleQueryOptions,
+  storyCapabilitiesQueryOptions,
+  storyDraftsQueryOptions,
   updateSettingsAuthModeInCache,
   updateSettingsPolicyInCache,
   type DashboardBundle,
@@ -42,6 +45,11 @@ describe('query cache configuration', () => {
       'account-1',
       'bundle',
     ])
+    expect(dashboardProfileQueryOptions('account-1').queryKey).toEqual([
+      'dashboard',
+      'account-1',
+      'profile',
+    ])
     expect(latestJobsQueryOptions('account-1').queryKey).toEqual([
       'dashboard',
       'account-1',
@@ -54,6 +62,15 @@ describe('query cache configuration', () => {
     ])
     expect(jobDetailQueryOptions('job-1').queryKey).toEqual(['job', 'job-1'])
     expect(jobStepsQueryOptions('job-1').queryKey).toEqual(['job', 'job-1', 'steps'])
+  })
+
+  it('keeps dashboard sub-resource keys under the account prefix for future pages', () => {
+    const accountPrefix = queryKeys.dashboard.account('account-1')
+
+    expect(dashboardProfileQueryOptions('account-1').queryKey.slice(0, 2)).toEqual(accountPrefix)
+    expect(latestJobsQueryOptions('account-1').queryKey.slice(0, 2)).toEqual(accountPrefix)
+    expect(storyDraftsQueryOptions('account-1').queryKey.slice(0, 2)).toEqual(accountPrefix)
+    expect(storyCapabilitiesQueryOptions('account-1').queryKey.slice(0, 2)).toEqual(accountPrefix)
   })
 
   it('can force dashboard bundle refresh even while cached data is fresh', async () => {

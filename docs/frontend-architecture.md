@@ -18,7 +18,19 @@ TanStack Router is the canonical routing layer. Current canonical routes:
 
 Use `src/lib/routes.ts` for route string creation in new code and tests. Do not add ad-hoc route strings inside components.
 
-`src/router.tsx` defines the route tree, route loaders, and legacy query URL redirects.
+`src/router.tsx` defines the route tree, route loaders, lazy route components, and legacy query URL redirects.
+
+Route screen wrappers live in `src/routes/`:
+
+- `AccountsRoute.tsx` - accounts/settings area chunk.
+- `AuthBatchRoute.tsx` - batch auth chunk.
+- `AccountWorkspaceRoute.tsx` - account editor/workspace chunk.
+- `pending.tsx` - small cold-load pending fallback.
+- `error.tsx` - product route loader/component error fallback with hidden technical details.
+
+Use TanStack Router's `lazyRouteComponent` for route-level code splitting. Do not add random `React.lazy`
+inside product components for routing concerns. Split at product route boundaries first, then consider
+nested route chunks only when a module becomes a true independent page.
 
 Legacy compatibility redirects:
 
@@ -34,7 +46,7 @@ TanStack Query is the canonical server-state layer.
 
 Core files:
 
-- `src/router.tsx` - TanStack Router route tree and route-level prefetch.
+- `src/router.tsx` - TanStack Router route tree, lazy route components, route loaders, and route-level prefetch.
 - `src/lib/queryClient.ts` - shared default options.
 - `src/lib/queries.ts` - query keys, query options, cache helpers.
 - `src/hooks/queries/useAccountsQueries.ts` - accounts list and prefetching.
@@ -57,3 +69,6 @@ Rules:
 - Keep old query URLs as redirects only when compatibility is needed.
 - Use route loaders with existing query options and `queryClient.ensureQueryData`/`prefetchQuery`.
 - Keep TanStack Query keys stable when adding or moving routes.
+- Preserve loader-first rendering for account workspace routes: `authState` and `dashboardBundle` should be ready before the editor renders.
+- Use small route pending fallbacks for true cold loads only; do not show full skeletons during warm cached navigation.
+- Route loader/component errors should use TanStack Router error components, not ad-hoc top-level banners.

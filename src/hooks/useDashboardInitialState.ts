@@ -2,8 +2,9 @@ import { useMemo } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 
 import { readStoredDashboardCache } from '@/lib/dashboardCache'
-import { buildDashboardFormState, type FormState } from '@/lib/dashboard'
+import { type FormState } from '@/lib/dashboard'
 import { getCachedDashboardBundle } from '@/lib/queries'
+import { buildDashboardHydration } from '@/lib/dashboardNavigation'
 
 export const emptyDashboardForm: FormState = {
   firstName: '',
@@ -30,8 +31,11 @@ export function useDashboardInitialState(routeAccountId: string | null, queryCli
     [initialAccountId, initialBundle],
   )
   const initialForm = useMemo(
-    () => (initialDashboard ? buildDashboardFormState(initialDashboard) : emptyDashboardForm),
-    [initialDashboard],
+    () =>
+      initialAccountId && initialDashboard
+        ? buildDashboardHydration(window.localStorage, initialAccountId, initialDashboard).nextForm
+        : emptyDashboardForm,
+    [initialAccountId, initialDashboard],
   )
 
   return { initialAccountId, initialBundle, initialDashboard, initialForm }

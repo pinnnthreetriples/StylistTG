@@ -57,7 +57,6 @@ export interface AuthFlowResult {
   handleSubmitPassword: () => Promise<void>
   handleResetAuthPhone: () => void
   handleTestDcChange: (enabled: boolean) => Promise<void>
-  handleBatchTestDcChange: (enabled: boolean) => Promise<void>
   applyAuthStateResponse: (state: AuthStateResponse) => boolean
   applyAccountContext: (nextAccountId: string) => void
   clearAccountContext: () => void
@@ -282,22 +281,6 @@ export function useAuthFlow({
     }
   }, [clearAccountContext])
 
-  const handleBatchTestDcChange = useCallback(async (enabled: boolean) => {
-    setIsUpdatingTestDc(true)
-    setAuthError(null)
-    setAuthErrorCode(null)
-    try {
-      const mode = await updateAuthRuntimeMode(enabled)
-      setTestDcEnabled(mode.tdlib_use_test_dc)
-    } catch (error) {
-      const normalized = normalizeError(error)
-      setAuthError(buildAuthErrorMessage(normalized))
-      setAuthErrorCode(normalized.error_code)
-    } finally {
-      setIsUpdatingTestDc(false)
-    }
-  }, [])
-
   // ── Auth bootstrap: fetch state whenever accountId changes ───────────────────
 
   const skipNextBootstrapRef = useRef<boolean>(false)
@@ -327,7 +310,6 @@ export function useAuthFlow({
     handleSubmitPassword,
     handleResetAuthPhone,
     handleTestDcChange,
-    handleBatchTestDcChange,
     applyAuthStateResponse,
     applyAccountContext,
     clearAccountContext,

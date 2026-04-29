@@ -14,8 +14,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
-import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
-import { AccountList } from '@/components/dashboard/accounts/AccountList'
 import { DashboardActionBar } from '@/components/dashboard/DashboardActionBar'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
@@ -35,7 +33,6 @@ import {
   type ChangeItem,
 } from '@/lib/dashboard'
 import { useDashboardInitialState } from '@/hooks/useDashboardInitialState'
-import { useAccountSelectionFlow } from '@/hooks/useAccountSelectionFlow'
 import { useAuthBootstrap } from '@/hooks/useAuthBootstrap'
 import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboardActions } from '@/hooks/useDashboardActions'
@@ -51,14 +48,13 @@ import type { AuthPhase } from '@/lib/auth'
 import { appRoutes, type AppRouteState } from '@/lib/routes'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()
+type AccountRouteState = Extract<AppRouteState, { screen: 'account' }>
 
-function initialAuthPhaseForRoute(route: AppRouteState, hasInitialDashboard: boolean): AuthPhase {
-  if (route.screen !== 'account') return 'auth-phone'
+function initialAuthPhaseForRoute(hasInitialDashboard: boolean): AuthPhase {
   return hasInitialDashboard ? 'dashboard' : 'auth-loading'
 }
 
-function workspaceSectionId(route: AppRouteState): string | null {
-  if (route.screen !== 'account') return null
+function workspaceSectionId(route: AccountRouteState): string | null {
   if (route.section === 'profile') return null
   if (route.section === 'jobs') return 'account-workspace-jobs'
   if (route.section === 'debug') return 'account-workspace-debug'
@@ -72,13 +68,12 @@ function toVisibleAuthPhase(
   return phase
 }
 
-function App({ route }: { route: AppRouteState }) {
+function App({ route }: { route: AccountRouteState }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [, startNavigationTransition] = useTransition()
-  const routeAccountId = route.screen === 'account' ? route.accountId : null
-  const activeAccountId = routeAccountId ?? null
-  const { initialAccountId, initialBundle, initialDashboard, initialForm } = useDashboardInitialState(routeAccountId, queryClient)
+  const activeAccountId = route.accountId
+  const { initialAccountId, initialBundle, initialDashboard, initialForm } = useDashboardInitialState(route.accountId, queryClient)
 
   // ── File input refs (wiring hidden <input type="file"> elements) ─────────────
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -112,7 +107,7 @@ function App({ route }: { route: AppRouteState }) {
   // ── Auth flow ─────────────────────────────────────────────────────────────────
   const auth = useAuthFlow({
     initialAccountId,
-    initialPhase: initialAuthPhaseForRoute(route, Boolean(initialDashboard)),
+    initialPhase: initialAuthPhaseForRoute(Boolean(initialDashboard)),
   } as Parameters<typeof useAuthFlow>[0])
   const {
     authPhase,
@@ -138,7 +133,6 @@ function App({ route }: { route: AppRouteState }) {
     handleSubmitPassword,
     handleResetAuthPhone,
     handleTestDcChange,
-    handleBatchTestDcChange,
     applyAuthStateResponse,
     applyAccountContext,
     clearAccountContext,
@@ -159,11 +153,6 @@ function App({ route }: { route: AppRouteState }) {
     [navigate],
   )
 
-  const navigateToAccount = useCallback(
-    (nextAccountId: string) => navigateToRoute(appRoutes.account(nextAccountId)),
-    [navigateToRoute],
-  )
-
   // ── Dashboard data + job polling ──────────────────────────────────────────────
   const dashboardHook = useDashboard({
     accountId: activeAccountId,
@@ -173,7 +162,6 @@ function App({ route }: { route: AppRouteState }) {
   })
   const {
     dashboard,
-    setDashboard,
     jobs,
     currentJob,
     currentSteps,
@@ -281,25 +269,6 @@ function App({ route }: { route: AppRouteState }) {
     setAuthStep,
   })
 
-  const { selectAccount } = useAccountSelectionFlow({
-    applyAccountContext,
-    applyAuthStateResponse,
-    formBaselineRef,
-    formInitializedRef,
-    formRef,
-    loadDashboardState,
-    queryClient,
-    setApiError,
-    setDashboard,
-    setForm,
-    setHiddenJobPanelKey,
-    setIsBootRefreshing,
-    setSubmittedPreview,
-    skipNextAuthBootstrapRef,
-    transitionToPhase,
-    navigateToAccount,
-  })
-
   // ── If dashboard phase but form not ready, trigger load ───────────────────────
   useEffect(() => {
     if (!activeAccountId || authPhase !== 'dashboard' || dashboardReady) return
@@ -374,7 +343,7 @@ function App({ route }: { route: AppRouteState }) {
   }, [handleBackToAccounts, navigateToRoute])
 
   useEffect(() => {
-    if (route.screen !== 'account' || accountId === route.accountId) return
+    if (accountId === route.accountId) return
     const id = window.setTimeout(() => {
       clearSelectedPhotoPreview()
       setSubmittedPreview(null)
@@ -400,7 +369,7 @@ function App({ route }: { route: AppRouteState }) {
     const targetId = workspaceSectionId(route)
     if (!targetId) return
     const id = window.setTimeout(() => {
-      if (route.screen === 'account' && (route.section === 'jobs' || route.section === 'debug')) {
+      if (route.section === 'jobs' || route.section === 'debug') {
         setHiddenJobPanelKey(null)
       }
       document.getElementById(targetId)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
@@ -410,29 +379,7 @@ function App({ route }: { route: AppRouteState }) {
 
   // ── Render routing ────────────────────────────────────────────────────────────
 
-  if (route.screen === 'accounts' || route.screen === 'settings') {
-    return (
-      <AccountList
-        activeTab={route.screen === 'settings' ? 'settings' : 'accounts'}
-        onAddBatch={() => navigateToRoute(appRoutes.authBatch())}
-        onSelectAccount={selectAccount}
-        onTabChange={(tab) => navigateToRoute(tab === 'settings' ? appRoutes.settings() : appRoutes.accounts())}
-      />
-    )
-  }
-
-  if (route.screen === 'auth-batch') {
-    return (
-      <BulkAuthScreen
-        onBack={() => navigateToRoute(appRoutes.accounts())}
-        onTestDcChange={handleBatchTestDcChange}
-        testDcEnabled={testDcEnabled}
-        testDcPending={isUpdatingTestDc}
-      />
-    )
-  }
-
-  if (route.screen === 'account' && accountId !== route.accountId) {
+  if (accountId !== route.accountId) {
     return <DashboardSkeleton />
   }
 
@@ -546,7 +493,7 @@ function App({ route }: { route: AppRouteState }) {
       />
 
       {shouldShowJobPanel ? (
-        <div id={route.screen === 'account' && route.section === 'debug' ? 'account-workspace-debug' : 'account-workspace-jobs'}>
+        <div id={route.section === 'debug' ? 'account-workspace-debug' : 'account-workspace-jobs'}>
           <JobStepPanel
             currentJob={currentJob}
             items={jobDisplayItems}

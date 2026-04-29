@@ -446,6 +446,16 @@ Legacy query URLs are compatibility redirects only:
 - `/?view=auth-batch` -> `/auth/batch`
 - `/?account_id=<id>` -> `/accounts/<id>`
 
+Route components are code-split at product boundaries through TanStack Router:
+
+- accounts/settings route area
+- batch auth route
+- account workspace route
+
+Account workspace routes must keep loader-first behavior: frontend should resolve `authState` and
+`dashboardBundle` through `src/lib/queries.ts` before rendering the editor. This prevents warm
+navigation from briefly showing skeleton/auth fallback screens.
+
 ## Polling Model
 
 Recommended account update polling flow:

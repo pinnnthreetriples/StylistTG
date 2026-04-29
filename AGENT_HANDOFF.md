@@ -368,6 +368,11 @@ Helper:
 
 - `src/lib/routes.ts`
 - `src/router.tsx`
+- `src/routes/AccountsRoute.tsx`
+- `src/routes/AuthBatchRoute.tsx`
+- `src/routes/AccountWorkspaceRoute.tsx`
+- `src/routes/pending.tsx`
+- `src/routes/error.tsx`
 
 Rules:
 
@@ -375,6 +380,11 @@ Rules:
 - Refresh on batch auth should stay on batch auth.
 - Browser back/forward is owned by TanStack Router, not manual `popstate` listeners.
 - Use `src/lib/routes.ts` for route strings; do not add ad-hoc route strings in components.
+- Route-level code splitting is done through TanStack Router `lazyRouteComponent`.
+- Split at product route boundaries first: accounts/settings, batch auth, and account workspace.
+- Keep account workspace loaders data-first: `authState` and `dashboardBundle` should be ready before the editor renders.
+- Use the small route pending fallback for cold loads only; warm cached navigation should render from TanStack Query cache without a full skeleton flash.
+- Route loader/component failures use the TanStack Router error component with user-facing Russian text and hidden technical details.
 - Old query URLs are compatibility redirects only:
   - `/?view=settings` -> `/settings`
   - `/?view=auth-batch` -> `/auth/batch`

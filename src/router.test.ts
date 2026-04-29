@@ -20,4 +20,10 @@ describe('TanStack Router route tree', () => {
       ]),
     )
   })
+
+  it('uses product route fallback components for cold load and loader errors', () => {
+    expect(router.options.defaultPendingComponent).toBeDefined()
+    expect(router.options.defaultErrorComponent).toBeDefined()
+    expect(router.options.defaultPendingMs).toBe(600)
+  })
 })

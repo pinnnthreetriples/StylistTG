@@ -1,14 +1,12 @@
-/* eslint-disable react-refresh/only-export-components */
 import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   Outlet,
   redirect,
-  useParams,
 } from '@tanstack/react-router'
 
-import App from '@/App'
 import { queryClient } from '@/lib/queryClient'
 import {
   accountsQueryOptions,
@@ -16,12 +14,17 @@ import {
   dashboardBundleQueryOptions,
   settingsBundleQueryOptions,
 } from '@/lib/queries'
-import { resolveLegacyQueryRoute, type AccountWorkspaceSection } from '@/lib/routes'
+import { resolveLegacyQueryRoute } from '@/lib/routes'
+import { RouteError } from '@/routes/error'
+import { RoutePending } from '@/routes/pending'
 
-function AccountRouteComponent({ section }: { section: AccountWorkspaceSection }) {
-  const { accountId } = useParams({ strict: false }) as { accountId: string }
-  return <App key={`account:${accountId}`} route={{ screen: 'account', accountId, section }} />
-}
+const AccountsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'AccountsRoute')
+const SettingsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'SettingsRoute')
+const AuthBatchRouteComponent = lazyRouteComponent(() => import('@/routes/AuthBatchRoute'), 'AuthBatchRoute')
+const AccountWorkspaceRouteComponent = lazyRouteComponent(
+  () => import('@/routes/AccountWorkspaceRoute'),
+  'AccountWorkspaceRoute',
+)
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -38,20 +41,20 @@ const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   loader: () => queryClient.ensureQueryData(accountsQueryOptions()),
-  component: () => <App route={{ screen: 'accounts' }} />,
+  component: AccountsRouteComponent,
 })
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'settings',
   loader: () => queryClient.ensureQueryData(settingsBundleQueryOptions()),
-  component: () => <App route={{ screen: 'settings' }} />,
+  component: SettingsRouteComponent,
 })
 
 const authBatchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'auth/batch',
-  component: () => <App route={{ screen: 'auth-batch' }} />,
+  component: AuthBatchRouteComponent,
 })
 
 function loadAccountWorkspace(accountId: string) {
@@ -65,42 +68,42 @@ const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="profile" />,
+  component: () => <AccountWorkspaceRouteComponent section="profile" />,
 })
 
 const accountProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/profile',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="profile" />,
+  component: () => <AccountWorkspaceRouteComponent section="profile" />,
 })
 
 const accountJobsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/jobs',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="jobs" />,
+  component: () => <AccountWorkspaceRouteComponent section="jobs" />,
 })
 
 const accountStoriesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/stories',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="stories" />,
+  component: () => <AccountWorkspaceRouteComponent section="stories" />,
 })
 
 const accountMusicRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/music',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="music" />,
+  component: () => <AccountWorkspaceRouteComponent section="music" />,
 })
 
 const accountDebugRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/debug',
   loader: ({ params }) => loadAccountWorkspace(params.accountId),
-  component: () => <AccountRouteComponent section="debug" />,
+  component: () => <AccountWorkspaceRouteComponent section="debug" />,
 })
 
 const routeTree = rootRoute.addChildren([
@@ -118,6 +121,10 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  defaultPendingComponent: RoutePending,
+  defaultErrorComponent: RouteError,
+  defaultPendingMs: 600,
+  defaultPendingMinMs: 250,
 })
 
 declare module '@tanstack/react-router' {

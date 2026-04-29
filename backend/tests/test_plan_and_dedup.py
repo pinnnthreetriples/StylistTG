@@ -120,6 +120,35 @@ def test_same_profile_intent_can_be_created_after_previous_job_is_terminal(db_se
     assert second.job_state == JobState.QUEUED
 
 
+def test_same_profile_intent_can_be_created_after_previous_job_is_partially_completed(db_session) -> None:
+    account = create_account(db_session, external_ref="primary")
+    account.account_state = AccountState.EXECUTION_USABLE
+    payload = {
+        "name": "Stylist TG",
+        "bio": "Profile editor",
+        "username": "stylist",
+        "photo_asset_id": None,
+    }
+    first = create_profile_job(
+        db_session,
+        account_id=account.id,
+        payload=payload,
+        config=LocalSettings(profile_job_cooldown_seconds=0),
+    )
+    first.job_state = JobState.PARTIALLY_COMPLETED
+    first.finished_at = utc_now()
+    db_session.commit()
+
+    second = create_profile_job(
+        db_session,
+        account_id=account.id,
+        payload=payload,
+        config=LocalSettings(profile_job_cooldown_seconds=0),
+    )
+
+    assert second.job_state == JobState.QUEUED
+
+
 def test_profile_job_blocks_when_account_requires_manual_intervention(db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.MANUAL_INTERVENTION_NEEDED

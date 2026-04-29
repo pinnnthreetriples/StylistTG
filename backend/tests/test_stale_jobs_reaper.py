@@ -108,3 +108,21 @@ def test_reap_stale_jobs_handles_naive_runtime_timestamp(db_session) -> None:
     assert reap_stale_jobs(db_session, stale_after_seconds=300) == 1
     assert job.job_state == JobState.FAILED
     assert account.runtime_state.lock_owner is None
+
+
+def test_reap_stale_jobs_leaves_partially_completed_job_alone(db_session) -> None:
+    account = create_account(db_session, external_ref="primary")
+    account.account_state = "execution_usable"
+    job = create_profile_job(
+        db_session,
+        account_id=account.id,
+        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
+        config=type("Config", (), {"profile_job_cooldown_seconds": 0})(),
+    )
+    job.job_state = JobState.PARTIALLY_COMPLETED
+    job.started_at = utc_now() - timedelta(minutes=10)
+    job.finished_at = utc_now() - timedelta(minutes=9)
+    db_session.commit()
+
+    assert reap_stale_jobs(db_session, stale_after_seconds=300) == 0
+    assert job.job_state == JobState.PARTIALLY_COMPLETED

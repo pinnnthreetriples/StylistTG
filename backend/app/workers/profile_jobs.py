@@ -261,7 +261,10 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             )
         elif job.workflow_type == "account_update":
             state = classify_account_update_job_outcome(
-                [{"step_type": step.step_type, "status": step.status} for step in job.step_results]
+                [
+                    {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
+                    for step in job.step_results
+                ]
             )
             mark_terminal(
                 session,
@@ -342,7 +345,10 @@ def run_profile_job(job_id: str) -> int:
 
 
 def _classify_terminal_job_outcome(job) -> JobState:
-    step_results = [{"step_type": step.step_type, "status": step.status} for step in job.step_results]
+    step_results = [
+        {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
+        for step in job.step_results
+    ]
     if job.workflow_type == "account_update":
         return classify_account_update_job_outcome(step_results)
     return classify_job_outcome(step_results)

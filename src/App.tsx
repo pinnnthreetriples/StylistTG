@@ -10,7 +10,7 @@
 
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
@@ -24,52 +24,42 @@ import { ProfileEditor } from '@/components/dashboard/profile/ProfilePanels'
 import { ToastViewport, type ToastItem } from '@/components/ui/toast'
 import { getPollingIntervalMs } from '@/lib/config'
 import {
-  type JobSummary,
   type ProfilePreview,
-  type StoryPost,
 } from '@/lib/api'
-import { normalizeError } from '@/lib/appErrors'
-import {
-  buildJobDisplayItems,
-  buildJobProgressSummary,
-  buildJobResultSummary,
-  buildJobStepItems,
-  shouldResetDraftAfterJobState,
-} from '@/lib/jobs'
 import {
   buildJobMetrics,
-  buildRuntimeBanner,
   formatChangeOperationLabel,
   groupRealExecutionChanges,
-  shouldConfirmRealTelegramExecution,
   type ApiError,
   type ChangeItem,
 } from '@/lib/dashboard'
-import { readCachedDashboardHydration } from '@/lib/dashboardNavigation'
-import { emptyDashboardForm, useDashboardInitialState } from '@/hooks/useDashboardInitialState'
+import { useDashboardInitialState } from '@/hooks/useDashboardInitialState'
+import { useAccountSelectionFlow } from '@/hooks/useAccountSelectionFlow'
+import { useAppNavigation } from '@/hooks/useAppNavigation'
+import { useAuthBootstrap } from '@/hooks/useAuthBootstrap'
 import { useAuthFlow } from '@/hooks/useAuthFlow'
+import { useDashboardActions } from '@/hooks/useDashboardActions'
 import { useDashboard } from '@/hooks/useDashboard'
+import { useDashboardPresentation } from '@/hooks/useDashboardPresentation'
 import { useProfileDraft } from '@/hooks/useProfileDraft'
+import { useTerminalJobRefresh } from '@/hooks/useTerminalJobRefresh'
 import {
   useDeleteStoryPostMutation,
   useRefreshRuntimeMutation,
 } from '@/hooks/queries/useDashboardMutations'
-import { labelIssue, labelJobState } from '@/lib/uiLabels'
-import { readAccountListView, writeAccountListView, type AccountListView } from '@/lib/appView'
-import {
-  buildAuthErrorMessage,
-  shouldClearStoredAccountForAuthState,
-  shouldRunAuthBootstrap,
-  nextAuthPhaseFromState,
-} from '@/lib/auth'
-import { authStateQueryOptions } from '@/lib/queries'
+import { readAccountListView } from '@/lib/appView'
+import { resolveInitialNavigationState } from '@/lib/appNavigation'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()
 
 function App() {
   const queryClient = useQueryClient()
   const { initialAccountId, initialDashboard, initialForm } = useDashboardInitialState()
-  const initialAccountListView = readAccountListView(window.location.search)
+  const initialNavigation = resolveInitialNavigationState({
+    hasInitialAccountId: Boolean(initialAccountId),
+    hasInitialDashboard: Boolean(initialDashboard),
+    initialView: readAccountListView(window.location.search),
+  })
 
   // ── File input refs (wiring hidden <input type="file"> elements) ─────────────
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -101,19 +91,7 @@ function App() {
   }, [])
 
   // ── Auth flow ─────────────────────────────────────────────────────────────────
-  const initialPhase = initialDashboard
-    ? 'dashboard'
-    : initialAccountId
-      ? 'auth-loading'
-      : initialAccountListView === 'auth-batch'
-        ? 'auth-batch'
-        : 'account-list'
-  const [accountListView, setAccountListView] = useState<AccountListView>(
-    initialAccountListView === 'auth-batch' ? 'accounts' : initialAccountListView,
-  )
-  const [, startNavigationTransition] = useTransition()
-
-  const auth = useAuthFlow({ initialAccountId, initialPhase } as Parameters<typeof useAuthFlow>[0])
+  const auth = useAuthFlow({ initialAccountId, initialPhase: initialNavigation.phase } as Parameters<typeof useAuthFlow>[0])
   const {
     authPhase,
     authStep,
@@ -145,38 +123,16 @@ function App() {
     _skipNextBootstrapRef: skipNextAuthBootstrapRef,
   } = auth as typeof auth & { _skipNextBootstrapRef: React.MutableRefObject<boolean> }
 
-  useEffect(() => {
-    function handlePopState() {
-      const nextView = readAccountListView(window.location.search)
-      if (!accountId && nextView === 'auth-batch') {
-        skipNextAuthBootstrapRef.current = true
-        setAuthPhase('auth-batch')
-        setAccountListView('accounts')
-        return
-      }
-      if (!accountId) {
-        setAuthPhase('account-list')
-        setAccountListView(nextView === 'auth-batch' ? 'accounts' : nextView)
-      }
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [accountId, setAuthPhase, skipNextAuthBootstrapRef])
-
-  function showAccountListView(view: AccountListView, mode: 'push' | 'replace' = 'push') {
-    skipNextAuthBootstrapRef.current = true
-    writeAccountListView(view, mode)
-    startNavigationTransition(() => {
-      if (view === 'auth-batch') {
-        setAuthPhase('auth-batch')
-        setAccountListView('accounts')
-        return
-      }
-      setAuthPhase('account-list')
-      setAccountListView(view)
-    })
-  }
+  const {
+    accountListView,
+    showTopLevelView,
+    transitionToPhase,
+  } = useAppNavigation({
+    accountId,
+    initialNavigation,
+    setAuthPhase,
+    skipNextAuthBootstrapRef,
+  })
 
   // ── Dashboard data + job polling ──────────────────────────────────────────────
   const dashboardHook = useDashboard({
@@ -254,123 +210,37 @@ function App() {
 
   // ── API error state (passed from dashboard loads) ─────────────────────────────
   const [apiError, setApiError] = useState<ApiError | null>(null)
-  const runtimeBanner = useMemo(() => buildRuntimeBanner({ apiError }), [apiError])
-  const visibleBanner = runtimeBanner
-  const latestJobPlan = useMemo(() => {
-    if (!currentJob) return null
-    const latest = jobs.find((job) => job.job_id === currentJob.job_id)
-    if (!latest?.plan_summary.length) return null
-    return {
-      steps: latest.plan_summary.map((step_key) => ({ step_key })),
-    }
-  }, [currentJob, jobs])
-  const jobPlan = submittedPreview ?? preview ?? latestJobPlan
-  const jobStepItems = useMemo(
-    () => buildJobStepItems(currentSteps, jobPlan, currentJob?.job_state),
-    [currentJob?.job_state, currentSteps, jobPlan],
-  )
-  const jobResultSummary = useMemo(
-    () => buildJobResultSummary(currentJob, currentSteps),
-    [currentJob, currentSteps],
-  )
-  const jobProgressSummary = useMemo(() => buildJobProgressSummary(jobStepItems), [jobStepItems])
-  const jobDisplayItems = useMemo(() => buildJobDisplayItems(jobStepItems), [jobStepItems])
-  const activeJobKey = currentJob && !terminalJobStates.has(currentJob.job_state) ? currentJob.job_id : null
-  const jobPanelKey = activeJobKey ?? preview?.execution_intent_hash ?? currentJob?.job_id ?? (jobStepItems.length > 0 ? 'steps' : null)
-  const shouldShowJobPanel = Boolean(jobPanelKey && hiddenJobPanelKey !== jobPanelKey)
+  const {
+    jobDisplayItems,
+    jobPanelKey,
+    jobProgressSummary,
+    jobResultSummary,
+    runtimeBanner: visibleBanner,
+    shouldShowJobPanel,
+  } = useDashboardPresentation({
+    apiError,
+    currentJob,
+    currentSteps,
+    hiddenJobPanelKey,
+    jobs,
+    preview,
+    submittedPreview,
+    terminalJobStates,
+  })
 
-  function hydrateCachedDashboard(accountId: string): boolean {
-    const cached = readCachedDashboardHydration(window.localStorage, accountId)
-    if (!cached) return false
-
-    setDashboard(cached.dashboard)
-    formBaselineRef.current = cached.baselineForm
-    formInitializedRef.current = true
-    formRef.current = cached.nextForm
-    setForm(cached.nextForm)
-    setApiError(null)
-    setSubmittedPreview(null)
-    setHiddenJobPanelKey(null)
-    return true
-  }
-
-  // ── Auth bootstrap: fetch auth state whenever accountId changes ───────────────
-  useEffect(() => {
-    if (!shouldRunAuthBootstrap(accountId, authPhase)) return
-    const bootstrapAccountId = accountId
-    if (!bootstrapAccountId) return
-    if (skipNextAuthBootstrapRef.current) {
-      skipNextAuthBootstrapRef.current = false
-      return
-    }
-
-    let active = true
-    const visualStateTimeout = window.setTimeout(() => {
-      if (!active) return
-      if (!dashboardReadyRef.current) {
-        setAuthPhase('auth-loading')
-      } else {
-        setIsBootRefreshing(true)
-      }
-    }, 0)
-
-    void (async () => {
-      try {
-        const authState = await queryClient.fetchQuery(authStateQueryOptions(bootstrapAccountId))
-        if (!active) return
-
-        if (shouldClearStoredAccountForAuthState(authState)) {
-          clearAccountContext()
-          setPhoneNumber(authState.external_ref)
-          setAuthPhase('auth-phone')
-          return
-        }
-
-        if (nextAuthPhaseFromState(authState) === 'dashboard') {
-          setPhoneNumber(authState.external_ref)
-          const loaded = await loadDashboardState(
-            bootstrapAccountId,
-            formRef,
-            formBaselineRef,
-            formInitializedRef,
-            setForm,
-          )
-          if (loaded) {
-            setApiError(null)
-            if (active) setAuthPhase('dashboard')
-          }
-          return
-        }
-
-        applyAuthStateResponse(authState)
-      } catch (error) {
-        if (!active) return
-        const normalized = normalizeError(error)
-        setAuthError(buildAuthErrorMessage(normalized))
-        setAuthErrorCode(normalized.error_code)
-        setAuthStep('phone')
-        setAuthPhase('auth-error')
-      } finally {
-        if (active) setIsBootRefreshing(false)
-      }
-    })()
-
-    return () => {
-      active = false
-      window.clearTimeout(visualStateTimeout)
-    }
-  }, [
+  useAuthBootstrap({
     accountId,
     applyAuthStateResponse,
     authPhase,
     clearAccountContext,
+    dashboardReadyRef,
     queryClient,
     loadDashboardState,
     formRef,
     formBaselineRef,
     formInitializedRef,
     setForm,
-    dashboardReadyRef,
+    setApiError,
     setAuthPhase,
     setPhoneNumber,
     setIsBootRefreshing,
@@ -378,7 +248,25 @@ function App() {
     setAuthError,
     setAuthErrorCode,
     setAuthStep,
-  ])
+  })
+
+  const { selectAccount } = useAccountSelectionFlow({
+    applyAccountContext,
+    applyAuthStateResponse,
+    formBaselineRef,
+    formInitializedRef,
+    formRef,
+    loadDashboardState,
+    queryClient,
+    setApiError,
+    setDashboard,
+    setForm,
+    setHiddenJobPanelKey,
+    setIsBootRefreshing,
+    setSubmittedPreview,
+    skipNextAuthBootstrapRef,
+    transitionToPhase,
+  })
 
   // ── If dashboard phase but form not ready, trigger load ───────────────────────
   useEffect(() => {
@@ -391,30 +279,17 @@ function App() {
     return () => window.clearTimeout(id)
   }, [accountId, authPhase, dashboardReady, loadDashboardState, formRef, formBaselineRef, formInitializedRef, setForm])
 
-  useEffect(() => {
-    if (!accountId || terminalJobRefreshSeq === 0) return
-    const shouldResetDraft = shouldResetDraftAfterJobState(currentJob?.job_state)
-    void (async () => {
-      const loaded = await loadDashboardState(
-        accountId,
-        formRef,
-        formBaselineRef,
-        formInitializedRef,
-        setForm,
-        { resetForm: shouldResetDraft },
-      )
-      if (loaded) setApiError(null)
-    })()
-  }, [
+  useTerminalJobRefresh({
     accountId,
-    currentJob?.job_state,
+    currentJobState: currentJob?.job_state,
     formBaselineRef,
     formInitializedRef,
     formRef,
     loadDashboardState,
+    setApiError,
     setForm,
     terminalJobRefreshSeq,
-  ])
+  })
 
   // ── Cleanup toast timers ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -424,113 +299,43 @@ function App() {
     }
   }, [])
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
-
-  function handleBackToAccounts() {
-    clearSelectedPhotoPreview()
-    clearAccountContext()
-    formInitializedRef.current = false
-    formBaselineRef.current = null
-    formRef.current = emptyDashboardForm
-    setForm(emptyDashboardForm)
-    resetDashboard()
-    setSubmittedPreview(null)
-    setApiError(null)
-    setHiddenJobPanelKey(null)
-    setIsRealExecutionConfirmOpen(false)
-    setIsRefreshingRuntime(false)
-    setPhoneNumber('')
-    setOtpCode('')
-    setTwoFaPassword('')
-    startNavigationTransition(() => setAuthPhase('account-list'))
-  }
-
-  async function handleRefreshRuntime() {
-    if (!accountId) return
-    setIsRefreshingRuntime(true)
-    try {
-      await refreshRuntimeMutation.mutateAsync(accountId)
-      const loaded = await loadDashboardState(
-        accountId,
-        formRef,
-        formBaselineRef,
-        formInitializedRef,
-        setForm,
-        { quiet: true, resetForm: true, forceRefresh: true },
-      )
-      if (loaded) setApiError(null)
-      notify({ tone: 'success', title: 'Профиль синхронизирован' })
-    } catch (error) {
-      const normalized = normalizeError(error)
-      setApiError(normalized)
-      notify({ tone: 'error', title: 'Не удалось синхронизировать профиль', description: labelIssue(normalized.error_code) })
-    } finally {
-      setIsRefreshingRuntime(false)
-    }
-  }
-
-  async function submitCreateJob() {
-    const planForCreatedJob = preview
-    await draft.handleCreateJob(
-      async (job: JobSummary) => {
-        setSubmittedPreview(planForCreatedJob)
-        patchDashboardPipeline(job)
-        if (job.job_state === 'dedup_blocked') return
-        const jobDetail = await loadJobState(accountId!, job.job_id)
-        if (jobDetail && terminalJobStates.has(jobDetail.job_state)) {
-          const loaded = await loadDashboardState(
-            accountId!,
-            formRef,
-            formBaselineRef,
-            formInitializedRef,
-            setForm,
-            { resetForm: shouldResetDraftAfterJobState(jobDetail.job_state), forceRefresh: true },
-          )
-          if (loaded) setApiError(null)
-        }
-        notify({ tone: 'success', title: 'Задача создана', description: labelJobState(job.job_state) })
-      },
-      (err) => setApiError(err),
-    )
-  }
-
-  async function handleCreateJob() {
-    if (shouldConfirmRealTelegramExecution(dashboard?.diagnostics, changedItems)) {
-      setIsRealExecutionConfirmOpen(true)
-      return
-    }
-    await submitCreateJob()
-  }
-
-  async function confirmRealExecution() {
-    setIsRealExecutionConfirmOpen(false)
-    await submitCreateJob()
-  }
-
-  async function handleDeleteStoryPost(post: StoryPost) {
-    if (!accountId) return
-
-    setDeletingStoryPostId(post.id)
-    try {
-      await deleteStoryPostMutation.mutateAsync({ accountId, postId: post.id })
-      const loaded = await loadDashboardState(
-        accountId,
-        formRef,
-        formBaselineRef,
-        formInitializedRef,
-        setForm,
-        { quiet: true, forceRefresh: true },
-      )
-      if (loaded) setApiError(null)
-      notify({ tone: 'success', title: 'История удалена' })
-    } catch (error) {
-      const normalized = normalizeError(error)
-      setApiError(normalized)
-      notify({ tone: 'error', title: 'Не удалось удалить историю', description: labelIssue(normalized.error_code) })
-    } finally {
-      setDeletingStoryPostId(null)
-    }
-  }
+  const {
+    confirmRealExecution,
+    handleBackToAccounts,
+    handleCreateJob,
+    handleDeleteStoryPost,
+    handleRefreshRuntime,
+  } = useDashboardActions({
+    accountId,
+    changedItems,
+    clearAccountContext,
+    clearSelectedPhotoPreview,
+    confirmDiagnostics: dashboard?.diagnostics,
+    createProfileJob: draft.handleCreateJob,
+    deleteStoryPost: (post) => deleteStoryPostMutation.mutateAsync({ accountId: accountId!, postId: post.id }),
+    formBaselineRef,
+    formInitializedRef,
+    formRef,
+    loadDashboardState,
+    loadJobState,
+    notify,
+    patchDashboardPipeline,
+    preview,
+    refreshRuntime: refreshRuntimeMutation.mutateAsync,
+    resetDashboard,
+    setApiError,
+    setDeletingStoryPostId,
+    setForm,
+    setHiddenJobPanelKey,
+    setIsRealExecutionConfirmOpen,
+    setIsRefreshingRuntime,
+    setOtpCode,
+    setPhoneNumber,
+    setSubmittedPreview,
+    setTwoFaPassword,
+    terminalJobStates,
+    transitionToPhase,
+  })
 
   // ── Render routing ────────────────────────────────────────────────────────────
 
@@ -546,43 +351,9 @@ function App() {
     return (
       <AccountList
         activeTab={accountListView === 'settings' ? 'settings' : 'accounts'}
-        onAddBatch={() => showAccountListView('auth-batch')}
-        onSelectAccount={(nextAccountId) => {
-          writeAccountListView('accounts', 'replace')
-          skipNextAuthBootstrapRef.current = false
-          const hydrated = hydrateCachedDashboard(nextAccountId)
-          startNavigationTransition(() => {
-            applyAccountContext(nextAccountId)
-            setAuthPhase(hydrated ? 'dashboard' : 'auth-loading')
-          })
-          if (hydrated) {
-            setIsBootRefreshing(true)
-            void (async () => {
-              try {
-                const authState = await queryClient.fetchQuery(authStateQueryOptions(nextAccountId))
-                if (nextAuthPhaseFromState(authState) !== 'dashboard') {
-                  applyAuthStateResponse(authState)
-                  return
-                }
-                const loaded = await loadDashboardState(
-                  nextAccountId,
-                  formRef,
-                  formBaselineRef,
-                  formInitializedRef,
-                  setForm,
-                  { quiet: true },
-                )
-                if (loaded) setApiError(null)
-              } catch (error) {
-                const normalized = normalizeError(error)
-                setApiError(normalized)
-              } finally {
-                setIsBootRefreshing(false)
-              }
-            })()
-          }
-        }}
-        onTabChange={(tab) => showAccountListView(tab)}
+        onAddBatch={() => showTopLevelView('auth-batch')}
+        onSelectAccount={selectAccount}
+        onTabChange={(tab) => showTopLevelView(tab)}
       />
     )
   }
@@ -590,7 +361,7 @@ function App() {
   if (authPhase === 'auth-batch') {
     return (
       <BulkAuthScreen
-        onBack={() => showAccountListView('accounts')}
+        onBack={() => showTopLevelView('accounts')}
         onTestDcChange={handleBatchTestDcChange}
         testDcEnabled={testDcEnabled}
         testDcPending={isUpdatingTestDc}

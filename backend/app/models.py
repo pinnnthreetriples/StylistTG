@@ -1,0 +1,483 @@
+from __future__ import annotations
+
+import uuid
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON, Uuid
+
+from app.db import Base
+
+UUIDString = String(36).with_variant(Uuid(as_uuid=False), "postgresql")
+
+
+def new_id() -> str:
+    return str(uuid.uuid4())
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+class AccountState(StrEnum):
+    REGISTERED = "registered"
+    AUTH_PENDING = "auth_pending"
+    AWAITING_CODE = "awaiting_code"
+    AWAITING_PASSWORD = "awaiting_password"
+    AUTHORIZED_READY = "authorized_ready"
+    EXECUTION_USABLE = "execution_usable"
+    REAUTH_REQUIRED = "reauth_required"
+    RUNTIME_BROKEN = "runtime_broken"
+    MANUAL_INTERVENTION_NEEDED = "manual_intervention_needed"
+    DISABLED = "disabled"
+
+
+class AuthBatchStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class AuthBatchItemStatus(StrEnum):
+    QUEUED = "queued"
+    STARTING = "starting"
+    WAITING_CODE = "waiting_code"
+    WAITING_2FA = "waiting_2fa"
+    AUTHORIZED = "authorized"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    TIMED_OUT = "timed_out"
+    SKIPPED = "skipped"
+
+
+class AuthAttemptKind(StrEnum):
+    START_AUTH = "start_auth"
+    SUBMIT_CODE = "submit_code"
+    SUBMIT_2FA = "submit_2fa"
+    RESEND_CODE = "resend_code"
+
+
+class AuthAttemptStatus(StrEnum):
+    STARTED = "started"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    TIMED_OUT = "timed_out"
+
+
+class JobState(StrEnum):
+    QUEUED = "queued"
+    DEDUP_BLOCKED = "dedup_blocked"
+    WAITING_LOCK = "waiting_lock"
+    RUNNING = "running"
+    PARTIALLY_COMPLETED = "partially_completed"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    MANUAL_INTERVENTION_NEEDED = "manual_intervention_needed"
+    CANCELED = "canceled"
+
+
+class StepStatus(StrEnum):
+    PLANNED = "planned"
+    STARTED = "started"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    UNCERTAIN = "uncertain"
+    SKIPPED = "skipped"
+
+
+class AssetKind(StrEnum):
+    PROFILE_PHOTO = "profile_photo"
+    PROFILE_AUDIO = "profile_audio"
+    STORY_IMAGE = "story_image"
+    STORY_VIDEO = "story_video"
+
+
+class AssetStatus(StrEnum):
+    UPLOADED = "uploaded"
+    NORMALIZED = "normalized"
+    FAILED = "failed"
+    ORPHANED = "orphaned"
+
+
+TERMINAL_JOB_STATES = {
+    JobState.DEDUP_BLOCKED,
+    JobState.PARTIALLY_COMPLETED,
+    JobState.COMPLETED,
+    JobState.FAILED,
+    JobState.MANUAL_INTERVENTION_NEEDED,
+    JobState.CANCELED,
+}
+
+TERMINAL_AUTH_BATCH_STATUSES = {
+    AuthBatchStatus.COMPLETED,
+    AuthBatchStatus.FAILED,
+    AuthBatchStatus.CANCELLED,
+}
+
+TERMINAL_AUTH_BATCH_ITEM_STATUSES = {
+    AuthBatchItemStatus.AUTHORIZED,
+    AuthBatchItemStatus.FAILED,
+    AuthBatchItemStatus.CANCELLED,
+    AuthBatchItemStatus.TIMED_OUT,
+    AuthBatchItemStatus.SKIPPED,
+}
+
+
+class Account(Base):
+    __tablename__ = "account"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    external_ref: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    auth_source: Mapped[str] = mapped_column(String(64), nullable=False, default="otp")
+    account_state: Mapped[str] = mapped_column(
+        String(64), nullable=False, default=AccountState.REGISTERED
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    runtime_state: Mapped[AccountRuntimeState] = relationship(
+        back_populates="account", cascade="all, delete-orphan", uselist=False
+    )
+    profile_state: Mapped[AccountProfileState | None] = relationship(
+        back_populates="account", cascade="all, delete-orphan", uselist=False
+    )
+    profile_audio_state: Mapped[AccountProfileAudioState | None] = relationship(
+        back_populates="account", cascade="all, delete-orphan", uselist=False
+    )
+    story_posts: Mapped[list[AccountStoryPost]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
+    story_drafts: Mapped[list[AccountStoryDraft]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
+    jobs: Mapped[list[Job]] = relationship(back_populates="account")
+    auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
+
+
+class AccountRuntimeState(Base):
+    __tablename__ = "account_runtime_state"
+
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), primary_key=True
+    )
+    session_present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    authorized_last_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    runtime_health: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    reauth_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    lock_owner: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    lock_epoch: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    recovery_marker: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    account: Mapped[Account] = relationship(back_populates="runtime_state")
+
+
+class AccountAuthAttempt(Base):
+    __tablename__ = "account_auth_attempt"
+    __table_args__ = (
+        Index("ix_auth_attempt_account_kind_created", "account_id", "attempt_kind", "created_at"),
+        Index("ix_auth_attempt_ref_kind_created", "external_ref", "attempt_kind", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    external_ref: Mapped[str] = mapped_column(String(255), nullable=False)
+    attempt_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(128), nullable=False)
+    blocked_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    account: Mapped[Account] = relationship(back_populates="auth_attempts")
+
+
+class AuthBatch(Base):
+    __tablename__ = "auth_batch"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_auth_batch_idempotency_key"),
+        Index("ix_auth_batch_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthBatchStatus.PENDING)
+    total_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    success_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cancelled_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_running_commands: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    max_waiting_input: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    max_total_active: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    items: Mapped[list[AuthBatchItem]] = relationship(
+        back_populates="batch", cascade="all, delete-orphan", order_by="AuthBatchItem.position"
+    )
+    events: Mapped[list[AuthBatchEvent]] = relationship(
+        back_populates="batch", cascade="all, delete-orphan"
+    )
+
+
+class AuthBatchItem(Base):
+    __tablename__ = "auth_batch_item"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "position", name="uq_auth_batch_item_batch_position"),
+        Index("ix_auth_batch_item_batch_status", "batch_id", "status"),
+        Index("ix_auth_batch_item_lock_expires", "lock_expires_at"),
+        Index("ix_auth_batch_item_phone_status", "phone_number", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    batch_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("auth_batch.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    phone_number: Mapped[str] = mapped_column(String(255), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthBatchItemStatus.QUEUED)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    resend_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    code_error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    password_error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    locked_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+    authorized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    batch: Mapped[AuthBatch] = relationship(back_populates="items")
+    account: Mapped[Account] = relationship()
+    attempts: Mapped[list[AuthAttempt]] = relationship(
+        back_populates="batch_item", cascade="all, delete-orphan"
+    )
+    events: Mapped[list[AuthBatchEvent]] = relationship(back_populates="batch_item")
+
+
+class AuthAttempt(Base):
+    __tablename__ = "auth_attempt"
+    __table_args__ = (
+        UniqueConstraint("batch_item_id", "attempt_number", "kind", name="uq_auth_attempt_item_number_kind"),
+        Index("ix_auth_attempt_batch_item", "batch_item_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    batch_item_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("auth_batch_item.id"), nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthAttemptStatus.STARTED)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    batch_item: Mapped[AuthBatchItem] = relationship(back_populates="attempts")
+
+
+class AuthBatchEvent(Base):
+    __tablename__ = "auth_batch_event"
+    __table_args__ = (
+        Index("ix_auth_batch_event_batch_created", "batch_id", "created_at"),
+        Index("ix_auth_batch_event_item_created", "batch_item_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    batch_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("auth_batch.id"), nullable=False)
+    batch_item_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("auth_batch_item.id"), nullable=True
+    )
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    actor: Mapped[str] = mapped_column(String(64), nullable=False, default="system")
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    batch: Mapped[AuthBatch] = relationship(back_populates="events")
+    batch_item: Mapped[AuthBatchItem | None] = relationship(back_populates="events")
+
+
+class IdempotencyKey(Base):
+    __tablename__ = "idempotency_key"
+    __table_args__ = (
+        Index("ix_idempotency_key_expires", "expires_at"),
+    )
+
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    operation: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_id: Mapped[str] = mapped_column(UUIDString, nullable=False)
+    response_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AccountProfileState(Base):
+    __tablename__ = "account_profile_state"
+
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), primary_key=True
+    )
+    telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    profile_photo_asset_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    account: Mapped[Account] = relationship(back_populates="profile_state")
+
+
+class AccountProfileAudioState(Base):
+    __tablename__ = "account_profile_audio_state"
+
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), primary_key=True
+    )
+    telegram_audio_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    telegram_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    performer: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    mime: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    source_asset_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    raw_tdlib_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    account: Mapped[Account] = relationship(back_populates="profile_audio_state")
+
+
+class AccountStoryPost(Base):
+    __tablename__ = "account_story_post"
+    __table_args__ = (
+        UniqueConstraint("job_id", "step_key", name="uq_account_story_post_job_step"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    job_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    step_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    story_poster_chat_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    telegram_story_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    temporary_story_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    media_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    asset_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
+    privacy_preset: Mapped[str] = mapped_column(String(64), nullable=False, default="contacts")
+    active_period_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=86400)
+    protect_content: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    can_be_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default="posted")
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_tdlib_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    account: Mapped[Account] = relationship(back_populates="story_posts")
+
+
+class AccountStoryDraft(Base):
+    __tablename__ = "account_story_draft"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(UUIDString, nullable=False)
+    media_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
+    privacy_preset: Mapped[str] = mapped_column(String(64), nullable=False, default="contacts")
+    active_period_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=86400)
+    protect_content: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    validation_status: Mapped[str] = mapped_column(String(64), nullable=False, default="ready")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    account: Mapped[Account] = relationship(back_populates="story_drafts")
+
+
+class Job(Base):
+    __tablename__ = "job"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    job_state: Mapped[str] = mapped_column(String(64), nullable=False, default=JobState.QUEUED)
+    workflow_type: Mapped[str] = mapped_column(String(64), nullable=False, default="profile_update")
+    workflow_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    execution_intent_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    job_payload_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    desired_state_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    capability_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    plan_json_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    compensation_state: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    dedup_blocked_by_job_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    queued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    account: Mapped[Account] = relationship(back_populates="jobs")
+    step_results: Mapped[list[JobStepResult]] = relationship(
+        back_populates="job", cascade="all, delete-orphan", order_by="JobStepResult.started_at"
+    )
+
+
+class JobStepResult(Base):
+    __tablename__ = "job_step_result"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    job_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("job.id"), nullable=False)
+    step_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    step_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default=StepStatus.PLANNED)
+    step_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    capability_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    compensation_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    attempt_no: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    uncertain_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verification_attempted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    verification_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_class: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    result_payload_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    job: Mapped[Job] = relationship(back_populates="step_results")
+
+
+class Asset(Base):
+    __tablename__ = "asset"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_path: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_path: Mapped[str] = mapped_column(Text, nullable=False)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    mime: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

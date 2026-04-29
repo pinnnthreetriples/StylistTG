@@ -1,0 +1,161 @@
+const stepLabels: Record<string, string> = {
+  set_name: 'Имя',
+  set_bio: 'Описание',
+  set_username: 'Юзернейм',
+  set_profile_photo: 'Фото профиля',
+  upload_profile_audio: 'Загрузка музыки',
+  add_profile_audio: 'Музыка профиля',
+  remove_profile_audio: 'Удаление музыки',
+  keep_profile_audio: 'Музыка без изменений',
+  validate_story_capabilities: 'Проверка историй',
+  prepare_story_media: 'Подготовка истории',
+  post_story_image: 'Новая история с фото',
+  post_story_video: 'Новая история с видео',
+}
+
+const jobStateLabels: Record<string, string> = {
+  queued: 'В очереди',
+  waiting_lock: 'Ожидает аккаунт',
+  running: 'В работе',
+  completed: 'Готово',
+  partially_completed: 'Частично готово',
+  failed: 'Ошибка',
+  manual_intervention_needed: 'Нужна ручная проверка',
+  canceled: 'Отменено',
+  dedup_blocked: 'Повтор уже есть',
+  draft: 'Черновик',
+}
+
+const stepStatusLabels: Record<string, string> = {
+  planned: 'Запланировано',
+  not_started: 'Не запускалось',
+  started: 'В работе',
+  succeeded: 'Готово',
+  failed: 'Ошибка',
+  uncertain: 'Проверить',
+  skipped: 'Пропущено',
+}
+
+const errorLabels: Record<string, string> = {
+  ACCOUNT_NOT_FOUND: 'Аккаунт не найден',
+  AUTH_MANUAL_INTERVENTION_REQUIRED: 'Нужна ручная проверка аккаунта',
+  DEDUP_BLOCKED: 'Такая задача уже есть',
+  JOB_ACTIVE_CANNOT_DELETE: 'Сначала отмените активную задачу',
+  JOB_NOT_FOUND: 'Задача не найдена',
+  JOB_RUNNING_CANNOT_CANCEL: 'Задача уже выполняется, дождитесь завершения или сработки таймаута',
+  NETWORK_ERROR: 'Нет связи с backend',
+  QUEUE_UNAVAILABLE: 'Очередь задач недоступна',
+  PROFILE_JOB_QUEUE_UNAVAILABLE: 'Очередь задач недоступна',
+  RUNTIME_UNUSABLE: 'Аккаунт пока не готов к работе',
+  FROZEN_METHOD_INVALID: 'Telegram ограничил это действие',
+  STORY_CAPABILITY_BLOCKED: 'Истории сейчас недоступны',
+  STORY_ASSET_NOT_READY: 'Черновик истории устарел. Обновите страницу или удалите историю из черновика',
+  STORY_DELETE_FAILED: 'Telegram не удалил историю',
+  STORY_POST_CANNOT_DELETE: 'Эту историю нельзя удалить из приложения',
+  STORY_POST_NOT_FOUND: 'История не найдена',
+  STORIES_TDLIB_LIVE_DISABLED: 'Публикация историй через TDLib пока выключена',
+  CAN_POST_STORY_ACTIVE_STORY_LIMIT_EXCEEDED:
+    'Лимит активных историй для обычного аккаунта. Удалите одну историю, дождитесь окончания или используйте Premium с повышенным лимитом',
+  CAN_POST_STORY_WEEKLY_LIMIT_EXCEEDED: 'Достигнут недельный лимит историй. Приобретите Premium',
+  UNSUPPORTED_AUTH_BRANCH: 'Этот способ входа пока не поддерживается',
+  UPLOAD_TOO_LARGE: 'Файл слишком большой',
+  USERNAME_INVALID: 'Юзернейм некорректен',
+  USERNAME_OCCUPIED: 'Юзернейм уже занят',
+  USERNAME_PURCHASE_AVAILABLE: 'Юзернейм доступен только через покупку',
+  USERNAME_AMBIGUOUS: 'Юзернейм требует проверки',
+  tdlib_error: 'Telegram не принял изменение',
+  TdlibProfileQueryError: 'TDLib не смог применить изменение профиля',
+  TdlibUnavailable: 'TDLib сейчас недоступен',
+  TDLIB_UNSUPPORTED_UPLOAD_FILE_METHOD: 'Использовался неподдерживаемый способ загрузки музыки',
+  PROFILE_AUDIO_UPLOAD_NOT_COMPLETED: 'Telegram не подтвердил загрузку музыки',
+  PROFILE_AUDIO_MESSAGE_SEND_FAILED: 'Telegram не смог подготовить музыку профиля',
+  PROFILE_AUDIO_MESSAGE_SEND_TIMEOUT: 'Telegram не подтвердил подготовку музыки',
+  PROFILE_AUDIO_FILE_ID_MISSING: 'Telegram не вернул файл музыки',
+  PROFILE_AUDIO_UNSUPPORTED_FORMAT: 'Для музыки профиля нужен MP3 или M4A',
+  profile_runtime_failed: 'Runtime профиля завершился с ошибкой',
+  worker_timeout: 'Worker не завершил задачу вовремя',
+  worker_or_child_interrupted: 'Выполнение было прервано',
+  profile_job_cooldown_active: 'Сработала пауза между запусками задач',
+  ready: 'Готов к работе',
+  broken: 'Есть проблема',
+  closed: 'Сессия закрыта',
+  manual_intervention_needed: 'Нужна ручная проверка',
+  missing_tdlib_credentials: 'Не настроены TDLib API ID/API hash',
+  unexpected_auth_state: 'Неожиданное состояние авторизации',
+  stories_live_TDLib_execution_is_not_enabled: 'Публикация историй через TDLib пока выключена',
+  'stories_live_TDLib_publishing_is_disabled': 'Публикация историй пока выключена',
+  'story_video_preparation_is_limited_until_ffprobe_and_ffmpeg_are_available':
+    'Видео проверяется в ограниченном режиме без ffmpeg/ffprobe',
+}
+
+export function labelStep(value: string | null | undefined): string {
+  if (!value) {
+    return 'Шаг не указан'
+  }
+
+  const normalized = normalizeKey(value)
+  const storyLabel = labelDynamicStoryStep(normalized)
+  if (storyLabel) {
+    return storyLabel
+  }
+
+  return stepLabels[normalized] ?? sentenceCase(normalized)
+}
+
+export function labelJobState(value: string | null | undefined): string {
+  return labelFromMap(value, jobStateLabels, 'Статус')
+}
+
+export function labelStepStatus(value: string | null | undefined): string {
+  return labelFromMap(value, stepStatusLabels, 'Статус')
+}
+
+export function labelIssue(value: string | null | undefined): string {
+  return labelFromMap(value, errorLabels, 'Проблема')
+}
+
+export function labelBlockingItem(value: string): string {
+  return labelIssue(normalizeKey(value))
+}
+
+function labelFromMap(
+  value: string | null | undefined,
+  labels: Record<string, string>,
+  fallbackPrefix: string,
+): string {
+  if (!value) {
+    return `${fallbackPrefix} не указан`
+  }
+  const normalized = normalizeKey(value)
+  return labels[normalized] ?? sentenceCase(normalized)
+}
+
+function normalizeKey(value: string): string {
+  return value.trim().replace(/\s+/g, '_')
+}
+
+function sentenceCase(value: string): string {
+  const readable = value.replace(/[_-]+/g, ' ').trim()
+  if (!readable) {
+    return 'Неизвестно'
+  }
+  return readable[0].toUpperCase() + readable.slice(1)
+}
+
+function labelDynamicStoryStep(value: string): string | null {
+  const match = /^story_(\d+)_(validate_capabilities|prepare_media|post)$/.exec(value)
+  if (!match) {
+    return null
+  }
+
+  const storyNumber = match[1]
+  const action = match[2]
+  const actionLabel =
+    action === 'validate_capabilities'
+      ? 'Проверка'
+      : action === 'prepare_media'
+        ? 'Подготовка'
+        : 'Публикация'
+
+  return `История ${storyNumber} · ${actionLabel}`
+}

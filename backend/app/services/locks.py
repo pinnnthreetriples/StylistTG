@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+from datetime import timedelta
+
+from sqlalchemy import or_, update
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.models import AccountRuntimeState, utc_now
+
+
+def acquire_account_lock(session: Session, account_id: str, owner: str) -> int | None:
+    now = utc_now()
+    stale_cutoff = now - timedelta(seconds=settings.lock_stale_seconds)
+    result = session.execute(
+        update(AccountRuntimeState)
+        .where(AccountRuntimeState.account_id == account_id)
+        .where(
+            or_(
+                AccountRuntimeState.lock_owner.is_(None),
+                AccountRuntimeState.updated_at.is_(None),
+                AccountRuntimeState.updated_at < stale_cutoff,
+            )
+        )
+        .values(
+            lock_owner=owner,
+            lock_epoch=AccountRuntimeState.lock_epoch + 1,
+            recovery_marker=f"lock_acquired:{owner}",
+            updated_at=now,
+        )
+    )
+    if result.rowcount != 1:
+        session.rollback()
+        return None
+    session.commit()
+    runtime = session.get(AccountRuntimeState, account_id)
+    if runtime is None or runtime.lock_owner != owner:
+        return None
+    return runtime.lock_epoch
+
+
+def heartbeat_lock(session: Session, account_id: str, owner: str, lock_epoch: int) -> bool:
+    runtime = session.get(AccountRuntimeState, account_id)
+    if runtime is None or runtime.lock_owner != owner or runtime.lock_epoch != lock_epoch:
+        return False
+    runtime.updated_at = utc_now()
+    if not _is_hard_stop_marker(runtime.recovery_marker):
+        runtime.recovery_marker = f"heartbeat:{owner}"
+    session.commit()
+    return True
+
+
+def release_account_lock(session: Session, account_id: str, owner: str, lock_epoch: int) -> bool:
+    runtime = session.get(AccountRuntimeState, account_id)
+    if runtime is None or runtime.lock_owner != owner or runtime.lock_epoch != lock_epoch:
+        return False
+    runtime.lock_owner = None
+    if not _is_hard_stop_marker(runtime.recovery_marker):
+        runtime.recovery_marker = f"lock_released:{owner}"
+    runtime.updated_at = utc_now()
+    session.commit()
+    return True
+
+
+def fenced_write_allowed(
+    session: Session, account_id: str, owner: str, lock_epoch: int
+) -> bool:
+    runtime = session.get(AccountRuntimeState, account_id)
+    return bool(runtime and runtime.lock_owner == owner and runtime.lock_epoch == lock_epoch)
+
+
+def _is_hard_stop_marker(marker: str | None) -> bool:
+    return bool(marker and marker.startswith("tdlib_hard_stop:"))

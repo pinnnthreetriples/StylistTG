@@ -1,0 +1,93 @@
+from io import BytesIO
+
+import pytest
+from fastapi.testclient import TestClient
+from PIL import Image
+
+from app.db import get_session
+from app.main import app
+from app.models import AssetKind, AssetStatus
+from app.services.assets import save_profile_audio_asset, save_profile_photo_asset
+
+
+def test_profile_photo_upload_is_normalized_and_recorded(db_session, storage_dir) -> None:
+    image = Image.new("RGB", (1600, 900), color=(0, 128, 255))
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG")
+
+    asset = save_profile_photo_asset(
+        db_session,
+        filename="profile.jpg",
+        content=buffer.getvalue(),
+        storage_root=storage_dir,
+    )
+
+    assert asset.kind == AssetKind.PROFILE_PHOTO
+    assert asset.status == AssetStatus.NORMALIZED
+    assert asset.mime == "image/jpeg"
+    assert len(asset.content_hash) == 64
+    assert (storage_dir / asset.source_path).exists()
+    assert (storage_dir / asset.normalized_path).exists()
+
+    with Image.open(storage_dir / asset.normalized_path) as normalized:
+        assert normalized.format == "JPEG"
+        assert max(normalized.size) <= 1024
+
+
+def test_upload_endpoint_rejects_oversized_profile_audio_before_asset_processing(
+    db_session, monkeypatch
+) -> None:
+    from app.api import assets as assets_api
+
+    def override_session():
+        yield db_session
+
+    called = False
+
+    def fail_if_processed(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("oversized upload should be rejected before asset processing")
+
+    monkeypatch.setattr(assets_api.settings, "profile_audio_max_bytes", 4)
+    monkeypatch.setattr(assets_api, "save_profile_audio_asset", fail_if_processed)
+    app.dependency_overrides[get_session] = override_session
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/assets/profile-audio",
+        files={"file": ("large.mp3", b"12345", "audio/mpeg")},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 413
+    assert response.json()["error_code"] == "UPLOAD_TOO_LARGE"
+    assert response.json()["message"] == "uploaded file is too large"
+    assert called is False
+
+
+def test_profile_audio_upload_rejects_ogg_voice_note_format(db_session, storage_dir) -> None:
+    with pytest.raises(ValueError, match="profile audio must be MP3 or M4A"):
+        save_profile_audio_asset(
+            db_session,
+            filename="voice-note.ogg",
+            content=b"OggS" + b"\x00" * 128,
+            storage_root=storage_dir,
+            max_bytes=1024,
+        )
+
+
+def test_upload_endpoint_returns_specific_profile_audio_format_error(db_session) -> None:
+    def override_session():
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    client = TestClient(app)
+    response = client.post(
+        "/api/assets/profile-audio",
+        files={"file": ("voice-note.ogg", b"OggS" + b"\x00" * 128, "audio/ogg")},
+    )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"

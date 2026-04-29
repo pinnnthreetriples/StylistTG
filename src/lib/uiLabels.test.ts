@@ -19,6 +19,8 @@ describe('ui labels', () => {
     expect(labelIssue('PROFILE_AUDIO_ADD_FAILED')).toBe('Telegram не добавил музыку в профиль')
     expect(labelIssue('PROFILE_AUDIO_REMOVE_FAILED')).toBe('Telegram не удалил музыку из профиля')
     expect(labelIssue('STORY_POST_FAILED')).toBe('Telegram не опубликовал историю')
+    expect(labelIssue('STORY_TELEGRAM_REJECTED')).toBe('Telegram отклонил публикацию истории')
+    expect(labelIssue('story_post_confirmation_timeout')).toBe('Telegram не подтвердил публикацию истории')
     expect(labelIssue('tdlib_profile_step_failed')).toBe('Telegram не применил шаг профиля')
   })
 })

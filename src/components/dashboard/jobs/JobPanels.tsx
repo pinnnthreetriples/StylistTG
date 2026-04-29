@@ -17,7 +17,15 @@ import { useState } from 'react'
 
 import { type JobDetail, type JobSummary } from '@/lib/api'
 import { buildJobMetrics } from '@/lib/dashboard'
-import { type JobDisplayItem, type JobProgressSummary, type JobResultSummary, type JobStepItem } from '@/lib/jobs'
+import {
+  type JobDisplayItem,
+  type JobProgressSummary,
+  type JobResultSummary,
+  type JobStepDebugDetails,
+  type JobStepItem,
+  canExpandJobStepDebugDetails,
+  shouldShowJobStepDebugDetails,
+} from '@/lib/jobs'
 
 const terminalJobStates = new Set([
   'completed',
@@ -208,7 +216,7 @@ export function JobStepPanel({
           ) : (
             <ol className="space-y-1" role="list">
               {items.map((item) => (
-                <JobMonitorRow item={item} key={item.key} />
+                <JobMonitorRow currentJobId={currentJob?.job_id ?? null} item={item} key={item.key} />
               ))}
             </ol>
           )}
@@ -218,7 +226,11 @@ export function JobStepPanel({
   )
 }
 
-function JobMonitorRow({ item }: { item: JobDisplayItem }) {
+function JobMonitorRow({ currentJobId, item }: { currentJobId: string | null; item: JobDisplayItem }) {
+  const [debugOpen, setDebugOpen] = useState(false)
+  const debugDetails = item.debugDetails
+  const canExpandDebug = canExpandJobStepDebugDetails(item)
+
   return (
     <li className={`rounded-lg px-2 py-1.5 ${item.tone === 'error' ? 'bg-red-50' : item.tone === 'active' ? 'bg-navy-50' : ''}`}>
       <div className="flex items-center gap-2">
@@ -236,9 +248,56 @@ function JobMonitorRow({ item }: { item: JobDisplayItem }) {
           {item.tone === 'error' || item.tone === 'warning' || item.status === 'not_started' ? (
             <p className="mt-0.5 text-[10px] leading-snug text-gray-500">{item.detail}</p>
           ) : null}
+          {canExpandDebug && debugDetails ? (
+            <div className="mt-1">
+              <button
+                aria-expanded={debugOpen}
+                className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 transition hover:bg-white/70 hover:text-gray-700"
+                onClick={() => setDebugOpen((value) => !value)}
+                type="button"
+              >
+                {debugOpen ? 'Скрыть технические детали' : 'Технические детали'}
+              </button>
+              {shouldShowJobStepDebugDetails(item, debugOpen) ? (
+                <JobStepDebugDetailsBlock currentJobId={currentJobId} details={debugDetails} />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </li>
+  )
+}
+
+function JobStepDebugDetailsBlock({
+  currentJobId,
+  details,
+}: {
+  currentJobId: string | null
+  details: JobStepDebugDetails
+}) {
+  return (
+    <div className="mt-1 max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white/80 p-2">
+      <dl className="grid grid-cols-[88px_minmax(0,1fr)] gap-x-2 gap-y-1 text-[10px]">
+        {currentJobId ? (
+          <>
+            <dt className="font-semibold text-gray-400">Job ID</dt>
+            <dd className="min-w-0 break-all font-mono text-gray-600">{currentJobId}</dd>
+          </>
+        ) : null}
+        {details.rows.map((row) => (
+          <span className="contents" key={`${row.label}:${row.value}`}>
+            <dt className="font-semibold text-gray-400">{row.label}</dt>
+            <dd className="min-w-0 break-words font-mono text-gray-600">{row.value}</dd>
+          </span>
+        ))}
+      </dl>
+      {details.rawJson ? (
+        <pre className="mt-2 max-h-28 overflow-auto whitespace-pre-wrap break-words rounded-md bg-gray-50 p-2 text-[10px] leading-relaxed text-gray-600">
+          {details.rawJson}
+        </pre>
+      ) : null}
+    </div>
   )
 }
 

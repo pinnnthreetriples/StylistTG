@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildJobStepDebugDetails,
   buildJobDisplayItems,
   buildJobProgressSummary,
   buildJobResultSummary,
   buildJobStepItems,
+  canExpandJobStepDebugDetails,
   shouldResetDraftAfterJobState,
+  shouldShowJobStepDebugDetails,
 } from '@/lib/jobs'
 import type { JobDetail, JobStep, ProfilePreview } from '@/lib/api'
 
@@ -47,14 +50,20 @@ describe('buildJobStepItems', () => {
     ]
 
     expect(buildJobStepItems(steps, preview)).toEqual([
-      {
+      expect.objectContaining({
         key: 'set_name',
         title: 'Имя',
         status: 'succeeded',
         statusLabel: 'Готово',
         detail: 'Применено',
         tone: 'success',
-      },
+        debugDetails: expect.objectContaining({
+          rows: expect.arrayContaining([
+            { label: 'Ключ шага', value: 'set_name' },
+            { label: 'Тип шага', value: 'set_name' },
+          ]),
+        }),
+      }),
       {
         key: 'set_bio',
         title: 'Описание',
@@ -62,15 +71,16 @@ describe('buildJobStepItems', () => {
         statusLabel: 'Запланировано',
         detail: 'Ожидает запуска',
         tone: 'neutral',
+        debugDetails: null,
       },
-      {
+      expect.objectContaining({
         key: 'set_username',
         title: 'Юзернейм',
         status: 'uncertain',
         statusLabel: 'Проверить',
         detail: 'Юзернейм требует проверки',
         tone: 'warning',
-      },
+      }),
       {
         key: 'add_profile_audio',
         title: 'Музыка профиля',
@@ -78,6 +88,7 @@ describe('buildJobStepItems', () => {
         statusLabel: 'Запланировано',
         detail: 'Ожидает запуска',
         tone: 'neutral',
+        debugDetails: null,
       },
     ])
   })
@@ -284,6 +295,77 @@ describe('buildJobStepItems', () => {
       tone: 'warning',
     })
   })
+
+  it('builds optional debug details without replacing the user-facing label', () => {
+    const step: JobStep = {
+      step_key: 'story_1_post',
+      step_type: 'post_story_image',
+      status: 'failed',
+      verification_attempted: true,
+      verification_result: { telegram_story_id: null },
+      uncertain_reason: null,
+      error_code: 'STORY_POST_FAILED',
+      error_class: 'TdlibProfileQueryError',
+      result_payload_json: { message: 'Telegram rejected story' },
+      started_at: '2026-04-24T00:00:00Z',
+      finished_at: '2026-04-24T00:00:02Z',
+    }
+
+    expect(buildJobStepItems([step], null)[0]).toMatchObject({
+      detail: 'Telegram не опубликовал историю',
+      debugDetails: expect.objectContaining({
+        rows: expect.arrayContaining([
+          { label: 'Код ошибки', value: 'STORY_POST_FAILED' },
+          { label: 'Класс ошибки', value: 'TdlibProfileQueryError' },
+        ]),
+        rawJson: expect.stringContaining('Telegram rejected story'),
+      }),
+    })
+  })
+
+  it('tolerates missing raw debug payloads', () => {
+    expect(
+      buildJobStepDebugDetails({
+        step_key: 'set_name',
+        step_type: 'set_name',
+        status: 'succeeded',
+        verification_attempted: false,
+        verification_result: null,
+        uncertain_reason: null,
+        error_code: null,
+        error_class: null,
+        started_at: null,
+        finished_at: null,
+      }),
+    ).toMatchObject({
+      rawJson: null,
+    })
+  })
+
+  it('keeps debug details hidden until the advanced toggle is open', () => {
+    const item = buildJobStepItems(
+      [
+        {
+          step_key: 'story_1_post',
+          step_type: 'post_story_image',
+          status: 'failed',
+          verification_attempted: false,
+          verification_result: null,
+          uncertain_reason: null,
+          error_code: 'STORY_POST_FAILED',
+          error_class: 'TdlibProfileQueryError',
+          started_at: null,
+          finished_at: null,
+        },
+      ],
+      null,
+    )[0]
+
+    expect(canExpandJobStepDebugDetails(item)).toBe(true)
+    expect(shouldShowJobStepDebugDetails(item, false)).toBe(false)
+    expect(shouldShowJobStepDebugDetails(item, true)).toBe(true)
+    expect(shouldShowJobStepDebugDetails({ ...item, debugDetails: null }, true)).toBe(false)
+  })
 })
 
 describe('buildJobResultSummary', () => {
@@ -373,9 +455,9 @@ describe('buildJobResultSummary', () => {
 describe('buildJobProgressSummary', () => {
   it('counts completed, failed, active, and not-started steps', () => {
     const items = [
-      { key: 'set_name', title: 'Имя', status: 'succeeded', statusLabel: 'Готово', detail: 'Применено', tone: 'success' },
-      { key: 'set_username', title: 'Юзернейм', status: 'failed', statusLabel: 'Ошибка', detail: 'TDLib ошибка', tone: 'error' },
-      { key: 'set_photo', title: 'Фото', status: 'not_started', statusLabel: 'Не запускалось', detail: 'Остановлено', tone: 'neutral' },
+      { key: 'set_name', title: 'Имя', status: 'succeeded', statusLabel: 'Готово', detail: 'Применено', tone: 'success', debugDetails: null },
+      { key: 'set_username', title: 'Юзернейм', status: 'failed', statusLabel: 'Ошибка', detail: 'TDLib ошибка', tone: 'error', debugDetails: null },
+      { key: 'set_photo', title: 'Фото', status: 'not_started', statusLabel: 'Не запускалось', detail: 'Остановлено', tone: 'neutral', debugDetails: null },
     ] as const
 
     expect(buildJobProgressSummary(items)).toEqual({

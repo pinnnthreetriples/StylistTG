@@ -8,8 +8,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type StoryCapabilities, type StoryDraftPayload, type StoryPost } from '@/lib/api'
-import { appKnownMediaSyncNote, syncStateLabels } from '@/lib/dashboard'
-import { labelStoryCapabilityWarning } from '@/lib/uiLabels'
+import { appKnownMediaSyncNote, buildStoryCapabilityStatus, syncStateLabels } from '@/lib/dashboard'
 
 interface StoriesBlockProps {
   stories: StoryDraftPayload[]
@@ -39,6 +38,7 @@ export function StoriesBlock({
   const editingStory = stories.find((s) => s.clientId === editingStoryId)
   const closeModal = () => setEditingStoryId(null)
   const closeDeleteModal = () => setPendingDeletePost(null)
+  const capabilityStatus = buildStoryCapabilityStatus(storyCapabilities)
   const confirmDelete = () => {
     if (!pendingDeletePost) return
     onDeleteStoryPost(pendingDeletePost)
@@ -57,16 +57,25 @@ export function StoriesBlock({
             </h2>
             {isUploadingStory && <Loader2 className="size-3.5 animate-spin text-gray-400" />}
           </div>
-          {storyCapabilities?.warnings.length ? (
-            <p className="mt-1 text-[10px] text-honey-600">
-              {labelStoryCapabilityWarning(storyCapabilities.warnings[0])}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-[10px] text-gray-400">
-              {stories.length > 0 ? syncStateLabels.draft : 'Для публикации вместе с обновлением профиля'}
-            </p>
-          )}
+          <p className={`mt-1 text-[10px] ${capabilityStatusClass(capabilityStatus.tone)}`}>
+            {capabilityStatus.description}
+          </p>
         </div>
+      </div>
+
+      <div className={`mb-3 rounded-lg border px-3 py-2 ${capabilityBoxClass(capabilityStatus.tone)}`}>
+        <p className="text-[11px] font-semibold">{capabilityStatus.title}</p>
+        {capabilityStatus.items.length > 0 ? (
+          <ul className="mt-1 space-y-0.5">
+            {capabilityStatus.items.slice(0, 3).map((item) => (
+              <li className="text-[10px] leading-snug" key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-[10px] leading-snug">
+            {stories.length > 0 ? syncStateLabels.draft : 'Истории доступны как модуль StylistTG.'}
+          </p>
+        )}
       </div>
 
       {/* ── Grid ── */}
@@ -350,4 +359,16 @@ function formatStoryStatus(status: string): string {
   if (status === 'posted') return 'Опубликована'
   if (status === 'expired') return 'Истекла'
   return status
+}
+
+function capabilityStatusClass(tone: ReturnType<typeof buildStoryCapabilityStatus>['tone']): string {
+  if (tone === 'blocked') return 'text-honey-700'
+  if (tone === 'warning') return 'text-honey-600'
+  return 'text-gray-400'
+}
+
+function capabilityBoxClass(tone: ReturnType<typeof buildStoryCapabilityStatus>['tone']): string {
+  if (tone === 'blocked') return 'border-honey-100 bg-honey-50 text-honey-800'
+  if (tone === 'warning') return 'border-honey-100 bg-honey-50/50 text-honey-700'
+  return 'border-emerald-100 bg-emerald-50 text-emerald-800'
 }

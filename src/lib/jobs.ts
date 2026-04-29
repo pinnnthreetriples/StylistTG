@@ -12,11 +12,17 @@ export type JobStepItem = {
   statusLabel: string
   detail: string
   tone: 'neutral' | 'active' | 'success' | 'warning' | 'error'
+  debugDetails: JobStepDebugDetails | null
 }
 
 export type JobDisplayItem = JobStepItem & {
   kind: 'step' | 'story'
   children?: Array<JobStepItem & { shortTitle: string }>
+}
+
+export type JobStepDebugDetails = {
+  rows: Array<{ label: string; value: string }>
+  rawJson: string | null
 }
 
 export type JobResultSummary = {
@@ -61,6 +67,7 @@ export function buildJobStepItems(
         statusLabel: labelStepStatus(status),
         detail: stopped ? 'Остановлено из-за ошибки выше' : 'Ожидает запуска',
         tone: 'neutral',
+        debugDetails: null,
       }
     }
 
@@ -72,6 +79,7 @@ export function buildJobStepItems(
       statusLabel: jobStepStatusLabel(status),
       detail: jobStepDetail(step, status),
       tone: jobStepTone(status),
+      debugDetails: buildJobStepDebugDetails(step),
     }
   })
 }
@@ -131,9 +139,52 @@ export function buildJobDisplayItems(items: readonly JobStepItem[]): JobDisplayI
       statusLabel: worst.statusLabel,
       detail: worst.detail,
       tone: worst.tone,
+      debugDetails: worst.debugDetails,
       children,
     }
   })
+}
+
+export function buildJobStepDebugDetails(step: JobStep): JobStepDebugDetails | null {
+  const rows = [
+    ['Ключ шага', step.step_key],
+    ['Тип шага', step.step_type],
+    ['Статус', step.status],
+    ['Код ошибки', step.error_code],
+    ['Класс ошибки', step.error_class],
+    ['Причина проверки', step.uncertain_reason],
+    ['Проверка выполнялась', step.verification_attempted ? 'да' : 'нет'],
+    ['Начат', step.started_at],
+    ['Завершён', step.finished_at],
+  ]
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([label, value]) => ({ label: String(label), value: String(value) }))
+
+  const rawPayload = {
+    verification_result: step.verification_result,
+    result_payload_json: step.result_payload_json,
+  }
+  const hasRawPayload = Object.values(rawPayload).some((value) => value !== null && value !== undefined)
+
+  if (rows.length === 0 && !hasRawPayload) {
+    return null
+  }
+
+  return {
+    rows,
+    rawJson: hasRawPayload ? JSON.stringify(rawPayload, null, 2) : null,
+  }
+}
+
+export function canExpandJobStepDebugDetails(item: Pick<JobStepItem, 'debugDetails' | 'tone'>): boolean {
+  return Boolean(item.debugDetails && (item.tone === 'error' || item.tone === 'warning'))
+}
+
+export function shouldShowJobStepDebugDetails(
+  item: Pick<JobStepItem, 'debugDetails' | 'tone'>,
+  debugOpen: boolean,
+): boolean {
+  return debugOpen && canExpandJobStepDebugDetails(item)
 }
 
 export function buildJobResultSummary(job: JobDetail | null, steps: JobStep[]): JobResultSummary {

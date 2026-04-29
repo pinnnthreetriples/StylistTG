@@ -1,6 +1,6 @@
-import type { StoryDraftPayload } from '@/lib/api'
+import type { StoryCapabilities, StoryDraftPayload } from '@/lib/api'
 import type { ApiError } from '@/lib/http'
-import { labelIssue } from '@/lib/uiLabels'
+import { labelIssue, labelStoryCapabilityWarning } from '@/lib/uiLabels'
 
 export type CurrentProfile = {
   first_name: string | null
@@ -64,6 +64,13 @@ export const syncStateLabels = {
 
 export const appKnownMediaSyncNote =
   'Фото, музыка и истории могут быть известны приложению только после изменений через StylistTG.'
+
+export type StoryCapabilityStatus = {
+  tone: 'ready' | 'warning' | 'blocked'
+  title: string
+  description: string
+  items: string[]
+}
 
 const changeOperationLabels: Record<ChangeItem['operation'], string> = {
   set_name: 'Имя',
@@ -353,6 +360,66 @@ export function isSupportedProfileAudioFile(file: Pick<File, 'name' | 'type'>): 
   const mime = file.type.trim().toLowerCase()
   const name = file.name.trim().toLowerCase()
   return supportedProfileAudioMimes.has(mime) || supportedProfileAudioExtensions.some((ext) => name.endsWith(ext))
+}
+
+export function buildStoryCapabilityStatus(
+  capabilities: StoryCapabilities | null,
+): StoryCapabilityStatus {
+  if (!capabilities) {
+    return {
+      tone: 'warning',
+      title: 'Истории доступны как модуль StylistTG',
+      description: 'Проверяем возможность публикации историй для этого аккаунта.',
+      items: [],
+    }
+  }
+
+  const items = capabilities.warnings.map(labelStoryCapabilityWarning)
+  if (!capabilities.stories_enabled) {
+    return {
+      tone: 'blocked',
+      title: 'Публикация историй сейчас недоступна',
+      description: 'Истории выключены в настройках приложения.',
+      items,
+    }
+  }
+
+  const requiresTdlib = capabilities.warnings.includes(
+    'stories live TDLib publishing requires TDLib profile execution',
+  )
+  if (requiresTdlib) {
+    return {
+      tone: 'blocked',
+      title: 'Публикация историй сейчас недоступна',
+      description: 'Проект работает в mock-режиме, поэтому live-публикация в Telegram не запускается.',
+      items,
+    }
+  }
+
+  if (!capabilities.tdlib_live_publishing_enabled) {
+    return {
+      tone: 'blocked',
+      title: 'Публикация историй сейчас недоступна',
+      description: 'Live-публикация через TDLib выключена.',
+      items,
+    }
+  }
+
+  if (items.length > 0) {
+    return {
+      tone: 'warning',
+      title: 'Истории можно подготовить',
+      description: 'Проверьте ограничения перед запуском задачи.',
+      items,
+    }
+  }
+
+  return {
+    tone: 'ready',
+    title: 'Истории готовы к публикации',
+    description: 'Истории будут опубликованы вместе с задачей обновления профиля.',
+    items: [],
+  }
 }
 
 export function buildRuntimeBanner({ apiError }: { apiError: ApiError | null }): RuntimeBanner | null {

@@ -4,6 +4,7 @@ import {
   areDashboardFormStatesEqual,
   buildDashboardFormState,
   buildChangeItems,
+  buildStoryCapabilityStatus,
   clearProfilePhotoDraft,
   buildJobMetrics,
   buildRuntimeBanner,
@@ -156,6 +157,79 @@ describe('sync clarity labels', () => {
     })
     expect(appKnownMediaSyncNote).toContain('Фото, музыка и истории')
     expect(appKnownMediaSyncNote).toContain('StylistTG')
+  })
+})
+
+describe('buildStoryCapabilityStatus', () => {
+  const baseCapabilities = {
+    account_id: 'account-1',
+    stories_enabled: true,
+    tdlib_live_publishing_enabled: true,
+    can_prepare_image: true,
+    can_prepare_video: true,
+    allowed_active_period_seconds: [86400],
+    allowed_privacy_presets: ['contacts', 'close_friends', 'public'],
+    max_caption_length: 1024,
+    ffprobe_available: true,
+    ffmpeg_available: true,
+    warnings: [],
+  } satisfies Parameters<typeof buildStoryCapabilityStatus>[0]
+
+  it('explains mock mode without hiding stories', () => {
+    expect(
+      buildStoryCapabilityStatus({
+        ...baseCapabilities,
+        tdlib_live_publishing_enabled: false,
+        warnings: ['stories live TDLib publishing requires TDLib profile execution'],
+      }),
+    ).toEqual({
+      tone: 'blocked',
+      title: 'Публикация историй сейчас недоступна',
+      description: 'Проект работает в mock-режиме, поэтому live-публикация в Telegram не запускается.',
+      items: ['Публикация историй будет доступна после включения TDLib-исполнения профиля'],
+    })
+  })
+
+  it('explains disabled stories and live TDLib publishing separately', () => {
+    expect(
+      buildStoryCapabilityStatus({
+        ...baseCapabilities,
+        stories_enabled: false,
+        tdlib_live_publishing_enabled: false,
+        warnings: ['stories are disabled'],
+      }),
+    ).toMatchObject({
+      tone: 'blocked',
+      description: 'Истории выключены в настройках приложения.',
+    })
+
+    expect(
+      buildStoryCapabilityStatus({
+        ...baseCapabilities,
+        tdlib_live_publishing_enabled: false,
+        warnings: ['stories live TDLib publishing is disabled'],
+      }),
+    ).toMatchObject({
+      tone: 'blocked',
+      description: 'Live-публикация через TDLib выключена.',
+    })
+  })
+
+  it('reports ready and degraded story capability states', () => {
+    expect(buildStoryCapabilityStatus(baseCapabilities)).toMatchObject({
+      tone: 'ready',
+      title: 'Истории готовы к публикации',
+    })
+    expect(
+      buildStoryCapabilityStatus({
+        ...baseCapabilities,
+        warnings: ['story video preparation is limited until ffprobe and ffmpeg are available'],
+      }),
+    ).toMatchObject({
+      tone: 'warning',
+      title: 'Истории можно подготовить',
+      items: ['Видео проверяется в ограниченном режиме без ffmpeg/ffprobe'],
+    })
   })
 })
 

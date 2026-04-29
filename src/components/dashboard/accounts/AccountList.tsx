@@ -16,11 +16,16 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
-import { buildAssetContentUrl, deleteAccount, type AccountListItem } from '@/lib/api'
+import {
+  useAccountsQuery,
+  useDeleteAccountMutation,
+  usePrefetchAccountWorkspace,
+  usePrefetchSettingsBundle,
+} from '@/hooks/queries/useAccountsQueries'
+import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
 import {
   accountMatchesFilter,
   accountMatchesSearch,
@@ -29,13 +34,6 @@ import {
   maskPhone,
   type AccountFilter,
 } from '@/lib/accounts'
-import {
-  accountsQueryOptions,
-  authStateQueryOptions,
-  dashboardBundleQueryOptions,
-  queryKeys,
-  settingsBundleQueryOptions,
-} from '@/lib/queries'
 
 const filterLabels: Record<AccountFilter, string> = {
   all: 'Все',
@@ -57,8 +55,10 @@ export function AccountList({
   activeTab: 'accounts' | 'settings'
   onTabChange: (tab: 'accounts' | 'settings') => void
 }) {
-  const queryClient = useQueryClient()
-  const accountsQuery = useQuery(accountsQueryOptions())
+  const accountsQuery = useAccountsQuery()
+  const deleteAccountMutation = useDeleteAccountMutation()
+  const prefetchSettingsBundle = usePrefetchSettingsBundle()
+  const prefetchAccountWorkspace = usePrefetchAccountWorkspace()
   const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const visibleAccountsError =
@@ -80,9 +80,9 @@ export function AccountList({
 
   useEffect(() => {
     if (accountsQuery.isSuccess) {
-      void queryClient.prefetchQuery(settingsBundleQueryOptions())
+      prefetchSettingsBundle()
     }
-  }, [accountsQuery.isSuccess, queryClient])
+  }, [accountsQuery.isSuccess, prefetchSettingsBundle])
 
   const stats = useMemo(() => accountStats(accounts), [accounts])
   const visibleAccounts = useMemo(
@@ -98,10 +98,7 @@ export function AccountList({
     setDeletingAccountId(deleteCandidate.account_id)
     setDeleteError(null)
     try {
-      await deleteAccount(deleteCandidate.account_id)
-      queryClient.setQueryData(queryKeys.accounts, (current: AccountListItem[] | undefined) =>
-        (current ?? []).filter((account) => account.account_id !== deleteCandidate.account_id),
-      )
+      await deleteAccountMutation.mutateAsync(deleteCandidate.account_id)
       setDeleteCandidate(null)
     } catch {
       setDeleteError('Не удалось удалить аккаунт. Проверьте, что нет активных задач.')
@@ -190,8 +187,7 @@ export function AccountList({
               setDeleteCandidate(account)
             }}
             onPrefetchAccount={(accountId) => {
-              void queryClient.prefetchQuery(authStateQueryOptions(accountId))
-              void queryClient.prefetchQuery(dashboardBundleQueryOptions(accountId))
+              prefetchAccountWorkspace(accountId)
             }}
             onSelectAccount={onSelectAccount}
             query={query}

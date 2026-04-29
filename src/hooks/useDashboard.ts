@@ -1,25 +1,25 @@
 import type { FormPayload, JobDetail, JobStep, JobSummary, StoryCapabilities } from '@/lib/api'
 import {
-  fetchJob,
-  fetchJobSteps,
-  fetchLatestJob,
-  fetchLatestJobs,
   storyDraftReadToPayload,
 } from '@/lib/api'
 import {
-  areDashboardFormStatesEqual,
   buildDashboardFormState,
   clearStoredDashboardFormDraft,
   persistStoredDashboardFormDraft,
   readStoredDashboardFormDraft,
-  reconcileStoredDashboardFormDraft,
   type FormState,
 } from '@/lib/dashboard'
 import { persistDashboardCache } from '@/lib/dashboardCache'
-import { areStoryDraftsEqual } from '@/lib/jobBanner'
-import { dashboardBundleQueryOptions, type DashboardBundle } from '@/lib/queries'
+import { reconcileDashboardFormState } from '@/lib/dashboardReconciliation'
+import {
+  fetchDashboardBundleQuery,
+  fetchJobStateQuery,
+  getCachedDashboardBundle,
+  type DashboardBundle,
+} from '@/lib/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
+import { useDashboardJobPolling } from '@/hooks/useDashboardJobPolling'
 
 const TERMINAL_JOB_STATES = new Set([
   'completed',
@@ -63,35 +63,33 @@ export function useDashboard({
       preloaded?: { latestJob?: JobSummary | null; jobs?: JobSummary[] },
     ): Promise<JobDetail | null> => {
       try {
-        const [jobPayload, stepsPayload, latestJobPayload, jobsPayload] = await Promise.all([
-          fetchJob(jobId),
-          fetchJobSteps(jobId),
-          preloaded?.latestJob ? Promise.resolve(preloaded.latestJob) : fetchLatestJob(acctId),
-          preloaded?.jobs ? Promise.resolve(preloaded.jobs) : fetchLatestJobs(acctId),
-        ])
-        setCurrentJob(jobPayload)
-        setCurrentSteps(stepsPayload)
-        setJobs(jobsPayload)
+        const jobState = await fetchJobStateQuery(queryClient, acctId, jobId, {
+          latestJob: preloaded?.latestJob ?? undefined,
+          jobs: preloaded?.jobs,
+        })
+        setCurrentJob(jobState.job)
+        setCurrentSteps(jobState.steps)
+        setJobs(jobState.jobs)
         setDashboard((prev) =>
           prev
             ? {
                 ...prev,
                 pipeline: {
                   ...prev.pipeline,
-                  latest_job: latestJobPayload,
-                  latest_job_id: latestJobPayload.job_id,
-                  latest_job_state: latestJobPayload.job_state,
-                  has_active_job: !TERMINAL_JOB_STATES.has(latestJobPayload.job_state),
+                  latest_job: jobState.latestJob,
+                  latest_job_id: jobState.latestJob.job_id,
+                  latest_job_state: jobState.latestJob.job_state,
+                  has_active_job: !TERMINAL_JOB_STATES.has(jobState.latestJob.job_state),
                 },
               }
             : prev,
         )
-        return jobPayload
+        return jobState.job
       } catch {
         return null
       }
     },
-    [],
+    [queryClient],
   )
 
   const loadDashboardState = useCallback(
@@ -101,7 +99,7 @@ export function useDashboard({
       formBaselineRef: React.MutableRefObject<FormState | null>,
       formInitializedRef: React.MutableRefObject<boolean>,
       setForm: (next: FormState) => void,
-      options?: { resetForm?: boolean; quiet?: boolean },
+      options?: { resetForm?: boolean; quiet?: boolean; forceRefresh?: boolean },
     ) => {
       if (!options?.quiet) setIsLoading(true)
       try {
@@ -117,32 +115,27 @@ export function useDashboard({
             stories: storyDraftsPayload.map(storyDraftReadToPayload),
           }
           const storedDraft = readStoredDashboardFormDraft(window.localStorage, acctId)
-          const reconciledStoredDraft = storedDraft
-            ? reconcileStoredDashboardFormDraft(storedDraft, serverForm)
-            : null
-          const isDirty = formBaselineRef.current
-            ? !areDashboardFormStatesEqual(formRef.current, formBaselineRef.current)
-            : false
-          const shouldResetForm = options?.resetForm ?? (!formInitializedRef.current || !isDirty)
+          const reconciliation = reconcileDashboardFormState({
+            currentBaseline: formBaselineRef.current,
+            currentForm: formRef.current,
+            formInitialized: formInitializedRef.current,
+            resetForm: options?.resetForm,
+            serverForm,
+            storedDraft,
+          })
 
-          if (shouldResetForm) {
-            const nextForm =
-              !options?.resetForm && reconciledStoredDraft ? reconciledStoredDraft : serverForm
-            formBaselineRef.current = serverForm
-            formInitializedRef.current = true
-            formRef.current = nextForm
-            setForm(nextForm)
-
-            if (reconciledStoredDraft && !options?.resetForm) {
-              persistStoredDashboardFormDraft(window.localStorage, acctId, reconciledStoredDraft)
-            } else {
-              clearStoredDashboardFormDraft(window.localStorage, acctId)
+          if (reconciliation.nextForm) {
+            if (reconciliation.nextBaseline) {
+              formBaselineRef.current = reconciliation.nextBaseline
             }
-          } else if (!areStoryDraftsEqual(formRef.current.stories, serverForm.stories)) {
-            const nextForm = { ...formRef.current, stories: serverForm.stories }
-            formRef.current = nextForm
-            setForm(nextForm)
-            persistStoredDashboardFormDraft(window.localStorage, acctId, nextForm)
+            formInitializedRef.current = true
+            formRef.current = reconciliation.nextForm
+            setForm(reconciliation.nextForm)
+          }
+          if (reconciliation.draftToPersist) {
+            persistStoredDashboardFormDraft(window.localStorage, acctId, reconciliation.draftToPersist)
+          } else if (reconciliation.shouldClearDraft) {
+            clearStoredDashboardFormDraft(window.localStorage, acctId)
           }
 
           if (dashboardPayload.pipeline.latest_job_id) {
@@ -156,12 +149,13 @@ export function useDashboard({
           }
         }
 
-        const queryOptions = dashboardBundleQueryOptions(acctId)
-        const cachedBundle = queryClient.getQueryData<DashboardBundle>(queryOptions.queryKey)
+        const cachedBundle = getCachedDashboardBundle(queryClient, acctId)
         if (cachedBundle) {
           await applyBundle(cachedBundle)
         }
-        const freshBundle = await queryClient.fetchQuery(queryOptions)
+        const freshBundle = await fetchDashboardBundleQuery(queryClient, acctId, {
+          forceRefresh: options?.forceRefresh,
+        })
         await applyBundle(freshBundle)
         return true
       } catch {
@@ -173,48 +167,18 @@ export function useDashboard({
     [loadJobState, queryClient],
   )
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Job polling effect
-  // ──────────────────────────────────────────────────────────────────────────
+  const handleTerminalJob = useCallback(() => setTerminalJobRefreshSeq((value) => value + 1), [])
 
-  useEffect(() => {
-    if (
-      !accountId ||
-      authPhase !== 'dashboard' ||
-      !dashboard?.pipeline.has_active_job ||
-      !dashboard.pipeline.latest_job_id
-    ) {
-      return
-    }
-
-    let cancelled = false
-    let timeoutId: number | null = null
-
-    const poll = async () => {
-      if (cancelled) return
-      const job = await loadJobState(accountId, dashboard.pipeline.latest_job_id!)
-      if (cancelled) return
-      if (job && TERMINAL_JOB_STATES.has(job.job_state)) {
-        setTerminalJobRefreshSeq((value) => value + 1)
-        return
-      }
-      timeoutId = window.setTimeout(() => void poll(), pollingIntervalMs)
-    }
-
-    void poll()
-
-    return () => {
-      cancelled = true
-      if (timeoutId !== null) window.clearTimeout(timeoutId)
-    }
-  }, [
+  useDashboardJobPolling({
     accountId,
     authPhase,
-    dashboard?.pipeline.has_active_job,
-    dashboard?.pipeline.latest_job_id,
+    hasActiveJob: dashboard?.pipeline.has_active_job,
+    latestJobId: dashboard?.pipeline.latest_job_id,
     loadJobState,
+    onTerminalJob: handleTerminalJob,
     pollingIntervalMs,
-  ])
+    terminalJobStates: TERMINAL_JOB_STATES,
+  })
 
   // ──────────────────────────────────────────────────────────────────────────
   // Dashboard-cache persistence

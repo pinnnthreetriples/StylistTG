@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   buildAssetContentUrl,
-  createAccountUpdateJob,
   createStoryDraft,
   deleteStoryDraft,
   previewAccountUpdateJob,
@@ -22,6 +21,7 @@ import {
   uploadStoryImage,
   uploadStoryVideo,
 } from '@/lib/api'
+import { useCreateAccountUpdateJobMutation } from '@/hooks/queries/useDashboardMutations'
 import { normalizeError } from '@/lib/appErrors'
 import {
   areDashboardFormStatesEqual,
@@ -59,6 +59,8 @@ export function useProfileDraft({
   initialDashboard: Dashboard | null
   notify: (toast: Omit<ToastItem, 'id'>) => void
 }) {
+  const createAccountUpdateJobMutation = useCreateAccountUpdateJobMutation()
+
   // ── Form state ──────────────────────────────────────────────────────────────
   const formInitializedRef = useRef(Boolean(initialDashboard))
   const formBaselineRef = useRef<FormState | null>(
@@ -378,7 +380,7 @@ export function useProfileDraft({
     if (!accountId) return
     setIsSubmittingJob(true)
     try {
-      const job = await createAccountUpdateJob(accountId, toFormPayload(form))
+      const job = await createAccountUpdateJobMutation.mutateAsync({ accountId, form: toFormPayload(form) })
       onJobCreated(job)
     } catch (error) {
       const normalized = normalizeError(error)

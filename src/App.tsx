@@ -24,8 +24,6 @@ import { ProfileEditor } from '@/components/dashboard/profile/ProfilePanels'
 import { ToastViewport, type ToastItem } from '@/components/ui/toast'
 import { getPollingIntervalMs } from '@/lib/config'
 import {
-  deleteStoryPost,
-  refreshRuntime,
   type JobSummary,
   type ProfilePreview,
   type StoryPost,
@@ -52,6 +50,10 @@ import { emptyDashboardForm, useDashboardInitialState } from '@/hooks/useDashboa
 import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useProfileDraft } from '@/hooks/useProfileDraft'
+import {
+  useDeleteStoryPostMutation,
+  useRefreshRuntimeMutation,
+} from '@/hooks/queries/useDashboardMutations'
 import { labelIssue, labelJobState } from '@/lib/uiLabels'
 import { readAccountListView, writeAccountListView, type AccountListView } from '@/lib/appView'
 import {
@@ -81,6 +83,8 @@ function App() {
   const [deletingStoryPostId, setDeletingStoryPostId] = useState<string | null>(null)
   const [isRealExecutionConfirmOpen, setIsRealExecutionConfirmOpen] = useState(false)
   const [hiddenJobPanelKey, setHiddenJobPanelKey] = useState<string | null>(null)
+  const refreshRuntimeMutation = useRefreshRuntimeMutation()
+  const deleteStoryPostMutation = useDeleteStoryPostMutation()
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -445,14 +449,14 @@ function App() {
     if (!accountId) return
     setIsRefreshingRuntime(true)
     try {
-      await refreshRuntime(accountId)
+      await refreshRuntimeMutation.mutateAsync(accountId)
       const loaded = await loadDashboardState(
         accountId,
         formRef,
         formBaselineRef,
         formInitializedRef,
         setForm,
-        { quiet: true, resetForm: true },
+        { quiet: true, resetForm: true, forceRefresh: true },
       )
       if (loaded) setApiError(null)
       notify({ tone: 'success', title: 'Профиль синхронизирован' })
@@ -480,7 +484,7 @@ function App() {
             formBaselineRef,
             formInitializedRef,
             setForm,
-            { resetForm: shouldResetDraftAfterJobState(jobDetail.job_state) },
+            { resetForm: shouldResetDraftAfterJobState(jobDetail.job_state), forceRefresh: true },
           )
           if (loaded) setApiError(null)
         }
@@ -508,14 +512,14 @@ function App() {
 
     setDeletingStoryPostId(post.id)
     try {
-      await deleteStoryPost(accountId, post.id)
+      await deleteStoryPostMutation.mutateAsync({ accountId, postId: post.id })
       const loaded = await loadDashboardState(
         accountId,
         formRef,
         formBaselineRef,
         formInitializedRef,
         setForm,
-        { quiet: true },
+        { quiet: true, forceRefresh: true },
       )
       if (loaded) setApiError(null)
       notify({ tone: 'success', title: 'История удалена' })

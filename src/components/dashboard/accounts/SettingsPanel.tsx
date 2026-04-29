@@ -1,21 +1,19 @@
 import { CircleHelp, RefreshCw, Server, ShieldCheck, SlidersHorizontal } from 'lucide-react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import type React from 'react'
 
 import {
-  updateExecutionPolicy,
-} from '@/lib/api'
-import { updateAuthRuntimeMode } from '@/lib/auth'
+  useSettingsBundleQuery,
+  useUpdateAuthRuntimeModeMutation,
+  useUpdateExecutionPolicyMutation,
+} from '@/hooks/queries/useSettingsQueries'
 import { buildDiagnosticItems } from '@/lib/diagnostics'
-import { settingsBundleQueryOptions } from '@/lib/queries'
 import { buildPreflightItems, formatCooldown, type SettingsStatusItem } from '@/lib/settings'
 
 export function SettingsPanel() {
-  const queryClient = useQueryClient()
-  const settingsQuery = useQuery(settingsBundleQueryOptions())
-  const [isSavingPolicy, setIsSavingPolicy] = useState(false)
-  const [isSavingAuthMode, setIsSavingAuthMode] = useState(false)
+  const settingsQuery = useSettingsBundleQuery()
+  const updatePolicyMutation = useUpdateExecutionPolicyMutation()
+  const updateAuthModeMutation = useUpdateAuthRuntimeModeMutation()
   const [error, setError] = useState<string | null>(null)
   const settings = settingsQuery.data
   const isColdLoading = settingsQuery.isPending && !settings
@@ -33,32 +31,20 @@ export function SettingsPanel() {
   }
 
   async function handleCooldownChange(seconds: number) {
-    setIsSavingPolicy(true)
     setError(null)
     try {
-      const policy = await updateExecutionPolicy(seconds)
-      queryClient.setQueryData(settingsBundleQueryOptions().queryKey, (current) =>
-        current ? { ...current, policy } : current,
-      )
+      await updatePolicyMutation.mutateAsync(seconds)
     } catch {
       setError('Не удалось сохранить cooldown')
-    } finally {
-      setIsSavingPolicy(false)
     }
   }
 
   async function handleTestDcChange(enabled: boolean) {
-    setIsSavingAuthMode(true)
     setError(null)
     try {
-      const authMode = await updateAuthRuntimeMode(enabled)
-      queryClient.setQueryData(settingsBundleQueryOptions().queryKey, (current) =>
-        current ? { ...current, authMode } : current,
-      )
+      await updateAuthModeMutation.mutateAsync(enabled)
     } catch {
       setError('Не удалось переключить Test DC')
-    } finally {
-      setIsSavingAuthMode(false)
     }
   }
 
@@ -116,7 +102,7 @@ export function SettingsPanel() {
                       ? 'border-navy-200 bg-navy-50 text-navy-500'
                       : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
-                  disabled={isSavingPolicy}
+                  disabled={updatePolicyMutation.isPending}
                   key={seconds}
                   onClick={() => void handleCooldownChange(seconds)}
                   type="button"
@@ -147,8 +133,8 @@ export function SettingsPanel() {
               aria-label="Переключить Test DC"
               className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
                 settings.authMode.tdlib_use_test_dc ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-gray-200'
-              } ${isSavingAuthMode ? 'opacity-60' : 'hover:border-gray-400'}`}
-              disabled={isSavingAuthMode}
+              } ${updateAuthModeMutation.isPending ? 'opacity-60' : 'hover:border-gray-400'}`}
+              disabled={updateAuthModeMutation.isPending}
               onClick={() => void handleTestDcChange(!settings.authMode.tdlib_use_test_dc)}
               role="switch"
               type="button"

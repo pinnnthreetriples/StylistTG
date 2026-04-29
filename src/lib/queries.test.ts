@@ -1,12 +1,26 @@
-import { describe, expect, it } from 'vitest'
+import { QueryClient } from '@tanstack/react-query'
+import { describe, expect, it, vi } from 'vitest'
 
 import { queryClient } from '@/lib/queryClient'
 import {
   accountsQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
+  fetchDashboardBundleQuery,
+  fetchJobStateQuery,
+  getCachedDashboardBundle,
+  jobDetailQueryOptions,
+  jobStepsQueryOptions,
+  latestJobQueryOptions,
+  latestJobsQueryOptions,
   queryKeys,
+  removeAccountFromAccountsCache,
+  removeAccountScopedQueries,
   settingsBundleQueryOptions,
+  updateSettingsAuthModeInCache,
+  updateSettingsPolicyInCache,
+  type DashboardBundle,
+  type SettingsBundle,
 } from '@/lib/queries'
 
 describe('query cache configuration', () => {
@@ -28,5 +42,134 @@ describe('query cache configuration', () => {
       'account-1',
       'bundle',
     ])
+    expect(latestJobsQueryOptions('account-1').queryKey).toEqual([
+      'dashboard',
+      'account-1',
+      'jobs',
+    ])
+    expect(latestJobQueryOptions('account-1').queryKey).toEqual([
+      'dashboard',
+      'account-1',
+      'latestJob',
+    ])
+    expect(jobDetailQueryOptions('job-1').queryKey).toEqual(['job', 'job-1'])
+    expect(jobStepsQueryOptions('job-1').queryKey).toEqual(['job', 'job-1', 'steps'])
+  })
+
+  it('can force dashboard bundle refresh even while cached data is fresh', async () => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 30_000,
+          retry: false,
+        },
+      },
+    })
+    let calls = 0
+    const first = {
+      dashboard: { version: 1 },
+      jobs: [],
+      storyDrafts: [],
+      storyCapabilities: { stories_enabled: true },
+    } as unknown as DashboardBundle
+    const second = {
+      dashboard: { version: 2 },
+      jobs: [],
+      storyDrafts: [],
+      storyCapabilities: { stories_enabled: true },
+    } as unknown as DashboardBundle
+    const queryFn = vi.fn(async () => {
+      calls += 1
+      return calls === 1 ? first : second
+    })
+
+    await client.fetchQuery({
+      queryKey: queryKeys.dashboard.bundle('account-1'),
+      queryFn,
+    })
+
+    const cached = await fetchDashboardBundleQuery(client, 'account-1', {
+      queryFn,
+    })
+    expect(cached).toBe(first)
+
+    const refreshed = await fetchDashboardBundleQuery(client, 'account-1', {
+      forceRefresh: true,
+      queryFn,
+    })
+    expect(refreshed).toBe(second)
+    expect(queryFn).toHaveBeenCalledTimes(2)
+  })
+
+  it('exposes cache helpers for account-scoped dashboard data', () => {
+    const client = new QueryClient()
+    const bundle = {
+      dashboard: { account: { account_id: 'account-1' } },
+      jobs: [],
+      storyDrafts: [],
+      storyCapabilities: { stories_enabled: true },
+    } as unknown as DashboardBundle
+    client.setQueryData(queryKeys.dashboard.bundle('account-1'), bundle)
+    client.setQueryData(queryKeys.authState('account-1'), { account_id: 'account-1' })
+
+    expect(getCachedDashboardBundle(client, 'account-1')).toBe(bundle)
+
+    removeAccountScopedQueries(client, 'account-1')
+
+    expect(client.getQueryData(queryKeys.dashboard.bundle('account-1'))).toBeUndefined()
+    expect(client.getQueryData(queryKeys.authState('account-1'))).toBeUndefined()
+  })
+
+  it('updates settings bundle cache through domain helpers', () => {
+    const client = new QueryClient()
+    const bundle = {
+      runtime: {},
+      preflight: {},
+      policy: { profile_job_cooldown_seconds: 30 },
+      authMode: { tdlib_use_test_dc: false },
+    } as unknown as SettingsBundle
+    const policy = { profile_job_cooldown_seconds: 60 } as SettingsBundle['policy']
+    const authMode = { tdlib_use_test_dc: true } as SettingsBundle['authMode']
+    client.setQueryData(queryKeys.settings.bundle, bundle)
+
+    updateSettingsPolicyInCache(client, policy)
+    updateSettingsAuthModeInCache(client, authMode)
+
+    expect(client.getQueryData<SettingsBundle>(queryKeys.settings.bundle)).toMatchObject({
+      policy,
+      authMode,
+    })
+  })
+
+  it('removes deleted accounts from account list cache', () => {
+    const client = new QueryClient()
+    client.setQueryData(queryKeys.accounts, [
+      { account_id: 'account-1' },
+      { account_id: 'account-2' },
+    ])
+
+    removeAccountFromAccountsCache(client, 'account-1')
+
+    expect(client.getQueryData(queryKeys.accounts)).toEqual([{ account_id: 'account-2' }])
+  })
+
+  it('fetches job state through query cache helpers and accepts preloaded dashboard data', async () => {
+    const client = new QueryClient()
+    const job = { job_id: 'job-1', job_state: 'running' } as unknown as Awaited<ReturnType<typeof fetchJobStateQuery>>['job']
+    const steps = [{ step_key: 'set_name' }] as unknown as Awaited<ReturnType<typeof fetchJobStateQuery>>['steps']
+    const latestJob = { job_id: 'job-1', job_state: 'running' } as unknown as Awaited<ReturnType<typeof fetchJobStateQuery>>['latestJob']
+    const jobs = [latestJob]
+    const queryFn = vi.fn(async () => ({ job, steps }))
+
+    const result = await fetchJobStateQuery(client, 'account-1', 'job-1', {
+      latestJob,
+      jobs,
+      queryFn,
+    })
+
+    expect(result).toEqual({ job, steps, latestJob, jobs })
+    expect(queryFn).toHaveBeenCalledTimes(1)
+    expect(client.getQueryData(queryKeys.job.detail('job-1'))).toBe(job)
+    expect(client.getQueryData(queryKeys.job.steps('job-1'))).toBe(steps)
   })
 })

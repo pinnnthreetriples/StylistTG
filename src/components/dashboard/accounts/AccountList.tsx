@@ -16,10 +16,11 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
-import { buildAssetContentUrl, deleteAccount, fetchAccounts, type AccountListItem } from '@/lib/api'
+import { buildAssetContentUrl, deleteAccount, type AccountListItem } from '@/lib/api'
 import {
   accountMatchesFilter,
   accountMatchesSearch,
@@ -28,6 +29,13 @@ import {
   maskPhone,
   type AccountFilter,
 } from '@/lib/accounts'
+import {
+  accountsQueryOptions,
+  authStateQueryOptions,
+  dashboardBundleQueryOptions,
+  queryKeys,
+  settingsBundleQueryOptions,
+} from '@/lib/queries'
 
 const filterLabels: Record<AccountFilter, string> = {
   all: 'Все',
@@ -35,6 +43,8 @@ const filterLabels: Record<AccountFilter, string> = {
   waiting: 'Ожидают',
   error: 'Ошибки',
 }
+
+const EMPTY_ACCOUNTS: AccountListItem[] = []
 
 export function AccountList({
   onAddBatch,
@@ -47,9 +57,12 @@ export function AccountList({
   activeTab: 'accounts' | 'settings'
   onTabChange: (tab: 'accounts' | 'settings') => void
 }) {
-  const [accounts, setAccounts] = useState<AccountListItem[]>([])
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const queryClient = useQueryClient()
+  const accountsQuery = useQuery(accountsQueryOptions())
+  const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
   const [accountsError, setAccountsError] = useState<string | null>(null)
+  const visibleAccountsError =
+    accountsError ?? (accountsQuery.isError && !accountsQuery.data ? 'Не удалось загрузить список аккаунтов' : null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<AccountFilter>('all')
   const [deleteCandidate, setDeleteCandidate] = useState<AccountListItem | null>(null)
@@ -57,39 +70,19 @@ export function AccountList({
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null)
 
   async function reloadAccounts() {
-    setIsLoadingAccounts(true)
     setAccountsError(null)
     try {
-      const payload = await fetchAccounts()
-      setAccounts(payload)
+      await accountsQuery.refetch()
     } catch {
-      setAccounts([])
       setAccountsError('Не удалось загрузить список аккаунтов')
-    } finally {
-      setIsLoadingAccounts(false)
     }
   }
 
   useEffect(() => {
-    let active = true
-    fetchAccounts()
-      .then((payload) => {
-        if (!active) return
-        setAccounts(payload)
-        setAccountsError(null)
-      })
-      .catch(() => {
-        if (!active) return
-        setAccounts([])
-        setAccountsError('Не удалось загрузить список аккаунтов')
-      })
-      .finally(() => {
-        if (active) setIsLoadingAccounts(false)
-      })
-    return () => {
-      active = false
+    if (accountsQuery.isSuccess) {
+      void queryClient.prefetchQuery(settingsBundleQueryOptions())
     }
-  }, [])
+  }, [accountsQuery.isSuccess, queryClient])
 
   const stats = useMemo(() => accountStats(accounts), [accounts])
   const visibleAccounts = useMemo(
@@ -106,8 +99,8 @@ export function AccountList({
     setDeleteError(null)
     try {
       await deleteAccount(deleteCandidate.account_id)
-      setAccounts((current) =>
-        current.filter((account) => account.account_id !== deleteCandidate.account_id),
+      queryClient.setQueryData(queryKeys.accounts, (current: AccountListItem[] | undefined) =>
+        (current ?? []).filter((account) => account.account_id !== deleteCandidate.account_id),
       )
       setDeleteCandidate(null)
     } catch {
@@ -185,9 +178,9 @@ export function AccountList({
           <AccountsContent
             accounts={visibleAccounts}
             allAccounts={accounts}
-            error={accountsError}
+            error={visibleAccountsError}
             filter={filter}
-            isLoading={isLoadingAccounts}
+            isLoading={accountsQuery.isPending && !accountsQuery.data}
             onAddBatch={onAddBatch}
             onFilterChange={setFilter}
             onQueryChange={setQuery}
@@ -195,6 +188,10 @@ export function AccountList({
             onRequestDelete={(account) => {
               setDeleteError(null)
               setDeleteCandidate(account)
+            }}
+            onPrefetchAccount={(accountId) => {
+              void queryClient.prefetchQuery(authStateQueryOptions(accountId))
+              void queryClient.prefetchQuery(dashboardBundleQueryOptions(accountId))
             }}
             onSelectAccount={onSelectAccount}
             query={query}
@@ -231,6 +228,7 @@ function AccountsContent({
   onQueryChange,
   onReload,
   onRequestDelete,
+  onPrefetchAccount,
   onSelectAccount,
   query,
   stats,
@@ -245,6 +243,7 @@ function AccountsContent({
   onQueryChange: (query: string) => void
   onReload: () => void
   onRequestDelete: (account: AccountListItem) => void
+  onPrefetchAccount: (accountId: string) => void
   onSelectAccount: (accountId: string) => void
   query: string
   stats: ReturnType<typeof accountStats>
@@ -295,6 +294,7 @@ function AccountsContent({
               index={index}
               isLast={index === accounts.length - 1}
               key={account.account_id}
+              onPrefetchAccount={onPrefetchAccount}
               onRequestDelete={onRequestDelete}
               onSelectAccount={onSelectAccount}
             />
@@ -425,12 +425,14 @@ function AccountRow({
   index,
   isLast,
   onSelectAccount,
+  onPrefetchAccount,
   onRequestDelete,
 }: {
   account: AccountListItem
   index: number
   isLast: boolean
   onSelectAccount: (accountId: string) => void
+  onPrefetchAccount: (accountId: string) => void
   onRequestDelete: (account: AccountListItem) => void
 }) {
   const status = accountStatus(account)
@@ -447,6 +449,8 @@ function AccountRow({
     >
       <button
         className="flex min-w-0 flex-1 items-center gap-3.5 text-left"
+        onFocus={() => onPrefetchAccount(account.account_id)}
+        onMouseEnter={() => onPrefetchAccount(account.account_id)}
         onClick={() => onSelectAccount(account.account_id)}
         type="button"
       >

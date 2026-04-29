@@ -9,7 +9,8 @@
  */
 
 import { AlertTriangle, Check, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
@@ -46,6 +47,7 @@ import {
   type ApiError,
   type ChangeItem,
 } from '@/lib/dashboard'
+import { readCachedDashboardHydration } from '@/lib/dashboardNavigation'
 import { emptyDashboardForm, useDashboardInitialState } from '@/hooks/useDashboardInitialState'
 import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboard } from '@/hooks/useDashboard'
@@ -54,15 +56,16 @@ import { labelIssue, labelJobState } from '@/lib/uiLabels'
 import { readAccountListView, writeAccountListView, type AccountListView } from '@/lib/appView'
 import {
   buildAuthErrorMessage,
-  fetchAuthState,
   shouldClearStoredAccountForAuthState,
   shouldRunAuthBootstrap,
   nextAuthPhaseFromState,
 } from '@/lib/auth'
+import { authStateQueryOptions } from '@/lib/queries'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()
 
 function App() {
+  const queryClient = useQueryClient()
   const { initialAccountId, initialDashboard, initialForm } = useDashboardInitialState()
   const initialAccountListView = readAccountListView(window.location.search)
 
@@ -104,6 +107,7 @@ function App() {
   const [accountListView, setAccountListView] = useState<AccountListView>(
     initialAccountListView === 'auth-batch' ? 'accounts' : initialAccountListView,
   )
+  const [, startNavigationTransition] = useTransition()
 
   const auth = useAuthFlow({ initialAccountId, initialPhase } as Parameters<typeof useAuthFlow>[0])
   const {
@@ -159,13 +163,15 @@ function App() {
   function showAccountListView(view: AccountListView, mode: 'push' | 'replace' = 'push') {
     skipNextAuthBootstrapRef.current = true
     writeAccountListView(view, mode)
-    if (view === 'auth-batch') {
-      setAuthPhase('auth-batch')
-      setAccountListView('accounts')
-      return
-    }
-    setAuthPhase('account-list')
-    setAccountListView(view)
+    startNavigationTransition(() => {
+      if (view === 'auth-batch') {
+        setAuthPhase('auth-batch')
+        setAccountListView('accounts')
+        return
+      }
+      setAuthPhase('account-list')
+      setAccountListView(view)
+    })
   }
 
   // ── Dashboard data + job polling ──────────────────────────────────────────────
@@ -176,6 +182,7 @@ function App() {
   })
   const {
     dashboard,
+    setDashboard,
     jobs,
     currentJob,
     currentSteps,
@@ -268,6 +275,21 @@ function App() {
   const jobPanelKey = activeJobKey ?? preview?.execution_intent_hash ?? currentJob?.job_id ?? (jobStepItems.length > 0 ? 'steps' : null)
   const shouldShowJobPanel = Boolean(jobPanelKey && hiddenJobPanelKey !== jobPanelKey)
 
+  function hydrateCachedDashboard(accountId: string): boolean {
+    const cached = readCachedDashboardHydration(window.localStorage, accountId)
+    if (!cached) return false
+
+    setDashboard(cached.dashboard)
+    formBaselineRef.current = cached.baselineForm
+    formInitializedRef.current = true
+    formRef.current = cached.nextForm
+    setForm(cached.nextForm)
+    setApiError(null)
+    setSubmittedPreview(null)
+    setHiddenJobPanelKey(null)
+    return true
+  }
+
   // ── Auth bootstrap: fetch auth state whenever accountId changes ───────────────
   useEffect(() => {
     if (!shouldRunAuthBootstrap(accountId, authPhase)) return
@@ -290,7 +312,7 @@ function App() {
 
     void (async () => {
       try {
-        const authState = await fetchAuthState(bootstrapAccountId)
+        const authState = await queryClient.fetchQuery(authStateQueryOptions(bootstrapAccountId))
         if (!active) return
 
         if (shouldClearStoredAccountForAuthState(authState)) {
@@ -338,6 +360,7 @@ function App() {
     applyAuthStateResponse,
     authPhase,
     clearAccountContext,
+    queryClient,
     loadDashboardState,
     formRef,
     formBaselineRef,
@@ -415,7 +438,7 @@ function App() {
     setPhoneNumber('')
     setOtpCode('')
     setTwoFaPassword('')
-    setAuthPhase('account-list')
+    startNavigationTransition(() => setAuthPhase('account-list'))
   }
 
   async function handleRefreshRuntime() {
@@ -522,8 +545,38 @@ function App() {
         onAddBatch={() => showAccountListView('auth-batch')}
         onSelectAccount={(nextAccountId) => {
           writeAccountListView('accounts', 'replace')
-          applyAccountContext(nextAccountId)
-          setAuthPhase('auth-loading')
+          skipNextAuthBootstrapRef.current = false
+          const hydrated = hydrateCachedDashboard(nextAccountId)
+          startNavigationTransition(() => {
+            applyAccountContext(nextAccountId)
+            setAuthPhase(hydrated ? 'dashboard' : 'auth-loading')
+          })
+          if (hydrated) {
+            setIsBootRefreshing(true)
+            void (async () => {
+              try {
+                const authState = await queryClient.fetchQuery(authStateQueryOptions(nextAccountId))
+                if (nextAuthPhaseFromState(authState) !== 'dashboard') {
+                  applyAuthStateResponse(authState)
+                  return
+                }
+                const loaded = await loadDashboardState(
+                  nextAccountId,
+                  formRef,
+                  formBaselineRef,
+                  formInitializedRef,
+                  setForm,
+                  { quiet: true },
+                )
+                if (loaded) setApiError(null)
+              } catch (error) {
+                const normalized = normalizeError(error)
+                setApiError(normalized)
+              } finally {
+                setIsBootRefreshing(false)
+              }
+            })()
+          }
         }}
         onTabChange={(tab) => showAccountListView(tab)}
       />

@@ -17,6 +17,7 @@ class LivePreflightService:
     tdlib_database_root: Path
     tdlib_files_root: Path
     worker_expected: bool
+    worker_status: Callable[[], str] | None = None
 
     def run(self) -> dict[str, object]:
         tdjson_present = bool(self.tdjson_path and Path(self.tdjson_path).exists())
@@ -24,6 +25,7 @@ class LivePreflightService:
         postgres_reachable = self._check_database()
         redis_reachable = self._check_redis()
         storage_writable = self._check_storage()
+        rq_worker_status = self._check_worker(redis_reachable)
         overall_status = (
             "ok"
             if all(
@@ -33,6 +35,7 @@ class LivePreflightService:
                     postgres_reachable,
                     redis_reachable,
                     storage_writable,
+                    not self.worker_expected or rq_worker_status == "ready",
                 ]
             )
             else "degraded"
@@ -44,6 +47,7 @@ class LivePreflightService:
             "redis_reachable": redis_reachable,
             "storage_writable": storage_writable,
             "rq_worker_expected": self.worker_expected,
+            "rq_worker_status": rq_worker_status,
             "overall_status": overall_status,
         }
 
@@ -75,3 +79,16 @@ class LivePreflightService:
             return True
         except Exception:
             return False
+
+    def _check_worker(self, redis_reachable: bool) -> str | None:
+        if not self.worker_expected:
+            return None
+        if not redis_reachable or not self.worker_status:
+            return "unknown"
+        try:
+            status = self.worker_status()
+        except Exception:
+            return "unknown"
+        if status in {"ready", "missing"}:
+            return status
+        return "unknown"

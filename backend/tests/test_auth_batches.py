@@ -404,6 +404,47 @@ def test_auth_batch_retry_rejects_terminal_batch_item() -> None:
     app.dependency_overrides.clear()
 
 
+def test_auth_batch_retry_clears_terminal_item_counter(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    monkeypatch.setattr("app.api.auth_batches.dispatch_once", lambda session, batch_id: 0)
+
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550102002")
+        batch = AuthBatch(idempotency_key="batch-key-retry-counter", status="running", total_count=1, failed_count=1)
+        session.add(batch)
+        session.flush()
+        item = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account.id,
+            phone_number=account.external_ref,
+            position=0,
+            status="failed",
+            error_code="QUEUE_UNAVAILABLE",
+        )
+        session.add(item)
+        session.commit()
+        batch_id = batch.id
+        item_id = item.id
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+
+    response = client.post(f"/api/auth-batches/{batch_id}/items/{item_id}/retry")
+
+    assert response.status_code == 200
+    with session_factory() as session:
+        batch = session.get(AuthBatch, batch_id)
+        item = session.get(AuthBatchItem, item_id)
+        assert batch is not None
+        assert item is not None
+        assert item.status == "queued"
+        assert batch.failed_count == 0
+        assert batch.success_count == 0
+
+    app.dependency_overrides.clear()
+
+
 def test_auth_batch_dispatches_multiple_items_without_scheduler_delay(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

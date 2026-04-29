@@ -112,6 +112,8 @@ def transition_item(
     item.updated_at = utc_now()
     if new_status == AuthBatchItemStatus.AUTHORIZED:
         item.authorized_at = utc_now()
+    if was_terminal and new_status not in TERMINAL_AUTH_BATCH_ITEM_STATUSES:
+        _decrement_batch_counter(item.batch, old_status)
     if not was_terminal and new_status in TERMINAL_AUTH_BATCH_ITEM_STATUSES:
         _increment_batch_counter(item.batch, new_status)
     item.events.append(
@@ -136,6 +138,19 @@ def _increment_batch_counter(batch: AuthBatch, status: str) -> None:
         batch.skipped_count += 1
     elif status == AuthBatchItemStatus.TIMED_OUT:
         batch.failed_count += 1
+
+
+def _decrement_batch_counter(batch: AuthBatch, status: str) -> None:
+    if status == AuthBatchItemStatus.AUTHORIZED:
+        batch.success_count = max(0, batch.success_count - 1)
+    elif status == AuthBatchItemStatus.FAILED:
+        batch.failed_count = max(0, batch.failed_count - 1)
+    elif status == AuthBatchItemStatus.CANCELLED:
+        batch.cancelled_count = max(0, batch.cancelled_count - 1)
+    elif status == AuthBatchItemStatus.SKIPPED:
+        batch.skipped_count = max(0, batch.skipped_count - 1)
+    elif status == AuthBatchItemStatus.TIMED_OUT:
+        batch.failed_count = max(0, batch.failed_count - 1)
 
 
 def _finish_batch_if_complete(batch: AuthBatch) -> None:

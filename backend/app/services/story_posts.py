@@ -28,6 +28,7 @@ def create_story_post_from_result(
 
     now = utc_now()
     active_period = int(story.get("active_period_seconds") or 86400)
+    raw_tdlib_json = story.get("raw_tdlib_json") if isinstance(story.get("raw_tdlib_json"), dict) else {}
     post = AccountStoryPost(
         account_id=account_id,
         job_id=job_id,
@@ -42,10 +43,10 @@ def create_story_post_from_result(
         protect_content=bool(story.get("protect_content")),
         status=story.get("status") or "posted",
         story_poster_chat_id=story.get("story_poster_chat_id"),
-        can_be_deleted=bool(story.get("can_be_deleted")),
+        can_be_deleted=_story_can_be_deleted(story, raw_tdlib_json),
         failure_code=story.get("failure_code"),
         failure_message=story.get("failure_message"),
-        raw_tdlib_json=story.get("raw_tdlib_json"),
+        raw_tdlib_json=raw_tdlib_json or story.get("raw_tdlib_json"),
         posted_at=now if story.get("status", "posted") == "posted" else None,
         expires_at=now + timedelta(seconds=active_period) if story.get("status", "posted") == "posted" else None,
     )
@@ -53,6 +54,17 @@ def create_story_post_from_result(
     session.commit()
     session.refresh(post)
     return post
+
+
+def _story_can_be_deleted(story: dict[str, Any], raw_tdlib_json: dict[str, Any]) -> bool:
+    return bool(
+        story.get("can_be_deleted")
+        or raw_tdlib_json.get("can_be_deleted")
+        or (
+            raw_tdlib_json.get("is_posted_to_chat_page")
+            and raw_tdlib_json.get("can_toggle_is_posted_to_chat_page")
+        )
+    )
 
 
 def list_story_posts(session: Session, account_id: str, *, limit: int = 10) -> list[AccountStoryPost]:

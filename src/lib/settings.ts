@@ -5,6 +5,7 @@ export type LivePreflight = {
   redis_reachable: boolean
   storage_writable: boolean
   rq_worker_expected: boolean
+  rq_worker_status?: 'ready' | 'missing' | 'unknown' | null
   overall_status: string
 }
 
@@ -30,13 +31,7 @@ export function buildPreflightItems(preflight: LivePreflight | null): SettingsSt
     boolItem('postgres', 'PostgreSQL', preflight.postgres_reachable, 'Основная база данных проекта. Здесь хранятся аккаунты, профили, задачи и их статусы.'),
     boolItem('redis', 'Redis', preflight.redis_reachable, 'Быстрое хранилище очереди. Через него backend передает задачи RQ worker.'),
     boolItem('storage', 'Storage', preflight.storage_writable, 'Локальные папки для файлов TDLib и загруженных данных. Проверка показывает, можно ли туда писать.'),
-    {
-      key: 'worker',
-      label: 'RQ worker',
-      status: preflight.rq_worker_expected ? 'ok' : 'attention',
-      message: preflight.rq_worker_expected ? 'Требуется' : 'Не требуется',
-      help: 'Отдельный процесс, который берет задачи из Redis и выполняет изменения профиля через TDLib.',
-    },
+    workerItem(preflight),
     {
       key: 'overall',
       label: 'Live статус',
@@ -45,6 +40,49 @@ export function buildPreflightItems(preflight: LivePreflight | null): SettingsSt
       help: 'Общий итог live-проверок. Готов означает, что приложение может выполнять реальные операции.',
     },
   ]
+}
+
+function workerItem(preflight: LivePreflight): SettingsStatusItem {
+  if (!preflight.rq_worker_expected) {
+    return {
+      key: 'worker',
+      label: 'RQ worker',
+      status: 'ok',
+      message: 'Worker не требуется',
+      help: 'Для текущего режима отдельный worker не требуется.',
+    }
+  }
+
+  if (preflight.rq_worker_status === 'ready') {
+    return {
+      key: 'worker',
+      label: 'RQ worker',
+      status: 'ok',
+      message: 'Готов',
+      help: 'RQ worker подтверждён в Redis и может брать задачи из очереди profile_jobs.',
+    }
+  }
+
+  const startCommand =
+    'Запуск: cd backend; python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker'
+
+  if (preflight.rq_worker_status === 'missing') {
+    return {
+      key: 'worker',
+      label: 'RQ worker',
+      status: 'down',
+      message: 'Worker не запущен',
+      help: `Задачи будут создаваться, но не выполнятся, пока worker не запущен. ${startCommand}`,
+    }
+  }
+
+  return {
+    key: 'worker',
+    label: 'RQ worker',
+    status: 'attention',
+    message: 'Worker нужен для выполнения задач',
+    help: `Worker не запущен или не подтверждён. Задачи будут создаваться, но могут не выполняться. ${startCommand}`,
+  }
 }
 
 function formatLiveStatus(status: string): string {

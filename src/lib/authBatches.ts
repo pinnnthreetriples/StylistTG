@@ -168,6 +168,7 @@ export function buildAuthBatchPrimaryActionLabel(count: number): string {
 }
 
 const batchStatusLabels: Record<string, string> = {
+  pending: 'Ожидает запуска',
   running: 'В работе',
   paused: 'Пауза',
   completed: 'Завершено',
@@ -176,12 +177,15 @@ const batchStatusLabels: Record<string, string> = {
 }
 
 const batchItemStatusLabels: Record<string, string> = {
+  queued: 'В очереди',
+  starting: 'Запуск',
   waiting_code: 'Ожидает код',
   waiting_2fa: 'Ожидает 2FA',
   authorized: 'Готово',
   failed: 'Ошибка',
   timed_out: 'Таймаут',
   cancelled: 'Отменён',
+  skipped: 'Пропущен',
   running: 'В работе',
   paused: 'Пауза',
   pending: 'Ожидает',

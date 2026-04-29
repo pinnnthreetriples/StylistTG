@@ -30,6 +30,7 @@ def test_live_preflight_returns_structured_result(tmp_path: Path) -> None:
         tdlib_database_root=tdlib_db_root,
         tdlib_files_root=tdlib_files_root,
         worker_expected=True,
+        worker_status=lambda: "ready",
     )
 
     result = service.run()
@@ -39,6 +40,7 @@ def test_live_preflight_returns_structured_result(tmp_path: Path) -> None:
     assert result["postgres_reachable"] is True
     assert result["redis_reachable"] is True
     assert result["storage_writable"] is True
+    assert result["rq_worker_status"] == "ready"
     assert result["overall_status"] == "ok"
 
 
@@ -52,6 +54,7 @@ def test_live_preflight_reports_degraded_dependencies(tmp_path: Path) -> None:
         tdlib_database_root=tmp_path / "tdlib-db",
         tdlib_files_root=tmp_path / "tdlib-files",
         worker_expected=False,
+        worker_status=lambda: "missing",
     )
 
     result = service.run()
@@ -59,4 +62,52 @@ def test_live_preflight_reports_degraded_dependencies(tmp_path: Path) -> None:
     assert result["tdjson_present"] is False
     assert result["tdlib_credentials_present"] is False
     assert result["redis_reachable"] is False
+    assert result["rq_worker_status"] is None
+    assert result["overall_status"] == "degraded"
+
+
+def test_live_preflight_reports_missing_worker_as_degraded(tmp_path: Path) -> None:
+    tdjson = tmp_path / "tdjson.dll"
+    tdjson.write_text("stub", encoding="utf-8")
+
+    service = LivePreflightService(
+        database_url=f"sqlite:///{(tmp_path / 'preflight.db').as_posix()}",
+        redis_ping=lambda: FakeRedis(ok=True).ping(),
+        tdjson_path=tdjson,
+        tdlib_api_id="123",
+        tdlib_api_hash="hash",
+        tdlib_database_root=tmp_path / "tdlib-db",
+        tdlib_files_root=tmp_path / "tdlib-files",
+        worker_expected=True,
+        worker_status=lambda: "missing",
+    )
+
+    result = service.run()
+
+    assert result["rq_worker_status"] == "missing"
+    assert result["overall_status"] == "degraded"
+
+
+def test_live_preflight_reports_unknown_worker_when_probe_fails(tmp_path: Path) -> None:
+    tdjson = tmp_path / "tdjson.dll"
+    tdjson.write_text("stub", encoding="utf-8")
+
+    def worker_status() -> str:
+        raise RuntimeError("rq introspection failed")
+
+    service = LivePreflightService(
+        database_url=f"sqlite:///{(tmp_path / 'preflight.db').as_posix()}",
+        redis_ping=lambda: FakeRedis(ok=True).ping(),
+        tdjson_path=tdjson,
+        tdlib_api_id="123",
+        tdlib_api_hash="hash",
+        tdlib_database_root=tmp_path / "tdlib-db",
+        tdlib_files_root=tmp_path / "tdlib-files",
+        worker_expected=True,
+        worker_status=worker_status,
+    )
+
+    result = service.run()
+
+    assert result["rq_worker_status"] == "unknown"
     assert result["overall_status"] == "degraded"

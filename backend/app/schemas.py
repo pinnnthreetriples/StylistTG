@@ -102,6 +102,7 @@ class LivePreflightRead(BaseModel):
     redis_reachable: bool
     storage_writable: bool
     rq_worker_expected: bool
+    rq_worker_status: str | None = None
     overall_status: str
 
 

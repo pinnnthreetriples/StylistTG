@@ -85,6 +85,10 @@ describe('auth batch helpers', () => {
   it('labels batch and item statuses in Russian', () => {
     expect(labelAuthBatchItemStatus('waiting_code')).toBe('Ожидает код')
     expect(labelAuthBatchItemStatus('waiting_2fa')).toBe('Ожидает 2FA')
+    expect(labelAuthBatchItemStatus('queued')).toBe('В очереди')
+    expect(labelAuthBatchItemStatus('starting')).toBe('Запуск')
+    expect(labelAuthBatchItemStatus('skipped')).toBe('Пропущен')
+    expect(labelAuthBatchStatus('pending')).toBe('Ожидает запуска')
     expect(labelAuthBatchStatus('running')).toBe('В работе')
     expect(labelAuthBatchStatus('completed')).toBe('Завершено')
   })

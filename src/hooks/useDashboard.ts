@@ -1,12 +1,9 @@
 import type { FormPayload, JobDetail, JobStep, JobSummary, StoryCapabilities } from '@/lib/api'
 import {
-  fetchDashboard,
   fetchJob,
   fetchJobSteps,
   fetchLatestJob,
   fetchLatestJobs,
-  fetchStoryCapabilities,
-  fetchStoryDrafts,
   storyDraftReadToPayload,
 } from '@/lib/api'
 import {
@@ -20,6 +17,8 @@ import {
 } from '@/lib/dashboard'
 import { persistDashboardCache } from '@/lib/dashboardCache'
 import { areStoryDraftsEqual } from '@/lib/jobBanner'
+import { dashboardBundleQueryOptions, type DashboardBundle } from '@/lib/queries'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 
 const TERMINAL_JOB_STATES = new Set([
@@ -41,7 +40,8 @@ export function useDashboard({
   authPhase: string
   pollingIntervalMs: number
 }) {
-  type DashboardPayload = Awaited<ReturnType<typeof fetchDashboard>>
+  type DashboardPayload = DashboardBundle['dashboard']
+  const queryClient = useQueryClient()
 
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null)
   const [jobs, setJobs] = useState<JobSummary[]>([])
@@ -105,60 +105,64 @@ export function useDashboard({
     ) => {
       if (!options?.quiet) setIsLoading(true)
       try {
-        const [dashboardPayload, jobsPayload, storyDraftsPayload, capsPayload] = await Promise.all([
-          fetchDashboard(acctId),
-          fetchLatestJobs(acctId),
-          fetchStoryDrafts(acctId),
-          fetchStoryCapabilities(acctId),
-        ])
+        const applyBundle = async (bundle: DashboardBundle) => {
+          const { dashboard: dashboardPayload, jobs: jobsPayload, storyDrafts: storyDraftsPayload, storyCapabilities: capsPayload } = bundle
+          setDashboard(dashboardPayload)
+          persistDashboardCache(window.localStorage, acctId, dashboardPayload)
+          setJobs(jobsPayload)
+          setStoryCapabilities(capsPayload)
 
-        setDashboard(dashboardPayload)
-        persistDashboardCache(window.localStorage, acctId, dashboardPayload)
-        setJobs(jobsPayload)
-        setStoryCapabilities(capsPayload)
-
-        const serverForm: FormState = {
-          ...buildDashboardFormState(dashboardPayload),
-          stories: storyDraftsPayload.map(storyDraftReadToPayload),
-        }
-        const storedDraft = readStoredDashboardFormDraft(window.localStorage, acctId)
-        const reconciledStoredDraft = storedDraft
-          ? reconcileStoredDashboardFormDraft(storedDraft, serverForm)
-          : null
-        const isDirty = formBaselineRef.current
-          ? !areDashboardFormStatesEqual(formRef.current, formBaselineRef.current)
-          : false
-        const shouldResetForm = options?.resetForm ?? (!formInitializedRef.current || !isDirty)
-
-        if (shouldResetForm) {
-          const nextForm =
-            !options?.resetForm && reconciledStoredDraft ? reconciledStoredDraft : serverForm
-          formBaselineRef.current = serverForm
-          formInitializedRef.current = true
-          formRef.current = nextForm
-          setForm(nextForm)
-
-          if (reconciledStoredDraft && !options?.resetForm) {
-            persistStoredDashboardFormDraft(window.localStorage, acctId, reconciledStoredDraft)
-          } else {
-            clearStoredDashboardFormDraft(window.localStorage, acctId)
+          const serverForm: FormState = {
+            ...buildDashboardFormState(dashboardPayload),
+            stories: storyDraftsPayload.map(storyDraftReadToPayload),
           }
-        } else if (!areStoryDraftsEqual(formRef.current.stories, serverForm.stories)) {
-          const nextForm = { ...formRef.current, stories: serverForm.stories }
-          formRef.current = nextForm
-          setForm(nextForm)
-          persistStoredDashboardFormDraft(window.localStorage, acctId, nextForm)
+          const storedDraft = readStoredDashboardFormDraft(window.localStorage, acctId)
+          const reconciledStoredDraft = storedDraft
+            ? reconcileStoredDashboardFormDraft(storedDraft, serverForm)
+            : null
+          const isDirty = formBaselineRef.current
+            ? !areDashboardFormStatesEqual(formRef.current, formBaselineRef.current)
+            : false
+          const shouldResetForm = options?.resetForm ?? (!formInitializedRef.current || !isDirty)
+
+          if (shouldResetForm) {
+            const nextForm =
+              !options?.resetForm && reconciledStoredDraft ? reconciledStoredDraft : serverForm
+            formBaselineRef.current = serverForm
+            formInitializedRef.current = true
+            formRef.current = nextForm
+            setForm(nextForm)
+
+            if (reconciledStoredDraft && !options?.resetForm) {
+              persistStoredDashboardFormDraft(window.localStorage, acctId, reconciledStoredDraft)
+            } else {
+              clearStoredDashboardFormDraft(window.localStorage, acctId)
+            }
+          } else if (!areStoryDraftsEqual(formRef.current.stories, serverForm.stories)) {
+            const nextForm = { ...formRef.current, stories: serverForm.stories }
+            formRef.current = nextForm
+            setForm(nextForm)
+            persistStoredDashboardFormDraft(window.localStorage, acctId, nextForm)
+          }
+
+          if (dashboardPayload.pipeline.latest_job_id) {
+            await loadJobState(acctId, dashboardPayload.pipeline.latest_job_id, {
+              latestJob: dashboardPayload.pipeline.latest_job,
+              jobs: jobsPayload,
+            })
+          } else {
+            setCurrentJob(null)
+            setCurrentSteps([])
+          }
         }
 
-        if (dashboardPayload.pipeline.latest_job_id) {
-          await loadJobState(acctId, dashboardPayload.pipeline.latest_job_id, {
-            latestJob: dashboardPayload.pipeline.latest_job,
-            jobs: jobsPayload,
-          })
-        } else {
-          setCurrentJob(null)
-          setCurrentSteps([])
+        const queryOptions = dashboardBundleQueryOptions(acctId)
+        const cachedBundle = queryClient.getQueryData<DashboardBundle>(queryOptions.queryKey)
+        if (cachedBundle) {
+          await applyBundle(cachedBundle)
         }
+        const freshBundle = await queryClient.fetchQuery(queryOptions)
+        await applyBundle(freshBundle)
         return true
       } catch {
         return false
@@ -166,7 +170,7 @@ export function useDashboard({
         if (!options?.quiet) setIsLoading(false)
       }
     },
-    [loadJobState],
+    [loadJobState, queryClient],
   )
 
   // ──────────────────────────────────────────────────────────────────────────

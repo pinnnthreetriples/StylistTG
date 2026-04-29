@@ -69,6 +69,8 @@ type DashboardResponse = {
     last_error_code: string | null
     last_error_class: string | null
     authorized_last_confirmed_at: string | null
+    real_execution_enabled: boolean
+    stories_live_execution_enabled: boolean
   }
 }
 

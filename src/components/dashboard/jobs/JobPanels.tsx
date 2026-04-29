@@ -10,6 +10,7 @@ import {
   Loader2,
   ListOrdered,
   Play,
+  X,
   XCircle,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -120,11 +121,13 @@ export function PipelineCard({ latestJobState }: { latestJobState: string | null
 export function JobStepPanel({
   currentJob,
   items,
+  onHide,
   progressSummary,
   resultSummary,
 }: {
   currentJob: JobDetail | null
   items: JobDisplayItem[]
+  onHide?: () => void
   progressSummary: JobProgressSummary
   resultSummary: JobResultSummary
 }) {
@@ -173,6 +176,16 @@ export function JobStepPanel({
               >
                 <ChevronDown className="size-3.5" />
               </button>
+              {onHide ? (
+                <button
+                  aria-label="Убрать панель задачи"
+                  className="flex size-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-50 hover:text-gray-700"
+                  onClick={onHide}
+                  type="button"
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
             </div>
           </div>
           <JobProgressBlock progress={progressSummary} summary={resultSummary} />

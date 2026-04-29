@@ -466,6 +466,8 @@ class DashboardDiagnosticsRead(BaseModel):
     last_error_code: str | None
     last_error_class: str | None
     authorized_last_confirmed_at: datetime | None
+    real_execution_enabled: bool = False
+    stories_live_execution_enabled: bool = False
 
 
 class DashboardProfileRead(BaseModel):

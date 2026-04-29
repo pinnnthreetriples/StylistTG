@@ -47,6 +47,8 @@ function dashboard(accountId: string): DashboardState {
       last_error_code: null,
       last_error_class: null,
       authorized_last_confirmed_at: null,
+      real_execution_enabled: false,
+      stories_live_execution_enabled: false,
     },
   }
 }

@@ -8,7 +8,7 @@
  *  - Wiring hidden file inputs for photo / audio / story upload
  */
 
-import { Check } from 'lucide-react'
+import { AlertTriangle, Check, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
@@ -37,7 +37,15 @@ import {
   buildJobStepItems,
   shouldResetDraftAfterJobState,
 } from '@/lib/jobs'
-import { buildJobMetrics, buildRuntimeBanner, type ApiError } from '@/lib/dashboard'
+import {
+  buildJobMetrics,
+  buildRuntimeBanner,
+  formatChangeOperationLabel,
+  groupRealExecutionChanges,
+  shouldConfirmRealTelegramExecution,
+  type ApiError,
+  type ChangeItem,
+} from '@/lib/dashboard'
 import { emptyDashboardForm, useDashboardInitialState } from '@/hooks/useDashboardInitialState'
 import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboard } from '@/hooks/useDashboard'
@@ -68,6 +76,8 @@ function App() {
   const toastTimeoutsRef = useRef<number[]>([])
   const [submittedPreview, setSubmittedPreview] = useState<ProfilePreview | null>(null)
   const [deletingStoryPostId, setDeletingStoryPostId] = useState<string | null>(null)
+  const [isRealExecutionConfirmOpen, setIsRealExecutionConfirmOpen] = useState(false)
+  const [hiddenJobPanelKey, setHiddenJobPanelKey] = useState<string | null>(null)
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -254,7 +264,9 @@ function App() {
   )
   const jobProgressSummary = useMemo(() => buildJobProgressSummary(jobStepItems), [jobStepItems])
   const jobDisplayItems = useMemo(() => buildJobDisplayItems(jobStepItems), [jobStepItems])
-  const shouldShowJobPanel = Boolean(currentJob || preview || jobStepItems.length > 0)
+  const activeJobKey = currentJob && !terminalJobStates.has(currentJob.job_state) ? currentJob.job_id : null
+  const jobPanelKey = activeJobKey ?? preview?.execution_intent_hash ?? currentJob?.job_id ?? (jobStepItems.length > 0 ? 'steps' : null)
+  const shouldShowJobPanel = Boolean(jobPanelKey && hiddenJobPanelKey !== jobPanelKey)
 
   // ── Auth bootstrap: fetch auth state whenever accountId changes ───────────────
   useEffect(() => {
@@ -397,6 +409,8 @@ function App() {
     resetDashboard()
     setSubmittedPreview(null)
     setApiError(null)
+    setHiddenJobPanelKey(null)
+    setIsRealExecutionConfirmOpen(false)
     setIsRefreshingRuntime(false)
     setPhoneNumber('')
     setOtpCode('')
@@ -428,7 +442,7 @@ function App() {
     }
   }
 
-  async function handleCreateJob() {
+  async function submitCreateJob() {
     const planForCreatedJob = preview
     await draft.handleCreateJob(
       async (job: JobSummary) => {
@@ -451,6 +465,19 @@ function App() {
       },
       (err) => setApiError(err),
     )
+  }
+
+  async function handleCreateJob() {
+    if (shouldConfirmRealTelegramExecution(dashboard?.diagnostics, changedItems)) {
+      setIsRealExecutionConfirmOpen(true)
+      return
+    }
+    await submitCreateJob()
+  }
+
+  async function confirmRealExecution() {
+    setIsRealExecutionConfirmOpen(false)
+    await submitCreateJob()
   }
 
   async function handleDeleteStoryPost(post: StoryPost) {
@@ -619,8 +646,18 @@ function App() {
         <JobStepPanel
           currentJob={currentJob}
           items={jobDisplayItems}
+          onHide={jobPanelKey ? () => setHiddenJobPanelKey(jobPanelKey) : undefined}
           progressSummary={jobProgressSummary}
           resultSummary={jobResultSummary}
+        />
+      ) : null}
+
+      {isRealExecutionConfirmOpen ? (
+        <RealTelegramExecutionModal
+          changedItems={changedItems}
+          isSubmitting={isSubmittingJob}
+          onCancel={() => setIsRealExecutionConfirmOpen(false)}
+          onConfirm={() => void confirmRealExecution()}
         />
       ) : null}
 
@@ -658,3 +695,91 @@ function App() {
 }
 
 export default App
+
+function RealTelegramExecutionModal({
+  changedItems,
+  isSubmitting,
+  onCancel,
+  onConfirm,
+}: {
+  changedItems: ChangeItem[]
+  isSubmitting: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const groups = groupRealExecutionChanges(changedItems)
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-navy-900/25 px-4 backdrop-blur-sm">
+      <div className="modal-animate w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <span className="mt-0.5 flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-honey-50 text-honey-700">
+              <AlertTriangle className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-gray-900">Подтвердите изменение аккаунта</h2>
+              <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                Это действие реально изменит Telegram-аккаунт.
+              </p>
+            </div>
+          </div>
+          <button
+            aria-label="Закрыть подтверждение"
+            className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-50 hover:text-gray-700"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            type="button"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3 px-4 py-3">
+          <RealExecutionGroup title="Profile" items={groups.profile} />
+          <RealExecutionGroup title="Music" items={groups.music} />
+          <RealExecutionGroup title="Stories" items={groups.stories} />
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3">
+          <button
+            className="rounded-lg px-3 py-2 text-xs font-semibold text-gray-500 transition hover:bg-white hover:text-gray-700 disabled:opacity-50"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            type="button"
+          >
+            Отмена
+          </button>
+          <button
+            className="rounded-lg bg-navy-400 px-4 py-2 text-xs font-semibold text-white transition hover:bg-navy-500 disabled:opacity-50"
+            disabled={isSubmitting}
+            onClick={onConfirm}
+            type="button"
+          >
+            Подтвердить и создать задачу
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RealExecutionGroup({ title, items }: { title: string; items: ChangeItem[] }) {
+  if (items.length === 0) return null
+  return (
+    <section>
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{title}</h3>
+      <ul className="mt-1.5 space-y-1">
+        {items.map((item) => (
+          <li className="flex gap-2 text-xs text-gray-700" key={`${item.operation}:${item.value}`}>
+            <span className="mt-1 size-1.5 flex-shrink-0 rounded-full bg-navy-300" />
+            <span className="min-w-0">
+              <span className="font-semibold">{formatChangeOperationLabel(item.operation)}</span>
+              <span className="text-gray-400"> · {item.value}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

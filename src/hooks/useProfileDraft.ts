@@ -30,6 +30,7 @@ import {
   buildJobMetrics,
   clearProfilePhotoDraft,
   clearStoredDashboardFormDraft,
+  isSupportedProfileAudioFile,
   persistStoredDashboardFormDraft,
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
@@ -176,6 +177,10 @@ export function useProfileDraft({
 
   async function handleAudioUpload(file: File | null) {
     if (!file) return
+    if (!isSupportedProfileAudioFile(file)) {
+      notify({ tone: 'error', title: 'Формат музыки не поддерживается', description: labelIssue('PROFILE_AUDIO_UNSUPPORTED_FORMAT') })
+      return
+    }
     setIsUploadingAudio(true)
     try {
       const asset = await uploadProfileAudio(file)

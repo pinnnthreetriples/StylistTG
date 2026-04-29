@@ -132,6 +132,40 @@ describe('buildJobStepItems', () => {
     })
   })
 
+  it('shows clear story and profile audio failure labels from backend error codes', () => {
+    const steps: JobStep[] = [
+      {
+        step_key: 'add_profile_audio',
+        step_type: 'add_profile_audio',
+        status: 'failed',
+        verification_attempted: false,
+        verification_result: null,
+        uncertain_reason: null,
+        error_code: 'PROFILE_AUDIO_FILE_ID_MISSING',
+        error_class: 'TdlibProfileQueryError',
+        started_at: null,
+        finished_at: null,
+      },
+      {
+        step_key: 'story_1_post',
+        step_type: 'post_story_image',
+        status: 'failed',
+        verification_attempted: false,
+        verification_result: null,
+        uncertain_reason: null,
+        error_code: 'STORY_POST_FAILED',
+        error_class: 'TdlibProfileQueryError',
+        started_at: null,
+        finished_at: null,
+      },
+    ]
+
+    expect(buildJobStepItems(steps, null).map((item) => item.detail)).toEqual([
+      'Telegram не вернул файл музыки',
+      'Telegram не опубликовал историю',
+    ])
+  })
+
   it('formats dynamic story step keys without leaking technical names', () => {
     const preview = {
       steps: [

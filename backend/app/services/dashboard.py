@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.logging_utils import log_event, log_warn
+from app.config import settings
 from app.models import Job, JobState, TERMINAL_JOB_STATES
 from app.services.accounts import get_account
 from app.services.jobs import get_latest_account_job
@@ -31,6 +32,7 @@ def build_dashboard_profile(session: Session, account_id: str) -> dict:
     profile_photo_asset_id = synced_photo_asset_id or latest_applied_profile_photo_asset_id(session, account_id)
     latest_job_summary = job_summary(latest_job) if latest_job else None
     story_posts = list_story_posts(session, account_id)
+    real_execution_enabled = settings.profile_execution_adapter == "tdlib"
 
     return {
         "account": {
@@ -71,6 +73,10 @@ def build_dashboard_profile(session: Session, account_id: str) -> dict:
             "last_error_code": runtime["last_error_code"],
             "last_error_class": runtime["last_error_class"],
             "authorized_last_confirmed_at": runtime["authorized_last_confirmed_at"],
+            "real_execution_enabled": real_execution_enabled,
+            "stories_live_execution_enabled": (
+                real_execution_enabled and settings.stories_enabled and settings.stories_tdlib_live_enabled
+            ),
         },
     }
 

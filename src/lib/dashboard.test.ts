@@ -11,6 +11,8 @@ import {
   formatAccountStateLabel,
   formatJobActivityText,
   formatRelativeTimestamp,
+  groupRealExecutionChanges,
+  isSupportedProfileAudioFile,
   persistStoredDashboardFormDraft,
   readStoredDashboardFormDraft,
   reconcileStoredDashboardFormDraft,
@@ -18,6 +20,7 @@ import {
   resolveProfilePhotoPreviewUrl,
   resolveDashboardIdentity,
   resolveAccountId,
+  shouldConfirmRealTelegramExecution,
   splitDisplayName,
 } from '@/lib/dashboard'
 
@@ -79,6 +82,66 @@ describe('buildChangeItems', () => {
       'set_bio',
       'add_profile_audio',
     ])
+  })
+})
+
+describe('real Telegram execution confirmation helpers', () => {
+  const changedItems = [
+    { operation: 'set_name', changed: true, value: 'Old -> New' },
+    { operation: 'add_profile_audio', changed: true, value: 'Музыка будет обновлена' },
+    { operation: 'post_story_video', changed: true, value: 'story.mp4' },
+  ] satisfies Parameters<typeof groupRealExecutionChanges>[0]
+
+  it('groups planned changes by product module', () => {
+    expect(groupRealExecutionChanges(changedItems)).toEqual({
+      profile: [changedItems[0]],
+      music: [changedItems[1]],
+      stories: [changedItems[2]],
+    })
+  })
+
+  it('requires confirmation for profile or music changes when TDLib execution is enabled', () => {
+    expect(
+      shouldConfirmRealTelegramExecution({ real_execution_enabled: true, stories_live_execution_enabled: false }, [
+        changedItems[0],
+      ]),
+    ).toBe(true)
+    expect(
+      shouldConfirmRealTelegramExecution({ real_execution_enabled: true, stories_live_execution_enabled: false }, [
+        changedItems[1],
+      ]),
+    ).toBe(true)
+  })
+
+  it('requires confirmation for stories only when live story publishing is enabled', () => {
+    expect(
+      shouldConfirmRealTelegramExecution({ real_execution_enabled: true, stories_live_execution_enabled: false }, [
+        changedItems[2],
+      ]),
+    ).toBe(false)
+    expect(
+      shouldConfirmRealTelegramExecution({ real_execution_enabled: true, stories_live_execution_enabled: true }, [
+        changedItems[2],
+      ]),
+    ).toBe(true)
+  })
+
+  it('does not require confirmation for mock execution', () => {
+    expect(
+      shouldConfirmRealTelegramExecution({ real_execution_enabled: false, stories_live_execution_enabled: false }, changedItems),
+    ).toBe(false)
+  })
+})
+
+describe('isSupportedProfileAudioFile', () => {
+  it('accepts MP3 and M4A by mime type or extension', () => {
+    expect(isSupportedProfileAudioFile({ name: 'track.bin', type: 'audio/mpeg' })).toBe(true)
+    expect(isSupportedProfileAudioFile({ name: 'voice.m4a', type: '' })).toBe(true)
+  })
+
+  it('rejects unsupported profile audio formats before upload', () => {
+    expect(isSupportedProfileAudioFile({ name: 'voice.ogg', type: 'audio/ogg' })).toBe(false)
+    expect(isSupportedProfileAudioFile({ name: 'voice.wav', type: 'audio/wav' })).toBe(false)
   })
 })
 

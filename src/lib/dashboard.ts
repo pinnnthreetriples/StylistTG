@@ -45,6 +45,17 @@ export type ChangeItem = {
   value: string
 }
 
+export type DashboardDiagnostics = {
+  real_execution_enabled?: boolean
+  stories_live_execution_enabled?: boolean
+}
+
+export type RealExecutionChangeGroups = {
+  profile: ChangeItem[]
+  music: ChangeItem[]
+  stories: ChangeItem[]
+}
+
 const changeOperationLabels: Record<ChangeItem['operation'], string> = {
   set_name: 'Имя',
   set_bio: 'Описание',
@@ -56,6 +67,18 @@ const changeOperationLabels: Record<ChangeItem['operation'], string> = {
   post_story_image: 'Фото в историю',
   post_story_video: 'Видео в историю',
 }
+
+const profileOperations = new Set<ChangeItem['operation']>([
+  'set_name',
+  'set_bio',
+  'set_username',
+  'set_profile_photo',
+])
+const musicOperations = new Set<ChangeItem['operation']>(['add_profile_audio', 'remove_profile_audio'])
+const storyOperations = new Set<ChangeItem['operation']>(['post_story_image', 'post_story_video'])
+
+const supportedProfileAudioMimes = new Set(['audio/mpeg', 'audio/mp4', 'audio/x-m4a'])
+const supportedProfileAudioExtensions = ['.mp3', '.m4a']
 
 export type PhotoPreviewState = {
   imageUrl: string | null
@@ -293,6 +316,34 @@ export function buildChangeItems(current: CurrentProfile, draft: FormState): Cha
 
 export function formatChangeOperationLabel(operation: ChangeItem['operation']): string {
   return changeOperationLabels[operation]
+}
+
+export function groupRealExecutionChanges(changedItems: ChangeItem[]): RealExecutionChangeGroups {
+  return {
+    profile: changedItems.filter((item) => profileOperations.has(item.operation)),
+    music: changedItems.filter((item) => musicOperations.has(item.operation)),
+    stories: changedItems.filter((item) => storyOperations.has(item.operation)),
+  }
+}
+
+export function shouldConfirmRealTelegramExecution(
+  diagnostics: DashboardDiagnostics | null | undefined,
+  changedItems: ChangeItem[],
+): boolean {
+  const groups = groupRealExecutionChanges(changedItems)
+  const profileOrMusicWillRun = groups.profile.length > 0 || groups.music.length > 0
+  const storiesWillRun = groups.stories.length > 0
+
+  return Boolean(
+    (diagnostics?.real_execution_enabled && profileOrMusicWillRun) ||
+      (diagnostics?.stories_live_execution_enabled && storiesWillRun),
+  )
+}
+
+export function isSupportedProfileAudioFile(file: Pick<File, 'name' | 'type'>): boolean {
+  const mime = file.type.trim().toLowerCase()
+  const name = file.name.trim().toLowerCase()
+  return supportedProfileAudioMimes.has(mime) || supportedProfileAudioExtensions.some((ext) => name.endsWith(ext))
 }
 
 export function buildRuntimeBanner({ apiError }: { apiError: ApiError | null }): RuntimeBanner | null {

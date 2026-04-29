@@ -148,6 +148,8 @@ def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     assert payload["pipeline"]["unsaved_changes_supported"] is True
     assert payload["diagnostics"]["last_error_code"] == "USERNAME_INVALID"
     assert payload["diagnostics"]["last_error_class"] == "validation"
+    assert payload["diagnostics"]["real_execution_enabled"] is False
+    assert payload["diagnostics"]["stories_live_execution_enabled"] is False
 
     app.dependency_overrides.clear()
 

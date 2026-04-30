@@ -23,8 +23,10 @@ export async function apiRequest<T>(path: string, init?: ApiRequestInit): Promis
   }
 
   try {
+    const headers = buildRequestHeaders(requestInit)
     const response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...requestInit,
+      headers,
       signal: controller.signal,
     })
     const isJson = response.headers.get('content-type')?.includes('application/json')
@@ -48,6 +50,28 @@ export async function apiRequest<T>(path: string, init?: ApiRequestInit): Promis
   } finally {
     globalThis.clearTimeout(timeoutId)
   }
+}
+
+function buildRequestHeaders(requestInit: RequestInit): HeadersInit | undefined {
+  if (typeof requestInit.body !== 'string') {
+    return requestInit.headers
+  }
+  const headers = new Headers(requestInit.headers)
+  if (headers.has('Content-Type')) {
+    return requestInit.headers
+  }
+  return { ...headersInitToObject(requestInit.headers), 'Content-Type': 'application/json' }
+}
+
+function headersInitToObject(headers: HeadersInit | undefined): Record<string, string> {
+  if (!headers) return {}
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries())
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers)
+  }
+  return { ...headers }
 }
 
 export function isApiError(payload: unknown): payload is ApiError {

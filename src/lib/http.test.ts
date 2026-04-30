@@ -63,6 +63,24 @@ describe('apiRequest', () => {
     )
   })
 
+  it('sets json content type for string bodies without overriding explicit headers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiRequest('/api/test', {
+      method: 'POST',
+      body: JSON.stringify({ ok: true }),
+    })
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json')
+  })
+
   it('throws backend api errors without losing their shape', async () => {
     const payload = {
       error_code: 'RUNTIME_UNUSABLE',

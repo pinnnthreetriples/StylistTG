@@ -229,8 +229,12 @@ class AccountProxyRead(BaseModel):
     has_password: bool
     status: str
     last_checked_at: datetime | None = None
+    last_check_scope: str | None = None
     last_error_code: str | None = None
     last_error_message: str | None = None
+    tdlib_verified_at: datetime | None = None
+    tdlib_last_error_code: str | None = None
+    tdlib_last_error_message: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -242,7 +246,10 @@ class AccountProxySummaryRead(BaseModel):
     host: str | None = None
     port: int | None = None
     last_checked_at: datetime | None = None
+    last_check_scope: str | None = None
     last_error_code: str | None = None
+    tdlib_verified_at: datetime | None = None
+    tdlib_last_error_code: str | None = None
 
 
 class FieldErrorRead(BaseModel):
@@ -306,6 +313,8 @@ class LivePreflightRead(BaseModel):
     storage_writable: bool
     rq_worker_expected: bool
     rq_worker_status: str | None = None
+    profile_worker_status: str | None = None
+    auth_worker_status: str | None = None
     overall_status: str
 
 

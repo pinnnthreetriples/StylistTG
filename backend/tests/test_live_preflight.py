@@ -30,7 +30,8 @@ def test_live_preflight_returns_structured_result(tmp_path: Path) -> None:
         tdlib_database_root=tdlib_db_root,
         tdlib_files_root=tdlib_files_root,
         worker_expected=True,
-        worker_status=lambda: "ready",
+        profile_worker_status=lambda: "ready",
+        auth_worker_status=lambda: "ready",
     )
 
     result = service.run()
@@ -41,6 +42,8 @@ def test_live_preflight_returns_structured_result(tmp_path: Path) -> None:
     assert result["redis_reachable"] is True
     assert result["storage_writable"] is True
     assert result["rq_worker_status"] == "ready"
+    assert result["profile_worker_status"] == "ready"
+    assert result["auth_worker_status"] == "ready"
     assert result["overall_status"] == "ok"
 
 
@@ -63,6 +66,8 @@ def test_live_preflight_reports_degraded_dependencies(tmp_path: Path) -> None:
     assert result["tdlib_credentials_present"] is False
     assert result["redis_reachable"] is False
     assert result["rq_worker_status"] is None
+    assert result["profile_worker_status"] is None
+    assert result["auth_worker_status"] is None
     assert result["overall_status"] == "degraded"
 
 
@@ -79,12 +84,15 @@ def test_live_preflight_reports_missing_worker_as_degraded(tmp_path: Path) -> No
         tdlib_database_root=tmp_path / "tdlib-db",
         tdlib_files_root=tmp_path / "tdlib-files",
         worker_expected=True,
-        worker_status=lambda: "missing",
+        profile_worker_status=lambda: "ready",
+        auth_worker_status=lambda: "missing",
     )
 
     result = service.run()
 
     assert result["rq_worker_status"] == "missing"
+    assert result["profile_worker_status"] == "ready"
+    assert result["auth_worker_status"] == "missing"
     assert result["overall_status"] == "degraded"
 
 
@@ -104,10 +112,13 @@ def test_live_preflight_reports_unknown_worker_when_probe_fails(tmp_path: Path) 
         tdlib_database_root=tmp_path / "tdlib-db",
         tdlib_files_root=tmp_path / "tdlib-files",
         worker_expected=True,
-        worker_status=worker_status,
+        profile_worker_status=worker_status,
+        auth_worker_status=lambda: "ready",
     )
 
     result = service.run()
 
     assert result["rq_worker_status"] == "unknown"
+    assert result["profile_worker_status"] == "unknown"
+    assert result["auth_worker_status"] == "ready"
     assert result["overall_status"] == "degraded"

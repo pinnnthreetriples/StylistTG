@@ -1,4 +1,13 @@
-export type ProxyStatus = 'none' | 'unknown' | 'working' | 'failed' | string
+export type ProxyStatus =
+  | 'none'
+  | 'unknown'
+  | 'working'
+  | 'tcp_working'
+  | 'tdlib_working'
+  | 'tdlib_unverified'
+  | 'failed'
+  | 'tdlib_failed'
+  | string
 export type ProxyType = 'socks5' | 'http'
 
 export type AccountProxy = {
@@ -10,8 +19,12 @@ export type AccountProxy = {
   has_password: boolean
   status: ProxyStatus
   last_checked_at: string | null
+  last_check_scope: 'tcp' | 'tcp_tdlib' | string | null
   last_error_code: string | null
   last_error_message: string | null
+  tdlib_verified_at: string | null
+  tdlib_last_error_code: string | null
+  tdlib_last_error_message: string | null
   created_at: string
   updated_at: string
 }
@@ -31,20 +44,26 @@ export type AccountProxySummary = {
   host: string | null
   port: number | null
   last_checked_at: string | null
+  last_check_scope: 'tcp' | 'tcp_tdlib' | string | null
   last_error_code: string | null
+  tdlib_verified_at: string | null
+  tdlib_last_error_code: string | null
 }
 
 export function proxyStatusLabel(status: ProxyStatus | null | undefined): string {
   if (!status || status === 'none') return 'Proxy: не назначен'
-  if (status === 'working') return 'Proxy: работает'
+  if (status === 'working' || status === 'tcp_working') return 'TCP доступен'
+  if (status === 'tdlib_working') return 'Telegram через proxy проверен'
+  if (status === 'tdlib_unverified') return 'Telegram через proxy не проверен'
   if (status === 'failed') return 'Proxy: ошибка'
+  if (status === 'tdlib_failed') return 'TDLib через proxy не прошёл'
   return 'Proxy: не проверен'
 }
 
 export function proxyStatusTone(status: ProxyStatus | null | undefined): 'green' | 'amber' | 'red' | 'gray' {
-  if (status === 'working') return 'green'
-  if (status === 'failed') return 'red'
-  if (status === 'unknown') return 'amber'
+  if (status === 'working' || status === 'tcp_working' || status === 'tdlib_working') return 'green'
+  if (status === 'failed' || status === 'tdlib_failed') return 'red'
+  if (status === 'unknown' || status === 'tdlib_unverified') return 'amber'
   return 'gray'
 }
 

@@ -66,17 +66,17 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
 
 
 def remove_job_from_queue(job_id: str) -> bool:
-    queue = get_profile_queue()
     try:
-        queue.remove(job_id)
-        for registry_cls in (DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry):
-            registry = registry_cls(PROFILE_QUEUE_NAME, connection=queue.connection)
-            if job_id in registry.get_job_ids():
-                registry.remove(job_id, delete_job=True)
-        try:
-            Job.fetch(job_id, connection=queue.connection).delete()
-        except NoSuchJobError:
-            pass
+        for queue in (get_profile_queue(), get_auth_queue()):
+            queue.remove(job_id)
+            for registry_cls in (DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry):
+                registry = registry_cls(queue.name, connection=queue.connection)
+                if job_id in registry.get_job_ids():
+                    registry.remove(job_id, delete_job=True)
+            try:
+                Job.fetch(job_id, connection=queue.connection).delete()
+            except NoSuchJobError:
+                pass
     except RedisError:
         return False
     return True

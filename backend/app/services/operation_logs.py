@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AccountOperationLog, new_id, utc_now
 from app.services.accounts import get_account
-
-SENSITIVE_KEYS = {"password", "password_encrypted", "token", "secret", "api_hash", "tdlib_api_hash"}
+from app.services.secret_redaction import redact_metadata
 
 
 def log_operation(
@@ -41,7 +40,7 @@ def log_operation(
         message=message,
         error_code=error_code,
         error_class=error_class,
-        metadata_json=_sanitize(metadata or {}),
+        metadata_json=redact_metadata(metadata or {}),
         request_id=request_id,
         job_id=job_id,
         step_id=step_id,
@@ -144,17 +143,3 @@ def _list_logs(
         "limit": safe_limit,
         "offset": safe_offset,
     }
-
-
-def _sanitize(value: Any) -> Any:
-    if isinstance(value, dict):
-        result: dict[str, Any] = {}
-        for key, item in value.items():
-            if key.lower() in SENSITIVE_KEYS:
-                result[key] = "***"
-            else:
-                result[key] = _sanitize(item)
-        return result
-    if isinstance(value, list):
-        return [_sanitize(item) for item in value]
-    return value

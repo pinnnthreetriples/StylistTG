@@ -769,6 +769,35 @@ def test_profile_adapter_inspect_runtime_times_out_when_tdlib_is_silent(tmp_path
     assert result["runtime_health"] == "timeout"
 
 
+def test_profile_adapter_create_failure_yields_runtime_failed(tmp_path) -> None:
+    class RaisingFactory:
+        def create(self, account_id):
+            raise OSError("tdjson unavailable")
+
+    adapter = TdlibProfileExecutionAdapter(
+        client_factory=RaisingFactory(),
+        config=Settings(
+            tdlib_api_id=1,
+            tdlib_api_hash="hash",
+            tdlib_database_root=tmp_path / "database",
+            tdlib_files_root=tmp_path / "files",
+            tdlib_receive_timeout_seconds=0.01,
+            tdlib_auth_timeout_seconds=0.02,
+        ),
+    )
+
+    events = list(adapter.execute("account-1", {"steps": []}, {}))
+
+    assert events == [
+        {
+            "event": "runtime_failed",
+            "error_code": "tdlib_runtime_failed",
+            "error_class": "OSError",
+            "error": "tdjson unavailable",
+        }
+    ]
+
+
 @pytest.mark.integration
 @pytest.mark.live
 def test_real_tdlib_adapter_can_be_constructed_when_credentials_exist() -> None:

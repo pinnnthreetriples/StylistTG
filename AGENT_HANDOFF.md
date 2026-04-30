@@ -96,7 +96,7 @@ It is intended to:
 - start Memurai Redis from `C:\Tools\Memurai`;
 - run Alembic migrations;
 - start FastAPI backend;
-- start RQ worker;
+- start separate RQ workers for `profile_jobs` and `auth_jobs`;
 - start Vite frontend at `http://localhost:5173`.
 
 Manual frontend:
@@ -122,7 +122,8 @@ Manual worker:
 
 ```powershell
 cd backend
-python -m rq.cli worker profile_jobs auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 ```
 
 Redis note:
@@ -271,6 +272,13 @@ Important proxy rules:
 - Proxy check is a technical connectivity check and does not perform Telegram profile writes.
 - Saved per-account proxy settings are applied to TDLib auth/runtime/profile/sync/read-only validity paths before Telegram queries.
 - In TDLib live mode, `POST /api/accounts/{account_id}/proxy/check` first performs TCP diagnostics and then a read-only TDLib validity check through the saved proxy.
+- Proxy status distinguishes TCP-only availability from TDLib verification:
+  - `tcp_working`: TCP connection to proxy works, Telegram through proxy was not verified.
+  - `tdlib_working`: read-only TDLib check through proxy succeeded.
+  - `tdlib_unverified`: TCP works but account is not ready for Telegram verification, for example login is needed.
+  - `failed`: TCP proxy check failed.
+  - `tdlib_failed`: TDLib/proxy runtime verification failed.
+- Proxy passwords are encrypted at rest and never returned in API DTOs, operation log metadata, stderr summaries, or frontend state.
 - Proxy passwords require `PROXY_CREDENTIALS_ENCRYPTION_KEY` in local `.env` / `backend/.env`.
 - `.env` and `backend/.env` are ignored and must never be committed or printed.
 - `cryptography` is a backend dependency for Fernet encryption.

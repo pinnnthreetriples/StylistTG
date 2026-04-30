@@ -126,7 +126,10 @@ async def request_logging_middleware(request: Request, call_next):
 
 def _is_local_client(request: Request) -> bool:
     host = request.client.host if request.client else ""
-    return host in {"127.0.0.1", "::1", "localhost", "testclient"}
+    if host.startswith("::ffff:"):
+        host = host.removeprefix("::ffff:")
+    allowed = {item.strip() for item in settings.operator_allowed_client_hosts.split(",") if item.strip()}
+    return host in allowed
 
 
 @app.get("/health")

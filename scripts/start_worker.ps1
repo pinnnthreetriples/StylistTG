@@ -1,6 +1,6 @@
 param(
     [string]$RedisUrl = "redis://127.0.0.1:6379/0",
-    [string]$QueueName = "profile_jobs auth_jobs",
+    [string]$QueueName = "profile_jobs",
     [string]$ArtifactsRoot = "artifacts/live-validation",
     [string]$LogPath
 )

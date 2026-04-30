@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 import subprocess
 from io import BytesIO
 from pathlib import Path
@@ -186,8 +187,13 @@ def save_story_video_asset(
     normalized_dir.mkdir(parents=True, exist_ok=True)
     extension = Path(filename).suffix or ".mp4"
     source_path = source_dir / f"original{extension}"
-    source_path.write_bytes(content)
-    normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+    asset_root = storage_root / "assets" / asset_id
+    try:
+        source_path.write_bytes(content)
+        normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+    except Exception:
+        shutil.rmtree(asset_root, ignore_errors=True)
+        raise
     content_hash = hashlib.sha256(normalized_path.read_bytes()).hexdigest()
 
     asset = Asset(

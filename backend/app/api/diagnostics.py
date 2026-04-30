@@ -29,21 +29,18 @@ def live_preflight():
         tdlib_database_root=settings.tdlib_database_root,
         tdlib_files_root=settings.tdlib_files_root,
         worker_expected=True,
-        worker_status=lambda: _rq_worker_status(redis),
+        profile_worker_status=lambda: _rq_queue_worker_status(redis, PROFILE_QUEUE_NAME),
+        auth_worker_status=lambda: _rq_queue_worker_status(redis, AUTH_QUEUE_NAME),
     )
     return LivePreflightRead(**service.run())
 
 
-def _rq_worker_status(redis: Redis) -> str:
+def _rq_queue_worker_status(redis: Redis, queue_name: str) -> str:
     try:
         workers = Worker.all(connection=redis)
     except RedisError:
         return "unknown"
-    active_queue_names: set[str] = set()
     for worker in workers:
-        active_queue_names.update(worker.queue_names())
-    if {PROFILE_QUEUE_NAME, AUTH_QUEUE_NAME}.issubset(active_queue_names):
-        return "ready"
-    if active_queue_names:
-        return "missing"
+        if queue_name in worker.queue_names():
+            return "ready"
     return "missing"

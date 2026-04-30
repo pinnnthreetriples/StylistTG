@@ -56,29 +56,53 @@ def check_account_proxy(
         raise ValueError("proxy not configured")
     ok, error_code, error_message = (checker or TcpProxyConnectivityChecker()).check(proxy)
     check_scope = "tcp"
+    now = datetime.now(UTC)
+    status = "tcp_working" if ok else "failed"
+    tdlib_error_code = None
+    tdlib_error_message = None
+    tdlib_verified_at = proxy.tdlib_verified_at
     if ok and _should_run_tdlib_proxy_check(config):
         check_scope = "tcp_tdlib"
         tdlib_result = (tdlib_checker or build_tdlib_readonly_validity_adapter(config)).check_account(account_id)
-        if tdlib_result.get("status") != "valid":
-            ok = False
-            error_code = str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed")
-            error_message = str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or "TDLib proxy check failed")
-    proxy.status = "working" if ok else "failed"
-    proxy.last_checked_at = datetime.now(UTC)
+        tdlib_status = str(tdlib_result.get("status") or "unknown")
+        if tdlib_status == "valid":
+            status = "tdlib_working"
+            tdlib_verified_at = now
+        elif tdlib_status in {"reauth_required", "awaiting_code", "awaiting_password", "unknown"}:
+            status = "tdlib_unverified"
+            tdlib_error_code = str(tdlib_result.get("error_code") or tdlib_status)
+            tdlib_error_message = str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status)
+        else:
+            status = "tdlib_failed"
+            tdlib_error_code = str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed")
+            tdlib_error_message = str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or "TDLib proxy check failed")
+    proxy.status = status
+    proxy.last_checked_at = now
+    proxy.last_check_scope = check_scope
     proxy.last_error_code = None if ok else error_code
     proxy.last_error_message = None if ok else error_message
+    proxy.tdlib_verified_at = tdlib_verified_at
+    proxy.tdlib_last_error_code = tdlib_error_code
+    proxy.tdlib_last_error_message = tdlib_error_message
     log_operation(
         session,
         account_id=account_id,
         operation_type="proxy",
         operation_key="check_proxy",
-        status="completed" if ok else "failed",
-        severity="info" if ok else "warning",
+        status="completed" if status in {"tcp_working", "tdlib_working", "tdlib_unverified"} else "failed",
+        severity="info" if status in {"tcp_working", "tdlib_working"} else "warning",
         source="proxy_check",
-        message="Proxy check succeeded" if ok else "Proxy check failed",
-        error_code=None if ok else error_code,
-        error_class=None if ok else "proxy",
-        metadata={"proxy_type": proxy.proxy_type, "host": proxy.host, "port": proxy.port, "check_scope": check_scope},
+        message=_proxy_check_message(status),
+        error_code=None if ok and status != "tdlib_failed" else (tdlib_error_code if status == "tdlib_failed" else error_code),
+        error_class="tdlib_proxy" if status == "tdlib_failed" else (None if ok else "proxy"),
+        metadata={
+            "proxy_type": proxy.proxy_type,
+            "host": proxy.host,
+            "port": proxy.port,
+            "check_scope": check_scope,
+            "tdlib_status": status if check_scope == "tcp_tdlib" else None,
+            "tdlib_error_code": tdlib_error_code,
+        },
     )
     session.commit()
     session.refresh(proxy)
@@ -87,3 +111,13 @@ def check_account_proxy(
 
 def _should_run_tdlib_proxy_check(config: Settings) -> bool:
     return bool(config.profile_execution_adapter == "tdlib" and config.tdlib_api_id and config.tdlib_api_hash)
+
+
+def _proxy_check_message(status: str) -> str:
+    return {
+        "tcp_working": "TCP proxy check succeeded",
+        "tdlib_working": "TDLib proxy check succeeded",
+        "tdlib_unverified": "TCP proxy works, but Telegram account is not ready for TDLib verification",
+        "tdlib_failed": "TDLib proxy check failed",
+        "failed": "Proxy check failed",
+    }.get(status, "Proxy check completed")

@@ -74,8 +74,9 @@ class TdlibProfileSyncAdapter:
         return snapshot["stories"]
 
     def fetch_profile_snapshot(self, account_id: str) -> dict:
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             self._wait_until_ready(client, account_id)
             me = _send_query_checked(
                 client,
@@ -110,11 +111,13 @@ class TdlibProfileSyncAdapter:
                 },
             }
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
     def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             self._wait_until_ready(client, account_id)
             chat_id = _prepare_story_action(client, story_poster_chat_id, story_id, self._config)
             _send_query_checked(
@@ -123,11 +126,13 @@ class TdlibProfileSyncAdapter:
                 self._config.tdlib_auth_timeout_seconds,
             )
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
     def remove_story_from_profile(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             self._wait_until_ready(client, account_id)
             chat_id = _prepare_story_action(client, story_poster_chat_id, story_id, self._config)
             _send_query_checked(
@@ -141,7 +146,8 @@ class TdlibProfileSyncAdapter:
                 self._config.tdlib_auth_timeout_seconds,
             )
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
     def _wait_until_ready(self, client: TdlibClient, account_id: str) -> None:
         proxy_applied = False

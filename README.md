@@ -136,6 +136,27 @@ $env:TDLIB_SHARED_LIBRARY_PATH="C:\\path\\to\\tdjson.dll"
 $env:PROFILE_EXECUTION_ADAPTER="tdlib"
 ```
 
+SaaS database/auth foundation:
+
+```powershell
+# Local keeps using Docker/Postgres DATABASE_URL.
+$env:DB_CONNECTION_MODE="local"
+$env:DATABASE_URL="postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg"
+
+# Neon runtime should use pooled connection string.
+$env:DB_CONNECTION_MODE="neon"
+$env:DATABASE_RUNTIME_URL="<neon pooled connection string>"
+$env:DATABASE_DIRECT_URL="<neon direct/admin connection string>"
+
+# Auth remains local for development; production uses Supabase JWT verification.
+$env:AUTH_MODE="local"
+$env:SUPABASE_AUTH_JWKS_URL="<supabase jwks url>"
+$env:SUPABASE_AUTH_ISSUER="<supabase issuer>"
+$env:SUPABASE_AUTH_AUDIENCE="<supabase audience>"
+```
+
+Neon is the PostgreSQL provider. Supabase is used only as the auth provider; FastAPI remains the only data access layer and enforces workspace isolation.
+
 Live smoke helper:
 
 ```powershell

@@ -32,6 +32,7 @@ Implemented or actively wired:
 - Account Safety & Readiness Engine: health/risk/capabilities, read-only validity checks, operation cooldowns, safety overrides.
 - Per-account proxy assignment/status, technical proxy connectivity checks, and TDLib read-only proxy verification in TDLib live mode.
 - Operation logs: account-level recent history, debug history, and global `/operations` journal.
+- SaaS backend foundation: runtime/direct DB URL split, local workspace bootstrap, AuthContext abstraction, identity/workspace/audit/limits models, and tenant-scoped core API access.
 - Polling-first job progress UI with grouped story mini-pipelines.
 
 Still limited or intentionally cautious:
@@ -48,6 +49,8 @@ Still limited or intentionally cautious:
 - Backend: FastAPI, SQLAlchemy, Alembic, Pydantic settings.
 - Queue: Redis + RQ.
 - DB: PostgreSQL by default; tests may use isolated DB fixtures.
+- SaaS DB target: Neon Postgres. Runtime uses pooled DB URL; migrations/admin use direct DB URL.
+- SaaS auth target: Supabase Auth JWT. Supabase is not a data access layer.
 - Telegram engine: TDLib via `tdjson.dll`.
 - File storage: local disk under backend storage paths.
 - Execution model: API creates a DB job, RQ worker executes it, frontend polls status.
@@ -194,6 +197,12 @@ Core services:
 - `backend/app/services/proxy_accounts.py`
 - `backend/app/services/proxy_checks.py`
 - `backend/app/services/tdlib_proxy.py`
+- `backend/app/services/auth_context.py`
+- `backend/app/services/workspaces.py`
+- `backend/app/services/tenant_scope.py`
+- `backend/app/services/audit_logs.py`
+- `backend/app/services/limits.py`
+- `backend/app/services/supabase_jwt.py`
 
 Adapters/workers:
 

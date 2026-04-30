@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.tdlib_auth import normalize_phone_number
 from app.models import (
+    DEFAULT_LOCAL_WORKSPACE_ID,
     Account,
     AccountRuntimeState,
     AccountState,
@@ -22,7 +23,10 @@ from app.models import (
     utc_now,
 )
 from app.services.accounts import get_account_by_external_ref
+from app.services.audit_logs import log_audit_event
 from app.services.auth_batch_state import transition_batch, transition_item
+from app.services.limits import check_workspace_limit
+from app.services.workspaces import ensure_default_workspace
 
 REUSABLE_BATCH_ACCOUNT_STATES = {
     AccountState.REGISTERED,
@@ -109,7 +113,11 @@ def create_auth_batch(
     max_running_commands: int = 2,
     max_waiting_input: int = 5,
     max_total_active: int = 6,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
 ) -> tuple[AuthBatch, bool]:
+    if workspace_id == DEFAULT_LOCAL_WORKSPACE_ID:
+        ensure_default_workspace(session)
     existing = session.execute(
         select(AuthBatch).where(AuthBatch.idempotency_key == idempotency_key)
     ).scalars().first()
@@ -120,8 +128,10 @@ def create_auth_batch(
     valid_items = validation["valid_items"]
     if not valid_items:
         raise EmptyAuthBatchError(validation)
+    check_workspace_limit(session, workspace_id, "batch_size", requested=len(valid_items))
 
     batch = AuthBatch(
+        workspace_id=workspace_id,
         label=label,
         idempotency_key=idempotency_key,
         total_count=len(valid_items),
@@ -138,6 +148,7 @@ def create_auth_batch(
             _reset_stale_batch_account(account)
         else:
             account = Account(
+                workspace_id=workspace_id,
                 external_ref=item["phone_number"],
                 auth_source="batch",
                 account_state=AccountState.REGISTERED,
@@ -161,6 +172,15 @@ def create_auth_batch(
         )
     batch.events.append(
         AuthBatchEvent(event_type="batch_created", actor="user", payload_json={"total_count": len(valid_items)})
+    )
+    log_audit_event(
+        session,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        action="auth.batch.created",
+        entity_type="auth_batch",
+        entity_id=batch.id,
+        metadata={"total_count": len(valid_items)},
     )
     session.commit()
     session.refresh(batch)
@@ -195,13 +215,21 @@ def _reset_stale_batch_account(account: Account) -> None:
     account.runtime_state.updated_at = utc_now()
 
 
-def get_batch(session: Session, batch_id: str) -> AuthBatch | None:
-    return session.get(AuthBatch, batch_id)
+def get_batch(session: Session, batch_id: str, workspace_id: str | None = None) -> AuthBatch | None:
+    batch = session.get(AuthBatch, batch_id)
+    if batch is None or (workspace_id is not None and batch.workspace_id != workspace_id):
+        return None
+    return batch
 
 
-def list_batches(session: Session, *, limit: int = 50) -> list[AuthBatch]:
+def list_batches(session: Session, *, limit: int = 50, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID) -> list[AuthBatch]:
     return list(
-        session.execute(select(AuthBatch).order_by(AuthBatch.created_at.desc()).limit(limit))
+        session.execute(
+            select(AuthBatch)
+            .where(AuthBatch.workspace_id == workspace_id)
+            .order_by(AuthBatch.created_at.desc())
+            .limit(limit)
+        )
         .scalars()
         .all()
     )

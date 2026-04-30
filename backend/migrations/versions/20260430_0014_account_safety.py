@@ -8,6 +8,8 @@ down_revision = "20260429_0013"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     bind = op.get_bind()
@@ -15,7 +17,7 @@ def upgrade() -> None:
     if "account_safety_snapshot" not in tables:
         op.create_table(
             "account_safety_snapshot",
-            sa.Column("account_id", sa.String(length=36), sa.ForeignKey("account.id"), primary_key=True),
+            sa.Column("account_id", UUID_STRING, sa.ForeignKey("account.id"), primary_key=True),
             sa.Column("health_status", sa.String(length=64), nullable=False),
             sa.Column("overall_risk_level", sa.String(length=64), nullable=False),
             sa.Column("validity_status", sa.String(length=64), nullable=False),
@@ -31,8 +33,8 @@ def upgrade() -> None:
     if "account_validity_check_run" not in tables:
         op.create_table(
             "account_validity_check_run",
-            sa.Column("id", sa.String(length=36), primary_key=True),
-            sa.Column("account_id", sa.String(length=36), sa.ForeignKey("account.id"), nullable=False),
+            sa.Column("id", UUID_STRING, primary_key=True),
+            sa.Column("account_id", UUID_STRING, sa.ForeignKey("account.id"), nullable=False),
             sa.Column("mode", sa.String(length=64), nullable=False),
             sa.Column("status", sa.String(length=64), nullable=False),
             sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),

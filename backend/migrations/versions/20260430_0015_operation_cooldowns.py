@@ -8,6 +8,8 @@ down_revision = "20260430_0014"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     tables = sa.inspect(op.get_bind()).get_table_names()
@@ -15,16 +17,16 @@ def upgrade() -> None:
         return
     op.create_table(
         "account_operation_cooldown",
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column("account_id", sa.String(length=36), sa.ForeignKey("account.id"), nullable=False),
+        sa.Column("id", UUID_STRING, primary_key=True),
+        sa.Column("account_id", UUID_STRING, sa.ForeignKey("account.id"), nullable=False),
         sa.Column("operation", sa.String(length=64), nullable=False),
         sa.Column("level", sa.String(length=32), nullable=False),
         sa.Column("reason_code", sa.String(length=128), nullable=False),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("retry_after_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("source", sa.String(length=128), nullable=False),
-        sa.Column("source_job_id", sa.String(length=36), nullable=True),
-        sa.Column("source_step_id", sa.String(length=36), nullable=True),
+        sa.Column("source_job_id", UUID_STRING, nullable=True),
+        sa.Column("source_step_id", UUID_STRING, nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
     )

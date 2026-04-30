@@ -21,6 +21,8 @@ from app.services.auth import (
     start_otp,
     submit_password,
 )
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.accounts import get_account
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -44,12 +46,18 @@ def patch_auth_runtime_mode(payload: AuthRuntimeModeUpdate):
 
 
 @router.post("/auth/otp/start", response_model=AuthStateRead, status_code=status.HTTP_201_CREATED)
-def post_otp_start(payload: OtpStartRequest, session: Session = Depends(get_session)):
+def post_otp_start(
+    payload: OtpStartRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     try:
         result = start_otp(
             session,
             phone_number=payload.phone_number,
             adapter=build_tdlib_auth_adapter(),
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
         )
     except AuthSafetyError as exc:
         raise _auth_safety_app_error(exc) from exc
@@ -59,7 +67,13 @@ def post_otp_start(payload: OtpStartRequest, session: Session = Depends(get_sess
 
 
 @router.post("/auth/otp/confirm", response_model=AuthStateRead)
-def post_otp_confirm(payload: OtpConfirmRequest, session: Session = Depends(get_session)):
+def post_otp_confirm(
+    payload: OtpConfirmRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         result = confirm_otp(
             session,
@@ -75,7 +89,13 @@ def post_otp_confirm(payload: OtpConfirmRequest, session: Session = Depends(get_
 
 
 @router.post("/auth/password", response_model=AuthStateRead)
-def post_password(payload: PasswordSubmitRequest, session: Session = Depends(get_session)):
+def post_password(
+    payload: PasswordSubmitRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         result = submit_password(
             session,
@@ -91,7 +111,13 @@ def post_password(payload: PasswordSubmitRequest, session: Session = Depends(get
 
 
 @router.get("/accounts/{account_id}/auth-state", response_model=AuthStateRead)
-def get_account_auth_state(account_id: str, session: Session = Depends(get_session)):
+def get_account_auth_state(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         result = get_auth_state(session, account_id)
     except ValueError as exc:

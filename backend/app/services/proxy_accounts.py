@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import AccountProxy
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, AccountProxy
 from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 
@@ -20,8 +20,10 @@ def get_account_proxy(session: Session, account_id: str) -> dict[str, Any] | Non
     return proxy_to_dict(row) if row else None
 
 
-def proxy_summary(session: Session) -> list[dict[str, Any]]:
-    rows = session.query(AccountProxy).all()
+def proxy_summary(session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID) -> list[dict[str, Any]]:
+    from app.models import Account
+
+    rows = session.query(AccountProxy).join(Account, Account.id == AccountProxy.account_id).filter(Account.workspace_id == workspace_id).all()
     return [
         {
             "account_id": row.account_id,

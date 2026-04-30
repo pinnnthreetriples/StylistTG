@@ -17,6 +17,14 @@ Frontend route/query architecture is documented in `docs/frontend-architecture.m
 
 Mutating local operator endpoints may require `X-Operator-Token` when `OPERATOR_API_TOKEN` is configured. The backend defaults to localhost-only access for operator safety. The browser UI does not store or send `OPERATOR_API_TOKEN`; use it only for API/reverse-proxy clients.
 
+SaaS boundary:
+
+- FastAPI is the only data access layer.
+- Neon is the PostgreSQL provider.
+- Supabase is the auth provider only; frontend must not access database tables directly.
+- In `AUTH_MODE=supabase_jwt`, frontend sends `Authorization: Bearer <Supabase JWT>` and optionally `X-Workspace-Id`.
+- Backend maps JWT users to local `app_user` rows and enforces workspace membership/roles.
+
 Canonical frontend routes are:
 
 - `/`

@@ -15,8 +15,15 @@ def build_account_batch_safety_preview(
     account_ids: list[str],
     operation: str,
     allow_warning_overrides: bool = False,
+    workspace_id: str | None = None,
 ) -> dict[str, Any]:
-    items = [_build_item(build_account_safety(session, account_id), operation) for account_id in account_ids]
+    items = [
+        _build_item(build_account_safety(session, account_id), operation)
+        for account_id in account_ids
+        if workspace_id is None or _account_in_workspace(session, account_id, workspace_id)
+    ]
+    if len(items) != len(account_ids):
+        raise ValueError("account not found")
     blocking_account_ids = [
         item["account_id"]
         for item in items
@@ -73,3 +80,9 @@ def _item_reasons(safety: dict[str, Any], risk: dict[str, Any]) -> list[dict[str
     if not reasons and safety["health_status"] == "ready":
         return []
     return reasons[:2]
+
+
+def _account_in_workspace(session: Session, account_id: str, workspace_id: str) -> bool:
+    from app.services.accounts import get_account
+
+    return get_account(session, account_id, workspace_id=workspace_id) is not None

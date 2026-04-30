@@ -17,6 +17,7 @@ from app.services.account_update_plan import (
 from app.services.accounts import get_account
 from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
+from app.storage import LocalStorageService, build_storage_service
 from app.services.account_safety import build_account_safety_for_account, safety_preview_fields, safety_preview_fields_with_policy
 from app.services.audit_logs import log_audit_event
 from app.services.execution_policy import ExecutionUsableAdapter, ensure_execution_usable
@@ -210,7 +211,7 @@ def _validate_profile_audio_asset(session: Session, *, account_id: str, desired_
         raise ValueError("asset is not ready for profile audio execution")
     if asset.mime not in PROFILE_AUDIO_EXECUTION_MIMES:
         raise ValueError("profile audio must be MP3 or M4A")
-    profile_audio["audio_asset_path"] = str((settings.local_storage_path / asset.normalized_path).resolve())
+    profile_audio["audio_asset_path"] = _local_asset_path(asset.normalized_path)
     profile_audio["title"] = _profile_audio_title(asset.original_filename)
 
 
@@ -231,7 +232,7 @@ def _validate_story_assets(session: Session, desired_state: dict) -> None:
             raise ValueError(f"asset kind is not {expected_kind}")
         if asset.status != AssetStatus.NORMALIZED:
             raise ValueError("asset is not ready for story execution")
-        story["asset_path"] = str((settings.local_storage_path / asset.normalized_path).resolve())
+        story["asset_path"] = _local_asset_path(asset.normalized_path)
 
 
 def _stories_live_execution_blocked(config: Settings) -> bool:
@@ -256,6 +257,13 @@ def _unique_strings(values: list[str]) -> list[str]:
         seen.add(value)
         result.append(value)
     return result
+
+
+def _local_asset_path(storage_key: str) -> str:
+    storage = build_storage_service(settings)
+    if not isinstance(storage, LocalStorageService):
+        raise ValueError("asset execution currently requires local storage")
+    return str(storage.resolve_path(storage_key))
 
 
 def _preview_blocking_safety_errors(blockers: list[str]) -> list[str]:

@@ -545,7 +545,7 @@ def _save_synced_profile_photo(
         session,
         filename=str(photo.get("filename") or "telegram-profile-photo.jpg"),
         content=photo["content"],
-        storage_root=config.local_storage_path,
+        storage_root=config.storage_root,
     )
     return asset.id
 
@@ -568,7 +568,7 @@ def _sync_profile_audio_state(
                 session,
                 filename=str(audio.get("filename") or "telegram-profile-audio.mp3"),
                 content=audio["content"],
-                storage_root=config.local_storage_path,
+                storage_root=config.storage_root,
                 max_bytes=config.profile_audio_max_bytes,
             )
             source_asset_id = asset.id

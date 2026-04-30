@@ -28,7 +28,7 @@ from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics
 from app.services.stale_jobs import reap_stale_jobs
 
-configure_logging(log_dir=settings.local_storage_path.parent / "logs")
+configure_logging(log_dir=settings.storage_root.parent / "logs")
 
 
 @asynccontextmanager
@@ -137,7 +137,7 @@ def health() -> dict[str, str]:
     diagnostics = build_runtime_diagnostics()
     return {
         "status": "ok",
-        "storage": str(settings.local_storage_path),
+        "storage": str(settings.storage_root),
         "tdlib_configured": str(bool(settings.tdlib_api_id and settings.tdlib_api_hash)).lower(),
         "database": diagnostics["database"],
         "redis": diagnostics["redis"],

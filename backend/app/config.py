@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     db_max_overflow: int = 10
     redis_url: str = "redis://127.0.0.1:6379/0"
     local_storage_path: Path = Path("storage")
+    storage_backend: str = "local"
+    storage_local_root: Path | None = None
+    storage_public_base_url: str | None = None
+    storage_s3_endpoint_url: str | None = None
+    storage_s3_bucket: str | None = None
+    storage_s3_region: str | None = None
+    storage_s3_access_key_id: str | None = None
+    storage_s3_secret_access_key: SecretStr | None = None
+    storage_s3_force_path_style: bool = True
+    tdlib_storage_backend: str = "local"
     lock_stale_seconds: int = 60
     tdlib_api_id: int | None = None
     tdlib_api_hash: str | None = None
@@ -80,8 +90,12 @@ class Settings(BaseSettings):
     def migration_database_url(self) -> str:
         return self.database_direct_url or self.database_url
 
+    @property
+    def storage_root(self) -> Path:
+        return self.storage_local_root or self.local_storage_path
+
     @model_validator(mode="after")
-    def validate_production_auth_mode(self) -> "Settings":
+    def validate_settings(self) -> "Settings":
         cloud_or_prod = self.app_env not in {"local", "development", "test"} or self.db_connection_mode == "neon"
         if cloud_or_prod and self.auth_mode == "local" and not self.allow_local_auth_in_prod:
             raise ValueError(
@@ -89,6 +103,23 @@ class Settings(BaseSettings):
                 "Use AUTH_MODE=supabase_jwt or explicitly set "
                 "ALLOW_LOCAL_AUTH_IN_PROD=true for controlled non-production testing."
             )
+        if self.storage_backend not in {"local", "s3"}:
+            raise ValueError("STORAGE_BACKEND must be local or s3")
+        if self.tdlib_storage_backend != "local":
+            raise ValueError("TDLIB_STORAGE_BACKEND currently supports only local backend")
+        if self.storage_backend == "s3":
+            missing = [
+                name
+                for name, value in {
+                    "STORAGE_S3_ENDPOINT_URL": self.storage_s3_endpoint_url,
+                    "STORAGE_S3_BUCKET": self.storage_s3_bucket,
+                    "STORAGE_S3_ACCESS_KEY_ID": self.storage_s3_access_key_id,
+                    "STORAGE_S3_SECRET_ACCESS_KEY": self.storage_s3_secret_access_key,
+                }.items()
+                if not value
+            ]
+            if missing:
+                raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
         return self
 
 

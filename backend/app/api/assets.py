@@ -16,9 +16,10 @@ from app.services.assets import (
     save_story_image_asset,
     save_story_video_asset,
 )
+from app.storage import LocalStorageService, build_storage_service
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
-STORAGE_ROOT = Path(settings.local_storage_path)
+STORAGE_ROOT = Path(settings.storage_root)
 
 
 @router.post("/profile-photo", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
@@ -34,6 +35,7 @@ async def post_profile_photo(
             filename=file.filename or "profile-photo",
             content=content,
             storage_root=STORAGE_ROOT,
+            storage_service=_asset_storage(),
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
         )
@@ -54,6 +56,7 @@ async def post_profile_audio(
             filename=file.filename or "profile-audio",
             content=content,
             storage_root=STORAGE_ROOT,
+            storage_service=_asset_storage(),
             max_bytes=settings.profile_audio_max_bytes,
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
@@ -78,6 +81,7 @@ async def post_story_image(
             filename=file.filename or "story-image",
             content=content,
             storage_root=STORAGE_ROOT,
+            storage_service=_asset_storage(),
             max_bytes=settings.story_image_max_bytes,
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
@@ -99,6 +103,7 @@ async def post_story_video(
             filename=file.filename or "story-video",
             content=content,
             storage_root=STORAGE_ROOT,
+            storage_service=_asset_storage(),
             max_bytes=settings.story_video_max_bytes,
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
@@ -129,7 +134,10 @@ def get_asset_content(
     if asset is None or asset.workspace_id != auth.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset not found")
 
-    path = STORAGE_ROOT / asset.normalized_path
+    storage = _asset_storage()
+    if not isinstance(storage, LocalStorageService):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content is not locally readable")
+    path = storage.resolve_path(asset.normalized_path)
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found")
 
@@ -171,3 +179,9 @@ def _asset_upload_error(message: str) -> dict:
         "error_class": "validation",
         "message": message,
     }
+
+
+def _asset_storage():
+    if settings.storage_backend == "local":
+        return LocalStorageService(STORAGE_ROOT, public_base_url=settings.storage_public_base_url)
+    return build_storage_service(settings)

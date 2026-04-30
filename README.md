@@ -18,7 +18,7 @@ The app currently focuses on:
 - RQ + Redis worker layer.
 - PostgreSQL as the source of truth.
 - React + TypeScript + shadcn/ui frontend.
-- Local disk file storage for the first stage.
+- Storage abstraction with local asset storage for development and S3/R2/MinIO-compatible foundation for future production object storage.
 - One subprocess per queued job with a cold-start TDLib runtime.
 
 ## Current Scope
@@ -163,6 +163,20 @@ $env:SUPABASE_AUTH_JWKS_CACHE_TTL_SECONDS="600"
 
 Neon is the PostgreSQL provider. Supabase is used only as the auth provider; FastAPI remains the only data access layer and enforces workspace isolation.
 `AUTH_MODE=local` is blocked in production/cloud mode unless `ALLOW_LOCAL_AUTH_IN_PROD=true` is explicitly set for controlled non-production testing.
+
+Storage foundation:
+
+```powershell
+$env:STORAGE_BACKEND="local"
+$env:STORAGE_LOCAL_ROOT="backend/storage"
+$env:TDLIB_STORAGE_BACKEND="local"
+$env:TDLIB_DATABASE_ROOT="backend/tdlib/database"
+$env:TDLIB_FILES_ROOT="backend/tdlib/files"
+```
+
+Application assets and TDLib sessions are separate. Asset storage may later move
+to S3/R2/MinIO-compatible object storage; TDLib session folders remain
+backend-only and must never be exposed as public assets.
 
 CI:
 

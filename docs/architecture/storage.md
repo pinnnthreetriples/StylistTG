@@ -64,6 +64,17 @@ The S3 adapter supports object save/read/exists/delete/stat/copy and signed URLs
 for non-sensitive application assets. Signed URLs use the configured TTL and are
 never generated for TDLib/session keys.
 
+Cloud dev/staging validation is handled by:
+
+```text
+python -m app.scripts.cloud_config_check
+python -m app.scripts.object_storage_smoke
+```
+
+The object storage smoke is dry-run by default. A real write/read/sign/delete
+roundtrip requires `--allow-write-cloud` and only uses a `smoke/stylisttg/<uuid>/`
+prefix.
+
 ## Compatibility
 
 The `asset.source_path` and `asset.normalized_path` database fields remain

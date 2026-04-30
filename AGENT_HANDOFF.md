@@ -45,6 +45,13 @@ Implemented or actively wired:
   - asset rows keep storage metadata and legacy source/normalized paths for compatibility;
   - signed URLs are only for non-sensitive application assets;
   - TDLib session storage remains separate, backend-only, and local.
+- Cloud dev/staging bootstrap tooling:
+  - `.env.cloud.example` is the cloud env contract;
+  - `python -m app.scripts.cloud_config_check` validates Neon/Supabase/R2/Redis/TDLib boundaries without printing secrets;
+  - `python -m app.scripts.cloud_smoke` orchestrates safe read-only/dry-run smoke checks;
+  - object storage writes require `--allow-write-cloud`;
+  - migrations require `--allow-migrations`;
+  - production smoke requires explicit `--allow-production`.
 - SaaS backend foundation: runtime/direct DB URL split, local workspace bootstrap, AuthContext abstraction, identity/workspace/audit/limits models, and tenant-scoped core API access.
 - Polling-first job progress UI with grouped story mini-pipelines.
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import queue
-import re
 import subprocess
 import sys
 import tempfile
@@ -30,6 +29,7 @@ from app.services.journal import (
 from app.services.jobs import get_job
 from app.services.locks import acquire_account_lock, heartbeat_lock, release_account_lock
 from app.services.profile_sync import build_profile_sync_adapter, sync_account_profile_state
+from app.services.secret_redaction import redact_text
 from app.services.step_policy import classify_account_update_job_outcome, is_hard_stop_error
 
 
@@ -379,7 +379,7 @@ def _stderr_summary(stderr_buffer: list[str]) -> str | None:
     if not stderr_buffer:
         return None
     text = "".join(stderr_buffer)[-4096:]
-    text = re.sub(r"(?i)(password|token|api_hash|secret)=\\S+", r"\1=***", text)
+    text = redact_text(text)
     return text.strip() or None
 
 

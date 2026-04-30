@@ -40,8 +40,9 @@ class TdlibReadOnlyValidityAdapter:
                 "error_code": "missing_tdlib_credentials",
                 "error_class": "configuration",
             }
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             proxy_applied = False
             deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
             while time.monotonic() < deadline:
@@ -113,7 +114,8 @@ class TdlibReadOnlyValidityAdapter:
                 "error": str(exc),
             }
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
 
 def build_tdlib_readonly_validity_adapter(config: Settings = settings) -> TdlibReadOnlyValidityAdapter:

@@ -126,8 +126,9 @@ class TdlibProfileExecutionAdapter:
         self._proxy_applier = proxy_applier
 
     def inspect_runtime(self, account_id: str) -> dict[str, Any]:
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             proxy_applied = False
             deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
             while time.monotonic() < deadline:
@@ -166,14 +167,24 @@ class TdlibProfileExecutionAdapter:
                 "telegram_user_id": None,
                 "error": "TDLib runtime inspection timed out",
             }
+        except Exception as exc:
+            return {
+                "ok": False,
+                "account_state": AccountState.RUNTIME_BROKEN,
+                "runtime_health": "broken",
+                "telegram_user_id": None,
+                "error": str(exc),
+            }
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
     def execute(
         self, account_id: str, plan_json_snapshot: dict[str, Any], payload_json: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
-        client = self._client_factory.create(account_id)
+        client = None
         try:
+            client = self._client_factory.create(account_id)
             self._wait_until_ready(client, account_id)
             yield {"event": "runtime_started"}
             uploaded_profile_audio_file_id: int | None = None
@@ -342,8 +353,16 @@ class TdlibProfileExecutionAdapter:
                     }
                     return
             yield {"event": "runtime_closed"}
+        except Exception as exc:
+            yield {
+                "event": "runtime_failed",
+                "error_code": "tdlib_runtime_failed",
+                "error_class": exc.__class__.__name__,
+                "error": str(exc),
+            }
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
     def _wait_until_ready(self, client: TdlibClient, account_id: str) -> None:
         proxy_applied = False

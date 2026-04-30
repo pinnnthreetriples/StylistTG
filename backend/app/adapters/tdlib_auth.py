@@ -185,17 +185,18 @@ class TdlibAuthAdapter:
                 error="TDLIB_API_ID and TDLIB_API_HASH must be configured",
             )
 
-        client = self._client_factory.create(account_id)
-        log_event(
-            "tdlib_session_reused",
-            account_id=account_id,
-            database_directory=str(self._config.tdlib_database_root / account_id),
-            files_directory=str(self._config.tdlib_files_root / account_id),
-        )
+        client: TdlibClient | None = None
         recreated_after_closed = False
         proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         try:
+            client = self._client_factory.create(account_id)
+            log_event(
+                "tdlib_session_reused",
+                account_id=account_id,
+                database_directory=str(self._config.tdlib_database_root / account_id),
+                files_directory=str(self._config.tdlib_files_root / account_id),
+            )
             while time.monotonic() < deadline:
                 event = _receive_client_event(
                     client, self._config.tdlib_receive_timeout_seconds
@@ -256,7 +257,8 @@ class TdlibAuthAdapter:
                 error=str(exc),
             )
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
         return TdlibAuthResult(
             status=TdlibAuthStatus.BROKEN,

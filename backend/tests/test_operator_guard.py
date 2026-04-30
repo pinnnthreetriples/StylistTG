@@ -12,8 +12,26 @@ class DummyRequest:
     client = DummyClient()
 
 
+class LocalIpv4MappedClient:
+    host = "::ffff:127.0.0.1"
+
+
+class LocalIpv4MappedRequest:
+    client = LocalIpv4MappedClient()
+
+
 def test_operator_guard_marks_remote_client_non_local() -> None:
     assert _is_local_client(DummyRequest()) is False
+
+
+def test_operator_guard_allows_ipv4_mapped_localhost() -> None:
+    assert _is_local_client(LocalIpv4MappedRequest()) is True
+
+
+def test_operator_guard_uses_configurable_allowed_hosts(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "operator_allowed_client_hosts", "203.0.113.10")
+
+    assert _is_local_client(DummyRequest()) is True
 
 
 def test_operator_token_required_for_mutating_requests(monkeypatch) -> None:

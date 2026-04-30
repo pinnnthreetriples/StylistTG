@@ -23,7 +23,7 @@ The account update workflow can include:
 - Python backend environment with dependencies.
 - PostgreSQL reachable from backend.
 - Redis-compatible server reachable at `redis://127.0.0.1:6379/0`.
-- RQ worker process.
+- Separate RQ worker processes for `profile_jobs` and `auth_jobs`.
 - `tdjson.dll`.
 - `TDLIB_API_ID`.
 - `TDLIB_API_HASH`.
@@ -57,7 +57,7 @@ This should start:
 
 - Memurai Redis;
 - backend API;
-- RQ worker;
+- RQ workers;
 - Vite frontend.
 
 If doing manual startup, use this order:
@@ -65,7 +65,7 @@ If doing manual startup, use this order:
 1. PostgreSQL
 2. Redis/Memurai
 3. backend API
-4. RQ worker
+4. RQ workers
 5. frontend
 6. live preflight
 7. auth/runtime validation
@@ -127,14 +127,38 @@ In a second shell:
 .\scripts\start_worker.ps1
 ```
 
-Worker must use the same Redis URL as API.
+For normal development, prefer two separate workers:
+
+```powershell
+cd backend
+python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+```
+
+Workers must use the same Redis URL as API.
 
 If jobs stay queued, verify:
 
 - Redis is reachable;
-- worker is running;
-- worker listens to `profile_jobs` and `auth_jobs`;
+- profile worker is running and listens to `profile_jobs`;
+- auth worker is running and listens to `auth_jobs`;
 - API and worker use the same `REDIS_URL`.
+
+## Read-only TDLib Proxy Smoke Plan
+
+Run only with explicit user approval, because it opens an existing TDLib session. It must not perform Telegram write actions.
+
+Expected call order:
+
+```text
+setTdlibParameters -> addProxy -> enableProxy -> getMe
+```
+
+Validation target:
+
+- saved account proxy is applied before the first Telegram read query;
+- `getMe` succeeds through the proxy;
+- no auth start, code/password submission, profile write, upload, story post, or delete query is sent.
 
 ## Live Preflight
 

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     tdlib_receive_timeout_seconds: float = 1.0
     tdlib_auth_timeout_seconds: float = 30.0
     profile_audio_upload_timeout_seconds: float = 20.0
+    tdlib_proxy_apply_timeout_seconds: float = 10.0
     tdlib_use_test_dc: bool = False
     tdlib_production_auth_enabled: bool = True
     auth_start_cooldown_seconds: int = 120
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
     proxy_credentials_encryption_key: str | None = None
     operator_api_token: str | None = None
     enforce_localhost_only: bool = True
+    operator_allowed_client_hosts: str = "127.0.0.1,::1,localhost,testclient"
     profile_photo_max_bytes: int = 20 * 1024 * 1024
     profile_audio_max_bytes: int = 20 * 1024 * 1024
     story_image_max_bytes: int = 10 * 1024 * 1024

@@ -145,6 +145,32 @@ class SharedQueueClientFactory:
         return client
 
 
+class RaisingClientFactory:
+    def create(self, account_id: str):
+        raise OSError("tdjson unavailable")
+
+
+def test_auth_adapter_create_failure_returns_structured_runtime_broken(tmp_path) -> None:
+    adapter = TdlibAuthAdapter(
+        client_factory=RaisingClientFactory(),
+        config=Settings(
+            tdlib_api_id=1,
+            tdlib_api_hash="hash",
+            tdlib_database_root=tmp_path / "database",
+            tdlib_files_root=tmp_path / "files",
+            tdlib_auth_timeout_seconds=1.0,
+            tdlib_receive_timeout_seconds=0.01,
+        ),
+    )
+
+    result = adapter.start_otp("account-1", "+15550102000")
+
+    assert result.status == TdlibAuthStatus.BROKEN
+    assert result.account_state == AccountState.RUNTIME_BROKEN
+    assert result.runtime_health == "broken"
+    assert result.error == "tdjson unavailable"
+
+
 def test_auth_adapter_ignores_stale_updates_from_previous_client(tmp_path) -> None:
     shared_events = deque(
         [

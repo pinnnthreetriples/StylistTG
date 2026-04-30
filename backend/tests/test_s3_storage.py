@@ -10,7 +10,8 @@ from botocore.response import StreamingBody
 from botocore.stub import ANY, Stubber
 
 from app.config import Settings
-from app.models import AssetKind
+from app.models import Asset, AssetKind
+from app.services.asset_storage import get_asset_signed_url
 from app.services.assets import save_profile_audio_asset
 from app.storage.errors import InvalidStorageKeyError, StorageObjectNotFoundError
 from app.storage.s3_compatible import S3CompatibleStorageService
@@ -129,6 +130,22 @@ def test_s3_storage_rejects_signed_url_for_tdlib_session_key() -> None:
     storage, _ = _s3_storage()
     with pytest.raises(ValueError, match="TDLib session"):
         storage.get_signed_url("tdlib/database/account/db.sqlite")
+
+
+def test_asset_signed_url_rejects_non_asset_key() -> None:
+    storage, _ = _s3_storage()
+    asset = Asset(
+        id="asset-1",
+        kind=AssetKind.PROFILE_PHOTO,
+        source_path="assets/asset-1/source/original.jpg",
+        normalized_path="sessions/not-an-asset.jpg",
+        content_hash="hash",
+        mime="image/jpeg",
+        status="normalized",
+    )
+
+    with pytest.raises(InvalidStorageKeyError, match="application assets"):
+        get_asset_signed_url(asset, storage=storage)
 
 
 def test_s3_signed_url_for_missing_object_fails_cleanly() -> None:

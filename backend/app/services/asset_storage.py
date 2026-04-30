@@ -5,6 +5,7 @@ from pathlib import Path
 from app.config import Settings, settings
 from app.models import Asset
 from app.storage import LocalStorageService, StorageService, build_storage_service
+from app.storage.errors import InvalidStorageKeyError
 from app.storage.paths import normalize_storage_key
 
 
@@ -47,7 +48,10 @@ def get_asset_signed_url(
     storage: StorageService | None = None,
 ) -> str:
     storage_service = storage or build_asset_storage(config)
+    key = asset_normalized_storage_key(asset)
+    if not key.startswith("assets/"):
+        raise InvalidStorageKeyError("signed URLs are only available for application assets")
     return storage_service.get_signed_url(
-        asset_normalized_storage_key(asset),
+        key,
         expires_seconds=config.storage_s3_signed_url_expires_seconds,
     )

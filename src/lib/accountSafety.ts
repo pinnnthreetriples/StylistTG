@@ -86,6 +86,25 @@ export type AccountSafety = AccountSafetySummary & {
   last_validity_check: AccountValidityCheck | null
 }
 
+export type OperationSafety = {
+  operation: SafetyOperation | string
+  state: 'ready' | 'warning' | 'blocked' | string
+  warnings: string[]
+  blockers: string[]
+  cooldowns: AccountOperationCooldown[]
+  can_override: boolean
+}
+
+export type SafetyOverride = {
+  id: string
+  account_id: string
+  operation: SafetyOperation | string
+  reason: string
+  requested_blockers: string[]
+  allowed_until: string
+  created_at: string
+}
+
 export function healthStatusLabel(status: HealthStatus | string | null | undefined): string {
   return {
     ready: 'Готов',
@@ -123,7 +142,7 @@ export function cooldownLevelLabel(level: CooldownLevel | string | null | undefi
 }
 
 export function cooldownSummaryLabel(cooldown: AccountOperationCooldown, now = Date.now()): string {
-  const retryAt = Date.parse(cooldown.retry_after_at)
+  const retryAt = parseBackendTimestamp(cooldown.retry_after_at)
   const operation = safetyOperationLabel(cooldown.operation)
   if (!Number.isFinite(retryAt)) {
     return `${operation}: активная пауза`
@@ -189,17 +208,42 @@ export function capabilitySummaryLabel(safety: AccountSafety | null | undefined)
 
 export function validityStatusLabel(check: AccountValidityCheck | null | undefined): string {
   if (!check) return 'Проверка ещё не запускалась'
-  if (check.status === 'completed') return 'Проверено по данным приложения'
+  if (check.status === 'completed') {
+    const validity = typeof check.result?.validity_status === 'string' ? check.result.validity_status : null
+    if (validity === 'valid') return 'Сессия валидна'
+    if (validity === 'reauth_required') return 'Нужен повторный вход'
+    if (validity === 'runtime_broken') return 'Проверка не удалась'
+    return check.mode === 'tdlib_readonly' ? 'Проверено через TDLib' : 'Проверено по данным приложения'
+  }
   if (check.status === 'unsupported') return 'Read-only TDLib проверка пока не включена'
   if (check.status === 'failed') return 'Проверка завершилась ошибкой'
   if (check.status === 'running') return 'Проверяем аккаунт'
   return 'Статус проверки неизвестен'
 }
 
+export function validityCheckSummary(check: AccountValidityCheck | null | undefined): string {
+  if (!check) return 'Проверок ещё нет'
+  return `${validityStatusLabel(check)} · ${validityAgeLabel(check)}`
+}
+
+export function operationSafetyLabel(item: OperationSafety): string {
+  const operation = safetyOperationLabel(item.operation)
+  if (item.blockers.length > 0) return `${operation}: заблокировано`
+  if (item.cooldowns.length > 0) return cooldownSummaryLabel(item.cooldowns[0])
+  if (item.warnings.length > 0) return `${operation}: есть предупреждение`
+  return `${operation}: доступно`
+}
+
+export function overrideStatusLabel(override: SafetyOverride, now = Date.now()): string {
+  const until = parseBackendTimestamp(override.allowed_until)
+  if (!Number.isFinite(until) || until <= now) return 'Разбор истёк'
+  return `Разбор действует ещё ${Math.max(1, Math.ceil((until - now) / 60000))} мин`
+}
+
 export function validityAgeLabel(check: AccountValidityCheck | null | undefined, now = Date.now()): string {
   const value = check?.finished_at ?? check?.started_at
   if (!value) return 'Проверка не запускалась'
-  const timestamp = Date.parse(value)
+  const timestamp = parseBackendTimestamp(value)
   if (!Number.isFinite(timestamp)) return 'Возраст проверки неизвестен'
   const diffMinutes = Math.max(0, Math.round((now - timestamp) / 60000))
   if (diffMinutes < 1) return 'Проверено только что'
@@ -207,4 +251,9 @@ export function validityAgeLabel(check: AccountValidityCheck | null | undefined,
   const diffHours = Math.round(diffMinutes / 60)
   if (diffHours < 24) return `Проверено ${diffHours} ч назад`
   return `Проверено ${Math.round(diffHours / 24)} дн назад`
+}
+
+export function parseBackendTimestamp(value: string): number {
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
+  return Date.parse(hasTimezone ? value : `${value}Z`)
 }

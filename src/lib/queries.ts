@@ -19,6 +19,7 @@ import {
   fetchStoryDrafts,
 } from '@/lib/api'
 import type { AccountSafetySummary } from '@/lib/accountSafety'
+import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
 import { fetchAuthRuntimeMode, fetchAuthState } from '@/lib/auth'
 
 export const queryKeys = {
@@ -270,6 +271,20 @@ export function invalidateAccountSafetyQueries(queryClient: QueryClient, account
   void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.summary })
   void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.account(accountId), exact: true })
   void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.checks(accountId), exact: true })
+}
+
+export function updateAccountSafetyAfterValidityCheck(
+  queryClient: QueryClient,
+  accountId: string,
+  check: AccountValidityCheck,
+): void {
+  queryClient.setQueryData<AccountSafety | undefined>(queryKeys.accountSafety.account(accountId), (current) =>
+    current ? { ...current, last_validity_check: check, validity_status: String(check.result?.validity_status ?? current.validity_status) } : current,
+  )
+  queryClient.setQueryData<AccountValidityCheck[] | undefined>(queryKeys.accountSafety.checks(accountId), (current) => {
+    const existing = current ?? []
+    return [check, ...existing.filter((item) => item.id !== check.id)].slice(0, 10)
+  })
 }
 
 export function removeAccountSafetyFromCache(queryClient: QueryClient, accountId: string): void {

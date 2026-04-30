@@ -168,6 +168,9 @@ class Account(Base):
     operation_cooldowns: Mapped[list[AccountOperationCooldown]] = relationship(
         cascade="all, delete-orphan"
     )
+    safety_overrides: Mapped[list[AccountSafetyOverride]] = relationship(
+        cascade="all, delete-orphan"
+    )
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
 
@@ -478,6 +481,18 @@ class AccountOperationCooldown(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+
+class AccountSafetyOverride(Base):
+    __tablename__ = "account_safety_override"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    operation: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    requested_blockers_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    allowed_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class Job(Base):

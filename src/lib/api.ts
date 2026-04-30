@@ -5,7 +5,9 @@ import type {
   AccountSafetySummary,
   AccountValidityCheck,
   AccountOperationCooldown,
+  OperationSafety,
   SafetyOperation,
+  SafetyOverride,
   FreshValidityPolicy,
   RecentFailurePolicy,
   UnknownCapabilityPolicy,
@@ -167,6 +169,7 @@ export type ProfilePreview = {
   cooldowns_by_operation?: AccountSafety['cooldowns_by_operation']
   safety_warnings?: string[]
   safety_blockers?: string[]
+  operation_safety?: OperationSafety[]
 }
 
 export type RuntimeRefresh = {
@@ -332,6 +335,9 @@ export async function previewAccountBatchSafety(
       operation,
       allow_warning_overrides: allowWarningOverrides,
     }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   })
 }
 
@@ -339,11 +345,27 @@ export async function runAccountValidityCheck(accountId: string, mode = 'db_snap
   return apiRequest<AccountValidityCheck>(`/api/accounts/${accountId}/validity-check`, {
     method: 'POST',
     body: JSON.stringify({ mode }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   })
 }
 
 export async function fetchAccountValidityChecks(accountId: string): Promise<AccountValidityCheck[]> {
   return apiRequest<AccountValidityCheck[]>(`/api/accounts/${accountId}/validity-checks`)
+}
+
+export async function createAccountSafetyOverride(
+  accountId: string,
+  payload: { operation: SafetyOperation | string; reason: string; requested_blockers: string[] },
+): Promise<SafetyOverride> {
+  return apiRequest<SafetyOverride>(`/api/accounts/${accountId}/safety-overrides`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 }
 
 export async function deleteAccount(accountId: string): Promise<void> {

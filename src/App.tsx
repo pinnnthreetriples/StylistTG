@@ -44,7 +44,13 @@ import {
   useDeleteStoryPostMutation,
   useRefreshRuntimeMutation,
 } from '@/hooks/queries/useDashboardMutations'
-import { useAccountSafetyQuery, useRunAccountValidityCheckMutation } from '@/hooks/queries/useAccountsQueries'
+import {
+  useAccountSafetyQuery,
+  useAccountValidityChecksQuery,
+  useCreateAccountSafetyOverrideMutation,
+  useRunAccountValidityCheckMutation,
+} from '@/hooks/queries/useAccountsQueries'
+import { operationSafetyLabel, validityCheckSummary, type AccountValidityCheck, type OperationSafety } from '@/lib/accountSafety'
 import type { AuthPhase } from '@/lib/auth'
 import { appRoutes, type AppRouteState } from '@/lib/routes'
 
@@ -91,7 +97,9 @@ function App({ route }: { route: AccountRouteState }) {
   const refreshRuntimeMutation = useRefreshRuntimeMutation()
   const deleteStoryPostMutation = useDeleteStoryPostMutation()
   const validityCheckMutation = useRunAccountValidityCheckMutation()
+  const safetyOverrideMutation = useCreateAccountSafetyOverrideMutation()
   const accountSafetyQuery = useAccountSafetyQuery(activeAccountId)
+  const validityChecksQuery = useAccountValidityChecksQuery(activeAccountId)
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -350,6 +358,24 @@ function App({ route }: { route: AccountRouteState }) {
     }
   }, [activeAccountId, notify, validityCheckMutation])
 
+  const handleCreateSafetyOverride = useCallback(
+    async (item: OperationSafety, reason: string) => {
+      if (!activeAccountId) return
+      try {
+        await safetyOverrideMutation.mutateAsync({
+          accountId: activeAccountId,
+          operation: String(item.operation),
+          reason,
+          requestedBlockers: item.blockers,
+        })
+        notify({ tone: 'success', title: 'Ручной разбор сохранён', description: operationSafetyLabel(item) })
+      } catch {
+        notify({ tone: 'error', title: 'Не удалось сохранить ручной разбор' })
+      }
+    },
+    [activeAccountId, notify, safetyOverrideMutation],
+  )
+
   const handleDashboardBackToAccounts = useCallback(() => {
     handleBackToAccounts()
     navigateToRoute(appRoutes.accounts())
@@ -467,6 +493,7 @@ function App({ route }: { route: AccountRouteState }) {
         </div>
 
         {visibleBanner ? <ErrorBanner banner={visibleBanner} /> : null}
+        {route.section === 'debug' ? <SafetyHistoryPanel checks={validityChecksQuery.data ?? []} /> : null}
 
         <div className="space-y-4">
           <ProfileEditor
@@ -506,10 +533,11 @@ function App({ route }: { route: AccountRouteState }) {
         isSubmittingJob={isSubmittingJob}
         onReset={handleReset}
         onCreateJob={handleCreateJob}
+        onCreateSafetyOverride={handleCreateSafetyOverride}
       />
 
       {shouldShowJobPanel ? (
-        <div id={route.section === 'debug' ? 'account-workspace-debug' : 'account-workspace-jobs'}>
+        <div id="account-workspace-jobs">
           <JobStepPanel
             currentJob={currentJob}
             items={jobDisplayItems}
@@ -563,6 +591,31 @@ function App({ route }: { route: AccountRouteState }) {
 }
 
 export default App
+
+function SafetyHistoryPanel({ checks }: { checks: AccountValidityCheck[] }) {
+  return (
+    <section className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-soft" id="account-workspace-debug">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-gray-900">История проверок безопасности</h2>
+        <span className="text-[11px] text-gray-400">{checks.length > 0 ? `Последние ${Math.min(checks.length, 5)}` : 'Нет проверок'}</span>
+      </div>
+      {checks.length === 0 ? (
+        <p className="text-xs text-gray-500">Проверка ещё не запускалась. Кнопка “Проверить” не меняет аккаунт, а только проверяет сессию.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {checks.slice(0, 5).map((check) => (
+            <details className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600" key={check.id}>
+              <summary className="cursor-pointer font-semibold text-gray-800">{validityCheckSummary(check)}</summary>
+              <pre className="mt-2 max-h-40 overflow-auto rounded bg-white p-2 text-[11px] text-gray-500">
+                {JSON.stringify({ status: check.status, error_code: check.error_code, details: check.details, result: check.result }, null, 2)}
+              </pre>
+            </details>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 function RealTelegramExecutionModal({
   changedItems,

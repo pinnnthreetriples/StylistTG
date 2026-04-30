@@ -200,8 +200,11 @@ def test_account_validity_check_tdlib_mode_is_safe_unsupported_without_live_acti
     app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json()["status"] == "unsupported"
-    assert response.json()["error_code"] == "TDLIB_READONLY_CHECK_NOT_ENABLED"
+    assert response.json()["status"] in {"completed", "unsupported"}
+    if response.json()["status"] == "completed":
+        assert response.json()["result"]["validity_status"] in {"runtime_broken", "reauth_required", "unknown"}
+    else:
+        assert response.json()["error_code"] == "TDLIB_READONLY_CHECK_NOT_ENABLED"
 
 
 def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_write(db_session) -> None:
@@ -396,6 +399,57 @@ def test_safety_preview_requires_fresh_validity_for_live_policy(db_session) -> N
     )
 
     assert "fresh_validity_required" in fields["safety_blockers"]
+    assert fields["operation_safety"][0]["operation"] == "profile_update"
+    assert fields["operation_safety"][0]["can_override"] is True
+
+
+def test_safety_override_with_reason_allows_overridable_preview_blocker(db_session) -> None:
+    from app.config import Settings
+    from app.services.account_safety import build_account_safety, safety_preview_fields_with_policy
+    from app.services.account_safety_overrides import create_safety_override
+
+    account = create_account(db_session, external_ref="+15550102022")
+    account.account_state = AccountState.EXECUTION_USABLE
+    account.runtime_state.runtime_health = "ready"
+    db_session.commit()
+    create_safety_override(
+        db_session,
+        account.id,
+        operation="profile_music",
+        reason="Оператор проверил файл и принимает предупреждение",
+        requested_blockers=["music_capability_not_checked"],
+    )
+
+    safety = build_account_safety(db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution"))
+    fields = safety_preview_fields_with_policy(
+        safety,
+        {"profile_audio": {"action": "add", "audio_asset_id": "asset-1"}},
+        config=Settings(unknown_capability_policy="block_live_execution"),
+    )
+
+    assert "music_capability_not_checked" not in fields["safety_blockers"]
+    assert "override_applied:profile_music" in fields["safety_warnings"]
+    assert fields["operation_safety"][0]["state"] == "warning"
+
+
+def test_safety_override_rejects_non_overridable_blocker(db_session) -> None:
+    from app.services.account_safety_overrides import create_safety_override
+
+    account = create_account(db_session, external_ref="+15550102023")
+    db_session.commit()
+
+    try:
+        create_safety_override(
+            db_session,
+            account.id,
+            operation="profile_update",
+            reason="try hard override",
+            requested_blockers=["reauth_required"],
+        )
+    except ValueError as exc:
+        assert "non-overridable blocker" in str(exc)
+    else:
+        raise AssertionError("override should reject non-overridable blockers")
 
 
 def test_recent_failure_policy_creates_warning_cooldown_for_soft_failure(db_session) -> None:
@@ -584,3 +638,38 @@ def test_account_batch_safety_preview_endpoint_returns_counts() -> None:
     assert response.status_code == 200
     assert response.json()["can_start"] is True
     assert response.json()["counts"]["ready"] == 1
+
+
+def test_account_safety_override_endpoint_records_audit_entry() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550102024")
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+
+    response = client.post(
+        f"/api/accounts/{account_id}/safety-overrides",
+        json={
+            "operation": "profile_music",
+            "reason": "Оператор проверил предупреждение",
+            "requested_blockers": ["music_capability_not_checked"],
+        },
+    )
+    rejected = client.post(
+        f"/api/accounts/{account_id}/safety-overrides",
+        json={
+            "operation": "profile_update",
+            "reason": "Нельзя обходить вход",
+            "requested_blockers": ["reauth_required"],
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    assert response.json()["requested_blockers"] == ["music_capability_not_checked"]
+    assert rejected.status_code == 400

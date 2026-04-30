@@ -111,6 +111,15 @@ class AccountSafetySummaryRead(BaseModel):
     source: str
 
 
+class AccountOperationSafetyRead(BaseModel):
+    operation: str
+    state: str
+    warnings: list[str] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    cooldowns: list[AccountOperationCooldownRead] = Field(default_factory=list)
+    can_override: bool = False
+
+
 class AccountValidityCheckRequest(BaseModel):
     mode: Literal["db_snapshot", "tdlib_readonly", "full_capability"] = "db_snapshot"
 
@@ -159,6 +168,22 @@ class AccountBatchSafetyPreviewRead(BaseModel):
     blocking_account_ids: list[str]
     warning_account_ids: list[str]
     items: list[AccountBatchSafetyItemRead]
+
+
+class AccountSafetyOverrideCreate(BaseModel):
+    operation: str
+    reason: str = Field(min_length=3, max_length=1000)
+    requested_blockers: list[str] = Field(default_factory=list)
+
+
+class AccountSafetyOverrideRead(BaseModel):
+    id: str
+    account_id: str
+    operation: str
+    reason: str
+    requested_blockers: list[str]
+    allowed_until: datetime
+    created_at: datetime
 
 
 class FieldErrorRead(BaseModel):
@@ -632,6 +657,7 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(default_factory=dict)
     safety_warnings: list[str] = Field(default_factory=list)
     safety_blockers: list[str] = Field(default_factory=list)
+    operation_safety: list[AccountOperationSafetyRead] = Field(default_factory=list)
 
 
 class JobRead(BaseModel):

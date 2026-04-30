@@ -6,8 +6,10 @@ import {
   compactSafetyStatusLabel,
   cooldownSummaryLabel,
   healthStatusLabel,
+  parseBackendTimestamp,
   riskLevelLabel,
   capabilityStateLabel,
+  validityAgeLabel,
   validityStatusLabel,
   type AccountSafetySummary,
 } from '@/lib/accountSafety'
@@ -84,5 +86,28 @@ describe('account safety labels', () => {
     expect(cooldownSummaryLabel(safety.cooldown_summary[0], now)).toBe('Username: через 14 мин')
     expect(activeCooldownLabels(safety)).toEqual(['Username: через 14 мин'])
     expect(compactSafetyStatusLabel(safety)).toBe('На паузе')
+  })
+
+  it('treats backend timestamps without timezone as UTC', () => {
+    const now = Date.parse('2026-04-30T11:00:20Z')
+    expect(parseBackendTimestamp('2026-04-30T11:00:00')).toBe(Date.parse('2026-04-30T11:00:00Z'))
+    expect(
+      validityAgeLabel(
+        {
+          id: 'check-1',
+          account_id: 'account-1',
+          mode: 'tdlib_readonly',
+          status: 'completed',
+          started_at: '2026-04-30T11:00:00',
+          finished_at: '2026-04-30T11:00:00',
+          error_code: null,
+          error_class: null,
+          details: null,
+          result: { validity_status: 'valid' },
+          created_at: '2026-04-30T11:00:00',
+        },
+        now,
+      ),
+    ).toBe('Проверено только что')
   })
 })

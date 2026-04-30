@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.account_context import account_id_header
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
+from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
 from app.db import get_session
 from app.errors import AppError
 from app.logging_utils import log_event
@@ -17,6 +18,8 @@ from app.schemas import (
     AccountRead,
     AccountRuntimeDiagnosticsRead,
     AccountSafetyRead,
+    AccountSafetyOverrideCreate,
+    AccountSafetyOverrideRead,
     AccountSafetySummaryRead,
     AccountValidityCheckRead,
     AccountValidityCheckRequest,
@@ -34,6 +37,7 @@ from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.account_safety import build_account_safety, build_account_safety_summary
 from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
+from app.services.account_safety_overrides import create_safety_override
 from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs
@@ -157,7 +161,8 @@ def post_account_validity_check(
     session: Session = Depends(get_session),
 ):
     try:
-        return run_account_validity_check(session, account_id, mode=payload.mode)
+        adapter = build_tdlib_readonly_validity_adapter() if payload.mode == "tdlib_readonly" else None
+        return run_account_validity_check(session, account_id, mode=payload.mode, adapter=adapter)
     except ValueError as exc:
         message = str(exc)
         if message == "account not found":
@@ -189,6 +194,37 @@ def get_account_validity_checks(
             message="account not found",
         )
     return list_account_validity_checks(session, account_id, limit=limit)
+
+
+@router.post("/{account_id}/safety-overrides", response_model=AccountSafetyOverrideRead, status_code=status.HTTP_201_CREATED)
+def post_account_safety_override(
+    account_id: str,
+    payload: AccountSafetyOverrideCreate,
+    session: Session = Depends(get_session),
+):
+    try:
+        return create_safety_override(
+            session,
+            account_id,
+            operation=payload.operation,
+            reason=payload.reason,
+            requested_blockers=payload.requested_blockers,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if message == "account not found":
+            raise AppError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error_code="ACCOUNT_NOT_FOUND",
+                error_class="not_found",
+                message=message,
+            ) from exc
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="SAFETY_OVERRIDE_REJECTED",
+            error_class="safety",
+            message=message,
+        ) from exc
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)

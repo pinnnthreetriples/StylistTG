@@ -16,6 +16,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
@@ -27,6 +28,7 @@ import {
   usePrefetchSettingsBundle,
 } from '@/hooks/queries/useAccountsQueries'
 import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
+import { accountBatchSafetyPreviewQueryOptions } from '@/lib/queries'
 import {
   compactSafetyReasons,
   activeCooldownLabels,
@@ -85,6 +87,7 @@ export function AccountList({
     () => new Map((safetySummaryQuery.data ?? []).map((item) => [item.account_id, item])),
     [safetySummaryQuery.data],
   )
+  const batchSafetyQuery = useQuery(accountBatchSafetyPreviewQueryOptions(accounts.map((account) => account.account_id), 'batch_operation'))
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const visibleAccountsError =
     accountsError ?? (accountsQuery.isError && !accountsQuery.data ? 'Не удалось загрузить список аккаунтов' : null)
@@ -223,6 +226,7 @@ export function AccountList({
             onSelectAccount={onSelectAccount}
             query={query}
             safetyByAccount={safetyByAccount}
+            batchSafety={batchSafetyQuery.data ?? null}
             stats={stats}
           />
         )}
@@ -262,6 +266,7 @@ function AccountsContent({
   onSelectAccount,
   query,
   safetyByAccount,
+  batchSafety,
   stats,
 }: {
   accounts: AccountListItem[]
@@ -280,6 +285,7 @@ function AccountsContent({
   onSelectAccount: (accountId: string) => void
   query: string
   safetyByAccount: Map<string, AccountSafetySummary>
+  batchSafety: { counts: Record<string, number>; can_start: boolean } | null
   stats: ReturnType<typeof accountStats>
 }) {
   if (isLoading) {
@@ -312,6 +318,7 @@ function AccountsContent({
   return (
     <>
       <StatsRow stats={stats} />
+      {batchSafety ? <BatchSafetySummary counts={batchSafety.counts} canStart={batchSafety.can_start} /> : null}
       <SearchAndFilters
         filter={filter}
         onFilterChange={onFilterChange}
@@ -371,6 +378,39 @@ function StatsRow({ stats }: { stats: ReturnType<typeof accountStats> }) {
         value={stats.error}
       />
     </div>
+  )
+}
+
+function BatchSafetySummary({
+  counts,
+  canStart,
+}: {
+  counts: Record<string, number>
+  canStart: boolean
+}) {
+  const items = [
+    ['Готовы', counts.ready ?? 0, 'text-emerald-700 bg-emerald-50'],
+    ['Нужен вход', counts.needs_login ?? 0, 'text-red-700 bg-red-50'],
+    ['На паузе', counts.paused ?? 0, 'text-honey-700 bg-honey-50'],
+    ['Ограничения', counts.limited ?? 0, 'text-tangerine-700 bg-tangerine-50'],
+    ['Неизвестно', counts.unknown ?? 0, 'text-gray-600 bg-gray-100'],
+  ] as const
+  return (
+    <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-sm font-bold text-navy-900">Готовность массовых действий</div>
+        <div className={`text-[11px] font-semibold ${canStart ? 'text-emerald-700' : 'text-honey-700'}`}>
+          {canStart ? 'Можно запускать' : 'Есть ограничения'}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map(([label, value, className]) => (
+          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${className}`} key={label}>
+            {label}: {value}
+          </span>
+        ))}
+      </div>
+    </section>
   )
 }
 

@@ -5,7 +5,9 @@
  */
 
 import { Loader2, Play } from 'lucide-react'
+import { useState } from 'react'
 import type { ProfilePreview } from '@/lib/api'
+import { operationSafetyLabel, type OperationSafety } from '@/lib/accountSafety'
 import { formatChangeOperationLabel, type ChangeItem } from '@/lib/dashboard'
 
 interface DashboardActionBarProps {
@@ -14,6 +16,7 @@ interface DashboardActionBarProps {
   isSubmittingJob: boolean
   onReset: () => void
   onCreateJob: () => void
+  onCreateSafetyOverride?: (item: OperationSafety, reason: string) => void
 }
 
 export function DashboardActionBar({
@@ -22,6 +25,7 @@ export function DashboardActionBar({
   isSubmittingJob,
   onReset,
   onCreateJob,
+  onCreateSafetyOverride,
 }: DashboardActionBarProps) {
   const isJobBlocked = preview
     ? !preview.can_create_job || preview.dedup_would_block
@@ -32,6 +36,9 @@ export function DashboardActionBar({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      {preview?.operation_safety?.length ? (
+        <OperationSafetyStrip items={preview.operation_safety} onCreateOverride={onCreateSafetyOverride} />
+      ) : null}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
         {/* ── Change summary ── */}
         <div className="flex items-center gap-2.5">
@@ -71,6 +78,55 @@ export function DashboardActionBar({
             {preview?.dedup_would_block ? 'Уже в очереди' : 'Создать задачу'}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function OperationSafetyStrip({
+  items,
+  onCreateOverride,
+}: {
+  items: OperationSafety[]
+  onCreateOverride?: (item: OperationSafety, reason: string) => void
+}) {
+  const overridable = items.find((item) => item.can_override)
+  const [reason, setReason] = useState('')
+  return (
+    <div className="border-b border-gray-100 bg-gray-50">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-[11px] text-gray-600 sm:px-6">
+        {items.map((item) => (
+          <span
+            className={`rounded-full px-2 py-1 font-medium ${
+              item.state === 'blocked'
+                ? 'bg-red-50 text-red-700'
+                : item.state === 'warning'
+                  ? 'bg-honey-50 text-honey-700'
+                  : 'bg-emerald-50 text-emerald-700'
+            }`}
+            key={item.operation}
+          >
+            {operationSafetyLabel(item)}
+          </span>
+        ))}
+        {overridable && onCreateOverride ? (
+          <span className="ml-auto flex min-w-0 items-center gap-1.5">
+            <input
+              className="w-56 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px]"
+              onChange={(event) => setReason(event.currentTarget.value)}
+              placeholder="Причина ручного разбора"
+              value={reason}
+            />
+            <button
+              className="rounded-lg bg-red-50 px-2 py-1 font-semibold text-red-700 disabled:opacity-50"
+              disabled={reason.trim().length < 3}
+              onClick={() => onCreateOverride(overridable, reason)}
+              type="button"
+            >
+              Разобрать
+            </button>
+          </span>
+        ) : null}
       </div>
     </div>
   )

@@ -26,6 +26,7 @@ import {
   storyCapabilitiesQueryOptions,
   storyDraftsQueryOptions,
   updateSettingsAuthModeInCache,
+  updateAccountSafetyAfterValidityCheck,
   updateSettingsPolicyInCache,
   type DashboardBundle,
   type SettingsBundle,
@@ -205,6 +206,41 @@ describe('query cache configuration', () => {
 
     expect(client.getQueryData(queryKeys.accountSafety.account('account-1'))).toBeUndefined()
     expect(client.getQueryData(queryKeys.accountSafety.summary)).toEqual([{ account_id: 'account-2' }])
+  })
+
+  it('updates account safety cache immediately after validity check', () => {
+    const client = new QueryClient()
+    const check = {
+      id: 'check-1',
+      account_id: 'account-1',
+      mode: 'tdlib_readonly',
+      status: 'completed',
+      started_at: '2026-04-30T10:00:00Z',
+      finished_at: '2026-04-30T10:00:01Z',
+      error_code: null,
+      error_class: null,
+      details: null,
+      result: { validity_status: 'valid' },
+      created_at: '2026-04-30T10:00:00Z',
+    }
+    client.setQueryData(queryKeys.accountSafety.account('account-1'), {
+      account_id: 'account-1',
+      validity_status: 'db_snapshot',
+      last_validity_check: {
+        ...check,
+        id: 'old-check',
+        finished_at: '2026-04-30T07:00:00Z',
+      },
+    })
+    client.setQueryData(queryKeys.accountSafety.checks('account-1'), [{ ...check, id: 'old-check' }])
+
+    updateAccountSafetyAfterValidityCheck(client, 'account-1', check)
+
+    expect(client.getQueryData(queryKeys.accountSafety.account('account-1'))).toMatchObject({
+      validity_status: 'valid',
+      last_validity_check: check,
+    })
+    expect(client.getQueryData(queryKeys.accountSafety.checks('account-1'))).toEqual([check, { ...check, id: 'old-check' }])
   })
 
   it('fetches job state through query cache helpers and accepts preloaded dashboard data', async () => {

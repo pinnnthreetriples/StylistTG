@@ -17,6 +17,7 @@ from app.services.account_cooldowns import (
 )
 from app.services.account_health import collect_account_health_signals
 from app.services.account_risk import build_risk_by_operation, overall_risk_level
+from app.services.account_safety_overrides import NON_OVERRIDABLE_BLOCKERS, active_overrides_by_operation
 from app.services.accounts import get_account, list_accounts
 
 
@@ -52,6 +53,7 @@ def build_account_safety_for_account(session: Session, account: Account, *, conf
         "capability_summary": {key: value["state"] for key, value in capabilities.items()},
         "risk_by_operation": risk_by_operation,
         "cooldowns_by_operation": cooldowns_by_operation,
+        "active_overrides_by_operation": active_overrides_by_operation(session, account.id, now=checked_at),
         "reasons": health["reasons"],
         "top_reasons": _top_reasons(health["reasons"]),
         "last_checked_at": checked_at,
@@ -105,6 +107,14 @@ def safety_preview_fields_with_policy(
                 blockers.append(code)
             else:
                 warnings.append(code)
+    operation_safety = _operation_safety(safety, desired_operations, blockers, warnings)
+    blockers, warnings, operation_safety = _apply_active_overrides(
+        safety,
+        desired_operations,
+        blockers,
+        warnings,
+        operation_safety,
+    )
 
     return {
         "account_safety": safety,
@@ -112,6 +122,7 @@ def safety_preview_fields_with_policy(
         "cooldowns_by_operation": safety["cooldowns_by_operation"],
         "safety_warnings": _unique(warnings),
         "safety_blockers": _unique(blockers),
+        "operation_safety": operation_safety,
     }
 
 
@@ -131,6 +142,97 @@ def _desired_operations(desired_state: dict[str, Any]) -> set[str]:
     if stories:
         operations.add("story_post")
     return operations
+
+
+def _operation_safety(
+    safety: dict[str, Any],
+    desired_operations: set[str],
+    blockers: list[str],
+    warnings: list[str],
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for operation in sorted(desired_operations):
+        op_blockers = _operation_codes(operation, blockers)
+        op_warnings = _operation_codes(operation, warnings)
+        cooldowns = safety["cooldowns_by_operation"].get(operation, [])
+        state = "blocked" if op_blockers else "warning" if op_warnings else "ready"
+        result.append(
+            {
+                "operation": operation,
+                "state": state,
+                "warnings": _unique(op_warnings),
+                "blockers": _unique(op_blockers),
+                "cooldowns": cooldowns,
+                "can_override": bool(op_blockers) and all(code not in NON_OVERRIDABLE_BLOCKERS for code in op_blockers),
+            }
+        )
+    return result
+
+
+def _operation_codes(operation: str, codes: list[str]) -> list[str]:
+    global_codes = {
+        "account_not_execution_usable",
+        "fresh_validity_required",
+        "fresh_validity_stale",
+        "reauth_required",
+        "runtime_broken",
+        "missing_tdlib_credentials",
+    }
+    result: list[str] = []
+    for code in codes:
+        if code in global_codes or code.endswith(f":{operation}") or code == f"product_cooldown:{operation}":
+            result.append(code)
+        elif operation == "profile_music" and code == "music_capability_not_checked":
+            result.append(code)
+        elif operation == "story_post" and code.startswith("stories_"):
+            result.append(code)
+    return result
+
+
+def _apply_active_overrides(
+    safety: dict[str, Any],
+    desired_operations: set[str],
+    blockers: list[str],
+    warnings: list[str],
+    operation_safety: list[dict[str, Any]],
+) -> tuple[list[str], list[str], list[dict[str, Any]]]:
+    overrides_by_operation = safety.get("active_overrides_by_operation") or {}
+    if not overrides_by_operation:
+        return blockers, warnings, operation_safety
+    remaining_blockers = list(blockers)
+    next_warnings = list(warnings)
+    next_operation_safety: list[dict[str, Any]] = []
+    for item in operation_safety:
+        operation = item["operation"]
+        override_codes = {
+            code
+            for override in overrides_by_operation.get(operation, [])
+            for code in override.get("requested_blockers", [])
+        }
+        if operation not in desired_operations or not override_codes:
+            next_operation_safety.append(item)
+            continue
+        item_blockers = []
+        item_warnings = list(item["warnings"])
+        for code in item["blockers"]:
+            if code in override_codes and code not in NON_OVERRIDABLE_BLOCKERS:
+                item_warnings.append(f"override_applied:{operation}")
+                if code in remaining_blockers:
+                    remaining_blockers.remove(code)
+                continue
+            item_blockers.append(code)
+        next_operation_safety.append(
+            {
+                **item,
+                "state": "blocked" if item_blockers else "warning" if item_warnings else "ready",
+                "blockers": _unique(item_blockers),
+                "warnings": _unique(item_warnings),
+                "can_override": bool(item_blockers) and all(code not in NON_OVERRIDABLE_BLOCKERS for code in item_blockers),
+            }
+        )
+        if f"override_applied:{operation}" in item_warnings:
+            next_warnings.append(f"override_applied:{operation}")
+    return remaining_blockers, next_warnings, next_operation_safety
 
 
 def _add_by_unknown_capability_policy(

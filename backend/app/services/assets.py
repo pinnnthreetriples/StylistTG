@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+import tempfile
 from io import BytesIO
 from pathlib import Path
 
@@ -9,8 +10,9 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Asset, AssetKind, AssetStatus, new_id
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Asset, AssetKind, AssetStatus, new_id, utc_now
 from app.services.audit_logs import log_audit_event
+from app.storage.base import StorageObject
 from app.storage import LocalStorageService, StorageService
 from app.storage.paths import asset_normalized_key, asset_prefix, asset_source_key
 
@@ -45,7 +47,7 @@ def save_profile_photo_asset(
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_name = f"original{Path(filename).suffix or '.upload'}"
     source_key = asset_source_key(asset_id, source_name)
-    storage.save_bytes(source_key, content, content_type=mime)
+    source_object = storage.save_bytes(source_key, content, content_type=mime)
 
     normalized = ImageOps.exif_transpose(image).convert("RGB")
     normalized.thumbnail((1024, 1024))
@@ -53,7 +55,7 @@ def save_profile_photo_asset(
     normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
     normalized_content = normalized_bytes.getvalue()
     normalized_key = asset_normalized_key(asset_id, "profile_photo.jpg")
-    storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    normalized_object = storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
@@ -67,6 +69,7 @@ def save_profile_photo_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
+    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
     session.add(asset)
     _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
@@ -100,8 +103,8 @@ def save_profile_audio_asset(
     extension = Path(filename).suffix or _audio_extension_for_mime(mime)
     source_key = asset_source_key(asset_id, f"original{extension}")
     normalized_key = asset_normalized_key(asset_id, f"profile_audio{extension}")
-    storage.save_bytes(source_key, content, content_type=mime)
-    storage.save_bytes(normalized_key, content, content_type=mime)
+    source_object = storage.save_bytes(source_key, content, content_type=mime)
+    normalized_object = storage.save_bytes(normalized_key, content, content_type=mime)
     content_hash = hashlib.sha256(content).hexdigest()
 
     asset = Asset(
@@ -115,6 +118,7 @@ def save_profile_audio_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
+    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
     session.add(asset)
     _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
@@ -150,14 +154,14 @@ def save_story_image_asset(
 
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_key = asset_source_key(asset_id, f"original{Path(filename).suffix or '.upload'}")
-    storage.save_bytes(source_key, content, content_type=mime)
+    source_object = storage.save_bytes(source_key, content, content_type=mime)
     normalized = ImageOps.exif_transpose(image).convert("RGB")
     normalized.thumbnail((1080, 1920))
     normalized_bytes = BytesIO()
     normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
     normalized_content = normalized_bytes.getvalue()
     normalized_key = asset_normalized_key(asset_id, "story_image.jpg")
-    storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    normalized_object = storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
@@ -171,6 +175,7 @@ def save_story_image_asset(
         mime="image/jpeg",
         status=AssetStatus.NORMALIZED,
     )
+    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
     session.add(asset)
     _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
@@ -200,22 +205,36 @@ def save_story_video_asset(
 
     asset_id = new_id()
     storage = storage_service or _local_storage(storage_root)
-    if not isinstance(storage, LocalStorageService):
-        raise ValueError("story video preparation currently requires local storage")
     extension = Path(filename).suffix or ".mp4"
     source_key = asset_source_key(asset_id, f"original{extension}")
     normalized_key = asset_normalized_key(asset_id, "story_video.mp4")
-    source_path = storage.resolve_path(source_key)
-    normalized_dir = storage.resolve_path(asset_normalized_key(asset_id, ".keep")).parent
-    normalized_dir.mkdir(parents=True, exist_ok=True)
     try:
-        storage.save_bytes(source_key, content, content_type=mime)
-        normalized_path = _prepare_story_video(source_path, normalized_dir, config)
-        normalized_key = normalized_path.relative_to(storage.root.resolve()).as_posix()
+        if isinstance(storage, LocalStorageService):
+            source_object = storage.save_bytes(source_key, content, content_type=mime)
+            source_path = storage.resolve_path(source_key)
+            normalized_dir = storage.resolve_path(asset_normalized_key(asset_id, ".keep")).parent
+            normalized_dir.mkdir(parents=True, exist_ok=True)
+            normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+            normalized_key = normalized_path.relative_to(storage.root.resolve()).as_posix()
+            normalized_object = storage.stat(normalized_key, content_type="video/mp4")
+        else:
+            with tempfile.TemporaryDirectory(prefix="stylisttg-story-video-") as temp_dir:
+                temp_root = Path(temp_dir)
+                source_path = temp_root / f"original{extension}"
+                source_path.write_bytes(content)
+                normalized_dir = temp_root / "normalized"
+                normalized_dir.mkdir(parents=True, exist_ok=True)
+                normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+                source_object = storage.save_bytes(source_key, content, content_type=mime)
+                normalized_object = storage.save_file(
+                    normalized_key,
+                    normalized_path,
+                    content_type="video/mp4",
+                )
     except Exception:
         storage.delete(asset_prefix(asset_id))
         raise
-    content_hash = hashlib.sha256(normalized_path.read_bytes()).hexdigest()
+    content_hash = normalized_object.checksum or hashlib.sha256(normalized_path.read_bytes()).hexdigest()
 
     asset = Asset(
         id=asset_id,
@@ -228,6 +247,7 @@ def save_story_video_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
+    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
     session.add(asset)
     _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
@@ -259,6 +279,26 @@ def _log_asset_uploaded(
 
 def _local_storage(storage_root: Path) -> LocalStorageService:
     return LocalStorageService(storage_root)
+
+
+def _apply_storage_metadata(
+    asset: Asset,
+    *,
+    storage: StorageService,
+    source: StorageObject,
+    normalized: StorageObject,
+) -> None:
+    asset.storage_backend = storage.backend_name
+    asset.storage_bucket = getattr(storage, "bucket", None)
+    asset.source_key = source.key
+    asset.normalized_key = normalized.key
+    asset.source_size_bytes = source.size_bytes
+    asset.normalized_size_bytes = normalized.size_bytes
+    asset.source_content_type = source.content_type
+    asset.normalized_content_type = normalized.content_type
+    asset.source_checksum = source.checksum
+    asset.normalized_checksum = normalized.checksum
+    asset.storage_migrated_at = utc_now()
 
 
 def _guess_audio_mime(filename: str, content: bytes) -> str:

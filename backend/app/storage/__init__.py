@@ -21,6 +21,7 @@ def build_storage_service(config: Settings = settings) -> StorageService:
                 else ""
             ),
             force_path_style=config.storage_s3_force_path_style,
+            public_base_url=config.storage_s3_public_base_url,
         )
     raise ValueError(f"unsupported storage backend: {config.storage_backend}")
 

@@ -29,10 +29,11 @@ def main() -> None:
         before = _seed_0018(base_url, seeded_db)
         print("seeded_counts_before", before)
         print("seeded_upgrade_head", _run_alembic(base_url, seeded_db, "upgrade", "head"))
-        after, workspace_ids = _inspect_seeded(base_url, seeded_db)
+        after, workspace_ids, asset_storage = _inspect_seeded(base_url, seeded_db)
         print("seeded_counts_after", after)
         print("workspace_ids", workspace_ids)
-        _assert_seeded_upgrade(before, after, workspace_ids)
+        print("asset_storage", asset_storage)
+        _assert_seeded_upgrade(before, after, workspace_ids, asset_storage)
         print("seeded_backfill_ok")
     finally:
         for db_name in (empty_db, seeded_db):
@@ -121,7 +122,10 @@ def _seed_0018(base_url: str, db_name: str) -> dict[str, int]:
         return _counts(connection, AGGREGATE_TABLES)
 
 
-def _inspect_seeded(base_url: str, db_name: str) -> tuple[dict[str, int], dict[str, list[str]]]:
+def _inspect_seeded(
+    base_url: str,
+    db_name: str,
+) -> tuple[dict[str, int], dict[str, list[str]], dict[str, str | None]]:
     engine = create_engine(f"{base_url}/{db_name}")
     with engine.connect() as connection:
         counts = _counts(connection, AGGREGATE_TABLES + ["workspace", "app_user", "workspace_member", "workspace_plan"])
@@ -129,7 +133,20 @@ def _inspect_seeded(base_url: str, db_name: str) -> tuple[dict[str, int], dict[s
             table_name: [row[0] for row in connection.execute(text(f"select workspace_id::text from {table_name}")).all()]
             for table_name in AGGREGATE_TABLES
         }
-    return counts, workspace_ids
+        asset_storage_row = connection.execute(
+            text(
+                "select storage_backend, source_key, normalized_key, source_path, normalized_path "
+                "from asset limit 1"
+            )
+        ).one()
+        asset_storage = {
+            "storage_backend": asset_storage_row[0],
+            "source_key": asset_storage_row[1],
+            "normalized_key": asset_storage_row[2],
+            "source_path": asset_storage_row[3],
+            "normalized_path": asset_storage_row[4],
+        }
+    return counts, workspace_ids, asset_storage
 
 
 def _counts(connection, table_names: list[str]) -> dict[str, int]:
@@ -143,6 +160,7 @@ def _assert_seeded_upgrade(
     before: dict[str, int],
     after: dict[str, int],
     workspace_ids: dict[str, list[str]],
+    asset_storage: dict[str, str | None],
 ) -> None:
     for table_name in AGGREGATE_TABLES:
         if before[table_name] != 1 or after[table_name] != 1:
@@ -152,6 +170,12 @@ def _assert_seeded_upgrade(
     for table_name in ("workspace", "app_user", "workspace_member", "workspace_plan"):
         if after[table_name] != 1:
             raise AssertionError(f"{table_name} bootstrap count failed: {after[table_name]}")
+    if asset_storage["storage_backend"] != "local":
+        raise AssertionError(f"asset storage backend backfill failed: {asset_storage}")
+    if asset_storage["source_key"] != "source.jpg" or asset_storage["normalized_key"] != "normalized.jpg":
+        raise AssertionError(f"asset storage key backfill failed: {asset_storage}")
+    if asset_storage["source_path"] != "source.jpg" or asset_storage["normalized_path"] != "normalized.jpg":
+        raise AssertionError(f"asset legacy path preservation failed: {asset_storage}")
 
 
 def _assert_safe_db_name(db_name: str) -> None:

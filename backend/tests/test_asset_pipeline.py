@@ -28,6 +28,11 @@ def test_profile_photo_upload_is_normalized_and_recorded(db_session, storage_dir
     assert len(asset.content_hash) == 64
     assert (storage_dir / asset.source_path).exists()
     assert (storage_dir / asset.normalized_path).exists()
+    assert asset.storage_backend == "local"
+    assert asset.source_key == asset.source_path.replace("\\", "/")
+    assert asset.normalized_key == asset.normalized_path.replace("\\", "/")
+    assert asset.source_size_bytes is not None
+    assert asset.normalized_size_bytes is not None
 
     with Image.open(storage_dir / asset.normalized_path) as normalized:
         assert normalized.format == "JPEG"

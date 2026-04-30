@@ -15,7 +15,7 @@ from app.services.assets import get_asset
 from app.services.auth import is_account_hard_stopped
 from app.services.execution_policy import ExecutionUsableAdapter, ensure_execution_usable
 from app.services.plan import build_profile_plan, compute_execution_intent_hash
-from app.storage import LocalStorageService, build_storage_service
+from app.services.asset_storage import materialize_asset_to_local_path
 
 
 def find_active_duplicate_job(
@@ -249,7 +249,7 @@ def _validate_profile_asset(session: Session, payload: dict) -> None:
         raise ValueError("asset kind is not profile_photo")
     if asset.status != AssetStatus.NORMALIZED:
         raise ValueError("asset is not ready for profile photo execution")
-    payload["photo_asset_path"] = _local_asset_path(asset.normalized_path)
+    payload["photo_asset_path"] = str(materialize_asset_to_local_path(asset, config=settings))
 
 
 def is_profile_job_cooldown_active(
@@ -272,8 +272,3 @@ def is_profile_job_cooldown_active(
     return recent_success is not None
 
 
-def _local_asset_path(storage_key: str) -> str:
-    storage = build_storage_service(settings)
-    if not isinstance(storage, LocalStorageService):
-        raise ValueError("asset execution currently requires local storage")
-    return str(storage.resolve_path(storage_key))

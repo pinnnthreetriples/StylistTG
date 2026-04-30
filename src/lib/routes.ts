@@ -4,12 +4,14 @@ export type AppRouteState =
   | { screen: 'accounts' }
   | { screen: 'settings' }
   | { screen: 'auth-batch' }
+  | { screen: 'operations' }
   | { screen: 'account'; accountId: string; section: AccountWorkspaceSection }
 
 export type AppRouteName =
   | 'accounts'
   | 'settings'
   | 'auth-batch'
+  | 'operations'
   | 'account'
   | 'account-profile'
   | 'account-jobs'
@@ -49,6 +51,7 @@ export const appRoutes = {
   accounts: accountListRoute,
   settings: () => '/settings',
   authBatch: () => '/auth/batch',
+  operations: () => '/operations',
   account: accountRoute,
   accountProfile: accountProfileRoute,
   accountJobs: accountJobsRoute,

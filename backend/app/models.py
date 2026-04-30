@@ -171,6 +171,12 @@ class Account(Base):
     safety_overrides: Mapped[list[AccountSafetyOverride]] = relationship(
         cascade="all, delete-orphan"
     )
+    operation_logs: Mapped[list[AccountOperationLog]] = relationship(
+        cascade="all, delete-orphan"
+    )
+    proxy: Mapped[AccountProxy | None] = relationship(
+        cascade="all, delete-orphan", uselist=False
+    )
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
 
@@ -493,6 +499,49 @@ class AccountSafetyOverride(Base):
     requested_blockers_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     allowed_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AccountOperationLog(Base):
+    __tablename__ = "account_operation_log"
+    __table_args__ = (
+        Index("ix_operation_log_account_created", "account_id", "created_at"),
+        Index("ix_operation_log_type_status_created", "operation_type", "status", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    operation_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    operation_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False, default="info")
+    source: Mapped[str] = mapped_column(String(128), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_class: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    step_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AccountProxy(Base):
+    __tablename__ = "account_proxy"
+
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
+    proxy_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(Integer, nullable=False)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="unknown")
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class Job(Base):

@@ -71,6 +71,7 @@ export type AccountSafetySummary = {
   health_status: HealthStatus
   overall_risk_level: RiskLevel
   validity_status: string
+  proxy_status?: string
   capability_summary: Record<string, CapabilityState>
   cooldown_summary: AccountOperationCooldown[]
   top_reasons: AccountSafetyReason[]

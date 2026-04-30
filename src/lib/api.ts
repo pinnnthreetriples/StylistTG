@@ -12,6 +12,8 @@ import type {
   RecentFailurePolicy,
   UnknownCapabilityPolicy,
 } from '@/lib/accountSafety'
+import type { OperationLogPage } from '@/lib/operationLogs'
+import type { AccountProxy, AccountProxyInput, AccountProxySummary } from '@/lib/proxy'
 import type { LivePreflight } from '@/lib/settings'
 import { getApiBaseUrl } from '@/lib/config'
 import { apiRequest, isApiError } from '@/lib/http'
@@ -321,6 +323,38 @@ export async function fetchAccountSafetySummary(): Promise<AccountSafetySummary[
 
 export async function fetchAccountSafety(accountId: string): Promise<AccountSafety> {
   return apiRequest<AccountSafety>(`/api/accounts/${accountId}/safety`)
+}
+
+export async function fetchProxySummary(): Promise<AccountProxySummary[]> {
+  return apiRequest<AccountProxySummary[]>('/api/accounts/proxy-summary')
+}
+
+export async function fetchAccountProxy(accountId: string): Promise<AccountProxy | null> {
+  return apiRequest<AccountProxy | null>(`/api/accounts/${accountId}/proxy`)
+}
+
+export async function saveAccountProxy(accountId: string, payload: AccountProxyInput): Promise<AccountProxy> {
+  return apiRequest<AccountProxy>(`/api/accounts/${accountId}/proxy`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function deleteAccountProxy(accountId: string): Promise<void> {
+  await apiRequest<void>(`/api/accounts/${accountId}/proxy`, { method: 'DELETE' })
+}
+
+export async function checkAccountProxy(accountId: string): Promise<AccountProxy> {
+  return apiRequest<AccountProxy>(`/api/accounts/${accountId}/proxy/check`, { method: 'POST' })
+}
+
+export async function fetchAccountOperationLogs(accountId: string, limit = 50): Promise<OperationLogPage> {
+  return apiRequest<OperationLogPage>(`/api/accounts/${accountId}/operation-logs?limit=${limit}`)
+}
+
+export async function fetchGlobalOperationLogs(limit = 100): Promise<OperationLogPage> {
+  return apiRequest<OperationLogPage>(`/api/operation-logs?limit=${limit}`)
 }
 
 export async function previewAccountBatchSafety(

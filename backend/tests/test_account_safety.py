@@ -8,7 +8,9 @@ from sqlalchemy import select
 from app.db import Base
 from app.main import app
 from app.models import (
+    AccountOperationLog,
     AccountOperationCooldown,
+    AccountProxy,
     AccountProfileState,
     AccountState,
     AccountStoryPost,
@@ -38,6 +40,131 @@ def test_account_safety_ready_for_execution_usable_account(db_session) -> None:
     assert safety["overall_risk_level"] == "low"
     assert safety["capabilities"]["profile_text"]["state"] == "available"
     assert safety["risk_by_operation"]["profile_update"]["level"] == "low"
+
+
+def test_operation_log_sanitizes_secrets(db_session) -> None:
+    from app.services.operation_logs import log_operation, operation_log_to_dict
+
+    account = create_account(db_session, external_ref="+15550103000")
+    row = log_operation(
+        db_session,
+        account_id=account.id,
+        operation_type="proxy",
+        operation_key="save_proxy",
+        status="completed",
+        source="test",
+        message="saved",
+        metadata={"password": "secret", "nested": {"api_hash": "secret"}},
+    )
+    db_session.commit()
+
+    payload = operation_log_to_dict(row)
+
+    assert payload["metadata"]["password"] == "***"
+    assert payload["metadata"]["nested"]["api_hash"] == "***"
+
+
+def test_proxy_password_requires_encryption_key(db_session) -> None:
+    from app.config import Settings
+    from app.services.proxy_accounts import upsert_account_proxy
+
+    account = create_account(db_session, external_ref="+15550103001")
+    config = Settings(proxy_credentials_encryption_key=None)
+
+    try:
+        upsert_account_proxy(
+            db_session,
+            account.id,
+            proxy_type="socks5",
+            host="127.0.0.1",
+            port=1080,
+            username="user",
+            password="secret",
+            config=config,
+        )
+    except ValueError as exc:
+        assert str(exc) in {"proxy_credentials_key_required", "proxy_credentials_crypto_unavailable"}
+    else:
+        raise AssertionError("proxy password must not be stored without encryption")
+
+
+def test_proxy_check_updates_status_and_writes_operation_log(db_session) -> None:
+    from app.services.proxy_checks import check_account_proxy
+
+    class FakeChecker:
+        def check(self, _proxy):
+            return False, "proxy_timeout", "timeout"
+
+    account = create_account(db_session, external_ref="+15550103002")
+    db_session.add(AccountProxy(account_id=account.id, proxy_type="http", host="127.0.0.1", port=8080))
+    db_session.commit()
+
+    result = check_account_proxy(db_session, account.id, checker=FakeChecker())
+    log = db_session.execute(
+        select(AccountOperationLog).where(AccountOperationLog.account_id == account.id)
+    ).scalars().first()
+
+    assert result["status"] == "failed"
+    assert result["last_error_code"] == "proxy_timeout"
+    assert log is not None
+    assert log.operation_type == "proxy"
+    assert log.status == "failed"
+
+
+def test_operation_logs_api_returns_account_and_global_pages() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        from app.services.operation_logs import log_operation
+
+        account = create_account(session, external_ref="+15550103003")
+        log_operation(
+            session,
+            account_id=account.id,
+            operation_type="validity_check",
+            status="completed",
+            source="test",
+            message="checked",
+        )
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+
+    account_response = client.get(f"/api/accounts/{account_id}/operation-logs")
+    global_response = client.get("/api/operation-logs")
+
+    app.dependency_overrides.clear()
+
+    assert account_response.status_code == 200
+    assert account_response.json()["items"][0]["operation_type"] == "validity_check"
+    assert global_response.status_code == 200
+    assert global_response.json()["total"] == 1
+
+
+def test_proxy_api_does_not_return_password() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550103004")
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+
+    response = client.put(
+        f"/api/accounts/{account_id}/proxy",
+        json={"proxy_type": "http", "host": "127.0.0.1", "port": 8080, "username": "user"},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["has_password"] is False
+    assert "password" not in payload
 
 
 def test_account_safety_blocked_by_reauth_required(db_session) -> None:

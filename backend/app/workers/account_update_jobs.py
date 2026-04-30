@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import JobState, StepStatus, TERMINAL_JOB_STATES
 from app.services.jobs import get_job
+from app.services.operation_logs import log_operation
 from app.services.profile_audio_state import clear_profile_audio_state, upsert_profile_audio_state
 from app.services.story_drafts import delete_story_drafts_for_asset
 from app.services.story_posts import create_story_post_from_result
@@ -35,6 +36,19 @@ def _execute_account_update_job(job_id: str, session: Session) -> int:
     if job is not None:
         _materialize_profile_audio(session, job)
         _materialize_story_posts(session, job)
+        log_operation(
+            session,
+            account_id=job.account_id,
+            operation_type="account_update",
+            operation_key="job_terminal",
+            status=str(job.job_state),
+            severity="info" if job.job_state in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED} else "warning",
+            source="account_update_worker",
+            message="Account update job finished",
+            job_id=job.id,
+            metadata={"job_state": job.job_state, "failure_reason": job.failure_reason},
+        )
+        session.commit()
     return exit_code
 
 

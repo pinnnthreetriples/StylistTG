@@ -13,6 +13,7 @@ from app.api.assets import router as assets_router
 from app.api.dashboard import router as dashboard_router
 from app.api.diagnostics import router as diagnostics_router
 from app.api.jobs import router as jobs_router
+from app.api.operation_logs import router as operation_logs_router
 from app.api.settings import router as settings_router
 from app.api.story_drafts import router as story_drafts_router
 from app.api.story_capabilities import router as story_capabilities_router
@@ -74,6 +75,7 @@ app.include_router(assets_router)
 app.include_router(dashboard_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
+app.include_router(operation_logs_router)
 app.include_router(settings_router)
 app.include_router(story_drafts_router)
 app.include_router(story_capabilities_router)

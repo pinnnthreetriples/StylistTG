@@ -16,6 +16,7 @@ from app.models import (
 from app.services.accounts import get_account
 from app.services.account_cooldowns import ensure_cooldowns_from_recent_failures
 from app.services.account_safety import build_account_safety, summarize_account_safety
+from app.services.operation_logs import log_operation
 
 
 SUPPORTED_MODES = {"db_snapshot", "tdlib_readonly", "full_capability"}
@@ -77,6 +78,17 @@ def run_account_validity_check(
             "validity_status": _validity_status_from_readonly_result(readonly_result, safety),
         })
         run.details_json = {"source": mode}
+        log_operation(
+            session,
+            account_id=account_id,
+            operation_type="validity_check",
+            operation_key=mode,
+            status="completed",
+            severity="info",
+            source="account_validity",
+            message="Account validity check completed",
+            metadata={"validity_status": run.result_json.get("validity_status")},
+        )
         session.commit()
         session.refresh(run)
         return validity_check_run_to_dict(run)
@@ -98,6 +110,18 @@ def run_account_validity_check(
             created_at=started_at,
         )
         session.add(run)
+        log_operation(
+            session,
+            account_id=account_id,
+            operation_type="validity_check",
+            operation_key=mode,
+            status="failed",
+            severity="warning",
+            source="account_validity",
+            message="Account validity check failed",
+            error_code="VALIDITY_CHECK_FAILED",
+            error_class="safety_check",
+        )
         session.commit()
         session.refresh(run)
         return validity_check_run_to_dict(run)

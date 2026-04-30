@@ -15,6 +15,10 @@ from app.schemas import (
     AccountBatchSafetyPreviewRead,
     AccountBatchSafetyPreviewRequest,
     AccountListItemRead,
+    AccountOperationLogPageRead,
+    AccountProxyRead,
+    AccountProxySummaryRead,
+    AccountProxyUpsert,
     AccountRead,
     AccountRuntimeDiagnosticsRead,
     AccountSafetyRead,
@@ -41,6 +45,9 @@ from app.services.account_safety_overrides import create_safety_override
 from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs
+from app.services.operation_logs import list_account_logs, log_operation
+from app.services.proxy_accounts import delete_account_proxy, get_account_proxy, proxy_summary, upsert_account_proxy
+from app.services.proxy_checks import check_account_proxy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -62,6 +69,11 @@ def get_accounts(session: Session = Depends(get_session)):
 @router.get("/safety-summary", response_model=list[AccountSafetySummaryRead])
 def get_accounts_safety_summary(session: Session = Depends(get_session)):
     return build_account_safety_summary(session)
+
+
+@router.get("/proxy-summary", response_model=list[AccountProxySummaryRead])
+def get_accounts_proxy_summary(session: Session = Depends(get_session)):
+    return proxy_summary(session)
 
 
 @router.post("/safety-batch-preview", response_model=AccountBatchSafetyPreviewRead)
@@ -196,6 +208,82 @@ def get_account_validity_checks(
     return list_account_validity_checks(session, account_id, limit=limit)
 
 
+@router.get("/{account_id}/operation-logs", response_model=AccountOperationLogPageRead)
+def get_account_operation_logs(
+    account_id: str,
+    operation_type: str | None = None,
+    status_filter: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    session: Session = Depends(get_session),
+):
+    try:
+        return list_account_logs(
+            session,
+            account_id,
+            operation_type=operation_type,
+            status=status_filter,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as exc:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message=str(exc),
+        ) from exc
+
+
+@router.get("/{account_id}/proxy", response_model=AccountProxyRead | None)
+def get_account_proxy_endpoint(account_id: str, session: Session = Depends(get_session)):
+    try:
+        return get_account_proxy(session, account_id)
+    except ValueError as exc:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message=str(exc),
+        ) from exc
+
+
+@router.put("/{account_id}/proxy", response_model=AccountProxyRead)
+def put_account_proxy(
+    account_id: str,
+    payload: AccountProxyUpsert,
+    session: Session = Depends(get_session),
+):
+    try:
+        return upsert_account_proxy(
+            session,
+            account_id,
+            proxy_type=payload.proxy_type,
+            host=payload.host,
+            port=payload.port,
+            username=payload.username,
+            password=payload.password,
+        )
+    except ValueError as exc:
+        raise _proxy_error(exc) from exc
+
+
+@router.delete("/{account_id}/proxy", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account_proxy_endpoint(account_id: str, session: Session = Depends(get_session)):
+    try:
+        delete_account_proxy(session, account_id)
+    except ValueError as exc:
+        raise _proxy_error(exc) from exc
+
+
+@router.post("/{account_id}/proxy/check", response_model=AccountProxyRead)
+def post_account_proxy_check(account_id: str, session: Session = Depends(get_session)):
+    try:
+        return check_account_proxy(session, account_id)
+    except ValueError as exc:
+        raise _proxy_error(exc) from exc
+
+
 @router.post("/{account_id}/safety-overrides", response_model=AccountSafetyOverrideRead, status_code=status.HTTP_201_CREATED)
 def post_account_safety_override(
     account_id: str,
@@ -275,8 +363,32 @@ def refresh_runtime(account_id: str, session: Session = Depends(get_session)):
         profile_sync_adapter = build_profile_sync_adapter()
         try:
             sync_account_profile_snapshot(session, account_id, adapter=profile_sync_adapter)
+            log_operation(
+                session,
+                account_id=account_id,
+                operation_type="sync",
+                operation_key="profile_snapshot",
+                status="completed",
+                severity="info",
+                source="runtime_refresh",
+                message="Profile snapshot synced",
+            )
+            session.commit()
         except Exception as exc:
             session.rollback()
+            log_operation(
+                session,
+                account_id=account_id,
+                operation_type="sync",
+                operation_key="profile_snapshot",
+                status="failed",
+                severity="warning",
+                source="runtime_refresh",
+                message="Profile snapshot sync failed",
+                error_code="PROFILE_SYNC_FAILED",
+                error_class=exc.__class__.__name__,
+            )
+            session.commit()
             log_event(
                 "profile_sync_failed",
                 account_id=account_id,
@@ -298,6 +410,31 @@ def refresh_runtime(account_id: str, session: Session = Depends(get_session)):
         last_error_code=diagnostics["last_error_code"],
         last_error_class=diagnostics["last_error_class"],
         refreshed_at=datetime.now(UTC),
+    )
+
+
+def _proxy_error(exc: ValueError) -> AppError:
+    message = str(exc)
+    if message == "account not found":
+        return AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message=message,
+        )
+    if message == "proxy not configured":
+        return AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="PROXY_NOT_CONFIGURED",
+            error_class="not_found",
+            message=message,
+        )
+    code = message.upper()
+    return AppError(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        error_code=code,
+        error_class="proxy",
+        message=message,
     )
 
 

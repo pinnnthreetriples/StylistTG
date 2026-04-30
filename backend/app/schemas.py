@@ -104,6 +104,7 @@ class AccountSafetySummaryRead(BaseModel):
     health_status: str
     overall_risk_level: str
     validity_status: str
+    proxy_status: str = "none"
     capability_summary: dict[str, str]
     cooldown_summary: list[AccountOperationCooldownRead] = Field(default_factory=list)
     top_reasons: list[AccountSafetyReasonRead]
@@ -184,6 +185,64 @@ class AccountSafetyOverrideRead(BaseModel):
     requested_blockers: list[str]
     allowed_until: datetime
     created_at: datetime
+
+
+class AccountOperationLogRead(BaseModel):
+    id: str
+    account_id: str
+    operation_type: str
+    operation_key: str | None = None
+    status: str
+    severity: str
+    source: str
+    message: str
+    error_code: str | None = None
+    error_class: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    request_id: str | None = None
+    job_id: str | None = None
+    step_id: str | None = None
+    created_at: datetime
+
+
+class AccountOperationLogPageRead(BaseModel):
+    items: list[AccountOperationLogRead]
+    total: int
+    limit: int
+    offset: int
+
+
+class AccountProxyUpsert(BaseModel):
+    proxy_type: Literal["socks5", "http"]
+    host: str = Field(min_length=1, max_length=255)
+    port: int = Field(ge=1, le=65535)
+    username: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, max_length=1000)
+
+
+class AccountProxyRead(BaseModel):
+    account_id: str
+    proxy_type: str
+    host: str
+    port: int
+    username: str | None = None
+    has_password: bool
+    status: str
+    last_checked_at: datetime | None = None
+    last_error_code: str | None = None
+    last_error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AccountProxySummaryRead(BaseModel):
+    account_id: str
+    status: str
+    proxy_type: str | None = None
+    host: str | None = None
+    port: int | None = None
+    last_checked_at: datetime | None = None
+    last_error_code: str | None = None
 
 
 class FieldErrorRead(BaseModel):

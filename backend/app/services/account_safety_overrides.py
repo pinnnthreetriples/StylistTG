@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import AccountSafetyOverride
 from app.services.account_cooldowns import OPERATION_KEYS
 from app.services.accounts import get_account
+from app.services.operation_logs import log_operation
 
 NON_OVERRIDABLE_BLOCKERS = {
     "SESSION_REVOKED",
@@ -48,6 +49,17 @@ def create_safety_override(
         created_at=now,
     )
     session.add(row)
+    log_operation(
+        session,
+        account_id=account_id,
+        operation_type="safety_override",
+        operation_key=operation,
+        status="completed",
+        severity="warning",
+        source="account_safety",
+        message="Manual safety review saved",
+        metadata={"requested_blockers": blockers},
+    )
     session.commit()
     session.refresh(row)
     return safety_override_to_dict(row)

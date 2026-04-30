@@ -12,6 +12,7 @@ import {
   accountsQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
+  globalOperationLogsQueryOptions,
   settingsBundleQueryOptions,
 } from '@/lib/queries'
 import { resolveLegacyQueryRoute } from '@/lib/routes'
@@ -21,6 +22,7 @@ import { RoutePending } from '@/routes/pending'
 const AccountsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'AccountsRoute')
 const SettingsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'SettingsRoute')
 const AuthBatchRouteComponent = lazyRouteComponent(() => import('@/routes/AuthBatchRoute'), 'AuthBatchRoute')
+const OperationsRouteComponent = lazyRouteComponent(() => import('@/routes/OperationsRoute'), 'OperationsRoute')
 const AccountWorkspaceRouteComponent = lazyRouteComponent(
   () => import('@/routes/AccountWorkspaceRoute'),
   'AccountWorkspaceRoute',
@@ -55,6 +57,13 @@ const authBatchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'auth/batch',
   component: AuthBatchRouteComponent,
+})
+
+const operationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'operations',
+  loader: () => queryClient.ensureQueryData(globalOperationLogsQueryOptions(100)),
+  component: OperationsRouteComponent,
 })
 
 function loadAccountWorkspace(accountId: string) {
@@ -110,6 +119,7 @@ const routeTree = rootRoute.addChildren([
   accountsRoute,
   settingsRoute,
   authBatchRoute,
+  operationsRoute,
   accountRoute,
   accountProfileRoute,
   accountJobsRoute,

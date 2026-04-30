@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import Account, AccountValidityCheckRun
+from app.models import Account, AccountProxy, AccountValidityCheckRun
 from app.services.account_capabilities import build_account_capabilities
 from app.services.account_cooldowns import (
     active_cooldowns_by_operation,
@@ -49,6 +49,7 @@ def build_account_safety_for_account(session: Session, account: Account, *, conf
         "health_status": health["health_status"],
         "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
         "validity_status": _validity_status_from_check(last_validity_check),
+        "proxy_status": _proxy_status(account.proxy),
         "capabilities": capabilities,
         "capability_summary": {key: value["state"] for key, value in capabilities.items()},
         "risk_by_operation": risk_by_operation,
@@ -72,6 +73,7 @@ def summarize_account_safety(safety: dict[str, Any]) -> dict[str, Any]:
         "health_status": safety["health_status"],
         "overall_risk_level": safety["overall_risk_level"],
         "validity_status": safety["validity_status"],
+        "proxy_status": safety.get("proxy_status", "none"),
         "capability_summary": safety["capability_summary"],
         "cooldown_summary": _cooldown_summary(safety["cooldowns_by_operation"]),
         "top_reasons": safety["top_reasons"],
@@ -348,3 +350,9 @@ def _validity_status_from_check(check: dict[str, Any] | None) -> str:
     if isinstance(result, dict) and result.get("validity_status"):
         return str(result["validity_status"])
     return str(check["status"])
+
+
+def _proxy_status(proxy: AccountProxy | None) -> str:
+    if proxy is None:
+        return "none"
+    return proxy.status

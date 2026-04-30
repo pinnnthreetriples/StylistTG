@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     fresh_validity_required: str = "if_stale"
     fresh_validity_max_age_minutes: int = 30
     manual_hard_blocker_override_enabled: bool = False
+    proxy_credentials_encryption_key: str | None = None
     profile_photo_max_bytes: int = 20 * 1024 * 1024
     profile_audio_max_bytes: int = 20 * 1024 * 1024
     story_image_max_bytes: int = 10 * 1024 * 1024

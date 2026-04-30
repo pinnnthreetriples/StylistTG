@@ -19,6 +19,7 @@ describe('app route contracts', () => {
     expect(appRoutes.accounts()).toBe('/')
     expect(appRoutes.settings()).toBe('/settings')
     expect(appRoutes.authBatch()).toBe('/auth/batch')
+    expect(appRoutes.operations()).toBe('/operations')
   })
 
   it('keeps canonical account workspace URL contracts stable', () => {

@@ -2,9 +2,13 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query'
 
 import {
   type AccountListItem,
+  fetchAccountOperationLogs,
+  fetchAccountProxy,
   fetchAccountSafety,
   fetchAccountSafetySummary,
   fetchAccountValidityChecks,
+  fetchGlobalOperationLogs,
+  fetchProxySummary,
   previewAccountBatchSafety,
   fetchAccounts,
   fetchDashboard,
@@ -33,6 +37,14 @@ export const queryKeys = {
       ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(',')] as const,
     batchPreviewWithOverride: (operation: string, accountIds: string[], allowWarningOverrides: boolean) =>
       ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(','), allowWarningOverrides] as const,
+  },
+  proxy: {
+    summary: ['proxy', 'summary'] as const,
+    account: (accountId: string) => ['proxy', accountId] as const,
+  },
+  operationLogs: {
+    global: ['operationLogs', 'global'] as const,
+    account: (accountId: string) => ['operationLogs', accountId] as const,
   },
   authState: (accountId: string) => ['authState', accountId] as const,
   settings: {
@@ -114,6 +126,34 @@ export function accountSafetyQueryOptions(accountId: string) {
   return queryOptions({
     queryKey: queryKeys.accountSafety.account(accountId),
     queryFn: () => fetchAccountSafety(accountId),
+  })
+}
+
+export function proxySummaryQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.proxy.summary,
+    queryFn: fetchProxySummary,
+  })
+}
+
+export function accountProxyQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.proxy.account(accountId),
+    queryFn: () => fetchAccountProxy(accountId),
+  })
+}
+
+export function accountOperationLogsQueryOptions(accountId: string, limit = 50) {
+  return queryOptions({
+    queryKey: [...queryKeys.operationLogs.account(accountId), limit] as const,
+    queryFn: () => fetchAccountOperationLogs(accountId, limit),
+  })
+}
+
+export function globalOperationLogsQueryOptions(limit = 100) {
+  return queryOptions({
+    queryKey: [...queryKeys.operationLogs.global, limit] as const,
+    queryFn: () => fetchGlobalOperationLogs(limit),
   })
 }
 

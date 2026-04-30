@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
-import { createAccountSafetyOverride, deleteAccount, runAccountValidityCheck } from '@/lib/api'
 import {
+  checkAccountProxy,
+  createAccountSafetyOverride,
+  deleteAccount,
+  deleteAccountProxy,
+  runAccountValidityCheck,
+  saveAccountProxy,
+} from '@/lib/api'
+import {
+  accountOperationLogsQueryOptions,
+  accountProxyQueryOptions,
   accountSafetyQueryOptions,
   accountSafetySummaryQueryOptions,
   accountValidityChecksQueryOptions,
@@ -15,7 +24,10 @@ import {
   removeAccountScopedQueries,
   settingsBundleQueryOptions,
   updateAccountSafetyAfterValidityCheck,
+  proxySummaryQueryOptions,
+  queryKeys,
 } from '@/lib/queries'
+import type { AccountProxyInput } from '@/lib/proxy'
 
 export function useAccountsQuery() {
   return useQuery(accountsQueryOptions())
@@ -35,6 +47,24 @@ export function useAccountSafetyQuery(accountId: string | null | undefined) {
 export function useAccountValidityChecksQuery(accountId: string | null | undefined) {
   return useQuery({
     ...accountValidityChecksQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useProxySummaryQuery() {
+  return useQuery(proxySummaryQueryOptions())
+}
+
+export function useAccountProxyQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountProxyQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountOperationLogsQuery(accountId: string | null | undefined, limit = 50) {
+  return useQuery({
+    ...accountOperationLogsQueryOptions(accountId ?? '', limit),
     enabled: Boolean(accountId),
   })
 }
@@ -75,6 +105,46 @@ export function useCreateAccountSafetyOverrideMutation() {
   })
 }
 
+export function useSaveAccountProxyMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ accountId, payload }: { accountId: string; payload: AccountProxyInput }) =>
+      saveAccountProxy(accountId, payload),
+    onSuccess: (result, variables) => {
+      queryClient.setQueryData(queryKeys.proxy.account(variables.accountId), result)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.proxy.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.operationLogs.account(variables.accountId) })
+    },
+  })
+}
+
+export function useCheckAccountProxyMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (accountId: string) => checkAccountProxy(accountId),
+    onSuccess: (result, accountId) => {
+      queryClient.setQueryData(queryKeys.proxy.account(accountId), result)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.proxy.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.operationLogs.account(accountId) })
+    },
+  })
+}
+
+export function useDeleteAccountProxyMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (accountId: string) => deleteAccountProxy(accountId),
+    onSuccess: (_result, accountId) => {
+      queryClient.setQueryData(queryKeys.proxy.account(accountId), null)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.proxy.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.summary })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.operationLogs.account(accountId) })
+    },
+  })
+}
+
 export function usePrefetchSettingsBundle() {
   const queryClient = useQueryClient()
   return useCallback(() => {
@@ -89,6 +159,7 @@ export function usePrefetchAccountWorkspace() {
       void queryClient.prefetchQuery(authStateQueryOptions(accountId))
       void queryClient.prefetchQuery(dashboardBundleQueryOptions(accountId))
       void queryClient.prefetchQuery(accountSafetyQueryOptions(accountId))
+      void queryClient.prefetchQuery(accountProxyQueryOptions(accountId))
     },
     [queryClient],
   )

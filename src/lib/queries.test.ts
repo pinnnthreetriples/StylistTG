@@ -7,6 +7,8 @@ import {
   accountSafetyQueryOptions,
   accountSafetySummaryQueryOptions,
   accountBatchSafetyPreviewQueryOptions,
+  accountOperationLogsQueryOptions,
+  accountProxyQueryOptions,
   accountValidityChecksQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
@@ -18,6 +20,8 @@ import {
   jobStepsQueryOptions,
   latestJobQueryOptions,
   latestJobsQueryOptions,
+  globalOperationLogsQueryOptions,
+  proxySummaryQueryOptions,
   removeAccountSafetyFromCache,
   queryKeys,
   removeAccountFromAccountsCache,
@@ -47,6 +51,10 @@ describe('query cache configuration', () => {
     expect(accountSafetySummaryQueryOptions().queryKey).toEqual(['accountSafety', 'summary'])
     expect(accountSafetyQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1'])
     expect(accountValidityChecksQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1', 'checks'])
+    expect(proxySummaryQueryOptions().queryKey).toEqual(['proxy', 'summary'])
+    expect(accountProxyQueryOptions('account-1').queryKey).toEqual(['proxy', 'account-1'])
+    expect(accountOperationLogsQueryOptions('account-1').queryKey).toEqual(['operationLogs', 'account-1', 50])
+    expect(globalOperationLogsQueryOptions().queryKey).toEqual(['operationLogs', 'global', 100])
     expect(accountBatchSafetyPreviewQueryOptions(['account-2', 'account-1'], 'profile_update').queryKey).toEqual([
       'accountSafety',
       'batchPreview',

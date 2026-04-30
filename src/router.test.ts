@@ -11,6 +11,7 @@ describe('TanStack Router route tree', () => {
         '/',
         '/settings',
         '/auth/batch',
+        '/operations',
         '/accounts/$accountId',
         '/accounts/$accountId/profile',
         '/accounts/$accountId/jobs',

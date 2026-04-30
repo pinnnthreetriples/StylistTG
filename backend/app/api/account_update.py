@@ -10,6 +10,7 @@ from app.models import JobState, utc_now
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
 from app.services.account_update_jobs import build_account_update_preview, create_account_update_job
 from app.services.dashboard import job_summary
+from app.services.operation_logs import log_operation
 from app.config import settings
 from app.workers.account_update_jobs import execute_account_update_job
 
@@ -24,6 +25,21 @@ def preview_account_update(payload: AccountUpdateCreate, session: Session = Depe
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
         )
+        log_operation(
+            session,
+            account_id=payload.account_id,
+            operation_type="account_update",
+            operation_key="preview",
+            status="completed",
+            severity="info",
+            source="account_update_api",
+            message="Account update preview built",
+            metadata={
+                "safety_blockers": preview.get("safety_blockers", []),
+                "safety_warnings": preview.get("safety_warnings", []),
+            },
+        )
+        session.commit()
     except ValueError as exc:
         raise _account_update_error(exc) from exc
     return AccountUpdatePreviewRead(**preview)
@@ -38,6 +54,19 @@ def post_account_update_job(payload: AccountUpdateCreate, session: Session = Dep
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
             execution_adapter=build_profile_execution_adapter(),
         )
+        log_operation(
+            session,
+            account_id=payload.account_id,
+            operation_type="account_update",
+            operation_key="create_job",
+            status="completed",
+            severity="info",
+            source="account_update_api",
+            message="Account update job created",
+            job_id=job.id,
+            metadata={"job_state": job.job_state},
+        )
+        session.commit()
     except ValueError as exc:
         raise _account_update_error(exc) from exc
     if job.job_state == JobState.QUEUED:

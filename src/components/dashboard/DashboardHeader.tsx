@@ -15,6 +15,7 @@ import {
   validityStatusLabel,
   type AccountSafety,
 } from '@/lib/accountSafety'
+import { proxyStatusLabel, proxyStatusTone, type AccountProxy } from '@/lib/proxy'
 
 interface DashboardHeaderProps {
   displayName: string | null | undefined
@@ -25,6 +26,7 @@ interface DashboardHeaderProps {
   isRefreshingRuntime: boolean
   isCheckingValidity: boolean
   safety: AccountSafety | null
+  proxy: AccountProxy | null
   onBack: () => void
   onRefresh: () => void
   onCheckValidity: () => void
@@ -39,12 +41,14 @@ export function DashboardHeader({
   isRefreshingRuntime,
   isCheckingValidity,
   safety,
+  proxy,
   onBack,
   onRefresh,
   onCheckValidity,
 }: DashboardHeaderProps) {
   const statusLabel = safety ? healthStatusLabel(safety.health_status) : isExecutionUsable ? 'Подключено' : 'Требует внимания'
   const safetyStatusTone = safety ? safetyTone(safety.health_status) : isExecutionUsable ? 'green' : 'amber'
+  const proxyTone = proxyStatusTone(proxy?.status ?? safety?.proxy_status)
   const cooldownLabels = activeCooldownLabels(safety)
   const safetyDetails = cooldownLabels.length > 0 ? cooldownLabels.join(' · ') : capabilitySummaryLabel(safety)
   const statusClasses = {
@@ -96,6 +100,19 @@ export function DashboardHeader({
                 <span title={validityStatusLabel(safety.last_validity_check)}>{validityAgeLabel(safety.last_validity_check)}</span>
               </div>
             ) : null}
+            <span
+              className={`hidden rounded-lg px-2.5 py-1 text-[11px] font-medium lg:inline-flex ${
+                {
+                  green: 'bg-emerald-50 text-emerald-700',
+                  amber: 'bg-honey-50 text-honey-700',
+                  red: 'bg-red-50 text-red-600',
+                  gray: 'bg-gray-100 text-gray-500',
+                }[proxyTone]
+              }`}
+              title="Proxy используется для сетевой маршрутизации аккаунта и диагностики подключения."
+            >
+              {proxyStatusLabel(proxy?.status ?? safety?.proxy_status)}
+            </span>
             <button
               onClick={onCheckValidity}
               className="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700 sm:flex"

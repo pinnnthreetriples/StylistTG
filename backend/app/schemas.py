@@ -488,6 +488,17 @@ class AssetRead(BaseModel):
     kind: str
     source_path: str
     normalized_path: str
+    storage_backend: str | None = None
+    storage_bucket: str | None = None
+    source_key: str | None = None
+    normalized_key: str | None = None
+    source_size_bytes: int | None = None
+    normalized_size_bytes: int | None = None
+    source_content_type: str | None = None
+    normalized_content_type: str | None = None
+    source_checksum: str | None = None
+    normalized_checksum: str | None = None
+    storage_migrated_at: datetime | None = None
     original_filename: str | None = None
     content_hash: str
     mime: str

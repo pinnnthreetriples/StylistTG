@@ -61,14 +61,29 @@ Storage:
 ```powershell
 STORAGE_BACKEND=local
 STORAGE_LOCAL_ROOT=<private backend asset storage path>
+STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS=300
 TDLIB_STORAGE_BACKEND=local
 TDLIB_DATABASE_ROOT=<private TDLib database path>
 TDLIB_FILES_ROOT=<private TDLib files path>
 ```
 
-`STORAGE_BACKEND=s3` is reserved for the S3/R2/MinIO-compatible foundation and
-requires the `STORAGE_S3_*` settings. TDLib session storage remains separate from
-asset storage and must stay backend-only.
+For production object storage, use:
+
+```powershell
+STORAGE_BACKEND=s3
+STORAGE_S3_ENDPOINT_URL=<R2/MinIO/S3 endpoint>
+STORAGE_S3_BUCKET=<asset bucket>
+STORAGE_S3_REGION=<region or auto>
+STORAGE_S3_ACCESS_KEY_ID=<access key>
+STORAGE_S3_SECRET_ACCESS_KEY=<secret key>
+STORAGE_S3_FORCE_PATH_STYLE=true
+STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS=300
+STORAGE_S3_PUBLIC_BASE_URL=
+```
+
+TDLib session storage remains separate from asset storage and must stay
+backend-only. Do not create public or signed URLs for TDLib database/files
+directories.
 
 ## Deployment Order
 

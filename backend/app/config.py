@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     storage_s3_access_key_id: str | None = None
     storage_s3_secret_access_key: SecretStr | None = None
     storage_s3_force_path_style: bool = True
+    storage_s3_signed_url_expires_seconds: int = 300
+    storage_s3_public_base_url: str | None = None
     tdlib_storage_backend: str = "local"
     lock_stale_seconds: int = 60
     tdlib_api_id: int | None = None

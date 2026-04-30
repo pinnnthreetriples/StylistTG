@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -9,6 +10,7 @@ from app.db import get_session
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.schemas import AssetRead
 from app.models import AssetKind
+from app.services.asset_storage import asset_normalized_storage_key, get_asset_signed_url
 from app.services.assets import (
     get_asset,
     save_profile_audio_asset,
@@ -136,13 +138,41 @@ def get_asset_content(
 
     storage = _asset_storage()
     if not isinstance(storage, LocalStorageService):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content is not locally readable")
-    path = storage.resolve_path(asset.normalized_path)
+        media_type = _asset_media_type(asset)
+        try:
+            return StreamingResponse(
+                storage.open_read(asset_normalized_storage_key(asset)),
+                media_type=media_type,
+            )
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found") from exc
+    path = storage.resolve_path(asset_normalized_storage_key(asset))
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found")
 
-    media_type = "image/jpeg" if asset.kind == AssetKind.PROFILE_PHOTO else asset.mime
+    media_type = _asset_media_type(asset)
     return FileResponse(path, media_type=media_type)
+
+
+@router.get("/{asset_id}/signed-url")
+def get_asset_signed_url_endpoint(
+    asset_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    asset = get_asset(session, asset_id)
+    if asset is None or asset.workspace_id != auth.workspace_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset not found")
+    try:
+        return {
+            "asset_id": asset.id,
+            "url": get_asset_signed_url(asset, config=settings, storage=_asset_storage()),
+            "expires_seconds": settings.storage_s3_signed_url_expires_seconds,
+        }
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="signed URLs are not available") from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found") from exc
 
 
 async def _read_upload_limited(file: UploadFile, max_bytes: int) -> bytes:
@@ -185,3 +215,7 @@ def _asset_storage():
     if settings.storage_backend == "local":
         return LocalStorageService(STORAGE_ROOT, public_base_url=settings.storage_public_base_url)
     return build_storage_service(settings)
+
+
+def _asset_media_type(asset) -> str:
+    return "image/jpeg" if asset.kind == AssetKind.PROFILE_PHOTO else asset.mime

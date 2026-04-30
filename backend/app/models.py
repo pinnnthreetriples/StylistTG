@@ -733,6 +733,7 @@ class JobStepResult(Base):
 
 class Asset(Base):
     __tablename__ = "asset"
+    __table_args__ = (Index("ix_asset_workspace_storage", "workspace_id", "storage_backend"),)
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     workspace_id: Mapped[str] = mapped_column(
@@ -745,4 +746,15 @@ class Asset(Base):
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     mime: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_backend: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    storage_bucket: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    normalized_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    normalized_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    normalized_content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    source_checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    normalized_checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    storage_migrated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -49,6 +49,9 @@ class LocalStorageService:
     def open_read(self, key: str) -> BinaryIO:
         return self.resolve_path(key).open("rb")
 
+    def read_bytes(self, key: str) -> bytes:
+        return self.resolve_path(key).read_bytes()
+
     def exists(self, key: str) -> bool:
         return self.resolve_path(key).exists()
 

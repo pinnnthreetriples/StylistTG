@@ -46,7 +46,7 @@ def test_storage_config_validation_s3_requires_required_envs() -> None:
         Settings(storage_backend="s3")
 
 
-def test_s3_foundation_adapter_fails_clearly_when_used() -> None:
+def test_s3_adapter_builds_with_complete_config() -> None:
     config = Settings(
         storage_backend="s3",
         storage_s3_endpoint_url="https://example.invalid",
@@ -56,8 +56,7 @@ def test_s3_foundation_adapter_fails_clearly_when_used() -> None:
     )
     storage = build_storage_service(config)
 
-    with pytest.raises(RuntimeError, match="object-storage client is not wired"):
-        storage.save_bytes("assets/file.txt", b"data")
+    assert storage.backend_name == "s3"
 
 
 def test_s3_secret_is_masked_in_settings_repr() -> None:

@@ -18,7 +18,7 @@ The app currently focuses on:
 - RQ + Redis worker layer.
 - PostgreSQL as the source of truth.
 - React + TypeScript + shadcn/ui frontend.
-- Storage abstraction with local asset storage for development and S3/R2/MinIO-compatible foundation for future production object storage.
+- Storage abstraction with local asset storage for development and S3/R2/MinIO-compatible object storage for production assets.
 - One subprocess per queued job with a cold-start TDLib runtime.
 
 ## Current Scope
@@ -43,7 +43,7 @@ Still intentionally limited:
 - No WebSocket/SSE; frontend is polling-first.
 - Live Telegram calls should be treated carefully.
 - Story publishing/deletion depends on Telegram account limits and TDLib capabilities.
-- S3 or MinIO.
+- Automatic asset migration from local storage to S3/R2/MinIO.
 - Complex preset/platform layer.
 
 ## Local Development
@@ -164,19 +164,24 @@ $env:SUPABASE_AUTH_JWKS_CACHE_TTL_SECONDS="600"
 Neon is the PostgreSQL provider. Supabase is used only as the auth provider; FastAPI remains the only data access layer and enforces workspace isolation.
 `AUTH_MODE=local` is blocked in production/cloud mode unless `ALLOW_LOCAL_AUTH_IN_PROD=true` is explicitly set for controlled non-production testing.
 
-Storage foundation:
+Storage:
 
 ```powershell
 $env:STORAGE_BACKEND="local"
 $env:STORAGE_LOCAL_ROOT="backend/storage"
+$env:STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS="300"
 $env:TDLIB_STORAGE_BACKEND="local"
 $env:TDLIB_DATABASE_ROOT="backend/tdlib/database"
 $env:TDLIB_FILES_ROOT="backend/tdlib/files"
 ```
 
-Application assets and TDLib sessions are separate. Asset storage may later move
-to S3/R2/MinIO-compatible object storage; TDLib session folders remain
-backend-only and must never be exposed as public assets.
+For production object storage set `STORAGE_BACKEND=s3` plus the `STORAGE_S3_*`
+endpoint, bucket, region, access key, secret, path-style, and signed URL TTL
+settings. R2/MinIO are supported through a configurable endpoint URL.
+Application assets and TDLib sessions are separate: asset rows now keep
+storage metadata (`storage_backend`, source/normalized keys, sizes, content
+types, checksums), while TDLib session folders remain backend-only and must
+never be exposed as public assets or signed URLs.
 
 CI:
 

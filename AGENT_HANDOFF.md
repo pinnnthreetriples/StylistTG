@@ -38,10 +38,12 @@ Implemented or actively wired:
   - production guard blocking unsafe local auth in cloud/prod;
   - JWKS cache/rotation for Supabase JWT verification;
   - GitHub Actions CI for backend/frontend safe validation.
-- Storage abstraction foundation:
+- Storage abstraction:
   - application assets go through a storage service;
   - local adapter is active for dev/test;
-  - S3/R2/MinIO-compatible config/foundation exists but client wiring is future work;
+  - real S3/R2/MinIO-compatible adapter exists for application assets;
+  - asset rows keep storage metadata and legacy source/normalized paths for compatibility;
+  - signed URLs are only for non-sensitive application assets;
   - TDLib session storage remains separate, backend-only, and local.
 - SaaS backend foundation: runtime/direct DB URL split, local workspace bootstrap, AuthContext abstraction, identity/workspace/audit/limits models, and tenant-scoped core API access.
 - Polling-first job progress UI with grouped story mini-pipelines.
@@ -63,7 +65,7 @@ Still limited or intentionally cautious:
 - SaaS DB target: Neon Postgres. Runtime uses pooled DB URL; migrations/admin use direct DB URL.
 - SaaS auth target: Supabase Auth JWT. Supabase is not a data access layer.
 - Telegram engine: TDLib via `tdjson.dll`.
-- File storage: storage abstraction over local disk for application assets; S3/R2/MinIO-compatible foundation is documented for future production object storage.
+- File storage: storage abstraction over local disk or S3/R2/MinIO-compatible object storage for application assets; TDLib sessions are separate backend-only storage.
 - Execution model: API creates a DB job, RQ worker executes it, frontend polls status.
 
 ## Agent Startup Expectations

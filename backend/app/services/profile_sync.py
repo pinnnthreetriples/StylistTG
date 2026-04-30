@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import time
-from typing import Protocol
+from typing import Callable, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ from app.models import AccountProfileState, AccountStoryPost, utc_now
 from app.services.accounts import get_account
 from app.services.assets import save_profile_audio_asset, save_profile_photo_asset
 from app.services.profile_audio_state import clear_profile_audio_state, upsert_profile_audio_state
+from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
 class ProfileSyncAdapter(Protocol):
@@ -58,9 +59,11 @@ class TdlibProfileSyncAdapter:
         *,
         client_factory: RealTdJsonClientFactory,
         config: Settings = settings,
+        proxy_applier: Callable[[TdlibClient, str], bool] | None = None,
     ) -> None:
         self._client_factory = client_factory
         self._config = config
+        self._proxy_applier = proxy_applier
 
     def fetch_current_profile(self, account_id: str) -> dict:
         snapshot = self.fetch_profile_snapshot(account_id)
@@ -141,6 +144,7 @@ class TdlibProfileSyncAdapter:
             client.close()
 
     def _wait_until_ready(self, client: TdlibClient, account_id: str) -> None:
+        proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
             event = client.receive(self._config.tdlib_receive_timeout_seconds)
@@ -150,6 +154,9 @@ class TdlibProfileSyncAdapter:
             mapped = map_authorization_state(state)
             if mapped.status.value == "wait_tdlib_parameters":
                 client.send(_tdlib_parameters_query(self._config, account_id))
+                if self._proxy_applier is not None and not proxy_applied:
+                    self._proxy_applier(client, account_id)
+                    proxy_applied = True
                 continue
             if mapped.status.value == "ready":
                 return
@@ -164,6 +171,7 @@ def build_profile_sync_adapter(config: Settings = settings) -> ProfileSyncAdapte
         return TdlibProfileSyncAdapter(
             client_factory=RealTdJsonClientFactory(config.tdlib_shared_library_path),
             config=config,
+            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
         )
     except OSError as exc:
         return UnavailableProfileSyncAdapter(str(exc))

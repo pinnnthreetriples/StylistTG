@@ -72,7 +72,7 @@ def _normalize_story(index: int, story: dict[str, Any]) -> dict[str, Any]:
     if caption and len(caption) > 1024:
         raise ValueError("story caption is too long")
     privacy_preset = story.get("privacy_preset") or "contacts"
-    if privacy_preset not in {"contacts", "close_friends", "selected_users", "public"}:
+    if privacy_preset not in {"contacts", "close_friends", "public"}:
         raise ValueError("unsupported story privacy_preset")
     active_period_seconds = int(story.get("active_period_seconds") or 86400)
     if active_period_seconds != 86400:

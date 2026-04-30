@@ -139,3 +139,25 @@ def test_stories_are_rejected_until_feature_is_enabled() -> None:
         "prepare_story_media",
         "post_story_image",
     ]
+
+
+def test_account_update_rejects_unsupported_selected_users_story_privacy() -> None:
+    try:
+        normalize_account_update_desired_state(
+            {
+                "profile": {"name": "Stylist TG"},
+                "stories": [
+                    {
+                        "action": "post_image",
+                        "asset_id": "asset-story",
+                        "privacy_preset": "selected_users",
+                    }
+                ],
+            }
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert message == "unsupported story privacy_preset"

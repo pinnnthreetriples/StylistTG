@@ -59,12 +59,12 @@ function workerItem(preflight: LivePreflight): SettingsStatusItem {
       label: 'RQ worker',
       status: 'ok',
       message: 'Готов',
-      help: 'RQ worker подтверждён в Redis и может брать задачи из очереди profile_jobs.',
+      help: 'RQ worker подтверждён в Redis и может брать задачи из очередей profile_jobs и auth_jobs.',
     }
   }
 
   const startCommand =
-    'Запуск: cd backend; python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker'
+    'Запуск: cd backend; python -m rq.cli worker profile_jobs auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker'
 
   if (preflight.rq_worker_status === 'missing') {
     return {

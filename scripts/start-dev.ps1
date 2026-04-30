@@ -184,6 +184,7 @@ $backendLogErr = Join-Path $LogDir "backend_err_$Timestamp.log"
 # parent/child process tree, so killing only the socket owner can leave orphans.
 Stop-MatchingProcesses "uvicorn app\.main:app.*--port $BackendPort"
 Stop-MatchingProcesses "rq\.cli.*worker.*profile_jobs"
+Stop-MatchingProcesses "rq\.cli.*worker.*auth_jobs"
 Stop-MatchingProcesses "tdlib_job\.py"
 
 # Kill anything on the backend port first
@@ -244,7 +245,7 @@ else {
 $workerProc = $null
 if ($redisStarted) {
     Write-Host ""
-    Write-Host "  [3b]  RQ Worker (profile_jobs)..." -ForegroundColor DarkGray
+    Write-Host "  [3b]  RQ Worker (profile_jobs, auth_jobs)..." -ForegroundColor DarkGray
     $workerLogOut = Join-Path $LogDir "worker_$Timestamp.log"
     $workerLogErr = Join-Path $LogDir "worker_err_$Timestamp.log"
     try {
@@ -255,6 +256,15 @@ if ($redisStarted) {
             -RedirectStandardError $workerLogErr `
             -PassThru -WindowStyle Hidden
         Write-Host "        PID: $($workerProc.Id)" -ForegroundColor DarkGray
+        $authWorkerLogOut = Join-Path $LogDir "auth_worker_$Timestamp.log"
+        $authWorkerLogErr = Join-Path $LogDir "auth_worker_err_$Timestamp.log"
+        $authWorkerProc = Start-Process -FilePath "python" `
+            -ArgumentList "-m", "rq.cli", "worker", "auth_jobs", "--url", "$RedisUrl", "--worker-class", "rq.SimpleWorker" `
+            -WorkingDirectory $BackendDir `
+            -RedirectStandardOutput $authWorkerLogOut `
+            -RedirectStandardError $authWorkerLogErr `
+            -PassThru -WindowStyle Hidden
+        Write-Host "        Auth PID: $($authWorkerProc.Id)" -ForegroundColor DarkGray
         Start-Sleep -Milliseconds 800
         if ($workerProc.HasExited) {
             Write-Host "        WARN: Worker exited immediately" -ForegroundColor Yellow

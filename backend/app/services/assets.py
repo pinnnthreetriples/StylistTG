@@ -250,9 +250,7 @@ def _prepare_story_video(source_path: Path, normalized_dir: Path, config: Settin
     ffprobe = config.ffprobe_path or "ffprobe"
     ffmpeg = config.ffmpeg_path or "ffmpeg"
     if not _command_available(ffprobe) or not _command_available(ffmpeg):
-        normalized_path = normalized_dir / f"story_video{source_path.suffix or '.mp4'}"
-        normalized_path.write_bytes(source_path.read_bytes())
-        return normalized_path
+        raise ValueError("story video preparation requires ffprobe and ffmpeg")
 
     _validate_story_video_file_with_ffprobe(source_path, ffprobe)
     normalized_path = normalized_dir / "story_video.mp4"

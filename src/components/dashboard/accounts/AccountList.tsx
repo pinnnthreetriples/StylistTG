@@ -29,7 +29,7 @@ import {
   useProxySummaryQuery,
 } from '@/hooks/queries/useAccountsQueries'
 import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
-import { accountBatchSafetyPreviewQueryOptions } from '@/lib/queries'
+import { accountBatchSafetyPreviewQueryOptions, settingsBundleQueryOptions } from '@/lib/queries'
 import {
   compactSafetyReasons,
   activeCooldownLabels,
@@ -68,6 +68,35 @@ const advancedFilterLabels: Record<AccountAdvancedFilter, string> = {
 
 const EMPTY_ACCOUNTS: AccountListItem[] = []
 
+function headerRuntimeStatus(preflight: { overall_status: string; rq_worker_status?: string | null } | null | undefined) {
+  if (!preflight) {
+    return {
+      label: 'Проверяем готовность',
+      className: 'bg-gray-50 text-gray-600',
+      dotClassName: 'bg-gray-400',
+    }
+  }
+  if (preflight.overall_status === 'ok' && preflight.rq_worker_status === 'ready') {
+    return {
+      label: 'Live-режим готов',
+      className: 'bg-emerald-50 text-emerald-700',
+      dotClassName: 'bg-emerald-500',
+    }
+  }
+  if (preflight.rq_worker_status === 'missing') {
+    return {
+      label: 'Worker не запущен',
+      className: 'bg-red-50 text-red-700',
+      dotClassName: 'bg-red-500',
+    }
+  }
+  return {
+    label: 'Live-режим ограничен',
+    className: 'bg-amber-50 text-amber-700',
+    dotClassName: 'bg-amber-500',
+  }
+}
+
 export function AccountList({
   onAddBatch,
   onSelectAccount,
@@ -95,6 +124,7 @@ export function AccountList({
     [proxySummaryQuery.data],
   )
   const batchSafetyQuery = useQuery(accountBatchSafetyPreviewQueryOptions(accounts.map((account) => account.account_id), 'batch_operation'))
+  const settingsBundleQuery = useQuery(settingsBundleQueryOptions())
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const visibleAccountsError =
     accountsError ?? (accountsQuery.isError && !accountsQuery.data ? 'Не удалось загрузить список аккаунтов' : null)
@@ -188,9 +218,9 @@ export function AccountList({
             </nav>
 
             <div className="ml-auto flex items-center gap-2.5">
-              <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 sm:flex">
-                <span className="size-1.5 animate-pulse-dot rounded-full bg-emerald-500" />
-                <span className="text-[11px] font-medium text-emerald-700">TDLib подключен</span>
+              <span className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 sm:flex ${headerRuntimeStatus(settingsBundleQuery.data?.preflight).className}`}>
+                <span className={`size-1.5 animate-pulse-dot rounded-full ${headerRuntimeStatus(settingsBundleQuery.data?.preflight).dotClassName}`} />
+                <span className="text-[11px] font-medium">{headerRuntimeStatus(settingsBundleQuery.data?.preflight).label}</span>
               </span>
               <button
                 aria-label="Добавить аккаунты"

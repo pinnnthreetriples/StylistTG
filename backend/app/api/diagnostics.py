@@ -4,7 +4,7 @@ from redis.exceptions import RedisError
 from rq import Worker
 
 from app.config import settings
-from app.job_queue.rq import QUEUE_NAME
+from app.job_queue.rq import AUTH_QUEUE_NAME, PROFILE_QUEUE_NAME
 from app.schemas import DiagnosticsRead, LivePreflightRead
 from app.services.live_preflight import LivePreflightService
 from app.services.runtime_diagnostics import build_runtime_diagnostics
@@ -39,7 +39,11 @@ def _rq_worker_status(redis: Redis) -> str:
         workers = Worker.all(connection=redis)
     except RedisError:
         return "unknown"
+    active_queue_names: set[str] = set()
     for worker in workers:
-        if QUEUE_NAME in worker.queue_names():
-            return "ready"
+        active_queue_names.update(worker.queue_names())
+    if {PROFILE_QUEUE_NAME, AUTH_QUEUE_NAME}.issubset(active_queue_names):
+        return "ready"
+    if active_queue_names:
+        return "missing"
     return "missing"

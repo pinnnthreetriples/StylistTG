@@ -1,6 +1,6 @@
 param(
     [string]$RedisUrl = "redis://127.0.0.1:6379/0",
-    [string]$QueueName = "profile_jobs",
+    [string]$QueueName = "profile_jobs auth_jobs",
     [string]$ArtifactsRoot = "artifacts/live-validation",
     [string]$LogPath
 )
@@ -20,7 +20,8 @@ if (-not $LogPath) {
 
 Push-Location $backendRoot
 try {
-    python -m rq.cli worker $QueueName --url $RedisUrl --worker-class rq.SimpleWorker 2>&1 | Tee-Object -FilePath $LogPath
+    $queues = $QueueName -split "\s+"
+    python -m rq.cli worker @queues --url $RedisUrl --worker-class rq.SimpleWorker 2>&1 | Tee-Object -FilePath $LogPath
 }
 finally {
     Pop-Location

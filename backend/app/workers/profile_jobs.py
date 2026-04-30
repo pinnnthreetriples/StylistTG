@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import tempfile
@@ -78,7 +79,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     process = subprocess.Popen(
         [sys.executable, str(script_path), job_id, "--plan-file", plan_path],
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         text=True,
     )
     log_event(
@@ -94,6 +95,8 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         assert process.stdout is not None
         deadline = time.monotonic() + settings.profile_job_timeout_seconds
         stdout_lines: queue.Queue[str | None] = queue.Queue()
+        stderr_lines: queue.Queue[str | None] = queue.Queue()
+        stderr_buffer: list[str] = []
 
         def read_stdout() -> None:
             assert process.stdout is not None
@@ -101,11 +104,21 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 stdout_lines.put(output_line)
             stdout_lines.put(None)
 
+        def read_stderr() -> None:
+            if getattr(process, "stderr", None) is None:
+                stderr_lines.put(None)
+                return
+            for output_line in process.stderr:
+                stderr_lines.put(output_line)
+            stderr_lines.put(None)
+
         threading.Thread(target=read_stdout, daemon=True).start()
+        threading.Thread(target=read_stderr, daemon=True).start()
         while True:
+            _drain_stderr(stderr_lines, stderr_buffer)
             remaining_seconds = deadline - time.monotonic()
             if remaining_seconds <= 0:
-                _mark_child_process_timeout(session, job, process, owner, lock_epoch)
+                _mark_child_process_timeout(session, job, process, owner, lock_epoch, stderr_summary=_stderr_summary(stderr_buffer))
                 return 1
             try:
                 line = stdout_lines.get(timeout=min(0.2, remaining_seconds))
@@ -184,8 +197,10 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         try:
             return_code = process.wait(timeout=max(0, deadline - time.monotonic()))
         except subprocess.TimeoutExpired:
-            _mark_child_process_timeout(session, job, process, owner, lock_epoch)
+            _mark_child_process_timeout(session, job, process, owner, lock_epoch, stderr_summary=_stderr_summary(stderr_buffer))
             return 1
+        _drain_stderr(stderr_lines, stderr_buffer)
+        stderr_summary = _stderr_summary(stderr_buffer)
         session.refresh(job)
         if return_code == 0 and not runtime_failed:
             state = _classify_terminal_job_outcome(job)
@@ -240,6 +255,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 job_id=job_id,
                 lock_epoch=lock_epoch,
                 runtime_state=JobState.MANUAL_INTERVENTION_NEEDED,
+                child_stderr=stderr_summary,
             )
         elif hard_stop_error_code:
             _mark_account_hard_stopped(session, job.account, hard_stop_error_code)
@@ -258,6 +274,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 lock_epoch=lock_epoch,
                 runtime_state=JobState.MANUAL_INTERVENTION_NEEDED,
                 recovery_marker=f"tdlib_hard_stop:{hard_stop_error_code}",
+                child_stderr=stderr_summary,
             )
         elif job.workflow_type == "account_update":
             state = classify_account_update_job_outcome(
@@ -282,6 +299,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 job_id=job_id,
                 lock_epoch=lock_epoch,
                 runtime_state=state,
+                child_stderr=stderr_summary,
             )
             _sync_profile_state_after_job(session, job.account_id, state)
         else:
@@ -300,6 +318,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 job_id=job_id,
                 lock_epoch=lock_epoch,
                 runtime_state=JobState.FAILED,
+                child_stderr=stderr_summary,
             )
         return return_code
     finally:
@@ -313,6 +332,8 @@ def _mark_child_process_timeout(
     process: subprocess.Popen,
     owner: str,
     lock_epoch: int,
+    *,
+    stderr_summary: str | None = None,
 ) -> None:
     process.terminate()
     try:
@@ -337,7 +358,29 @@ def _mark_child_process_timeout(
         account_id=job.account_id,
         job_id=job.id,
         lock_epoch=lock_epoch,
+        child_stderr=stderr_summary,
     )
+
+
+def _drain_stderr(stderr_lines: queue.Queue[str | None], stderr_buffer: list[str]) -> None:
+    while True:
+        try:
+            line = stderr_lines.get_nowait()
+        except queue.Empty:
+            return
+        if line is None:
+            return
+        stderr_buffer.append(line)
+        while sum(len(item) for item in stderr_buffer) > 4096 and stderr_buffer:
+            stderr_buffer.pop(0)
+
+
+def _stderr_summary(stderr_buffer: list[str]) -> str | None:
+    if not stderr_buffer:
+        return None
+    text = "".join(stderr_buffer)[-4096:]
+    text = re.sub(r"(?i)(password|token|api_hash|secret)=\\S+", r"\1=***", text)
+    return text.strip() or None
 
 
 def run_profile_job(job_id: str) -> int:

@@ -8,11 +8,12 @@ import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState
+from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
 class TdlibAuthStatus(StrEnum):
@@ -135,9 +136,11 @@ class TdlibAuthAdapter:
         *,
         client_factory: TdlibClientFactory,
         config: Settings = settings,
+        proxy_applier: Callable[[TdlibClient, str], bool] | None = None,
     ) -> None:
         self._client_factory = client_factory
         self._config = config
+        self._proxy_applier = proxy_applier
 
     def start_otp(self, account_id: str, phone_number: str) -> TdlibAuthResult:
         return self._run_auth_operation(
@@ -190,6 +193,7 @@ class TdlibAuthAdapter:
             files_directory=str(self._config.tdlib_files_root / account_id),
         )
         recreated_after_closed = False
+        proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         try:
             while time.monotonic() < deadline:
@@ -205,6 +209,9 @@ class TdlibAuthAdapter:
                 mapped = map_authorization_state(auth_state)
                 if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
                     client.send(_tdlib_parameters_query(self._config, account_id))
+                    if self._proxy_applier is not None and not proxy_applied:
+                        self._proxy_applier(client, account_id)
+                        proxy_applied = True
                     continue
                 if mapped.status == TdlibAuthStatus.WAIT_PHONE_NUMBER and phone_number:
                     client.send(
@@ -405,6 +412,7 @@ def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
         return TdlibAuthAdapter(
             client_factory=UnavailableTdlibClientFactory("TDLib credentials are not configured"),
             config=config,
+            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
         )
     try:
         client_factory: TdlibClientFactory = RealTdJsonClientFactory(
@@ -415,6 +423,7 @@ def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
     return TdlibAuthAdapter(
         client_factory=client_factory,
         config=config,
+        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
     )
 
 

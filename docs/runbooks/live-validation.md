@@ -28,6 +28,8 @@ The account update workflow can include:
 - `TDLIB_API_ID`.
 - `TDLIB_API_HASH`.
 - `PROXY_CREDENTIALS_ENCRYPTION_KEY` if testing proxy credentials with passwords.
+- Optional `OPERATOR_API_TOKEN` if local mutating API calls should require `X-Operator-Token`.
+- `ENFORCE_LOCALHOST_ONLY=true` is the safe default for the local operator API.
 - One Telegram account that can receive OTP.
 - Test media files only; avoid valuable/private media during validation.
 
@@ -131,7 +133,7 @@ If jobs stay queued, verify:
 
 - Redis is reachable;
 - worker is running;
-- worker listens to `profile_jobs`;
+- worker listens to `profile_jobs` and `auth_jobs`;
 - API and worker use the same `REDIS_URL`.
 
 ## Live Preflight

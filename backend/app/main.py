@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
@@ -83,6 +84,24 @@ app.include_router(story_posts_router)
 
 
 @app.middleware("http")
+async def operator_guard_middleware(request: Request, call_next):
+    if request.url.path in {"/health", "/ready"}:
+        return await call_next(request)
+    if settings.enforce_localhost_only and not _is_local_client(request):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"detail": "operator API is available only from localhost"},
+        )
+    if settings.operator_api_token and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        if request.headers.get("X-Operator-Token") != settings.operator_api_token:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "operator token is required"},
+            )
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
     request_id = generate_request_id()
     request.state.request_id = request_id
@@ -103,6 +122,11 @@ async def request_logging_middleware(request: Request, call_next):
 
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+def _is_local_client(request: Request) -> bool:
+    host = request.client.host if request.client else ""
+    return host in {"127.0.0.1", "::1", "localhost", "testclient"}
 
 
 @app.get("/health")

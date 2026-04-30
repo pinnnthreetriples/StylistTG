@@ -14,12 +14,19 @@ from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.account_update_jobs import run_account_update_job
 from app.workers.profile_jobs import run_profile_job
 
-QUEUE_NAME = "profile_jobs"
+PROFILE_QUEUE_NAME = "profile_jobs"
+AUTH_QUEUE_NAME = "auth_jobs"
+QUEUE_NAME = PROFILE_QUEUE_NAME
 
 
 def get_profile_queue() -> Queue:
     connection = Redis.from_url(settings.redis_url)
-    return Queue(QUEUE_NAME, connection=connection)
+    return Queue(PROFILE_QUEUE_NAME, connection=connection)
+
+
+def get_auth_queue() -> Queue:
+    connection = Redis.from_url(settings.redis_url)
+    return Queue(AUTH_QUEUE_NAME, connection=connection)
 
 
 def enqueue_profile_job(job_id: str) -> bool:
@@ -41,7 +48,7 @@ def enqueue_account_update_job(job_id: str) -> bool:
 
 
 def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds: int = 0) -> bool:
-    queue = get_profile_queue()
+    queue = get_auth_queue()
     job_id = f"auth-start-{item_id}-attempt-{attempt_count}"
     try:
         if delay_seconds > 0:
@@ -63,7 +70,7 @@ def remove_job_from_queue(job_id: str) -> bool:
     try:
         queue.remove(job_id)
         for registry_cls in (DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry):
-            registry = registry_cls(QUEUE_NAME, connection=queue.connection)
+            registry = registry_cls(PROFILE_QUEUE_NAME, connection=queue.connection)
             if job_id in registry.get_job_ids():
                 registry.remove(job_id, delete_job=True)
         try:

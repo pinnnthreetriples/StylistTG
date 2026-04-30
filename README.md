@@ -92,7 +92,7 @@ Worker:
 
 ```powershell
 cd backend
-python -m rq worker profile_jobs --url redis://localhost:6379/0
+python -m rq worker profile_jobs auth_jobs --url redis://localhost:6379/0
 ```
 
 Diagnostics:

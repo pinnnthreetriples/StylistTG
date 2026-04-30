@@ -67,9 +67,10 @@ def test_story_capabilities_reports_disabled_stories(db_session) -> None:
     assert "stories are disabled" in payload["warnings"]
 
 
-def test_story_capabilities_enable_photo_and_video_for_tdlib_live_phase(db_session) -> None:
+def test_story_capabilities_enable_photo_and_video_for_tdlib_live_phase(db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     db_session.commit()
+    monkeypatch.setattr("app.services.story_capabilities._binary_available", lambda configured_path, fallback_name: True)
 
     payload = build_story_capabilities(
         db_session,
@@ -81,3 +82,22 @@ def test_story_capabilities_enable_photo_and_video_for_tdlib_live_phase(db_sessi
     assert payload["can_prepare_image"] is True
     assert payload["can_prepare_video"] is True
     assert "story video TDLib execution is not enabled" not in payload["warnings"]
+
+
+def test_story_capabilities_block_video_preparation_when_media_tools_missing(db_session) -> None:
+    account = create_account(db_session, external_ref="primary")
+    db_session.commit()
+
+    payload = build_story_capabilities(
+        db_session,
+        account.id,
+        config=Settings(
+            profile_execution_adapter="tdlib",
+            stories_tdlib_live_enabled=True,
+            ffprobe_path="missing-ffprobe-for-test",
+            ffmpeg_path="missing-ffmpeg-for-test",
+        ),
+    )
+
+    assert payload["can_prepare_video"] is False
+    assert "story video preparation is limited until ffprobe and ffmpeg are available" in payload["warnings"]

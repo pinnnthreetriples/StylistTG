@@ -21,7 +21,7 @@ def build_story_capabilities(session: Session, account_id: str, *, config: Setti
         "stories_enabled": config.stories_enabled,
         "tdlib_live_publishing_enabled": live_enabled,
         "can_prepare_image": True,
-        "can_prepare_video": True,
+        "can_prepare_video": ffprobe_available and ffmpeg_available,
         "allowed_active_period_seconds": [86400],
         "allowed_privacy_presets": ["contacts", "close_friends", "public"],
         "max_caption_length": 1024,

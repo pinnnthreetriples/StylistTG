@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 import time
-from typing import Any
+from typing import Any, Callable
 
 from app.adapters.tdlib_auth import (
     RealTdJsonClientFactory,
@@ -17,6 +17,7 @@ from app.adapters.tdlib_auth import (
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState, JobState, StepStatus
+from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
 def split_name(full_name: str | None) -> tuple[str, str]:
@@ -118,13 +119,16 @@ class TdlibProfileExecutionAdapter:
         *,
         client_factory: TdlibClientFactory,
         config: Settings = settings,
+        proxy_applier: Callable[[TdlibClient, str], bool] | None = None,
     ) -> None:
         self._client_factory = client_factory
         self._config = config
+        self._proxy_applier = proxy_applier
 
     def inspect_runtime(self, account_id: str) -> dict[str, Any]:
         client = self._client_factory.create(account_id)
         try:
+            proxy_applied = False
             deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
             while time.monotonic() < deadline:
                 event = client.receive(self._config.tdlib_receive_timeout_seconds)
@@ -134,6 +138,9 @@ class TdlibProfileExecutionAdapter:
                 mapped = map_authorization_state(state)
                 if mapped.status.value == "wait_tdlib_parameters":
                     client.send(_tdlib_parameters_query(self._config, account_id))
+                    if self._proxy_applier is not None and not proxy_applied:
+                        self._proxy_applier(client, account_id)
+                        proxy_applied = True
                     continue
                 if mapped.status.value == "ready":
                     return {
@@ -339,6 +346,7 @@ class TdlibProfileExecutionAdapter:
             client.close()
 
     def _wait_until_ready(self, client: TdlibClient, account_id: str) -> None:
+        proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
             event = client.receive(self._config.tdlib_receive_timeout_seconds)
@@ -348,6 +356,9 @@ class TdlibProfileExecutionAdapter:
             mapped = map_authorization_state(state)
             if mapped.status.value == "wait_tdlib_parameters":
                 client.send(_tdlib_parameters_query(self._config, account_id))
+                if self._proxy_applier is not None and not proxy_applied:
+                    self._proxy_applier(client, account_id)
+                    proxy_applied = True
                 continue
             if mapped.status.value == "ready":
                 return
@@ -361,6 +372,7 @@ def build_profile_execution_adapter(config: Settings = settings):
             return TdlibProfileExecutionAdapter(
                 client_factory=RealTdJsonClientFactory(config.tdlib_shared_library_path),
                 config=config,
+                proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
             )
         except OSError as exc:
             return UnavailableProfileExecutionAdapter(str(exc))

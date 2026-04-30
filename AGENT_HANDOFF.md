@@ -30,7 +30,7 @@ Implemented or actively wired:
 - Deleting known active story posts through the app.
 - Runtime diagnostics, live readiness, settings, cooldown policy.
 - Account Safety & Readiness Engine: health/risk/capabilities, read-only validity checks, operation cooldowns, safety overrides.
-- Per-account proxy assignment/status and technical proxy connectivity checks.
+- Per-account proxy assignment/status, technical proxy connectivity checks, and TDLib read-only proxy verification in TDLib live mode.
 - Operation logs: account-level recent history, debug history, and global `/operations` journal.
 - Polling-first job progress UI with grouped story mini-pipelines.
 
@@ -122,7 +122,7 @@ Manual worker:
 
 ```powershell
 cd backend
-python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m rq.cli worker profile_jobs auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 ```
 
 Redis note:
@@ -192,6 +192,7 @@ Core services:
 - `backend/app/services/operation_logs.py`
 - `backend/app/services/proxy_accounts.py`
 - `backend/app/services/proxy_checks.py`
+- `backend/app/services/tdlib_proxy.py`
 
 Adapters/workers:
 
@@ -268,6 +269,8 @@ Important proxy rules:
 
 - Proxy is network routing/diagnostics, not anti-ban wording.
 - Proxy check is a technical connectivity check and does not perform Telegram profile writes.
+- Saved per-account proxy settings are applied to TDLib auth/runtime/profile/sync/read-only validity paths before Telegram queries.
+- In TDLib live mode, `POST /api/accounts/{account_id}/proxy/check` first performs TCP diagnostics and then a read-only TDLib validity check through the saved proxy.
 - Proxy passwords require `PROXY_CREDENTIALS_ENCRYPTION_KEY` in local `.env` / `backend/.env`.
 - `.env` and `backend/.env` are ignored and must never be committed or printed.
 - `cryptography` is a backend dependency for Fernet encryption.

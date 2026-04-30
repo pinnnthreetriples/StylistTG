@@ -59,6 +59,14 @@ def test_malformed_child_event_marks_job_failed(db_session, monkeypatch) -> None
     assert job.failure_reason == "malformed_child_event"
 
 
+def test_child_stderr_summary_is_bounded_and_sanitized() -> None:
+    summary = profile_jobs._stderr_summary(["line\n", "password=secret-token\n", "x" * 5000])
+
+    assert summary is not None
+    assert len(summary) <= 4096
+    assert "password=secret-token" not in summary
+
+
 def test_child_timeout_marks_job_failed(db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="+15550102000")
     account.account_state = "execution_usable"

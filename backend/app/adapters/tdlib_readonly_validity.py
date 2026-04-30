@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Callable
 
 from app.adapters.tdlib_auth import (
     RealTdJsonClientFactory,
     TdlibAuthStatus,
+    TdlibClient,
     TdlibClientFactory,
     UnavailableTdlibClientFactory,
     _extract_authorization_state,
@@ -14,6 +15,7 @@ from app.adapters.tdlib_auth import (
     map_tdlib_error,
 )
 from app.config import Settings, settings
+from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
 class TdlibReadOnlyValidityAdapter:
@@ -24,9 +26,11 @@ class TdlibReadOnlyValidityAdapter:
         *,
         client_factory: TdlibClientFactory,
         config: Settings = settings,
+        proxy_applier: Callable[[TdlibClient, str], bool] | None = None,
     ) -> None:
         self._client_factory = client_factory
         self._config = config
+        self._proxy_applier = proxy_applier
 
     def check_account(self, account_id: str) -> dict[str, Any]:
         if not self._config.tdlib_api_id or not self._config.tdlib_api_hash:
@@ -38,6 +42,7 @@ class TdlibReadOnlyValidityAdapter:
             }
         client = self._client_factory.create(account_id)
         try:
+            proxy_applied = False
             deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
             while time.monotonic() < deadline:
                 event = client.receive(self._config.tdlib_receive_timeout_seconds)
@@ -56,6 +61,9 @@ class TdlibReadOnlyValidityAdapter:
                 mapped = map_authorization_state(state)
                 if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
                     client.send(_tdlib_parameters_query(self._config, account_id))
+                    if self._proxy_applier is not None and not proxy_applied:
+                        self._proxy_applier(client, account_id)
+                        proxy_applied = True
                     continue
                 if mapped.status == TdlibAuthStatus.READY:
                     me = client.send_query({"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds)
@@ -116,4 +124,5 @@ def build_tdlib_readonly_validity_adapter(config: Settings = settings) -> TdlibR
     return TdlibReadOnlyValidityAdapter(
         client_factory=factory,
         config=config,
+        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
     )

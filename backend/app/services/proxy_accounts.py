@@ -116,6 +116,20 @@ def proxy_to_dict(row: AccountProxy) -> dict[str, Any]:
     }
 
 
+def decrypt_proxy_password(row: AccountProxy, *, config: Settings = settings) -> str | None:
+    if not row.password_encrypted:
+        return None
+    if not config.proxy_credentials_encryption_key:
+        raise ValueError("proxy_credentials_key_required")
+    try:
+        from cryptography.fernet import Fernet
+    except ModuleNotFoundError as exc:
+        raise ValueError("proxy_credentials_crypto_unavailable") from exc
+    return Fernet(config.proxy_credentials_encryption_key.encode("utf-8")).decrypt(
+        row.password_encrypted.encode("utf-8")
+    ).decode("utf-8")
+
+
 def _validate_proxy(*, proxy_type: str, host: str, port: int) -> None:
     if proxy_type not in SUPPORTED_PROXY_TYPES:
         raise ValueError("proxy_unsupported")

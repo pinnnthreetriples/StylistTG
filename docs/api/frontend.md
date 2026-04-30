@@ -15,6 +15,8 @@ There is no WebSocket/SSE contract.
 
 Frontend route/query architecture is documented in `docs/frontend-architecture.md`.
 
+Mutating local operator endpoints may require `X-Operator-Token` when `OPERATOR_API_TOKEN` is configured. The backend defaults to localhost-only access for operator safety.
+
 Canonical frontend routes are:
 
 - `/`
@@ -150,7 +152,7 @@ Removes proxy assignment for the account.
 
 ### POST /api/accounts/{account_id}/proxy/check
 
-Runs a technical proxy connectivity check and updates proxy status. This is network diagnostics only and does not perform Telegram account writes.
+Runs a technical proxy connectivity check and updates proxy status. In TDLib live mode with configured TDLib credentials, the backend also performs a read-only TDLib validity check through the saved proxy. This is diagnostics only and does not perform Telegram account writes.
 
 ### GET /api/accounts/{account_id}/operation-logs
 

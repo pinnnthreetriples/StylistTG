@@ -1,5 +1,7 @@
 # StylistTG
 
+[![CI](https://github.com/pinnnthreetriples/StylistTG/actions/workflows/ci.yml/badge.svg)](https://github.com/pinnnthreetriples/StylistTG/actions/workflows/ci.yml)
+
 Local Telegram account/profile automation tool powered by TDLib.
 
 The app currently focuses on:
@@ -140,22 +142,33 @@ SaaS database/auth foundation:
 
 ```powershell
 # Local keeps using Docker/Postgres DATABASE_URL.
+$env:APP_ENV="local"
 $env:DB_CONNECTION_MODE="local"
 $env:DATABASE_URL="postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg"
+$env:AUTH_MODE="local"
 
 # Neon runtime should use pooled connection string.
+$env:APP_ENV="production"
 $env:DB_CONNECTION_MODE="neon"
 $env:DATABASE_RUNTIME_URL="<neon pooled connection string>"
 $env:DATABASE_DIRECT_URL="<neon direct/admin connection string>"
 
 # Auth remains local for development; production uses Supabase JWT verification.
-$env:AUTH_MODE="local"
+$env:AUTH_MODE="supabase_jwt"
 $env:SUPABASE_AUTH_JWKS_URL="<supabase jwks url>"
 $env:SUPABASE_AUTH_ISSUER="<supabase issuer>"
 $env:SUPABASE_AUTH_AUDIENCE="<supabase audience>"
+$env:SUPABASE_AUTH_JWKS_CACHE_TTL_SECONDS="600"
 ```
 
 Neon is the PostgreSQL provider. Supabase is used only as the auth provider; FastAPI remains the only data access layer and enforces workspace isolation.
+`AUTH_MODE=local` is blocked in production/cloud mode unless `ALLOW_LOCAL_AUTH_IN_PROD=true` is explicitly set for controlled non-production testing.
+
+CI:
+
+- `.github/workflows/ci.yml` runs backend checks against real PostgreSQL and Redis services.
+- Backend CI runs Alembic heads, upgrade head, migration smoke, ruff, pytest, and compileall.
+- Frontend CI runs `npm ci`, lint, tests, and build.
 
 Live smoke helper:
 

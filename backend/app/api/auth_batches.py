@@ -133,7 +133,7 @@ def post_start_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        batch = start_batch(session, batch_id)
+        batch = start_batch(session, batch_id, workspace_id=auth.workspace_id)
         _dispatch_or_raise_queue_unavailable(session, batch)
         return _snapshot(batch)
     except InvalidAuthBatchTransition as exc:
@@ -148,7 +148,7 @@ def post_pause_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(pause_batch(session, batch_id))
+        return _snapshot(pause_batch(session, batch_id, workspace_id=auth.workspace_id))
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -161,7 +161,7 @@ def post_resume_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        batch = resume_batch(session, batch_id)
+        batch = resume_batch(session, batch_id, workspace_id=auth.workspace_id)
         _dispatch_or_raise_queue_unavailable(session, batch)
         return _snapshot(batch)
     except InvalidAuthBatchTransition as exc:
@@ -176,7 +176,7 @@ def post_cancel_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(cancel_batch(session, batch_id))
+        return _snapshot(cancel_batch(session, batch_id, workspace_id=auth.workspace_id))
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 

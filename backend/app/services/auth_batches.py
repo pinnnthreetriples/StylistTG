@@ -235,32 +235,32 @@ def list_batches(session: Session, *, limit: int = 50, workspace_id: str = DEFAU
     )
 
 
-def start_batch(session: Session, batch_id: str) -> AuthBatch:
-    batch = _require_batch(session, batch_id)
+def start_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+    batch = _require_batch(session, batch_id, workspace_id=workspace_id)
     transition_batch(batch, AuthBatchStatus.RUNNING, actor="user")
     session.commit()
     session.refresh(batch)
     return batch
 
 
-def pause_batch(session: Session, batch_id: str) -> AuthBatch:
-    batch = _require_batch(session, batch_id)
+def pause_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+    batch = _require_batch(session, batch_id, workspace_id=workspace_id)
     transition_batch(batch, AuthBatchStatus.PAUSED, actor="user")
     session.commit()
     session.refresh(batch)
     return batch
 
 
-def resume_batch(session: Session, batch_id: str) -> AuthBatch:
-    batch = _require_batch(session, batch_id)
+def resume_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+    batch = _require_batch(session, batch_id, workspace_id=workspace_id)
     transition_batch(batch, AuthBatchStatus.RUNNING, actor="user")
     session.commit()
     session.refresh(batch)
     return batch
 
 
-def cancel_batch(session: Session, batch_id: str) -> AuthBatch:
-    batch = _require_batch(session, batch_id)
+def cancel_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+    batch = _require_batch(session, batch_id, workspace_id=workspace_id)
     for item in batch.items:
         if item.status not in TERMINAL_AUTH_BATCH_ITEM_STATUSES:
             transition_item(item, AuthBatchItemStatus.CANCELLED, actor="user")
@@ -328,8 +328,8 @@ def get_idempotency_result(session: Session, *, key: str, operation: str) -> dic
     return row.response_json
 
 
-def _require_batch(session: Session, batch_id: str) -> AuthBatch:
-    batch = session.get(AuthBatch, batch_id)
+def _require_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+    batch = get_batch(session, batch_id, workspace_id=workspace_id)
     if batch is None:
         raise ValueError("batch not found")
     return batch

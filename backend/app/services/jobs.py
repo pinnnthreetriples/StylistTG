@@ -137,18 +137,26 @@ def normalize_profile_payload(session: Session, payload: dict) -> dict:
     return normalized_payload
 
 
-def list_account_jobs(session: Session, account_id: str, *, limit: int = 10) -> list[Job]:
+def list_account_jobs(
+    session: Session,
+    account_id: str,
+    *,
+    limit: int = 10,
+    workspace_id: str | None = None,
+) -> list[Job]:
     statement = (
         select(Job)
         .where(Job.account_id == account_id)
         .order_by(Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
         .limit(limit)
     )
+    if workspace_id is not None:
+        statement = statement.where(Job.workspace_id == workspace_id)
     return list(session.execute(statement).scalars().all())
 
 
-def get_latest_account_job(session: Session, account_id: str) -> Job | None:
-    jobs = list_account_jobs(session, account_id, limit=1)
+def get_latest_account_job(session: Session, account_id: str, *, workspace_id: str | None = None) -> Job | None:
+    jobs = list_account_jobs(session, account_id, limit=1, workspace_id=workspace_id)
     return jobs[0] if jobs else None
 
 

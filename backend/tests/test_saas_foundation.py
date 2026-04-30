@@ -24,7 +24,7 @@ from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.database import create_sqlite_test_session_factory
 from app.services.jobs import create_profile_job
 from app.services.limits import WorkspaceLimitError, check_workspace_limit, increment_usage
-from app.services.supabase_jwt import SupabaseJwtVerifier
+from app.services.supabase_jwt import SupabaseJwtVerifier, clear_jwks_cache
 from app.services.workspaces import ensure_default_workspace
 
 from conftest import FakeExecutionUsableAdapter, override_app_session
@@ -39,6 +39,45 @@ def test_db_config_prefers_runtime_and_direct_urls() -> None:
 
     assert config.runtime_database_url == "postgresql+psycopg://pooled"
     assert config.migration_database_url == "postgresql+psycopg://direct"
+
+
+def test_local_auth_allowed_in_local_and_development_modes() -> None:
+    assert Settings(app_env="local", auth_mode="local").auth_mode == "local"
+    assert Settings(app_env="development", auth_mode="local").auth_mode == "local"
+
+
+def test_local_auth_blocked_in_production() -> None:
+    try:
+        Settings(app_env="production", auth_mode="local")
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert "AUTH_MODE=local is not allowed" in message
+
+
+def test_local_auth_blocked_with_neon_connection_mode() -> None:
+    try:
+        Settings(app_env="development", db_connection_mode="neon", auth_mode="local")
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert "AUTH_MODE=local is not allowed" in message
+
+
+def test_supabase_auth_allowed_in_production() -> None:
+    config = Settings(app_env="production", auth_mode="supabase_jwt")
+
+    assert config.auth_mode == "supabase_jwt"
+
+
+def test_local_auth_override_allows_controlled_production_testing() -> None:
+    config = Settings(app_env="production", auth_mode="local", allow_local_auth_in_prod=True)
+
+    assert config.allow_local_auth_in_prod is True
 
 
 def test_default_workspace_bootstrap_creates_identity_graph(db_session) -> None:
@@ -62,10 +101,25 @@ def test_local_auth_context_uses_default_workspace(db_session) -> None:
     assert context.auth_source == "local"
 
 
+def test_local_auth_context_does_not_call_jwks(db_session, monkeypatch) -> None:
+    class DummyRequest:
+        headers: dict[str, str] = {}
+
+    monkeypatch.setattr(
+        "app.services.supabase_jwt.SupabaseJwtVerifier.from_settings",
+        lambda settings: (_ for _ in ()).throw(AssertionError("JWKS should not be used in local auth mode")),
+    )
+
+    context = get_current_auth_context(DummyRequest(), db_session)
+
+    assert context.auth_source == "local"
+
+
 def test_supabase_jwt_verifier_accepts_mocked_valid_claims(monkeypatch) -> None:
+    clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
     monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
 
     class FakePublicKey:
         def verify(self, signature, signing_input, padding, algorithm):
@@ -74,6 +128,182 @@ def test_supabase_jwt_verifier_accepts_mocked_valid_claims(monkeypatch) -> None:
     monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
 
     assert verifier.verify("token")["sub"] == "u"
+
+
+def test_supabase_jwt_verifier_uses_jwks_cache(monkeypatch) -> None:
+    clear_jwks_cache()
+    calls: list[str] = []
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=600)
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks",
+        lambda url, **kwargs: calls.append(url) or {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]},
+    )
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    assert verifier.verify("token")["sub"] == "u"
+    assert verifier.verify("token")["sub"] == "u"
+    assert calls == ["https://example.test/jwks"]
+
+
+def test_supabase_jwt_verifier_refetches_after_ttl(monkeypatch) -> None:
+    clear_jwks_cache()
+    calls: list[str] = []
+    times = iter([1000.0, 1000.0, 1002.0, 1002.0])
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=1)
+    monkeypatch.setattr("app.services.supabase_jwt.time.time", lambda: next(times))
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks",
+        lambda url, **kwargs: calls.append(url) or {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]},
+    )
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    verifier.verify("token")
+    verifier.verify("token")
+
+    assert calls == ["https://example.test/jwks", "https://example.test/jwks"]
+
+
+def test_supabase_jwt_verifier_refreshes_on_kid_miss(monkeypatch) -> None:
+    clear_jwks_cache()
+    responses = iter([
+        {"keys": [{"kid": "old", "n": "AQ", "e": "AQAB"}]},
+        {"keys": [{"kid": "new", "n": "AQ", "e": "AQAB"}]},
+    ])
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=600)
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "new"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: next(responses))
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    assert verifier.verify("token")["sub"] == "u"
+
+
+def test_supabase_jwt_verifier_rejects_unknown_kid_after_refresh(monkeypatch) -> None:
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "missing"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [{"kid": "other", "n": "AQ", "e": "AQAB"}]})
+
+    try:
+        verifier.verify("token")
+    except Exception as exc:
+        code = getattr(exc, "error_code", "")
+    else:
+        code = ""
+
+    assert code == "JWT_KEY_NOT_FOUND"
+
+
+def test_supabase_jwt_verifier_rejects_invalid_issuer_and_audience(monkeypatch) -> None:
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", issuer="issuer", audience="aud")
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999, "iss": "bad", "aud": "bad"}, b"sig", b"a.b"))
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    try:
+        verifier.verify("token")
+    except Exception as exc:
+        code = getattr(exc, "error_code", "")
+    else:
+        code = ""
+
+    assert code == "JWT_ISSUER_INVALID"
+
+
+def test_supabase_jwt_verifier_rejects_invalid_audience(monkeypatch) -> None:
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", issuer="issuer", audience="aud")
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999, "iss": "issuer", "aud": "bad"}, b"sig", b"a.b"))
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    try:
+        verifier.verify("token")
+    except Exception as exc:
+        code = getattr(exc, "error_code", "")
+    else:
+        code = ""
+
+    assert code == "JWT_AUDIENCE_INVALID"
+
+
+def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch) -> None:
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 1}, b"sig", b"a.b"))
+    try:
+        verifier.verify("expired")
+    except Exception as exc:
+        expired_code = getattr(exc, "error_code", "")
+    else:
+        expired_code = ""
+
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"exp": 9999999999}, b"sig", b"a.b"))
+    try:
+        verifier.verify("missing-sub")
+    except Exception as exc:
+        missing_sub_code = getattr(exc, "error_code", "")
+    else:
+        missing_sub_code = ""
+
+    assert expired_code == "JWT_EXPIRED"
+    assert missing_sub_code == "JWT_SUB_MISSING"
+
+
+def test_supabase_jwt_verifier_rejects_network_failure(monkeypatch) -> None:
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", max_retries=0)
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+
+    def fail_fetch(url, **kwargs):
+        from urllib.error import URLError
+
+        raise URLError("offline")
+
+    monkeypatch.setattr("app.services.supabase_jwt.urlopen", lambda *args, **kwargs: fail_fetch(*args, **kwargs))
+
+    try:
+        verifier.verify("token")
+    except Exception as exc:
+        code = getattr(exc, "error_code", "")
+    else:
+        code = ""
+
+    assert code == "JWT_JWKS_FETCH_FAILED"
 
 
 def test_account_endpoint_blocks_foreign_workspace_account() -> None:
@@ -229,6 +459,87 @@ def test_cannot_read_foreign_operation_logs() -> None:
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+def test_cannot_read_foreign_account_runtime_diagnostics() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550106111", workspace_id=workspace.id)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/accounts/{account_id}/runtime-diagnostics")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_read_foreign_account_jobs() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550106000", workspace_id=workspace.id)
+        job = Job(
+            workspace_id=workspace.id,
+            account_id=account.id,
+            job_state=JobState.COMPLETED,
+            execution_intent_hash="foreign-job",
+            payload_json={},
+            plan_json_snapshot={"steps": []},
+        )
+        session.add(job)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/accounts/{account_id}/jobs")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_read_foreign_proxy() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550105999", workspace_id=workspace.id)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/accounts/{account_id}/proxy")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
 
 
 def test_cannot_poll_foreign_auth_batch() -> None:

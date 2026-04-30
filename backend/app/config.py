@@ -1,9 +1,11 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    app_env: str = "local"
     database_url: str = "postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg"
     database_runtime_url: str | None = None
     database_direct_url: str | None = None
@@ -58,9 +60,14 @@ class Settings(BaseSettings):
     ffprobe_path: str | None = None
     ffmpeg_path: str | None = None
     auth_mode: str = "local"
+    allow_local_auth_in_prod: bool = False
     supabase_auth_jwks_url: str | None = None
     supabase_auth_issuer: str | None = None
     supabase_auth_audience: str | None = None
+    supabase_auth_jwks_cache_ttl_seconds: int = 600
+    supabase_auth_jwks_refresh_on_kid_miss: bool = True
+    supabase_auth_jwks_request_timeout_seconds: float = 5.0
+    supabase_auth_jwks_max_retries: int = 1
     default_workspace_mode: str = "local"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
@@ -72,6 +79,17 @@ class Settings(BaseSettings):
     @property
     def migration_database_url(self) -> str:
         return self.database_direct_url or self.database_url
+
+    @model_validator(mode="after")
+    def validate_production_auth_mode(self) -> "Settings":
+        cloud_or_prod = self.app_env not in {"local", "development", "test"} or self.db_connection_mode == "neon"
+        if cloud_or_prod and self.auth_mode == "local" and not self.allow_local_auth_in_prod:
+            raise ValueError(
+                "AUTH_MODE=local is not allowed in production/cloud mode. "
+                "Use AUTH_MODE=supabase_jwt or explicitly set "
+                "ALLOW_LOCAL_AUTH_IN_PROD=true for controlled non-production testing."
+            )
+        return self
 
 
 settings = Settings()

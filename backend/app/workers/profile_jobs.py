@@ -31,6 +31,7 @@ from app.services.locks import acquire_account_lock, heartbeat_lock, release_acc
 from app.services.profile_sync import build_profile_sync_adapter, sync_account_profile_state
 from app.services.secret_redaction import redact_text
 from app.services.step_policy import classify_account_update_job_outcome, is_hard_stop_error
+from app.services.tenant_scope import assert_job_account_workspace_consistency
 
 
 def execute_profile_job(job_id: str, *, session: Session | None = None) -> int:
@@ -50,7 +51,9 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     if job.job_state in TERMINAL_JOB_STATES:
         log_event("worker_skip_terminal_job", account_id=job.account_id, job_id=job_id, state=job.job_state)
         return 0
-    if job.account is None or job.account.workspace_id != job.workspace_id:
+    try:
+        assert_job_account_workspace_consistency(job)
+    except ValueError:
         job.job_state = JobState.FAILED
         job.failure_reason = "workspace_account_mismatch"
         job.finished_at = utc_now()

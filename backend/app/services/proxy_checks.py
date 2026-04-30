@@ -48,8 +48,9 @@ def check_account_proxy(
     checker: ProxyConnectivityChecker | None = None,
     tdlib_checker: TdlibProxyChecker | None = None,
     config: Settings = settings,
+    workspace_id: str | None = None,
 ) -> dict:
-    if get_account(session, account_id) is None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     proxy = session.get(AccountProxy, account_id)
     if proxy is None:

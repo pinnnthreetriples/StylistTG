@@ -29,6 +29,9 @@ Implemented or actively wired:
 - Display of active story posts known to the app.
 - Deleting known active story posts through the app.
 - Runtime diagnostics, live readiness, settings, cooldown policy.
+- Account Safety & Readiness Engine: health/risk/capabilities, read-only validity checks, operation cooldowns, safety overrides.
+- Per-account proxy assignment/status and technical proxy connectivity checks.
+- Operation logs: account-level recent history, debug history, and global `/operations` journal.
 - Polling-first job progress UI with grouped story mini-pipelines.
 
 Still limited or intentionally cautious:
@@ -72,6 +75,7 @@ Ask first:
 - `npm install` / `pip install`.
 - Deleting important files.
 - Git push / PR / commit if not explicitly requested.
+- Changing or printing secrets from `.env` / `backend/.env`.
 
 Never:
 
@@ -160,6 +164,7 @@ Routers:
 - `backend/app/api/story_capabilities.py` - story capability/readiness metadata.
 - `backend/app/api/settings.py` - execution policy settings.
 - `backend/app/api/diagnostics.py` - runtime/live diagnostics.
+- `backend/app/api/operation_logs.py` - global operation log journal.
 
 Core services:
 
@@ -180,6 +185,13 @@ Core services:
 - `backend/app/services/story_capabilities.py`
 - `backend/app/services/runtime_diagnostics.py`
 - `backend/app/services/stale_jobs.py`
+- `backend/app/services/account_safety.py`
+- `backend/app/services/account_validity.py`
+- `backend/app/services/account_cooldowns.py`
+- `backend/app/services/account_safety_overrides.py`
+- `backend/app/services/operation_logs.py`
+- `backend/app/services/proxy_accounts.py`
+- `backend/app/services/proxy_checks.py`
 
 Adapters/workers:
 
@@ -210,6 +222,12 @@ Main SQLAlchemy models live in `backend/app/models.py`:
 - `Job`
 - `JobStepResult`
 - `Asset`
+- `AccountSafetySnapshot`
+- `AccountValidityCheckRun`
+- `AccountOperationCooldown`
+- `AccountSafetyOverride`
+- `AccountOperationLog`
+- `AccountProxy`
 
 Important source-of-truth rule:
 
@@ -219,6 +237,40 @@ Important source-of-truth rule:
 - `job.plan_json_snapshot` is plan truth.
 - `job_step_result` is execution truth.
 - Parent worker writes final truth to DB; child subprocess should not be the final DB writer.
+- `account_proxy.password_encrypted` must never be returned to the frontend.
+- `account_operation_log.metadata_json` must not contain secrets; use `operation_logs.log_operation()` so sensitive keys are sanitized.
+
+## Account Safety, Proxy, and Operation Logs
+
+Current safety endpoints:
+
+- `GET /api/accounts/safety-summary`
+- `GET /api/accounts/{account_id}/safety`
+- `POST /api/accounts/{account_id}/validity-check`
+- `GET /api/accounts/{account_id}/validity-checks`
+- `POST /api/accounts/{account_id}/safety-overrides`
+- `POST /api/accounts/safety-batch-preview`
+
+Proxy endpoints:
+
+- `GET /api/accounts/proxy-summary`
+- `GET /api/accounts/{account_id}/proxy`
+- `PUT /api/accounts/{account_id}/proxy`
+- `DELETE /api/accounts/{account_id}/proxy`
+- `POST /api/accounts/{account_id}/proxy/check`
+
+Operation log endpoints:
+
+- `GET /api/accounts/{account_id}/operation-logs`
+- `GET /api/operation-logs`
+
+Important proxy rules:
+
+- Proxy is network routing/diagnostics, not anti-ban wording.
+- Proxy check is a technical connectivity check and does not perform Telegram profile writes.
+- Proxy passwords require `PROXY_CREDENTIALS_ENCRYPTION_KEY` in local `.env` / `backend/.env`.
+- `.env` and `backend/.env` are ignored and must never be committed or printed.
+- `cryptography` is a backend dependency for Fernet encryption.
 
 ## Current Main Workflow: Account Update
 
@@ -349,6 +401,7 @@ Important query rules:
 - `dashboardBundleQueryOptions(accountId)` is the current fast editor bootstrap path.
 - Granular options (`dashboardProfileQueryOptions`, `storyDraftsQueryOptions`, `storyCapabilitiesQueryOptions`, jobs/job steps) are available for future route/page splits.
 - Use targeted cache updates/invalidation after mutations. Avoid global query invalidation unless a change truly affects the whole app.
+- Proxy and operation-log queries live in `src/lib/queries.ts`; do not create ad-hoc keys for them in components.
 
 ## Frontend Navigation
 
@@ -357,6 +410,7 @@ TanStack Router is the canonical frontend routing layer. Route tree:
 - `/` for accounts
 - `/settings`
 - `/auth/batch`
+- `/operations`
 - `/accounts/$accountId`
 - `/accounts/$accountId/profile`
 - `/accounts/$accountId/jobs`
@@ -370,6 +424,7 @@ Helper:
 - `src/router.tsx`
 - `src/routes/AccountsRoute.tsx`
 - `src/routes/AuthBatchRoute.tsx`
+- `src/routes/OperationsRoute.tsx`
 - `src/routes/AccountWorkspaceRoute.tsx`
 - `src/routes/pending.tsx`
 - `src/routes/error.tsx`

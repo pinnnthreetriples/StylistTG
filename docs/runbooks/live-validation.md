@@ -27,8 +27,15 @@ The account update workflow can include:
 - `tdjson.dll`.
 - `TDLIB_API_ID`.
 - `TDLIB_API_HASH`.
+- `PROXY_CREDENTIALS_ENCRYPTION_KEY` if testing proxy credentials with passwords.
 - One Telegram account that can receive OTP.
 - Test media files only; avoid valuable/private media during validation.
+
+Proxy notes:
+
+- Proxy check is a technical connectivity check, not a Telegram profile operation.
+- Proxy password storage uses Fernet encryption and requires `PROXY_CREDENTIALS_ENCRYPTION_KEY`.
+- Do not print or commit `.env` / `backend/.env`; both may contain local proxy encryption keys.
 
 Windows Redis preference:
 

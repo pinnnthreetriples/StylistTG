@@ -20,6 +20,7 @@ Canonical frontend routes are:
 - `/`
 - `/settings`
 - `/auth/batch`
+- `/operations`
 - `/accounts/$accountId`
 - `/accounts/$accountId/profile`
 - `/accounts/$accountId/jobs`
@@ -110,6 +111,54 @@ Refreshes runtime usability for the selected account.
 Uses `X-Account-Id` header.
 
 Returns compact account-level runtime diagnostics.
+
+### GET /api/accounts/safety-summary
+
+Returns compact account safety/readiness summaries for the account list. Includes health, risk, validity, cooldown summary, top reasons, and `proxy_status`.
+
+### GET /api/accounts/{account_id}/safety
+
+Returns full safety matrix for an account: capabilities, risk by operation, cooldowns, reasons, latest validity check, and proxy status.
+
+### POST /api/accounts/{account_id}/validity-check
+
+Runs a safe validity check. `tdlib_readonly` may connect to an existing TDLib session but must not submit auth codes/passwords or perform Telegram write actions.
+
+### GET /api/accounts/{account_id}/validity-checks
+
+Returns recent validity-check history for the account.
+
+### POST /api/accounts/{account_id}/safety-overrides
+
+Stores an audited manual safety review for overridable blockers. Non-overridable blockers remain protected.
+
+### GET /api/accounts/proxy-summary
+
+Returns compact proxy status by account for the account list. The response never includes proxy passwords.
+
+### GET /api/accounts/{account_id}/proxy
+
+Returns account proxy configuration/status. Password is never returned; frontend receives `has_password`.
+
+### PUT /api/accounts/{account_id}/proxy
+
+Creates or updates account proxy settings. Proxy passwords require backend `PROXY_CREDENTIALS_ENCRYPTION_KEY`; without it, password save is rejected.
+
+### DELETE /api/accounts/{account_id}/proxy
+
+Removes proxy assignment for the account.
+
+### POST /api/accounts/{account_id}/proxy/check
+
+Runs a technical proxy connectivity check and updates proxy status. This is network diagnostics only and does not perform Telegram account writes.
+
+### GET /api/accounts/{account_id}/operation-logs
+
+Returns paginated operation logs for one account.
+
+### GET /api/operation-logs
+
+Returns paginated global operation logs across accounts.
 
 ## Dashboard
 

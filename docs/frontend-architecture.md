@@ -9,6 +9,7 @@ TanStack Router is the canonical routing layer. Current canonical routes:
 - `/` - account list
 - `/settings` - settings/readiness
 - `/auth/batch` - batch account auth
+- `/operations` - global operation log journal
 - `/accounts/$accountId` - account workspace default/profile
 - `/accounts/$accountId/profile` - profile editor focus
 - `/accounts/$accountId/jobs` - job progress/history focus
@@ -24,6 +25,7 @@ Route screen wrappers live in `src/routes/`:
 
 - `AccountsRoute.tsx` - accounts/settings area chunk.
 - `AuthBatchRoute.tsx` - batch auth chunk.
+- `OperationsRoute.tsx` - global operation logs chunk.
 - `AccountWorkspaceRoute.tsx` - account editor/workspace chunk.
 - `pending.tsx` - small cold-load pending fallback.
 - `error.tsx` - product route loader/component error fallback with hidden technical details.
@@ -60,6 +62,7 @@ Rules:
 - Keep account-specific dashboard data under `queryKeys.dashboard.account(accountId)` so cleanup removes all account-scoped cache.
 - Use `dashboardBundleQueryOptions(accountId)` for the current editor bootstrap because it avoids sequential loading waterfalls.
 - Use granular options (`dashboardProfileQueryOptions`, `storyDraftsQueryOptions`, `storyCapabilitiesQueryOptions`, job queries) when a future page needs one sub-resource independently.
+- Use proxy/log options from `src/lib/queries.ts` for account proxy, proxy summary, account operation logs, and global operation logs.
 - Prefer targeted cache updates or scoped invalidation after mutations.
 - Full skeletons are for cold loads only. If cached data exists, render it and show background refresh state lightly.
 

@@ -183,6 +183,19 @@ storage metadata (`storage_backend`, source/normalized keys, sizes, content
 types, checksums), while TDLib session folders remain backend-only and must
 never be exposed as public assets or signed URLs.
 
+Cloud dev/staging bootstrap:
+
+```powershell
+cd backend
+python -m app.scripts.cloud_config_check
+python -m app.scripts.cloud_smoke --safe-default --include-redis --include-storage
+```
+
+Use `.env.cloud.example` as the cloud env contract. The cloud smoke tooling is
+safe by default: no object write without `--allow-write-cloud`, no migrations
+without `--allow-migrations`, and no production smoke without explicit approval.
+See [docs/runbooks/cloud-dev-staging-bootstrap.md](docs/runbooks/cloud-dev-staging-bootstrap.md).
+
 CI:
 
 - `.github/workflows/ci.yml` runs backend checks against real PostgreSQL and Redis services.

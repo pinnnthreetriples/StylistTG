@@ -85,6 +85,11 @@ TDLib session storage remains separate from asset storage and must stay
 backend-only. Do not create public or signed URLs for TDLib database/files
 directories.
 
+Before promoting a cloud contour, run the dev/staging bootstrap checks from
+[cloud-dev-staging-bootstrap.md](cloud-dev-staging-bootstrap.md). The smoke
+commands are safe by default and require explicit flags for object writes,
+migrations, or production mode.
+
 ## Deployment Order
 
 1. Set environment variables.

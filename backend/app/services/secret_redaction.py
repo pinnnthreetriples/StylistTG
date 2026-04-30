@@ -7,10 +7,15 @@ SENSITIVE_FRAGMENTS = (
     "password",
     "proxy_password",
     "token",
+    "jwt",
     "secret",
     "api_hash",
     "apihash",
     "operator_api_token",
+    "auth_code",
+    "authcode",
+    "two_factor_password",
+    "twofactorpassword",
 )
 
 
@@ -27,7 +32,10 @@ def redact_metadata(value: Any) -> Any:
 
 def redact_text(value: str) -> str:
     text = value
-    key_pattern = r"(?:password|proxy_password|token|secret|api_hash|apihash|operator_api_token)"
+    key_pattern = (
+        r"(?:password|proxy_password|token|jwt|secret|api_hash|apihash|"
+        r"operator_api_token|auth_code|authcode|two_factor_password|twofactorpassword)"
+    )
     text = re.sub(
         rf"(?i)([\"'](?:{key_pattern})[\"']\s*:\s*)([\"']).*?\2",
         r"\1\2***\2",

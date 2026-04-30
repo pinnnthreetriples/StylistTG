@@ -9,6 +9,8 @@ from app.logging_utils import log_event
 from app.models import JobState, utc_now
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
 from app.services.account_update_jobs import build_account_update_preview, create_account_update_job
+from app.services.accounts import get_account
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.dashboard import job_summary
 from app.services.operation_logs import log_operation
 from app.config import settings
@@ -18,7 +20,13 @@ router = APIRouter(prefix="/api/account-update", tags=["account-update"])
 
 
 @router.post("/preview", response_model=AccountUpdatePreviewRead)
-def preview_account_update(payload: AccountUpdateCreate, session: Session = Depends(get_session)):
+def preview_account_update(
+    payload: AccountUpdateCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         preview = build_account_update_preview(
             session,
@@ -46,13 +54,21 @@ def preview_account_update(payload: AccountUpdateCreate, session: Session = Depe
 
 
 @router.post("/jobs", response_model=AccountUpdateJobSummaryRead, status_code=status.HTTP_201_CREATED)
-def post_account_update_job(payload: AccountUpdateCreate, session: Session = Depends(get_session)):
+def post_account_update_job(
+    payload: AccountUpdateCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         job = create_account_update_job(
             session,
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
             execution_adapter=build_profile_execution_adapter(),
+            requested_by_user_id=auth.user_id,
+            request_id=None,
         )
         log_operation(
             session,

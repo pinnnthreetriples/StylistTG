@@ -16,12 +16,14 @@ down_revision = "20260430_0015"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     op.create_table(
         "account_safety_override",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("account_id", sa.String(length=36), nullable=False),
+        sa.Column("id", UUID_STRING, nullable=False),
+        sa.Column("account_id", UUID_STRING, nullable=False),
         sa.Column("operation", sa.String(length=64), nullable=False),
         sa.Column("reason", sa.Text(), nullable=False),
         sa.Column("requested_blockers_json", sa.JSON(), nullable=False),

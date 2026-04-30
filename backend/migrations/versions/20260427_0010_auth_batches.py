@@ -14,11 +14,13 @@ down_revision = "20260424_0009"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     op.create_table(
         "auth_batch",
-        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("id", UUID_STRING, nullable=False),
         sa.Column("label", sa.String(length=255), nullable=True),
         sa.Column("status", sa.String(length=64), nullable=False),
         sa.Column("total_count", sa.Integer(), nullable=False),
@@ -41,9 +43,9 @@ def upgrade() -> None:
 
     op.create_table(
         "auth_batch_item",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("batch_id", sa.String(length=36), nullable=False),
-        sa.Column("account_id", sa.String(length=36), nullable=False),
+        sa.Column("id", UUID_STRING, nullable=False),
+        sa.Column("batch_id", UUID_STRING, nullable=False),
+        sa.Column("account_id", UUID_STRING, nullable=False),
         sa.Column("phone_number", sa.String(length=255), nullable=False),
         sa.Column("label", sa.String(length=255), nullable=True),
         sa.Column("position", sa.Integer(), nullable=False),
@@ -72,8 +74,8 @@ def upgrade() -> None:
 
     op.create_table(
         "auth_attempt",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("batch_item_id", sa.String(length=36), nullable=False),
+        sa.Column("id", UUID_STRING, nullable=False),
+        sa.Column("batch_item_id", UUID_STRING, nullable=False),
         sa.Column("attempt_number", sa.Integer(), nullable=False),
         sa.Column("kind", sa.String(length=64), nullable=False),
         sa.Column("status", sa.String(length=64), nullable=False),
@@ -89,9 +91,9 @@ def upgrade() -> None:
 
     op.create_table(
         "auth_batch_event",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("batch_id", sa.String(length=36), nullable=False),
-        sa.Column("batch_item_id", sa.String(length=36), nullable=True),
+        sa.Column("id", UUID_STRING, nullable=False),
+        sa.Column("batch_id", UUID_STRING, nullable=False),
+        sa.Column("batch_item_id", UUID_STRING, nullable=True),
         sa.Column("event_type", sa.String(length=128), nullable=False),
         sa.Column("actor", sa.String(length=64), nullable=False),
         sa.Column("payload_json", sa.JSON(), nullable=False),
@@ -107,7 +109,7 @@ def upgrade() -> None:
         "idempotency_key",
         sa.Column("key", sa.String(length=128), nullable=False),
         sa.Column("operation", sa.String(length=128), nullable=False),
-        sa.Column("entity_id", sa.String(length=36), nullable=False),
+        sa.Column("entity_id", UUID_STRING, nullable=False),
         sa.Column("response_json", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),

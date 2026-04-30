@@ -16,6 +16,8 @@ from app.schemas import (
     ProfilePreviewRequest,
 )
 from app.services.dashboard import job_summary
+from app.services.accounts import get_account
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.jobs import (
     build_job_detail,
     build_job_steps,
@@ -30,7 +32,13 @@ router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 
 @router.post("/profile/preview", response_model=ProfilePreviewRead)
-def preview_profile_job(payload: ProfilePreviewRequest, session: Session = Depends(get_session)):
+def preview_profile_job(
+    payload: ProfilePreviewRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         preview = build_profile_job_preview(
             session,
@@ -55,15 +63,27 @@ def preview_profile_job(payload: ProfilePreviewRequest, session: Session = Depen
 
 
 @router.post("/profile", response_model=JobSummaryRead, status_code=status.HTTP_201_CREATED)
-def post_profile_job(payload: ProfileJobCreate, session: Session = Depends(get_session)):
+def post_profile_job(
+    payload: ProfileJobCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     data = payload.model_dump()
     account_id = data.pop("account_id")
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
+        )
     try:
         job = create_profile_job(
             session,
             account_id=account_id,
             payload=data,
             execution_adapter=build_profile_execution_adapter(),
+            requested_by_user_id=auth.user_id,
         )
     except ValueError as exc:
         message = str(exc)
@@ -105,9 +125,13 @@ def post_profile_job(payload: ProfileJobCreate, session: Session = Depends(get_s
 
 
 @router.get("/{job_id}", response_model=JobDetailRead)
-def get_job_endpoint(job_id: str, session: Session = Depends(get_session)):
+def get_job_endpoint(
+    job_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
     job = get_job(session, job_id)
-    if job is None:
+    if job is None or job.workspace_id != auth.workspace_id:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
             error_code="JOB_NOT_FOUND",
@@ -118,9 +142,13 @@ def get_job_endpoint(job_id: str, session: Session = Depends(get_session)):
 
 
 @router.get("/{job_id}/steps", response_model=list[JobStepListItemRead])
-def get_job_steps_endpoint(job_id: str, session: Session = Depends(get_session)):
+def get_job_steps_endpoint(
+    job_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
     job = get_job(session, job_id)
-    if job is None:
+    if job is None or job.workspace_id != auth.workspace_id:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
             error_code="JOB_NOT_FOUND",
@@ -131,7 +159,14 @@ def get_job_steps_endpoint(job_id: str, session: Session = Depends(get_session))
 
 
 @router.post("/{job_id}/cancel", response_model=JobSummaryRead)
-def cancel_job_endpoint(job_id: str, session: Session = Depends(get_session)):
+def cancel_job_endpoint(
+    job_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    existing = get_job(session, job_id)
+    if existing is None or existing.workspace_id != auth.workspace_id:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="JOB_NOT_FOUND", error_class="not_found", message="job not found")
     try:
         job = cancel_job(session, job_id)
     except ValueError as exc:
@@ -141,7 +176,14 @@ def cancel_job_endpoint(job_id: str, session: Session = Depends(get_session)):
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_job_endpoint(job_id: str, session: Session = Depends(get_session)):
+def delete_job_endpoint(
+    job_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    existing = get_job(session, job_id)
+    if existing is None or existing.workspace_id != auth.workspace_id:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="JOB_NOT_FOUND", error_class="not_found", message="job not found")
     try:
         delete_job(session, job_id)
     except ValueError as exc:

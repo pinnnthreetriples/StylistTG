@@ -50,6 +50,13 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     if job.job_state in TERMINAL_JOB_STATES:
         log_event("worker_skip_terminal_job", account_id=job.account_id, job_id=job_id, state=job.job_state)
         return 0
+    if job.account is None or job.account.workspace_id != job.workspace_id:
+        job.job_state = JobState.FAILED
+        job.failure_reason = "workspace_account_mismatch"
+        job.finished_at = utc_now()
+        session.commit()
+        log_event("worker_reject_workspace_account_mismatch", account_id=job.account_id, job_id=job_id)
+        return 1
 
     owner = f"worker:{os.getpid()}:{job_id}"
     log_event("worker_start", account_id=job.account_id, job_id=job_id, owner=owner)

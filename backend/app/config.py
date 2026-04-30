@@ -5,6 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg"
+    database_runtime_url: str | None = None
+    database_direct_url: str | None = None
+    db_connection_mode: str = "local"
+    db_pool_pre_ping: bool = True
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
     redis_url: str = "redis://127.0.0.1:6379/0"
     local_storage_path: Path = Path("storage")
     lock_stale_seconds: int = 60
@@ -51,8 +57,21 @@ class Settings(BaseSettings):
     stories_tdlib_live_enabled: bool = False
     ffprobe_path: str | None = None
     ffmpeg_path: str | None = None
+    auth_mode: str = "local"
+    supabase_auth_jwks_url: str | None = None
+    supabase_auth_issuer: str | None = None
+    supabase_auth_audience: str | None = None
+    default_workspace_mode: str = "local"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def runtime_database_url(self) -> str:
+        return self.database_runtime_url or self.database_url
+
+    @property
+    def migration_database_url(self) -> str:
+        return self.database_direct_url or self.database_url
 
 
 settings = Settings()

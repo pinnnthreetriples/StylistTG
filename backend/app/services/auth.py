@@ -14,7 +14,7 @@ from app.adapters.tdlib_auth import (
 )
 from app.config import Settings, settings
 from app.logging_utils import log_event
-from app.models import Account, AccountAuthAttempt, AccountRuntimeState, AccountState, utc_now
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Account, AccountAuthAttempt, AccountRuntimeState, AccountState, utc_now
 from app.services.accounts import create_account, get_account, get_account_by_external_ref
 from app.services.profile_sync import ProfileSyncAdapter, build_profile_sync_adapter, sync_account_profile_state
 
@@ -51,11 +51,18 @@ def start_otp(
     phone_number: str,
     adapter: TdlibAuthAdapter | None = None,
     config: Settings = settings,
+    workspace_id: str | None = None,
+    actor_user_id: str | None = None,
 ) -> AuthMaterializationResult:
     normalized_phone = normalize_phone_number(phone_number)
     account = get_account_by_external_ref(session, normalized_phone)
     if account is None:
-        account = create_account(session, external_ref=normalized_phone)
+        account = create_account(
+            session,
+            external_ref=normalized_phone,
+            workspace_id=workspace_id or DEFAULT_LOCAL_WORKSPACE_ID,
+            actor_user_id=actor_user_id,
+        )
     elif is_account_hard_stopped(account):
         raise AuthSafetyError(
             error_code="AUTH_MANUAL_INTERVENTION_REQUIRED",

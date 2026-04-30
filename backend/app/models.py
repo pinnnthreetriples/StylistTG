@@ -12,6 +12,8 @@ from sqlalchemy.types import JSON, Uuid
 from app.db import Base
 
 UUIDString = String(36).with_variant(Uuid(as_uuid=False), "postgresql")
+DEFAULT_LOCAL_USER_ID = "00000000-0000-4000-8000-000000000001"
+DEFAULT_LOCAL_WORKSPACE_ID = "00000000-0000-4000-8000-000000000002"
 
 
 def new_id() -> str:
@@ -33,6 +35,119 @@ class AccountState(StrEnum):
     RUNTIME_BROKEN = "runtime_broken"
     MANUAL_INTERVENTION_NEEDED = "manual_intervention_needed"
     DISABLED = "disabled"
+
+
+class UserStatus(StrEnum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+
+
+class WorkspaceStatus(StrEnum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+
+
+class WorkspaceRole(StrEnum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    VIEWER = "viewer"
+
+
+class User(Base):
+    __tablename__ = "app_user"
+    __table_args__ = (
+        UniqueConstraint("external_auth_provider", "external_auth_user_id", name="uq_user_external_auth"),
+        Index("ix_user_email", "email"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_auth_provider: Mapped[str] = mapped_column(String(64), nullable=False)
+    external_auth_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default=UserStatus.ACTIVE)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    owned_workspaces: Mapped[list[Workspace]] = relationship(back_populates="owner")
+    memberships: Mapped[list[WorkspaceMember]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+class Workspace(Base):
+    __tablename__ = "workspace"
+    __table_args__ = (UniqueConstraint("slug", name="uq_workspace_slug"),)
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(128), nullable=False)
+    owner_user_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default=WorkspaceStatus.ACTIVE)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    owner: Mapped[User] = relationship(back_populates="owned_workspaces", foreign_keys=[owner_user_id])
+    members: Mapped[list[WorkspaceMember]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
+
+
+class WorkspaceMember(Base):
+    __tablename__ = "workspace_member"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_workspace_member_workspace_user"),)
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    workspace: Mapped[Workspace] = relationship(back_populates="members")
+    user: Mapped[User] = relationship(back_populates="memberships")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_log_workspace_created", "workspace_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class WorkspacePlan(Base):
+    __tablename__ = "workspace_plan"
+
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), primary_key=True)
+    plan_code: Mapped[str] = mapped_column(String(64), nullable=False, default="local")
+    billing_status: Mapped[str] = mapped_column(String(64), nullable=False, default="active")
+    max_accounts: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
+    max_jobs_per_day: Mapped[int] = mapped_column(Integer, nullable=False, default=10000)
+    max_batch_size: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
+    max_storage_mb: Mapped[int] = mapped_column(Integer, nullable=False, default=10240)
+    max_team_members: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class UsageCounter(Base):
+    __tablename__ = "usage_counter"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "period_start", "period_end", "metric", name="uq_usage_counter_period_metric"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metric: Mapped[str] = mapped_column(String(128), nullable=False)
+    value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 
 class AuthBatchStatus(StrEnum):
@@ -133,6 +248,9 @@ class Account(Base):
     __tablename__ = "account"
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     external_ref: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     auth_source: Mapped[str] = mapped_column(String(64), nullable=False, default="otp")
@@ -229,6 +347,9 @@ class AuthBatch(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthBatchStatus.PENDING)
     total_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -509,6 +630,9 @@ class AccountOperationLog(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID, index=True
+    )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
     operation_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     operation_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -552,7 +676,14 @@ class Job(Base):
     __tablename__ = "job"
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    approved_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    created_from: Mapped[str] = mapped_column(String(64), nullable=False, default="api")
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     job_state: Mapped[str] = mapped_column(String(64), nullable=False, default=JobState.QUEUED)
     workflow_type: Mapped[str] = mapped_column(String(64), nullable=False, default="profile_update")
     workflow_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -604,6 +735,9 @@ class Asset(Base):
     __tablename__ = "asset"
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     kind: Mapped[str] = mapped_column(String(64), nullable=False)
     source_path: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_path: Mapped[str] = mapped_column(Text, nullable=False)

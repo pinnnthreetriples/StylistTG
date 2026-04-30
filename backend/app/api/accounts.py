@@ -43,6 +43,7 @@ from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
 from app.services.account_safety_overrides import create_safety_override
 from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs
 from app.services.operation_logs import list_account_logs, log_operation
@@ -53,33 +54,49 @@ router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
 
 @router.post("", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
-def post_account(payload: AccountCreate, session: Session = Depends(get_session)):
+def post_account(
+    payload: AccountCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     return create_account(
         session,
         external_ref=payload.external_ref,
         telegram_user_id=payload.telegram_user_id,
+        workspace_id=auth.workspace_id,
+        actor_user_id=auth.user_id,
     )
 
 
 @router.get("", response_model=list[AccountListItemRead])
-def get_accounts(session: Session = Depends(get_session)):
-    return [_account_list_item(session, account) for account in list_accounts_service(session)]
+def get_accounts(
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    return [_account_list_item(session, account) for account in list_accounts_service(session, workspace_id=auth.workspace_id)]
 
 
 @router.get("/safety-summary", response_model=list[AccountSafetySummaryRead])
-def get_accounts_safety_summary(session: Session = Depends(get_session)):
-    return build_account_safety_summary(session)
+def get_accounts_safety_summary(
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    return build_account_safety_summary(session, workspace_id=auth.workspace_id)
 
 
 @router.get("/proxy-summary", response_model=list[AccountProxySummaryRead])
-def get_accounts_proxy_summary(session: Session = Depends(get_session)):
-    return proxy_summary(session)
+def get_accounts_proxy_summary(
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    return proxy_summary(session, workspace_id=auth.workspace_id)
 
 
 @router.post("/safety-batch-preview", response_model=AccountBatchSafetyPreviewRead)
 def post_accounts_safety_batch_preview(
     payload: AccountBatchSafetyPreviewRequest,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
     try:
         return build_account_batch_safety_preview(
@@ -87,6 +104,7 @@ def post_accounts_safety_batch_preview(
             account_ids=payload.account_ids,
             operation=payload.operation,
             allow_warning_overrides=payload.allow_warning_overrides,
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         raise AppError(
@@ -101,26 +119,37 @@ def post_accounts_safety_batch_preview(
 def get_account_auth_state_from_header(
     account_id: str = Depends(account_id_header),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
-    from app.api.auth import get_account_auth_state
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
+        )
+    from app.api.auth import _auth_response
+    from app.services.auth import get_auth_state
 
-    return get_account_auth_state(account_id, session)
+    return _auth_response(get_auth_state(session, account_id))
 
 
 @router.post("/refresh-runtime", response_model=RuntimeRefreshRead)
 def refresh_runtime_from_header(
     account_id: str = Depends(account_id_header),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
 ):
-    return refresh_runtime(account_id, session)
+    return refresh_runtime(account_id, session, auth)
 
 
 @router.get("/runtime-diagnostics", response_model=AccountRuntimeDiagnosticsRead)
 def runtime_diagnostics_from_header(
     account_id: str = Depends(account_id_header),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
-    return runtime_diagnostics(account_id, session)
+    return runtime_diagnostics(account_id, session, auth)
 
 
 @router.get("/jobs", response_model=list[JobSummaryRead])
@@ -128,21 +157,27 @@ def list_jobs_from_header(
     account_id: str = Depends(account_id_header),
     limit: int = 10,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
-    return list_jobs(account_id, limit, session)
+    return list_jobs(account_id, limit, session, auth)
 
 
 @router.get("/jobs/latest", response_model=JobSummaryRead)
 def latest_job_from_header(
     account_id: str = Depends(account_id_header),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
-    return latest_job(account_id, session)
+    return latest_job(account_id, session, auth)
 
 
 @router.get("/{account_id}", response_model=AccountRead)
-def get_account_endpoint(account_id: str, session: Session = Depends(get_session)):
-    account = get_account(session, account_id)
+def get_account_endpoint(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    account = get_account(session, account_id, workspace_id=auth.workspace_id)
     if account is None:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -154,7 +189,13 @@ def get_account_endpoint(account_id: str, session: Session = Depends(get_session
 
 
 @router.get("/{account_id}/safety", response_model=AccountSafetyRead)
-def get_account_safety(account_id: str, session: Session = Depends(get_session)):
+def get_account_safety(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return build_account_safety(session, account_id)
     except ValueError as exc:
@@ -171,7 +212,10 @@ def post_account_validity_check(
     account_id: str,
     payload: AccountValidityCheckRequest,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
 ):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         adapter = build_tdlib_readonly_validity_adapter() if payload.mode == "tdlib_readonly" else None
         return run_account_validity_check(session, account_id, mode=payload.mode, adapter=adapter)
@@ -197,8 +241,9 @@ def get_account_validity_checks(
     account_id: str,
     limit: int = 10,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
-    if get_account(session, account_id) is None:
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
             error_code="ACCOUNT_NOT_FOUND",
@@ -216,7 +261,10 @@ def get_account_operation_logs(
     limit: int = 50,
     offset: int = 0,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
 ):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return list_account_logs(
             session,
@@ -236,7 +284,13 @@ def get_account_operation_logs(
 
 
 @router.get("/{account_id}/proxy", response_model=AccountProxyRead | None)
-def get_account_proxy_endpoint(account_id: str, session: Session = Depends(get_session)):
+def get_account_proxy_endpoint(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return get_account_proxy(session, account_id)
     except ValueError as exc:
@@ -253,7 +307,10 @@ def put_account_proxy(
     account_id: str,
     payload: AccountProxyUpsert,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
 ):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return upsert_account_proxy(
             session,
@@ -269,7 +326,13 @@ def put_account_proxy(
 
 
 @router.delete("/{account_id}/proxy", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account_proxy_endpoint(account_id: str, session: Session = Depends(get_session)):
+def delete_account_proxy_endpoint(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         delete_account_proxy(session, account_id)
     except ValueError as exc:
@@ -277,7 +340,13 @@ def delete_account_proxy_endpoint(account_id: str, session: Session = Depends(ge
 
 
 @router.post("/{account_id}/proxy/check", response_model=AccountProxyRead)
-def post_account_proxy_check(account_id: str, session: Session = Depends(get_session)):
+def post_account_proxy_check(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return check_account_proxy(session, account_id)
     except ValueError as exc:
@@ -289,7 +358,10 @@ def post_account_safety_override(
     account_id: str,
     payload: AccountSafetyOverrideCreate,
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
 ):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         return create_safety_override(
             session,
@@ -316,9 +388,13 @@ def post_account_safety_override(
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account_endpoint(account_id: str, session: Session = Depends(get_session)):
+def delete_account_endpoint(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     try:
-        delete_account(session, account_id)
+        delete_account(session, account_id, workspace_id=auth.workspace_id, actor_user_id=auth.user_id)
     except ValueError as exc:
         message = str(exc)
         if message == "account not found":
@@ -344,7 +420,13 @@ def delete_account_endpoint(account_id: str, session: Session = Depends(get_sess
 
 
 @router.post("/{account_id}/refresh-runtime", response_model=RuntimeRefreshRead)
-def refresh_runtime(account_id: str, session: Session = Depends(get_session)):
+def refresh_runtime(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         log_event("runtime_refresh_requested", account_id=account_id)
         result = ensure_execution_usable(
@@ -439,7 +521,13 @@ def _proxy_error(exc: ValueError) -> AppError:
 
 
 @router.get("/{account_id}/runtime-diagnostics", response_model=AccountRuntimeDiagnosticsRead)
-def runtime_diagnostics(account_id: str, session: Session = Depends(get_session)):
+def runtime_diagnostics(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
         payload = account_runtime_diagnostics(session, account_id)
     except ValueError as exc:
@@ -453,8 +541,13 @@ def runtime_diagnostics(account_id: str, session: Session = Depends(get_session)
 
 
 @router.get("/{account_id}/jobs", response_model=list[JobSummaryRead])
-def list_jobs(account_id: str, limit: int = 10, session: Session = Depends(get_session)):
-    account = get_account(session, account_id)
+def list_jobs(
+    account_id: str,
+    limit: int = 10,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    account = get_account(session, account_id, workspace_id=auth.workspace_id)
     if account is None:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -466,8 +559,12 @@ def list_jobs(account_id: str, limit: int = 10, session: Session = Depends(get_s
 
 
 @router.get("/{account_id}/jobs/latest", response_model=JobSummaryRead)
-def latest_job(account_id: str, session: Session = Depends(get_session)):
-    account = get_account(session, account_id)
+def latest_job(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    account = get_account(session, account_id, workspace_id=auth.workspace_id)
     if account is None:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,

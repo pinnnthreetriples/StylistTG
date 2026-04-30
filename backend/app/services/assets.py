@@ -10,7 +10,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import Asset, AssetKind, AssetStatus, new_id
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Asset, AssetKind, AssetStatus, new_id
+from app.services.audit_logs import log_audit_event
 
 PROFILE_AUDIO_EXECUTION_MIMES = {
     "audio/mpeg",
@@ -26,6 +27,8 @@ def save_profile_photo_asset(
     filename: str,
     content: bytes,
     storage_root: Path,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
 ) -> Asset:
     asset_id = new_id()
     source_dir = storage_root / "assets" / asset_id / "source"
@@ -53,6 +56,7 @@ def save_profile_photo_asset(
 
     asset = Asset(
         id=asset_id,
+        workspace_id=workspace_id,
         kind=AssetKind.PROFILE_PHOTO,
         source_path=str(source_path.relative_to(storage_root)),
         normalized_path=str(normalized_path.relative_to(storage_root)),
@@ -62,6 +66,7 @@ def save_profile_photo_asset(
         status=AssetStatus.NORMALIZED,
     )
     session.add(asset)
+    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
     session.refresh(asset)
     return asset
@@ -74,6 +79,8 @@ def save_profile_audio_asset(
     content: bytes,
     storage_root: Path,
     max_bytes: int,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -99,6 +106,7 @@ def save_profile_audio_asset(
 
     asset = Asset(
         id=asset_id,
+        workspace_id=workspace_id,
         kind=AssetKind.PROFILE_AUDIO,
         source_path=str(source_path.relative_to(storage_root)),
         normalized_path=str(normalized_path.relative_to(storage_root)),
@@ -108,6 +116,7 @@ def save_profile_audio_asset(
         status=AssetStatus.NORMALIZED,
     )
     session.add(asset)
+    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
     session.refresh(asset)
     return asset
@@ -120,6 +129,8 @@ def save_story_image_asset(
     content: bytes,
     storage_root: Path,
     max_bytes: int,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -149,6 +160,7 @@ def save_story_image_asset(
 
     asset = Asset(
         id=asset_id,
+        workspace_id=workspace_id,
         kind=AssetKind.STORY_IMAGE,
         source_path=str(source_path.relative_to(storage_root)),
         normalized_path=str(normalized_path.relative_to(storage_root)),
@@ -158,6 +170,7 @@ def save_story_image_asset(
         status=AssetStatus.NORMALIZED,
     )
     session.add(asset)
+    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
     session.refresh(asset)
     return asset
@@ -171,6 +184,8 @@ def save_story_video_asset(
     storage_root: Path,
     max_bytes: int,
     config: Settings = settings,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -198,6 +213,7 @@ def save_story_video_asset(
 
     asset = Asset(
         id=asset_id,
+        workspace_id=workspace_id,
         kind=AssetKind.STORY_VIDEO,
         source_path=str(source_path.relative_to(storage_root)),
         normalized_path=str(normalized_path.relative_to(storage_root)),
@@ -207,6 +223,7 @@ def save_story_video_asset(
         status=AssetStatus.NORMALIZED,
     )
     session.add(asset)
+    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
     session.commit()
     session.refresh(asset)
     return asset
@@ -214,6 +231,24 @@ def save_story_video_asset(
 
 def get_asset(session: Session, asset_id: str) -> Asset | None:
     return session.get(Asset, asset_id)
+
+
+def _log_asset_uploaded(
+    session: Session,
+    *,
+    asset: Asset,
+    workspace_id: str,
+    actor_user_id: str | None,
+) -> None:
+    log_audit_event(
+        session,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        action="asset.uploaded",
+        entity_type="asset",
+        entity_id=asset.id,
+        metadata={"kind": asset.kind, "mime": asset.mime},
+    )
 
 
 def _guess_audio_mime(filename: str, content: bytes) -> str:

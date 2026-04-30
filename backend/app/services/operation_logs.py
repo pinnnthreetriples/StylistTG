@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import AccountOperationLog, new_id, utc_now
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, AccountOperationLog, new_id, utc_now
 from app.services.accounts import get_account
 from app.services.secret_redaction import redact_metadata
 
@@ -31,6 +31,7 @@ def log_operation(
 ) -> AccountOperationLog:
     row = AccountOperationLog(
         id=new_id(),
+        workspace_id=getattr(get_account(session, account_id), "workspace_id", DEFAULT_LOCAL_WORKSPACE_ID),
         account_id=account_id,
         operation_type=operation_type,
         operation_key=operation_key,
@@ -58,8 +59,9 @@ def list_account_logs(
     status: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    workspace_id: str | None = None,
 ) -> dict[str, Any]:
-    if get_account(session, account_id) is None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     return _list_logs(
         session,
@@ -68,6 +70,7 @@ def list_account_logs(
         status=status,
         limit=limit,
         offset=offset,
+        workspace_id=workspace_id,
     )
 
 
@@ -79,6 +82,7 @@ def list_global_logs(
     status: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    workspace_id: str | None = None,
 ) -> dict[str, Any]:
     return _list_logs(
         session,
@@ -87,6 +91,7 @@ def list_global_logs(
         status=status,
         limit=limit,
         offset=offset,
+        workspace_id=workspace_id,
     )
 
 
@@ -118,11 +123,15 @@ def _list_logs(
     status: str | None,
     limit: int,
     offset: int,
+    workspace_id: str | None,
 ) -> dict[str, Any]:
     safe_limit = max(1, min(limit, 200))
     safe_offset = max(0, offset)
     query = select(AccountOperationLog)
     count_query = select(func.count(AccountOperationLog.id))
+    if workspace_id:
+        query = query.where(AccountOperationLog.workspace_id == workspace_id)
+        count_query = count_query.where(AccountOperationLog.workspace_id == workspace_id)
     if account_id:
         query = query.where(AccountOperationLog.account_id == account_id)
         count_query = count_query.where(AccountOperationLog.account_id == account_id)

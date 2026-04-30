@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_session
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.schemas import AssetRead
 from app.models import AssetKind
 from app.services.assets import (
@@ -21,7 +22,11 @@ STORAGE_ROOT = Path(settings.local_storage_path)
 
 
 @router.post("/profile-photo", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
-async def post_profile_photo(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def post_profile_photo(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     content = await _read_upload_limited(file, settings.profile_photo_max_bytes)
     try:
         return save_profile_photo_asset(
@@ -29,13 +34,19 @@ async def post_profile_photo(file: UploadFile = File(...), session: Session = De
             filename=file.filename or "profile-photo",
             content=content,
             storage_root=STORAGE_ROOT,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/profile-audio", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
-async def post_profile_audio(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def post_profile_audio(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     content = await _read_upload_limited(file, settings.profile_audio_max_bytes)
     try:
         return save_profile_audio_asset(
@@ -44,6 +55,8 @@ async def post_profile_audio(file: UploadFile = File(...), session: Session = De
             content=content,
             storage_root=STORAGE_ROOT,
             max_bytes=settings.profile_audio_max_bytes,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -53,7 +66,11 @@ async def post_profile_audio(file: UploadFile = File(...), session: Session = De
 
 
 @router.post("/story-image", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
-async def post_story_image(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def post_story_image(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     content = await _read_upload_limited(file, settings.story_image_max_bytes)
     try:
         return save_story_image_asset(
@@ -62,13 +79,19 @@ async def post_story_image(file: UploadFile = File(...), session: Session = Depe
             content=content,
             storage_root=STORAGE_ROOT,
             max_bytes=settings.story_image_max_bytes,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/story-video", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
-async def post_story_video(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def post_story_video(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
     content = await _read_upload_limited(file, settings.story_video_max_bytes)
     try:
         return save_story_video_asset(
@@ -77,23 +100,33 @@ async def post_story_video(file: UploadFile = File(...), session: Session = Depe
             content=content,
             storage_root=STORAGE_ROOT,
             max_bytes=settings.story_video_max_bytes,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.get("/{asset_id}", response_model=AssetRead)
-def get_asset_endpoint(asset_id: str, session: Session = Depends(get_session)):
+def get_asset_endpoint(
+    asset_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
     asset = get_asset(session, asset_id)
-    if asset is None:
+    if asset is None or asset.workspace_id != auth.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset not found")
     return asset
 
 
 @router.get("/{asset_id}/content")
-def get_asset_content(asset_id: str, session: Session = Depends(get_session)):
+def get_asset_content(
+    asset_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
     asset = get_asset(session, asset_id)
-    if asset is None:
+    if asset is None or asset.workspace_id != auth.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset not found")
 
     path = STORAGE_ROOT / asset.normalized_path

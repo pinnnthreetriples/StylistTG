@@ -8,9 +8,11 @@ down_revision = "20260429_0011"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
-    op.add_column("account_profile_state", sa.Column("profile_photo_asset_id", sa.String(length=36), nullable=True))
+    op.add_column("account_profile_state", sa.Column("profile_photo_asset_id", UUID_STRING, nullable=True))
 
 
 def downgrade() -> None:

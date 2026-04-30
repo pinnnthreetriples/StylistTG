@@ -1,0 +1,405 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from app.config import Settings
+from app.db import Base
+from app.main import app
+from app.models import (
+    DEFAULT_LOCAL_WORKSPACE_ID,
+    Asset,
+    AssetKind,
+    AssetStatus,
+    Job,
+    JobState,
+    User,
+    Workspace,
+    WorkspaceMember,
+    WorkspacePlan,
+)
+from app.services.accounts import create_account
+from app.services.audit_logs import log_audit_event
+from app.services.auth_batches import PhoneInput, create_auth_batch
+from app.services.auth_context import AuthContext, get_current_auth_context
+from app.services.database import create_sqlite_test_session_factory
+from app.services.jobs import create_profile_job
+from app.services.limits import WorkspaceLimitError, check_workspace_limit, increment_usage
+from app.services.supabase_jwt import SupabaseJwtVerifier
+from app.services.workspaces import ensure_default_workspace
+
+from conftest import FakeExecutionUsableAdapter, override_app_session
+
+
+def test_db_config_prefers_runtime_and_direct_urls() -> None:
+    config = Settings(
+        database_url="postgresql+psycopg://local",
+        database_runtime_url="postgresql+psycopg://pooled",
+        database_direct_url="postgresql+psycopg://direct",
+    )
+
+    assert config.runtime_database_url == "postgresql+psycopg://pooled"
+    assert config.migration_database_url == "postgresql+psycopg://direct"
+
+
+def test_default_workspace_bootstrap_creates_identity_graph(db_session) -> None:
+    user, workspace, member = ensure_default_workspace(db_session)
+    db_session.commit()
+
+    assert user.external_auth_provider == "local"
+    assert workspace.id == DEFAULT_LOCAL_WORKSPACE_ID
+    assert member.role == "owner"
+    assert db_session.get(WorkspacePlan, DEFAULT_LOCAL_WORKSPACE_ID) is not None
+
+
+def test_local_auth_context_uses_default_workspace(db_session) -> None:
+    class DummyRequest:
+        headers: dict[str, str] = {}
+
+    context = get_current_auth_context(DummyRequest(), db_session)
+
+    assert context.workspace_id == DEFAULT_LOCAL_WORKSPACE_ID
+    assert context.role == "owner"
+    assert context.auth_source == "local"
+
+
+def test_supabase_jwt_verifier_accepts_mocked_valid_claims(monkeypatch) -> None:
+    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
+    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url: {"keys": [{"kid": "k", "n": "AQ", "e": "AQAB"}]})
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+
+    assert verifier.verify("token")["sub"] == "u"
+
+
+def test_account_endpoint_blocks_foreign_workspace_account() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550109999", workspace_id=workspace.id)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/accounts/{account_id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_create_job_for_foreign_account() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550108888", workspace_id=workspace.id)
+        account.account_state = "execution_usable"
+        account.runtime_state.runtime_health = "ready"
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/jobs/profile",
+            json={"account_id": account_id, "name": "Stylist", "bio": None, "username": None, "photo_asset_id": None},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_access_foreign_asset() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        asset = Asset(
+            workspace_id=workspace.id,
+            kind=AssetKind.PROFILE_PHOTO,
+            source_path="assets/source.jpg",
+            normalized_path="assets/photo.jpg",
+            content_hash="hash",
+            mime="image/jpeg",
+            status=AssetStatus.NORMALIZED,
+        )
+        session.add(asset)
+        session.commit()
+        asset_id = asset.id
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/assets/{asset_id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_update_foreign_proxy() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550107777", workspace_id=workspace.id)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).put(
+            f"/api/accounts/{account_id}/proxy",
+            json={"proxy_type": "http", "host": "127.0.0.1", "port": 8080},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_read_foreign_operation_logs() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref="+15550106666", workspace_id=workspace.id)
+        log_audit_event(
+            session,
+            workspace_id=workspace.id,
+            actor_user_id=None,
+            action="account.created",
+            entity_type="account",
+            entity_id=account.id,
+        )
+        from app.services.operation_logs import log_operation
+
+        log_operation(
+            session,
+            account_id=account.id,
+            operation_type="proxy",
+            status="completed",
+            source="test",
+            message="hidden",
+        )
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get("/api/operation-logs")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+def test_cannot_poll_foreign_auth_batch() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="foreign-batch",
+            label="foreign",
+            inputs=[PhoneInput(phone_number="+15550106555")],
+            workspace_id=workspace.id,
+        )
+        batch_id = batch.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/auth-batches/{batch_id}/poll")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_cannot_submit_code_for_foreign_auth_batch_item() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="foreign-item",
+            label="foreign",
+            inputs=[PhoneInput(phone_number="+15550106444")],
+            workspace_id=workspace.id,
+        )
+        batch_id = batch.id
+        item_id = batch.items[0].id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            f"/api/auth-batches/{batch_id}/items/{item_id}/submit-code",
+            json={"code": "12345", "idempotency_key": "submit-foreign"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_job_creation_sets_workspace_and_actor(db_session) -> None:
+    account = create_account(db_session, external_ref="+15550105555")
+    account.account_state = "execution_usable"
+    db_session.commit()
+
+    job = create_profile_job(
+        db_session,
+        account_id=account.id,
+        payload={"name": "Stylist", "bio": None, "username": None, "photo_asset_id": None},
+        execution_adapter=FakeExecutionUsableAdapter(),
+        requested_by_user_id="user-1",
+    )
+
+    assert job.workspace_id == account.workspace_id
+    assert job.requested_by_user_id == "user-1"
+
+
+def test_worker_rejects_workspace_account_mismatch(db_session) -> None:
+    account = create_account(db_session, external_ref="+15550104444")
+    job = Job(
+        workspace_id="00000000-0000-4000-8000-000000000999",
+        account_id=account.id,
+        job_state=JobState.QUEUED,
+        execution_intent_hash="hash",
+        payload_json={},
+        plan_json_snapshot={"steps": []},
+    )
+    db_session.add(job)
+    db_session.commit()
+
+    from app.workers.profile_jobs import execute_profile_job
+
+    assert execute_profile_job(job.id, session=db_session) == 1
+    assert job.failure_reason == "workspace_account_mismatch"
+
+
+def test_audit_log_sanitizes_nested_metadata(db_session) -> None:
+    ensure_default_workspace(db_session)
+    row = log_audit_event(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        actor_user_id=None,
+        action="proxy.updated",
+        entity_type="proxy",
+        metadata={"proxy_password": "secret", "nested": [{"jwt": "token"}]},
+    )
+
+    assert row.metadata_json == {"proxy_password": "***", "nested": [{"jwt": "***"}]}
+
+
+def test_basic_limits_service_blocks_account_limit(db_session) -> None:
+    ensure_default_workspace(db_session)
+    plan = db_session.get(WorkspacePlan, DEFAULT_LOCAL_WORKSPACE_ID)
+    plan.max_accounts = 0
+    db_session.commit()
+
+    try:
+        check_workspace_limit(db_session, DEFAULT_LOCAL_WORKSPACE_ID, "accounts")
+    except WorkspaceLimitError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert message == "accounts limit exceeded"
+
+
+def test_usage_counter_increments(db_session) -> None:
+    ensure_default_workspace(db_session)
+
+    counter = increment_usage(db_session, DEFAULT_LOCAL_WORKSPACE_ID, "jobs_per_day", value=2)
+
+    assert counter.value == 2
+
+
+def _seed_second_workspace(session):
+    ensure_default_workspace(session)
+    user = User(
+        email="second@example.test",
+        external_auth_provider="test",
+        external_auth_user_id="second-user",
+        status="active",
+    )
+    workspace = Workspace(
+        name="Second",
+        slug="second",
+        owner_user_id=user.id,
+        status="active",
+    )
+    session.add(user)
+    session.flush()
+    workspace.owner_user_id = user.id
+    session.add(workspace)
+    session.flush()
+    session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="owner"))
+    session.add(
+        WorkspacePlan(
+            workspace_id=workspace.id,
+            plan_code="test",
+            billing_status="active",
+            max_accounts=1000,
+            max_jobs_per_day=1000,
+            max_batch_size=1000,
+            max_storage_mb=1000,
+            max_team_members=10,
+        )
+    )
+    session.flush()
+    return user, workspace

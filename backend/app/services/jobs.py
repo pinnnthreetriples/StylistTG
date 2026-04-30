@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState, AssetKind, AssetStatus, Job, JobState, TERMINAL_JOB_STATES, utc_now
+from app.services.audit_logs import log_audit_event
+from app.services.limits import check_workspace_limit, increment_usage
 from app.services.accounts import get_account
 from app.services.assets import get_asset
 from app.services.auth import is_account_hard_stopped
@@ -35,6 +37,9 @@ def create_profile_job(
     payload: dict,
     execution_adapter: ExecutionUsableAdapter | None = None,
     config: Settings = settings,
+    requested_by_user_id: str | None = None,
+    created_from: str = "api",
+    request_id: str | None = None,
 ) -> Job:
     account = get_account(session, account_id)
     if account is None:
@@ -49,13 +54,18 @@ def create_profile_job(
 
     if is_profile_job_cooldown_active(session, account_id, config=config):
         raise ValueError("profile job cooldown active")
+    check_workspace_limit(session, account.workspace_id, "jobs_per_day")
 
     payload = normalize_profile_payload(session, payload)
     intent_hash = compute_execution_intent_hash(account_id, payload)
     duplicate = find_active_duplicate_job(session, account_id, intent_hash)
     state = JobState.DEDUP_BLOCKED if duplicate else JobState.QUEUED
     job = Job(
+        workspace_id=account.workspace_id,
         account_id=account_id,
+        requested_by_user_id=requested_by_user_id,
+        created_from=created_from,
+        request_id=request_id,
         job_state=state,
         execution_intent_hash=intent_hash,
         job_payload_version=1,
@@ -65,6 +75,18 @@ def create_profile_job(
         queued_at=utc_now() if not duplicate else None,
     )
     session.add(job)
+    log_audit_event(
+        session,
+        workspace_id=account.workspace_id,
+        actor_user_id=requested_by_user_id,
+        action="job.created",
+        entity_type="job",
+        entity_id=job.id,
+        request_id=request_id,
+        metadata={"workflow_type": job.workflow_type, "state": state},
+    )
+    if state == JobState.QUEUED:
+        increment_usage(session, account.workspace_id, "jobs_per_day")
     session.commit()
     session.refresh(job)
     log_event(

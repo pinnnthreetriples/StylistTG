@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import Account, AccountProxy, AccountValidityCheckRun
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Account, AccountProxy, AccountValidityCheckRun
 from app.services.account_capabilities import build_account_capabilities
 from app.services.account_cooldowns import (
     active_cooldowns_by_operation,
@@ -63,8 +63,16 @@ def build_account_safety_for_account(session: Session, account: Account, *, conf
     }
 
 
-def build_account_safety_summary(session: Session, *, config: Settings = settings) -> list[dict[str, Any]]:
-    return [summarize_account_safety(build_account_safety_for_account(session, account, config=config)) for account in list_accounts(session)]
+def build_account_safety_summary(
+    session: Session,
+    *,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    config: Settings = settings,
+) -> list[dict[str, Any]]:
+    return [
+        summarize_account_safety(build_account_safety_for_account(session, account, config=config))
+        for account in list_accounts(session, workspace_id=workspace_id)
+    ]
 
 
 def summarize_account_safety(safety: dict[str, Any]) -> dict[str, Any]:

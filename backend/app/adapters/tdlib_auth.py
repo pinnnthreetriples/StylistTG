@@ -14,6 +14,7 @@ from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
+from app.storage.paths import resolve_tdlib_account_dirs
 
 
 class TdlibAuthStatus(StrEnum):
@@ -194,8 +195,8 @@ class TdlibAuthAdapter:
             log_event(
                 "tdlib_session_reused",
                 account_id=account_id,
-                database_directory=str(self._config.tdlib_database_root / account_id),
-                files_directory=str(self._config.tdlib_files_root / account_id),
+                database_directory=str(resolve_tdlib_account_dirs(self._config, account_id).database_directory),
+                files_directory=str(resolve_tdlib_account_dirs(self._config, account_id).files_directory),
             )
             while time.monotonic() < deadline:
                 event = _receive_client_event(
@@ -455,15 +456,12 @@ def _receive_client_event(
 
 
 def _tdlib_parameters_query(config: Settings, account_id: str) -> dict:
-    database_directory = config.tdlib_database_root / account_id
-    files_directory = config.tdlib_files_root / account_id
-    database_directory.mkdir(parents=True, exist_ok=True)
-    files_directory.mkdir(parents=True, exist_ok=True)
+    dirs = resolve_tdlib_account_dirs(config, account_id)
     return {
         "@type": "setTdlibParameters",
         "use_test_dc": config.tdlib_use_test_dc,
-        "database_directory": str(database_directory),
-        "files_directory": str(files_directory),
+        "database_directory": str(dirs.database_directory),
+        "files_directory": str(dirs.files_directory),
         "database_encryption_key": "",
         "use_file_database": True,
         "use_chat_info_database": False,

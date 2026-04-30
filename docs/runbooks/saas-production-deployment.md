@@ -56,6 +56,20 @@ PROFILE_EXECUTION_ADAPTER=tdlib
 
 Do not expose Supabase service-role keys, proxy passwords, JWTs, TDLib sessions, or TDLib storage paths to the browser.
 
+Storage:
+
+```powershell
+STORAGE_BACKEND=local
+STORAGE_LOCAL_ROOT=<private backend asset storage path>
+TDLIB_STORAGE_BACKEND=local
+TDLIB_DATABASE_ROOT=<private TDLib database path>
+TDLIB_FILES_ROOT=<private TDLib files path>
+```
+
+`STORAGE_BACKEND=s3` is reserved for the S3/R2/MinIO-compatible foundation and
+requires the `STORAGE_S3_*` settings. TDLib session storage remains separate from
+asset storage and must stay backend-only.
+
 ## Deployment Order
 
 1. Set environment variables.
@@ -100,6 +114,7 @@ Do not expose Supabase service-role keys, proxy passwords, JWTs, TDLib sessions,
 - Do not give frontend direct database access.
 - Do not expose Supabase service-role keys.
 - Do not expose TDLib session folders through public storage.
+- Do not run asset cleanup against TDLib session directories.
 
 ## Rollback Notes
 

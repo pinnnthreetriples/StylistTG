@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import shutil
 import subprocess
 from io import BytesIO
 from pathlib import Path
@@ -12,6 +11,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings, settings
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Asset, AssetKind, AssetStatus, new_id
 from app.services.audit_logs import log_audit_event
+from app.storage import LocalStorageService, StorageService
+from app.storage.paths import asset_normalized_key, asset_prefix, asset_source_key
 
 PROFILE_AUDIO_EXECUTION_MIMES = {
     "audio/mpeg",
@@ -29,12 +30,10 @@ def save_profile_photo_asset(
     storage_root: Path,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     actor_user_id: str | None = None,
+    storage_service: StorageService | None = None,
 ) -> Asset:
     asset_id = new_id()
-    source_dir = storage_root / "assets" / asset_id / "source"
-    normalized_dir = storage_root / "assets" / asset_id / "normalized"
-    source_dir.mkdir(parents=True, exist_ok=True)
-    normalized_dir.mkdir(parents=True, exist_ok=True)
+    storage = storage_service or _local_storage(storage_root)
 
     try:
         image = Image.open(BytesIO(content))
@@ -45,21 +44,24 @@ def save_profile_photo_asset(
 
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_name = f"original{Path(filename).suffix or '.upload'}"
-    source_path = source_dir / source_name
-    source_path.write_bytes(content)
+    source_key = asset_source_key(asset_id, source_name)
+    storage.save_bytes(source_key, content, content_type=mime)
 
     normalized = ImageOps.exif_transpose(image).convert("RGB")
     normalized.thumbnail((1024, 1024))
-    normalized_path = normalized_dir / "profile_photo.jpg"
-    normalized.save(normalized_path, format="JPEG", quality=90, optimize=True)
-    content_hash = hashlib.sha256(normalized_path.read_bytes()).hexdigest()
+    normalized_bytes = BytesIO()
+    normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
+    normalized_content = normalized_bytes.getvalue()
+    normalized_key = asset_normalized_key(asset_id, "profile_photo.jpg")
+    storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
         id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.PROFILE_PHOTO,
-        source_path=str(source_path.relative_to(storage_root)),
-        normalized_path=str(normalized_path.relative_to(storage_root)),
+        source_path=source_key,
+        normalized_path=normalized_key,
         original_filename=filename,
         content_hash=content_hash,
         mime=mime,
@@ -81,6 +83,7 @@ def save_profile_audio_asset(
     max_bytes: int,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     actor_user_id: str | None = None,
+    storage_service: StorageService | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -92,24 +95,21 @@ def save_profile_audio_asset(
         raise ValueError("profile audio must be MP3 or M4A")
 
     asset_id = new_id()
-    source_dir = storage_root / "assets" / asset_id / "source"
-    normalized_dir = storage_root / "assets" / asset_id / "normalized"
-    source_dir.mkdir(parents=True, exist_ok=True)
-    normalized_dir.mkdir(parents=True, exist_ok=True)
+    storage = storage_service or _local_storage(storage_root)
 
     extension = Path(filename).suffix or _audio_extension_for_mime(mime)
-    source_path = source_dir / f"original{extension}"
-    normalized_path = normalized_dir / f"profile_audio{extension}"
-    source_path.write_bytes(content)
-    normalized_path.write_bytes(content)
+    source_key = asset_source_key(asset_id, f"original{extension}")
+    normalized_key = asset_normalized_key(asset_id, f"profile_audio{extension}")
+    storage.save_bytes(source_key, content, content_type=mime)
+    storage.save_bytes(normalized_key, content, content_type=mime)
     content_hash = hashlib.sha256(content).hexdigest()
 
     asset = Asset(
         id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.PROFILE_AUDIO,
-        source_path=str(source_path.relative_to(storage_root)),
-        normalized_path=str(normalized_path.relative_to(storage_root)),
+        source_path=source_key,
+        normalized_path=normalized_key,
         original_filename=filename,
         content_hash=content_hash,
         mime=mime,
@@ -131,6 +131,7 @@ def save_story_image_asset(
     max_bytes: int,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     actor_user_id: str | None = None,
+    storage_service: StorageService | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -138,10 +139,7 @@ def save_story_image_asset(
         raise ValueError("uploaded story image is too large")
 
     asset_id = new_id()
-    source_dir = storage_root / "assets" / asset_id / "source"
-    normalized_dir = storage_root / "assets" / asset_id / "normalized"
-    source_dir.mkdir(parents=True, exist_ok=True)
-    normalized_dir.mkdir(parents=True, exist_ok=True)
+    storage = storage_service or _local_storage(storage_root)
 
     try:
         image = Image.open(BytesIO(content))
@@ -150,20 +148,24 @@ def save_story_image_asset(
     except UnidentifiedImageError as exc:
         raise ValueError("uploaded file is not a supported story image") from exc
 
-    source_path = source_dir / f"original{Path(filename).suffix or '.upload'}"
-    source_path.write_bytes(content)
+    mime = Image.MIME.get(image.format or "", "application/octet-stream")
+    source_key = asset_source_key(asset_id, f"original{Path(filename).suffix or '.upload'}")
+    storage.save_bytes(source_key, content, content_type=mime)
     normalized = ImageOps.exif_transpose(image).convert("RGB")
     normalized.thumbnail((1080, 1920))
-    normalized_path = normalized_dir / "story_image.jpg"
-    normalized.save(normalized_path, format="JPEG", quality=90, optimize=True)
-    content_hash = hashlib.sha256(normalized_path.read_bytes()).hexdigest()
+    normalized_bytes = BytesIO()
+    normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
+    normalized_content = normalized_bytes.getvalue()
+    normalized_key = asset_normalized_key(asset_id, "story_image.jpg")
+    storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
         id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.STORY_IMAGE,
-        source_path=str(source_path.relative_to(storage_root)),
-        normalized_path=str(normalized_path.relative_to(storage_root)),
+        source_path=source_key,
+        normalized_path=normalized_key,
         original_filename=filename,
         content_hash=content_hash,
         mime="image/jpeg",
@@ -186,6 +188,7 @@ def save_story_video_asset(
     config: Settings = settings,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     actor_user_id: str | None = None,
+    storage_service: StorageService | None = None,
 ) -> Asset:
     if not content:
         raise ValueError("uploaded file is empty")
@@ -196,18 +199,21 @@ def save_story_video_asset(
         raise ValueError("uploaded file is not a supported story video")
 
     asset_id = new_id()
-    source_dir = storage_root / "assets" / asset_id / "source"
-    normalized_dir = storage_root / "assets" / asset_id / "normalized"
-    source_dir.mkdir(parents=True, exist_ok=True)
-    normalized_dir.mkdir(parents=True, exist_ok=True)
+    storage = storage_service or _local_storage(storage_root)
+    if not isinstance(storage, LocalStorageService):
+        raise ValueError("story video preparation currently requires local storage")
     extension = Path(filename).suffix or ".mp4"
-    source_path = source_dir / f"original{extension}"
-    asset_root = storage_root / "assets" / asset_id
+    source_key = asset_source_key(asset_id, f"original{extension}")
+    normalized_key = asset_normalized_key(asset_id, "story_video.mp4")
+    source_path = storage.resolve_path(source_key)
+    normalized_dir = storage.resolve_path(asset_normalized_key(asset_id, ".keep")).parent
+    normalized_dir.mkdir(parents=True, exist_ok=True)
     try:
-        source_path.write_bytes(content)
+        storage.save_bytes(source_key, content, content_type=mime)
         normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+        normalized_key = normalized_path.relative_to(storage.root.resolve()).as_posix()
     except Exception:
-        shutil.rmtree(asset_root, ignore_errors=True)
+        storage.delete(asset_prefix(asset_id))
         raise
     content_hash = hashlib.sha256(normalized_path.read_bytes()).hexdigest()
 
@@ -215,8 +221,8 @@ def save_story_video_asset(
         id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.STORY_VIDEO,
-        source_path=str(source_path.relative_to(storage_root)),
-        normalized_path=str(normalized_path.relative_to(storage_root)),
+        source_path=source_key,
+        normalized_path=normalized_key,
         original_filename=filename,
         content_hash=content_hash,
         mime=mime,
@@ -249,6 +255,10 @@ def _log_asset_uploaded(
         entity_id=asset.id,
         metadata={"kind": asset.kind, "mime": asset.mime},
     )
+
+
+def _local_storage(storage_root: Path) -> LocalStorageService:
+    return LocalStorageService(storage_root)
 
 
 def _guess_audio_mime(filename: str, content: bytes) -> str:

@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     stale_job_reaper_enabled: bool = True
     stale_job_reaper_interval_seconds: int = 60
     profile_job_cooldown_seconds: int = 120
+    profile_update_cooldown_seconds: int = 300
+    username_cooldown_seconds: int = 1800
+    profile_photo_cooldown_seconds: int = 900
+    profile_music_cooldown_seconds: int = 900
+    story_post_cooldown_seconds: int = 3600
+    story_delete_cooldown_seconds: int = 900
+    unknown_capability_policy: str = "warning_only"
+    recent_failure_policy: str = "warning_only"
+    fresh_validity_required: str = "if_stale"
+    fresh_validity_max_age_minutes: int = 30
+    manual_hard_blocker_override_enabled: bool = False
     profile_photo_max_bytes: int = 20 * 1024 * 1024
     profile_audio_max_bytes: int = 20 * 1024 * 1024
     story_image_max_bytes: int = 10 * 1024 * 1024

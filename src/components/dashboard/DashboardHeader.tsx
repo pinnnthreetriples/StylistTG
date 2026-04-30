@@ -6,10 +6,12 @@
 
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import {
+  activeCooldownLabels,
   capabilitySummaryLabel,
   healthStatusLabel,
   riskLevelLabel,
   safetyTone,
+  validityAgeLabel,
   validityStatusLabel,
   type AccountSafety,
 } from '@/lib/accountSafety'
@@ -43,6 +45,8 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const statusLabel = safety ? healthStatusLabel(safety.health_status) : isExecutionUsable ? 'Подключено' : 'Требует внимания'
   const safetyStatusTone = safety ? safetyTone(safety.health_status) : isExecutionUsable ? 'green' : 'amber'
+  const cooldownLabels = activeCooldownLabels(safety)
+  const safetyDetails = cooldownLabels.length > 0 ? cooldownLabels.join(' · ') : capabilitySummaryLabel(safety)
   const statusClasses = {
     green: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-honey-50 text-honey-700',
@@ -87,9 +91,9 @@ export function DashboardHeader({
               <div className="hidden max-w-sm rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-500 lg:block">
                 <span className="font-medium text-gray-700">{riskLevelLabel(safety.overall_risk_level)}</span>
                 <span className="mx-1 text-gray-300">·</span>
-                <span>{capabilitySummaryLabel(safety)}</span>
+                <span>{safetyDetails}</span>
                 <span className="mx-1 text-gray-300">·</span>
-                <span>{validityStatusLabel(safety.last_validity_check)}</span>
+                <span title={validityStatusLabel(safety.last_validity_check)}>{validityAgeLabel(safety.last_validity_check)}</span>
               </div>
             ) : null}
             <button

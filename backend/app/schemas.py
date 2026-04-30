@@ -86,12 +86,26 @@ class AccountRiskRead(BaseModel):
     reasons: list[AccountSafetyReasonRead]
 
 
+class AccountOperationCooldownRead(BaseModel):
+    id: str
+    account_id: str
+    operation: str
+    level: str
+    reason_code: str
+    started_at: datetime
+    retry_after_at: datetime
+    source: str
+    source_job_id: str | None = None
+    source_step_id: str | None = None
+
+
 class AccountSafetySummaryRead(BaseModel):
     account_id: str
     health_status: str
     overall_risk_level: str
     validity_status: str
     capability_summary: dict[str, str]
+    cooldown_summary: list[AccountOperationCooldownRead] = Field(default_factory=list)
     top_reasons: list[AccountSafetyReasonRead]
     last_checked_at: datetime
     source: str
@@ -118,8 +132,33 @@ class AccountValidityCheckRead(BaseModel):
 class AccountSafetyRead(AccountSafetySummaryRead):
     capabilities: dict[str, AccountCapabilityRead]
     risk_by_operation: dict[str, AccountRiskRead]
+    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]]
     reasons: list[AccountSafetyReasonRead]
     last_validity_check: AccountValidityCheckRead | None = None
+
+
+class AccountBatchSafetyPreviewRequest(BaseModel):
+    account_ids: list[str] = Field(min_length=1, max_length=500)
+    operation: str = "batch_operation"
+    allow_warning_overrides: bool = False
+
+
+class AccountBatchSafetyItemRead(BaseModel):
+    account_id: str
+    batch_status: str
+    health_status: str
+    risk_level: str
+    reasons: list[AccountSafetyReasonRead]
+    cooldowns: list[AccountOperationCooldownRead]
+
+
+class AccountBatchSafetyPreviewRead(BaseModel):
+    operation: str
+    can_start: bool
+    counts: dict[str, int]
+    blocking_account_ids: list[str]
+    warning_account_ids: list[str]
+    items: list[AccountBatchSafetyItemRead]
 
 
 class FieldErrorRead(BaseModel):
@@ -146,10 +185,33 @@ class ExecutionPolicyRead(BaseModel):
     profile_job_cooldown_seconds: int
     profile_job_cooldown_enabled: bool
     allowed_profile_job_cooldown_seconds: list[int]
+    profile_update_cooldown_seconds: int
+    username_cooldown_seconds: int
+    profile_photo_cooldown_seconds: int
+    profile_music_cooldown_seconds: int
+    story_post_cooldown_seconds: int
+    story_delete_cooldown_seconds: int
+    unknown_capability_policy: str
+    recent_failure_policy: str
+    fresh_validity_required: str
+    fresh_validity_max_age_minutes: int
+    manual_hard_blocker_override_enabled: bool
+    non_overridable_blockers: list[str]
 
 
 class ExecutionPolicyUpdate(BaseModel):
-    profile_job_cooldown_seconds: int
+    profile_job_cooldown_seconds: int | None = None
+    profile_update_cooldown_seconds: int | None = None
+    username_cooldown_seconds: int | None = None
+    profile_photo_cooldown_seconds: int | None = None
+    profile_music_cooldown_seconds: int | None = None
+    story_post_cooldown_seconds: int | None = None
+    story_delete_cooldown_seconds: int | None = None
+    unknown_capability_policy: Literal["warning_only", "block_live_execution"] | None = None
+    recent_failure_policy: Literal["warning_only", "cooldown"] | None = None
+    fresh_validity_required: Literal["never", "if_stale", "always_for_live"] | None = None
+    fresh_validity_max_age_minutes: int | None = None
+    manual_hard_blocker_override_enabled: bool | None = None
 
 
 class LivePreflightRead(BaseModel):
@@ -567,6 +629,7 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     capability_snapshot: dict[str, str]
     account_safety: AccountSafetyRead | None = None
     risk_by_operation: dict[str, AccountRiskRead] = Field(default_factory=dict)
+    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(default_factory=dict)
     safety_warnings: list[str] = Field(default_factory=list)
     safety_blockers: list[str] = Field(default_factory=list)
 

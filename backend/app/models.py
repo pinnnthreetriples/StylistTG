@@ -165,6 +165,9 @@ class Account(Base):
     validity_check_runs: Mapped[list[AccountValidityCheckRun]] = relationship(
         cascade="all, delete-orphan"
     )
+    operation_cooldowns: Mapped[list[AccountOperationCooldown]] = relationship(
+        cascade="all, delete-orphan"
+    )
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
 
@@ -456,6 +459,25 @@ class AccountValidityCheckRun(Base):
     details_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AccountOperationCooldown(Base):
+    __tablename__ = "account_operation_cooldown"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    operation: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    level: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(128), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retry_after_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(128), nullable=False)
+    source_job_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    source_step_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class Job(Base):

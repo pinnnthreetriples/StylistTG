@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  accountMatchesAdvancedFilter,
   accountMatchesFilter,
   accountMatchesSearch,
   accountStatus,
   accountStats,
   maskPhone,
+  type AccountAdvancedFilter,
   type AccountFilter,
 } from '@/lib/accounts'
 import type { AccountListItem } from '@/lib/api'
+import type { AccountSafetySummary } from '@/lib/accountSafety'
 
 function account(overrides: Partial<AccountListItem>): AccountListItem {
   return {
@@ -23,6 +26,21 @@ function account(overrides: Partial<AccountListItem>): AccountListItem {
     is_test_dc: false,
     profile_photo_asset_id: null,
     updated_at: '2026-04-25T10:00:00Z',
+    ...overrides,
+  }
+}
+
+function safety(overrides: Partial<AccountSafetySummary>): AccountSafetySummary {
+  return {
+    account_id: 'account-1',
+    health_status: 'ready',
+    overall_risk_level: 'low',
+    validity_status: 'valid',
+    capability_summary: {},
+    cooldown_summary: [],
+    top_reasons: [],
+    last_checked_at: '2026-04-30T00:00:00Z',
+    source: 'db_snapshot',
     ...overrides,
   }
 }
@@ -56,6 +74,35 @@ describe('account list helpers', () => {
     expect(accountMatchesSearch(marina, '999')).toBe(false)
 
     const filters: AccountFilter[] = ['all', 'authorized', 'waiting', 'error']
+    expect(filters.every((filter) => typeof filter === 'string')).toBe(true)
+  })
+
+  it('filters accounts by safety readiness for advanced account management', () => {
+    const base = account({ account_id: '1' })
+    const paused = safety({
+      cooldown_summary: [
+        {
+          id: 'cooldown-1',
+          account_id: '1',
+          operation: 'username',
+          level: 'blocked',
+          reason_code: 'recent_flood_wait',
+          started_at: '2026-04-30T00:00:00Z',
+          retry_after_at: '2026-04-30T00:10:00Z',
+          source: 'job_step_result',
+          source_job_id: null,
+          source_step_id: null,
+        },
+      ],
+    })
+
+    expect(accountMatchesAdvancedFilter(base, safety({ health_status: 'ready' }), 'safety_ready')).toBe(true)
+    expect(accountMatchesAdvancedFilter(base, safety({ health_status: 'blocked' }), 'needs_login')).toBe(true)
+    expect(accountMatchesAdvancedFilter(base, paused, 'paused')).toBe(true)
+    expect(accountMatchesAdvancedFilter(base, safety({ health_status: 'attention' }), 'limited')).toBe(true)
+    expect(accountMatchesAdvancedFilter(base, null, 'unchecked')).toBe(true)
+
+    const filters: AccountAdvancedFilter[] = ['all', 'safety_ready', 'needs_login', 'paused', 'limited', 'unchecked']
     expect(filters.every((filter) => typeof filter === 'string')).toBe(true)
   })
 

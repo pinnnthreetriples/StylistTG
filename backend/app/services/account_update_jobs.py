@@ -17,7 +17,7 @@ from app.services.account_update_plan import (
 from app.services.accounts import get_account
 from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
-from app.services.account_safety import build_account_safety_for_account, safety_preview_fields
+from app.services.account_safety import build_account_safety_for_account, safety_preview_fields, safety_preview_fields_with_policy
 from app.services.execution_policy import ExecutionUsableAdapter, ensure_execution_usable
 from app.services.jobs import (
     find_active_duplicate_job,
@@ -105,15 +105,19 @@ def create_account_update_job(
         if not policy.ok or policy.account.account_state != AccountState.EXECUTION_USABLE:
             raise ValueError("account is not execution_usable")
 
+    requested_profile_fields = _requested_profile_fields(desired_state)
+    desired_state = _normalize_with_profile_assets(session, account_id=account_id, desired_state=desired_state)
     if is_profile_job_cooldown_active(session, account_id, config=config):
         raise ValueError("profile job cooldown active")
     if desired_state.get("stories") and not config.stories_enabled:
         raise ValueError("stories are disabled")
     if desired_state.get("stories") and _stories_live_execution_blocked(config):
         raise ValueError("stories live TDLib execution is not enabled")
-
-    requested_profile_fields = _requested_profile_fields(desired_state)
-    desired_state = _normalize_with_profile_assets(session, account_id=account_id, desired_state=desired_state)
+    safety = build_account_safety_for_account(session, account, config=config)
+    safety_fields = safety_preview_fields_with_policy(safety, desired_state, config=config)
+    create_blockers = _create_job_safety_blockers(safety_fields["safety_blockers"])
+    if create_blockers:
+        raise ValueError(create_blockers[0])
     plan = build_account_update_plan(
         desired_state,
         profile_step_types=_changed_profile_step_types(
@@ -210,6 +214,15 @@ def _validate_story_assets(session: Session, desired_state: dict) -> None:
 
 def _stories_live_execution_blocked(config: Settings) -> bool:
     return config.profile_execution_adapter == "tdlib" and not config.stories_tdlib_live_enabled
+
+
+def _create_job_safety_blockers(blockers: list[str]) -> list[str]:
+    preview_only_capability_blockers = {
+        "stories_mock_mode",
+        "stories_live_disabled",
+        "stories_disabled",
+    }
+    return [blocker for blocker in blockers if blocker not in preview_only_capability_blockers]
 
 
 def _unique_strings(values: list[str]) -> list[str]:

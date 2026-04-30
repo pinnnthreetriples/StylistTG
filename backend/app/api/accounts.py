@@ -11,6 +11,8 @@ from app.logging_utils import log_event
 from app.models import Account
 from app.schemas import (
     AccountCreate,
+    AccountBatchSafetyPreviewRead,
+    AccountBatchSafetyPreviewRequest,
     AccountListItemRead,
     AccountRead,
     AccountRuntimeDiagnosticsRead,
@@ -30,6 +32,7 @@ from app.services.profile_sync import (
 )
 from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.account_safety import build_account_safety, build_account_safety_summary
+from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
 from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
 from app.services.dashboard import job_summary
@@ -55,6 +58,27 @@ def get_accounts(session: Session = Depends(get_session)):
 @router.get("/safety-summary", response_model=list[AccountSafetySummaryRead])
 def get_accounts_safety_summary(session: Session = Depends(get_session)):
     return build_account_safety_summary(session)
+
+
+@router.post("/safety-batch-preview", response_model=AccountBatchSafetyPreviewRead)
+def post_accounts_safety_batch_preview(
+    payload: AccountBatchSafetyPreviewRequest,
+    session: Session = Depends(get_session),
+):
+    try:
+        return build_account_batch_safety_preview(
+            session,
+            account_ids=payload.account_ids,
+            operation=payload.operation,
+            allow_warning_overrides=payload.allow_warning_overrides,
+        )
+    except ValueError as exc:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message=str(exc),
+        ) from exc
 
 
 @router.get("/auth-state", response_model=AuthStateRead)

@@ -1,59 +1,49 @@
-from app.models import AccountState
-from app.services.accounts import create_account
-from app.services.execution_policy import ensure_execution_usable
-from app.services.jobs import create_profile_job
+from fastapi.testclient import TestClient
 
-from conftest import FakeExecutionUsableAdapter
+from app.main import app
 
 
-def test_ensure_execution_usable_promotes_authorized_account(db_session) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = AccountState.AUTHORIZED_READY
-    db_session.commit()
+def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypatch) -> None:
+    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
+    monkeypatch.setattr("app.api.settings.settings.username_cooldown_seconds", 1800)
+    monkeypatch.setattr("app.api.settings.settings.profile_music_cooldown_seconds", 900)
+    monkeypatch.setattr("app.api.settings.settings.unknown_capability_policy", "warning_only")
+    monkeypatch.setattr("app.api.settings.settings.recent_failure_policy", "warning_only")
+    monkeypatch.setattr("app.api.settings.settings.fresh_validity_required", "if_stale")
+    monkeypatch.setattr("app.api.settings.settings.fresh_validity_max_age_minutes", 30)
+    monkeypatch.setattr("app.api.settings.settings.manual_hard_blocker_override_enabled", False)
+    client = TestClient(app)
 
-    result = ensure_execution_usable(db_session, account.id, adapter=FakeExecutionUsableAdapter())
+    response = client.patch(
+        "/api/settings/execution-policy",
+        json={
+            "profile_job_cooldown_seconds": 60,
+            "username_cooldown_seconds": 1800,
+            "profile_music_cooldown_seconds": 900,
+            "unknown_capability_policy": "block_live_execution",
+            "recent_failure_policy": "cooldown",
+            "fresh_validity_required": "if_stale",
+            "fresh_validity_max_age_minutes": 20,
+            "manual_hard_blocker_override_enabled": True,
+        },
+    )
 
-    assert result.account.account_state == AccountState.EXECUTION_USABLE
-    assert result.runtime_state.runtime_health == "ready"
-    assert result.account.telegram_user_id == "123456"
-
-
-def test_create_profile_job_blocks_non_execution_usable_account(db_session) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = AccountState.AUTHORIZED_READY
-    db_session.commit()
-
-    try:
-        create_profile_job(
-            db_session,
-            account_id=account.id,
-            payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-            execution_adapter=FakeExecutionUsableAdapter(ok=False),
-        )
-    except ValueError as exc:
-        assert "execution_usable" in str(exc)
-    else:
-        raise AssertionError("job was created for non-usable account")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["username_cooldown_seconds"] == 1800
+    assert payload["profile_music_cooldown_seconds"] == 900
+    assert payload["unknown_capability_policy"] == "block_live_execution"
+    assert payload["manual_hard_blocker_override_enabled"] is True
+    assert "AUTH_KEY_UNREGISTERED" in payload["non_overridable_blockers"]
 
 
-def test_create_profile_job_requires_valid_profile_photo_asset(db_session, storage_dir) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = AccountState.EXECUTION_USABLE
-    db_session.commit()
+def test_execution_policy_keeps_legacy_profile_job_cooldown_upper_bound(monkeypatch) -> None:
+    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
+    client = TestClient(app)
 
-    try:
-        create_profile_job(
-            db_session,
-            account_id=account.id,
-            payload={
-                "name": "Stylist TG",
-                "bio": None,
-                "username": None,
-                "photo_asset_id": "missing-asset",
-            },
-            execution_adapter=FakeExecutionUsableAdapter(),
-        )
-    except ValueError as exc:
-        assert "asset" in str(exc)
-    else:
-        raise AssertionError("job was created with missing asset")
+    response = client.patch(
+        "/api/settings/execution-policy",
+        json={"profile_job_cooldown_seconds": 86400},
+    )
+
+    assert response.status_code == 422

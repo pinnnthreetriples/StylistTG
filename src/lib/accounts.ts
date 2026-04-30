@@ -1,6 +1,8 @@
 import type { AccountListItem } from '@/lib/api'
+import type { AccountSafetySummary } from '@/lib/accountSafety'
 
 export type AccountFilter = 'all' | 'authorized' | 'waiting' | 'error'
+export type AccountAdvancedFilter = 'all' | 'safety_ready' | 'needs_login' | 'paused' | 'limited' | 'unchecked'
 
 export type AccountStatusKind = 'authorized' | 'waiting' | 'error'
 
@@ -43,6 +45,24 @@ export function accountStats(accounts: AccountListItem[]) {
 
 export function accountMatchesFilter(account: AccountListItem, filter: AccountFilter): boolean {
   return filter === 'all' || accountStatus(account).kind === filter
+}
+
+export function accountMatchesAdvancedFilter(
+  account: AccountListItem,
+  safety: AccountSafetySummary | null | undefined,
+  filter: AccountAdvancedFilter,
+): boolean {
+  if (filter === 'all') return true
+  if (!safety) return filter === 'unchecked'
+  if (filter === 'paused') return (safety.cooldown_summary ?? []).length > 0
+  if (filter === 'needs_login') return safety.health_status === 'blocked'
+  if (filter === 'safety_ready') {
+    return account.is_execution_usable && safety.health_status === 'ready' && (safety.cooldown_summary ?? []).length === 0
+  }
+  if (filter === 'limited') {
+    return safety.health_status === 'attention' || ['medium', 'high'].includes(safety.overall_risk_level)
+  }
+  return false
 }
 
 export function accountMatchesSearch(account: AccountListItem, query: string): boolean {

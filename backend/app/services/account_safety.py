@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -9,12 +9,23 @@ from sqlalchemy.orm import Session
 from app.config import Settings, settings
 from app.models import Account, AccountValidityCheckRun
 from app.services.account_capabilities import build_account_capabilities
+from app.services.account_cooldowns import (
+    active_cooldowns_by_operation,
+    merge_cooldowns,
+    product_cooldowns_by_operation,
+    recent_failure_cooldowns_by_operation,
+)
 from app.services.account_health import collect_account_health_signals
 from app.services.account_risk import build_risk_by_operation, overall_risk_level
 from app.services.accounts import get_account, list_accounts
 
 
-def build_account_safety(session: Session, account_id: str, *, config: Settings = settings) -> dict[str, Any]:
+def build_account_safety(
+    session: Session,
+    account_id: str,
+    *,
+    config: Settings = settings,
+) -> dict[str, Any]:
     account = get_account(session, account_id)
     if account is None:
         raise ValueError("account not found")
@@ -25,20 +36,27 @@ def build_account_safety_for_account(session: Session, account: Account, *, conf
     checked_at = datetime.now(UTC)
     health = collect_account_health_signals(session, account)
     capabilities = build_account_capabilities(account, health["reasons"], config=config, checked_at=checked_at)
-    risk_by_operation = build_risk_by_operation(health["reasons"], capabilities)
+    cooldowns_by_operation = merge_cooldowns(
+        active_cooldowns_by_operation(session, account.id, now=checked_at),
+        recent_failure_cooldowns_by_operation(session, account.id, config=config),
+        product_cooldowns_by_operation(session, account.id, config=config, now=checked_at),
+    )
+    risk_by_operation = build_risk_by_operation(health["reasons"], capabilities, cooldowns_by_operation)
+    last_validity_check = _latest_validity_check(session, account.id)
     return {
         "account_id": account.id,
         "health_status": health["health_status"],
         "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
-        "validity_status": "db_snapshot",
+        "validity_status": _validity_status_from_check(last_validity_check),
         "capabilities": capabilities,
         "capability_summary": {key: value["state"] for key, value in capabilities.items()},
         "risk_by_operation": risk_by_operation,
+        "cooldowns_by_operation": cooldowns_by_operation,
         "reasons": health["reasons"],
         "top_reasons": _top_reasons(health["reasons"]),
         "last_checked_at": checked_at,
         "source": "db_snapshot",
-        "last_validity_check": _latest_validity_check(session, account.id),
+        "last_validity_check": last_validity_check,
     }
 
 
@@ -53,6 +71,7 @@ def summarize_account_safety(safety: dict[str, Any]) -> dict[str, Any]:
         "overall_risk_level": safety["overall_risk_level"],
         "validity_status": safety["validity_status"],
         "capability_summary": safety["capability_summary"],
+        "cooldown_summary": _cooldown_summary(safety["cooldowns_by_operation"]),
         "top_reasons": safety["top_reasons"],
         "last_checked_at": safety["last_checked_at"],
         "source": safety["source"],
@@ -60,26 +79,110 @@ def summarize_account_safety(safety: dict[str, Any]) -> dict[str, Any]:
 
 
 def safety_preview_fields(safety: dict[str, Any], desired_state: dict[str, Any]) -> dict[str, Any]:
+    return safety_preview_fields_with_policy(safety, desired_state, config=settings)
+
+
+def safety_preview_fields_with_policy(
+    safety: dict[str, Any],
+    desired_state: dict[str, Any],
+    *,
+    config: Settings = settings,
+) -> dict[str, Any]:
     blockers = [reason["code"] for reason in safety["reasons"] if reason["severity"] == "blocked"]
     warnings = [reason["code"] for reason in safety["reasons"] if reason["severity"] != "blocked"]
+    desired_operations = _desired_operations(desired_state)
 
     profile_audio = desired_state.get("profile_audio") or {}
     if profile_audio.get("action") in {"add", "remove"} and safety["capabilities"]["profile_music"]["state"] == "unknown":
-        warnings.append("music_capability_not_checked")
+        _add_by_unknown_capability_policy("music_capability_not_checked", blockers, warnings, config=config)
     if desired_state.get("stories") and safety["capabilities"]["story_post"]["state"] == "blocked":
         blockers.extend(safety["capabilities"]["story_post"]["reason_codes"])
+    _add_fresh_validity_policy(safety, blockers, warnings, config=config)
+    for operation in desired_operations:
+        for cooldown in safety["cooldowns_by_operation"].get(operation, []):
+            code = f"cooldown_active:{operation}"
+            if cooldown["level"] == "blocked":
+                blockers.append(code)
+            else:
+                warnings.append(code)
 
     return {
         "account_safety": safety,
         "risk_by_operation": safety["risk_by_operation"],
+        "cooldowns_by_operation": safety["cooldowns_by_operation"],
         "safety_warnings": _unique(warnings),
         "safety_blockers": _unique(blockers),
     }
 
 
+def _desired_operations(desired_state: dict[str, Any]) -> set[str]:
+    operations: set[str] = set()
+    profile = desired_state.get("profile") or {}
+    if any(profile.get(key) is not None for key in ("name", "bio")):
+        operations.add("profile_update")
+    if profile.get("username") is not None:
+        operations.add("username")
+    if desired_state.get("profile_photo"):
+        operations.add("profile_photo")
+    profile_audio = desired_state.get("profile_audio") or {}
+    if profile_audio.get("action") in {"add", "remove"}:
+        operations.add("profile_music")
+    stories = desired_state.get("stories") or []
+    if stories:
+        operations.add("story_post")
+    return operations
+
+
+def _add_by_unknown_capability_policy(
+    code: str,
+    blockers: list[str],
+    warnings: list[str],
+    *,
+    config: Settings,
+) -> None:
+    if config.unknown_capability_policy == "block_live_execution":
+        blockers.append(code)
+        return
+    warnings.append(code)
+
+
+def _add_fresh_validity_policy(
+    safety: dict[str, Any],
+    blockers: list[str],
+    warnings: list[str],
+    *,
+    config: Settings,
+) -> None:
+    if config.fresh_validity_required == "never":
+        return
+    if not _validity_is_stale(safety, max_age_minutes=config.fresh_validity_max_age_minutes):
+        return
+    if config.fresh_validity_required == "always_for_live":
+        blockers.append("fresh_validity_required")
+        return
+    warnings.append("fresh_validity_stale")
+
+
+def _validity_is_stale(safety: dict[str, Any], *, max_age_minutes: int) -> bool:
+    check = safety.get("last_validity_check")
+    if not check or check.get("status") != "completed":
+        return True
+    finished_at = check.get("finished_at") or check.get("started_at")
+    if not isinstance(finished_at, datetime):
+        return True
+    if finished_at.tzinfo is None:
+        finished_at = finished_at.replace(tzinfo=UTC)
+    return datetime.now(UTC) - finished_at > timedelta(minutes=max_age_minutes)
+
+
 def _top_reasons(reasons: list[dict[str, Any]]) -> list[dict[str, Any]]:
     severity_order = {"blocked": 3, "high": 2, "medium": 1, "low": 0}
     return sorted(reasons, key=lambda reason: severity_order.get(str(reason["severity"]), 0), reverse=True)[:2]
+
+
+def _cooldown_summary(cooldowns_by_operation: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    cooldowns = [item for items in cooldowns_by_operation.values() for item in items]
+    return sorted(cooldowns, key=lambda item: item["retry_after_at"], reverse=True)[:2]
 
 
 def _overall_account_risk(reasons: list[dict[str, Any]], risk_by_operation: dict[str, dict[str, Any]]) -> str:
@@ -132,3 +235,14 @@ def _latest_validity_check(session: Session, account_id: str) -> dict[str, Any] 
         "result": run.result_json,
         "created_at": run.created_at,
     }
+
+
+def _validity_status_from_check(check: dict[str, Any] | None) -> str:
+    if not check:
+        return "db_snapshot"
+    if check.get("status") == "running":
+        return "db_snapshot"
+    result = check.get("result") or {}
+    if isinstance(result, dict) and result.get("validity_status"):
+        return str(result["validity_status"])
+    return str(check["status"])

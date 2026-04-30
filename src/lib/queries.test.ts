@@ -6,6 +6,7 @@ import {
   accountsQueryOptions,
   accountSafetyQueryOptions,
   accountSafetySummaryQueryOptions,
+  accountBatchSafetyPreviewQueryOptions,
   accountValidityChecksQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
@@ -45,6 +46,20 @@ describe('query cache configuration', () => {
     expect(accountSafetySummaryQueryOptions().queryKey).toEqual(['accountSafety', 'summary'])
     expect(accountSafetyQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1'])
     expect(accountValidityChecksQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1', 'checks'])
+    expect(accountBatchSafetyPreviewQueryOptions(['account-2', 'account-1'], 'profile_update').queryKey).toEqual([
+      'accountSafety',
+      'batchPreview',
+      'profile_update',
+      'account-1,account-2',
+      false,
+    ])
+    expect(accountBatchSafetyPreviewQueryOptions(['account-1'], 'profile_update', true).queryKey).toEqual([
+      'accountSafety',
+      'batchPreview',
+      'profile_update',
+      'account-1',
+      true,
+    ])
     expect(authStateQueryOptions('account-1').queryKey).toEqual(['authState', 'account-1'])
     expect(settingsBundleQueryOptions().queryKey).toEqual(['settings', 'bundle'])
     expect(dashboardBundleQueryOptions('account-1').queryKey).toEqual([

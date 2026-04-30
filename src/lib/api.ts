@@ -1,6 +1,15 @@
 import { composeDisplayName } from '@/lib/dashboard'
 import type { AccountRuntimeDiagnostics, RuntimeDiagnostics } from '@/lib/diagnostics'
-import type { AccountSafety, AccountSafetySummary, AccountValidityCheck } from '@/lib/accountSafety'
+import type {
+  AccountSafety,
+  AccountSafetySummary,
+  AccountValidityCheck,
+  AccountOperationCooldown,
+  SafetyOperation,
+  FreshValidityPolicy,
+  RecentFailurePolicy,
+  UnknownCapabilityPolicy,
+} from '@/lib/accountSafety'
 import type { LivePreflight } from '@/lib/settings'
 import { getApiBaseUrl } from '@/lib/config'
 import { apiRequest, isApiError } from '@/lib/http'
@@ -155,6 +164,7 @@ export type ProfilePreview = {
   dedup_blocked_by_job_id: string | null
   account_safety?: AccountSafety | null
   risk_by_operation?: AccountSafety['risk_by_operation']
+  cooldowns_by_operation?: AccountSafety['cooldowns_by_operation']
   safety_warnings?: string[]
   safety_blockers?: string[]
 }
@@ -226,7 +236,53 @@ export type ExecutionPolicy = {
   profile_job_cooldown_seconds: number
   profile_job_cooldown_enabled: boolean
   allowed_profile_job_cooldown_seconds: number[]
+  profile_update_cooldown_seconds: number
+  username_cooldown_seconds: number
+  profile_photo_cooldown_seconds: number
+  profile_music_cooldown_seconds: number
+  story_post_cooldown_seconds: number
+  story_delete_cooldown_seconds: number
+  unknown_capability_policy: UnknownCapabilityPolicy
+  recent_failure_policy: RecentFailurePolicy
+  fresh_validity_required: FreshValidityPolicy
+  fresh_validity_max_age_minutes: number
+  manual_hard_blocker_override_enabled: boolean
+  non_overridable_blockers: string[]
 }
+
+export type AccountBatchSafetyPreview = {
+  operation: SafetyOperation | string
+  can_start: boolean
+  counts: Record<'ready' | 'needs_login' | 'paused' | 'limited' | 'blocked' | 'unknown', number>
+  blocking_account_ids: string[]
+  warning_account_ids: string[]
+  items: Array<{
+    account_id: string
+    batch_status: string
+    health_status: string
+    risk_level: string
+    reasons: AccountSafety['reasons']
+    cooldowns: AccountOperationCooldown[]
+  }>
+}
+
+export type ExecutionPolicyUpdate = Partial<
+  Pick<
+    ExecutionPolicy,
+    | 'profile_job_cooldown_seconds'
+    | 'profile_update_cooldown_seconds'
+    | 'username_cooldown_seconds'
+    | 'profile_photo_cooldown_seconds'
+    | 'profile_music_cooldown_seconds'
+    | 'story_post_cooldown_seconds'
+    | 'story_delete_cooldown_seconds'
+    | 'unknown_capability_policy'
+    | 'recent_failure_policy'
+    | 'fresh_validity_required'
+    | 'fresh_validity_max_age_minutes'
+    | 'manual_hard_blocker_override_enabled'
+  >
+>
 
 export function storyDraftReadToPayload(draft: StoryDraftRead): StoryDraftPayload {
   return {
@@ -262,6 +318,21 @@ export async function fetchAccountSafetySummary(): Promise<AccountSafetySummary[
 
 export async function fetchAccountSafety(accountId: string): Promise<AccountSafety> {
   return apiRequest<AccountSafety>(`/api/accounts/${accountId}/safety`)
+}
+
+export async function previewAccountBatchSafety(
+  accountIds: string[],
+  operation: SafetyOperation | string,
+  allowWarningOverrides = false,
+): Promise<AccountBatchSafetyPreview> {
+  return apiRequest<AccountBatchSafetyPreview>('/api/accounts/safety-batch-preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      account_ids: accountIds,
+      operation,
+      allow_warning_overrides: allowWarningOverrides,
+    }),
+  })
 }
 
 export async function runAccountValidityCheck(accountId: string, mode = 'db_snapshot'): Promise<AccountValidityCheck> {
@@ -339,10 +410,11 @@ export async function fetchExecutionPolicy(): Promise<ExecutionPolicy> {
   return apiRequest<ExecutionPolicy>('/api/settings/execution-policy')
 }
 
-export async function updateExecutionPolicy(profileJobCooldownSeconds: number): Promise<ExecutionPolicy> {
+export async function updateExecutionPolicy(update: number | ExecutionPolicyUpdate): Promise<ExecutionPolicy> {
+  const body = typeof update === 'number' ? { profile_job_cooldown_seconds: update } : update
   return apiRequest<ExecutionPolicy>('/api/settings/execution-policy', {
     method: 'PATCH',
-    body: JSON.stringify({ profile_job_cooldown_seconds: profileJobCooldownSeconds }),
+    body: JSON.stringify(body),
     headers: {
       'Content-Type': 'application/json',
     },

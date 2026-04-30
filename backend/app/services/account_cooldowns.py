@@ -1,0 +1,255 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+import re
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import Settings, settings
+from app.models import AccountOperationCooldown, Job, JobStepResult, StepStatus
+
+OPERATION_KEYS = (
+    "profile_update",
+    "username",
+    "profile_photo",
+    "profile_music",
+    "story_post",
+    "story_delete",
+    "sync",
+    "batch_operation",
+)
+
+STEP_OPERATION_MAP = {
+    "set_name": "profile_update",
+    "set_bio": "profile_update",
+    "set_username": "username",
+    "set_profile_photo": "profile_photo",
+    "upload_profile_audio": "profile_music",
+    "add_profile_audio": "profile_music",
+    "remove_profile_audio": "profile_music",
+    "post_story_image": "story_post",
+    "post_story_video": "story_post",
+    "delete_story": "story_delete",
+}
+
+FLOOD_WAIT_RE = re.compile(r"FLOOD_WAIT_?(?P<seconds>\d+)", re.IGNORECASE)
+
+
+def ensure_cooldowns_from_recent_failures(
+    session: Session,
+    account_id: str,
+    *,
+    config: Settings = settings,
+) -> None:
+    for step in _recent_failed_steps(session, account_id):
+        cooldown = cooldown_from_failed_step(step, config=config)
+        if cooldown is None:
+            continue
+        _upsert_cooldown(session, account_id, step, cooldown)
+    session.flush()
+
+
+def recent_failure_cooldowns_by_operation(
+    session: Session,
+    account_id: str,
+    *,
+    config: Settings = settings,
+) -> dict[str, list[dict[str, Any]]]:
+    result = {operation: [] for operation in OPERATION_KEYS}
+    steps = _recent_failed_steps(session, account_id)
+    for step in steps:
+        cooldown = cooldown_from_failed_step(step, config=config)
+        if cooldown is None:
+            continue
+        result.setdefault(cooldown["operation"], []).append(
+            {
+                "id": f"recent:{step.id}",
+                "account_id": account_id,
+                "operation": cooldown["operation"],
+                "level": cooldown["level"],
+                "reason_code": cooldown["reason_code"],
+                "started_at": cooldown["started_at"],
+                "retry_after_at": cooldown["retry_after_at"],
+                "source": cooldown["source"],
+                "source_job_id": step.job_id,
+                "source_step_id": step.id,
+            }
+        )
+    return result
+
+
+def active_cooldowns_by_operation(session: Session, account_id: str, *, now: datetime | None = None) -> dict[str, list[dict[str, Any]]]:
+    now = now or datetime.now(UTC)
+    rows = session.execute(
+        select(AccountOperationCooldown)
+        .where(AccountOperationCooldown.account_id == account_id)
+        .where(AccountOperationCooldown.retry_after_at > now)
+        .order_by(AccountOperationCooldown.retry_after_at.desc())
+    ).scalars().all()
+    result = {operation: [] for operation in OPERATION_KEYS}
+    for row in rows:
+        result.setdefault(row.operation, []).append(cooldown_to_dict(row))
+    return result
+
+
+def product_cooldowns_by_operation(
+    session: Session,
+    account_id: str,
+    *,
+    config: Settings = settings,
+    now: datetime | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    now = now or datetime.now(UTC)
+    result = {operation: [] for operation in OPERATION_KEYS}
+    for step_type, operation in STEP_OPERATION_MAP.items():
+        seconds = product_cooldown_seconds(operation, config=config)
+        if seconds <= 0:
+            continue
+        step = _latest_succeeded_step(session, account_id, step_type)
+        if step is None:
+            continue
+        finished_at = step.finished_at or step.started_at
+        if finished_at is None:
+            continue
+        retry_after = _aware(finished_at) + timedelta(seconds=seconds)
+        if retry_after <= now:
+            continue
+        result.setdefault(operation, []).append(
+            {
+                "id": f"product:{step.id}",
+                "account_id": account_id,
+                "operation": operation,
+                "level": "warning",
+                "reason_code": f"product_cooldown:{operation}",
+                "started_at": finished_at,
+                "retry_after_at": retry_after,
+                "source": "product_policy",
+                "source_job_id": step.job_id,
+                "source_step_id": step.id,
+            }
+        )
+    return result
+
+
+def merge_cooldowns(*groups: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
+    result = {operation: [] for operation in OPERATION_KEYS}
+    for group in groups:
+        for operation, cooldowns in group.items():
+            result.setdefault(operation, []).extend(cooldowns)
+    return result
+
+
+def cooldown_from_failed_step(step: JobStepResult, *, config: Settings = settings) -> dict[str, Any] | None:
+    error_code = step.error_code or ""
+    match = FLOOD_WAIT_RE.search(error_code)
+    operation = STEP_OPERATION_MAP.get(step.step_type, "profile_update")
+    started_at = step.finished_at or step.started_at or datetime.now(UTC)
+    if not match:
+        if config.recent_failure_policy != "cooldown":
+            return None
+        seconds = product_cooldown_seconds(operation, config=config)
+        if seconds <= 0:
+            return None
+        return {
+            "operation": operation,
+            "level": "warning",
+            "reason_code": "recent_failure_cooldown",
+            "started_at": started_at,
+            "retry_after_at": _aware(started_at) + timedelta(seconds=seconds),
+            "source": "job_step_result",
+        }
+    return {
+        "operation": operation,
+        "level": "blocked",
+        "reason_code": "recent_flood_wait",
+        "started_at": started_at,
+        "retry_after_at": _aware(started_at) + timedelta(seconds=int(match.group("seconds"))),
+        "source": "job_step_result",
+    }
+
+
+def product_cooldown_seconds(operation: str, *, config: Settings = settings) -> int:
+    return {
+        "profile_update": config.profile_update_cooldown_seconds,
+        "username": config.username_cooldown_seconds,
+        "profile_photo": config.profile_photo_cooldown_seconds,
+        "profile_music": config.profile_music_cooldown_seconds,
+        "story_post": config.story_post_cooldown_seconds,
+        "story_delete": config.story_delete_cooldown_seconds,
+    }.get(operation, 0)
+
+
+def cooldown_to_dict(row: AccountOperationCooldown) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "account_id": row.account_id,
+        "operation": row.operation,
+        "level": row.level,
+        "reason_code": row.reason_code,
+        "started_at": _aware(row.started_at),
+        "retry_after_at": _aware(row.retry_after_at),
+        "source": row.source,
+        "source_job_id": row.source_job_id,
+        "source_step_id": row.source_step_id,
+    }
+
+
+def _upsert_cooldown(
+    session: Session,
+    account_id: str,
+    step: JobStepResult,
+    cooldown: dict[str, Any],
+) -> None:
+    existing = session.execute(
+        select(AccountOperationCooldown)
+        .where(AccountOperationCooldown.account_id == account_id)
+        .where(AccountOperationCooldown.source_step_id == step.id)
+        .limit(1)
+    ).scalars().first()
+    payload = {
+        "operation": cooldown["operation"],
+        "level": cooldown["level"],
+        "reason_code": cooldown["reason_code"],
+        "started_at": cooldown["started_at"],
+        "retry_after_at": cooldown["retry_after_at"],
+        "source": cooldown["source"],
+        "source_job_id": step.job_id,
+            "source_step_id": step.id,
+    }
+    if existing is None:
+        session.add(AccountOperationCooldown(account_id=account_id, **payload))
+        return
+    for key, value in payload.items():
+        setattr(existing, key, value)
+
+
+def _recent_failed_steps(session: Session, account_id: str) -> list[JobStepResult]:
+    return session.execute(
+        select(JobStepResult)
+        .join(Job, Job.id == JobStepResult.job_id)
+        .where(Job.account_id == account_id)
+        .where(JobStepResult.status == StepStatus.FAILED)
+        .where(JobStepResult.error_code.is_not(None))
+        .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+        .limit(20)
+    ).scalars().all()
+
+
+def _latest_succeeded_step(session: Session, account_id: str, step_type: str) -> JobStepResult | None:
+    return session.execute(
+        select(JobStepResult)
+        .join(Job, Job.id == JobStepResult.job_id)
+        .where(Job.account_id == account_id)
+        .where(JobStepResult.step_type == step_type)
+        .where(JobStepResult.status == StepStatus.SUCCEEDED)
+        .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+        .limit(1)
+    ).scalars().first()
+
+
+def _aware(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value

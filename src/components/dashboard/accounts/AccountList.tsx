@@ -29,17 +29,20 @@ import {
 import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
 import {
   compactSafetyReasons,
-  healthStatusLabel,
+  activeCooldownLabels,
+  compactSafetyStatusLabel,
+  compactSafetyTone,
   riskLevelLabel,
-  safetyTone,
   type AccountSafetySummary,
 } from '@/lib/accountSafety'
 import {
+  accountMatchesAdvancedFilter,
   accountMatchesFilter,
   accountMatchesSearch,
   accountStats,
   accountStatus,
   maskPhone,
+  type AccountAdvancedFilter,
   type AccountFilter,
 } from '@/lib/accounts'
 
@@ -48,6 +51,15 @@ const filterLabels: Record<AccountFilter, string> = {
   authorized: 'Авторизованы',
   waiting: 'Ожидают',
   error: 'Ошибки',
+}
+
+const advancedFilterLabels: Record<AccountAdvancedFilter, string> = {
+  all: 'Любая готовность',
+  safety_ready: 'Готовы',
+  needs_login: 'Нужен вход',
+  paused: 'На паузе',
+  limited: 'Ограничения',
+  unchecked: 'Не проверены',
 }
 
 const EMPTY_ACCOUNTS: AccountListItem[] = []
@@ -78,6 +90,7 @@ export function AccountList({
     accountsError ?? (accountsQuery.isError && !accountsQuery.data ? 'Не удалось загрузить список аккаунтов' : null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<AccountFilter>('all')
+  const [advancedFilter, setAdvancedFilter] = useState<AccountAdvancedFilter>('all')
   const [deleteCandidate, setDeleteCandidate] = useState<AccountListItem | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null)
@@ -101,9 +114,12 @@ export function AccountList({
   const visibleAccounts = useMemo(
     () =>
       accounts.filter(
-        (account) => accountMatchesFilter(account, filter) && accountMatchesSearch(account, query),
+        (account) =>
+          accountMatchesFilter(account, filter) &&
+          accountMatchesAdvancedFilter(account, safetyByAccount.get(account.account_id), advancedFilter) &&
+          accountMatchesSearch(account, query),
       ),
-    [accounts, filter, query],
+    [accounts, advancedFilter, filter, query, safetyByAccount],
   )
 
   async function confirmDeleteAccount() {
@@ -192,7 +208,9 @@ export function AccountList({
             filter={filter}
             isLoading={accountsQuery.isPending && !accountsQuery.data}
             onAddBatch={onAddBatch}
+            advancedFilter={advancedFilter}
             onFilterChange={setFilter}
+            onAdvancedFilterChange={setAdvancedFilter}
             onQueryChange={setQuery}
             onReload={() => void reloadAccounts()}
             onRequestDelete={(account) => {
@@ -232,9 +250,11 @@ function AccountsContent({
   allAccounts,
   error,
   filter,
+  advancedFilter,
   isLoading,
   onAddBatch,
   onFilterChange,
+  onAdvancedFilterChange,
   onQueryChange,
   onReload,
   onRequestDelete,
@@ -248,9 +268,11 @@ function AccountsContent({
   allAccounts: AccountListItem[]
   error: string | null
   filter: AccountFilter
+  advancedFilter: AccountAdvancedFilter
   isLoading: boolean
   onAddBatch: () => void
   onFilterChange: (filter: AccountFilter) => void
+  onAdvancedFilterChange: (filter: AccountAdvancedFilter) => void
   onQueryChange: (query: string) => void
   onReload: () => void
   onRequestDelete: (account: AccountListItem) => void
@@ -293,8 +315,10 @@ function AccountsContent({
       <SearchAndFilters
         filter={filter}
         onFilterChange={onFilterChange}
+        onAdvancedFilterChange={onAdvancedFilterChange}
         onQueryChange={onQueryChange}
         query={query}
+        advancedFilter={advancedFilter}
         stats={stats}
       />
 
@@ -382,13 +406,17 @@ function StatCard({
 }
 
 function SearchAndFilters({
+  advancedFilter,
   filter,
+  onAdvancedFilterChange,
   onFilterChange,
   onQueryChange,
   query,
   stats,
 }: {
+  advancedFilter: AccountAdvancedFilter
   filter: AccountFilter
+  onAdvancedFilterChange: (filter: AccountAdvancedFilter) => void
   onFilterChange: (filter: AccountFilter) => void
   onQueryChange: (query: string) => void
   query: string
@@ -402,8 +430,9 @@ function SearchAndFilters({
   }
 
   return (
-    <div className="fade-in d1 mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-      <div className="relative max-w-sm flex-1">
+    <div className="fade-in d1 mb-4 grid gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative max-w-sm flex-1">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
         <input
           className="search-field w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm transition-all"
@@ -412,20 +441,37 @@ function SearchAndFilters({
           type="text"
           value={query}
         />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(filterLabels) as AccountFilter[]).map((item) => (
+            <button
+              className={`chip rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all ${
+                filter === item
+                  ? 'border-navy-200 bg-navy-50 text-navy-400'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+              key={item}
+              onClick={() => onFilterChange(item)}
+              type="button"
+            >
+              {filterLabels[item]} <span className="ml-1 opacity-60">{counts[item]}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {(Object.keys(filterLabels) as AccountFilter[]).map((item) => (
+        {(Object.keys(advancedFilterLabels) as AccountAdvancedFilter[]).map((item) => (
           <button
-            className={`chip rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all ${
-              filter === item
-                ? 'border-navy-200 bg-navy-50 text-navy-400'
+            className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-all ${
+              advancedFilter === item
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                 : 'border-gray-200 text-gray-500 hover:bg-gray-50'
             }`}
             key={item}
-            onClick={() => onFilterChange(item)}
+            onClick={() => onAdvancedFilterChange(item)}
             type="button"
           >
-            {filterLabels[item]} <span className="ml-1 opacity-60">{counts[item]}</span>
+            {advancedFilterLabels[item]}
           </button>
         ))}
       </div>
@@ -491,7 +537,7 @@ function AccountRow({
           </p>
           {safety ? (
             <p className="mt-0.5 truncate text-[11px] text-gray-400">
-              {compactSafetyReasons(safety).join(' · ') || riskLevelLabel(safety.overall_risk_level)}
+              {accountSafetyDetails(safety)}
             </p>
           ) : null}
         </div>
@@ -517,7 +563,7 @@ function AccountRow({
 
 function SafetyBadge({ safety }: { safety: AccountSafetySummary | null }) {
   if (!safety) return null
-  const tone = safetyTone(safety.health_status)
+  const tone = compactSafetyTone(safety)
   const classes = {
     green: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-honey-50 text-honey-700',
@@ -527,9 +573,15 @@ function SafetyBadge({ safety }: { safety: AccountSafetySummary | null }) {
 
   return (
     <span className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${classes}`}>
-      {healthStatusLabel(safety.health_status)}
+      {compactSafetyStatusLabel(safety)}
     </span>
   )
+}
+
+function accountSafetyDetails(safety: AccountSafetySummary): string {
+  const cooldowns = activeCooldownLabels(safety)
+  if (cooldowns.length > 0) return cooldowns.join(' · ')
+  return compactSafetyReasons(safety).join(' · ') || riskLevelLabel(safety.overall_risk_level)
 }
 
 function AccountAvatar({

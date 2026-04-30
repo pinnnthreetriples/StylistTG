@@ -317,11 +317,13 @@ def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) 
     response = client.get("/api/settings/execution-policy")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "profile_job_cooldown_seconds": 120,
-        "profile_job_cooldown_enabled": True,
-        "allowed_profile_job_cooldown_seconds": [30, 60, 120, 300, 600],
-    }
+    payload = response.json()
+    assert payload["profile_job_cooldown_seconds"] == 120
+    assert payload["profile_job_cooldown_enabled"] is True
+    assert payload["allowed_profile_job_cooldown_seconds"] == [30, 60, 120, 300, 600]
+    assert "username_cooldown_seconds" in payload
+    assert "unknown_capability_policy" in payload
+    assert "non_overridable_blockers" in payload
 
     patch_response = client.patch(
         "/api/settings/execution-policy",

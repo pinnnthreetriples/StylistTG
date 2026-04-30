@@ -1,8 +1,10 @@
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from app.db import get_session
 from app.main import app
-from app.models import AccountProfileState, AccountState, AssetKind, AssetStatus, Job, JobState, JobStepResult, StepStatus, utc_now
+from app.models import AccountOperationCooldown, AccountProfileState, AccountState, AssetKind, AssetStatus, Job, JobState, JobStepResult, StepStatus, utc_now
 from app.config import Settings
 from app.services.account_update_jobs import create_account_update_job
 from app.services.accounts import create_account
@@ -339,6 +341,38 @@ def test_account_update_create_blocks_story_jobs_for_unvalidated_tdlib_live_path
         message = ""
 
     assert message == "stories live TDLib execution is not enabled"
+
+
+def test_account_update_create_blocks_operation_specific_safety_cooldown(db_session) -> None:
+    account = create_account(db_session, external_ref="primary")
+    account.account_state = AccountState.EXECUTION_USABLE
+    account.runtime_state.runtime_health = "ready"
+    db_session.add(
+        AccountOperationCooldown(
+            account_id=account.id,
+            operation="username",
+            level="blocked",
+            reason_code="recent_flood_wait",
+            started_at=datetime.now(UTC),
+            retry_after_at=datetime.now(UTC) + timedelta(minutes=5),
+            source="job_step_result",
+        )
+    )
+    db_session.commit()
+
+    try:
+        create_account_update_job(
+            db_session,
+            account_id=account.id,
+            desired_state={"profile": {"username": "blocked_name"}},
+            config=Settings(profile_job_cooldown_seconds=0),
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert message == "cooldown_active:username"
 
 
 def test_account_update_preview_blocks_stories_when_disabled(db_session, monkeypatch) -> None:

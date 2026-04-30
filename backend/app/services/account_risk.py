@@ -20,6 +20,7 @@ RISK_ORDER = {"low": 0, "unknown": 1, "medium": 2, "high": 3, "blocked": 4}
 def build_risk_by_operation(
     reasons: list[dict[str, Any]],
     capabilities: dict[str, dict[str, Any]],
+    cooldowns_by_operation: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     risks = {operation: _risk("low", []) for operation in OPERATION_KEYS}
 
@@ -57,6 +58,18 @@ def build_risk_by_operation(
             risks[operation] = _max_risk(risks[operation], "unknown", [])
         elif capability["state"] == "limited":
             risks[operation] = _max_risk(risks[operation], "medium", [])
+
+    for operation, cooldowns in (cooldowns_by_operation or {}).items():
+        for cooldown in cooldowns:
+            level = "blocked" if cooldown["level"] == "blocked" else "medium"
+            reason = {
+                "code": cooldown["reason_code"],
+                "severity": level,
+                "source": cooldown["source"],
+                "message": "Активна пауза безопасности для операции",
+                "last_seen_at": cooldown["started_at"],
+            }
+            risks[operation] = _max_risk(risks.get(operation, _risk("low", [])), level, [reason])
 
     return risks
 

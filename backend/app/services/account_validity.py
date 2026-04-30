@@ -1,24 +1,38 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    AccountProfileState,
+    AccountState,
     AccountSafetySnapshot,
     AccountValidityCheckRun,
     new_id,
 )
 from app.services.accounts import get_account
+from app.services.account_cooldowns import ensure_cooldowns_from_recent_failures
 from app.services.account_safety import build_account_safety, summarize_account_safety
 
 
 SUPPORTED_MODES = {"db_snapshot", "tdlib_readonly", "full_capability"}
 
 
-def run_account_validity_check(session: Session, account_id: str, *, mode: str = "db_snapshot") -> dict[str, Any]:
+class ReadOnlyAccountValidityAdapter(Protocol):
+    def check_account(self, account_id: str) -> dict[str, Any]:
+        """Return read-only account validity data without Telegram write actions."""
+
+
+def run_account_validity_check(
+    session: Session,
+    account_id: str,
+    *,
+    mode: str = "db_snapshot",
+    adapter: ReadOnlyAccountValidityAdapter | None = None,
+) -> dict[str, Any]:
     if mode not in SUPPORTED_MODES:
         raise ValueError("unsupported validity check mode")
     if get_account(session, account_id) is None:
@@ -35,7 +49,7 @@ def run_account_validity_check(session: Session, account_id: str, *, mode: str =
     )
     session.add(run)
 
-    if mode != "db_snapshot":
+    if mode != "db_snapshot" and adapter is None:
         run.status = "unsupported"
         run.finished_at = datetime.now(UTC)
         run.error_code = "TDLIB_READONLY_CHECK_NOT_ENABLED"
@@ -49,12 +63,20 @@ def run_account_validity_check(session: Session, account_id: str, *, mode: str =
         return validity_check_run_to_dict(run)
 
     try:
+        readonly_result: dict[str, Any] | None = None
+        if mode != "db_snapshot":
+            readonly_result = adapter.check_account(account_id)
+            _apply_readonly_result(session, account_id, readonly_result)
+        ensure_cooldowns_from_recent_failures(session, account_id)
         safety = build_account_safety(session, account_id)
         _upsert_safety_snapshot(session, safety)
         run.status = "completed"
         run.finished_at = datetime.now(UTC)
-        run.result_json = _json_safe(summarize_account_safety(safety))
-        run.details_json = {"source": "db_snapshot"}
+        run.result_json = _json_safe({
+            **summarize_account_safety(safety),
+            "validity_status": _validity_status_from_readonly_result(readonly_result, safety),
+        })
+        run.details_json = {"source": mode}
         session.commit()
         session.refresh(run)
         return validity_check_run_to_dict(run)
@@ -137,6 +159,58 @@ def _upsert_safety_snapshot(session: Session, safety: dict[str, Any]) -> None:
         return
     for key, value in payload.items():
         setattr(snapshot, key, value)
+
+
+def _apply_readonly_result(session: Session, account_id: str, result: dict[str, Any]) -> None:
+    account = get_account(session, account_id)
+    if account is None:
+        raise ValueError("account not found")
+    runtime = account.runtime_state
+    status = result.get("status")
+    if status == "valid":
+        account.account_state = AccountState.EXECUTION_USABLE
+        if runtime is not None:
+            runtime.runtime_health = str(result.get("runtime_health") or "ready")
+            runtime.reauth_required = False
+            runtime.session_present = True
+            runtime.authorized_last_confirmed_at = datetime.now(UTC)
+        account.telegram_user_id = result.get("telegram_user_id") or account.telegram_user_id
+        profile = result.get("profile") or {}
+        if profile:
+            if account.profile_state is None:
+                account.profile_state = AccountProfileState(account_id=account.id)
+            account.profile_state.telegram_user_id = result.get("telegram_user_id") or account.profile_state.telegram_user_id
+            account.profile_state.first_name = profile.get("first_name", account.profile_state.first_name)
+            account.profile_state.last_name = profile.get("last_name", account.profile_state.last_name)
+            account.profile_state.username = profile.get("username", account.profile_state.username)
+            account.profile_state.bio = profile.get("bio", account.profile_state.bio)
+            account.profile_state.synced_at = datetime.now(UTC)
+    elif status == "reauth_required":
+        account.account_state = AccountState.REAUTH_REQUIRED
+        if runtime is not None:
+            runtime.runtime_health = "closed"
+            runtime.reauth_required = True
+    elif status == "runtime_broken":
+        account.account_state = AccountState.RUNTIME_BROKEN
+        if runtime is not None:
+            runtime.runtime_health = "broken"
+
+
+def _validity_status(safety: dict[str, Any]) -> str:
+    codes = {reason["code"] for reason in safety["reasons"]}
+    if "reauth_required" in codes:
+        return "reauth_required"
+    if "runtime_broken" in codes:
+        return "runtime_broken"
+    if safety["health_status"] == "ready":
+        return "valid"
+    return "unknown"
+
+
+def _validity_status_from_readonly_result(result: dict[str, Any] | None, safety: dict[str, Any]) -> str:
+    if result and result.get("status"):
+        return str(result["status"])
+    return _validity_status(safety)
 
 
 def _json_safe(value: Any) -> Any:

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   compactSafetyReasons,
+  activeCooldownLabels,
+  compactSafetyStatusLabel,
+  cooldownSummaryLabel,
   healthStatusLabel,
   riskLevelLabel,
   capabilityStateLabel,
@@ -35,6 +38,7 @@ describe('account safety labels', () => {
         profile_text: 'available',
         username: 'limited',
       },
+      cooldown_summary: [],
       top_reasons: [
         { code: 'stale_profile_sync', severity: 'medium', source: 'profile_sync', message: 'Профиль давно не синхронизировался', last_seen_at: null },
         { code: 'recent_partial_job', severity: 'medium', source: 'job', message: 'Недавно задача завершилась частично', last_seen_at: null },
@@ -47,5 +51,38 @@ describe('account safety labels', () => {
       'Профиль давно не синхронизировался',
       'Недавно задача завершилась частично',
     ])
+  })
+
+  it('summarizes active operation cooldowns for cards and header', () => {
+    const now = Date.now()
+    const retryAfter = new Date(now + 14 * 60_000).toISOString()
+    const safety: AccountSafetySummary = {
+      account_id: 'account-1',
+      health_status: 'ready',
+      overall_risk_level: 'medium',
+      validity_status: 'valid',
+      capability_summary: {},
+      cooldown_summary: [
+        {
+          id: 'cooldown-1',
+          account_id: 'account-1',
+          operation: 'username',
+          level: 'blocked',
+          reason_code: 'recent_flood_wait',
+          started_at: '2026-04-30T00:00:00Z',
+          retry_after_at: retryAfter,
+          source: 'job_step_result',
+          source_job_id: 'job-1',
+          source_step_id: 'step-1',
+        },
+      ],
+      top_reasons: [],
+      last_checked_at: '2026-04-30T00:00:00Z',
+      source: 'db_snapshot',
+    }
+
+    expect(cooldownSummaryLabel(safety.cooldown_summary[0], now)).toBe('Username: через 14 мин')
+    expect(activeCooldownLabels(safety)).toEqual(['Username: через 14 мин'])
+    expect(compactSafetyStatusLabel(safety)).toBe('На паузе')
   })
 })

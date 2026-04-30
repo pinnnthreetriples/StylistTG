@@ -5,6 +5,7 @@ import {
   fetchAccountSafety,
   fetchAccountSafetySummary,
   fetchAccountValidityChecks,
+  previewAccountBatchSafety,
   fetchAccounts,
   fetchDashboard,
   fetchJob,
@@ -27,6 +28,10 @@ export const queryKeys = {
     summary: ['accountSafety', 'summary'] as const,
     account: (accountId: string) => ['accountSafety', accountId] as const,
     checks: (accountId: string) => ['accountSafety', accountId, 'checks'] as const,
+    batchPreview: (operation: string, accountIds: string[]) =>
+      ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(',')] as const,
+    batchPreviewWithOverride: (operation: string, accountIds: string[], allowWarningOverrides: boolean) =>
+      ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(','), allowWarningOverrides] as const,
   },
   authState: (accountId: string) => ['authState', accountId] as const,
   settings: {
@@ -115,6 +120,18 @@ export function accountValidityChecksQueryOptions(accountId: string) {
   return queryOptions({
     queryKey: queryKeys.accountSafety.checks(accountId),
     queryFn: () => fetchAccountValidityChecks(accountId),
+  })
+}
+
+export function accountBatchSafetyPreviewQueryOptions(
+  accountIds: string[],
+  operation: string,
+  allowWarningOverrides = false,
+) {
+  return queryOptions({
+    queryKey: queryKeys.accountSafety.batchPreviewWithOverride(operation, accountIds, allowWarningOverrides),
+    queryFn: () => previewAccountBatchSafety(accountIds, operation, allowWarningOverrides),
+    enabled: accountIds.length > 0,
   })
 }
 

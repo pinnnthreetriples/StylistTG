@@ -392,7 +392,8 @@ def test_profile_preview_returns_validation_plan_and_dedup(monkeypatch) -> None:
     assert payload["blocking_errors"] == []
     assert payload["warnings"] == []
     assert payload["normalized_payload"]["photo_asset_id"] == "asset-1"
-    assert payload["normalized_payload"]["photo_asset_path"].endswith("assets\\normalized\\profile.jpg")
+    photo_asset_path = payload["normalized_payload"]["photo_asset_path"].replace("\\", "/")
+    assert photo_asset_path.endswith("assets/normalized/profile.jpg")
     assert [step["step_key"] for step in payload["steps"]] == [
         "set_name",
         "set_bio",

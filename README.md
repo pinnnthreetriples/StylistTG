@@ -169,6 +169,10 @@ CI:
 - `.github/workflows/ci.yml` runs backend checks against real PostgreSQL and Redis services.
 - Backend CI runs Alembic heads, upgrade head, migration smoke, ruff, pytest, and compileall.
 - Frontend CI runs `npm ci`, lint, tests, and build.
+- Private repo on the current GitHub plan cannot enforce branch protection/rulesets.
+  Until GitHub Pro or a public repo is available, follow
+  [docs/runbooks/git-workflow-without-branch-protection.md](docs/runbooks/git-workflow-without-branch-protection.md)
+  manually.
 
 Live smoke helper:
 

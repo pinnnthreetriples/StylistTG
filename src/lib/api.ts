@@ -1,5 +1,6 @@
 import { composeDisplayName } from '@/lib/dashboard'
 import type { AccountRuntimeDiagnostics, RuntimeDiagnostics } from '@/lib/diagnostics'
+import type { AccountSafety, AccountSafetySummary, AccountValidityCheck } from '@/lib/accountSafety'
 import type { LivePreflight } from '@/lib/settings'
 import { getApiBaseUrl } from '@/lib/config'
 import { apiRequest, isApiError } from '@/lib/http'
@@ -152,6 +153,10 @@ export type ProfilePreview = {
   requires_execution_usable: boolean
   dedup_would_block: boolean
   dedup_blocked_by_job_id: string | null
+  account_safety?: AccountSafety | null
+  risk_by_operation?: AccountSafety['risk_by_operation']
+  safety_warnings?: string[]
+  safety_blockers?: string[]
 }
 
 export type RuntimeRefresh = {
@@ -249,6 +254,25 @@ export async function fetchDashboard(accountId: string): Promise<DashboardRespon
 
 export async function fetchAccounts(): Promise<AccountListItem[]> {
   return apiRequest<AccountListItem[]>('/api/accounts')
+}
+
+export async function fetchAccountSafetySummary(): Promise<AccountSafetySummary[]> {
+  return apiRequest<AccountSafetySummary[]>('/api/accounts/safety-summary')
+}
+
+export async function fetchAccountSafety(accountId: string): Promise<AccountSafety> {
+  return apiRequest<AccountSafety>(`/api/accounts/${accountId}/safety`)
+}
+
+export async function runAccountValidityCheck(accountId: string, mode = 'db_snapshot'): Promise<AccountValidityCheck> {
+  return apiRequest<AccountValidityCheck>(`/api/accounts/${accountId}/validity-check`, {
+    method: 'POST',
+    body: JSON.stringify({ mode }),
+  })
+}
+
+export async function fetchAccountValidityChecks(accountId: string): Promise<AccountValidityCheck[]> {
+  return apiRequest<AccountValidityCheck[]>(`/api/accounts/${accountId}/validity-checks`)
 }
 
 export async function deleteAccount(accountId: string): Promise<void> {

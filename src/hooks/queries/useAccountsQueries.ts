@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
-import { deleteAccount } from '@/lib/api'
+import { deleteAccount, runAccountValidityCheck } from '@/lib/api'
 import {
+  accountSafetyQueryOptions,
+  accountSafetySummaryQueryOptions,
   accountsQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
+  invalidateAccountSafetyQueries,
+  removeAccountSafetyFromCache,
   removeAccountFromAccountsCache,
   removeAccountScopedQueries,
   settingsBundleQueryOptions,
@@ -13,6 +17,27 @@ import {
 
 export function useAccountsQuery() {
   return useQuery(accountsQueryOptions())
+}
+
+export function useAccountSafetySummaryQuery() {
+  return useQuery(accountSafetySummaryQueryOptions())
+}
+
+export function useAccountSafetyQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountSafetyQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useRunAccountValidityCheckMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (accountId: string) => runAccountValidityCheck(accountId),
+    onSuccess: (_result, accountId) => {
+      invalidateAccountSafetyQueries(queryClient, accountId)
+    },
+  })
 }
 
 export function usePrefetchSettingsBundle() {
@@ -28,6 +53,7 @@ export function usePrefetchAccountWorkspace() {
     (accountId: string) => {
       void queryClient.prefetchQuery(authStateQueryOptions(accountId))
       void queryClient.prefetchQuery(dashboardBundleQueryOptions(accountId))
+      void queryClient.prefetchQuery(accountSafetyQueryOptions(accountId))
     },
     [queryClient],
   )
@@ -40,6 +66,7 @@ export function useDeleteAccountMutation() {
     onSuccess: (_result, accountId) => {
       removeAccountFromAccountsCache(queryClient, accountId)
       removeAccountScopedQueries(queryClient, accountId)
+      removeAccountSafetyFromCache(queryClient, accountId)
     },
   })
 }

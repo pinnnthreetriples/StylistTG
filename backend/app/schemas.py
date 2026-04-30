@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AccountCreate(BaseModel):
@@ -63,6 +63,63 @@ class AccountRuntimeDiagnosticsRead(BaseModel):
     lock_owner: str | None
     lock_epoch: int
     diagnostic_timestamp: str
+
+
+class AccountSafetyReasonRead(BaseModel):
+    code: str
+    severity: str
+    source: str
+    message: str
+    last_seen_at: datetime | None = None
+
+
+class AccountCapabilityRead(BaseModel):
+    state: str
+    reason_codes: list[str]
+    label: str
+    last_checked_at: datetime | None = None
+    source: str
+
+
+class AccountRiskRead(BaseModel):
+    level: str
+    reasons: list[AccountSafetyReasonRead]
+
+
+class AccountSafetySummaryRead(BaseModel):
+    account_id: str
+    health_status: str
+    overall_risk_level: str
+    validity_status: str
+    capability_summary: dict[str, str]
+    top_reasons: list[AccountSafetyReasonRead]
+    last_checked_at: datetime
+    source: str
+
+
+class AccountValidityCheckRequest(BaseModel):
+    mode: Literal["db_snapshot", "tdlib_readonly", "full_capability"] = "db_snapshot"
+
+
+class AccountValidityCheckRead(BaseModel):
+    id: str
+    account_id: str
+    mode: str
+    status: str
+    started_at: datetime
+    finished_at: datetime | None
+    error_code: str | None
+    error_class: str | None
+    details: dict[str, Any] | None
+    result: dict[str, Any] | None
+    created_at: datetime
+
+
+class AccountSafetyRead(AccountSafetySummaryRead):
+    capabilities: dict[str, AccountCapabilityRead]
+    risk_by_operation: dict[str, AccountRiskRead]
+    reasons: list[AccountSafetyReasonRead]
+    last_validity_check: AccountValidityCheckRead | None = None
 
 
 class FieldErrorRead(BaseModel):
@@ -508,6 +565,10 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     workflow_version: int
     desired_state_normalized: dict[str, Any]
     capability_snapshot: dict[str, str]
+    account_safety: AccountSafetyRead | None = None
+    risk_by_operation: dict[str, AccountRiskRead] = Field(default_factory=dict)
+    safety_warnings: list[str] = Field(default_factory=list)
+    safety_blockers: list[str] = Field(default_factory=list)
 
 
 class JobRead(BaseModel):

@@ -44,6 +44,7 @@ import {
   useDeleteStoryPostMutation,
   useRefreshRuntimeMutation,
 } from '@/hooks/queries/useDashboardMutations'
+import { useAccountSafetyQuery, useRunAccountValidityCheckMutation } from '@/hooks/queries/useAccountsQueries'
 import type { AuthPhase } from '@/lib/auth'
 import { appRoutes, type AppRouteState } from '@/lib/routes'
 
@@ -89,6 +90,8 @@ function App({ route }: { route: AccountRouteState }) {
   const [hiddenJobPanelKey, setHiddenJobPanelKey] = useState<string | null>(null)
   const refreshRuntimeMutation = useRefreshRuntimeMutation()
   const deleteStoryPostMutation = useDeleteStoryPostMutation()
+  const validityCheckMutation = useRunAccountValidityCheckMutation()
+  const accountSafetyQuery = useAccountSafetyQuery(activeAccountId)
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -337,6 +340,16 @@ function App({ route }: { route: AccountRouteState }) {
     terminalJobStates,
   })
 
+  const handleCheckValidity = useCallback(async () => {
+    if (!activeAccountId) return
+    try {
+      await validityCheckMutation.mutateAsync(activeAccountId)
+      notify({ tone: 'success', title: 'Проверка аккаунта завершена' })
+    } catch {
+      notify({ tone: 'error', title: 'Не удалось проверить аккаунт' })
+    }
+  }, [activeAccountId, notify, validityCheckMutation])
+
   const handleDashboardBackToAccounts = useCallback(() => {
     handleBackToAccounts()
     navigateToRoute(appRoutes.accounts())
@@ -427,8 +440,11 @@ function App({ route }: { route: AccountRouteState }) {
         isBootRefreshing={isBootRefreshing}
         isLoading={isLoading}
         isRefreshingRuntime={isRefreshingRuntime}
+        isCheckingValidity={validityCheckMutation.isPending}
+        safety={accountSafetyQuery.data ?? null}
         onBack={handleDashboardBackToAccounts}
         onRefresh={handleRefreshRuntime}
+        onCheckValidity={handleCheckValidity}
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-24">

@@ -17,6 +17,7 @@ from app.services.account_update_plan import (
 from app.services.accounts import get_account
 from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
+from app.services.account_safety import build_account_safety_for_account, safety_preview_fields
 from app.services.execution_policy import ExecutionUsableAdapter, ensure_execution_usable
 from app.services.jobs import (
     find_active_duplicate_job,
@@ -49,6 +50,8 @@ def build_account_update_preview(session: Session, *, account_id: str, desired_s
 
     blocking_errors: list[str] = []
     warnings: list[str] = []
+    safety = build_account_safety_for_account(session, account)
+    safety_fields = safety_preview_fields(safety, desired_state)
     if is_account_hard_stopped(account):
         blocking_errors.append("account requires manual intervention")
     if account.account_state != AccountState.EXECUTION_USABLE:
@@ -59,6 +62,10 @@ def build_account_update_preview(session: Session, *, account_id: str, desired_s
         blocking_errors.append("stories are disabled")
     if desired_state.get("stories") and _stories_live_execution_blocked(settings):
         blocking_errors.append("stories live TDLib execution is not enabled")
+    blocking_errors.extend(_preview_blocking_safety_errors(safety_fields["safety_blockers"]))
+    warnings.extend(safety_fields["safety_warnings"])
+    blocking_errors = _unique_strings(blocking_errors)
+    warnings = _unique_strings(warnings)
 
     return {
         "can_create_job": not blocking_errors,
@@ -70,6 +77,7 @@ def build_account_update_preview(session: Session, *, account_id: str, desired_s
         "workflow_type": "account_update",
         "workflow_version": 1,
         "capability_snapshot": default_capability_snapshot(),
+        **safety_fields,
         "plan_json_snapshot": plan,
         "steps": plan["steps"],
         "requires_execution_usable": True,
@@ -202,6 +210,22 @@ def _validate_story_assets(session: Session, desired_state: dict) -> None:
 
 def _stories_live_execution_blocked(config: Settings) -> bool:
     return config.profile_execution_adapter == "tdlib" and not config.stories_tdlib_live_enabled
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
+def _preview_blocking_safety_errors(blockers: list[str]) -> list[str]:
+    capability_only_blockers = {"stories_disabled", "stories_live_disabled", "stories_mock_mode"}
+    return [blocker for blocker in blockers if blocker not in capability_only_blockers]
 
 
 def _requested_profile_fields(desired_state: dict) -> set[str]:

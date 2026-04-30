@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { queryClient } from '@/lib/queryClient'
 import {
   accountsQueryOptions,
+  accountSafetyQueryOptions,
+  accountSafetySummaryQueryOptions,
+  accountValidityChecksQueryOptions,
   authStateQueryOptions,
   dashboardBundleQueryOptions,
   dashboardProfileQueryOptions,
@@ -14,6 +17,7 @@ import {
   jobStepsQueryOptions,
   latestJobQueryOptions,
   latestJobsQueryOptions,
+  removeAccountSafetyFromCache,
   queryKeys,
   removeAccountFromAccountsCache,
   removeAccountScopedQueries,
@@ -38,6 +42,9 @@ describe('query cache configuration', () => {
 
   it('uses stable query keys for settings, accounts and dashboard tabs', () => {
     expect(accountsQueryOptions().queryKey).toEqual(queryKeys.accounts)
+    expect(accountSafetySummaryQueryOptions().queryKey).toEqual(['accountSafety', 'summary'])
+    expect(accountSafetyQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1'])
+    expect(accountValidityChecksQueryOptions('account-1').queryKey).toEqual(['accountSafety', 'account-1', 'checks'])
     expect(authStateQueryOptions('account-1').queryKey).toEqual(['authState', 'account-1'])
     expect(settingsBundleQueryOptions().queryKey).toEqual(['settings', 'bundle'])
     expect(dashboardBundleQueryOptions('account-1').queryKey).toEqual([
@@ -169,6 +176,20 @@ describe('query cache configuration', () => {
     removeAccountFromAccountsCache(client, 'account-1')
 
     expect(client.getQueryData(queryKeys.accounts)).toEqual([{ account_id: 'account-2' }])
+  })
+
+  it('removes deleted account safety from account and summary caches', () => {
+    const client = new QueryClient()
+    client.setQueryData(queryKeys.accountSafety.account('account-1'), { account_id: 'account-1' })
+    client.setQueryData(queryKeys.accountSafety.summary, [
+      { account_id: 'account-1' },
+      { account_id: 'account-2' },
+    ])
+
+    removeAccountSafetyFromCache(client, 'account-1')
+
+    expect(client.getQueryData(queryKeys.accountSafety.account('account-1'))).toBeUndefined()
+    expect(client.getQueryData(queryKeys.accountSafety.summary)).toEqual([{ account_id: 'account-2' }])
   })
 
   it('fetches job state through query cache helpers and accepts preloaded dashboard data', async () => {

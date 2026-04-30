@@ -2,6 +2,9 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query'
 
 import {
   type AccountListItem,
+  fetchAccountSafety,
+  fetchAccountSafetySummary,
+  fetchAccountValidityChecks,
   fetchAccounts,
   fetchDashboard,
   fetchJob,
@@ -14,10 +17,17 @@ import {
   fetchStoryCapabilities,
   fetchStoryDrafts,
 } from '@/lib/api'
+import type { AccountSafetySummary } from '@/lib/accountSafety'
 import { fetchAuthRuntimeMode, fetchAuthState } from '@/lib/auth'
 
 export const queryKeys = {
   accounts: ['accounts'] as const,
+  accountSafety: {
+    root: ['accountSafety'] as const,
+    summary: ['accountSafety', 'summary'] as const,
+    account: (accountId: string) => ['accountSafety', accountId] as const,
+    checks: (accountId: string) => ['accountSafety', accountId, 'checks'] as const,
+  },
   authState: (accountId: string) => ['authState', accountId] as const,
   settings: {
     root: ['settings'] as const,
@@ -84,6 +94,27 @@ export function accountsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.accounts,
     queryFn: fetchAccounts,
+  })
+}
+
+export function accountSafetySummaryQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.accountSafety.summary,
+    queryFn: fetchAccountSafetySummary,
+  })
+}
+
+export function accountSafetyQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountSafety.account(accountId),
+    queryFn: () => fetchAccountSafety(accountId),
+  })
+}
+
+export function accountValidityChecksQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountSafety.checks(accountId),
+    queryFn: () => fetchAccountValidityChecks(accountId),
   })
 }
 
@@ -217,6 +248,21 @@ export function removeAccountScopedQueries(queryClient: QueryClient, accountId: 
   queryClient.removeQueries({ queryKey: queryKeys.dashboard.account(accountId) })
   queryClient.removeQueries({ queryKey: queryKeys.authState(accountId), exact: true })
 }
+
+export function invalidateAccountSafetyQueries(queryClient: QueryClient, accountId: string): void {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.summary })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.account(accountId), exact: true })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.accountSafety.checks(accountId), exact: true })
+}
+
+export function removeAccountSafetyFromCache(queryClient: QueryClient, accountId: string): void {
+  queryClient.removeQueries({ queryKey: queryKeys.accountSafety.account(accountId), exact: true })
+  queryClient.removeQueries({ queryKey: queryKeys.accountSafety.checks(accountId), exact: true })
+  queryClient.setQueryData(queryKeys.accountSafety.summary, (current: AccountSafetySummary[] | undefined) =>
+    (current ?? []).filter((safety) => safety.account_id !== accountId),
+  )
+}
+
 
 export function removeAccountFromAccountsCache(queryClient: QueryClient, accountId: string): void {
   queryClient.setQueryData(queryKeys.accounts, (current: AccountListItem[] | undefined) =>

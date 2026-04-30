@@ -20,12 +20,20 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
 import {
+  useAccountSafetySummaryQuery,
   useAccountsQuery,
   useDeleteAccountMutation,
   usePrefetchAccountWorkspace,
   usePrefetchSettingsBundle,
 } from '@/hooks/queries/useAccountsQueries'
 import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
+import {
+  compactSafetyReasons,
+  healthStatusLabel,
+  riskLevelLabel,
+  safetyTone,
+  type AccountSafetySummary,
+} from '@/lib/accountSafety'
 import {
   accountMatchesFilter,
   accountMatchesSearch,
@@ -56,10 +64,15 @@ export function AccountList({
   onTabChange: (tab: 'accounts' | 'settings') => void
 }) {
   const accountsQuery = useAccountsQuery()
+  const safetySummaryQuery = useAccountSafetySummaryQuery()
   const deleteAccountMutation = useDeleteAccountMutation()
   const prefetchSettingsBundle = usePrefetchSettingsBundle()
   const prefetchAccountWorkspace = usePrefetchAccountWorkspace()
   const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
+  const safetyByAccount = useMemo(
+    () => new Map((safetySummaryQuery.data ?? []).map((item) => [item.account_id, item])),
+    [safetySummaryQuery.data],
+  )
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const visibleAccountsError =
     accountsError ?? (accountsQuery.isError && !accountsQuery.data ? 'Не удалось загрузить список аккаунтов' : null)
@@ -191,6 +204,7 @@ export function AccountList({
             }}
             onSelectAccount={onSelectAccount}
             query={query}
+            safetyByAccount={safetyByAccount}
             stats={stats}
           />
         )}
@@ -227,6 +241,7 @@ function AccountsContent({
   onPrefetchAccount,
   onSelectAccount,
   query,
+  safetyByAccount,
   stats,
 }: {
   accounts: AccountListItem[]
@@ -242,6 +257,7 @@ function AccountsContent({
   onPrefetchAccount: (accountId: string) => void
   onSelectAccount: (accountId: string) => void
   query: string
+  safetyByAccount: Map<string, AccountSafetySummary>
   stats: ReturnType<typeof accountStats>
 }) {
   if (isLoading) {
@@ -293,6 +309,7 @@ function AccountsContent({
               onPrefetchAccount={onPrefetchAccount}
               onRequestDelete={onRequestDelete}
               onSelectAccount={onSelectAccount}
+              safety={safetyByAccount.get(account.account_id) ?? null}
             />
           ))}
         </section>
@@ -423,6 +440,7 @@ function AccountRow({
   onSelectAccount,
   onPrefetchAccount,
   onRequestDelete,
+  safety,
 }: {
   account: AccountListItem
   index: number
@@ -430,6 +448,7 @@ function AccountRow({
   onSelectAccount: (accountId: string) => void
   onPrefetchAccount: (accountId: string) => void
   onRequestDelete: (account: AccountListItem) => void
+  safety: AccountSafetySummary | null
 }) {
   const status = accountStatus(account)
   const name = account.display_name || account.phone_number
@@ -464,11 +483,17 @@ function AccountRow({
                 Test DC
               </span>
             ) : null}
+            <SafetyBadge safety={safety} />
           </div>
           <p className={`mt-0.5 truncate text-xs ${status.kind === 'error' ? 'text-tangerine-400' : 'text-gray-400'}`}>
             {account.username ? `@${account.username} · ` : ''}
             {maskPhone(account.phone_number)}
           </p>
+          {safety ? (
+            <p className="mt-0.5 truncate text-[11px] text-gray-400">
+              {compactSafetyReasons(safety).join(' · ') || riskLevelLabel(safety.overall_risk_level)}
+            </p>
+          ) : null}
         </div>
       </button>
       <div className="flex shrink-0 items-center gap-2">
@@ -487,6 +512,23 @@ function AccountRow({
         <ChevronRight className="row-chevron size-5 text-gray-300 transition-all group-hover:translate-x-0.5 group-hover:text-navy-400" />
       </div>
     </div>
+  )
+}
+
+function SafetyBadge({ safety }: { safety: AccountSafetySummary | null }) {
+  if (!safety) return null
+  const tone = safetyTone(safety.health_status)
+  const classes = {
+    green: 'bg-emerald-50 text-emerald-700',
+    amber: 'bg-honey-50 text-honey-700',
+    red: 'bg-red-50 text-red-600',
+    gray: 'bg-gray-100 text-gray-500',
+  }[tone]
+
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${classes}`}>
+      {healthStatusLabel(safety.health_status)}
+    </span>
   )
 }
 

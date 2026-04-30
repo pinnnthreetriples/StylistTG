@@ -14,6 +14,10 @@ from app.schemas import (
     AccountListItemRead,
     AccountRead,
     AccountRuntimeDiagnosticsRead,
+    AccountSafetyRead,
+    AccountSafetySummaryRead,
+    AccountValidityCheckRead,
+    AccountValidityCheckRequest,
     AuthStateRead,
     JobSummaryRead,
     RuntimeRefreshRead,
@@ -25,6 +29,8 @@ from app.services.profile_sync import (
     sync_account_profile_snapshot,
 )
 from app.services.runtime_diagnostics import account_runtime_diagnostics
+from app.services.account_safety import build_account_safety, build_account_safety_summary
+from app.services.account_validity import list_account_validity_checks, run_account_validity_check
 from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs
@@ -44,6 +50,11 @@ def post_account(payload: AccountCreate, session: Session = Depends(get_session)
 @router.get("", response_model=list[AccountListItemRead])
 def get_accounts(session: Session = Depends(get_session)):
     return [_account_list_item(session, account) for account in list_accounts_service(session)]
+
+
+@router.get("/safety-summary", response_model=list[AccountSafetySummaryRead])
+def get_accounts_safety_summary(session: Session = Depends(get_session)):
+    return build_account_safety_summary(session)
 
 
 @router.get("/auth-state", response_model=AuthStateRead)
@@ -100,6 +111,60 @@ def get_account_endpoint(account_id: str, session: Session = Depends(get_session
             message="account not found",
         )
     return account
+
+
+@router.get("/{account_id}/safety", response_model=AccountSafetyRead)
+def get_account_safety(account_id: str, session: Session = Depends(get_session)):
+    try:
+        return build_account_safety(session, account_id)
+    except ValueError as exc:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message=str(exc),
+        ) from exc
+
+
+@router.post("/{account_id}/validity-check", response_model=AccountValidityCheckRead)
+def post_account_validity_check(
+    account_id: str,
+    payload: AccountValidityCheckRequest,
+    session: Session = Depends(get_session),
+):
+    try:
+        return run_account_validity_check(session, account_id, mode=payload.mode)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "account not found":
+            raise AppError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error_code="ACCOUNT_NOT_FOUND",
+                error_class="not_found",
+                message=message,
+            ) from exc
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="VALIDITY_CHECK_INVALID_MODE",
+            error_class="validation",
+            message=message,
+        ) from exc
+
+
+@router.get("/{account_id}/validity-checks", response_model=list[AccountValidityCheckRead])
+def get_account_validity_checks(
+    account_id: str,
+    limit: int = 10,
+    session: Session = Depends(get_session),
+):
+    if get_account(session, account_id) is None:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
+        )
+    return list_account_validity_checks(session, account_id, limit=limit)
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)

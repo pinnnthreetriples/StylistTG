@@ -5,6 +5,14 @@
  */
 
 import { ArrowLeft, RefreshCw } from 'lucide-react'
+import {
+  capabilitySummaryLabel,
+  healthStatusLabel,
+  riskLevelLabel,
+  safetyTone,
+  validityStatusLabel,
+  type AccountSafety,
+} from '@/lib/accountSafety'
 
 interface DashboardHeaderProps {
   displayName: string | null | undefined
@@ -13,8 +21,11 @@ interface DashboardHeaderProps {
   isBootRefreshing: boolean
   isLoading: boolean
   isRefreshingRuntime: boolean
+  isCheckingValidity: boolean
+  safety: AccountSafety | null
   onBack: () => void
   onRefresh: () => void
+  onCheckValidity: () => void
 }
 
 export function DashboardHeader({
@@ -24,13 +35,20 @@ export function DashboardHeader({
   isBootRefreshing,
   isLoading,
   isRefreshingRuntime,
+  isCheckingValidity,
+  safety,
   onBack,
   onRefresh,
+  onCheckValidity,
 }: DashboardHeaderProps) {
-  const statusLabel = isExecutionUsable ? 'Подключено' : 'Требует внимания'
-  const statusClasses = isExecutionUsable
-    ? 'bg-emerald-50 text-emerald-700'
-    : 'bg-honey-50 text-honey-700'
+  const statusLabel = safety ? healthStatusLabel(safety.health_status) : isExecutionUsable ? 'Подключено' : 'Требует внимания'
+  const safetyStatusTone = safety ? safetyTone(safety.health_status) : isExecutionUsable ? 'green' : 'amber'
+  const statusClasses = {
+    green: 'bg-emerald-50 text-emerald-700',
+    amber: 'bg-honey-50 text-honey-700',
+    red: 'bg-red-50 text-red-600',
+    gray: 'bg-gray-100 text-gray-500',
+  }[safetyStatusTone]
 
   return (
     <header className="bg-white border-b border-gray-200/70 sticky top-0 z-40">
@@ -65,6 +83,22 @@ export function DashboardHeader({
 
           {/* ── Right controls ── */}
           <div className="ml-auto flex items-center gap-2">
+            {safety ? (
+              <div className="hidden max-w-sm rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-500 lg:block">
+                <span className="font-medium text-gray-700">{riskLevelLabel(safety.overall_risk_level)}</span>
+                <span className="mx-1 text-gray-300">·</span>
+                <span>{capabilitySummaryLabel(safety)}</span>
+                <span className="mx-1 text-gray-300">·</span>
+                <span>{validityStatusLabel(safety.last_validity_check)}</span>
+              </div>
+            ) : null}
+            <button
+              onClick={onCheckValidity}
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700 sm:flex"
+            >
+              <RefreshCw className={`size-4 ${isCheckingValidity ? 'animate-spin' : ''}`} />
+              <span>Проверить</span>
+            </button>
             <button
               onClick={onRefresh}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-navy-400 hover:bg-navy-50 rounded-lg transition-all"

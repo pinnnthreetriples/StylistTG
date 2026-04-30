@@ -159,6 +159,12 @@ class Account(Base):
     story_drafts: Mapped[list[AccountStoryDraft]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+    safety_snapshot: Mapped[AccountSafetySnapshot | None] = relationship(
+        cascade="all, delete-orphan", uselist=False
+    )
+    validity_check_runs: Mapped[list[AccountValidityCheckRun]] = relationship(
+        cascade="all, delete-orphan"
+    )
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
 
@@ -415,6 +421,41 @@ class AccountStoryDraft(Base):
     )
 
     account: Mapped[Account] = relationship(back_populates="story_drafts")
+
+
+class AccountSafetySnapshot(Base):
+    __tablename__ = "account_safety_snapshot"
+
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
+    health_status: Mapped[str] = mapped_column(String(64), nullable=False)
+    overall_risk_level: Mapped[str] = mapped_column(String(64), nullable=False)
+    validity_status: Mapped[str] = mapped_column(String(64), nullable=False)
+    capabilities_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    risk_by_operation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    reasons_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    signals_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    last_checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="db_snapshot")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class AccountValidityCheckRun(Base):
+    __tablename__ = "account_validity_check_run"
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    mode: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_class: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    details_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class Job(Base):

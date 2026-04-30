@@ -13,8 +13,8 @@ from app.services.operation_logs import log_operation
 SUPPORTED_PROXY_TYPES = {"socks5", "http"}
 
 
-def get_account_proxy(session: Session, account_id: str) -> dict[str, Any] | None:
-    if get_account(session, account_id) is None:
+def get_account_proxy(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict[str, Any] | None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     row = session.get(AccountProxy, account_id)
     return proxy_to_dict(row) if row else None
@@ -51,8 +51,9 @@ def upsert_account_proxy(
     username: str | None,
     password: str | None,
     config: Settings = settings,
+    workspace_id: str | None = None,
 ) -> dict[str, Any]:
-    if get_account(session, account_id) is None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     _validate_proxy(proxy_type=proxy_type, host=host, port=port)
     encrypted_password = _encrypt_password(password, config=config) if password else None
@@ -89,8 +90,8 @@ def upsert_account_proxy(
     return proxy_to_dict(row)
 
 
-def delete_account_proxy(session: Session, account_id: str) -> None:
-    if get_account(session, account_id) is None:
+def delete_account_proxy(session: Session, account_id: str, *, workspace_id: str | None = None) -> None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     row = session.get(AccountProxy, account_id)
     if row is not None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Account, AccountProxy, Asset, AuthBatch, Job
+from app.models import Account, AccountOperationLog, AccountProxy, Asset, AuthBatch, Job
 
 
 def get_account_for_workspace(session: Session, account_id: str, workspace_id: str) -> Account | None:
@@ -35,3 +35,24 @@ def get_proxy_account_for_workspace(session: Session, account_id: str, workspace
     if account is None:
         return None
     return session.get(AccountProxy, account_id)
+
+
+def get_operation_log_for_workspace(session: Session, log_id: str, workspace_id: str) -> AccountOperationLog | None:
+    return session.execute(
+        select(AccountOperationLog).where(
+            AccountOperationLog.id == log_id,
+            AccountOperationLog.workspace_id == workspace_id,
+        )
+    ).scalars().first()
+
+
+def assert_account_workspace(session: Session, account_id: str, workspace_id: str) -> Account:
+    account = get_account_for_workspace(session, account_id, workspace_id)
+    if account is None:
+        raise ValueError("account not found")
+    return account
+
+
+def assert_job_account_workspace_consistency(job: Job) -> None:
+    if job.account is None or job.account.workspace_id != job.workspace_id:
+        raise ValueError("workspace_account_mismatch")

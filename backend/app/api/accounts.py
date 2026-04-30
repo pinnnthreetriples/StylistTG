@@ -273,6 +273,7 @@ def get_account_operation_logs(
             status=status_filter,
             limit=limit,
             offset=offset,
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         raise AppError(
@@ -292,7 +293,7 @@ def get_account_proxy_endpoint(
     if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
-        return get_account_proxy(session, account_id)
+        return get_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -320,6 +321,7 @@ def put_account_proxy(
             port=payload.port,
             username=payload.username,
             password=payload.password,
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         raise _proxy_error(exc) from exc
@@ -334,7 +336,7 @@ def delete_account_proxy_endpoint(
     if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
-        delete_account_proxy(session, account_id)
+        delete_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
         raise _proxy_error(exc) from exc
 
@@ -348,7 +350,7 @@ def post_account_proxy_check(
     if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
     try:
-        return check_account_proxy(session, account_id)
+        return check_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
         raise _proxy_error(exc) from exc
 
@@ -555,7 +557,10 @@ def list_jobs(
             error_class="not_found",
             message="account not found",
         )
-    return [JobSummaryRead(**job_summary(job)) for job in list_account_jobs(session, account_id, limit=limit)]
+    return [
+        JobSummaryRead(**job_summary(job))
+        for job in list_account_jobs(session, account_id, limit=limit, workspace_id=auth.workspace_id)
+    ]
 
 
 @router.get("/{account_id}/jobs/latest", response_model=JobSummaryRead)
@@ -572,7 +577,7 @@ def latest_job(
             error_class="not_found",
             message="account not found",
         )
-    job = get_latest_account_job(session, account_id)
+    job = get_latest_account_job(session, account_id, workspace_id=auth.workspace_id)
     if job is None:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,

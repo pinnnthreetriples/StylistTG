@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stylisttg
+          POSTGRES_PASSWORD: stylisttg
+          POSTGRES_DB: stylisttg_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stylisttg -d stylisttg_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: test
+      AUTH_MODE: local
+      DB_CONNECTION_MODE: local
+      DATABASE_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg_ci
+      DATABASE_DIRECT_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg_ci
+      DATABASE_BASE_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432
+      DATABASE_ADMIN_URL: postgresql://stylisttg:stylisttg@localhost:5432/postgres
+      REDIS_URL: redis://localhost:6379/0
+      PROFILE_EXECUTION_ADAPTER: mock
+      STORIES_TDLIB_LIVE_ENABLED: "false"
+      QUEUE_INLINE_FALLBACK_ENABLED: "false"
+      TDLIB_API_ID: "0"
+      TDLIB_API_HASH: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -e ".[dev]"
+      - name: Alembic heads
+        working-directory: backend
+        run: python -m alembic heads
+      - name: Alembic upgrade
+        working-directory: backend
+        run: python -m alembic upgrade head
+      - name: Migration smoke
+        working-directory: backend
+        run: python -m app.tools.migration_smoke
+      - name: Ruff
+        working-directory: backend
+        run: python -m ruff check .
+      - name: Pytest
+        working-directory: backend
+        run: python -m pytest
+      - name: Compileall
+        working-directory: backend
+        run: python -m compileall app
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build

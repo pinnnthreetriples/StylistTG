@@ -32,6 +32,12 @@ Implemented or actively wired:
 - Account Safety & Readiness Engine: health/risk/capabilities, read-only validity checks, operation cooldowns, safety overrides.
 - Per-account proxy assignment/status, technical proxy connectivity checks, and TDLib read-only proxy verification in TDLib live mode.
 - Operation logs: account-level recent history, debug history, and global `/operations` journal.
+- SaaS backend foundation and production-hardening:
+  - workspace/user/member ownership model;
+  - local vs Supabase JWT auth modes;
+  - production guard blocking unsafe local auth in cloud/prod;
+  - JWKS cache/rotation for Supabase JWT verification;
+  - GitHub Actions CI for backend/frontend safe validation.
 - SaaS backend foundation: runtime/direct DB URL split, local workspace bootstrap, AuthContext abstraction, identity/workspace/audit/limits models, and tenant-scoped core API access.
 - Polling-first job progress UI with grouped story mini-pipelines.
 
@@ -62,6 +68,7 @@ Still limited or intentionally cautious:
 - Use `karpathy-guidelines`: clarify assumptions, keep changes surgical, verify before claiming completion.
 - For planning, prefer Spec Kit; use Superpowers brainstorming first for unclear product/UI-heavy work.
 - Do not modify application source before the planning path is agreed unless the change is trivial/obvious.
+- For SaaS backend work, keep FastAPI as the only data access layer. Frontend must never access Neon/Supabase tables directly.
 
 ## Safety Rules
 
@@ -142,6 +149,8 @@ Redis note:
 - `/diagnostics/runtime`: structured runtime diagnostics.
 - `/diagnostics/live-preflight`: live readiness checks.
 - Settings UI shows system/runtime readiness and should use Russian labels/tooltips.
+- Production SaaS deployment runbook: `docs/runbooks/saas-production-deployment.md`.
+- API error model migration note: `docs/architecture/api-error-model.md`.
 
 Important operational point:
 

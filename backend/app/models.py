@@ -536,8 +536,12 @@ class AccountProxy(Base):
     password_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="unknown")
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_check_scope: Mapped[str | None] = mapped_column(String(32), nullable=True)
     last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tdlib_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    tdlib_last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    tdlib_last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

@@ -1,4 +1,5 @@
 from app.config import Settings
+from app.models import Asset
 from app.services.assets import save_story_video_asset
 
 
@@ -51,3 +52,29 @@ def test_story_video_upload_rejects_when_media_tools_are_missing(db_session, sto
         message = ""
 
     assert message == "story video preparation requires ffprobe and ffmpeg"
+    assert not any((storage_dir / "assets").iterdir())
+    assert db_session.query(Asset).count() == 0
+
+
+def test_story_video_upload_cleans_new_asset_dir_when_preparation_fails(db_session, storage_dir, monkeypatch) -> None:
+    def fail_prepare(source_path, normalized_dir, config):
+        raise ValueError("ffmpeg failed")
+
+    monkeypatch.setattr("app.services.assets._prepare_story_video", fail_prepare)
+
+    try:
+        save_story_video_asset(
+            db_session,
+            filename="story.mp4",
+            content=b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 16,
+            storage_root=storage_dir,
+            max_bytes=1024,
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert message == "ffmpeg failed"
+    assert not any((storage_dir / "assets").iterdir())
+    assert db_session.query(Asset).count() == 0

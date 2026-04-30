@@ -53,7 +53,7 @@ Recommended one-command launcher on Windows:
 ```
 
 It starts Redis-compatible Memurai from `C:\Tools\Memurai`, runs migrations,
-starts the FastAPI backend on port `8002`, starts the RQ worker, and starts Vite
+starts the FastAPI backend on port `8002`, starts separate RQ workers, and starts Vite
 on port `5173`.
 
 Frontend:
@@ -92,8 +92,11 @@ Worker:
 
 ```powershell
 cd backend
-python -m rq worker profile_jobs auth_jobs --url redis://localhost:6379/0
+python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 ```
+
+Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes batch-auth work. Diagnostics report both statuses separately.
 
 Diagnostics:
 
@@ -152,6 +155,12 @@ Operator live validation bundle:
 .\scripts\live_profile_job.ps1 -AccountId "<account-id>" -PhotoPath "C:\\path\\to\\profile.jpg"
 .\scripts\capture_live_artifacts.ps1 -AccountId "<account-id>" -JobId "<job-id>"
 ```
+
+Operator API token:
+
+- `OPERATOR_API_TOKEN` is for API/reverse-proxy clients that can send `X-Operator-Token`.
+- The browser UI does not store or send this token.
+- Local browser development normally relies on the localhost guard instead.
 
 Runbook:
 

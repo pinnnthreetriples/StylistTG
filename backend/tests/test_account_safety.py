@@ -54,7 +54,12 @@ def test_operation_log_sanitizes_secrets(db_session) -> None:
         status="completed",
         source="test",
         message="saved",
-        metadata={"password": "secret", "nested": {"api_hash": "secret"}},
+        metadata={
+            "password": "secret",
+            "nested": {"api_hash": "secret"},
+            "proxyPassword": "secret",
+            "items": [{"operator_api_token": "secret"}],
+        },
     )
     db_session.commit()
 
@@ -62,6 +67,9 @@ def test_operation_log_sanitizes_secrets(db_session) -> None:
 
     assert payload["metadata"]["password"] == "***"
     assert payload["metadata"]["nested"]["api_hash"] == "***"
+    assert payload["metadata"]["proxyPassword"] == "***"
+    assert payload["metadata"]["items"][0]["operator_api_token"] == "***"
+    assert payload["metadata"]["items"][0]["operator_api_token"] == "***"
 
 
 def test_proxy_password_requires_encryption_key(db_session) -> None:
@@ -363,6 +371,26 @@ def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_writ
     assert account.account_state == AccountState.EXECUTION_USABLE
     assert account.runtime_state.runtime_health == "ready"
     assert account.profile_state.username == "stylisttg"
+
+
+def test_account_validity_tdlib_readonly_adapter_create_failure_is_structured() -> None:
+    from app.adapters.tdlib_readonly_validity import TdlibReadOnlyValidityAdapter
+    from app.config import Settings
+
+    class RaisingFactory:
+        def create(self, account_id: str):
+            raise OSError("tdjson unavailable")
+
+    adapter = TdlibReadOnlyValidityAdapter(
+        client_factory=RaisingFactory(),
+        config=Settings(tdlib_api_id=1, tdlib_api_hash="hash", tdlib_auth_timeout_seconds=0.01),
+    )
+
+    result = adapter.check_account("account-1")
+
+    assert result["status"] == "runtime_broken"
+    assert result["error_code"] == "tdlib_readonly_runtime_broken"
+    assert result["error"] == "tdjson unavailable"
 
 
 def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_session) -> None:

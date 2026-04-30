@@ -6,6 +6,8 @@ export type LivePreflight = {
   storage_writable: boolean
   rq_worker_expected: boolean
   rq_worker_status?: 'ready' | 'missing' | 'unknown' | null
+  profile_worker_status?: 'ready' | 'missing' | 'unknown' | null
+  auth_worker_status?: 'ready' | 'missing' | 'unknown' | null
   overall_status: string
 }
 
@@ -31,7 +33,8 @@ export function buildPreflightItems(preflight: LivePreflight | null): SettingsSt
     boolItem('postgres', 'PostgreSQL', preflight.postgres_reachable, 'Основная база данных проекта. Здесь хранятся аккаунты, профили, задачи и их статусы.'),
     boolItem('redis', 'Redis', preflight.redis_reachable, 'Быстрое хранилище очереди. Через него backend передает задачи RQ worker.'),
     boolItem('storage', 'Storage', preflight.storage_writable, 'Локальные папки для файлов TDLib и загруженных данных. Проверка показывает, можно ли туда писать.'),
-    workerItem(preflight),
+    workerItem('profile_worker', 'Profile worker', preflight, preflight.profile_worker_status ?? preflight.rq_worker_status, 'profile_jobs'),
+    workerItem('auth_worker', 'Auth worker', preflight, preflight.auth_worker_status ?? preflight.rq_worker_status, 'auth_jobs'),
     {
       key: 'overall',
       label: 'Live статус',
@@ -42,34 +45,40 @@ export function buildPreflightItems(preflight: LivePreflight | null): SettingsSt
   ]
 }
 
-function workerItem(preflight: LivePreflight): SettingsStatusItem {
+function workerItem(
+  key: string,
+  label: string,
+  preflight: LivePreflight,
+  workerStatus: LivePreflight['rq_worker_status'],
+  queueName: 'profile_jobs' | 'auth_jobs',
+): SettingsStatusItem {
   if (!preflight.rq_worker_expected) {
     return {
-      key: 'worker',
-      label: 'RQ worker',
+      key,
+      label,
       status: 'ok',
       message: 'Worker не требуется',
       help: 'Для текущего режима отдельный worker не требуется.',
     }
   }
 
-  if (preflight.rq_worker_status === 'ready') {
+  if (workerStatus === 'ready') {
     return {
-      key: 'worker',
-      label: 'RQ worker',
+      key,
+      label,
       status: 'ok',
       message: 'Готов',
-      help: 'RQ worker подтверждён в Redis и может брать задачи из очередей profile_jobs и auth_jobs.',
+      help: `Worker подтверждён в Redis и может брать задачи из очереди ${queueName}.`,
     }
   }
 
   const startCommand =
-    'Запуск: cd backend; python -m rq.cli worker profile_jobs auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker'
+    `Запуск: cd backend; python -m rq.cli worker ${queueName} --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker`
 
-  if (preflight.rq_worker_status === 'missing') {
+  if (workerStatus === 'missing') {
     return {
-      key: 'worker',
-      label: 'RQ worker',
+      key,
+      label,
       status: 'down',
       message: 'Worker не запущен',
       help: `Задачи будут создаваться, но не выполнятся, пока worker не запущен. ${startCommand}`,
@@ -77,8 +86,8 @@ function workerItem(preflight: LivePreflight): SettingsStatusItem {
   }
 
   return {
-    key: 'worker',
-    label: 'RQ worker',
+    key,
+    label,
     status: 'attention',
     message: 'Worker нужен для выполнения задач',
     help: `Worker не запущен или не подтверждён. Задачи будут создаваться, но могут не выполняться. ${startCommand}`,

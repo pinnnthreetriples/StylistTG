@@ -19,6 +19,8 @@ describe('settings helpers', () => {
         storage_writable: true,
         rq_worker_expected: true,
         rq_worker_status: 'unknown',
+        profile_worker_status: 'unknown',
+        auth_worker_status: 'unknown',
         overall_status: 'degraded',
       }),
     ).toEqual([
@@ -27,7 +29,8 @@ describe('settings helpers', () => {
       { key: 'postgres', label: 'PostgreSQL', status: 'ok', message: 'Готов' },
       { key: 'redis', label: 'Redis', status: 'down', message: 'Недоступен' },
       { key: 'storage', label: 'Storage', status: 'ok', message: 'Готов' },
-      { key: 'worker', label: 'RQ worker', status: 'attention', message: 'Worker нужен для выполнения задач' },
+      { key: 'profile_worker', label: 'Profile worker', status: 'attention', message: 'Worker нужен для выполнения задач' },
+      { key: 'auth_worker', label: 'Auth worker', status: 'attention', message: 'Worker нужен для выполнения задач' },
       { key: 'overall', label: 'Live статус', status: 'attention', message: 'Ограничен' },
     ].map((item) => expect.objectContaining(item)))
   })
@@ -41,10 +44,15 @@ describe('settings helpers', () => {
       storage_writable: true,
       rq_worker_expected: true,
       rq_worker_status: 'ready',
+      profile_worker_status: 'ready',
+      auth_worker_status: 'ready',
       overall_status: 'ok',
     })
 
-    expect(items.find((item) => item.key === 'worker')).toEqual(
+    expect(items.find((item) => item.key === 'profile_worker')).toEqual(
+      expect.objectContaining({ status: 'ok', message: 'Готов' }),
+    )
+    expect(items.find((item) => item.key === 'auth_worker')).toEqual(
       expect.objectContaining({ status: 'ok', message: 'Готов' }),
     )
   })
@@ -58,14 +66,23 @@ describe('settings helpers', () => {
       storage_writable: true,
       rq_worker_expected: true,
       rq_worker_status: 'missing',
+      profile_worker_status: 'missing',
+      auth_worker_status: 'missing',
       overall_status: 'degraded',
     })
 
-    expect(items.find((item) => item.key === 'worker')).toEqual(
+    expect(items.find((item) => item.key === 'profile_worker')).toEqual(
       expect.objectContaining({
         status: 'down',
         message: 'Worker не запущен',
         help: expect.stringContaining('python -m rq.cli worker profile_jobs'),
+      }),
+    )
+    expect(items.find((item) => item.key === 'auth_worker')).toEqual(
+      expect.objectContaining({
+        status: 'down',
+        message: 'Worker не запущен',
+        help: expect.stringContaining('python -m rq.cli worker auth_jobs'),
       }),
     )
   })

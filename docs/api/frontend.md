@@ -15,7 +15,7 @@ There is no WebSocket/SSE contract.
 
 Frontend route/query architecture is documented in `docs/frontend-architecture.md`.
 
-Mutating local operator endpoints may require `X-Operator-Token` when `OPERATOR_API_TOKEN` is configured. The backend defaults to localhost-only access for operator safety.
+Mutating local operator endpoints may require `X-Operator-Token` when `OPERATOR_API_TOKEN` is configured. The backend defaults to localhost-only access for operator safety. The browser UI does not store or send `OPERATOR_API_TOKEN`; use it only for API/reverse-proxy clients.
 
 Canonical frontend routes are:
 
@@ -72,7 +72,7 @@ Structured runtime diagnostics for Settings UI.
 
 ### GET /diagnostics/live-preflight
 
-Structured live readiness diagnostics for TDLib, storage, DB, Redis, and tooling checks.
+Structured live readiness diagnostics for TDLib, storage, DB, Redis, tooling checks, and separate `profile_jobs` / `auth_jobs` worker statuses. `rq_worker_status` remains a compatibility summary.
 
 ## Accounts
 
@@ -138,6 +138,15 @@ Stores an audited manual safety review for overridable blockers. Non-overridable
 
 Returns compact proxy status by account for the account list. The response never includes proxy passwords.
 
+Proxy status values:
+
+- `unknown`: no successful check yet;
+- `tcp_working`: TCP proxy connection works, Telegram through proxy was not verified;
+- `tdlib_working`: read-only TDLib verification through proxy succeeded;
+- `tdlib_unverified`: TCP works, but the account is not ready for Telegram verification;
+- `failed`: TCP proxy check failed;
+- `tdlib_failed`: TDLib/proxy runtime verification failed.
+
 ### GET /api/accounts/{account_id}/proxy
 
 Returns account proxy configuration/status. Password is never returned; frontend receives `has_password`.
@@ -152,7 +161,7 @@ Removes proxy assignment for the account.
 
 ### POST /api/accounts/{account_id}/proxy/check
 
-Runs a technical proxy connectivity check and updates proxy status. In TDLib live mode with configured TDLib credentials, the backend also performs a read-only TDLib validity check through the saved proxy. This is diagnostics only and does not perform Telegram account writes.
+Runs a technical proxy connectivity check and updates proxy status. In TDLib live mode with configured TDLib credentials, the backend also performs a read-only TDLib validity check through the saved proxy. This is diagnostics only and does not perform Telegram account writes. Account readiness problems such as `reauth_required` are represented as `tdlib_unverified`, not as TCP proxy failure.
 
 ### GET /api/accounts/{account_id}/operation-logs
 

@@ -30,7 +30,10 @@ def proxy_summary(session: Session) -> list[dict[str, Any]]:
             "host": row.host,
             "port": row.port,
             "last_checked_at": row.last_checked_at,
+            "last_check_scope": row.last_check_scope,
             "last_error_code": row.last_error_code,
+            "tdlib_verified_at": row.tdlib_verified_at,
+            "tdlib_last_error_code": row.tdlib_last_error_code,
         }
         for row in rows
     ]
@@ -62,8 +65,12 @@ def upsert_account_proxy(
     if password is not None:
         row.password_encrypted = encrypted_password
     row.status = "unknown"
+    row.last_check_scope = None
     row.last_error_code = None
     row.last_error_message = None
+    row.tdlib_verified_at = None
+    row.tdlib_last_error_code = None
+    row.tdlib_last_error_message = None
     log_operation(
         session,
         account_id=account_id,
@@ -109,8 +116,12 @@ def proxy_to_dict(row: AccountProxy) -> dict[str, Any]:
         "has_password": bool(row.password_encrypted),
         "status": row.status,
         "last_checked_at": row.last_checked_at,
+        "last_check_scope": row.last_check_scope,
         "last_error_code": row.last_error_code,
         "last_error_message": row.last_error_message,
+        "tdlib_verified_at": row.tdlib_verified_at,
+        "tdlib_last_error_code": row.tdlib_last_error_code,
+        "tdlib_last_error_message": row.tdlib_last_error_message,
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     }

@@ -5,8 +5,12 @@ import { proxyErrorLabel, proxyStatusLabel, validateProxyInput } from '@/lib/pro
 describe('proxy labels and validation', () => {
   it('maps proxy statuses to Russian labels', () => {
     expect(proxyStatusLabel(null)).toBe('Proxy: не назначен')
-    expect(proxyStatusLabel('working')).toBe('Proxy: работает')
+    expect(proxyStatusLabel('working')).toBe('TCP доступен')
+    expect(proxyStatusLabel('tcp_working')).toBe('TCP доступен')
+    expect(proxyStatusLabel('tdlib_working')).toBe('Telegram через proxy проверен')
+    expect(proxyStatusLabel('tdlib_unverified')).toBe('Telegram через proxy не проверен')
     expect(proxyStatusLabel('failed')).toBe('Proxy: ошибка')
+    expect(proxyStatusLabel('tdlib_failed')).toBe('TDLib через proxy не прошёл')
     expect(proxyStatusLabel('unknown')).toBe('Proxy: не проверен')
   })
 

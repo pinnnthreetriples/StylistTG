@@ -53,17 +53,18 @@ def apply_account_proxy_to_tdlib(
         return False
     _log_proxy_apply(account_id, status="started", message="TDLib proxy apply started", proxy=proxy)
     try:
-        response = client.send_query(_add_proxy_query(proxy), config.tdlib_receive_timeout_seconds)
+        response = client.send_query(_add_proxy_query(proxy), config.tdlib_proxy_apply_timeout_seconds)
         if response.get("@type") == "error":
             raise RuntimeError(str(response.get("message") or "TDLib addProxy failed"))
         proxy_id = response.get("id")
-        if proxy_id is not None:
-            enable_response = client.send_query(
-                {"@type": "enableProxy", "proxy_id": int(proxy_id)},
-                config.tdlib_receive_timeout_seconds,
-            )
-            if enable_response.get("@type") == "error":
-                raise RuntimeError(str(enable_response.get("message") or "TDLib enableProxy failed"))
+        if proxy_id is None:
+            raise RuntimeError("TDLib addProxy did not return proxy id")
+        enable_response = client.send_query(
+            {"@type": "enableProxy", "proxy_id": int(proxy_id)},
+            config.tdlib_proxy_apply_timeout_seconds,
+        )
+        if enable_response.get("@type") == "error":
+            raise RuntimeError(str(enable_response.get("message") or "TDLib enableProxy failed"))
         _log_proxy_apply(account_id, status="completed", message="TDLib proxy apply completed", proxy=proxy)
         return True
     except Exception as exc:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.scripts.common import load_env_file
 from app.scripts.cloud_config_check import validate_cloud_config
 from app.scripts.neon_smoke import run_neon_smoke
 from app.scripts.object_storage_smoke import run_object_storage_smoke
@@ -37,6 +38,32 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
 
 def _statuses(report):
     return {item.name: item.status for item in report.results}
+
+
+def test_load_env_file_sets_values_without_printing(monkeypatch, tmp_path) -> None:
+    env_file = tmp_path / ".env.cloud.local"
+    env_file.write_text(
+        "\n".join(
+            [
+                "# ignored",
+                "APP_ENV=staging",
+                "AUTH_MODE='supabase_jwt'",
+                'SUPABASE_AUTH_ISSUER="https://project.supabase.co/auth/v1"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("AUTH_MODE", raising=False)
+    monkeypatch.delenv("SUPABASE_AUTH_ISSUER", raising=False)
+
+    load_env_file(str(env_file))
+
+    import os
+
+    assert os.environ["APP_ENV"] == "staging"
+    assert os.environ["AUTH_MODE"] == "supabase_jwt"
+    assert os.environ["SUPABASE_AUTH_ISSUER"] == "https://project.supabase.co/auth/v1"
 
 
 def test_cloud_config_valid_env_passes_without_secret_leak() -> None:

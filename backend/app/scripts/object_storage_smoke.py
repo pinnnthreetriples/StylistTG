@@ -8,6 +8,7 @@ from app.scripts.common import (
     CheckReport,
     add_common_json_arg,
     env_value,
+    load_env_file,
     looks_production,
     main_guard,
     print_and_exit,
@@ -70,11 +71,13 @@ def _settings_from_env(env: dict[str, str] | None) -> Settings:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Safe R2/S3 object storage smoke check.")
+    parser.add_argument("--dry-run", action="store_true", help="Explicitly run without object storage writes.")
     parser.add_argument("--allow-write-cloud", action="store_true")
     parser.add_argument("--show-signed-url", action="store_true")
     parser.add_argument("--allow-production", action="store_true")
     add_common_json_arg(parser)
     args = parser.parse_args()
+    load_env_file(args.env_file)
     print_and_exit(
         run_object_storage_smoke(
             allow_write_cloud=args.allow_write_cloud,

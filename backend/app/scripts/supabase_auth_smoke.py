@@ -6,7 +6,7 @@ from urllib.request import urlopen
 
 from app.config import Settings
 from app.errors import AppError
-from app.scripts.common import CheckReport, add_common_json_arg, env_value, main_guard, print_and_exit, sanitized_url
+from app.scripts.common import CheckReport, add_common_json_arg, env_value, load_env_file, main_guard, print_and_exit, sanitized_url
 from app.services.supabase_jwt import SupabaseJwtVerifier, clear_jwks_cache
 
 
@@ -74,6 +74,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Safe Supabase Auth/JWKS smoke check.")
     add_common_json_arg(parser)
     args = parser.parse_args()
+    load_env_file(args.env_file)
     print_and_exit(run_supabase_auth_smoke(), json_output=args.json)
 
 

@@ -11,6 +11,7 @@ from app.scripts.common import (
     env_value,
     int_env,
     is_cloud_env,
+    load_env_file,
     looks_production,
     main_guard,
     print_and_exit,
@@ -130,6 +131,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate StylistTG cloud dev/staging environment.")
     add_common_json_arg(parser)
     args = parser.parse_args()
+    load_env_file(args.env_file)
     print_and_exit(validate_cloud_config(), json_output=args.json)
 
 

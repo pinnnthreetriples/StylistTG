@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 from app.scripts.cloud_config_check import validate_cloud_config
-from app.scripts.common import CheckReport, add_common_json_arg, env_value, main_guard, print_and_exit
+from app.scripts.common import CheckReport, add_common_json_arg, env_value, load_env_file, main_guard, print_and_exit
 from app.scripts.neon_smoke import run_neon_smoke
 from app.scripts.object_storage_smoke import run_object_storage_smoke
 from app.scripts.redis_smoke import run_redis_smoke
@@ -55,6 +55,7 @@ def main() -> None:
     parser.add_argument("--allow-production", action="store_true")
     add_common_json_arg(parser)
     args = parser.parse_args()
+    load_env_file(args.env_file)
     print_and_exit(
         run_cloud_smoke(
             include_redis=args.include_redis,

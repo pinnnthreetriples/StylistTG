@@ -115,6 +115,28 @@ def print_and_exit(report: CheckReport, *, json_output: bool) -> None:
 
 def add_common_json_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="Output JSON without secrets.")
+    parser.add_argument("--env-file", help="Load environment variables from a local .env-style file.")
+
+
+def load_env_file(path: str | None) -> None:
+    if not path:
+        return
+    with open(path, encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            name = name.strip()
+            if not name:
+                continue
+            os.environ[name] = _strip_env_value(value.strip())
+
+
+def _strip_env_value(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def is_cloud_env(env: dict[str, str] | None = None) -> bool:

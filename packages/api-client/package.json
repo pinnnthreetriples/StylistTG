@@ -13,6 +13,7 @@
     "generate:openapi": "python ../../backend/app/scripts/export_openapi.py --out ./openapi.json",
     "generate:types": "openapi-typescript ./openapi.json -o ./src/generated/schema.d.ts",
     "generate:api": "npm run generate:openapi && npm run generate:types",
+    "check:api": "node ./scripts/check-openapi-drift.mjs",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "test": "vitest run",

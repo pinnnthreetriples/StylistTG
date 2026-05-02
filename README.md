@@ -69,9 +69,11 @@ The frontend is an npm workspaces monorepo. Root commands still work:
 
 ```powershell
 npm run generate:api
+npm run check:api
 npm run lint
 npm test
 npm run build
+npm run qa:browser
 ```
 
 Current frontend package layout:
@@ -83,6 +85,10 @@ Current frontend package layout:
 
 `backend/` remains at the repository root because staging API/worker deployment uses
 `backend/Dockerfile`; moving it is deferred to a later deployment-aware PR.
+
+OpenAPI drift is enforced with `npm run check:api`. Browser QA uses Playwright,
+local Vite preview, and mocked API responses; screenshots/reports are ignored
+under `test-results/` and `playwright-report/`.
 
 Backend:
 

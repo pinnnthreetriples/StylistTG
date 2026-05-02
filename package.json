@@ -15,6 +15,9 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "generate:api": "turbo run generate:api",
+    "check:api": "turbo run check:api",
+    "qa:browser": "npm --workspace @stylisttg/dashboard run qa:browser",
+    "qa:screenshots": "npm --workspace @stylisttg/dashboard run qa:screenshots",
     "dashboard:dev": "npm --workspace @stylisttg/dashboard run dev",
     "dashboard:build": "npm --workspace @stylisttg/dashboard run build"
   },

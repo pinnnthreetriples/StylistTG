@@ -27,6 +27,25 @@ function mockFetch(payload: unknown, status = 200) {
   return fetchMock
 }
 
+function requestDetails(call: unknown[]) {
+  const input = call[0] as RequestInfo | URL
+  const init = (call[1] ?? {}) as RequestInit
+  if (input instanceof Request) {
+    return {
+      url: new URL(input.url).pathname,
+      method: input.method,
+      headers: input.headers,
+      body: input.body,
+    }
+  }
+  return {
+    url: String(input).replace(/^http:\/\/localhost/, ''),
+    method: init.method ?? 'GET',
+    headers: new Headers(init.headers),
+    body: init.body,
+  }
+}
+
 describe('story draft api contract', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -64,10 +83,9 @@ describe('story draft api contract', () => {
 
     await expect(fetchStoryDrafts('account-1')).resolves.toEqual([])
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/story-drafts', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Account-Id': 'account-1' }),
-      signal: expect.any(AbortSignal),
-    }))
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/story-drafts')
+    expect(request.headers.get('X-Account-Id')).toBe('account-1')
   })
 
   it('fetches story capabilities by account id', async () => {
@@ -88,10 +106,9 @@ describe('story draft api contract', () => {
 
     await expect(fetchStoryCapabilities('account-1')).resolves.toEqual(payload)
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/story-capabilities', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Account-Id': 'account-1' }),
-      signal: expect.any(AbortSignal),
-    }))
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/story-capabilities')
+    expect(request.headers.get('X-Account-Id')).toBe('account-1')
   })
 
   it('fetches dashboard through account header instead of account id in url', async () => {
@@ -99,10 +116,9 @@ describe('story draft api contract', () => {
 
     await fetchDashboard('account-1')
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/dashboard/profile', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Account-Id': 'account-1' }),
-      signal: expect.any(AbortSignal),
-    }))
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/dashboard/profile')
+    expect(request.headers.get('X-Account-Id')).toBe('account-1')
   })
 
   it('fetches account summaries for the account list', async () => {
@@ -135,10 +151,9 @@ describe('story draft api contract', () => {
 
     await expect(deleteAccount('account-1')).resolves.toBeUndefined()
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/accounts/account-1', expect.objectContaining({
-      method: 'DELETE',
-      signal: expect.any(AbortSignal),
-    }))
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/accounts/account-1')
+    expect(request.method).toBe('DELETE')
   })
 
   it('creates story drafts with backend snake_case fields', async () => {
@@ -156,10 +171,10 @@ describe('story draft api contract', () => {
       'image',
     )
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/story-drafts')
-    expect(init.method).toBe('POST')
-    expect(JSON.parse(init.body as string)).toEqual({
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/story-drafts')
+    expect(request.method).toBe('POST')
+    expect(await new Response(request.body).json()).toEqual({
       account_id: 'account-1',
       asset_id: 'asset-1',
       media_kind: 'image',
@@ -176,15 +191,16 @@ describe('story draft api contract', () => {
     await updateStoryDraft('draft-1', { caption: 'Next', protectContent: false })
     await deleteStoryDraft('draft-1')
 
-    const [, patchInit] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/story-drafts/draft-1')
-    expect(patchInit.method).toBe('PATCH')
-    expect(JSON.parse(patchInit.body as string)).toEqual({
+    const patchRequest = requestDetails(fetchMock.mock.calls[0])
+    expect(patchRequest.url).toBe('/api/story-drafts/draft-1')
+    expect(patchRequest.method).toBe('PATCH')
+    expect(await new Response(patchRequest.body).json()).toEqual({
       caption: 'Next',
       protect_content: false,
     })
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/story-drafts/draft-1')
-    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('DELETE')
+    const deleteRequest = requestDetails(fetchMock.mock.calls[1])
+    expect(deleteRequest.url).toBe('/api/story-drafts/draft-1')
+    expect(deleteRequest.method).toBe('DELETE')
   })
 
   it('deletes live story posts by post id and account header', async () => {
@@ -193,11 +209,10 @@ describe('story draft api contract', () => {
 
     await expect(deleteStoryPost('account-1', 'post-1')).resolves.toBeUndefined()
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/story-posts/post-1', expect.objectContaining({
-      method: 'DELETE',
-      headers: expect.objectContaining({ 'X-Account-Id': 'account-1' }),
-      signal: expect.any(AbortSignal),
-    }))
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/story-posts/post-1')
+    expect(request.method).toBe('DELETE')
+    expect(request.headers.get('X-Account-Id')).toBe('account-1')
   })
 
   it('treats missing story draft deletes as already deleted', async () => {

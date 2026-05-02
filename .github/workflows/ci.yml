@@ -88,9 +88,27 @@ jobs:
           cache: npm
       - name: Install frontend dependencies
         run: npm ci
+      - name: OpenAPI drift check
+        run: npm run check:api
       - name: Lint
         run: npm run lint
       - name: Test
         run: npm test
       - name: Build
         run: npm run build
+
+  browser-qa:
+    name: Browser QA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser QA
+        run: npm run qa:browser

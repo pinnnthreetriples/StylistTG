@@ -31,7 +31,28 @@ npm run generate:api
 
 This runs `backend/app/scripts/export_openapi.py`, writes `packages/api-client/openapi.json`, and generates `packages/api-client/src/generated/schema.d.ts`.
 
-The dashboard now uses `@stylisttg/api-client` for account list, latest jobs, and runtime diagnostics. The remaining manual API types stay in `apps/dashboard/src/lib/api.ts` and can be migrated endpoint-by-endpoint.
+CI also runs:
+
+```powershell
+npm run check:api
+```
+
+That command fails when generated OpenAPI artifacts are stale. The dashboard now routes active calls through `@stylisttg/api-client`; `apps/dashboard/src/lib/api.ts` remains as a compatibility wrapper for existing imports.
+
+## Health and Risk
+
+Health Center shows API liveness, readiness, database, Redis, TDLib mode, app environment, auth mode, storage posture, and aggregate account risk.
+
+Account Risk is a deterministic app-known readiness score based on existing account state, runtime health, safety summary, proxy summary, and cooldown signals. It is not a Telegram anti-ban guarantee and does not run live TDLib checks.
+
+## Browser QA
+
+```powershell
+npm run qa:browser
+npm run qa:screenshots
+```
+
+Playwright builds the dashboard, starts Vite preview, mocks backend API responses, checks SaaS shell pages, and writes screenshots as ignored artifacts.
 
 ## Staging Contour
 

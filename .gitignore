@@ -11,6 +11,8 @@ build/
 .vite/
 .turbo/
 coverage/
+playwright-report/
+test-results/
 
 # python
 __pycache__/

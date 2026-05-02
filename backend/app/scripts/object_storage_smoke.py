@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import uuid
 
+from pydantic import ValidationError
+
 from app.config import Settings
 from app.scripts.common import (
     CheckReport,
@@ -47,6 +49,15 @@ def run_object_storage_smoke(
         signed_url = storage.get_signed_url(key, expires_seconds=settings.storage_s3_signed_url_expires_seconds)
         deleted = storage.delete(key)
         exists_after_delete = storage.exists(key)
+    except ValidationError as exc:
+        report.add(
+            "object_storage_write",
+            "FAIL",
+            "Object storage configuration validation failed",
+            error=type(exc).__name__,
+            fields=",".join(_validation_error_fields(exc)),
+        )
+        return report
     except Exception as exc:
         report.add("object_storage_write", "FAIL", "Object storage smoke failed", error=type(exc).__name__)
         return report
@@ -65,7 +76,17 @@ def run_object_storage_smoke(
 def _settings_from_env(env: dict[str, str] | None) -> Settings:
     if env is None:
         return Settings()
-    return Settings(**{key.lower(): value for key, value in env.items()})
+    allowed = set(Settings.model_fields)
+    return Settings(**{key.lower(): value for key, value in env.items() if key.lower() in allowed})
+
+
+def _validation_error_fields(exc: ValidationError) -> list[str]:
+    fields = []
+    for error in exc.errors():
+        location = error.get("loc") or ()
+        if location:
+            fields.append(".".join(str(item) for item in location))
+    return fields
 
 
 def main() -> None:

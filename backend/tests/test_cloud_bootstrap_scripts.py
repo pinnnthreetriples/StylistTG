@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.scripts.cloud_config_check import validate_cloud_config
+from app.scripts.common import CheckReport, render_report
 from app.scripts.neon_smoke import run_neon_smoke
 from app.scripts.object_storage_smoke import run_object_storage_smoke
 from app.scripts.redis_smoke import run_redis_smoke
@@ -329,6 +330,60 @@ def test_staging_smoke_storage_write_requires_explicit_flag() -> None:
     )
 
     assert calls == [{"allow_write_cloud": False, "allow_production": False, "env": _valid_cloud_env()}]
+
+
+def test_staging_smoke_accepts_object_storage_success_with_extra_process_env() -> None:
+    storage = FakeStorage()
+    env = _valid_cloud_env(ANTHROPIC_API_KEY="sk-sensitive", PATH="/bin")
+
+    report = run_staging_smoke(
+        include_storage=True,
+        allow_write_cloud=True,
+        env=env,
+        http_fetcher=None,
+        cloud_config_runner=lambda env: type("Report", (), {"results": []})(),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=lambda **kwargs: run_object_storage_smoke(
+            **kwargs,
+            storage_factory=lambda _settings: storage,
+        ),
+    )
+
+    assert _statuses(report)["object_storage_write"] == "PASS"
+    assert all("smoke/stylisttg/" in call for call in storage.calls)
+    assert "sk-sensitive" not in render_report(report, json_output=False)
+
+
+def test_staging_smoke_preserves_object_storage_failure_details() -> None:
+    storage_report = CheckReport("object_storage_smoke")
+    storage_report.add(
+        "object_storage_write",
+        "FAIL",
+        "Object storage smoke failed",
+        error="ClientError",
+        operation="save_bytes",
+        bucket="stylisttg-dev-assets-pnn2026",
+    )
+
+    report = run_staging_smoke(
+        include_storage=True,
+        allow_write_cloud=True,
+        env=_valid_cloud_env(),
+        http_fetcher=None,
+        cloud_config_runner=lambda env: type("Report", (), {"results": []})(),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=lambda **_kwargs: storage_report,
+    )
+
+    result = next(item for item in report.results if item.name == "object_storage_write")
+    assert result.status == "FAIL"
+    assert result.details["error"] == "ClientError"
+    assert result.details["operation"] == "save_bytes"
+    assert "stylisttg-dev-assets-pnn2026" in render_report(report, json_output=False)
 
 
 def test_staging_smoke_output_redacts_secrets() -> None:

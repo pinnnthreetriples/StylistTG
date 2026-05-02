@@ -1,0 +1,44 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_dockerignore_excludes_secrets_storage_and_tdlib_runtime_data() -> None:
+    dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+
+    for pattern in (
+        ".env*",
+        "storage/",
+        "backend/storage/",
+        "tdlib/",
+        "backend/tdlib/",
+        "node_modules/",
+        "__pycache__/",
+        ".pytest_cache/",
+        "dist/",
+        "build/",
+    ):
+        assert pattern in dockerignore
+
+
+def test_dockerfile_defaults_to_web_command_and_non_root_user() -> None:
+    dockerfile = (ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "FROM python:3.12-slim" in dockerfile
+    assert "USER stylisttg" in dockerfile
+    assert "EXPOSE 8000" in dockerfile
+    assert "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}" in dockerfile
+    assert "rq.cli worker" not in dockerfile
+
+
+def test_render_template_keeps_worker_mock_and_secrets_unsynced() -> None:
+    render_yaml = (ROOT / "render.yaml").read_text(encoding="utf-8")
+
+    assert "type: web" in render_yaml
+    assert "type: worker" in render_yaml
+    assert "python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker" in render_yaml
+    assert "PROFILE_EXECUTION_ADAPTER" in render_yaml
+    assert "value: mock" in render_yaml
+    assert "STORAGE_S3_SECRET_ACCESS_KEY" in render_yaml
+    assert "sync: false" in render_yaml

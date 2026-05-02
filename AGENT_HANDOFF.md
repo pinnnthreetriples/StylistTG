@@ -49,9 +49,18 @@ Implemented or actively wired:
   - `.env.cloud.example` is the cloud env contract;
   - `python -m app.scripts.cloud_config_check` validates Neon/Supabase/R2/Redis/TDLib boundaries without printing secrets;
   - `python -m app.scripts.cloud_smoke` orchestrates safe read-only/dry-run smoke checks;
+  - `python -m app.scripts.staging_smoke` checks deployed `/health` and `/ready`, then runs safe cloud config, Neon, Supabase, Redis, and optional storage smoke checks;
   - object storage writes require `--allow-write-cloud`;
   - migrations require `--allow-migrations`;
   - production smoke requires explicit `--allow-production`.
+- Staging backend/worker deploy readiness:
+  - backend Docker packaging lives in `backend/Dockerfile`;
+  - Render-oriented service template lives in `render.yaml`;
+  - staging deploy runbook lives in `docs/runbooks/staging-backend-worker-deploy.md`;
+  - web command is `uvicorn app.main:app --host 0.0.0.0 --port $PORT`;
+  - worker command is `python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker`;
+  - migration command is `python -m alembic upgrade head`;
+  - keep `PROFILE_EXECUTION_ADAPTER=mock` until a separate TDLib runtime image/volume PR.
 - SaaS backend foundation: runtime/direct DB URL split, local workspace bootstrap, AuthContext abstraction, identity/workspace/audit/limits models, and tenant-scoped core API access.
 - Polling-first job progress UI with grouped story mini-pipelines.
 

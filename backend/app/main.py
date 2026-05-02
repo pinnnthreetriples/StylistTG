@@ -134,14 +134,7 @@ def _is_local_client(request: Request) -> bool:
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    diagnostics = build_runtime_diagnostics()
-    return {
-        "status": "ok",
-        "storage": str(settings.storage_root),
-        "tdlib_configured": str(bool(settings.tdlib_api_id and settings.tdlib_api_hash)).lower(),
-        "database": diagnostics["database"],
-        "redis": diagnostics["redis"],
-    }
+    return {"status": "ok"}
 
 
 @app.get("/ready", response_model=DiagnosticsRead)

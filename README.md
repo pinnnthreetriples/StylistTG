@@ -177,7 +177,7 @@ $env:TDLIB_FILES_ROOT="backend/tdlib/files"
 
 For production object storage set `STORAGE_BACKEND=s3` plus the `STORAGE_S3_*`
 endpoint, bucket, region, access key, secret, path-style, and signed URL TTL
-settings. R2/MinIO are supported through a configurable endpoint URL.
+settings. Backblaze B2, R2, and MinIO are supported through a configurable endpoint URL.
 Application assets and TDLib sessions are separate: asset rows now keep
 storage metadata (`storage_backend`, source/normalized keys, sizes, content
 types, checksums), while TDLib session folders remain backend-only and must
@@ -189,12 +189,22 @@ Cloud dev/staging bootstrap:
 cd backend
 python -m app.scripts.cloud_config_check
 python -m app.scripts.cloud_smoke --safe-default --include-redis --include-storage
+python -m app.scripts.staging_smoke --base-url https://<staging-backend> --include-storage --env-file ..\.env.cloud.local
 ```
 
 Use `.env.cloud.example` as the cloud env contract. The cloud smoke tooling is
 safe by default: no object write without `--allow-write-cloud`, no migrations
 without `--allow-migrations`, and no production smoke without explicit approval.
 See [docs/runbooks/cloud-dev-staging-bootstrap.md](docs/runbooks/cloud-dev-staging-bootstrap.md).
+
+Staging backend/worker deploy:
+
+- Docker image: `backend/Dockerfile`.
+- Web command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+- Worker command: `python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker`.
+- Migration command: `python -m alembic upgrade head`.
+- Keep `PROFILE_EXECUTION_ADAPTER=mock` until a separate TDLib runtime image/volume plan is reviewed.
+- See [docs/runbooks/staging-backend-worker-deploy.md](docs/runbooks/staging-backend-worker-deploy.md).
 
 CI:
 

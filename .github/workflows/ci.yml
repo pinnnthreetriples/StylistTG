@@ -86,8 +86,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
       - name: Install frontend dependencies
         run: npm ci
+      - name: Install backend dependencies for OpenAPI export
+        working-directory: backend
+        run: python -m pip install -e ".[dev]"
       - name: OpenAPI drift check
         run: npm run check:api
       - name: Lint

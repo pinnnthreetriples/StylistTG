@@ -14,7 +14,7 @@ const committedTypes = resolve(packageDir, 'src/generated/schema.d.ts')
 
 try {
   execFileSync('python', [resolve(repoRoot, 'backend/app/scripts/export_openapi.py'), '--out', tempOpenApi], {
-    cwd: packageDir,
+    cwd: resolve(repoRoot, 'backend'),
     stdio: 'pipe',
   })
   const openapiTypescriptCli = resolve(repoRoot, 'node_modules/openapi-typescript/bin/cli.js')

@@ -53,6 +53,14 @@ Implemented or actively wired:
   - object storage writes require `--allow-write-cloud`;
   - migrations require `--allow-migrations`;
   - production smoke requires explicit `--allow-production`.
+- Frontend monorepo/SaaS foundation:
+  - npm workspaces and Turborepo are active at the repo root;
+  - dashboard app lives in `apps/dashboard`;
+  - shared packages live under `packages/api-client`, `packages/ui`, and `packages/config`;
+  - `packages/api-client` generates TypeScript OpenAPI types from FastAPI with `npm run generate:api`;
+  - SaaS shell has Accounts, Health Center, Jobs, Proxy Center, Settings, and future Billing zones;
+  - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
+  - backend remains at `backend/` to preserve `backend/Dockerfile` staging deploys.
 - Staging backend/worker deploy readiness:
   - backend Docker packaging lives in `backend/Dockerfile`;
   - Render-oriented service template lives in `render.yaml`;

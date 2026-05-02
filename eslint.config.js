@@ -20,7 +20,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    files: ['apps/dashboard/src/components/ui/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

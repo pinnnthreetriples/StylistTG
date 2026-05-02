@@ -9,6 +9,7 @@ dist/
 dist-ssr/
 build/
 .vite/
+.turbo/
 coverage/
 
 # python

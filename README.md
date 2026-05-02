@@ -62,8 +62,27 @@ Frontend:
 
 ```powershell
 npm install
-npm run dev
+npm run dashboard:dev
 ```
+
+The frontend is an npm workspaces monorepo. Root commands still work:
+
+```powershell
+npm run generate:api
+npm run lint
+npm test
+npm run build
+```
+
+Current frontend package layout:
+
+- `apps/dashboard` - Vite/React dashboard app.
+- `packages/api-client` - generated OpenAPI types and `openapi-fetch` helpers.
+- `packages/ui` - shared UI primitives.
+- `packages/config` - shared TypeScript config.
+
+`backend/` remains at the repository root because staging API/worker deployment uses
+`backend/Dockerfile`; moving it is deferred to a later deployment-aware PR.
 
 Backend:
 

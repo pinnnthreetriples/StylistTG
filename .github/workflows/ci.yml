@@ -74,6 +74,8 @@ jobs:
       - name: Compileall
         working-directory: backend
         run: python -m compileall app
+      - name: Build backend Docker image
+        run: docker build -f backend/Dockerfile -t stylisttg-backend:test .
 
   frontend:
     name: Frontend

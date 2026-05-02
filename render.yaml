@@ -1,0 +1,98 @@
+services:
+  - type: web
+    name: stylisttg-backend-staging
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: AUTH_MODE
+        value: supabase_jwt
+      - key: DB_CONNECTION_MODE
+        value: neon
+      - key: PROFILE_EXECUTION_ADAPTER
+        value: mock
+      - key: STORIES_TDLIB_LIVE_ENABLED
+        value: "false"
+      - key: STALE_JOB_REAPER_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_RUNTIME_URL
+        sync: false
+      - key: SUPABASE_AUTH_JWKS_URL
+        sync: false
+      - key: SUPABASE_AUTH_ISSUER
+        sync: false
+      - key: SUPABASE_AUTH_AUDIENCE
+        value: authenticated
+      - key: REDIS_URL
+        sync: false
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: STORAGE_S3_ENDPOINT_URL
+        sync: false
+      - key: STORAGE_S3_BUCKET
+        sync: false
+      - key: STORAGE_S3_REGION
+        sync: false
+      - key: STORAGE_S3_FORCE_PATH_STYLE
+        value: "true"
+      - key: STORAGE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS
+        value: "300"
+
+  - type: worker
+    name: stylisttg-worker-staging
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    dockerCommand: python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: AUTH_MODE
+        value: supabase_jwt
+      - key: DB_CONNECTION_MODE
+        value: neon
+      - key: PROFILE_EXECUTION_ADAPTER
+        value: mock
+      - key: STORIES_TDLIB_LIVE_ENABLED
+        value: "false"
+      - key: STALE_JOB_REAPER_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_RUNTIME_URL
+        sync: false
+      - key: SUPABASE_AUTH_JWKS_URL
+        sync: false
+      - key: SUPABASE_AUTH_ISSUER
+        sync: false
+      - key: SUPABASE_AUTH_AUDIENCE
+        value: authenticated
+      - key: REDIS_URL
+        sync: false
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: STORAGE_S3_ENDPOINT_URL
+        sync: false
+      - key: STORAGE_S3_BUCKET
+        sync: false
+      - key: STORAGE_S3_REGION
+        sync: false
+      - key: STORAGE_S3_FORCE_PATH_STYLE
+        value: "true"
+      - key: STORAGE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS
+        value: "300"

@@ -6,6 +6,7 @@ from app.scripts.cloud_config_check import validate_cloud_config
 from app.scripts.neon_smoke import run_neon_smoke
 from app.scripts.object_storage_smoke import run_object_storage_smoke
 from app.scripts.redis_smoke import run_redis_smoke
+from app.scripts.staging_smoke import load_env_file, run_staging_smoke
 from app.scripts.supabase_auth_smoke import run_supabase_auth_smoke
 
 
@@ -20,9 +21,9 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
         "SUPABASE_AUTH_ISSUER": "https://project.supabase.co/auth/v1",
         "SUPABASE_AUTH_AUDIENCE": "authenticated",
         "STORAGE_BACKEND": "s3",
-        "STORAGE_S3_ENDPOINT_URL": "https://account.r2.cloudflarestorage.com",
-        "STORAGE_S3_BUCKET": "stylisttg-dev-assets",
-        "STORAGE_S3_REGION": "auto",
+        "STORAGE_S3_ENDPOINT_URL": "https://s3.eu-central-003.backblazeb2.com",
+        "STORAGE_S3_BUCKET": "stylisttg-dev-assets-pnn2026",
+        "STORAGE_S3_REGION": "eu-central-003",
         "STORAGE_S3_ACCESS_KEY_ID": "access",
         "STORAGE_S3_SECRET_ACCESS_KEY": "super-sensitive-value",
         "STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS": "300",
@@ -281,3 +282,89 @@ def test_neon_smoke_runtime_and_migration_checks_are_safe() -> None:
     assert report.has_errors is False
     assert commands[0][0] == ["python", "-m", "alembic", "current"]
     assert "secret" not in str(report.to_dict())
+
+
+def test_staging_smoke_checks_health_and_ready_when_base_url_provided() -> None:
+    requested_urls = []
+
+    def _fetcher(url: str, timeout: float):
+        requested_urls.append((url, timeout))
+        return 200, {"status": "ok"}
+
+    report = run_staging_smoke(
+        base_url="https://staging.example.com/",
+        env=_valid_cloud_env(),
+        http_fetcher=_fetcher,
+        cloud_config_runner=lambda env: validate_cloud_config(env),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+    )
+
+    assert report.has_errors is False
+    assert requested_urls == [
+        ("https://staging.example.com/health", 5.0),
+        ("https://staging.example.com/ready", 5.0),
+    ]
+
+
+def test_staging_smoke_storage_write_requires_explicit_flag() -> None:
+    calls = []
+
+    def _storage_runner(**kwargs):
+        calls.append(kwargs)
+        return type("Report", (), {"results": []})()
+
+    run_staging_smoke(
+        include_storage=True,
+        allow_write_cloud=False,
+        env=_valid_cloud_env(),
+        http_fetcher=None,
+        cloud_config_runner=lambda env: type("Report", (), {"results": []})(),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=_storage_runner,
+    )
+
+    assert calls == [{"allow_write_cloud": False, "allow_production": False, "env": _valid_cloud_env()}]
+
+
+def test_staging_smoke_output_redacts_secrets() -> None:
+    report = run_staging_smoke(
+        env=_valid_cloud_env(),
+        http_fetcher=None,
+        cloud_config_runner=lambda env: validate_cloud_config(env),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+    )
+
+    rendered = str(report.to_dict())
+    assert "super-sensitive-value" not in rendered
+    assert "db-password-value" not in rendered
+    assert "redis-password-value" not in rendered
+
+
+def test_load_env_file_reads_simple_values(tmp_path) -> None:
+    env_file = tmp_path / ".env.cloud.local"
+    env_file.write_text(
+        "\n".join(
+            [
+                "# comment",
+                "APP_ENV=staging",
+                "DATABASE_URL=${DATABASE_RUNTIME_URL}",
+                "DATABASE_RUNTIME_URL=postgresql://user:secret@example/db",
+                "QUOTED=\"value with spaces\"",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    env = load_env_file(env_file)
+
+    assert env["APP_ENV"] == "staging"
+    assert env["DATABASE_URL"] == "${DATABASE_RUNTIME_URL}"
+    assert env["QUOTED"] == "value with spaces"

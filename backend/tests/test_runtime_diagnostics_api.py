@@ -103,6 +103,19 @@ def test_ready_endpoint_checks_database_and_redis(monkeypatch) -> None:
     assert response.json()["redis"] == "ok"
 
 
+def test_health_endpoint_is_liveness_only(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.build_runtime_diagnostics",
+        lambda: {"database": "down", "redis": "down", "tdlib": "not_configured"},
+    )
+    client = TestClient(app)
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_ready_endpoint_returns_503_when_redis_is_down(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.build_runtime_diagnostics",
@@ -129,6 +142,22 @@ def test_ready_endpoint_returns_503_when_database_is_down(monkeypatch) -> None:
     assert response.status_code == 503
     assert response.json()["database"] == "down"
     assert response.json()["redis"] == "ok"
+
+
+def test_ready_endpoint_does_not_fail_on_tdlib_not_configured_in_mock(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.build_runtime_diagnostics",
+        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
+    )
+    client = TestClient(app)
+
+    response = client.get("/ready")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["tdlib"] == "not_configured"
+    assert "secret" not in str(payload).lower()
+    assert "password" not in str(payload).lower()
 
 
 def test_runtime_diagnostics_uses_short_redis_timeouts(monkeypatch) -> None:

@@ -1,0 +1,64 @@
+.git
+.github
+
+# env / secrets
+.env*
+!.env.example
+!.env.cloud.example
+*secret*
+*secrets*
+
+# node / frontend outputs
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+coverage/
+
+# python caches / local envs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+*.egg-info/
+
+# local runtime data
+storage/
+backend/storage/
+tdlib/
+backend/tdlib/
+tdlib_database/
+tdlib_files/
+logs/
+backend/logs/
+tmp/
+uploads/
+artifacts/
+output/
+
+# Telegram sessions / local databases / dumps
+*.session
+*.session-journal
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.dump
+*.bak
+
+# local binaries
+tdjson.dll
+*.dll
+
+# OS / IDE / agent-local state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.serena/
+.playwright-cli/
+*.log

@@ -3792,7 +3792,8 @@
           },
           "metadata": {
             "type": "object",
-            "title": "Metadata"
+            "title": "Metadata",
+            "additionalProperties": true
           },
           "request_id": {
             "anyOf": [
@@ -4813,7 +4814,8 @@
           },
           "normalized_payload": {
             "type": "object",
-            "title": "Normalized Payload"
+            "title": "Normalized Payload",
+            "additionalProperties": true
           },
           "execution_intent_hash": {
             "type": "string",
@@ -4821,7 +4823,8 @@
           },
           "plan_json_snapshot": {
             "type": "object",
-            "title": "Plan Json Snapshot"
+            "title": "Plan Json Snapshot",
+            "additionalProperties": true
           },
           "steps": {
             "items": {
@@ -4859,7 +4862,8 @@
           },
           "desired_state_normalized": {
             "type": "object",
-            "title": "Desired State Normalized"
+            "title": "Desired State Normalized",
+            "additionalProperties": true
           },
           "capability_snapshot": {
             "additionalProperties": {
@@ -5115,7 +5119,8 @@
           "details": {
             "anyOf": [
               {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": true
               },
               {
                 "type": "null"
@@ -5126,7 +5131,8 @@
           "result": {
             "anyOf": [
               {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": true
               },
               {
                 "type": "null"
@@ -5432,7 +5438,8 @@
           },
           "payload_json": {
             "type": "object",
-            "title": "Payload Json"
+            "title": "Payload Json",
+            "additionalProperties": true
           },
           "created_at": {
             "type": "string",
@@ -7190,7 +7197,8 @@
           "verification_result": {
             "anyOf": [
               {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": true
               },
               {
                 "type": "null"
@@ -7234,7 +7242,8 @@
           "result_payload_json": {
             "anyOf": [
               {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": true
               },
               {
                 "type": "null"
@@ -7584,7 +7593,8 @@
           },
           "normalized_payload": {
             "type": "object",
-            "title": "Normalized Payload"
+            "title": "Normalized Payload",
+            "additionalProperties": true
           },
           "execution_intent_hash": {
             "type": "string",
@@ -7592,7 +7602,8 @@
           },
           "plan_json_snapshot": {
             "type": "object",
-            "title": "Plan Json Snapshot"
+            "title": "Plan Json Snapshot",
+            "additionalProperties": true
           },
           "steps": {
             "items": {
@@ -7717,7 +7728,8 @@
           },
           "payload": {
             "type": "object",
-            "title": "Payload"
+            "title": "Payload",
+            "additionalProperties": true
           }
         },
         "type": "object",
@@ -8065,7 +8077,8 @@
           },
           "ctx": {
             "type": "object",
-            "title": "Context"
+            "title": "Context",
+            "additionalProperties": true
           }
         },
         "type": "object",

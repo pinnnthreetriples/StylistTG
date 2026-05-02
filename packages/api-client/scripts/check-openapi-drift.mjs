@@ -44,9 +44,27 @@ try {
 function compareFile(expectedPath, actualPath, label) {
   const expected = normalize(readFileSync(expectedPath, 'utf8'))
   const actual = normalize(readFileSync(actualPath, 'utf8'))
-  return expected === actual ? null : label
+  if (expected === actual) return null
+  return `${label} (${firstDifference(expected, actual)})`
 }
 
 function normalize(value) {
   return value.replace(/\r\n/g, '\n').trimEnd()
+}
+
+function firstDifference(expected, actual) {
+  const expectedLines = expected.split('\n')
+  const actualLines = actual.split('\n')
+  const length = Math.max(expectedLines.length, actualLines.length)
+  for (let index = 0; index < length; index += 1) {
+    if (expectedLines[index] !== actualLines[index]) {
+      return `first differing line ${index + 1}: committed=${summarizeLine(expectedLines[index])} generated=${summarizeLine(actualLines[index])}`
+    }
+  }
+  return 'content differs'
+}
+
+function summarizeLine(line) {
+  if (line === undefined) return '<missing>'
+  return JSON.stringify(line.slice(0, 160))
 }

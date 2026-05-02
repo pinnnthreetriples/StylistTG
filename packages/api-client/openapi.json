@@ -3791,9 +3791,9 @@
             "title": "Error Class"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Metadata",
-            "additionalProperties": true
+            "title": "Metadata"
           },
           "request_id": {
             "anyOf": [
@@ -4813,18 +4813,18 @@
             "title": "Warnings"
           },
           "normalized_payload": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Normalized Payload",
-            "additionalProperties": true
+            "title": "Normalized Payload"
           },
           "execution_intent_hash": {
             "type": "string",
             "title": "Execution Intent Hash"
           },
           "plan_json_snapshot": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Plan Json Snapshot",
-            "additionalProperties": true
+            "title": "Plan Json Snapshot"
           },
           "steps": {
             "items": {
@@ -4861,9 +4861,9 @@
             "title": "Workflow Version"
           },
           "desired_state_normalized": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Desired State Normalized",
-            "additionalProperties": true
+            "title": "Desired State Normalized"
           },
           "capability_snapshot": {
             "additionalProperties": {
@@ -5119,8 +5119,8 @@
           "details": {
             "anyOf": [
               {
-                "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
@@ -5131,8 +5131,8 @@
           "result": {
             "anyOf": [
               {
-                "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
@@ -5437,9 +5437,9 @@
             "title": "Actor"
           },
           "payload_json": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Payload Json",
-            "additionalProperties": true
+            "title": "Payload Json"
           },
           "created_at": {
             "type": "string",
@@ -7197,8 +7197,8 @@
           "verification_result": {
             "anyOf": [
               {
-                "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
@@ -7242,8 +7242,8 @@
           "result_payload_json": {
             "anyOf": [
               {
-                "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
@@ -7592,18 +7592,18 @@
             "title": "Warnings"
           },
           "normalized_payload": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Normalized Payload",
-            "additionalProperties": true
+            "title": "Normalized Payload"
           },
           "execution_intent_hash": {
             "type": "string",
             "title": "Execution Intent Hash"
           },
           "plan_json_snapshot": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Plan Json Snapshot",
-            "additionalProperties": true
+            "title": "Plan Json Snapshot"
           },
           "steps": {
             "items": {
@@ -7727,9 +7727,9 @@
             "title": "Idempotency Class"
           },
           "payload": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Payload",
-            "additionalProperties": true
+            "title": "Payload"
           }
         },
         "type": "object",
@@ -8076,9 +8076,9 @@
             "title": "Input"
           },
           "ctx": {
+            "additionalProperties": true,
             "type": "object",
-            "title": "Context",
-            "additionalProperties": true
+            "title": "Context"
           }
         },
         "type": "object",

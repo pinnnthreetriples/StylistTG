@@ -14,7 +14,10 @@ def _normalize_openapi_schema(value: object) -> None:
             and "properties" not in value
             and "additionalProperties" not in value
         ):
+            items = list(value.items())
+            value.clear()
             value["additionalProperties"] = True
+            value.update(items)
         for child in value.values():
             _normalize_openapi_schema(child)
     elif isinstance(value, list):

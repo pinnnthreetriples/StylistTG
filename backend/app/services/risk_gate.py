@@ -32,6 +32,7 @@ def evaluate_action_gate(
     action_type: str,
     actor_user_id: str | None = None,
     override_reason: str | None = None,
+    audit: bool = True,
 ) -> dict[str, Any]:
     if action_type not in ACTION_TYPES:
         raise ValueError("unsupported action type")
@@ -40,9 +41,9 @@ def evaluate_action_gate(
         raise ValueError("account not found")
     risk = build_account_readiness_risk(session, account)
     decision = _decision_for(account, action_type=action_type, risk=risk, override_reason=override_reason)
-    if override_reason:
-        if len(override_reason.strip()) < 10:
-            raise ValueError("override reason too short")
+    if override_reason and len(override_reason.strip()) < 10:
+        raise ValueError("override reason too short")
+    if override_reason and audit:
         record_sensitive_audit_event(
             session,
             workspace_id=workspace_id,
@@ -56,7 +57,7 @@ def evaluate_action_gate(
             risk_score=risk["score"],
             metadata={"action_type": action_type, "allowed": decision["allowed"]},
         )
-    if not decision["allowed"]:
+    if not decision["allowed"] and audit:
         record_sensitive_audit_event(
             session,
             workspace_id=workspace_id,

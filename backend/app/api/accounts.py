@@ -203,7 +203,7 @@ def get_account_deletion_request(
 def post_account_export_request(
     account_id: str,
     session: Session = Depends(get_session),
-    auth: AuthContext = Depends(require_authenticated),
+    auth: AuthContext = Depends(require_mutation_permission),
 ):
     try:
         request = create_account_export_request(
@@ -300,8 +300,8 @@ def get_account_action_gate(
             action_type=action_type,
             actor_user_id=auth.user_id,
             override_reason=override_reason,
+            audit=False,
         )
-        session.commit()
         return ActionGateRead(**decision)
     except ValueError as exc:
         message = str(exc)

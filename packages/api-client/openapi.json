@@ -3791,6 +3791,7 @@
             "title": "Error Class"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -4812,6 +4813,7 @@
             "title": "Warnings"
           },
           "normalized_payload": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Normalized Payload"
           },
@@ -4820,6 +4822,7 @@
             "title": "Execution Intent Hash"
           },
           "plan_json_snapshot": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Plan Json Snapshot"
           },
@@ -4858,6 +4861,7 @@
             "title": "Workflow Version"
           },
           "desired_state_normalized": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Desired State Normalized"
           },
@@ -5115,6 +5119,7 @@
           "details": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5126,6 +5131,7 @@
           "result": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5431,6 +5437,7 @@
             "title": "Actor"
           },
           "payload_json": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Payload Json"
           },
@@ -7190,6 +7197,7 @@
           "verification_result": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7234,6 +7242,7 @@
           "result_payload_json": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7583,6 +7592,7 @@
             "title": "Warnings"
           },
           "normalized_payload": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Normalized Payload"
           },
@@ -7591,6 +7601,7 @@
             "title": "Execution Intent Hash"
           },
           "plan_json_snapshot": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Plan Json Snapshot"
           },
@@ -7716,6 +7727,7 @@
             "title": "Idempotency Class"
           },
           "payload": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Payload"
           }
@@ -8064,6 +8076,7 @@
             "title": "Input"
           },
           "ctx": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Context"
           }

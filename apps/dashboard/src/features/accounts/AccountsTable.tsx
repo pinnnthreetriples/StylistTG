@@ -12,6 +12,7 @@ import { DataTable, EmptyState } from '@stylisttg/ui'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 
+import type { AccountRisk } from '@/features/accounts/accountRisk'
 import { accountColumns } from '@/features/accounts/accountColumns'
 import type { AccountListItem } from '@/lib/api'
 
@@ -19,10 +20,12 @@ export function AccountsTable({
   accounts,
   isLoading = false,
   onSelectAccount,
+  riskByAccount,
 }: {
   accounts: AccountListItem[]
   isLoading?: boolean
   onSelectAccount?: (accountId: string) => void
+  riskByAccount?: Map<string, AccountRisk>
 }) {
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
@@ -31,7 +34,7 @@ export function AccountsTable({
   // TanStack Table intentionally returns table helpers that React Compiler cannot memoize.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: accounts,
+    data: accounts.map((account) => ({ ...account, risk: riskByAccount?.get(account.account_id) })),
     columns: accountColumns,
     state: { globalFilter, sorting, rowSelection, columnVisibility },
     onGlobalFilterChange: setGlobalFilter,

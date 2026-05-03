@@ -19,12 +19,14 @@ packages/config/         Shared TypeScript config
 ```powershell
 npm run dashboard:dev
 npm run generate:api
+npm run check:api
 npm run lint
 npm test
 npm run build
+npm run qa:browser
 ```
 
-Turborepo runs package tasks in dependency order. `dev` is persistent and uncached; `generate:api` regenerates the FastAPI OpenAPI artifact and TypeScript schema.
+Turborepo runs package tasks in dependency order. `dev` is persistent and uncached; `generate:api` regenerates the FastAPI OpenAPI artifact and TypeScript schema; `check:api` verifies committed generated artifacts are current without rewriting them.
 
 ## Packages
 
@@ -34,3 +36,5 @@ Turborepo runs package tasks in dependency order. `dev` is persistent and uncach
 - `@stylisttg/config`: shared TS config for workspace packages.
 
 No package reads cloud secrets at build time.
+
+Browser QA lives in `apps/dashboard/e2e` and uses Playwright with mocked API data, so it does not require staging cloud resources.

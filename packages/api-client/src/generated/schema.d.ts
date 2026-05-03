@@ -1332,7 +1332,9 @@ export interface components {
             /** Error Class */
             error_class?: string | null;
             /** Metadata */
-            metadata?: Record<string, never>;
+            metadata?: {
+                [key: string]: unknown;
+            };
             /** Request Id */
             request_id?: string | null;
             /** Job Id */
@@ -1668,11 +1670,15 @@ export interface components {
             /** Warnings */
             warnings: string[];
             /** Normalized Payload */
-            normalized_payload: Record<string, never>;
+            normalized_payload: {
+                [key: string]: unknown;
+            };
             /** Execution Intent Hash */
             execution_intent_hash: string;
             /** Plan Json Snapshot */
-            plan_json_snapshot: Record<string, never>;
+            plan_json_snapshot: {
+                [key: string]: unknown;
+            };
             /** Steps */
             steps: components["schemas"]["ProfilePreviewStepRead"][];
             /** Requires Execution Usable */
@@ -1686,7 +1692,9 @@ export interface components {
             /** Workflow Version */
             workflow_version: number;
             /** Desired State Normalized */
-            desired_state_normalized: Record<string, never>;
+            desired_state_normalized: {
+                [key: string]: unknown;
+            };
             /** Capability Snapshot */
             capability_snapshot: {
                 [key: string]: string;
@@ -1774,9 +1782,13 @@ export interface components {
             /** Error Class */
             error_class: string | null;
             /** Details */
-            details: Record<string, never> | null;
+            details: {
+                [key: string]: unknown;
+            } | null;
             /** Result */
-            result: Record<string, never> | null;
+            result: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Created At
              * Format: date-time
@@ -1875,7 +1887,9 @@ export interface components {
             /** Actor */
             actor: string;
             /** Payload Json */
-            payload_json: Record<string, never>;
+            payload_json: {
+                [key: string]: unknown;
+            };
             /**
              * Created At
              * Format: date-time
@@ -2371,7 +2385,9 @@ export interface components {
             /** Verification Attempted */
             verification_attempted: boolean;
             /** Verification Result */
-            verification_result: Record<string, never> | null;
+            verification_result: {
+                [key: string]: unknown;
+            } | null;
             /** Uncertain Reason */
             uncertain_reason: string | null;
             /** Error Code */
@@ -2379,7 +2395,9 @@ export interface components {
             /** Error Class */
             error_class: string | null;
             /** Result Payload Json */
-            result_payload_json: Record<string, never> | null;
+            result_payload_json: {
+                [key: string]: unknown;
+            } | null;
             /** Started At */
             started_at: string | null;
             /** Finished At */
@@ -2475,11 +2493,15 @@ export interface components {
             /** Warnings */
             warnings: string[];
             /** Normalized Payload */
-            normalized_payload: Record<string, never>;
+            normalized_payload: {
+                [key: string]: unknown;
+            };
             /** Execution Intent Hash */
             execution_intent_hash: string;
             /** Plan Json Snapshot */
-            plan_json_snapshot: Record<string, never>;
+            plan_json_snapshot: {
+                [key: string]: unknown;
+            };
             /** Steps */
             steps: components["schemas"]["ProfilePreviewStepRead"][];
             /** Requires Execution Usable */
@@ -2515,7 +2537,9 @@ export interface components {
             /** Idempotency Class */
             idempotency_class: string;
             /** Payload */
-            payload: Record<string, never>;
+            payload: {
+                [key: string]: unknown;
+            };
         };
         /** RuntimeRefreshRead */
         RuntimeRefreshRead: {
@@ -2644,7 +2668,9 @@ export interface components {
             /** Input */
             input?: unknown;
             /** Context */
-            ctx?: Record<string, never>;
+            ctx?: {
+                [key: string]: unknown;
+            };
         };
     };
     responses: never;

@@ -20,6 +20,18 @@
     },
     "generate:api": {
       "cache": false
+    },
+    "check:api": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "qa:browser": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "qa:screenshots": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

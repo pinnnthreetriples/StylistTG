@@ -1,65 +1,304 @@
 import createClient, { type Client } from 'openapi-fetch'
 
-import type { paths } from './generated/schema'
+import type { components, paths } from './generated/schema'
 
-export type StylistTgClient = Client<paths>
+type Schema<K extends keyof components['schemas']> = components['schemas'][K]
+
+export type ApiClientError = {
+  status?: number
+  code?: string
+  message: string
+  details?: unknown
+}
 
 export type ApiClientOptions = {
   baseUrl?: string
   fetch?: typeof fetch
+  getAccessToken?: () => string | Promise<string | null> | null
 }
+
+export type StylistTgClient = {
+  baseUrl: string
+  openapi: Client<paths>
+  request: <T>(path: string, init?: RequestInit) => Promise<T>
+  buildUrl: (path: string) => string
+}
+
+export type AccountListItem = Schema<'AccountListItemRead'>
+export type AccountRead = Schema<'AccountRead'>
+export type AccountSafety = Schema<'AccountSafetyRead'>
+export type AccountSafetySummary = Schema<'AccountSafetySummaryRead'>
+export type AccountValidityCheck = Schema<'AccountValidityCheckRead'>
+export type AccountOperationCooldown = Schema<'AccountOperationCooldownRead'>
+export type AccountProxy = Schema<'AccountProxyRead'>
+export type AccountProxySummary = Schema<'AccountProxySummaryRead'>
+export type AccountRuntimeDiagnostics = Schema<'AccountRuntimeDiagnosticsRead'>
+export type AccountBatchSafetyPreview = Schema<'AccountBatchSafetyPreviewRead'>
+export type AccountSafetyOverride = Schema<'AccountSafetyOverrideRead'>
+export type AccountOperationLogPage = Schema<'AccountOperationLogPageRead'>
+export type AccountProxyInput = Schema<'AccountProxyUpsert'>
+export type DashboardProfile = Schema<'DashboardProfileRead'>
+export type DiagnosticsRead = Schema<'DiagnosticsRead'>
+export type ExecutionPolicy = Schema<'ExecutionPolicyRead'>
+export type ExecutionPolicyUpdate = Schema<'ExecutionPolicyUpdate'>
+export type JobDetail = Schema<'JobDetailRead'>
+export type JobStep = Schema<'JobStepListItemRead'>
+export type JobSummary = Schema<'JobSummaryRead'>
+export type LivePreflight = Schema<'LivePreflightRead'>
+export type ProfilePreview = Schema<'ProfilePreviewRead'> | Schema<'AccountUpdatePreviewRead'>
+export type RuntimeDiagnostics = Schema<'DiagnosticsRead'>
+export type RuntimeRefresh = Schema<'RuntimeRefreshRead'>
+export type StoryCapabilities = Schema<'StoryCapabilitiesRead'>
+export type StoryDraftRead = Schema<'StoryDraftRead'>
+export type StoryDraftCreate = Schema<'StoryDraftCreate'>
+export type StoryDraftUpdate = Schema<'StoryDraftUpdate'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
   return value.replace(/\/$/, '')
 }
 
-export function createStylistTgClient(options: ApiClientOptions = {}): StylistTgClient {
-  return createClient<paths>({
-    baseUrl: resolveApiBaseUrl(options.baseUrl),
-    fetch: options.fetch,
-  })
+export function createApiClient(options: ApiClientOptions = {}): StylistTgClient {
+  const baseUrl = resolveApiBaseUrl(options.baseUrl)
+  const fetchWithAuth = createFetchWithAuth(options.fetch ?? globalThis.fetch.bind(globalThis), options.getAccessToken)
+  return {
+    baseUrl,
+    openapi: createClient<paths>({
+      baseUrl,
+      fetch: fetchWithAuth,
+    }),
+    request: async <T>(path: string, init?: RequestInit) => {
+      const response = await fetchWithAuth(buildUrl(baseUrl, path), init)
+      return readResponse<T>(response)
+    },
+    buildUrl: (path: string) => buildUrl(baseUrl, path),
+  }
 }
 
-export type AccountListItem = {
-  account_id: string
-  display_name: string | null
-  username: string | null
-  phone_number: string
-  telegram_user_id: string | null
-  account_state: string
-  runtime_health: string
-  is_execution_usable: boolean
-  is_test_dc: boolean
-  profile_photo_asset_id: string | null
-  updated_at: string
+export const createStylistTgClient = createApiClient
+
+function createFetchWithAuth(baseFetch: typeof fetch, getAccessToken: ApiClientOptions['getAccessToken']): typeof fetch {
+  return async (input, init) => {
+    const headers = new Headers(init?.headers)
+    const token = await getAccessToken?.()
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+    if (typeof init?.body === 'string' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+    return baseFetch(input, { ...init, headers })
+  }
 }
 
-export type JobSummary = {
-  job_id: string
-  job_state: string
-  execution_intent_hash: string
-  plan_summary: string[]
-  created_at: string | null
-  dedup_blocked_by_job_id: string | null
-  message: string | null
+function buildUrl(baseUrl: string, path: string): string {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-export type RuntimeDiagnostics = {
-  database: string
-  redis: string
-  tdlib: string
+async function readResponse<T>(response: Response): Promise<T> {
+  const isJson = response.headers.get('content-type')?.includes('application/json')
+  const payload = isJson && response.status !== 204 && response.status !== 205 ? await response.json() : null
+  if (!response.ok) {
+    throw normalizeClientError(payload, response.status)
+  }
+  return payload as T
+}
+
+export function normalizeClientError(error: unknown, status?: number): ApiClientError {
+  if (typeof error === 'object' && error !== null) {
+    const record = error as Record<string, unknown>
+    return {
+      status,
+      code: typeof record.error_code === 'string' ? record.error_code : undefined,
+      message: typeof record.message === 'string' ? record.message : `request failed${status ? ` with status ${status}` : ''}`,
+      details: record.details ?? error,
+    }
+  }
+  return {
+    status,
+    message: error instanceof Error ? error.message : `request failed${status ? ` with status ${status}` : ''}`,
+  }
+}
+
+async function unwrap<T>(promise: Promise<{ data?: T; error?: unknown; response: Response }>, label: string): Promise<T> {
+  const { data, error, response } = await promise
+  if (error) {
+    const normalized = normalizeClientError(error, response.status)
+    throw { ...normalized, message: normalized.message || `${label} request failed` }
+  }
+  if (!response.ok || data === undefined) {
+    const normalized = normalizeClientError(null, response.status)
+    throw { ...normalized, message: `${label} request failed with status ${response.status}` }
+  }
+  return data
+}
+
+function accountHeader(accountId: string): { 'X-Account-Id': string } {
+  return { 'X-Account-Id': accountId }
+}
+
+export async function fetchHealth(client: StylistTgClient): Promise<{ status: string }> {
+  return client.request<{ status: string }>('/health')
+}
+
+export async function fetchReady(client: StylistTgClient): Promise<DiagnosticsRead> {
+  return client.request<DiagnosticsRead>('/ready')
+}
+
+export async function fetchRuntimeDiagnostics(client: StylistTgClient): Promise<RuntimeDiagnostics> {
+  return unwrap(client.openapi.GET('/diagnostics/runtime'), 'diagnostics')
+}
+
+export async function fetchLivePreflight(client: StylistTgClient): Promise<LivePreflight> {
+  return unwrap(client.openapi.GET('/diagnostics/live-preflight'), 'live preflight')
 }
 
 export async function fetchAccounts(client: StylistTgClient): Promise<AccountListItem[]> {
-  const { data, error, response } = await client.GET('/api/accounts')
-  if (error) {
-    throw error
-  }
-  if (!response.ok || !data) {
-    throw new Error(`accounts request failed with status ${response.status}`)
-  }
-  return data as AccountListItem[]
+  return unwrap(client.openapi.GET('/api/accounts'), 'accounts')
+}
+
+export async function fetchDashboard(client: StylistTgClient, accountId: string): Promise<DashboardProfile> {
+  return unwrap(
+    client.openapi.GET('/api/dashboard/profile', {
+      params: { header: accountHeader(accountId) },
+    }),
+    'dashboard profile',
+  )
+}
+
+export async function fetchAccountSafetySummary(client: StylistTgClient): Promise<AccountSafetySummary[]> {
+  return unwrap(client.openapi.GET('/api/accounts/safety-summary'), 'account safety summary')
+}
+
+export async function fetchAccountSafety(client: StylistTgClient, accountId: string): Promise<AccountSafety> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/safety', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account safety',
+  )
+}
+
+export async function fetchProxySummary(client: StylistTgClient): Promise<AccountProxySummary[]> {
+  return unwrap(client.openapi.GET('/api/accounts/proxy-summary'), 'proxy summary')
+}
+
+export async function fetchAccountProxy(client: StylistTgClient, accountId: string): Promise<AccountProxy | null> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/proxy', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account proxy',
+  )
+}
+
+export async function saveAccountProxy(
+  client: StylistTgClient,
+  accountId: string,
+  payload: AccountProxyInput,
+): Promise<AccountProxy> {
+  return unwrap(
+    client.openapi.PUT('/api/accounts/{account_id}/proxy', {
+      params: { path: { account_id: accountId } },
+      body: payload,
+    }),
+    'save account proxy',
+  )
+}
+
+export async function deleteAccountProxy(client: StylistTgClient, accountId: string): Promise<void> {
+  await client.request<void>(`/api/accounts/${encodeURIComponent(accountId)}/proxy`, { method: 'DELETE' })
+}
+
+export async function checkAccountProxy(client: StylistTgClient, accountId: string): Promise<AccountProxy> {
+  return unwrap(
+    client.openapi.POST('/api/accounts/{account_id}/proxy/check', {
+      params: { path: { account_id: accountId } },
+    }),
+    'check account proxy',
+  )
+}
+
+export async function fetchAccountOperationLogs(
+  client: StylistTgClient,
+  accountId: string,
+  limit = 50,
+): Promise<AccountOperationLogPage> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/operation-logs', {
+      params: { path: { account_id: accountId }, query: { limit } },
+    }),
+    'account operation logs',
+  )
+}
+
+export async function fetchGlobalOperationLogs(client: StylistTgClient, limit = 100): Promise<AccountOperationLogPage> {
+  return unwrap(
+    client.openapi.GET('/api/operation-logs', {
+      params: { query: { limit } },
+    }),
+    'operation logs',
+  )
+}
+
+export async function previewAccountBatchSafety(
+  client: StylistTgClient,
+  accountIds: string[],
+  operation: string,
+  allowWarningOverrides = false,
+): Promise<AccountBatchSafetyPreview> {
+  return unwrap(
+    client.openapi.POST('/api/accounts/safety-batch-preview', {
+      body: {
+        account_ids: accountIds,
+        operation,
+        allow_warning_overrides: allowWarningOverrides,
+      },
+    }),
+    'account batch safety preview',
+  )
+}
+
+export async function runAccountValidityCheck(
+  client: StylistTgClient,
+  accountId: string,
+  mode = 'db_snapshot',
+): Promise<AccountValidityCheck> {
+  return client.request<AccountValidityCheck>(`/api/accounts/${encodeURIComponent(accountId)}/validity-check`, {
+    method: 'POST',
+    body: JSON.stringify({ mode }),
+  })
+}
+
+export async function fetchAccountValidityChecks(
+  client: StylistTgClient,
+  accountId: string,
+): Promise<AccountValidityCheck[]> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/validity-checks', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account validity checks',
+  )
+}
+
+export async function createAccountSafetyOverride(
+  client: StylistTgClient,
+  accountId: string,
+  payload: { operation: string; reason: string; requested_blockers: string[] },
+): Promise<AccountSafetyOverride> {
+  return unwrap(
+    client.openapi.POST('/api/accounts/{account_id}/safety-overrides', {
+      params: { path: { account_id: accountId } },
+      body: payload,
+    }),
+    'account safety override',
+  )
+}
+
+export async function deleteAccount(client: StylistTgClient, accountId: string): Promise<void> {
+  await client.request<void>(`/api/accounts/${encodeURIComponent(accountId)}`, { method: 'DELETE' })
 }
 
 export async function fetchLatestJobs(
@@ -67,28 +306,195 @@ export async function fetchLatestJobs(
   accountId: string,
   limit = 10,
 ): Promise<JobSummary[]> {
-  const { data, error, response } = await client.GET('/api/accounts/jobs', {
-    params: {
-      header: { 'X-Account-Id': accountId },
-      query: { limit },
-    },
-  })
-  if (error) {
-    throw error
-  }
-  if (!response.ok || !data) {
-    throw new Error(`jobs request failed with status ${response.status}`)
-  }
-  return data as JobSummary[]
+  return unwrap(
+    client.openapi.GET('/api/accounts/jobs', {
+      params: { header: accountHeader(accountId), query: { limit } },
+    }),
+    'jobs',
+  )
 }
 
-export async function fetchRuntimeDiagnostics(client: StylistTgClient): Promise<RuntimeDiagnostics> {
-  const { data, error, response } = await client.GET('/diagnostics/runtime')
-  if (error) {
-    throw error
-  }
-  if (!response.ok || !data) {
-    throw new Error(`diagnostics request failed with status ${response.status}`)
-  }
-  return data as RuntimeDiagnostics
+export async function fetchLatestJob(client: StylistTgClient, accountId: string): Promise<JobSummary> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/jobs/latest', {
+      params: { header: accountHeader(accountId) },
+    }),
+    'latest job',
+  )
+}
+
+export async function fetchJob(client: StylistTgClient, jobId: string): Promise<JobDetail> {
+  return unwrap(
+    client.openapi.GET('/api/jobs/{job_id}', {
+      params: { path: { job_id: jobId } },
+    }),
+    'job',
+  )
+}
+
+export async function fetchJobSteps(client: StylistTgClient, jobId: string): Promise<JobStep[]> {
+  return unwrap(
+    client.openapi.GET('/api/jobs/{job_id}/steps', {
+      params: { path: { job_id: jobId } },
+    }),
+    'job steps',
+  )
+}
+
+export async function cancelJob(client: StylistTgClient, jobId: string): Promise<JobSummary> {
+  return unwrap(
+    client.openapi.POST('/api/jobs/{job_id}/cancel', {
+      params: { path: { job_id: jobId } },
+    }),
+    'cancel job',
+  )
+}
+
+export async function deleteJob(client: StylistTgClient, jobId: string): Promise<void> {
+  await client.request<void>(`/api/jobs/${encodeURIComponent(jobId)}`, { method: 'DELETE' })
+}
+
+export async function refreshRuntime(client: StylistTgClient, accountId: string, init?: RequestInit): Promise<RuntimeRefresh> {
+  return client.request<RuntimeRefresh>('/api/accounts/refresh-runtime', {
+    ...init,
+    method: 'POST',
+    headers: { ...headersToObject(init?.headers), ...accountHeader(accountId) },
+  })
+}
+
+export async function fetchAccountRuntimeDiagnostics(
+  client: StylistTgClient,
+  accountId: string,
+): Promise<AccountRuntimeDiagnostics> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/runtime-diagnostics', {
+      params: { header: accountHeader(accountId) },
+    }),
+    'account runtime diagnostics',
+  )
+}
+
+export async function fetchExecutionPolicy(client: StylistTgClient): Promise<ExecutionPolicy> {
+  return unwrap(client.openapi.GET('/api/settings/execution-policy'), 'execution policy')
+}
+
+export async function updateExecutionPolicy(
+  client: StylistTgClient,
+  update: ExecutionPolicyUpdate,
+): Promise<ExecutionPolicy> {
+  return unwrap(
+    client.openapi.PATCH('/api/settings/execution-policy', {
+      body: update,
+    }),
+    'update execution policy',
+  )
+}
+
+export async function fetchStoryDrafts(client: StylistTgClient, accountId: string): Promise<StoryDraftRead[]> {
+  return unwrap(
+    client.openapi.GET('/api/story-drafts', {
+      params: { header: accountHeader(accountId) },
+    }),
+    'story drafts',
+  )
+}
+
+export async function fetchStoryCapabilities(client: StylistTgClient, accountId: string): Promise<StoryCapabilities> {
+  return unwrap(
+    client.openapi.GET('/api/story-capabilities', {
+      params: { header: accountHeader(accountId) },
+    }),
+    'story capabilities',
+  )
+}
+
+export async function createStoryDraft(
+  client: StylistTgClient,
+  draft: StoryDraftCreate,
+): Promise<StoryDraftRead> {
+  return unwrap(client.openapi.POST('/api/story-drafts', { body: draft }), 'create story draft')
+}
+
+export async function updateStoryDraft(
+  client: StylistTgClient,
+  draftId: string,
+  patch: StoryDraftUpdate,
+): Promise<StoryDraftRead> {
+  return unwrap(
+    client.openapi.PATCH('/api/story-drafts/{draft_id}', {
+      params: { path: { draft_id: draftId } },
+      body: patch,
+    }),
+    'update story draft',
+  )
+}
+
+export async function deleteStoryDraft(client: StylistTgClient, draftId: string): Promise<void> {
+  await client.request<void>(`/api/story-drafts/${encodeURIComponent(draftId)}`, { method: 'DELETE' })
+}
+
+export async function deleteStoryPost(
+  client: StylistTgClient,
+  accountId: string,
+  postId: string,
+  init?: RequestInit,
+): Promise<void> {
+  await client.request<void>(`/api/story-posts/${encodeURIComponent(postId)}`, {
+    ...init,
+    method: 'DELETE',
+    headers: { ...headersToObject(init?.headers), ...accountHeader(accountId) },
+  })
+}
+
+export function buildAssetContentUrl(client: StylistTgClient, assetId: string): string {
+  return client.buildUrl(`/api/assets/${encodeURIComponent(assetId)}/content`)
+}
+
+export async function uploadAsset(client: StylistTgClient, path: string, file: File): Promise<{ id: string }> {
+  const body = new FormData()
+  body.append('file', file)
+  return client.request<{ id: string }>(path, { method: 'POST', body })
+}
+
+export async function previewProfileJob(
+  client: StylistTgClient,
+  payload: Schema<'ProfilePreviewRequest'>,
+): Promise<ProfilePreview> {
+  return unwrap(client.openapi.POST('/api/jobs/profile/preview', { body: payload }), 'profile preview')
+}
+
+export async function previewAccountUpdateJob(
+  client: StylistTgClient,
+  payload: Schema<'AccountUpdateCreate'>,
+  init?: RequestInit,
+): Promise<ProfilePreview> {
+  return client.request<ProfilePreview>('/api/account-update/preview', {
+    ...init,
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createProfileJob(
+  client: StylistTgClient,
+  payload: Schema<'ProfileJobCreate'>,
+): Promise<JobSummary> {
+  return unwrap(client.openapi.POST('/api/jobs/profile', { body: payload }), 'profile job')
+}
+
+export async function createAccountUpdateJob(
+  client: StylistTgClient,
+  payload: Schema<'AccountUpdateCreate'>,
+): Promise<JobSummary> {
+  return client.request<JobSummary>('/api/account-update/jobs', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+function headersToObject(headers: RequestInit['headers']): Record<string, string> {
+  if (!headers) return {}
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries())
+  if (Array.isArray(headers)) return Object.fromEntries(headers)
+  return Object.fromEntries(Object.entries(headers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }

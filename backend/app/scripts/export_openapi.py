@@ -7,9 +7,29 @@ from pathlib import Path
 from app.main import app
 
 
+def _normalize_openapi_schema(value: object) -> None:
+    if isinstance(value, dict):
+        if (
+            value.get("type") == "object"
+            and "properties" not in value
+            and "additionalProperties" not in value
+        ):
+            items = list(value.items())
+            value.clear()
+            value["additionalProperties"] = True
+            value.update(items)
+        for child in value.values():
+            _normalize_openapi_schema(child)
+    elif isinstance(value, list):
+        for child in value:
+            _normalize_openapi_schema(child)
+
+
 def export_openapi(out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(app.openapi(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    schema = app.openapi()
+    _normalize_openapi_schema(schema)
+    out.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> None:

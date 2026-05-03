@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { AccountsTable } from '@/features/accounts/AccountsTable'
+import { buildAccountRisk, summarizeAccountRisks } from '@/features/accounts/accountRisk'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
 import {
   useAccountSafetySummaryQuery,
@@ -124,6 +125,17 @@ export function AccountList({
     () => new Map((proxySummaryQuery.data ?? []).map((item) => [item.account_id, item])),
     [proxySummaryQuery.data],
   )
+  const riskByAccount = useMemo(
+    () =>
+      new Map(
+        accounts.map((account) => [
+          account.account_id,
+          buildAccountRisk(account, safetyByAccount.get(account.account_id), proxyByAccount.get(account.account_id)),
+        ]),
+      ),
+    [accounts, proxyByAccount, safetyByAccount],
+  )
+  const riskSummary = useMemo(() => summarizeAccountRisks([...riskByAccount.values()]), [riskByAccount])
   const batchSafetyQuery = useQuery(accountBatchSafetyPreviewQueryOptions(accounts.map((account) => account.account_id), 'batch_operation'))
   const settingsBundleQuery = useQuery(settingsBundleQueryOptions())
   const [accountsError, setAccountsError] = useState<string | null>(null)
@@ -267,6 +279,8 @@ export function AccountList({
             proxyByAccount={proxyByAccount}
             batchSafety={batchSafetyQuery.data ?? null}
             stats={stats}
+            riskByAccount={riskByAccount}
+            riskSummary={riskSummary}
           />
         )}
       </main>
@@ -308,6 +322,8 @@ function AccountsContent({
   proxyByAccount,
   batchSafety,
   stats,
+  riskByAccount,
+  riskSummary,
 }: {
   accounts: AccountListItem[]
   allAccounts: AccountListItem[]
@@ -328,6 +344,8 @@ function AccountsContent({
   proxyByAccount: Map<string, AccountProxySummary>
   batchSafety: { counts: Record<string, number>; can_start: boolean } | null
   stats: ReturnType<typeof accountStats>
+  riskByAccount: Map<string, ReturnType<typeof buildAccountRisk>>
+  riskSummary: ReturnType<typeof summarizeAccountRisks>
 }) {
   if (isLoading) {
     return (
@@ -359,6 +377,7 @@ function AccountsContent({
   return (
     <>
       <StatsRow stats={stats} />
+      <RiskSummaryRow summary={riskSummary} />
       {batchSafety ? <BatchSafetySummary counts={batchSafety.counts} canStart={batchSafety.can_start} /> : null}
       <SearchAndFilters
         filter={filter}
@@ -399,7 +418,7 @@ function AccountsContent({
             TanStack Table view for sorting, selection, and column visibility migration.
           </p>
         </div>
-        <AccountsTable accounts={accounts} onSelectAccount={onSelectAccount} />
+        <AccountsTable accounts={accounts} onSelectAccount={onSelectAccount} riskByAccount={riskByAccount} />
       </section>
 
       <FooterCounter stats={stats} />
@@ -429,6 +448,32 @@ function StatsRow({ stats }: { stats: ReturnType<typeof accountStats> }) {
         tone="tangerine"
         value={stats.error}
       />
+    </div>
+  )
+}
+
+function RiskSummaryRow({ summary }: { summary: ReturnType<typeof summarizeAccountRisks> }) {
+  return (
+    <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-sm font-bold text-navy-900">Account Risk</div>
+        <div className="text-[11px] font-semibold text-gray-500">app-known readiness score</div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-4">
+        <RiskMetric label="Low" value={summary.low} className="bg-emerald-50 text-emerald-700" />
+        <RiskMetric label="Medium" value={summary.medium} className="bg-honey-50 text-honey-700" />
+        <RiskMetric label="High" value={summary.high} className="bg-orange-50 text-orange-700" />
+        <RiskMetric label="Critical" value={summary.critical} className="bg-red-50 text-red-700" />
+      </div>
+    </section>
+  )
+}
+
+function RiskMetric({ className, label, value }: { className: string; label: string; value: number }) {
+  return (
+    <div className={`rounded-lg px-3 py-2 text-xs font-semibold ${className}`}>
+      <div>{label}</div>
+      <div className="mt-1 text-lg font-bold">{value}</div>
     </div>
   )
 }

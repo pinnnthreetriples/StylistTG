@@ -28,6 +28,12 @@ export type AccountListItem = Schema<'AccountListItemRead'>
 export type AccountRead = Schema<'AccountRead'>
 export type AccountReadinessRisk = Schema<'AccountReadinessRiskRead'>
 export type AccountReadinessRiskSummary = Schema<'AccountReadinessRiskSummaryRead'>
+export type AccountDeletionPreview = Schema<'AccountDeletionPreviewRead'>
+export type AccountDeletionRequestCreate = Schema<'AccountDeletionRequestCreate'>
+export type AccountDeletionRequest = Schema<'AccountDeletionRequestRead'>
+export type AccountExportRequest = Schema<'AccountExportRequestRead'>
+export type ActionGate = Schema<'ActionGateRead'>
+export type SensitiveAuditEventPage = Schema<'SensitiveAuditEventPageRead'>
 export type AccountSafety = Schema<'AccountSafetyRead'>
 export type AccountSafetySummary = Schema<'AccountSafetySummaryRead'>
 export type AccountValidityCheck = Schema<'AccountValidityCheckRead'>
@@ -66,6 +72,9 @@ export type AuthBatchSnapshot = Schema<'AuthBatchSnapshotRead'>
 export type AuthBatchPoll = Schema<'AuthBatchPollRead'>
 export type AuthBatchItem = Schema<'AuthBatchItemRead'>
 export type AuthBatchEvent = Schema<'AuthBatchEventRead'>
+export type WorkerDiagnostics = Schema<'WorkerDiagnosticsRead'>
+export type QueueDescriptor = Schema<'QueueDescriptorRead'>
+export type RetryPolicy = Schema<'RetryPolicyRead'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
@@ -209,6 +218,108 @@ export async function fetchAccountRisk(client: StylistTgClient, accountId: strin
     }),
     'account risk',
   )
+}
+
+export async function fetchAccountDeletionPreview(client: StylistTgClient, accountId: string): Promise<AccountDeletionPreview> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/deletion-preview', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account deletion preview',
+  )
+}
+
+export async function createAccountDeletionRequest(
+  client: StylistTgClient,
+  accountId: string,
+  payload: AccountDeletionRequestCreate,
+): Promise<AccountDeletionRequest> {
+  return unwrap(
+    client.openapi.POST('/api/accounts/{account_id}/deletion-requests', {
+      params: { path: { account_id: accountId } },
+      body: payload,
+    }),
+    'account deletion request',
+  )
+}
+
+export async function fetchAccountDeletionRequests(client: StylistTgClient, accountId: string): Promise<AccountDeletionRequest[]> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/deletion-requests', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account deletion requests',
+  )
+}
+
+export async function createAccountExportRequest(client: StylistTgClient, accountId: string): Promise<AccountExportRequest> {
+  return unwrap(
+    client.openapi.POST('/api/accounts/{account_id}/export-requests', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account export request',
+  )
+}
+
+export async function fetchAccountExportRequests(client: StylistTgClient, accountId: string): Promise<AccountExportRequest[]> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/export-requests', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account export requests',
+  )
+}
+
+export async function fetchAccountAuditEvents(
+  client: StylistTgClient,
+  accountId: string,
+  limit = 50,
+): Promise<SensitiveAuditEventPage> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/audit-events', {
+      params: { path: { account_id: accountId }, query: { limit } },
+    }),
+    'account audit events',
+  )
+}
+
+export async function fetchAuditEvents(client: StylistTgClient, limit = 100): Promise<SensitiveAuditEventPage> {
+  return unwrap(
+    client.openapi.GET('/api/audit/events', {
+      params: { query: { limit } },
+    }),
+    'audit events',
+  )
+}
+
+export async function fetchAccountCooldowns(client: StylistTgClient, accountId: string): Promise<AccountOperationCooldown[]> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/cooldowns', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account cooldowns',
+  )
+}
+
+export async function fetchActionGate(client: StylistTgClient, accountId: string, actionType: string): Promise<ActionGate> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/action-gate', {
+      params: { path: { account_id: accountId }, query: { action_type: actionType } },
+    }),
+    'account action gate',
+  )
+}
+
+export async function fetchWorkerDiagnostics(client: StylistTgClient): Promise<WorkerDiagnostics> {
+  return unwrap(client.openapi.GET('/api/workers/diagnostics'), 'worker diagnostics')
+}
+
+export async function fetchWorkerQueues(client: StylistTgClient): Promise<QueueDescriptor[]> {
+  return unwrap(client.openapi.GET('/api/workers/queues'), 'worker queues')
+}
+
+export async function fetchJobPolicies(client: StylistTgClient): Promise<Record<string, RetryPolicy>> {
+  return unwrap(client.openapi.GET('/api/jobs/policies'), 'job policies')
 }
 
 export async function fetchProxySummary(client: StylistTgClient): Promise<AccountProxySummary[]> {

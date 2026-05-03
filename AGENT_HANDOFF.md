@@ -65,6 +65,20 @@ Implemented or actively wired:
   - Health Center shows liveness/readiness, dependency status, backend environment/auth/storage posture, and backend account risk aggregates;
   - `/diagnostics/frontend-summary` exposes safe metadata only and must not return raw DB/Redis/S3/JWT/TDLib session values;
   - Account Risk is a backend deterministic app-known readiness score, not a Telegram anti-ban guarantee;
+  - Account lifecycle security foundation is present:
+    - deletion preview and deletion request endpoints;
+    - private account export request endpoint;
+    - sanitized `sensitive_audit_event` audit trail;
+    - risk-gated action checks with manual override reason/audit;
+    - hard deletion disabled by default.
+  - Production execution-plane foundation is present:
+    - queue taxonomy: `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`;
+    - `python -m app.workers.run_worker --queues ...` strict allowlist launcher;
+    - Redis owner-token account locks;
+    - tenant/account rate limit service;
+    - cooldown/FLOOD_WAIT and bounded retry policy helpers;
+    - scheduler/reaper report scripts with disabled/dry-run defaults;
+    - `TDLIB_LIVE_ENABLED=false` by default.
   - Playwright browser QA lives in `apps/dashboard/e2e` and uses mocked API data with screenshots stored in ignored artifacts;
   - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
   - backend remains at `backend/` to preserve `backend/Dockerfile` staging deploys.
@@ -216,6 +230,8 @@ Routers:
 - `backend/app/api/settings.py` - execution policy settings.
 - `backend/app/api/diagnostics.py` - runtime/live diagnostics.
 - `backend/app/api/operation_logs.py` - global operation log journal.
+- `backend/app/api/audit.py` - sanitized sensitive audit event reads.
+- `backend/app/api/workers.py` - worker queue taxonomy, diagnostics, and retry policy metadata.
 
 Core services:
 

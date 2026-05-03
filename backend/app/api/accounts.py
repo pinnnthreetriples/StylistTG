@@ -14,6 +14,11 @@ from app.schemas import (
     AccountCreate,
     AccountBatchSafetyPreviewRead,
     AccountBatchSafetyPreviewRequest,
+    AccountDeletionPreviewRead,
+    AccountDeletionRequestCreate,
+    AccountDeletionRequestRead,
+    AccountExportRequestRead,
+    AccountOperationCooldownRead,
     AccountListItemRead,
     AccountOperationLogPageRead,
     AccountProxyRead,
@@ -30,6 +35,7 @@ from app.schemas import (
     AccountValidityCheckRead,
     AccountValidityCheckRequest,
     AuthStateRead,
+    ActionGateRead,
     JobSummaryRead,
     RuntimeRefreshRead,
 )
@@ -41,17 +47,32 @@ from app.services.profile_sync import (
 )
 from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.account_risk import build_account_readiness_risk, build_account_readiness_risk_summary
+from app.services.account_lifecycle import (
+    build_account_deletion_preview,
+    create_account_export_request,
+    deletion_request_to_dict,
+    export_request_to_dict,
+    get_deletion_request,
+    get_export_request,
+    list_deletion_requests,
+    list_export_requests,
+    request_account_deletion,
+)
 from app.services.account_safety import build_account_safety, build_account_safety_summary
+from app.services.account_cooldowns import list_active_account_cooldowns
 from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
 from app.services.account_safety_overrides import create_safety_override
-from app.services.accounts import create_account, delete_account, get_account, list_accounts as list_accounts_service
+from app.services.accounts import create_account, get_account, list_accounts as list_accounts_service
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs
 from app.services.operation_logs import list_account_logs, log_operation
 from app.services.proxy_accounts import delete_account_proxy, get_account_proxy, proxy_summary, upsert_account_proxy
 from app.services.proxy_checks import check_account_proxy
+from app.services.risk_gate import evaluate_action_gate
+from app.services.sensitive_audit import audit_event_to_dict, list_sensitive_audit_events
+from app.schemas import SensitiveAuditEventPageRead, SensitiveAuditEventRead
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -101,6 +122,192 @@ def get_accounts_proxy_summary(
     auth: AuthContext = Depends(require_authenticated),
 ):
     return proxy_summary(session, workspace_id=auth.workspace_id)
+
+
+@router.get("/{account_id}/deletion-preview", response_model=AccountDeletionPreviewRead)
+def get_account_deletion_preview(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        return AccountDeletionPreviewRead(
+            **build_account_deletion_preview(session, account_id=account_id, workspace_id=auth.workspace_id)
+        )
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+
+
+@router.post("/{account_id}/deletion-requests", response_model=AccountDeletionRequestRead, status_code=status.HTTP_201_CREATED)
+def post_account_deletion_request(
+    account_id: str,
+    payload: AccountDeletionRequestCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    try:
+        request = request_account_deletion(
+            session,
+            account_id=account_id,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+            reason=payload.reason,
+            confirmation=payload.confirmation,
+            dry_run=payload.dry_run,
+        )
+        return AccountDeletionRequestRead(**deletion_request_to_dict(request))
+    except ValueError as exc:
+        message = str(exc)
+        if message == "account not found":
+            raise _account_not_found_error(exc) from exc
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="ACCOUNT_DELETION_REJECTED",
+            error_class="account_lifecycle",
+            message=message,
+        ) from exc
+
+
+@router.get("/{account_id}/deletion-requests", response_model=list[AccountDeletionRequestRead])
+def get_account_deletion_requests(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        return [
+            AccountDeletionRequestRead(**deletion_request_to_dict(request))
+            for request in list_deletion_requests(session, account_id=account_id, workspace_id=auth.workspace_id)
+        ]
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+
+
+@router.get("/{account_id}/deletion-requests/{request_id}", response_model=AccountDeletionRequestRead)
+def get_account_deletion_request(
+    account_id: str,
+    request_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        request = get_deletion_request(session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id)
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+    if request is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="DELETION_REQUEST_NOT_FOUND", error_class="not_found", message="deletion request not found")
+    return AccountDeletionRequestRead(**deletion_request_to_dict(request))
+
+
+@router.post("/{account_id}/export-requests", response_model=AccountExportRequestRead, status_code=status.HTTP_201_CREATED)
+def post_account_export_request(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        request = create_account_export_request(
+            session,
+            account_id=account_id,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+        )
+        return AccountExportRequestRead(**export_request_to_dict(request))
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+
+
+@router.get("/{account_id}/export-requests", response_model=list[AccountExportRequestRead])
+def get_account_export_requests(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        return [
+            AccountExportRequestRead(**export_request_to_dict(request))
+            for request in list_export_requests(session, account_id=account_id, workspace_id=auth.workspace_id)
+        ]
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+
+
+@router.get("/{account_id}/export-requests/{request_id}", response_model=AccountExportRequestRead)
+def get_account_export_request(
+    account_id: str,
+    request_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        request = get_export_request(session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id)
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+    if request is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="EXPORT_REQUEST_NOT_FOUND", error_class="not_found", message="export request not found")
+    return AccountExportRequestRead(**export_request_to_dict(request))
+
+
+@router.get("/{account_id}/audit-events", response_model=SensitiveAuditEventPageRead)
+def get_account_audit_events(
+    account_id: str,
+    limit: int = 100,
+    offset: int = 0,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    rows, total = list_sensitive_audit_events(
+        session,
+        workspace_id=auth.workspace_id,
+        account_id=account_id,
+        limit=limit,
+        offset=offset,
+    )
+    return SensitiveAuditEventPageRead(
+        items=[SensitiveAuditEventRead(**audit_event_to_dict(row)) for row in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/{account_id}/cooldowns", response_model=list[AccountOperationCooldownRead])
+def get_account_cooldowns(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    return [AccountOperationCooldownRead(**cooldown) for cooldown in list_active_account_cooldowns(session, account_id)]
+
+
+@router.get("/{account_id}/action-gate", response_model=ActionGateRead)
+def get_account_action_gate(
+    account_id: str,
+    action_type: str,
+    override_reason: str | None = None,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        decision = evaluate_action_gate(
+            session,
+            workspace_id=auth.workspace_id,
+            account_id=account_id,
+            action_type=action_type,
+            actor_user_id=auth.user_id,
+            override_reason=override_reason,
+        )
+        session.commit()
+        return ActionGateRead(**decision)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "account not found":
+            raise _account_not_found_error(exc) from exc
+        raise AppError(status_code=status.HTTP_400_BAD_REQUEST, error_code="ACTION_GATE_INVALID", error_class="validation", message=message) from exc
 
 
 @router.get("/{account_id}/risk", response_model=AccountReadinessRiskRead)
@@ -423,30 +630,14 @@ def delete_account_endpoint(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    try:
-        delete_account(session, account_id, workspace_id=auth.workspace_id, actor_user_id=auth.user_id)
-    except ValueError as exc:
-        message = str(exc)
-        if message == "account not found":
-            raise AppError(
-                status_code=status.HTTP_404_NOT_FOUND,
-                error_code="ACCOUNT_NOT_FOUND",
-                error_class="not_found",
-                message=message,
-            ) from exc
-        if message == "active job cannot be deleted":
-            raise AppError(
-                status_code=status.HTTP_409_CONFLICT,
-                error_code="ACCOUNT_ACTIVE_JOB_CANNOT_DELETE",
-                error_class="account_state",
-                message=message,
-            ) from exc
-        raise AppError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            error_code="ACCOUNT_DELETE_FAILED",
-            error_class="account_state",
-            message=message,
-        ) from exc
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    raise AppError(
+        status_code=status.HTTP_409_CONFLICT,
+        error_code="ACCOUNT_DELETE_REQUIRES_REQUEST",
+        error_class="account_lifecycle",
+        message="account deletion requires deletion preview and confirmed deletion request",
+    )
 
 
 @router.post("/{account_id}/refresh-runtime", response_model=RuntimeRefreshRead)
@@ -547,6 +738,15 @@ def _proxy_error(exc: ValueError) -> AppError:
         error_code=code,
         error_class="proxy",
         message=message,
+    )
+
+
+def _account_not_found_error(exc: ValueError) -> AppError:
+    return AppError(
+        status_code=status.HTTP_404_NOT_FOUND,
+        error_code="ACCOUNT_NOT_FOUND",
+        error_class="not_found",
+        message=str(exc),
     )
 
 

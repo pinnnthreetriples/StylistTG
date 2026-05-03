@@ -1166,6 +1166,507 @@
         }
       }
     },
+    "/api/accounts/{account_id}/deletion-preview": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Deletion Preview",
+        "operationId": "get_account_deletion_preview_api_accounts__account_id__deletion_preview_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionPreviewRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/deletion-requests": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Account Deletion Request",
+        "operationId": "post_account_deletion_request_api_accounts__account_id__deletion_requests_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionRequestCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionRequestRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Deletion Requests",
+        "operationId": "get_account_deletion_requests_api_accounts__account_id__deletion_requests_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDeletionRequestRead"
+                  },
+                  "title": "Response Get Account Deletion Requests Api Accounts  Account Id  Deletion Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/deletion-requests/{request_id}": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Deletion Request",
+        "operationId": "get_account_deletion_request_api_accounts__account_id__deletion_requests__request_id__get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionRequestRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/export-requests": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Account Export Request",
+        "operationId": "post_account_export_request_api_accounts__account_id__export_requests_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountExportRequestRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Export Requests",
+        "operationId": "get_account_export_requests_api_accounts__account_id__export_requests_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountExportRequestRead"
+                  },
+                  "title": "Response Get Account Export Requests Api Accounts  Account Id  Export Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/export-requests/{request_id}": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Export Request",
+        "operationId": "get_account_export_request_api_accounts__account_id__export_requests__request_id__get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountExportRequestRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/audit-events": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Audit Events",
+        "operationId": "get_account_audit_events_api_accounts__account_id__audit_events_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitiveAuditEventPageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/cooldowns": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Cooldowns",
+        "operationId": "get_account_cooldowns_api_accounts__account_id__cooldowns_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountOperationCooldownRead"
+                  },
+                  "title": "Response Get Account Cooldowns Api Accounts  Account Id  Cooldowns Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/action-gate": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Action Gate",
+        "operationId": "get_account_action_gate_api_accounts__account_id__action_gate_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "action_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Type"
+            }
+          },
+          {
+            "name": "override_reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Override Reason"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionGateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/risk": {
       "get": {
         "tags": [
@@ -2201,6 +2702,75 @@
         }
       }
     },
+    "/api/audit/events": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Get Audit Events",
+        "operationId": "get_audit_events_api_audit_events_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitiveAuditEventPageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/assets/profile-photo": {
       "post": {
         "tags": [
@@ -2627,6 +3197,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LivePreflightRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/policies": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job Policies",
+        "operationId": "get_job_policies_api_jobs_policies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/RetryPolicyRead"
+                  },
+                  "type": "object",
+                  "title": "Response Get Job Policies Api Jobs Policies Get"
                 }
               }
             }
@@ -3384,6 +3979,77 @@
         }
       }
     },
+    "/api/workers/queues": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Worker Queues",
+        "operationId": "get_worker_queues_api_workers_queues_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QueueDescriptorRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Worker Queues Api Workers Queues Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/diagnostics": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Worker Diagnostics",
+        "operationId": "get_worker_diagnostics_api_workers_diagnostics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerDiagnosticsRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/job-policies": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Job Policies",
+        "operationId": "get_job_policies_api_workers_job_policies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/RetryPolicyRead"
+                  },
+                  "type": "object",
+                  "title": "Response Get Job Policies Api Workers Job Policies Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -3615,6 +4281,368 @@
           "external_ref"
         ],
         "title": "AccountCreate"
+      },
+      "AccountDeletionPlannedActionRead": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "present": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Present"
+          },
+          "retention_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Policy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "resource"
+        ],
+        "title": "AccountDeletionPlannedActionRead"
+      },
+      "AccountDeletionPreviewRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "can_delete": {
+            "type": "boolean",
+            "title": "Can Delete"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "risk_score": {
+            "type": "integer",
+            "title": "Risk Score"
+          },
+          "blocking_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blocking Reasons"
+          },
+          "planned_actions": {
+            "items": {
+              "$ref": "#/components/schemas/AccountDeletionPlannedActionRead"
+            },
+            "type": "array",
+            "title": "Planned Actions"
+          },
+          "requires_confirmation": {
+            "type": "boolean",
+            "title": "Requires Confirmation"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "can_delete",
+          "risk_level",
+          "risk_score",
+          "blocking_reasons",
+          "planned_actions",
+          "requires_confirmation",
+          "generated_at"
+        ],
+        "title": "AccountDeletionPreviewRead"
+      },
+      "AccountDeletionRequestCreate": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Reason"
+          },
+          "confirmation": {
+            "type": "string",
+            "const": "DELETE",
+            "title": "Confirmation"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "confirmation"
+        ],
+        "title": "AccountDeletionRequestCreate"
+      },
+      "AccountDeletionRequestRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "dry_run_result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dry Run Result"
+          },
+          "execution_result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Result"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed At"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "status",
+          "requested_at"
+        ],
+        "title": "AccountDeletionRequestRead"
+      },
+      "AccountExportRequestRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "export_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Key"
+          },
+          "export_size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Size Bytes"
+          },
+          "export_content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Content Type"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed At"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Message"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "status",
+          "requested_at"
+        ],
+        "title": "AccountExportRequestRead"
       },
       "AccountListItemRead": {
         "properties": {
@@ -5409,6 +6437,62 @@
         },
         "type": "object",
         "title": "AccountValidityCheckRequest"
+      },
+      "ActionGateRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          },
+          "requires_override": {
+            "type": "boolean",
+            "title": "Requires Override"
+          },
+          "blocked": {
+            "type": "boolean",
+            "title": "Blocked"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "risk_score": {
+            "type": "integer",
+            "title": "Risk Score"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/AccountReadinessRiskReasonRead"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "required_override_reason": {
+            "type": "boolean",
+            "title": "Required Override Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "action_type",
+          "allowed",
+          "requires_override",
+          "blocked",
+          "risk_level",
+          "risk_score",
+          "reasons",
+          "required_override_reason"
+        ],
+        "title": "ActionGateRead"
       },
       "AssetRead": {
         "properties": {
@@ -7432,6 +8516,21 @@
           "live_enabled": {
             "type": "boolean",
             "title": "Live Enabled"
+          },
+          "library_configured": {
+            "type": "boolean",
+            "title": "Library Configured",
+            "default": false
+          },
+          "session_root_configured": {
+            "type": "boolean",
+            "title": "Session Root Configured",
+            "default": false
+          },
+          "execution_plane_ready": {
+            "type": "boolean",
+            "title": "Execution Plane Ready",
+            "default": false
           }
         },
         "type": "object",
@@ -7454,6 +8553,16 @@
           "mode": {
             "type": "string",
             "title": "Mode"
+          },
+          "scheduler_enabled": {
+            "type": "boolean",
+            "title": "Scheduler Enabled",
+            "default": false
+          },
+          "reaper_mode": {
+            "type": "string",
+            "title": "Reaper Mode",
+            "default": "dry_run"
           }
         },
         "type": "object",
@@ -8127,6 +9236,70 @@
         ],
         "title": "ProfilePreviewStepRead"
       },
+      "QueueDescriptorRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "live_execution_default": {
+            "type": "boolean",
+            "title": "Live Execution Default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "purpose",
+          "live_execution_default"
+        ],
+        "title": "QueueDescriptorRead"
+      },
+      "RetryPolicyRead": {
+        "properties": {
+          "retry": {
+            "type": "boolean",
+            "title": "Retry"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "title": "Max Attempts"
+          },
+          "interval_seconds": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Interval Seconds"
+          },
+          "failure_ttl_seconds": {
+            "type": "integer",
+            "title": "Failure Ttl Seconds"
+          },
+          "result_ttl_seconds": {
+            "type": "integer",
+            "title": "Result Ttl Seconds"
+          },
+          "error_category": {
+            "type": "string",
+            "title": "Error Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retry",
+          "max_attempts",
+          "interval_seconds",
+          "failure_ttl_seconds",
+          "result_ttl_seconds",
+          "error_category"
+        ],
+        "title": "RetryPolicyRead"
+      },
       "RuntimeRefreshRead": {
         "properties": {
           "account_id": {
@@ -8184,6 +9357,169 @@
           "refreshed_at"
         ],
         "title": "RuntimeRefreshRead"
+      },
+      "SensitiveAuditEventPageRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SensitiveAuditEventRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SensitiveAuditEventPageRead"
+      },
+      "SensitiveAuditEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Level"
+          },
+          "risk_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Score"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "actor_type",
+          "action",
+          "entity_type",
+          "created_at"
+        ],
+        "title": "SensitiveAuditEventRead"
       },
       "StoryCapabilitiesRead": {
         "properties": {
@@ -8472,6 +9808,53 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkerDiagnosticsRead": {
+        "properties": {
+          "queues": {
+            "items": {
+              "$ref": "#/components/schemas/QueueDescriptorRead"
+            },
+            "type": "array",
+            "title": "Queues"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "scheduler": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scheduler"
+          },
+          "reaper": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Reaper"
+          },
+          "rate_limits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Rate Limits"
+          },
+          "tdlib": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Tdlib"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queues",
+          "mode",
+          "scheduler",
+          "reaper",
+          "rate_limits",
+          "tdlib"
+        ],
+        "title": "WorkerDiagnosticsRead"
       }
     }
   }

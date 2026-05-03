@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON, Uuid
 
@@ -118,6 +118,33 @@ class AuditLog(Base):
     entity_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SensitiveAuditEvent(Base):
+    __tablename__ = "sensitive_audit_event"
+    __table_args__ = (
+        Index("ix_sensitive_audit_workspace_created", "workspace_id", "created_at"),
+        Index("ix_sensitive_audit_account_created", "account_id", "created_at"),
+        Index("ix_sensitive_audit_action_created", "action", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    actor_type: Mapped[str] = mapped_column(String(64), nullable=False, default="user")
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    account_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True, index=True)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    ip_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    user_agent_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    risk_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -297,6 +324,80 @@ class Account(Base):
     )
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
+    deletion_requests: Mapped[list[AccountDeletionRequest]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
+    export_requests: Mapped[list[AccountExportRequest]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
+
+
+class AccountLifecycleEvent(Base):
+    __tablename__ = "account_lifecycle_event"
+    __table_args__ = (
+        Index("ix_account_lifecycle_workspace_created", "workspace_id", "created_at"),
+        Index("ix_account_lifecycle_account_created", "account_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AccountDeletionRequest(Base):
+    __tablename__ = "account_deletion_request"
+    __table_args__ = (
+        Index("ix_account_deletion_workspace_status", "workspace_id", "status"),
+        Index("ix_account_deletion_account_status", "account_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="requested")
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dry_run_result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    execution_result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    account: Mapped[Account] = relationship(back_populates="deletion_requests")
+
+
+class AccountExportRequest(Base):
+    __tablename__ = "account_export_request"
+    __table_args__ = (
+        Index("ix_account_export_workspace_status", "workspace_id", "status"),
+        Index("ix_account_export_account_created", "account_id", "requested_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="requested")
+    export_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    export_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    export_content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    account: Mapped[Account] = relationship(back_populates="export_requests")
 
 
 class AccountRuntimeState(Base):
@@ -704,6 +805,38 @@ class Job(Base):
     step_results: Mapped[list[JobStepResult]] = relationship(
         back_populates="job", cascade="all, delete-orphan", order_by="JobStepResult.started_at"
     )
+    execution_events: Mapped[list[JobExecutionEvent]] = relationship(
+        back_populates="job", cascade="all, delete-orphan", order_by="JobExecutionEvent.created_at"
+    )
+
+
+class JobExecutionEvent(Base):
+    __tablename__ = "job_execution_event"
+    __table_args__ = (
+        Index("ix_job_execution_workspace_created", "workspace_id", "created_at"),
+        Index("ix_job_execution_account_created", "account_id", "created_at"),
+        Index("ix_job_execution_job_created", "job_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    job_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("job.id"), nullable=True, index=True)
+    job_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True, index=True)
+    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    queue_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    lock_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cooldown_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    risk_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    job: Mapped[Job | None] = relationship(back_populates="execution_events")
 
 
 class JobStepResult(Base):

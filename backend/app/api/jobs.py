@@ -14,6 +14,7 @@ from app.schemas import (
     ProfileJobCreate,
     ProfilePreviewRead,
     ProfilePreviewRequest,
+    RetryPolicyRead,
 )
 from app.services.dashboard import job_summary
 from app.services.accounts import get_account
@@ -27,8 +28,24 @@ from app.services.jobs import (
     delete_job,
     get_job,
 )
+from app.services.retry_policy import retry_policy_for
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+
+
+@router.get("/policies", response_model=dict[str, RetryPolicyRead])
+def get_job_policies(_auth: AuthContext = Depends(require_authenticated)):
+    return {
+        category: RetryPolicyRead(**retry_policy_for(category).to_dict())
+        for category in (
+            "flood_wait",
+            "auth_required",
+            "proxy_failed",
+            "tdlib_unavailable",
+            "validation_error",
+            "unknown_transient",
+        )
+    }
 
 
 @router.post("/profile/preview", response_model=ProfilePreviewRead)

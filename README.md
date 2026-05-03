@@ -37,6 +37,8 @@ Included:
 - Story publishing flow.
 - Known active story display and deletion.
 - Runtime diagnostics and execution policy settings.
+- Account lifecycle security foundation: deletion preview/request, private export request, sanitized audit history, and risk-gated action checks.
+- Production execution-plane foundation: queue taxonomy, queue-specific worker launcher, Redis account locks, tenant rate limits, cooldown/FLOOD_WAIT handling, retry policies, and dry-run scheduler/reaper reports.
 
 Still intentionally limited:
 
@@ -121,9 +123,10 @@ Worker:
 cd backend
 python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
 ```
 
-Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes batch-auth work. Diagnostics report both statuses separately.
+Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes batch-auth work, and `account_lifecycle_jobs`/`maintenance_jobs` are reserved for safe lifecycle/maintenance foundations. Diagnostics report the production queue taxonomy.
 
 Diagnostics:
 
@@ -134,6 +137,7 @@ Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/live-prefli
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/runtime
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/frontend-summary
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/ready
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/workers/diagnostics
 ```
 
 Readiness semantics:
@@ -143,6 +147,14 @@ Readiness semantics:
 - `/ready` returns `503` when either database or redis is down.
 - `/diagnostics/runtime` and `/diagnostics/live-preflight` always return structured payloads for troubleshooting.
 - `/diagnostics/frontend-summary` returns safe dashboard metadata only; it must not expose DB URLs, Redis URLs, S3 credentials, JWTs, or TDLib session paths.
+
+Account lifecycle and production-plane docs:
+
+- `docs/architecture/account-lifecycle.md`
+- `docs/architecture/production-execution-plane.md`
+- `docs/runbooks/account-deletion.md`
+- `docs/runbooks/workers-production-plane.md`
+- `docs/runbooks/audit-log.md`
 
 OTP auth flow:
 

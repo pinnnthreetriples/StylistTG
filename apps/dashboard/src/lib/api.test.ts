@@ -2,9 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createStoryDraft,
+  createAccountDeletionRequest,
+  createAccountExportRequest,
   deleteStoryDraft,
   deleteStoryPost,
   deleteAccount,
+  fetchAccountAuditEvents,
+  fetchAccountDeletionPreview,
+  fetchWorkerDiagnostics,
   fetchAccounts,
   fetchStoryCapabilities,
   fetchStoryDrafts,
@@ -154,6 +159,69 @@ describe('story draft api contract', () => {
     const request = requestDetails(fetchMock.mock.calls[0])
     expect(request.url).toBe('/api/accounts/account-1')
     expect(request.method).toBe('DELETE')
+  })
+
+  it('fetches account deletion preview through the lifecycle API', async () => {
+    const fetchMock = mockFetch({
+      account_id: 'account-1',
+      can_delete: true,
+      risk_level: 'low',
+      blocking_reasons: [],
+      planned_actions: [],
+      requires_confirmation: true,
+      generated_at: '2026-05-03T00:00:00Z',
+    })
+
+    await fetchAccountDeletionPreview('account-1')
+
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/accounts/account-1/deletion-preview')
+    expect(request.method).toBe('GET')
+  })
+
+  it('creates account deletion requests with explicit confirmation payload', async () => {
+    const fetchMock = mockFetch({ id: 'request-1', status: 'previewed' }, 201)
+
+    await createAccountDeletionRequest('account-1', {
+      reason: 'operator requested account deletion',
+      confirmation: 'DELETE',
+      dry_run: true,
+    })
+
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/accounts/account-1/deletion-requests')
+    expect(request.method).toBe('POST')
+    expect(await new Response(request.body).json()).toMatchObject({
+      reason: 'operator requested account deletion',
+      confirmation: 'DELETE',
+      dry_run: true,
+    })
+  })
+
+  it('creates account export requests and reads audit events without hardcoded staging URLs', async () => {
+    const fetchMock = mockFetch({ id: 'export-1', status: 'completed' }, 201)
+
+    await createAccountExportRequest('account-1')
+
+    const exportRequest = requestDetails(fetchMock.mock.calls[0])
+    expect(exportRequest.url).toBe('/api/accounts/account-1/export-requests')
+    expect(exportRequest.method).toBe('POST')
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], total: 0, limit: 10, offset: 0 }))
+    await fetchAccountAuditEvents('account-1', 10)
+    const auditRequest = requestDetails(fetchMock.mock.calls[1])
+    expect(auditRequest.url).toBe('/api/accounts/account-1/audit-events')
+    expect(auditRequest.method).toBe('GET')
+  })
+
+  it('fetches worker diagnostics from the production execution plane endpoint', async () => {
+    const fetchMock = mockFetch({ queues: [], tdlib: {}, scheduler: {}, reaper: {}, rate_limits: {} })
+
+    await fetchWorkerDiagnostics()
+
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/workers/diagnostics')
+    expect(request.method).toBe('GET')
   })
 
   it('creates story drafts with backend snake_case fields', async () => {

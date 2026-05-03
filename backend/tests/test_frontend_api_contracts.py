@@ -236,7 +236,7 @@ def test_accounts_list_marks_test_dc_accounts() -> None:
     app.dependency_overrides.clear()
 
 
-def test_account_delete_removes_account_with_terminal_jobs() -> None:
+def test_account_delete_requires_lifecycle_request_with_terminal_jobs() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
 
@@ -251,15 +251,16 @@ def test_account_delete_removes_account_with_terminal_jobs() -> None:
 
     response = client.delete(f"/api/accounts/{account_id}")
 
-    assert response.status_code == 204
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "ACCOUNT_DELETE_REQUIRES_REQUEST"
     with session_factory() as session:
-        assert session.get(Job, job_id) is None
-        assert session.get(type(account), account_id) is None
+        assert session.get(Job, job_id) is not None
+        assert session.get(type(account), account_id) is not None
 
     app.dependency_overrides.clear()
 
 
-def test_account_delete_rejects_active_jobs() -> None:
+def test_account_delete_requires_lifecycle_request_before_active_job_check() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
 
@@ -274,12 +275,12 @@ def test_account_delete_rejects_active_jobs() -> None:
     response = client.delete(f"/api/accounts/{account_id}")
 
     assert response.status_code == 409
-    assert response.json()["error_code"] == "ACCOUNT_ACTIVE_JOB_CANNOT_DELETE"
+    assert response.json()["error_code"] == "ACCOUNT_DELETE_REQUIRES_REQUEST"
 
     app.dependency_overrides.clear()
 
 
-def test_account_delete_reaps_stale_queued_jobs_before_check(monkeypatch) -> None:
+def test_account_delete_does_not_reap_stale_jobs_in_legacy_endpoint(monkeypatch) -> None:
     monkeypatch.setattr("app.services.accounts.settings.stale_job_timeout_seconds", 300)
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -302,10 +303,11 @@ def test_account_delete_reaps_stale_queued_jobs_before_check(monkeypatch) -> Non
 
     response = client.delete(f"/api/accounts/{account_id}")
 
-    assert response.status_code == 204
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "ACCOUNT_DELETE_REQUIRES_REQUEST"
     with session_factory() as session:
-        assert session.get(Job, job_id) is None
-        assert session.get(type(account), account_id) is None
+        assert session.get(Job, job_id) is not None
+        assert session.get(type(account), account_id) is not None
 
     app.dependency_overrides.clear()
 

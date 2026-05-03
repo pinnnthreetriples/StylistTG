@@ -42,3 +42,14 @@ Risk endpoints are safe for dashboard refresh loops:
 - no Telegram profile/story/music execution;
 - no account/session mutation;
 - no raw secrets, Redis URLs, DB URLs, S3 keys, JWTs, or TDLib session paths.
+
+## Risk-Gated Actions
+
+`backend/app/services/risk_gate.py` evaluates action gates for future sensitive operations.
+
+- low: allowed;
+- medium: allowed with warning;
+- high: requires manual override reason;
+- critical: blocks unsafe actions, while allowing recovery/lifecycle actions such as reauth, export, and deletion request.
+
+Manual override requires a reason and records a sanitized sensitive audit event. The gate is a backend policy check only; it does not run TDLib or mutate Telegram state.

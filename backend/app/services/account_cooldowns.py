@@ -94,6 +94,46 @@ def active_cooldowns_by_operation(session: Session, account_id: str, *, now: dat
     return result
 
 
+def list_active_account_cooldowns(session: Session, account_id: str, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    now = now or datetime.now(UTC)
+    rows = session.execute(
+        select(AccountOperationCooldown)
+        .where(AccountOperationCooldown.account_id == account_id)
+        .where(AccountOperationCooldown.retry_after_at > now)
+        .order_by(AccountOperationCooldown.retry_after_at.desc())
+    ).scalars().all()
+    return [cooldown_to_dict(row) for row in rows]
+
+
+def create_cooldown_from_error(
+    session: Session,
+    *,
+    account_id: str,
+    operation: str,
+    error_code: str,
+    source_job_id: str | None = None,
+    now: datetime | None = None,
+) -> AccountOperationCooldown | None:
+    now = now or datetime.now(UTC)
+    match = FLOOD_WAIT_RE.search(error_code)
+    if not match:
+        return None
+    seconds = min(max(int(match.group("seconds")), 1), 7 * 24 * 3600)
+    row = AccountOperationCooldown(
+        account_id=account_id,
+        operation=operation,
+        level="blocked",
+        reason_code="recent_flood_wait",
+        started_at=now,
+        retry_after_at=now + timedelta(seconds=seconds),
+        source="execution_error",
+        source_job_id=source_job_id,
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
 def product_cooldowns_by_operation(
     session: Session,
     account_id: str,

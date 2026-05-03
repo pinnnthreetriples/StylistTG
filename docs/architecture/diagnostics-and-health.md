@@ -22,6 +22,7 @@ Health Center consumes backend-backed diagnostics instead of inferring runtime p
 - Redis status and configured flag;
 - storage backend and safe posture flags;
 - TDLib status, profile execution adapter, and live-enabled flag;
+- TDLib runtime mode, library loadability, Telegram API credential configured flags, auth-worker readiness, and read-only smoke availability;
 - expected worker queues;
 - scheduler/reaper mode;
 - TDLib live execution booleans without raw paths;
@@ -39,6 +40,7 @@ Health Center shows:
 - storage/auth/app runtime summary from the backend;
 - backend account risk summary;
 - worker queue taxonomy, scheduler/reaper posture, rate-limit posture, and retry policy count;
+- TDLib runtime status without raw filesystem paths;
 - loading and error states with retry.
 
 These endpoints are safe read-only diagnostics. They do not run cleanup/reaper, live Telegram/TDLib actions, profile/story/music jobs, or account import execution.

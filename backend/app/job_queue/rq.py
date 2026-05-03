@@ -11,6 +11,7 @@ from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegist
 
 from app.config import settings
 from app.workers.auth_batch_jobs import run_batch_start_auth
+from app.workers.telegram_auth_jobs import run_telegram_auth_job
 from app.workers.account_update_jobs import run_account_update_job
 from app.workers.profile_jobs import run_profile_job
 from app.services.worker_plane import (
@@ -37,6 +38,7 @@ __all__ = [
     "STORY_QUEUE_NAME",
     "enqueue_account_update_job",
     "enqueue_batch_start_auth",
+    "enqueue_telegram_auth_action",
     "enqueue_profile_job",
     "get_auth_queue",
     "get_profile_queue",
@@ -93,6 +95,21 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
             )
         else:
             queue.enqueue_call(func=run_batch_start_auth, args=(item_id,), job_id=job_id, unique=True)
+    except RedisError:
+        return False
+    return True
+
+
+def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action: str, *, secret_value: str | None = None) -> bool:
+    queue = get_auth_queue()
+    job_id = f"telegram-auth-{auth_session_id}-{action}"
+    try:
+        queue.enqueue_call(
+            func=run_telegram_auth_job,
+            args=(auth_session_id, workspace_id, action, secret_value),
+            job_id=job_id,
+            unique=True,
+        )
     except RedisError:
         return False
     return True

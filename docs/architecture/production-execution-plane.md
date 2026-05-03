@@ -92,3 +92,5 @@ PROFILE_EXECUTION_ADAPTER=mock
 ```
 
 Diagnostics expose booleans such as `live_enabled`, `library_configured`, and `session_root_configured`, but never raw filesystem paths.
+
+The auth/import foundation adds `telegram_auth_session`, `account_import_batch`, and `account_import_item` records plus auth/import API endpoints. These remain auth/readiness-only: they do not enqueue profile/story/music execution and they fail safely with `tdlib_live_disabled` when `TDLIB_LIVE_ENABLED=false`.

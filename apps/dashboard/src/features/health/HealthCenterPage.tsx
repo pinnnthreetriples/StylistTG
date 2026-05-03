@@ -101,9 +101,29 @@ export function HealthCenterPage() {
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <StatusCard
             label="TDLib live"
-            value={workerDiagnostics?.tdlib.live_enabled ? 'enabled' : 'disabled'}
-            tone={workerDiagnostics?.tdlib.live_enabled ? 'danger' : 'ok'}
-            detail={workerDiagnostics ? `adapter ${workerDiagnostics.tdlib.adapter}` : 'worker diagnostics'}
+            value={diagnostics?.tdlib.live_enabled ? 'enabled' : 'disabled'}
+            tone={diagnostics?.tdlib.live_enabled ? 'danger' : 'ok'}
+            detail={diagnostics ? `runtime ${diagnostics.tdlib.runtime_mode}; worker ${workerDiagnostics?.tdlib.adapter ?? 'checking'}` : 'backend diagnostics'}
+          />
+          <StatusCard
+            label="TDLib library"
+            value={diagnostics?.tdlib.library_loadable ? 'loadable' : diagnostics?.tdlib.library_configured ? 'configured' : 'not configured'}
+            tone={diagnostics?.tdlib.library_loadable ? 'ok' : diagnostics?.tdlib.library_configured ? 'warning' : 'neutral'}
+            detail="No raw TDLib paths are exposed."
+          />
+          <StatusCard
+            label="Auth worker"
+            value={diagnostics?.tdlib.auth_worker_ready ? 'ready' : 'checking'}
+            tone={diagnostics?.tdlib.auth_worker_ready ? 'ok' : 'neutral'}
+            detail={diagnostics?.tdlib.readonly_smoke_available ? 'read-only smoke available' : 'read-only smoke disabled'}
+          />
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <StatusCard
+            label="API credentials"
+            value={diagnostics?.tdlib.api_id_configured ? 'api id configured' : 'not configured'}
+            tone={diagnostics?.tdlib.api_id_configured && diagnostics?.tdlib.api_hash_configured ? 'ok' : 'neutral'}
+            detail="Only configured flags are shown; hash value is never exposed."
           />
           <StatusCard
             label="Scheduler"

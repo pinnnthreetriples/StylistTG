@@ -79,6 +79,15 @@ Implemented or actively wired:
     - cooldown/FLOOD_WAIT and bounded retry policy helpers;
     - scheduler/reaper report scripts with disabled/dry-run defaults;
     - `TDLIB_LIVE_ENABLED=false` by default.
+  - TDLib live runtime/auth/import foundation is present:
+    - runtime detection reports safe metadata and does not crash when `libtdjson` is missing;
+    - TDLib database/files paths are isolated by workspace and account/auth-session IDs and are never exposed in public diagnostics;
+    - `POST /api/accounts/auth-sessions`, code/password submit, cancel, status polling, and account reauth session endpoints exist;
+    - auth code and 2FA password are never persisted by the new auth-session flow;
+    - import batches validate `tdlib-directory`, `tdata`, `session-file`, and `json-metadata` in preview-first mode;
+    - unsupported session formats require manual reauth and are not automatically converted or attached;
+    - dashboard `/auth/batch` shows live auth wizard and import preview foundation;
+    - `python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check` is the safe runtime smoke.
   - Playwright browser QA lives in `apps/dashboard/e2e` and uses mocked API data with screenshots stored in ignored artifacts;
   - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
   - backend remains at `backend/` to preserve `backend/Dockerfile` staging deploys.
@@ -203,6 +212,7 @@ Redis note:
 - Settings UI shows system/runtime readiness and should use Russian labels/tooltips.
 - Production SaaS deployment runbook: `docs/runbooks/saas-production-deployment.md`.
 - API error model migration note: `docs/architecture/api-error-model.md`.
+- TDLib runtime docs: `docs/architecture/tdlib-live-runtime.md`, `docs/runbooks/tdlib-runtime.md`, `docs/runbooks/telegram-auth-flow.md`, `docs/runbooks/account-import.md`, and `docs/security/telegram-session-handling.md`.
 
 Important operational point:
 

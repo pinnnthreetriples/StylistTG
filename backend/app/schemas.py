@@ -247,6 +247,96 @@ class WorkerDiagnosticsRead(BaseModel):
     tdlib: dict[str, Any]
 
 
+class TdlibRuntimeStatusRead(BaseModel):
+    configured: bool
+    library_configured: bool
+    library_loadable: bool
+    live_enabled: bool
+    runtime_mode: str
+    api_id_configured: bool
+    api_hash_configured: bool
+    readonly_smoke_available: bool
+    error_code: str | None = None
+
+
+class TelegramAuthSessionCreate(BaseModel):
+    phone_number: str = Field(min_length=3, max_length=64)
+    label: str | None = Field(default=None, max_length=255)
+    proxy_id: str | None = None
+
+
+class TelegramAuthCodeSubmit(BaseModel):
+    code: str = Field(min_length=1, max_length=32)
+
+
+class TelegramAuthPasswordSubmit(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+
+
+class TelegramAuthSessionRead(BaseModel):
+    id: str
+    workspace_id: str
+    account_id: str | None
+    phone_hint: str | None
+    label: str | None
+    status: str
+    source: str
+    requires_code: bool
+    requires_password: bool
+    cooldown_until: datetime | None
+    last_error_code: str | None
+    last_error_message: str | None
+    created_at: datetime
+    updated_at: datetime
+    completed_at: datetime | None
+    failed_at: datetime | None
+
+
+class AccountImportBatchCreate(BaseModel):
+    source_type: Literal["tdlib-directory", "tdata", "session-file", "json-metadata"]
+    label: str | None = Field(default=None, max_length=255)
+    dry_run: bool = True
+    metadata: dict[str, Any] | None = None
+
+
+class AccountImportBatchValidate(BaseModel):
+    metadata: dict[str, Any] | None = None
+    content_base64: str | None = None
+
+
+class AccountImportBatchConfirm(BaseModel):
+    confirmation: Literal["IMPORT"]
+
+
+class AccountImportItemRead(BaseModel):
+    id: str
+    account_id: str | None
+    status: str
+    phone_hint: str | None
+    username_hint: str | None
+    validation_code: str | None
+    validation_message: str | None
+    risk_level: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AccountImportBatchRead(BaseModel):
+    id: str
+    workspace_id: str
+    source_type: str
+    status: str
+    label: str | None
+    dry_run: bool
+    item_count: int
+    created_at: datetime
+    completed_at: datetime | None
+    failed_at: datetime | None
+    failure_code: str | None
+    failure_message: str | None
+    items: list[AccountImportItemRead] = Field(default_factory=list)
+
+
 class RetryPolicyRead(BaseModel):
     retry: bool
     max_attempts: int
@@ -437,9 +527,16 @@ class FrontendDiagnosticsTdlibRead(BaseModel):
     status: str
     profile_execution_adapter: str
     live_enabled: bool
+    runtime_mode: str = "mock"
     library_configured: bool = False
+    library_loadable: bool = False
+    api_id_configured: bool = False
+    api_hash_configured: bool = False
+    auth_worker_ready: bool = False
+    readonly_smoke_available: bool = False
     session_root_configured: bool = False
     execution_plane_ready: bool = False
+    error_code: str | None = None
 
 
 class FrontendDiagnosticsWorkersRead(BaseModel):

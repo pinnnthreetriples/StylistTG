@@ -39,6 +39,7 @@ Included:
 - Runtime diagnostics and execution policy settings.
 - Account lifecycle security foundation: deletion preview/request, private export request, sanitized audit history, and risk-gated action checks.
 - Production execution-plane foundation: queue taxonomy, queue-specific worker launcher, Redis account locks, tenant rate limits, cooldown/FLOOD_WAIT handling, retry policies, and dry-run scheduler/reaper reports.
+- TDLib live runtime/auth/import foundation: tdjson detection, isolated TDLib storage paths, auth-session endpoints, reauth session endpoint, preview-first import batches, and TDLib runtime diagnostics. Live profile/story/music execution remains disabled by default.
 
 Still intentionally limited:
 
@@ -155,6 +156,11 @@ Account lifecycle and production-plane docs:
 - `docs/runbooks/account-deletion.md`
 - `docs/runbooks/workers-production-plane.md`
 - `docs/runbooks/audit-log.md`
+- `docs/architecture/tdlib-live-runtime.md`
+- `docs/runbooks/tdlib-runtime.md`
+- `docs/runbooks/telegram-auth-flow.md`
+- `docs/runbooks/account-import.md`
+- `docs/security/telegram-session-handling.md`
 
 OTP auth flow:
 
@@ -173,11 +179,31 @@ TDLib configuration:
 ```powershell
 $env:TDLIB_API_ID="<your api id>"
 $env:TDLIB_API_HASH="<your api hash>"
+$env:TELEGRAM_API_ID="<your api id>"
+$env:TELEGRAM_API_HASH="<your api hash>"
 $env:TDLIB_DATABASE_ROOT="backend/tdlib/database"
 $env:TDLIB_FILES_ROOT="backend/tdlib/files"
 $env:TDLIB_SHARED_LIBRARY_PATH="C:\\path\\to\\tdjson.dll"
-$env:PROFILE_EXECUTION_ADAPTER="tdlib"
+$env:TDLIB_RUNTIME_MODE="mock"
+$env:TDLIB_LIVE_ENABLED="false"
+$env:PROFILE_EXECUTION_ADAPTER="mock"
 ```
+
+TDLib runtime smoke:
+
+```powershell
+cd backend
+python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check
+```
+
+Real auth/import foundation endpoints are explicit and safe-by-default:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/accounts/auth-sessions -ContentType 'application/json' -Body '{"phone_number":"+15550102000"}'
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/account-import-batches -ContentType 'application/json' -Body '{"source_type":"json-metadata","dry_run":true}'
+```
+
+Telegram codes, 2FA passwords, Telegram API hash, TDLib paths, and session material must never be logged, returned in API responses, or committed.
 
 SaaS database/auth foundation:
 

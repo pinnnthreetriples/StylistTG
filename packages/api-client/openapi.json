@@ -87,6 +87,216 @@
         }
       }
     },
+    "/api/account-import-batches": {
+      "get": {
+        "tags": [
+          "account-import-batches"
+        ],
+        "summary": "Get Import Batches",
+        "operationId": "get_import_batches_api_account_import_batches_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountImportBatchRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Import Batches Api Account Import Batches Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "account-import-batches"
+        ],
+        "summary": "Post Import Batch",
+        "operationId": "post_import_batch_api_account_import_batches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountImportBatchCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportBatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-import-batches/{batch_id}": {
+      "get": {
+        "tags": [
+          "account-import-batches"
+        ],
+        "summary": "Get Import Batch Detail",
+        "operationId": "get_import_batch_detail_api_account_import_batches__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportBatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-import-batches/{batch_id}/validate": {
+      "post": {
+        "tags": [
+          "account-import-batches"
+        ],
+        "summary": "Post Validate Import Batch",
+        "operationId": "post_validate_import_batch_api_account_import_batches__batch_id__validate_post",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountImportBatchValidate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportBatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-import-batches/{batch_id}/confirm": {
+      "post": {
+        "tags": [
+          "account-import-batches"
+        ],
+        "summary": "Post Confirm Import Batch",
+        "operationId": "post_confirm_import_batch_api_account_import_batches__batch_id__confirm_post",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountImportBatchConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportBatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/runtime-mode": {
       "get": {
         "tags": [
@@ -1650,6 +1860,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ActionGateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/reauth-sessions": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Account Reauth Session",
+        "operationId": "post_account_reauth_session_api_accounts__account_id__reauth_sessions_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAuthSessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
                 }
               }
             }
@@ -3979,6 +4241,279 @@
         }
       }
     },
+    "/api/accounts/auth-sessions": {
+      "get": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Get Auth Sessions",
+        "operationId": "get_auth_sessions_api_accounts_auth_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Auth Sessions Api Accounts Auth Sessions Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Post Auth Session",
+        "operationId": "post_auth_session_api_accounts_auth_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAuthSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/auth-sessions/{auth_session_id}": {
+      "get": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Get Auth Session Status",
+        "operationId": "get_auth_session_status_api_accounts_auth_sessions__auth_session_id__get",
+        "parameters": [
+          {
+            "name": "auth_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Auth Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/auth-sessions/{auth_session_id}/code": {
+      "post": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Post Auth Session Code",
+        "operationId": "post_auth_session_code_api_accounts_auth_sessions__auth_session_id__code_post",
+        "parameters": [
+          {
+            "name": "auth_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Auth Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAuthCodeSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/auth-sessions/{auth_session_id}/password": {
+      "post": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Post Auth Session Password",
+        "operationId": "post_auth_session_password_api_accounts_auth_sessions__auth_session_id__password_post",
+        "parameters": [
+          {
+            "name": "auth_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Auth Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAuthPasswordSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/auth-sessions/{auth_session_id}/cancel": {
+      "post": {
+        "tags": [
+          "telegram-auth-sessions"
+        ],
+        "summary": "Post Auth Session Cancel",
+        "operationId": "post_auth_session_cancel_api_accounts_auth_sessions__auth_session_id__cancel_post",
+        "parameters": [
+          {
+            "name": "auth_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Auth Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAuthSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tdlib/runtime": {
+      "get": {
+        "tags": [
+          "tdlib-runtime"
+        ],
+        "summary": "Get Tdlib Runtime",
+        "operationId": "get_tdlib_runtime_api_tdlib_runtime_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TdlibRuntimeStatusRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workers/queues": {
       "get": {
         "tags": [
@@ -4643,6 +5178,312 @@
           "requested_at"
         ],
         "title": "AccountExportRequestRead"
+      },
+      "AccountImportBatchConfirm": {
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "const": "IMPORT",
+            "title": "Confirmation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirmation"
+        ],
+        "title": "AccountImportBatchConfirm"
+      },
+      "AccountImportBatchCreate": {
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "tdlib-directory",
+              "tdata",
+              "session-file",
+              "json-metadata"
+            ],
+            "title": "Source Type"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": true
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_type"
+        ],
+        "title": "AccountImportBatchCreate"
+      },
+      "AccountImportBatchRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run"
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed At"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Message"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccountImportItemRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "source_type",
+          "status",
+          "label",
+          "dry_run",
+          "item_count",
+          "created_at",
+          "completed_at",
+          "failed_at",
+          "failure_code",
+          "failure_message"
+        ],
+        "title": "AccountImportBatchRead"
+      },
+      "AccountImportBatchValidate": {
+        "properties": {
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "content_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Base64"
+          }
+        },
+        "type": "object",
+        "title": "AccountImportBatchValidate"
+      },
+      "AccountImportItemRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "phone_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Hint"
+          },
+          "username_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username Hint"
+          },
+          "validation_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Code"
+          },
+          "validation_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Message"
+          },
+          "risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Level"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "status",
+          "phone_hint",
+          "username_hint",
+          "validation_code",
+          "validation_message",
+          "risk_level",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AccountImportItemRead"
       },
       "AccountListItemRead": {
         "properties": {
@@ -8517,9 +9358,39 @@
             "type": "boolean",
             "title": "Live Enabled"
           },
+          "runtime_mode": {
+            "type": "string",
+            "title": "Runtime Mode",
+            "default": "mock"
+          },
           "library_configured": {
             "type": "boolean",
             "title": "Library Configured",
+            "default": false
+          },
+          "library_loadable": {
+            "type": "boolean",
+            "title": "Library Loadable",
+            "default": false
+          },
+          "api_id_configured": {
+            "type": "boolean",
+            "title": "Api Id Configured",
+            "default": false
+          },
+          "api_hash_configured": {
+            "type": "boolean",
+            "title": "Api Hash Configured",
+            "default": false
+          },
+          "auth_worker_ready": {
+            "type": "boolean",
+            "title": "Auth Worker Ready",
+            "default": false
+          },
+          "readonly_smoke_available": {
+            "type": "boolean",
+            "title": "Readonly Smoke Available",
             "default": false
           },
           "session_root_configured": {
@@ -8531,6 +9402,17 @@
             "type": "boolean",
             "title": "Execution Plane Ready",
             "default": false
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
           }
         },
         "type": "object",
@@ -9767,6 +10649,282 @@
         },
         "type": "object",
         "title": "StoryDraftUpdate"
+      },
+      "TdlibRuntimeStatusRead": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "library_configured": {
+            "type": "boolean",
+            "title": "Library Configured"
+          },
+          "library_loadable": {
+            "type": "boolean",
+            "title": "Library Loadable"
+          },
+          "live_enabled": {
+            "type": "boolean",
+            "title": "Live Enabled"
+          },
+          "runtime_mode": {
+            "type": "string",
+            "title": "Runtime Mode"
+          },
+          "api_id_configured": {
+            "type": "boolean",
+            "title": "Api Id Configured"
+          },
+          "api_hash_configured": {
+            "type": "boolean",
+            "title": "Api Hash Configured"
+          },
+          "readonly_smoke_available": {
+            "type": "boolean",
+            "title": "Readonly Smoke Available"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured",
+          "library_configured",
+          "library_loadable",
+          "live_enabled",
+          "runtime_mode",
+          "api_id_configured",
+          "api_hash_configured",
+          "readonly_smoke_available"
+        ],
+        "title": "TdlibRuntimeStatusRead"
+      },
+      "TelegramAuthCodeSubmit": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "TelegramAuthCodeSubmit"
+      },
+      "TelegramAuthPasswordSubmit": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "TelegramAuthPasswordSubmit"
+      },
+      "TelegramAuthSessionCreate": {
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Phone Number"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "proxy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone_number"
+        ],
+        "title": "TelegramAuthSessionCreate"
+      },
+      "TelegramAuthSessionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "phone_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Hint"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "requires_code": {
+            "type": "boolean",
+            "title": "Requires Code"
+          },
+          "requires_password": {
+            "type": "boolean",
+            "title": "Requires Password"
+          },
+          "cooldown_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooldown Until"
+          },
+          "last_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Code"
+          },
+          "last_error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "account_id",
+          "phone_hint",
+          "label",
+          "status",
+          "source",
+          "requires_code",
+          "requires_password",
+          "cooldown_until",
+          "last_error_code",
+          "last_error_message",
+          "created_at",
+          "updated_at",
+          "completed_at",
+          "failed_at"
+        ],
+        "title": "TelegramAuthSessionRead"
       },
       "ValidationError": {
         "properties": {

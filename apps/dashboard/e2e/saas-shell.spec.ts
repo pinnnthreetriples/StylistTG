@@ -19,7 +19,12 @@ test('SaaS shell loads and captures the primary pages', async ({ page, isMobile 
   await page.goto('/health')
   await expect(page.getByRole('heading', { name: 'Runtime Readiness' })).toBeVisible()
   await expect(page.getByText('Account risk summary')).toBeVisible()
+  await expect(page.getByText('TDLib library')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('health-center.png'), fullPage: true })
+
+  await page.goto('/auth/batch')
+  await expect(page.getByRole('heading', { name: 'Real authorization' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Preview account packages' })).toBeVisible()
 
   await page.goto('/jobs')
   await expect(page.getByRole('heading', { name: 'Worker Activity' })).toBeVisible()
@@ -114,9 +119,49 @@ async function mockApi(page: Page) {
           signed_url_enabled: true,
           public_base_url_configured: false,
         },
-        tdlib: { status: 'not_configured', profile_execution_adapter: 'mock', live_enabled: false },
+        tdlib: {
+          status: 'not_configured',
+          profile_execution_adapter: 'mock',
+          live_enabled: false,
+          runtime_mode: 'mock',
+          library_configured: false,
+          library_loadable: false,
+          api_id_configured: false,
+          api_hash_configured: false,
+          auth_worker_ready: true,
+          readonly_smoke_available: false,
+          execution_plane_ready: false,
+        },
         workers: { queues: ['profile_jobs', 'auth_jobs'], mode: 'redis_rq' },
         generated_at: '2026-05-03T00:00:00Z',
+      },
+    }),
+  )
+  await page.route('**/api/workers/diagnostics', (route) =>
+    route.fulfill({
+      json: {
+        queues: [
+          { name: 'auth_jobs', purpose: 'Telegram auth jobs', live_enabled_by_default: false },
+          { name: 'profile_jobs', purpose: 'Profile jobs', live_enabled_by_default: false },
+        ],
+        rate_limits: { enabled: true, backend: 'redis' },
+        scheduler: { enabled: false, mode: 'disabled' },
+        reaper: { enabled: false, mode: 'dry_run' },
+        tdlib: { live_enabled: false, adapter: 'mock', execution_plane_ready: false },
+      },
+    }),
+  )
+  await page.route('**/api/jobs/policies', (route) => route.fulfill({ json: { validation_error: { retry: false } } }))
+  await page.route('**/api/tdlib/runtime', (route) =>
+    route.fulfill({
+      json: {
+        configured: false,
+        library_loadable: false,
+        live_enabled: false,
+        runtime_mode: 'mock',
+        api_id_configured: false,
+        api_hash_configured: false,
+        error_code: null,
       },
     }),
   )
@@ -188,7 +233,7 @@ async function mockApi(page: Page) {
   await page.route('**/api/operation-logs?**', (route) =>
     route.fulfill({ json: { items: [], total: 0, limit: 100, offset: 0 } }),
   )
-  for (const path of ['/jobs', '/proxy', '/settings']) {
+  for (const path of ['/auth/batch', '/jobs', '/proxy', '/settings']) {
     await page.route(`**${path}`, (route) =>
       route.request().resourceType() === 'document'
         ? route.fulfill({ path: 'dist/index.html', contentType: 'text/html' })

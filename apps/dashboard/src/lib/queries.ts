@@ -15,6 +15,11 @@ import {
   fetchActionGate,
   fetchAuditEvents,
   fetchWorkerDiagnostics,
+  fetchTdlibRuntimeStatus,
+  fetchTelegramAuthSessions,
+  fetchTelegramAuthSession,
+  fetchAccountImportBatches,
+  fetchAccountImportBatch,
   fetchJobPolicies,
   fetchAccountValidityChecks,
   fetchGlobalOperationLogs,
@@ -74,6 +79,15 @@ export const queryKeys = {
   workers: {
     diagnostics: ['workers', 'diagnostics'] as const,
     jobPolicies: ['workers', 'jobPolicies'] as const,
+  },
+  tdlibRuntime: ['tdlibRuntime'] as const,
+  telegramAuth: {
+    sessions: ['telegramAuth', 'sessions'] as const,
+    session: (authSessionId: string) => ['telegramAuth', 'sessions', authSessionId] as const,
+  },
+  accountImport: {
+    batches: ['accountImport', 'batches'] as const,
+    batch: (batchId: string) => ['accountImport', 'batches', batchId] as const,
   },
   authState: (accountId: string) => ['authState', accountId] as const,
   settings: {
@@ -177,6 +191,41 @@ export function jobPoliciesQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.workers.jobPolicies,
     queryFn: fetchJobPolicies,
+  })
+}
+
+export function tdlibRuntimeQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.tdlibRuntime,
+    queryFn: fetchTdlibRuntimeStatus,
+  })
+}
+
+export function telegramAuthSessionsQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.telegramAuth.sessions,
+    queryFn: fetchTelegramAuthSessions,
+  })
+}
+
+export function telegramAuthSessionQueryOptions(authSessionId: string) {
+  return queryOptions({
+    queryKey: queryKeys.telegramAuth.session(authSessionId),
+    queryFn: () => fetchTelegramAuthSession(authSessionId),
+  })
+}
+
+export function accountImportBatchesQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.accountImport.batches,
+    queryFn: fetchAccountImportBatches,
+  })
+}
+
+export function accountImportBatchQueryOptions(batchId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountImport.batch(batchId),
+    queryFn: () => fetchAccountImportBatch(batchId),
   })
 }
 

@@ -2,15 +2,21 @@ import { describe, expect, test } from 'vitest'
 
 import {
   confirmOtp,
+  confirmAccountImportBatch,
   createApiClient,
+  createAccountImportBatch,
   createAuthBatch,
+  createTelegramAuthSession,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
   fetchRuntimeDiagnostics,
   fetchAccountRiskSummary,
+  fetchTdlibRuntimeStatus,
   normalizeClientError,
   resolveApiBaseUrl,
+  submitTelegramAuthCode,
   startOtp,
+  validateAccountImportBatch,
   validateAuthBatchPhones,
 } from './index'
 import type { paths } from './generated/schema'
@@ -206,6 +212,48 @@ describe('@stylisttg/api-client', () => {
     await expect(fetchFrontendDiagnosticsSummary(client)).resolves.toMatchObject({ app_env: 'staging' })
     await expect(fetchAccountRiskSummary(client)).resolves.toMatchObject({ total: 1, low: 1 })
   })
+
+  test('TDLib auth and import wrappers use generated endpoint paths without leaking secrets in errors', async () => {
+    const calls: Array<{ url: string; body: unknown }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: requestUrl(input), body: await requestBody(input, init) })
+      if (requestUrl(input).endsWith('/api/tdlib/runtime')) {
+        return jsonResponse({
+          configured: false,
+          library_configured: false,
+          library_loadable: false,
+          live_enabled: false,
+          runtime_mode: 'mock',
+          api_id_configured: false,
+          api_hash_configured: false,
+          readonly_smoke_available: false,
+          error_code: null,
+        })
+      }
+      if (requestUrl(input).includes('/account-import-batches')) {
+        return jsonResponse(importBatchPayload())
+      }
+      return jsonResponse(authSessionPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await createTelegramAuthSession(client, { phone_number: '+15550102000', label: 'Main', proxy_id: null })
+    await submitTelegramAuthCode(client, 'auth-1', { code: '12345' })
+    await fetchTdlibRuntimeStatus(client)
+    await createAccountImportBatch(client, { source_type: 'json-metadata', label: 'Import', dry_run: true, metadata: {} })
+    await validateAccountImportBatch(client, 'batch-1', { metadata: { username: 'demo' }, content_base64: null })
+    await confirmAccountImportBatch(client, 'batch-1', { confirmation: 'IMPORT' })
+
+    expect(calls.map((call) => call.url)).toEqual([
+      'http://api.test/api/accounts/auth-sessions',
+      'http://api.test/api/accounts/auth-sessions/auth-1/code',
+      'http://api.test/api/tdlib/runtime',
+      'http://api.test/api/account-import-batches',
+      'http://api.test/api/account-import-batches/batch-1/validate',
+      'http://api.test/api/account-import-batches/batch-1/confirm',
+    ])
+    expect(JSON.stringify(calls)).not.toContain('code_invalid: 12345')
+  })
 })
 
 function jsonResponse(payload: unknown): Response {
@@ -223,4 +271,56 @@ async function requestBody(input: RequestInfo | URL, init?: RequestInit): Promis
     return text ? JSON.parse(text) : null
   }
   return null
+}
+
+function authSessionPayload() {
+  return {
+    id: 'auth-1',
+    workspace_id: 'workspace-1',
+    account_id: null,
+    phone_hint: '***2000',
+    label: 'Main',
+    status: 'failed',
+    source: 'new_auth',
+    requires_code: false,
+    requires_password: false,
+    cooldown_until: null,
+    last_error_code: 'tdlib_live_disabled',
+    last_error_message: 'TDLib live auth is disabled.',
+    created_at: '2026-05-03T00:00:00Z',
+    updated_at: '2026-05-03T00:00:00Z',
+    completed_at: null,
+    failed_at: '2026-05-03T00:00:00Z',
+  }
+}
+
+function importBatchPayload() {
+  return {
+    id: 'batch-1',
+    workspace_id: 'workspace-1',
+    source_type: 'json-metadata',
+    status: 'preview_ready',
+    label: 'Import',
+    dry_run: true,
+    item_count: 1,
+    created_at: '2026-05-03T00:00:00Z',
+    completed_at: '2026-05-03T00:00:00Z',
+    failed_at: null,
+    failure_code: null,
+    failure_message: null,
+    items: [
+      {
+        id: 'item-1',
+        account_id: null,
+        status: 'valid',
+        phone_hint: null,
+        username_hint: 'demo',
+        validation_code: 'json_metadata_preview',
+        validation_message: 'Preview only.',
+        risk_level: 'low',
+        created_at: '2026-05-03T00:00:00Z',
+        updated_at: '2026-05-03T00:00:00Z',
+      },
+    ],
+  }
 }

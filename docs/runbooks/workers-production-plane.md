@@ -38,6 +38,19 @@ Unknown queues are rejected.
 
 Auth-session jobs use the `auth_jobs` queue. They are allowed only for Telegram authorization/reauthorization state transitions and must not run profile/story/music mutations.
 
+Future TDLib live auth worker command, after the TDLib runtime image and isolated
+volume mounts are validated:
+
+```powershell
+cd backend
+python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json
+python -m app.workers.run_worker --queues auth_jobs
+```
+
+Keep `TDLIB_LIVE_ENABLED=false` until controlled live auth validation is
+explicitly approved. `profile_jobs` remains mock-safe unless a later PR enables
+live profile execution behind separate gates.
+
 ## Diagnostics
 
 ```powershell

@@ -432,6 +432,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/deletion-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Deletion Preview */
+        get: operations["get_account_deletion_preview_api_accounts__account_id__deletion_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/deletion-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Deletion Requests */
+        get: operations["get_account_deletion_requests_api_accounts__account_id__deletion_requests_get"];
+        put?: never;
+        /** Post Account Deletion Request */
+        post: operations["post_account_deletion_request_api_accounts__account_id__deletion_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/deletion-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Deletion Request */
+        get: operations["get_account_deletion_request_api_accounts__account_id__deletion_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/export-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Export Requests */
+        get: operations["get_account_export_requests_api_accounts__account_id__export_requests_get"];
+        put?: never;
+        /** Post Account Export Request */
+        post: operations["post_account_export_request_api_accounts__account_id__export_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/export-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Export Request */
+        get: operations["get_account_export_request_api_accounts__account_id__export_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Audit Events */
+        get: operations["get_account_audit_events_api_accounts__account_id__audit_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/cooldowns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Cooldowns */
+        get: operations["get_account_cooldowns_api_accounts__account_id__cooldowns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/action-gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Action Gate */
+        get: operations["get_account_action_gate_api_accounts__account_id__action_gate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/risk": {
         parameters: {
             query?: never;
@@ -758,6 +896,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Audit Events */
+        get: operations["get_audit_events_api_audit_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assets/profile-photo": {
         parameters: {
             query?: never;
@@ -954,6 +1109,23 @@ export interface paths {
         };
         /** Live Preflight */
         get: operations["live_preflight_diagnostics_live_preflight_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job Policies */
+        get: operations["get_job_policies_api_jobs_policies_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1187,6 +1359,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workers/queues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Worker Queues */
+        get: operations["get_worker_queues_api_workers_queues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workers/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Worker Diagnostics */
+        get: operations["get_worker_diagnostics_api_workers_diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workers/job-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job Policies */
+        get: operations["get_job_policies_api_workers_job_policies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1291,6 +1514,118 @@ export interface components {
             external_ref: string;
             /** Telegram User Id */
             telegram_user_id?: string | null;
+        };
+        /** AccountDeletionPlannedActionRead */
+        AccountDeletionPlannedActionRead: {
+            /** Type */
+            type: string;
+            /** Resource */
+            resource: string;
+            /** Count */
+            count?: number | null;
+            /** Present */
+            present?: boolean | null;
+            /** Retention Policy */
+            retention_policy?: string | null;
+        };
+        /** AccountDeletionPreviewRead */
+        AccountDeletionPreviewRead: {
+            /** Account Id */
+            account_id: string;
+            /** Can Delete */
+            can_delete: boolean;
+            /** Risk Level */
+            risk_level: string;
+            /** Risk Score */
+            risk_score: number;
+            /** Blocking Reasons */
+            blocking_reasons: string[];
+            /** Planned Actions */
+            planned_actions: components["schemas"]["AccountDeletionPlannedActionRead"][];
+            /** Requires Confirmation */
+            requires_confirmation: boolean;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** AccountDeletionRequestCreate */
+        AccountDeletionRequestCreate: {
+            /** Reason */
+            reason: string;
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "DELETE";
+            /**
+             * Dry Run
+             * @default true
+             */
+            dry_run: boolean;
+        };
+        /** AccountDeletionRequestRead */
+        AccountDeletionRequestRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason?: string | null;
+            /** Dry Run Result */
+            dry_run_result?: {
+                [key: string]: unknown;
+            } | null;
+            /** Execution Result */
+            execution_result?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Failed At */
+            failed_at?: string | null;
+            /** Failure Code */
+            failure_code?: string | null;
+            /** Failure Message */
+            failure_message?: string | null;
+        };
+        /** AccountExportRequestRead */
+        AccountExportRequestRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string;
+            /** Status */
+            status: string;
+            /** Export Key */
+            export_key?: string | null;
+            /** Export Size Bytes */
+            export_size_bytes?: number | null;
+            /** Export Content Type */
+            export_content_type?: string | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Failed At */
+            failed_at?: string | null;
+            /** Failure Code */
+            failure_code?: string | null;
+            /** Failure Message */
+            failure_message?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** AccountListItemRead */
         AccountListItemRead: {
@@ -1916,6 +2251,27 @@ export interface components {
              */
             mode: "db_snapshot" | "tdlib_readonly" | "full_capability";
         };
+        /** ActionGateRead */
+        ActionGateRead: {
+            /** Account Id */
+            account_id: string;
+            /** Action Type */
+            action_type: string;
+            /** Allowed */
+            allowed: boolean;
+            /** Requires Override */
+            requires_override: boolean;
+            /** Blocked */
+            blocked: boolean;
+            /** Risk Level */
+            risk_level: string;
+            /** Risk Score */
+            risk_score: number;
+            /** Reasons */
+            reasons: components["schemas"]["AccountReadinessRiskReasonRead"][];
+            /** Required Override Reason */
+            required_override_reason: boolean;
+        };
         /** AssetRead */
         AssetRead: {
             /** Id */
@@ -2506,6 +2862,21 @@ export interface components {
             profile_execution_adapter: string;
             /** Live Enabled */
             live_enabled: boolean;
+            /**
+             * Library Configured
+             * @default false
+             */
+            library_configured: boolean;
+            /**
+             * Session Root Configured
+             * @default false
+             */
+            session_root_configured: boolean;
+            /**
+             * Execution Plane Ready
+             * @default false
+             */
+            execution_plane_ready: boolean;
         };
         /** FrontendDiagnosticsWorkersRead */
         FrontendDiagnosticsWorkersRead: {
@@ -2513,6 +2884,16 @@ export interface components {
             queues: string[];
             /** Mode */
             mode: string;
+            /**
+             * Scheduler Enabled
+             * @default false
+             */
+            scheduler_enabled: boolean;
+            /**
+             * Reaper Mode
+             * @default dry_run
+             */
+            reaper_mode: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2711,6 +3092,30 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** QueueDescriptorRead */
+        QueueDescriptorRead: {
+            /** Name */
+            name: string;
+            /** Purpose */
+            purpose: string;
+            /** Live Execution Default */
+            live_execution_default: boolean;
+        };
+        /** RetryPolicyRead */
+        RetryPolicyRead: {
+            /** Retry */
+            retry: boolean;
+            /** Max Attempts */
+            max_attempts: number;
+            /** Interval Seconds */
+            interval_seconds: number[];
+            /** Failure Ttl Seconds */
+            failure_ttl_seconds: number;
+            /** Result Ttl Seconds */
+            result_ttl_seconds: number;
+            /** Error Category */
+            error_category: string;
+        };
         /** RuntimeRefreshRead */
         RuntimeRefreshRead: {
             /** Account Id */
@@ -2730,6 +3135,55 @@ export interface components {
              * Format: date-time
              */
             refreshed_at: string;
+        };
+        /** SensitiveAuditEventPageRead */
+        SensitiveAuditEventPageRead: {
+            /** Items */
+            items: components["schemas"]["SensitiveAuditEventRead"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** SensitiveAuditEventRead */
+        SensitiveAuditEventRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /** Actor Type */
+            actor_type: string;
+            /** Action */
+            action: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Account Id */
+            account_id?: string | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Override Reason */
+            override_reason?: string | null;
+            /** Risk Level */
+            risk_level?: string | null;
+            /** Risk Score */
+            risk_score?: number | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** StoryCapabilitiesRead */
         StoryCapabilitiesRead: {
@@ -2839,6 +3293,29 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: {
+                [key: string]: unknown;
+            };
+        };
+        /** WorkerDiagnosticsRead */
+        WorkerDiagnosticsRead: {
+            /** Queues */
+            queues: components["schemas"]["QueueDescriptorRead"][];
+            /** Mode */
+            mode: string;
+            /** Scheduler */
+            scheduler: {
+                [key: string]: unknown;
+            };
+            /** Reaper */
+            reaper: {
+                [key: string]: unknown;
+            };
+            /** Rate Limits */
+            rate_limits: {
+                [key: string]: number;
+            };
+            /** Tdlib */
+            tdlib: {
                 [key: string]: unknown;
             };
         };
@@ -3697,6 +4174,328 @@ export interface operations {
             };
         };
     };
+    get_account_deletion_preview_api_accounts__account_id__deletion_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionPreviewRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_deletion_requests_api_accounts__account_id__deletion_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionRequestRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_account_deletion_request_api_accounts__account_id__deletion_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeletionRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_deletion_request_api_accounts__account_id__deletion_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_export_requests_api_accounts__account_id__export_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountExportRequestRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_account_export_request_api_accounts__account_id__export_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountExportRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_export_request_api_accounts__account_id__export_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountExportRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_audit_events_api_accounts__account_id__audit_events_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensitiveAuditEventPageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_cooldowns_api_accounts__account_id__cooldowns_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOperationCooldownRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_action_gate_api_accounts__account_id__action_gate_get: {
+        parameters: {
+            query: {
+                action_type: string;
+                override_reason?: string | null;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionGateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_account_risk_api_accounts__account_id__risk_get: {
         parameters: {
             query?: never;
@@ -4400,6 +5199,39 @@ export interface operations {
             };
         };
     };
+    get_audit_events_api_audit_events_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensitiveAuditEventPageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     post_profile_photo_api_assets_profile_photo_post: {
         parameters: {
             query?: never;
@@ -4743,6 +5575,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LivePreflightRead"];
+                };
+            };
+        };
+    };
+    get_job_policies_api_jobs_policies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["RetryPolicyRead"];
+                    };
                 };
             };
         };
@@ -5271,6 +6125,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_worker_queues_api_workers_queues_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueDescriptorRead"][];
+                };
+            };
+        };
+    };
+    get_worker_diagnostics_api_workers_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerDiagnosticsRead"];
+                };
+            };
+        };
+    };
+    get_job_policies_api_workers_job_policies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["RetryPolicyRead"];
+                    };
                 };
             };
         };

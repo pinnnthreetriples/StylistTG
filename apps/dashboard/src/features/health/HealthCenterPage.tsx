@@ -4,7 +4,12 @@ import { RefreshCw } from 'lucide-react'
 
 import { EMPTY_ACCOUNT_RISK_SUMMARY } from '@/features/accounts/accountRisk'
 import { fetchHealth, fetchReady } from '@/lib/api'
-import { accountRiskSummaryQueryOptions, frontendDiagnosticsQueryOptions } from '@/lib/queries'
+import {
+  accountRiskSummaryQueryOptions,
+  frontendDiagnosticsQueryOptions,
+  jobPoliciesQueryOptions,
+  workerDiagnosticsQueryOptions,
+} from '@/lib/queries'
 
 export function HealthCenterPage() {
   const healthQuery = useQuery({
@@ -18,15 +23,21 @@ export function HealthCenterPage() {
     staleTime: 30_000,
   })
   const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
+  const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
+  const jobPoliciesQuery = useQuery(jobPoliciesQueryOptions())
   const accountRiskQuery = useQuery(accountRiskSummaryQueryOptions())
   const ready = readyQuery.data
   const diagnostics = diagnosticsQuery.data
+  const workerDiagnostics = workerDiagnosticsQuery.data
+  const jobPolicies = jobPoliciesQuery.data
   const riskSummary = accountRiskQuery.data ?? EMPTY_ACCOUNT_RISK_SUMMARY
 
   function refresh() {
     void healthQuery.refetch()
     void readyQuery.refetch()
     void diagnosticsQuery.refetch()
+    void workerDiagnosticsQuery.refetch()
+    void jobPoliciesQuery.refetch()
     void accountRiskQuery.refetch()
   }
 
@@ -87,6 +98,26 @@ export function HealthCenterPage() {
             detail="Run staging_smoke for full Neon/Supabase/Redis/B2 coverage."
           />
         </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <StatusCard
+            label="TDLib live"
+            value={workerDiagnostics?.tdlib.live_enabled ? 'enabled' : 'disabled'}
+            tone={workerDiagnostics?.tdlib.live_enabled ? 'danger' : 'ok'}
+            detail={workerDiagnostics ? `adapter ${workerDiagnostics.tdlib.adapter}` : 'worker diagnostics'}
+          />
+          <StatusCard
+            label="Scheduler"
+            value={workerDiagnostics?.scheduler.enabled ? 'enabled' : 'disabled'}
+            tone={workerDiagnostics?.scheduler.enabled ? 'warning' : 'ok'}
+            detail={workerDiagnostics ? `mode ${workerDiagnostics.scheduler.mode}` : 'worker diagnostics'}
+          />
+          <StatusCard
+            label="Reaper"
+            value={workerDiagnostics?.reaper.enabled ? String(workerDiagnostics.reaper.mode) : 'disabled'}
+            tone={workerDiagnostics?.reaper.mode === 'execute_safe' ? 'warning' : 'ok'}
+            detail="Destructive cleanup is not enabled by default."
+          />
+        </div>
         {readyQuery.isError ? (
           <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">
             Readiness diagnostics are unavailable. Check API network access and backend logs.
@@ -97,6 +128,33 @@ export function HealthCenterPage() {
             Backend diagnostics summary is unavailable. Readiness may still be available from /ready.
           </div>
         ) : null}
+        {workerDiagnosticsQuery.isError ? (
+          <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+            Worker diagnostics are unavailable.
+          </div>
+        ) : null}
+      </SectionCard>
+
+      <SectionCard title="Worker execution plane">
+        <div className="grid gap-3 md:grid-cols-3">
+          <StatusCard
+            label="Queue taxonomy"
+            value={workerDiagnostics ? workerDiagnostics.queues.length : 'checking'}
+            tone="info"
+            detail={workerDiagnostics ? workerDiagnostics.queues.map((queue) => queue.name).join(', ') : undefined}
+          />
+          <StatusCard
+            label="Rate limits"
+            value={workerDiagnostics?.rate_limits.enabled ? 'configured' : 'checking'}
+            tone={workerDiagnostics?.rate_limits.enabled ? 'ok' : 'neutral'}
+          />
+          <StatusCard
+            label="Retry policies"
+            value={jobPolicies ? Object.keys(jobPolicies).length : 'checking'}
+            tone="info"
+            detail="bounded retry decisions by error category"
+          />
+        </div>
       </SectionCard>
 
       <SectionCard title="Account risk summary">

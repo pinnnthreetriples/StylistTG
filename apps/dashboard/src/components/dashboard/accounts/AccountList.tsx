@@ -23,9 +23,16 @@ import { AccountsTable } from '@/features/accounts/AccountsTable'
 import { EMPTY_ACCOUNT_RISK_SUMMARY } from '@/features/accounts/accountRisk'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
 import {
+  useAccountAuditEventsQuery,
+  useAccountCooldownsQuery,
+  useAccountDeletionPreviewQuery,
+  useAccountDeletionRequestsQuery,
+  useAccountExportRequestsQuery,
   useAccountSafetySummaryQuery,
   useAccountsQuery,
-  useDeleteAccountMutation,
+  useActionGateQuery,
+  useCreateAccountDeletionRequestMutation,
+  useCreateAccountExportRequestMutation,
   usePrefetchAccountWorkspace,
   usePrefetchSettingsBundle,
   useProxySummaryQuery,
@@ -35,6 +42,7 @@ import {
   type AccountListItem,
   type AccountReadinessRisk,
   type AccountReadinessRiskSummary,
+  type AccountDeletionPreview,
 } from '@/lib/api'
 import { accountBatchSafetyPreviewQueryOptions, accountRiskSummaryQueryOptions, settingsBundleQueryOptions } from '@/lib/queries'
 import {
@@ -119,7 +127,6 @@ export function AccountList({
   const safetySummaryQuery = useAccountSafetySummaryQuery()
   const proxySummaryQuery = useProxySummaryQuery()
   const accountRiskSummaryQuery = useQuery(accountRiskSummaryQueryOptions())
-  const deleteAccountMutation = useDeleteAccountMutation()
   const prefetchSettingsBundle = usePrefetchSettingsBundle()
   const prefetchAccountWorkspace = usePrefetchAccountWorkspace()
   const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
@@ -149,7 +156,6 @@ export function AccountList({
   const [advancedFilter, setAdvancedFilter] = useState<AccountAdvancedFilter>('all')
   const [deleteCandidate, setDeleteCandidate] = useState<AccountListItem | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null)
 
   async function reloadAccounts() {
     setAccountsError(null)
@@ -177,20 +183,6 @@ export function AccountList({
       ),
     [accounts, advancedFilter, filter, query, safetyByAccount],
   )
-
-  async function confirmDeleteAccount() {
-    if (!deleteCandidate) return
-    setDeletingAccountId(deleteCandidate.account_id)
-    setDeleteError(null)
-    try {
-      await deleteAccountMutation.mutateAsync(deleteCandidate.account_id)
-      setDeleteCandidate(null)
-    } catch {
-      setDeleteError('Не удалось удалить аккаунт. Проверьте, что нет активных задач.')
-    } finally {
-      setDeletingAccountId(null)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -292,13 +284,15 @@ export function AccountList({
         <DeleteAccountDialog
           account={deleteCandidate}
           error={deleteError}
-          isDeleting={deletingAccountId === deleteCandidate.account_id}
           onCancel={() => {
-            if (deletingAccountId) return
             setDeleteCandidate(null)
             setDeleteError(null)
           }}
-          onConfirm={() => void confirmDeleteAccount()}
+          onError={setDeleteError}
+          onSubmitted={() => {
+            setDeleteCandidate(null)
+            setDeleteError(null)
+          }}
         />
       ) : null}
     </div>
@@ -867,41 +861,171 @@ function EmptyAccounts({ onAddBatch }: { onAddBatch: () => void }) {
 function DeleteAccountDialog({
   account,
   error,
-  isDeleting,
   onCancel,
-  onConfirm,
+  onError,
+  onSubmitted,
 }: {
   account: AccountListItem
   error: string | null
-  isDeleting: boolean
   onCancel: () => void
-  onConfirm: () => void
+  onError: (message: string | null) => void
+  onSubmitted: () => void
 }) {
   const name = account.display_name || account.phone_number
+  const previewQuery = useAccountDeletionPreviewQuery(account.account_id)
+  const deletionRequestsQuery = useAccountDeletionRequestsQuery(account.account_id)
+  const exportRequestsQuery = useAccountExportRequestsQuery(account.account_id)
+  const auditEventsQuery = useAccountAuditEventsQuery(account.account_id, 8)
+  const cooldownsQuery = useAccountCooldownsQuery(account.account_id)
+  const actionGateQuery = useActionGateQuery(account.account_id, 'account.delete')
+  const deletionRequestMutation = useCreateAccountDeletionRequestMutation()
+  const exportRequestMutation = useCreateAccountExportRequestMutation()
+  const [reason, setReason] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const isSubmitting = deletionRequestMutation.isPending
+  const preview = previewQuery.data
+  const canSubmit =
+    confirmation === 'DELETE' &&
+    reason.trim().length >= 10 &&
+    preview?.can_delete !== false &&
+    !isSubmitting
+
+  async function submitDeletionRequest() {
+    onError(null)
+    if (!canSubmit) return
+    try {
+      await deletionRequestMutation.mutateAsync({
+        accountId: account.account_id,
+        dryRun: true,
+        reason: reason.trim(),
+      })
+      onSubmitted()
+    } catch {
+      onError('Не удалось создать заявку на удаление. Проверьте preview, reason и confirmation.')
+    }
+  }
+
+  async function requestExport() {
+    onError(null)
+    try {
+      await exportRequestMutation.mutateAsync(account.account_id)
+    } catch {
+      onError('Не удалось создать export request.')
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/20 px-4 backdrop-animate">
-      <div className="modal-animate w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div className="modal-animate max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h2 className="font-display text-base font-bold text-navy-900">Удалить аккаунт?</h2>
+            <h2 className="font-display text-base font-bold text-navy-900">Account lifecycle request</h2>
             <p className="mt-0.5 text-xs text-gray-400">{name}</p>
           </div>
           <button
             aria-label="Закрыть подтверждение удаления"
             className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            disabled={isDeleting}
+            disabled={isSubmitting}
             onClick={onCancel}
             type="button"
           >
             <X className="size-4" />
           </button>
         </div>
-        <div className="px-5 py-4">
+        <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
           <p className="text-sm leading-6 text-gray-600">
-            Аккаунт будет удалён из локального списка вместе с черновиками, историей задач и
-            сохранённым состоянием профиля. Активные задачи блокируют удаление.
+            Удаление теперь проходит через auditable lifecycle request. По умолчанию создаётся safe dry-run request:
+            backend фиксирует preview, reason и audit event без live TDLib действий.
           </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <LifecycleCard title="Risk gate">
+              <div className="text-xs text-gray-600">
+                {actionGateQuery.data ? (
+                  <>
+                    <div className="font-semibold text-navy-900">
+                      {actionGateQuery.data.allowed ? 'Allowed' : 'Blocked'} · {actionGateQuery.data.risk_level} · {actionGateQuery.data.risk_score}
+                    </div>
+                    <div className="mt-1">{actionGateQuery.data.requires_override ? 'Override reason required.' : 'No override required for this request.'}</div>
+                  </>
+                ) : actionGateQuery.isError ? (
+                  'Risk gate unavailable.'
+                ) : (
+                  'Checking risk gate...'
+                )}
+              </div>
+            </LifecycleCard>
+            <LifecycleCard title="Cooldowns">
+              <CompactList
+                empty="No active cooldowns."
+                items={(cooldownsQuery.data ?? []).map((cooldown) => `${cooldown.operation}: ${cooldown.reason_code}`)}
+                loading={cooldownsQuery.isPending}
+              />
+            </LifecycleCard>
+          </div>
+
+          <LifecycleCard className="mt-3" title="Deletion preview">
+            {previewQuery.isPending ? (
+              <div className="text-xs text-gray-500">Loading deletion preview...</div>
+            ) : previewQuery.isError ? (
+              <div className="text-xs font-semibold text-red-600">Deletion preview unavailable.</div>
+            ) : preview ? (
+              <DeletionPreview preview={preview} />
+            ) : null}
+          </LifecycleCard>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <LifecycleCard title="Export data">
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-navy-700 hover:bg-gray-50 disabled:opacity-60"
+                disabled={exportRequestMutation.isPending}
+                onClick={() => void requestExport()}
+                type="button"
+              >
+                {exportRequestMutation.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Server className="size-3.5" />}
+                Request export
+              </button>
+              <CompactList
+                empty="No export requests yet."
+                items={(exportRequestsQuery.data ?? []).slice(0, 3).map((item) => `${item.status} · ${formatLifecycleTime(item.requested_at)}`)}
+                loading={exportRequestsQuery.isPending}
+              />
+            </LifecycleCard>
+            <LifecycleCard title="Audit history">
+              <CompactList
+                empty="No audit events yet."
+                items={(auditEventsQuery.data?.items ?? []).slice(0, 4).map((item) => `${item.action} · ${formatLifecycleTime(item.created_at)}`)}
+                loading={auditEventsQuery.isPending}
+              />
+            </LifecycleCard>
+          </div>
+
+          <LifecycleCard className="mt-3" title="Deletion request">
+            <label className="grid gap-1 text-xs font-semibold text-gray-600">
+              Reason
+              <textarea
+                className="min-h-20 rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-navy-900 outline-none focus:border-navy-300"
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Describe why this account lifecycle request is required..."
+                value={reason}
+              />
+            </label>
+            <label className="mt-3 grid gap-1 text-xs font-semibold text-gray-600">
+              Confirmation
+              <input
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-navy-900 outline-none focus:border-navy-300"
+                onChange={(event) => setConfirmation(event.target.value)}
+                placeholder="Type DELETE"
+                value={confirmation}
+              />
+            </label>
+            <CompactList
+              empty="No deletion requests yet."
+              items={(deletionRequestsQuery.data ?? []).slice(0, 3).map((item) => `${item.status} · ${formatLifecycleTime(item.requested_at)}`)}
+              loading={deletionRequestsQuery.isPending}
+            />
+          </LifecycleCard>
+
           {error ? (
             <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
               {error}
@@ -911,7 +1035,7 @@ function DeleteAccountDialog({
         <div className="flex items-center justify-end gap-2 bg-gray-50 px-5 py-4">
           <button
             className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            disabled={isDeleting}
+            disabled={isSubmitting}
             onClick={onCancel}
             type="button"
           >
@@ -919,15 +1043,82 @@ function DeleteAccountDialog({
           </button>
           <button
             className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3.5 py-2 text-sm font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-60"
-            disabled={isDeleting}
-            onClick={onConfirm}
+            disabled={!canSubmit}
+            onClick={() => void submitDeletionRequest()}
             type="button"
           >
-            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            Удалить
+            {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            Create request
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+function LifecycleCard({
+  children,
+  className = '',
+  title,
+}: {
+  children: React.ReactNode
+  className?: string
+  title: string
+}) {
+  return (
+    <section className={`rounded-xl border border-gray-200/70 bg-gray-50/60 p-3 ${className}`}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500">{title}</h3>
+      <div className="mt-2">{children}</div>
+    </section>
+  )
+}
+
+function CompactList({ empty, items, loading }: { empty: string; items: string[]; loading: boolean }) {
+  if (loading) return <div className="mt-2 text-xs text-gray-500">Loading...</div>
+  if (items.length === 0) return <div className="mt-2 text-xs text-gray-500">{empty}</div>
+  return (
+    <ul className="mt-2 grid gap-1 text-xs text-gray-600">
+      {items.map((item) => (
+        <li className="truncate rounded-lg bg-white px-2 py-1" key={item}>
+          {item}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function DeletionPreview({ preview }: { preview: AccountDeletionPreview }) {
+  return (
+    <div className="text-xs text-gray-600">
+      <div className={`font-semibold ${preview.can_delete ? 'text-emerald-700' : 'text-red-600'}`}>
+        {preview.can_delete ? 'Request can be created' : 'Blocked'} · risk {preview.risk_level}
+      </div>
+      {preview.blocking_reasons.length > 0 ? (
+        <ul className="mt-2 grid gap-1 text-red-600">
+          {preview.blocking_reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-2 grid gap-1">
+        {preview.planned_actions.map((action, index) => (
+          <div className="rounded-lg bg-white px-2 py-1" key={`${action.type}-${action.resource}-${index}`}>
+            {action.resource}: {plannedActionDetail(action)}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function plannedActionDetail(action: AccountDeletionPreview['planned_actions'][number]): string {
+  if (typeof action.count === 'number') return `${action.count} item(s)`
+  if (typeof action.present === 'boolean') return action.present ? 'present' : 'not present'
+  return action.retention_policy ?? 'planned'
+}
+
+function formatLifecycleTime(value: string): string {
+  const timestamp = Date.parse(value)
+  if (!Number.isFinite(timestamp)) return value
+  return new Date(timestamp).toLocaleString()
 }

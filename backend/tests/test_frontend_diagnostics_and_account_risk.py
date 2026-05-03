@@ -61,7 +61,7 @@ def test_frontend_diagnostics_summary_is_safe(monkeypatch) -> None:
     assert payload["tdlib"]["status"] == "not_configured"
     assert payload["tdlib"]["profile_execution_adapter"] == "mock"
     assert payload["tdlib"]["live_enabled"] is False
-    assert payload["workers"]["queues"] == ["profile_jobs", "auth_jobs"]
+    assert {"profile_jobs", "auth_jobs", "account_lifecycle_jobs"}.issubset(set(payload["workers"]["queues"]))
 
     serialized = str(payload)
     assert "secret" not in serialized.lower()

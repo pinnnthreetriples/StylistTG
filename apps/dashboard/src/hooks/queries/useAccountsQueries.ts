@@ -3,8 +3,9 @@ import { useCallback } from 'react'
 
 import {
   checkAccountProxy,
+  createAccountDeletionRequest,
+  createAccountExportRequest,
   createAccountSafetyOverride,
-  deleteAccount,
   deleteAccountProxy,
   runAccountValidityCheck,
   saveAccountProxy,
@@ -12,6 +13,12 @@ import {
 import {
   accountOperationLogsQueryOptions,
   accountProxyQueryOptions,
+  accountDeletionPreviewQueryOptions,
+  accountDeletionRequestsQueryOptions,
+  accountExportRequestsQueryOptions,
+  accountAuditEventsQueryOptions,
+  accountCooldownsQueryOptions,
+  actionGateQueryOptions,
   accountSafetyQueryOptions,
   accountSafetySummaryQueryOptions,
   accountValidityChecksQueryOptions,
@@ -19,9 +26,6 @@ import {
   authStateQueryOptions,
   dashboardBundleQueryOptions,
   invalidateAccountSafetyQueries,
-  removeAccountSafetyFromCache,
-  removeAccountFromAccountsCache,
-  removeAccountScopedQueries,
   settingsBundleQueryOptions,
   updateAccountSafetyAfterValidityCheck,
   proxySummaryQueryOptions,
@@ -65,6 +69,48 @@ export function useAccountProxyQuery(accountId: string | null | undefined) {
 export function useAccountOperationLogsQuery(accountId: string | null | undefined, limit = 50) {
   return useQuery({
     ...accountOperationLogsQueryOptions(accountId ?? '', limit),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountDeletionPreviewQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountDeletionPreviewQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountDeletionRequestsQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountDeletionRequestsQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountExportRequestsQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountExportRequestsQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountAuditEventsQuery(accountId: string | null | undefined, limit = 50) {
+  return useQuery({
+    ...accountAuditEventsQueryOptions(accountId ?? '', limit),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountCooldownsQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountCooldownsQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useActionGateQuery(accountId: string | null | undefined, actionType: string) {
+  return useQuery({
+    ...actionGateQueryOptions(accountId ?? '', actionType),
     enabled: Boolean(accountId),
   })
 }
@@ -165,14 +211,37 @@ export function usePrefetchAccountWorkspace() {
   )
 }
 
-export function useDeleteAccountMutation() {
+export function useCreateAccountDeletionRequestMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: deleteAccount,
+    mutationFn: ({
+      accountId,
+      reason,
+      dryRun,
+    }: {
+      accountId: string
+      reason: string
+      dryRun: boolean
+    }) =>
+      createAccountDeletionRequest(accountId, {
+        reason,
+        confirmation: 'DELETE',
+        dry_run: dryRun,
+      }),
+    onSuccess: (_result, variables) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accountLifecycle.deletionRequests(variables.accountId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.audit.account(variables.accountId) })
+    },
+  })
+}
+
+export function useCreateAccountExportRequestMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (accountId: string) => createAccountExportRequest(accountId),
     onSuccess: (_result, accountId) => {
-      removeAccountFromAccountsCache(queryClient, accountId)
-      removeAccountScopedQueries(queryClient, accountId)
-      removeAccountSafetyFromCache(queryClient, accountId)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.accountLifecycle.exportRequests(accountId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.audit.account(accountId) })
     },
   })
 }

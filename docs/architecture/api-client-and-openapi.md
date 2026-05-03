@@ -32,3 +32,13 @@ Remaining manual dashboard API helpers outside that wrapper:
 - `apps/dashboard/src/lib/http.ts`: low-level legacy request helper kept only for compatibility and old tests.
 
 Auth and auth-batch modules now use `@stylisttg/api-client` wrappers for network calls while keeping their local UI parsing/state helpers. No client code hardcodes Northflank, Render, or staging URLs. Runtime base URL comes from `VITE_API_BASE_URL` or local Vite proxy behavior.
+
+New lifecycle/execution-plane wrappers cover:
+
+- account deletion preview and deletion request;
+- account export requests;
+- account audit event reads and global audit history;
+- account action gate and cooldown reads;
+- worker diagnostics, queue taxonomy, and retry policy metadata.
+
+Run `npm run generate:api` after backend route/schema changes and `npm run check:api` before committing.

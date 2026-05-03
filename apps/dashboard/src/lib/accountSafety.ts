@@ -23,8 +23,8 @@ export type AccountOperationCooldown = {
   started_at: string
   retry_after_at: string
   source: string
-  source_job_id: string | null
-  source_step_id: string | null
+  source_job_id?: string | null
+  source_step_id?: string | null
 }
 
 export type UnknownCapabilityPolicy = 'warning_only' | 'block_live_execution'

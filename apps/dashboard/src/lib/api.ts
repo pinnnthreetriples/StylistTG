@@ -16,6 +16,18 @@ import {
   fetchAccountProxy as fetchTypedAccountProxy,
   fetchAccountRisk as fetchTypedAccountRisk,
   fetchAccountRiskSummary as fetchTypedAccountRiskSummary,
+  fetchAccountDeletionPreview as fetchTypedAccountDeletionPreview,
+  createAccountDeletionRequest as createTypedAccountDeletionRequest,
+  fetchAccountDeletionRequests as fetchTypedAccountDeletionRequests,
+  createAccountExportRequest as createTypedAccountExportRequest,
+  fetchAccountExportRequests as fetchTypedAccountExportRequests,
+  fetchAccountAuditEvents as fetchTypedAccountAuditEvents,
+  fetchAuditEvents as fetchTypedAuditEvents,
+  fetchAccountCooldowns as fetchTypedAccountCooldowns,
+  fetchActionGate as fetchTypedActionGate,
+  fetchWorkerDiagnostics as fetchTypedWorkerDiagnostics,
+  fetchWorkerQueues as fetchTypedWorkerQueues,
+  fetchJobPolicies as fetchTypedJobPolicies,
   fetchAccountRuntimeDiagnostics as fetchTypedAccountRuntimeDiagnostics,
   fetchAccounts as fetchTypedAccounts,
   fetchAccountSafety as fetchTypedAccountSafety,
@@ -48,6 +60,15 @@ import {
   type AccountListItem,
   type AccountReadinessRisk,
   type AccountReadinessRiskSummary,
+  type AccountDeletionPreview,
+  type AccountDeletionRequest,
+  type AccountDeletionRequestCreate,
+  type AccountExportRequest,
+  type ActionGate,
+  type SensitiveAuditEventPage,
+  type WorkerDiagnostics,
+  type QueueDescriptor,
+  type RetryPolicy,
   type AccountSafetyOverride as SafetyOverride,
   type DashboardProfile as DashboardResponse,
   type JobSummary,
@@ -95,6 +116,15 @@ export type {
   StoryDraftRead,
   AccountReadinessRisk,
   AccountReadinessRiskSummary,
+  AccountDeletionPreview,
+  AccountDeletionRequest,
+  AccountDeletionRequestCreate,
+  AccountExportRequest,
+  ActionGate,
+  SensitiveAuditEventPage,
+  WorkerDiagnostics,
+  QueueDescriptor,
+  RetryPolicy,
   FrontendDiagnosticsSummary,
 }
 
@@ -299,6 +329,57 @@ export function fetchAccountRiskSummary(): Promise<AccountReadinessRiskSummary> 
 
 export function fetchAccountRisk(accountId: string): Promise<AccountReadinessRisk> {
   return fetchTypedAccountRisk(typedClient, accountId)
+}
+
+export function fetchAccountDeletionPreview(accountId: string): Promise<AccountDeletionPreview> {
+  return fetchTypedAccountDeletionPreview(typedClient, accountId)
+}
+
+export function createAccountDeletionRequest(
+  accountId: string,
+  payload: AccountDeletionRequestCreate,
+): Promise<AccountDeletionRequest> {
+  return createTypedAccountDeletionRequest(typedClient, accountId, payload)
+}
+
+export function fetchAccountDeletionRequests(accountId: string): Promise<AccountDeletionRequest[]> {
+  return fetchTypedAccountDeletionRequests(typedClient, accountId)
+}
+
+export function createAccountExportRequest(accountId: string): Promise<AccountExportRequest> {
+  return createTypedAccountExportRequest(typedClient, accountId)
+}
+
+export function fetchAccountExportRequests(accountId: string): Promise<AccountExportRequest[]> {
+  return fetchTypedAccountExportRequests(typedClient, accountId)
+}
+
+export function fetchAccountAuditEvents(accountId: string, limit = 50): Promise<SensitiveAuditEventPage> {
+  return fetchTypedAccountAuditEvents(typedClient, accountId, limit)
+}
+
+export function fetchAuditEvents(limit = 100): Promise<SensitiveAuditEventPage> {
+  return fetchTypedAuditEvents(typedClient, limit)
+}
+
+export function fetchAccountCooldowns(accountId: string): Promise<AccountOperationCooldown[]> {
+  return fetchTypedAccountCooldowns(typedClient, accountId)
+}
+
+export function fetchActionGate(accountId: string, actionType: string): Promise<ActionGate> {
+  return fetchTypedActionGate(typedClient, accountId, actionType)
+}
+
+export function fetchWorkerDiagnostics(): Promise<WorkerDiagnostics> {
+  return fetchTypedWorkerDiagnostics(typedClient)
+}
+
+export function fetchWorkerQueues(): Promise<QueueDescriptor[]> {
+  return fetchTypedWorkerQueues(typedClient)
+}
+
+export function fetchJobPolicies(): Promise<Record<string, RetryPolicy>> {
+  return fetchTypedJobPolicies(typedClient)
 }
 
 export function fetchProxySummary(): Promise<AccountProxySummary[]> {

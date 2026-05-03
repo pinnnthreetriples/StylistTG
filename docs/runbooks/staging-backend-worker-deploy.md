@@ -42,6 +42,16 @@ Worker:
 python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker
 ```
 
+Queue-specific worker launcher is available for the production execution-plane foundation:
+
+```bash
+python -m app.workers.run_worker --queues auth_jobs
+python -m app.workers.run_worker --queues profile_jobs
+python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+```
+
+Keep the compatibility worker command unless the hosting provider is explicitly split into queue-specific worker services.
+
 Migration:
 
 ```bash
@@ -84,6 +94,19 @@ TDLIB_SHARED_LIBRARY_PATH=
 TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database
 TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
 TDLIB_STORAGE_BACKEND=local
+TDLIB_LIVE_ENABLED=false
+ACCOUNT_EXPORT_TTL_DAYS=7
+ACCOUNT_DELETION_LOG_RETENTION_DAYS=90
+ACCOUNT_DELETION_ALLOW_HARD_DELETE=false
+ACCOUNT_DELETION_DRY_RUN_DEFAULT=true
+SCHEDULER_ENABLED=false
+REAPER_ENABLED=false
+REAPER_MODE=dry_run
+RATE_LIMIT_AUTH_JOBS_PER_TENANT_PER_HOUR=20
+RATE_LIMIT_PROFILE_JOBS_PER_TENANT_PER_HOUR=100
+RATE_LIMIT_MEDIA_JOBS_PER_TENANT_PER_HOUR=50
+RATE_LIMIT_STORY_JOBS_PER_TENANT_PER_HOUR=20
+RATE_LIMIT_ACCOUNT_JOBS_PER_HOUR=10
 ```
 
 Migration-only:
@@ -137,6 +160,8 @@ Web runtime should not require `DATABASE_DIRECT_URL` if migrations run as a sepa
 - TDLib live runtime requires a separate PR for persistent volume layout, `libtdjson` image packaging, and session isolation.
 - Do not mount real sessions until reviewed.
 - Do not run live profile, story, music, or auth write jobs as part of this staging deploy readiness PR.
+- Scheduler/reaper remain disabled and dry-run/report-only by default.
+- Account deletion/export requests are auditable foundations; hard delete remains disabled unless a future reviewed operational workflow enables it.
 
 ## Rollback
 

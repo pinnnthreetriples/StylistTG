@@ -7,6 +7,15 @@ import {
   fetchAccountSafety,
   fetchAccountSafetySummary,
   fetchAccountRiskSummary,
+  fetchAccountDeletionPreview,
+  fetchAccountDeletionRequests,
+  fetchAccountExportRequests,
+  fetchAccountAuditEvents,
+  fetchAccountCooldowns,
+  fetchActionGate,
+  fetchAuditEvents,
+  fetchWorkerDiagnostics,
+  fetchJobPolicies,
   fetchAccountValidityChecks,
   fetchGlobalOperationLogs,
   fetchProxySummary,
@@ -42,6 +51,13 @@ export const queryKeys = {
   },
   accountRisk: {
     summary: ['accountRisk', 'summary'] as const,
+    actionGate: (accountId: string, actionType: string) => ['accountRisk', accountId, 'actionGate', actionType] as const,
+  },
+  accountLifecycle: {
+    deletionPreview: (accountId: string) => ['accountLifecycle', accountId, 'deletionPreview'] as const,
+    deletionRequests: (accountId: string) => ['accountLifecycle', accountId, 'deletionRequests'] as const,
+    exportRequests: (accountId: string) => ['accountLifecycle', accountId, 'exportRequests'] as const,
+    cooldowns: (accountId: string) => ['accountLifecycle', accountId, 'cooldowns'] as const,
   },
   proxy: {
     summary: ['proxy', 'summary'] as const,
@@ -50,6 +66,14 @@ export const queryKeys = {
   operationLogs: {
     global: ['operationLogs', 'global'] as const,
     account: (accountId: string) => ['operationLogs', accountId] as const,
+  },
+  audit: {
+    global: ['audit', 'global'] as const,
+    account: (accountId: string) => ['audit', accountId] as const,
+  },
+  workers: {
+    diagnostics: ['workers', 'diagnostics'] as const,
+    jobPolicies: ['workers', 'jobPolicies'] as const,
   },
   authState: (accountId: string) => ['authState', accountId] as const,
   settings: {
@@ -139,6 +163,69 @@ export function frontendDiagnosticsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.settings.frontendDiagnostics,
     queryFn: fetchFrontendDiagnosticsSummary,
+  })
+}
+
+export function workerDiagnosticsQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.workers.diagnostics,
+    queryFn: fetchWorkerDiagnostics,
+  })
+}
+
+export function jobPoliciesQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.workers.jobPolicies,
+    queryFn: fetchJobPolicies,
+  })
+}
+
+export function accountDeletionPreviewQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountLifecycle.deletionPreview(accountId),
+    queryFn: () => fetchAccountDeletionPreview(accountId),
+  })
+}
+
+export function accountDeletionRequestsQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountLifecycle.deletionRequests(accountId),
+    queryFn: () => fetchAccountDeletionRequests(accountId),
+  })
+}
+
+export function accountExportRequestsQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountLifecycle.exportRequests(accountId),
+    queryFn: () => fetchAccountExportRequests(accountId),
+  })
+}
+
+export function accountAuditEventsQueryOptions(accountId: string, limit = 50) {
+  return queryOptions({
+    queryKey: [...queryKeys.audit.account(accountId), limit] as const,
+    queryFn: () => fetchAccountAuditEvents(accountId, limit),
+  })
+}
+
+export function auditEventsQueryOptions(limit = 100) {
+  return queryOptions({
+    queryKey: [...queryKeys.audit.global, limit] as const,
+    queryFn: () => fetchAuditEvents(limit),
+  })
+}
+
+export function accountCooldownsQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountLifecycle.cooldowns(accountId),
+    queryFn: () => fetchAccountCooldowns(accountId),
+  })
+}
+
+export function actionGateQueryOptions(accountId: string, actionType: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountRisk.actionGate(accountId, actionType),
+    queryFn: () => fetchActionGate(accountId, actionType),
   })
 }
 

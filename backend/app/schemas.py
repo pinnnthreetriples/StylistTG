@@ -141,6 +141,121 @@ class AccountReadinessRiskSummaryRead(BaseModel):
     computed_at: datetime
 
 
+class AccountDeletionPlannedActionRead(BaseModel):
+    type: str
+    resource: str
+    count: int | None = None
+    present: bool | None = None
+    retention_policy: str | None = None
+
+
+class AccountDeletionPreviewRead(BaseModel):
+    account_id: str
+    can_delete: bool
+    risk_level: str
+    risk_score: int
+    blocking_reasons: list[str]
+    planned_actions: list[AccountDeletionPlannedActionRead]
+    requires_confirmation: bool
+    generated_at: datetime
+
+
+class AccountDeletionRequestCreate(BaseModel):
+    reason: str = Field(min_length=10, max_length=1000)
+    confirmation: Literal["DELETE"]
+    dry_run: bool = True
+
+
+class AccountDeletionRequestRead(BaseModel):
+    id: str
+    account_id: str
+    status: str
+    reason: str | None = None
+    dry_run_result: dict[str, Any] | None = None
+    execution_result: dict[str, Any] | None = None
+    requested_at: datetime
+    completed_at: datetime | None = None
+    failed_at: datetime | None = None
+    failure_code: str | None = None
+    failure_message: str | None = None
+
+
+class AccountExportRequestRead(BaseModel):
+    id: str
+    account_id: str
+    status: str
+    export_key: str | None = None
+    export_size_bytes: int | None = None
+    export_content_type: str | None = None
+    requested_at: datetime
+    completed_at: datetime | None = None
+    failed_at: datetime | None = None
+    failure_code: str | None = None
+    failure_message: str | None = None
+    expires_at: datetime | None = None
+
+
+class SensitiveAuditEventRead(BaseModel):
+    id: str
+    workspace_id: str
+    actor_user_id: str | None = None
+    actor_type: str
+    action: str
+    entity_type: str
+    entity_id: str | None = None
+    account_id: str | None = None
+    request_id: str | None = None
+    reason: str | None = None
+    override_reason: str | None = None
+    risk_level: str | None = None
+    risk_score: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class SensitiveAuditEventPageRead(BaseModel):
+    items: list[SensitiveAuditEventRead]
+    total: int
+    limit: int
+    offset: int
+
+
+class ActionGateRead(BaseModel):
+    account_id: str
+    action_type: str
+    allowed: bool
+    requires_override: bool
+    blocked: bool
+    risk_level: str
+    risk_score: int
+    reasons: list[AccountReadinessRiskReasonRead]
+    required_override_reason: bool
+
+
+class QueueDescriptorRead(BaseModel):
+    name: str
+    purpose: str
+    live_execution_default: bool
+
+
+class WorkerDiagnosticsRead(BaseModel):
+    queues: list[QueueDescriptorRead]
+    mode: str
+    scheduler: dict[str, Any]
+    reaper: dict[str, Any]
+    rate_limits: dict[str, int]
+    tdlib: dict[str, Any]
+
+
+class RetryPolicyRead(BaseModel):
+    retry: bool
+    max_attempts: int
+    interval_seconds: list[int]
+    failure_ttl_seconds: int
+    result_ttl_seconds: int
+    error_category: str
+
+
 class AccountOperationSafetyRead(BaseModel):
     operation: str
     state: str
@@ -322,11 +437,16 @@ class FrontendDiagnosticsTdlibRead(BaseModel):
     status: str
     profile_execution_adapter: str
     live_enabled: bool
+    library_configured: bool = False
+    session_root_configured: bool = False
+    execution_plane_ready: bool = False
 
 
 class FrontendDiagnosticsWorkersRead(BaseModel):
     queues: list[str]
     mode: str
+    scheduler_enabled: bool = False
+    reaper_mode: str = "dry_run"
 
 
 class FrontendDiagnosticsSummaryRead(BaseModel):

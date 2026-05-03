@@ -13,10 +13,36 @@ from app.config import settings
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.account_update_jobs import run_account_update_job
 from app.workers.profile_jobs import run_profile_job
+from app.services.worker_plane import (
+    ACCOUNT_LIFECYCLE_QUEUE_NAME,
+    AUTH_QUEUE_NAME,
+    MAINTENANCE_QUEUE_NAME,
+    MEDIA_QUEUE_NAME,
+    PROFILE_QUEUE_NAME,
+    SCHEDULER_QUEUE_NAME,
+    STORY_QUEUE_NAME,
+    PRODUCTION_QUEUE_NAMES,
+)
 
-PROFILE_QUEUE_NAME = "profile_jobs"
-AUTH_QUEUE_NAME = "auth_jobs"
 QUEUE_NAME = PROFILE_QUEUE_NAME
+
+__all__ = [
+    "ACCOUNT_LIFECYCLE_QUEUE_NAME",
+    "AUTH_QUEUE_NAME",
+    "MAINTENANCE_QUEUE_NAME",
+    "MEDIA_QUEUE_NAME",
+    "PROFILE_QUEUE_NAME",
+    "QUEUE_NAME",
+    "SCHEDULER_QUEUE_NAME",
+    "STORY_QUEUE_NAME",
+    "enqueue_account_update_job",
+    "enqueue_batch_start_auth",
+    "enqueue_profile_job",
+    "get_auth_queue",
+    "get_profile_queue",
+    "get_queue",
+    "remove_job_from_queue",
+]
 
 
 def get_profile_queue() -> Queue:
@@ -27,6 +53,13 @@ def get_profile_queue() -> Queue:
 def get_auth_queue() -> Queue:
     connection = Redis.from_url(settings.redis_url)
     return Queue(AUTH_QUEUE_NAME, connection=connection)
+
+
+def get_queue(queue_name: str) -> Queue:
+    if queue_name not in PRODUCTION_QUEUE_NAMES:
+        raise ValueError(f"unsupported queue: {queue_name}")
+    connection = Redis.from_url(settings.redis_url)
+    return Queue(queue_name, connection=connection)
 
 
 def enqueue_profile_job(job_id: str) -> bool:

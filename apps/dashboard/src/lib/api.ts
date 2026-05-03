@@ -14,6 +14,8 @@ import {
   deleteStoryPost as deleteTypedStoryPost,
   fetchAccountOperationLogs as fetchTypedAccountOperationLogs,
   fetchAccountProxy as fetchTypedAccountProxy,
+  fetchAccountRisk as fetchTypedAccountRisk,
+  fetchAccountRiskSummary as fetchTypedAccountRiskSummary,
   fetchAccountRuntimeDiagnostics as fetchTypedAccountRuntimeDiagnostics,
   fetchAccounts as fetchTypedAccounts,
   fetchAccountSafety as fetchTypedAccountSafety,
@@ -21,6 +23,7 @@ import {
   fetchAccountValidityChecks as fetchTypedAccountValidityChecks,
   fetchDashboard as fetchTypedDashboard,
   fetchExecutionPolicy as fetchTypedExecutionPolicy,
+  fetchFrontendDiagnosticsSummary as fetchTypedFrontendDiagnosticsSummary,
   fetchGlobalOperationLogs as fetchTypedGlobalOperationLogs,
   fetchHealth as fetchTypedHealth,
   fetchJob as fetchTypedJob,
@@ -43,10 +46,13 @@ import {
   updateStoryDraft as updateTypedStoryDraft,
   uploadAsset,
   type AccountListItem,
+  type AccountReadinessRisk,
+  type AccountReadinessRiskSummary,
   type AccountSafetyOverride as SafetyOverride,
   type DashboardProfile as DashboardResponse,
   type JobSummary,
   type RuntimeRefresh,
+  type FrontendDiagnosticsSummary,
   type StoryDraftRead,
 } from '@stylisttg/api-client'
 
@@ -87,6 +93,9 @@ export type {
   RuntimeRefresh,
   SafetyOverride,
   StoryDraftRead,
+  AccountReadinessRisk,
+  AccountReadinessRiskSummary,
+  FrontendDiagnosticsSummary,
 }
 
 export type JobDetail = {
@@ -284,6 +293,14 @@ export function fetchAccountSafety(accountId: string): Promise<AccountSafety> {
   return fetchTypedAccountSafety(typedClient, accountId) as Promise<AccountSafety>
 }
 
+export function fetchAccountRiskSummary(): Promise<AccountReadinessRiskSummary> {
+  return fetchTypedAccountRiskSummary(typedClient)
+}
+
+export function fetchAccountRisk(accountId: string): Promise<AccountReadinessRisk> {
+  return fetchTypedAccountRisk(typedClient, accountId)
+}
+
 export function fetchProxySummary(): Promise<AccountProxySummary[]> {
   return fetchTypedProxySummary(typedClient) as Promise<AccountProxySummary[]>
 }
@@ -381,6 +398,10 @@ export function fetchReady(): Promise<RuntimeDiagnostics> {
 
 export function fetchLivePreflight(): Promise<LivePreflight> {
   return fetchTypedLivePreflight(typedClient) as Promise<LivePreflight>
+}
+
+export function fetchFrontendDiagnosticsSummary(): Promise<FrontendDiagnosticsSummary> {
+  return fetchTypedFrontendDiagnosticsSummary(typedClient)
 }
 
 export function fetchAccountRuntimeDiagnostics(accountId: string): Promise<AccountRuntimeDiagnostics> {

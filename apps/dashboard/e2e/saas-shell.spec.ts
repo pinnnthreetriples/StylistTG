@@ -101,6 +101,51 @@ async function mockApi(page: Page) {
       },
     }),
   )
+  await page.route('**/diagnostics/frontend-summary', (route) =>
+    route.fulfill({
+      json: {
+        app_env: 'staging',
+        auth_mode: 'supabase_jwt',
+        db: { status: 'ok', mode: 'neon' },
+        redis: { status: 'ok', configured: true },
+        storage: {
+          backend: 's3',
+          bucket_configured: true,
+          signed_url_enabled: true,
+          public_base_url_configured: false,
+        },
+        tdlib: { status: 'not_configured', profile_execution_adapter: 'mock', live_enabled: false },
+        workers: { queues: ['profile_jobs', 'auth_jobs'], mode: 'redis_rq' },
+        generated_at: '2026-05-03T00:00:00Z',
+      },
+    }),
+  )
+  await page.route('**/api/accounts/risk-summary', (route) =>
+    route.fulfill({
+      json: {
+        total: 1,
+        low: 1,
+        medium: 0,
+        high: 0,
+        critical: 0,
+        reauth_required: 0,
+        missing_session: 0,
+        runtime_unhealthy: 0,
+        proxy_problem: 0,
+        items: [
+          {
+            account_id: 'acc_1',
+            score: 10,
+            level: 'low',
+            reasons: [{ code: 'ready', severity: 'info', message: 'Account is ready based on stored app signals.' }],
+            recommended_action: null,
+            computed_at: '2026-05-03T00:00:00Z',
+          },
+        ],
+        computed_at: '2026-05-03T00:00:00Z',
+      },
+    }),
+  )
   await page.route('**/api/accounts', (route) => route.fulfill({ json: accounts }))
   await page.route('**/api/accounts/safety-summary', (route) => route.fulfill({ json: safety }))
   await page.route('**/api/accounts/proxy-summary', (route) => route.fulfill({ json: [] }))

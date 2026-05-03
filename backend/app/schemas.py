@@ -112,6 +112,35 @@ class AccountSafetySummaryRead(BaseModel):
     source: str
 
 
+class AccountReadinessRiskReasonRead(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "critical"]
+    message: str
+
+
+class AccountReadinessRiskRead(BaseModel):
+    account_id: str
+    score: int
+    level: Literal["low", "medium", "high", "critical"]
+    reasons: list[AccountReadinessRiskReasonRead]
+    recommended_action: str | None = None
+    computed_at: datetime
+
+
+class AccountReadinessRiskSummaryRead(BaseModel):
+    total: int
+    low: int
+    medium: int
+    high: int
+    critical: int
+    reauth_required: int
+    missing_session: int
+    runtime_unhealthy: int
+    proxy_problem: int
+    items: list[AccountReadinessRiskRead] = Field(default_factory=list)
+    computed_at: datetime
+
+
 class AccountOperationSafetyRead(BaseModel):
     operation: str
     state: str
@@ -270,6 +299,45 @@ class DiagnosticsRead(BaseModel):
     database: str
     redis: str
     tdlib: str
+
+
+class FrontendDiagnosticsDatabaseRead(BaseModel):
+    status: str
+    mode: str
+
+
+class FrontendDiagnosticsRedisRead(BaseModel):
+    status: str
+    configured: bool
+
+
+class FrontendDiagnosticsStorageRead(BaseModel):
+    backend: str
+    bucket_configured: bool
+    signed_url_enabled: bool
+    public_base_url_configured: bool
+
+
+class FrontendDiagnosticsTdlibRead(BaseModel):
+    status: str
+    profile_execution_adapter: str
+    live_enabled: bool
+
+
+class FrontendDiagnosticsWorkersRead(BaseModel):
+    queues: list[str]
+    mode: str
+
+
+class FrontendDiagnosticsSummaryRead(BaseModel):
+    app_env: str
+    auth_mode: str
+    db: FrontendDiagnosticsDatabaseRead
+    redis: FrontendDiagnosticsRedisRead
+    storage: FrontendDiagnosticsStorageRead
+    tdlib: FrontendDiagnosticsTdlibRead
+    workers: FrontendDiagnosticsWorkersRead
+    generated_at: datetime
 
 
 class ExecutionPolicyRead(BaseModel):

@@ -6,6 +6,7 @@ import {
   fetchAccountProxy,
   fetchAccountSafety,
   fetchAccountSafetySummary,
+  fetchAccountRiskSummary,
   fetchAccountValidityChecks,
   fetchGlobalOperationLogs,
   fetchProxySummary,
@@ -16,6 +17,7 @@ import {
   fetchJobSteps,
   fetchLatestJob,
   fetchExecutionPolicy,
+  fetchFrontendDiagnosticsSummary,
   fetchLatestJobs,
   fetchLivePreflight,
   fetchRuntimeDiagnostics,
@@ -38,6 +40,9 @@ export const queryKeys = {
     batchPreviewWithOverride: (operation: string, accountIds: string[], allowWarningOverrides: boolean) =>
       ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(','), allowWarningOverrides] as const,
   },
+  accountRisk: {
+    summary: ['accountRisk', 'summary'] as const,
+  },
   proxy: {
     summary: ['proxy', 'summary'] as const,
     account: (accountId: string) => ['proxy', accountId] as const,
@@ -54,6 +59,7 @@ export const queryKeys = {
     preflight: ['settings', 'preflight'] as const,
     policy: ['settings', 'policy'] as const,
     authMode: ['settings', 'authMode'] as const,
+    frontendDiagnostics: ['settings', 'frontendDiagnostics'] as const,
   },
   dashboard: {
     root: ['dashboard'] as const,
@@ -119,6 +125,20 @@ export function accountSafetySummaryQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.accountSafety.summary,
     queryFn: fetchAccountSafetySummary,
+  })
+}
+
+export function accountRiskSummaryQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.accountRisk.summary,
+    queryFn: fetchAccountRiskSummary,
+  })
+}
+
+export function frontendDiagnosticsQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.settings.frontendDiagnostics,
+    queryFn: fetchFrontendDiagnosticsSummary,
   })
 }
 

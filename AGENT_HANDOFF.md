@@ -60,9 +60,11 @@ Implemented or actively wired:
   - `packages/api-client` generates TypeScript OpenAPI types from FastAPI with `npm run generate:api`;
   - `npm run check:api` verifies generated OpenAPI artifacts are current and is part of frontend CI;
   - dashboard API calls are routed through `@stylisttg/api-client`; `apps/dashboard/src/lib/api.ts` is a compatibility wrapper for existing imports;
+  - auth and auth-batch modules use `@stylisttg/api-client` for network transport while keeping local UI parsing/state helpers;
   - SaaS shell has Accounts, Health Center, Jobs, Proxy Center, Settings, and future Billing zones;
-  - Health Center shows liveness/readiness, dependency status, environment/auth/storage posture, and account risk aggregates;
-  - Account Risk is a deterministic app-known readiness score, not a Telegram anti-ban guarantee;
+  - Health Center shows liveness/readiness, dependency status, backend environment/auth/storage posture, and backend account risk aggregates;
+  - `/diagnostics/frontend-summary` exposes safe metadata only and must not return raw DB/Redis/S3/JWT/TDLib session values;
+  - Account Risk is a backend deterministic app-known readiness score, not a Telegram anti-ban guarantee;
   - Playwright browser QA lives in `apps/dashboard/e2e` and uses mocked API data with screenshots stored in ignored artifacts;
   - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
   - backend remains at `backend/` to preserve `backend/Dockerfile` staging deploys.

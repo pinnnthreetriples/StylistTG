@@ -1,4 +1,17 @@
-import { apiRequest } from '@/lib/http'
+import {
+  confirmOtp as confirmTypedOtp,
+  createApiClient,
+  fetchAuthRuntimeMode as fetchTypedAuthRuntimeMode,
+  fetchAuthState as fetchTypedAuthState,
+  refreshRuntime as refreshTypedRuntime,
+  startOtp as startTypedOtp,
+  submitPassword as submitTypedPassword,
+  updateAuthRuntimeMode as updateTypedAuthRuntimeMode,
+  type AuthRuntimeMode as TypedAuthRuntimeMode,
+  type AuthState as TypedAuthState,
+} from '@stylisttg/api-client'
+
+import { getApiBaseUrl } from '@/lib/config'
 import type { ApiError } from '@/lib/http'
 import { labelIssue } from '@/lib/uiLabels'
 
@@ -14,31 +27,25 @@ export type AuthPhase =
   | 'dashboard'
   | 'auth-error'
 
-export type AuthStateResponse = {
-  account_id: string
-  external_ref: string
-  telegram_user_id: string | null
-  orchestration_state: string
-  auth_step_status: string
-  needs_code: boolean
-  needs_password: boolean
-  password_hint: string | null
-  session_present: boolean
-  runtime_health: string
-  reauth_required: boolean
-  recovery_marker: string | null
-  authorized_last_confirmed_at: string | null
-  error: string | null
-}
+export type AuthStateResponse = TypedAuthState
 
 export type AuthErrorMessage = {
   title: string
   description: string
 }
 
-export type AuthRuntimeMode = {
-  tdlib_use_test_dc: boolean
-  tdlib_production_auth_enabled: boolean
+export type AuthRuntimeMode = TypedAuthRuntimeMode
+
+const authClient = createApiClient({
+  baseUrl: getTypedApiBaseUrl(),
+  fetch: (...args) => globalThis.fetch(...args),
+})
+
+function getTypedApiBaseUrl(): string {
+  const configuredBaseUrl = getApiBaseUrl()
+  if (configuredBaseUrl) return configuredBaseUrl
+  if (typeof window !== 'undefined') return window.location.origin
+  return 'http://localhost'
 }
 
 export function readStoredAccountId(storage: Pick<Storage, 'getItem'> | null): string | null {
@@ -137,63 +144,27 @@ export function buildAuthErrorMessage(error: ApiError): AuthErrorMessage {
 }
 
 export async function startOtp(phoneNumber: string): Promise<AuthStateResponse> {
-  return apiRequest<AuthStateResponse>('/api/auth/otp/start', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      phone_number: phoneNumber,
-    }),
-  })
+  return startTypedOtp(authClient, phoneNumber)
 }
 
 export async function confirmOtp(accountId: string, code: string): Promise<AuthStateResponse> {
-  return apiRequest<AuthStateResponse>('/api/auth/otp/confirm', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      account_id: accountId,
-      code,
-    }),
-  })
+  return confirmTypedOtp(authClient, accountId, code)
 }
 
 export async function submitPassword(accountId: string, password: string): Promise<AuthStateResponse> {
-  return apiRequest<AuthStateResponse>('/api/auth/password', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      account_id: accountId,
-      password,
-    }),
-  })
+  return submitTypedPassword(authClient, accountId, password)
 }
 
 export async function fetchAuthState(accountId: string): Promise<AuthStateResponse> {
-  return apiRequest<AuthStateResponse>('/api/accounts/auth-state', {
-    headers: { 'X-Account-Id': accountId },
-  })
+  return fetchTypedAuthState(authClient, accountId)
 }
 
 export async function fetchAuthRuntimeMode(): Promise<AuthRuntimeMode> {
-  return apiRequest<AuthRuntimeMode>('/api/auth/runtime-mode')
+  return fetchTypedAuthRuntimeMode(authClient)
 }
 
 export async function updateAuthRuntimeMode(tdlibUseTestDc: boolean): Promise<AuthRuntimeMode> {
-  return apiRequest<AuthRuntimeMode>('/api/auth/runtime-mode', {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      tdlib_use_test_dc: tdlibUseTestDc,
-    }),
-  })
+  return updateTypedAuthRuntimeMode(authClient, { tdlib_use_test_dc: tdlibUseTestDc })
 }
 
 export async function refreshAuthRuntime(accountId: string): Promise<{
@@ -201,9 +172,5 @@ export async function refreshAuthRuntime(accountId: string): Promise<{
   account_state: string
   is_execution_usable: boolean
 }> {
-  return apiRequest('/api/accounts/refresh-runtime', {
-    method: 'POST',
-    headers: { 'X-Account-Id': accountId },
-    timeoutMs: RUNTIME_REFRESH_TIMEOUT_MS,
-  })
+  return refreshTypedRuntime(authClient, accountId, { signal: AbortSignal.timeout(RUNTIME_REFRESH_TIMEOUT_MS) })
 }

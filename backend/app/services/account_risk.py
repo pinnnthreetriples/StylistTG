@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
+
+from sqlalchemy.orm import Session
+
+from app.models import Account, AccountState, JobState, TERMINAL_JOB_STATES
+from app.services.accounts import list_accounts
 
 
 OPERATION_KEYS = (
@@ -15,6 +21,7 @@ OPERATION_KEYS = (
 )
 
 RISK_ORDER = {"low": 0, "unknown": 1, "medium": 2, "high": 3, "blocked": 4}
+READINESS_LEVELS = ("low", "medium", "high", "critical")
 
 
 def build_risk_by_operation(
@@ -76,6 +83,139 @@ def build_risk_by_operation(
 
 def overall_risk_level(risk_by_operation: dict[str, dict[str, Any]]) -> str:
     return max((risk["level"] for risk in risk_by_operation.values()), key=lambda level: RISK_ORDER[level])
+
+
+def build_account_readiness_risk(session: Session, account: Account, *, computed_at: datetime | None = None) -> dict[str, Any]:
+    computed = computed_at or datetime.now(UTC)
+    score = 0
+    reasons: list[dict[str, str]] = []
+    runtime = account.runtime_state
+
+    def add(points: int, code: str, severity: str, message: str) -> None:
+        nonlocal score
+        if code not in {reason["code"] for reason in reasons}:
+            reasons.append({"code": code, "severity": severity, "message": message})
+        score += points
+
+    if account.account_state == AccountState.REAUTH_REQUIRED or bool(runtime and runtime.reauth_required):
+        add(80, "reauth_required", "critical", "Account requires reauthorization before profile jobs.")
+    elif account.account_state in {
+        AccountState.AWAITING_CODE,
+        AccountState.AWAITING_PASSWORD,
+        AccountState.AUTH_PENDING,
+        AccountState.REGISTERED,
+    }:
+        add(45, "auth_incomplete", "warning", "Account authorization is not complete.")
+
+    if not runtime or not runtime.session_present:
+        add(65, "missing_session", "critical", "Account has no usable TDLib session snapshot.")
+
+    runtime_health = runtime.runtime_health if runtime else "unknown"
+    if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
+        severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
+        add(45 if severity == "critical" else 25, "runtime_unhealthy", severity, "Account runtime is not ready.")
+
+    if account.account_state in {AccountState.RUNTIME_BROKEN, AccountState.DISABLED, AccountState.MANUAL_INTERVENTION_NEEDED}:
+        add(45, "account_locked", "critical", "Account state blocks automated work.")
+    elif account.account_state not in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY, AccountState.REAUTH_REQUIRED}:
+        add(25, "unknown_state", "warning", "Account state needs operator review.")
+
+    proxy = account.proxy
+    if proxy and proxy.status in {"failed", "error"}:
+        add(25, "proxy_problem", "warning", "Proxy health check failed.")
+    if proxy and proxy.tdlib_last_error_code:
+        add(25, "proxy_problem", "warning", "TDLib proxy verification failed.")
+
+    active_cooldowns = [
+        cooldown for cooldown in account.operation_cooldowns if cooldown.retry_after_at.replace(tzinfo=UTC) > computed
+    ]
+    if active_cooldowns:
+        add(35, "cooldown_active", "warning", "Account has active operation cooldowns.")
+
+    recent_failures = [
+        job
+        for job in account.jobs
+        if job.job_state in {JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED}
+        or (job.job_state not in TERMINAL_JOB_STATES and job.failure_reason)
+    ]
+    if len(recent_failures) >= 2:
+        add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
+
+    if account.profile_state is None and account.account_state in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY}:
+        add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
+
+    score = min(max(score, 0), 100)
+    if not reasons:
+        reasons.append({"code": "ready", "severity": "info", "message": "Account is ready based on stored app signals."})
+    level = _readiness_level(score)
+    return {
+        "account_id": account.id,
+        "score": score,
+        "level": level,
+        "reasons": reasons,
+        "recommended_action": _recommended_action(level, reasons),
+        "computed_at": computed,
+    }
+
+
+def build_account_readiness_risk_summary(session: Session, *, workspace_id: str) -> dict[str, Any]:
+    computed_at = datetime.now(UTC)
+    items = [
+        build_account_readiness_risk(session, account, computed_at=computed_at)
+        for account in list_accounts(session, workspace_id=workspace_id)
+    ]
+    counts = {level: 0 for level in READINESS_LEVELS}
+    reauth_required = 0
+    missing_session = 0
+    runtime_unhealthy = 0
+    proxy_problem = 0
+    for item in items:
+        counts[item["level"]] += 1
+        codes = {reason["code"] for reason in item["reasons"]}
+        reauth_required += int("reauth_required" in codes)
+        missing_session += int("missing_session" in codes)
+        runtime_unhealthy += int("runtime_unhealthy" in codes)
+        proxy_problem += int("proxy_problem" in codes)
+    return {
+        "total": len(items),
+        "low": counts["low"],
+        "medium": counts["medium"],
+        "high": counts["high"],
+        "critical": counts["critical"],
+        "reauth_required": reauth_required,
+        "missing_session": missing_session,
+        "runtime_unhealthy": runtime_unhealthy,
+        "proxy_problem": proxy_problem,
+        "items": items,
+        "computed_at": computed_at,
+    }
+
+
+def _readiness_level(score: int) -> str:
+    if score >= 80:
+        return "critical"
+    if score >= 60:
+        return "high"
+    if score >= 25:
+        return "medium"
+    return "low"
+
+
+def _recommended_action(level: str, reasons: list[dict[str, str]]) -> str | None:
+    codes = {reason["code"] for reason in reasons}
+    if "reauth_required" in codes or "auth_incomplete" in codes:
+        return "Reauthorize account before running profile jobs."
+    if "missing_session" in codes:
+        return "Restore or recreate the account session before enabling live work."
+    if "runtime_unhealthy" in codes:
+        return "Refresh runtime diagnostics and review the account before running jobs."
+    if "proxy_problem" in codes:
+        return "Review proxy configuration before live execution."
+    if "cooldown_active" in codes:
+        return "Wait for the active cooldown to expire."
+    if level == "low":
+        return None
+    return "Review account readiness before running jobs."
 
 
 def _risk(level: str, reasons: list[dict[str, Any]]) -> dict[str, Any]:

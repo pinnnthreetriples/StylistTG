@@ -8,6 +8,7 @@ from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
 from app.db import get_session
 from app.errors import AppError
+from app.config import settings
 from app.logging_utils import log_event
 from app.models import Account
 from app.schemas import (
@@ -38,6 +39,8 @@ from app.schemas import (
     ActionGateRead,
     JobSummaryRead,
     RuntimeRefreshRead,
+    TelegramAuthSessionCreate,
+    TelegramAuthSessionRead,
 )
 from app.services.execution_policy import ensure_execution_usable
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
@@ -72,6 +75,8 @@ from app.services.proxy_accounts import delete_account_proxy, get_account_proxy,
 from app.services.proxy_checks import check_account_proxy
 from app.services.risk_gate import evaluate_action_gate
 from app.services.sensitive_audit import audit_event_to_dict, list_sensitive_audit_events
+from app.services.telegram_auth_sessions import auth_session_to_dict, create_auth_session, process_auth_action
+from app.job_queue.rq import enqueue_telegram_auth_action
 from app.schemas import SensitiveAuditEventPageRead, SensitiveAuditEventRead
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -308,6 +313,29 @@ def get_account_action_gate(
         if message == "account not found":
             raise _account_not_found_error(exc) from exc
         raise AppError(status_code=status.HTTP_400_BAD_REQUEST, error_code="ACTION_GATE_INVALID", error_class="validation", message=message) from exc
+
+
+@router.post("/{account_id}/reauth-sessions", response_model=TelegramAuthSessionRead, status_code=status.HTTP_201_CREATED)
+def post_account_reauth_session(
+    account_id: str,
+    payload: TelegramAuthSessionCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
+        raise _account_not_found_error()
+    row = create_auth_session(
+        session,
+        workspace_id=auth.workspace_id,
+        actor_user_id=auth.user_id,
+        phone_number=payload.phone_number,
+        label=payload.label,
+        source="reauth",
+        account_id=account_id,
+    )
+    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(row.id, row.workspace_id, "start"):
+        row = process_auth_action(session, auth_session_id=row.id, workspace_id=auth.workspace_id, action="start")
+    return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 
 @router.get("/{account_id}/risk", response_model=AccountReadinessRiskRead)
@@ -741,7 +769,7 @@ def _proxy_error(exc: ValueError) -> AppError:
     )
 
 
-def _account_not_found_error(exc: ValueError) -> AppError:
+def _account_not_found_error(exc: ValueError | None = None) -> AppError:
     return AppError(
         status_code=status.HTTP_404_NOT_FOUND,
         error_code="ACCOUNT_NOT_FOUND",

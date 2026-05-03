@@ -36,6 +36,8 @@ python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_job
 
 Unknown queues are rejected.
 
+Auth-session jobs use the `auth_jobs` queue. They are allowed only for Telegram authorization/reauthorization state transitions and must not run profile/story/music mutations.
+
 ## Diagnostics
 
 ```powershell
@@ -76,3 +78,5 @@ PROFILE_EXECUTION_ADAPTER=mock
 ```
 
 Live mode requires a separate PR for image/volume/session isolation and explicit review of locks, rate limits, risk gates, audit, and allowlisted job types.
+
+This foundation now includes TDLib runtime detection and isolated path builders. Live auth still requires explicit `TDLIB_LIVE_ENABLED=true`, Telegram API credentials, and a loadable TDLib library; default staging keeps auth attempts safe and non-live.

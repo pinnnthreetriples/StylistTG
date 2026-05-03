@@ -28,6 +28,19 @@ import {
   fetchWorkerDiagnostics as fetchTypedWorkerDiagnostics,
   fetchWorkerQueues as fetchTypedWorkerQueues,
   fetchJobPolicies as fetchTypedJobPolicies,
+  fetchTdlibRuntimeStatus as fetchTypedTdlibRuntimeStatus,
+  createTelegramAuthSession as createTypedTelegramAuthSession,
+  fetchTelegramAuthSessions as fetchTypedTelegramAuthSessions,
+  fetchTelegramAuthSession as fetchTypedTelegramAuthSession,
+  submitTelegramAuthCode as submitTypedTelegramAuthCode,
+  submitTelegramAuthPassword as submitTypedTelegramAuthPassword,
+  cancelTelegramAuthSession as cancelTypedTelegramAuthSession,
+  createReauthSession as createTypedReauthSession,
+  createAccountImportBatch as createTypedAccountImportBatch,
+  fetchAccountImportBatches as fetchTypedAccountImportBatches,
+  fetchAccountImportBatch as fetchTypedAccountImportBatch,
+  validateAccountImportBatch as validateTypedAccountImportBatch,
+  confirmAccountImportBatch as confirmTypedAccountImportBatch,
   fetchAccountRuntimeDiagnostics as fetchTypedAccountRuntimeDiagnostics,
   fetchAccounts as fetchTypedAccounts,
   fetchAccountSafety as fetchTypedAccountSafety,
@@ -74,6 +87,15 @@ import {
   type JobSummary,
   type RuntimeRefresh,
   type FrontendDiagnosticsSummary,
+  type TdlibRuntimeStatus,
+  type TelegramAuthSession,
+  type TelegramAuthSessionCreate,
+  type TelegramAuthCodeSubmit,
+  type TelegramAuthPasswordSubmit,
+  type AccountImportBatch,
+  type AccountImportBatchCreate,
+  type AccountImportBatchValidate,
+  type AccountImportBatchConfirm,
   type StoryDraftRead,
 } from '@stylisttg/api-client'
 
@@ -126,6 +148,15 @@ export type {
   QueueDescriptor,
   RetryPolicy,
   FrontendDiagnosticsSummary,
+  TdlibRuntimeStatus,
+  TelegramAuthSession,
+  TelegramAuthSessionCreate,
+  TelegramAuthCodeSubmit,
+  TelegramAuthPasswordSubmit,
+  AccountImportBatch,
+  AccountImportBatchCreate,
+  AccountImportBatchValidate,
+  AccountImportBatchConfirm,
 }
 
 export type JobDetail = {
@@ -380,6 +411,73 @@ export function fetchWorkerQueues(): Promise<QueueDescriptor[]> {
 
 export function fetchJobPolicies(): Promise<Record<string, RetryPolicy>> {
   return fetchTypedJobPolicies(typedClient)
+}
+
+export function fetchTdlibRuntimeStatus(): Promise<TdlibRuntimeStatus> {
+  return fetchTypedTdlibRuntimeStatus(typedClient)
+}
+
+export function createTelegramAuthSession(payload: TelegramAuthSessionCreate): Promise<TelegramAuthSession> {
+  return createTypedTelegramAuthSession(typedClient, payload)
+}
+
+export function fetchTelegramAuthSessions(): Promise<TelegramAuthSession[]> {
+  return fetchTypedTelegramAuthSessions(typedClient)
+}
+
+export function fetchTelegramAuthSession(authSessionId: string): Promise<TelegramAuthSession> {
+  return fetchTypedTelegramAuthSession(typedClient, authSessionId)
+}
+
+export function submitTelegramAuthCode(
+  authSessionId: string,
+  payload: TelegramAuthCodeSubmit,
+): Promise<TelegramAuthSession> {
+  return submitTypedTelegramAuthCode(typedClient, authSessionId, payload)
+}
+
+export function submitTelegramAuthPassword(
+  authSessionId: string,
+  payload: TelegramAuthPasswordSubmit,
+): Promise<TelegramAuthSession> {
+  return submitTypedTelegramAuthPassword(typedClient, authSessionId, payload)
+}
+
+export function cancelTelegramAuthSession(authSessionId: string): Promise<TelegramAuthSession> {
+  return cancelTypedTelegramAuthSession(typedClient, authSessionId)
+}
+
+export function createReauthSession(
+  accountId: string,
+  payload: TelegramAuthSessionCreate,
+): Promise<TelegramAuthSession> {
+  return createTypedReauthSession(typedClient, accountId, payload)
+}
+
+export function createAccountImportBatch(payload: AccountImportBatchCreate): Promise<AccountImportBatch> {
+  return createTypedAccountImportBatch(typedClient, payload)
+}
+
+export function fetchAccountImportBatches(): Promise<AccountImportBatch[]> {
+  return fetchTypedAccountImportBatches(typedClient)
+}
+
+export function fetchAccountImportBatch(batchId: string): Promise<AccountImportBatch> {
+  return fetchTypedAccountImportBatch(typedClient, batchId)
+}
+
+export function validateAccountImportBatch(
+  batchId: string,
+  payload: AccountImportBatchValidate,
+): Promise<AccountImportBatch> {
+  return validateTypedAccountImportBatch(typedClient, batchId, payload)
+}
+
+export function confirmAccountImportBatch(
+  batchId: string,
+  payload: AccountImportBatchConfirm,
+): Promise<AccountImportBatch> {
+  return confirmTypedAccountImportBatch(typedClient, batchId, payload)
 }
 
 export function fetchProxySummary(): Promise<AccountProxySummary[]> {

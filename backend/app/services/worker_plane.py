@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.config import Settings, settings
+from app.services.tdlib_runtime import detect_tdlib_runtime
 
 AUTH_QUEUE_NAME = "auth_jobs"
 PROFILE_QUEUE_NAME = "profile_jobs"
@@ -51,7 +52,7 @@ def queue_descriptors() -> list[QueueDescriptor]:
 
 def worker_diagnostics(config: Settings = settings) -> dict:
     tdlib_live_enabled = bool(config.tdlib_live_enabled)
-    library_configured = bool(config.tdlib_shared_library_path)
+    runtime = detect_tdlib_runtime(config)
     session_root_configured = bool(config.tdlib_database_root and config.tdlib_files_root)
     return {
         "queues": [descriptor.to_dict() for descriptor in queue_descriptors()],
@@ -75,12 +76,19 @@ def worker_diagnostics(config: Settings = settings) -> dict:
         "tdlib": {
             "live_enabled": tdlib_live_enabled,
             "adapter": config.profile_execution_adapter,
-            "library_configured": library_configured,
+            "runtime_mode": runtime.runtime_mode,
+            "library_configured": runtime.library_configured,
+            "library_loadable": runtime.library_loadable,
+            "api_id_configured": runtime.api_id_configured,
+            "api_hash_configured": runtime.api_hash_configured,
+            "readonly_smoke_available": runtime.readonly_smoke_available,
+            "auth_worker_ready": True,
             "session_root_configured": session_root_configured,
             "execution_plane_ready": tdlib_live_enabled
             and config.profile_execution_adapter == "tdlib"
-            and library_configured
+            and runtime.configured
             and session_root_configured,
+            "error_code": runtime.error_code,
         },
     }
 

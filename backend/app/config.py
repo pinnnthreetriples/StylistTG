@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     tdlib_database_root: Path = Path("tdlib/database")
     tdlib_files_root: Path = Path("tdlib/files")
     tdlib_shared_library_path: Path | None = None
+    tdlib_runtime_mode: str = "mock"
+    tdlib_auth_job_timeout_seconds: int = 300
+    tdlib_readonly_smoke_enabled: bool = False
+    telegram_api_id: int | None = None
+    telegram_api_hash: SecretStr | None = None
+    account_import_max_file_count: int = 200
+    account_import_max_uncompressed_bytes: int = 25 * 1024 * 1024
+    account_import_max_depth: int = 8
+    account_import_max_upload_bytes: int = 25 * 1024 * 1024
     tdlib_receive_timeout_seconds: float = 1.0
     tdlib_auth_timeout_seconds: float = 30.0
     profile_audio_upload_timeout_seconds: float = 20.0

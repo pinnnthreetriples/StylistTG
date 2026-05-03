@@ -38,6 +38,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account-import-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import Batches */
+        get: operations["get_import_batches_api_account_import_batches_get"];
+        put?: never;
+        /** Post Import Batch */
+        post: operations["post_import_batch_api_account_import_batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-import-batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import Batch Detail */
+        get: operations["get_import_batch_detail_api_account_import_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-import-batches/{batch_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Validate Import Batch */
+        post: operations["post_validate_import_batch_api_account_import_batches__batch_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-import-batches/{batch_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Confirm Import Batch */
+        post: operations["post_confirm_import_batch_api_account_import_batches__batch_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/runtime-mode": {
         parameters: {
             query?: never;
@@ -564,6 +633,23 @@ export interface paths {
         get: operations["get_account_action_gate_api_accounts__account_id__action_gate_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/reauth-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Account Reauth Session */
+        post: operations["post_account_reauth_session_api_accounts__account_id__reauth_sessions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1359,6 +1445,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/auth-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Auth Sessions */
+        get: operations["get_auth_sessions_api_accounts_auth_sessions_get"];
+        put?: never;
+        /** Post Auth Session */
+        post: operations["post_auth_session_api_accounts_auth_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/auth-sessions/{auth_session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Auth Session Status */
+        get: operations["get_auth_session_status_api_accounts_auth_sessions__auth_session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/auth-sessions/{auth_session_id}/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Auth Session Code */
+        post: operations["post_auth_session_code_api_accounts_auth_sessions__auth_session_id__code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/auth-sessions/{auth_session_id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Auth Session Password */
+        post: operations["post_auth_session_password_api_accounts_auth_sessions__auth_session_id__password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/auth-sessions/{auth_session_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Auth Session Cancel */
+        post: operations["post_auth_session_cancel_api_accounts_auth_sessions__auth_session_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tdlib/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tdlib Runtime */
+        get: operations["get_tdlib_runtime_api_tdlib_runtime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workers/queues": {
         parameters: {
             query?: never;
@@ -1626,6 +1815,103 @@ export interface components {
             failure_message?: string | null;
             /** Expires At */
             expires_at?: string | null;
+        };
+        /** AccountImportBatchConfirm */
+        AccountImportBatchConfirm: {
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "IMPORT";
+        };
+        /** AccountImportBatchCreate */
+        AccountImportBatchCreate: {
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "tdlib-directory" | "tdata" | "session-file" | "json-metadata";
+            /** Label */
+            label?: string | null;
+            /**
+             * Dry Run
+             * @default true
+             */
+            dry_run: boolean;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** AccountImportBatchRead */
+        AccountImportBatchRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Source Type */
+            source_type: string;
+            /** Status */
+            status: string;
+            /** Label */
+            label: string | null;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Item Count */
+            item_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Failed At */
+            failed_at: string | null;
+            /** Failure Code */
+            failure_code: string | null;
+            /** Failure Message */
+            failure_message: string | null;
+            /** Items */
+            items?: components["schemas"]["AccountImportItemRead"][];
+        };
+        /** AccountImportBatchValidate */
+        AccountImportBatchValidate: {
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Content Base64 */
+            content_base64?: string | null;
+        };
+        /** AccountImportItemRead */
+        AccountImportItemRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string | null;
+            /** Status */
+            status: string;
+            /** Phone Hint */
+            phone_hint: string | null;
+            /** Username Hint */
+            username_hint: string | null;
+            /** Validation Code */
+            validation_code: string | null;
+            /** Validation Message */
+            validation_message: string | null;
+            /** Risk Level */
+            risk_level: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** AccountListItemRead */
         AccountListItemRead: {
@@ -2863,10 +3149,40 @@ export interface components {
             /** Live Enabled */
             live_enabled: boolean;
             /**
+             * Runtime Mode
+             * @default mock
+             */
+            runtime_mode: string;
+            /**
              * Library Configured
              * @default false
              */
             library_configured: boolean;
+            /**
+             * Library Loadable
+             * @default false
+             */
+            library_loadable: boolean;
+            /**
+             * Api Id Configured
+             * @default false
+             */
+            api_id_configured: boolean;
+            /**
+             * Api Hash Configured
+             * @default false
+             */
+            api_hash_configured: boolean;
+            /**
+             * Auth Worker Ready
+             * @default false
+             */
+            auth_worker_ready: boolean;
+            /**
+             * Readonly Smoke Available
+             * @default false
+             */
+            readonly_smoke_available: boolean;
             /**
              * Session Root Configured
              * @default false
@@ -2877,6 +3193,8 @@ export interface components {
              * @default false
              */
             execution_plane_ready: boolean;
+            /** Error Code */
+            error_code?: string | null;
         };
         /** FrontendDiagnosticsWorkersRead */
         FrontendDiagnosticsWorkersRead: {
@@ -3281,6 +3599,87 @@ export interface components {
             /** Protect Content */
             protect_content?: boolean | null;
         };
+        /** TdlibRuntimeStatusRead */
+        TdlibRuntimeStatusRead: {
+            /** Configured */
+            configured: boolean;
+            /** Library Configured */
+            library_configured: boolean;
+            /** Library Loadable */
+            library_loadable: boolean;
+            /** Live Enabled */
+            live_enabled: boolean;
+            /** Runtime Mode */
+            runtime_mode: string;
+            /** Api Id Configured */
+            api_id_configured: boolean;
+            /** Api Hash Configured */
+            api_hash_configured: boolean;
+            /** Readonly Smoke Available */
+            readonly_smoke_available: boolean;
+            /** Error Code */
+            error_code?: string | null;
+        };
+        /** TelegramAuthCodeSubmit */
+        TelegramAuthCodeSubmit: {
+            /** Code */
+            code: string;
+        };
+        /** TelegramAuthPasswordSubmit */
+        TelegramAuthPasswordSubmit: {
+            /** Password */
+            password: string;
+        };
+        /** TelegramAuthSessionCreate */
+        TelegramAuthSessionCreate: {
+            /** Phone Number */
+            phone_number: string;
+            /** Label */
+            label?: string | null;
+            /** Proxy Id */
+            proxy_id?: string | null;
+        };
+        /** TelegramAuthSessionRead */
+        TelegramAuthSessionRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Account Id */
+            account_id: string | null;
+            /** Phone Hint */
+            phone_hint: string | null;
+            /** Label */
+            label: string | null;
+            /** Status */
+            status: string;
+            /** Source */
+            source: string;
+            /** Requires Code */
+            requires_code: boolean;
+            /** Requires Password */
+            requires_password: boolean;
+            /** Cooldown Until */
+            cooldown_until: string | null;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Last Error Message */
+            last_error_message: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Failed At */
+            failed_at: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -3381,6 +3780,160 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountUpdateJobSummaryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_import_batches_api_account_import_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountImportBatchRead"][];
+                };
+            };
+        };
+    };
+    post_import_batch_api_account_import_batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountImportBatchCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountImportBatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_import_batch_detail_api_account_import_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountImportBatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_validate_import_batch_api_account_import_batches__batch_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountImportBatchValidate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountImportBatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_confirm_import_batch_api_account_import_batches__batch_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountImportBatchConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountImportBatchRead"];
                 };
             };
             /** @description Validation Error */
@@ -4483,6 +5036,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionGateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_account_reauth_session_api_accounts__account_id__reauth_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramAuthSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
                 };
             };
             /** @description Validation Error */
@@ -6125,6 +6713,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_auth_sessions_api_accounts_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"][];
+                };
+            };
+        };
+    };
+    post_auth_session_api_accounts_auth_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramAuthSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_auth_session_status_api_accounts_auth_sessions__auth_session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_auth_session_code_api_accounts_auth_sessions__auth_session_id__code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramAuthCodeSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_auth_session_password_api_accounts_auth_sessions__auth_session_id__password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramAuthPasswordSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_auth_session_cancel_api_accounts_auth_sessions__auth_session_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAuthSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tdlib_runtime_api_tdlib_runtime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TdlibRuntimeStatusRead"];
                 };
             };
         };

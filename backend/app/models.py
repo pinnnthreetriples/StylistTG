@@ -330,6 +330,9 @@ class Account(Base):
     export_requests: Mapped[list[AccountExportRequest]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+    telegram_auth_sessions: Mapped[list[TelegramAuthSession]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
 
 
 class AccountLifecycleEvent(Base):
@@ -420,6 +423,35 @@ class AccountRuntimeState(Base):
     )
 
     account: Mapped[Account] = relationship(back_populates="runtime_state")
+
+
+class TelegramAuthSession(Base):
+    __tablename__ = "telegram_auth_session"
+    __table_args__ = (
+        Index("ix_telegram_auth_session_workspace_status", "workspace_id", "status"),
+        Index("ix_telegram_auth_session_account_created", "account_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=True, index=True)
+    phone_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default="created")
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="new_auth")
+    tdlib_storage_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    requires_code: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    requires_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cooldown_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    account: Mapped[Account | None] = relationship(back_populates="telegram_auth_sessions")
 
 
 class AccountAuthAttempt(Base):
@@ -568,6 +600,57 @@ class IdempotencyKey(Base):
     response_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AccountImportBatch(Base):
+    __tablename__ = "account_import_batch"
+    __table_args__ = (
+        Index("ix_account_import_batch_workspace_status", "workspace_id", "status"),
+        Index("ix_account_import_batch_created", "workspace_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    created_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default="uploaded")
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    item_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    items: Mapped[list[AccountImportItem]] = relationship(
+        back_populates="batch", cascade="all, delete-orphan", order_by="AccountImportItem.created_at"
+    )
+
+
+class AccountImportItem(Base):
+    __tablename__ = "account_import_item"
+    __table_args__ = (
+        Index("ix_account_import_item_batch_status", "batch_id", "status"),
+        Index("ix_account_import_item_workspace_status", "workspace_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    batch_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account_import_batch.id"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=True)
+    source_ref_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default="pending")
+    phone_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    username_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    validation_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    validation_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    batch: Mapped[AccountImportBatch] = relationship(back_populates="items")
 
 
 class AccountProfileState(Base):

@@ -2,6 +2,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
+import { ImportBatchPage } from '@/features/account-import/ImportBatchPage'
+import { AuthSessionWizard } from '@/features/auth/AuthSessionWizard'
 import { BatchImportForm } from '@/features/batch-import/BatchImportForm'
 import { fetchAuthRuntimeMode, updateAuthRuntimeMode } from '@/lib/auth'
 import { appRoutes } from '@/lib/routes'
@@ -39,6 +41,8 @@ export function AuthBatchRoute() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-5 px-5 py-6">
+      <AuthSessionWizard />
+      <ImportBatchPage />
       <BatchImportForm />
       <BulkAuthScreen
         onBack={() => void navigate({ href: appRoutes.accounts() })}

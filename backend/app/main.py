@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
 from app.api.account_update import router as account_update_router
+from app.api.account_imports import router as account_imports_router
 from app.api.accounts import router as accounts_router
 from app.api.audit import router as audit_router
 from app.api.assets import router as assets_router
@@ -20,6 +21,8 @@ from app.api.settings import router as settings_router
 from app.api.story_drafts import router as story_drafts_router
 from app.api.story_capabilities import router as story_capabilities_router
 from app.api.story_posts import router as story_posts_router
+from app.api.telegram_auth import router as telegram_auth_router
+from app.api.tdlib_runtime import router as tdlib_runtime_router
 from app.api.workers import router as workers_router
 from app.config import settings
 from app.db import SessionLocal
@@ -71,6 +74,7 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.include_router(account_update_router)
+app.include_router(account_imports_router)
 app.include_router(auth_router)
 app.include_router(auth_batches_router)
 app.include_router(accounts_router)
@@ -84,6 +88,8 @@ app.include_router(settings_router)
 app.include_router(story_drafts_router)
 app.include_router(story_capabilities_router)
 app.include_router(story_posts_router)
+app.include_router(telegram_auth_router)
+app.include_router(tdlib_runtime_router)
 app.include_router(workers_router)
 
 

@@ -70,6 +70,32 @@ def test_auth_session_start_is_explicit_audited_and_does_not_persist_code() -> N
     engine.dispose()
 
 
+def test_auth_code_submit_does_not_enqueue_secret_job(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    override_app_session(session_factory)
+    client = TestClient(app)
+    enqueued: list[tuple] = []
+
+    def fake_enqueue(*args, **kwargs):
+        enqueued.append((args, kwargs))
+        return True
+
+    monkeypatch.setattr("app.api.telegram_auth.enqueue_telegram_auth_action", fake_enqueue)
+    try:
+        created = client.post("/api/accounts/auth-sessions", json={"phone_number": "+15550104445"})
+        submitted = client.post(f"/api/accounts/auth-sessions/{created.json()['id']}/code", json={"code": "12345"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert created.status_code == 201
+    assert submitted.status_code == 200
+    serialized_jobs = str(enqueued)
+    assert "12345" not in serialized_jobs
+    assert all(kwargs.get("secret_value") is None for _, kwargs in enqueued)
+    engine.dispose()
+
+
 def test_import_validation_rejects_zip_slip_and_reports_unsupported_session() -> None:
     archive = BytesIO()
     with zipfile.ZipFile(archive, "w") as zf:
@@ -82,6 +108,30 @@ def test_import_validation_rejects_zip_slip_and_reports_unsupported_session() ->
     assert rejected[0].validation_code == "archive_rejected"
     assert unsupported[0].validation_code == "unsupported_source_requires_manual_reauth"
     assert "manual reauthorization" in unsupported[0].validation_message.lower()
+
+
+def test_import_validation_rejects_symlink_and_oversized_archive() -> None:
+    symlink_archive = BytesIO()
+    with zipfile.ZipFile(symlink_archive, "w") as zf:
+        info = zipfile.ZipInfo("link")
+        info.external_attr = (0o120777 << 16)
+        zf.writestr(info, "target")
+
+    oversized_archive = BytesIO()
+    with zipfile.ZipFile(oversized_archive, "w") as zf:
+        zf.writestr("large.bin", b"x" * 8)
+
+    symlink_result = validate_import_source(source_type="tdlib-directory", content=symlink_archive.getvalue())
+    oversized_result = validate_import_source(
+        source_type="tdlib-directory",
+        content=oversized_archive.getvalue(),
+        config=Settings(account_import_max_uncompressed_bytes=4),
+    )
+
+    assert symlink_result[0].validation_code == "archive_rejected"
+    assert "symlinks" in symlink_result[0].validation_message
+    assert oversized_result[0].validation_code == "archive_rejected"
+    assert "too large" in oversized_result[0].validation_message
 
 
 def test_import_batch_preview_is_private_dry_run_and_secret_safe() -> None:

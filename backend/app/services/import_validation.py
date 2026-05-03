@@ -76,8 +76,8 @@ def _validate_archive_structure(*, source_type: str, content: bytes | None, conf
         return _unsupported("archive_missing", "Upload an archive for this source type.")
     try:
         with zipfile.ZipFile(BytesIO(content)) as archive:
-            names = archive.namelist()
-            _validate_archive_names(names, config=config)
+            infos = archive.infolist()
+            _validate_archive_infos(infos, config=config)
     except (zipfile.BadZipFile, ValueError) as exc:
         return _unsupported("archive_rejected", str(exc))
     code = "tdlib_structure_detected" if source_type == "tdlib-directory" else "tdata_structure_detected"
@@ -86,19 +86,30 @@ def _validate_archive_structure(*, source_type: str, content: bytes | None, conf
         validation_code=code if source_type == "tdlib-directory" else "unsupported_source_requires_manual_reauth",
         validation_message="Archive structure is safe for dry-run validation; manual Telegram verification remains required.",
         risk_level="medium",
-        source_ref_hash=_hash_source("\n".join(sorted(names)).encode("utf-8")),
+        source_ref_hash=_hash_source("\n".join(sorted(info.filename for info in infos)).encode("utf-8")),
     )
 
 
-def _validate_archive_names(names: list[str], *, config: Settings) -> None:
-    if len(names) > config.account_import_max_file_count:
+def _validate_archive_infos(infos: list[zipfile.ZipInfo], *, config: Settings) -> None:
+    if len(infos) > config.account_import_max_file_count:
         raise ValueError("archive contains too many files")
-    for name in names:
-        path = PurePosixPath(name.replace("\\", "/"))
+    total_size = 0
+    for info in infos:
+        path = PurePosixPath(info.filename.replace("\\", "/"))
         if path.is_absolute() or ".." in path.parts:
             raise ValueError("archive contains unsafe paths")
         if len(path.parts) > config.account_import_max_depth:
             raise ValueError("archive nesting is too deep")
+        if _zip_info_is_symlink(info):
+            raise ValueError("archive contains symlinks")
+        total_size += max(info.file_size, 0)
+        if total_size > config.account_import_max_uncompressed_bytes:
+            raise ValueError("archive is too large")
+
+
+def _zip_info_is_symlink(info: zipfile.ZipInfo) -> bool:
+    unix_mode = info.external_attr >> 16
+    return (unix_mode & 0o170000) == 0o120000
 
 
 def _unsupported(code: str, message: str) -> ImportValidationItem:

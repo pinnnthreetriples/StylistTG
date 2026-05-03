@@ -70,18 +70,13 @@ def post_auth_session_code(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(auth_session_id, auth.workspace_id, "submit_code", secret_value=payload.code):
-        row = process_auth_action(
-            session,
-            auth_session_id=auth_session_id,
-            workspace_id=auth.workspace_id,
-            action="submit_code",
-            secret_value=payload.code,
-        )
-    else:
-        row = get_auth_session(session, auth_session_id=auth_session_id, workspace_id=auth.workspace_id)
-        if row is None:
-            raise AppError(status_code=404, error_code="AUTH_SESSION_NOT_FOUND", error_class="not_found", message="auth session not found")
+    row = process_auth_action(
+        session,
+        auth_session_id=auth_session_id,
+        workspace_id=auth.workspace_id,
+        action="submit_code",
+        secret_value=payload.code,
+    )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 
@@ -92,18 +87,13 @@ def post_auth_session_password(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(auth_session_id, auth.workspace_id, "submit_password", secret_value=payload.password):
-        row = process_auth_action(
-            session,
-            auth_session_id=auth_session_id,
-            workspace_id=auth.workspace_id,
-            action="submit_password",
-            secret_value=payload.password,
-        )
-    else:
-        row = get_auth_session(session, auth_session_id=auth_session_id, workspace_id=auth.workspace_id)
-        if row is None:
-            raise AppError(status_code=404, error_code="AUTH_SESSION_NOT_FOUND", error_class="not_found", message="auth session not found")
+    row = process_auth_action(
+        session,
+        auth_session_id=auth_session_id,
+        workspace_id=auth.workspace_id,
+        action="submit_password",
+        secret_value=payload.password,
+    )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 

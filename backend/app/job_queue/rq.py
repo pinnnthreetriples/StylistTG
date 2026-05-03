@@ -100,13 +100,13 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
     return True
 
 
-def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action: str, *, secret_value: str | None = None) -> bool:
+def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action: str) -> bool:
     queue = get_auth_queue()
     job_id = f"telegram-auth-{auth_session_id}-{action}"
     try:
         queue.enqueue_call(
             func=run_telegram_auth_job,
-            args=(auth_session_id, workspace_id, action, secret_value),
+            args=(auth_session_id, workspace_id, action),
             job_id=job_id,
             unique=True,
         )

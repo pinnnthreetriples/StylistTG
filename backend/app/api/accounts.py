@@ -20,6 +20,8 @@ from app.schemas import (
     AccountProxySummaryRead,
     AccountProxyUpsert,
     AccountRead,
+    AccountReadinessRiskRead,
+    AccountReadinessRiskSummaryRead,
     AccountRuntimeDiagnosticsRead,
     AccountSafetyRead,
     AccountSafetyOverrideCreate,
@@ -38,6 +40,7 @@ from app.services.profile_sync import (
     sync_account_profile_snapshot,
 )
 from app.services.runtime_diagnostics import account_runtime_diagnostics
+from app.services.account_risk import build_account_readiness_risk, build_account_readiness_risk_summary
 from app.services.account_safety import build_account_safety, build_account_safety_summary
 from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
@@ -84,12 +87,37 @@ def get_accounts_safety_summary(
     return build_account_safety_summary(session, workspace_id=auth.workspace_id)
 
 
+@router.get("/risk-summary", response_model=AccountReadinessRiskSummaryRead)
+def get_accounts_risk_summary(
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    return build_account_readiness_risk_summary(session, workspace_id=auth.workspace_id)
+
+
 @router.get("/proxy-summary", response_model=list[AccountProxySummaryRead])
 def get_accounts_proxy_summary(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
     return proxy_summary(session, workspace_id=auth.workspace_id)
+
+
+@router.get("/{account_id}/risk", response_model=AccountReadinessRiskRead)
+def get_account_risk(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    account = get_account(session, account_id, workspace_id=auth.workspace_id)
+    if account is None:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
+        )
+    return build_account_readiness_risk(session, account)
 
 
 @router.post("/safety-batch-preview", response_model=AccountBatchSafetyPreviewRead)

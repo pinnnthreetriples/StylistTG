@@ -29,8 +29,6 @@ Checked files:
 
 Remaining manual dashboard API helpers outside that wrapper:
 
-- `apps/dashboard/src/lib/http.ts`: low-level legacy request helper kept for auth/auth-batch modules.
-- `apps/dashboard/src/lib/auth.ts`: auth flow endpoints remain isolated because they have custom UI/session behavior.
-- `apps/dashboard/src/lib/authBatches.ts`: batch-auth flow remains a future endpoint-by-endpoint migration.
+- `apps/dashboard/src/lib/http.ts`: low-level legacy request helper kept only for compatibility and old tests.
 
-No client code hardcodes Northflank, Render, or staging URLs. Runtime base URL comes from `VITE_API_BASE_URL` or local Vite proxy behavior.
+Auth and auth-batch modules now use `@stylisttg/api-client` wrappers for network calls while keeping their local UI parsing/state helpers. No client code hardcodes Northflank, Render, or staging URLs. Runtime base URL comes from `VITE_API_BASE_URL` or local Vite proxy behavior.

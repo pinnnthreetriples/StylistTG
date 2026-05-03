@@ -398,6 +398,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/risk-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Accounts Risk Summary */
+        get: operations["get_accounts_risk_summary_api_accounts_risk_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/proxy-summary": {
         parameters: {
             query?: never;
@@ -407,6 +424,23 @@ export interface paths {
         };
         /** Get Accounts Proxy Summary */
         get: operations["get_accounts_proxy_summary_api_accounts_proxy_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Risk */
+        get: operations["get_account_risk_api_accounts__account_id__risk_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -869,6 +903,23 @@ export interface paths {
         };
         /** Get Dashboard Profile From Header */
         get: operations["get_dashboard_profile_from_header_api_dashboard_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/diagnostics/frontend-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Frontend Summary */
+        get: operations["frontend_summary_diagnostics_frontend_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1467,6 +1518,67 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AccountReadinessRiskRead */
+        AccountReadinessRiskRead: {
+            /** Account Id */
+            account_id: string;
+            /** Score */
+            score: number;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "low" | "medium" | "high" | "critical";
+            /** Reasons */
+            reasons: components["schemas"]["AccountReadinessRiskReasonRead"][];
+            /** Recommended Action */
+            recommended_action?: string | null;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+        };
+        /** AccountReadinessRiskReasonRead */
+        AccountReadinessRiskReasonRead: {
+            /** Code */
+            code: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "critical";
+            /** Message */
+            message: string;
+        };
+        /** AccountReadinessRiskSummaryRead */
+        AccountReadinessRiskSummaryRead: {
+            /** Total */
+            total: number;
+            /** Low */
+            low: number;
+            /** Medium */
+            medium: number;
+            /** High */
+            high: number;
+            /** Critical */
+            critical: number;
+            /** Reauth Required */
+            reauth_required: number;
+            /** Missing Session */
+            missing_session: number;
+            /** Runtime Unhealthy */
+            runtime_unhealthy: number;
+            /** Proxy Problem */
+            proxy_problem: number;
+            /** Items */
+            items?: components["schemas"]["AccountReadinessRiskRead"][];
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
         };
         /** AccountRiskRead */
         AccountRiskRead: {
@@ -2343,6 +2455,64 @@ export interface components {
             fresh_validity_max_age_minutes?: number | null;
             /** Manual Hard Blocker Override Enabled */
             manual_hard_blocker_override_enabled?: boolean | null;
+        };
+        /** FrontendDiagnosticsDatabaseRead */
+        FrontendDiagnosticsDatabaseRead: {
+            /** Status */
+            status: string;
+            /** Mode */
+            mode: string;
+        };
+        /** FrontendDiagnosticsRedisRead */
+        FrontendDiagnosticsRedisRead: {
+            /** Status */
+            status: string;
+            /** Configured */
+            configured: boolean;
+        };
+        /** FrontendDiagnosticsStorageRead */
+        FrontendDiagnosticsStorageRead: {
+            /** Backend */
+            backend: string;
+            /** Bucket Configured */
+            bucket_configured: boolean;
+            /** Signed Url Enabled */
+            signed_url_enabled: boolean;
+            /** Public Base Url Configured */
+            public_base_url_configured: boolean;
+        };
+        /** FrontendDiagnosticsSummaryRead */
+        FrontendDiagnosticsSummaryRead: {
+            /** App Env */
+            app_env: string;
+            /** Auth Mode */
+            auth_mode: string;
+            db: components["schemas"]["FrontendDiagnosticsDatabaseRead"];
+            redis: components["schemas"]["FrontendDiagnosticsRedisRead"];
+            storage: components["schemas"]["FrontendDiagnosticsStorageRead"];
+            tdlib: components["schemas"]["FrontendDiagnosticsTdlibRead"];
+            workers: components["schemas"]["FrontendDiagnosticsWorkersRead"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** FrontendDiagnosticsTdlibRead */
+        FrontendDiagnosticsTdlibRead: {
+            /** Status */
+            status: string;
+            /** Profile Execution Adapter */
+            profile_execution_adapter: string;
+            /** Live Enabled */
+            live_enabled: boolean;
+        };
+        /** FrontendDiagnosticsWorkersRead */
+        FrontendDiagnosticsWorkersRead: {
+            /** Queues */
+            queues: string[];
+            /** Mode */
+            mode: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3487,6 +3657,26 @@ export interface operations {
             };
         };
     };
+    get_accounts_risk_summary_api_accounts_risk_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountReadinessRiskSummaryRead"];
+                };
+            };
+        };
+    };
     get_accounts_proxy_summary_api_accounts_proxy_summary_get: {
         parameters: {
             query?: never;
@@ -3503,6 +3693,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountProxySummaryRead"][];
+                };
+            };
+        };
+    };
+    get_account_risk_api_accounts__account_id__risk_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountReadinessRiskRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4462,6 +4683,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    frontend_summary_diagnostics_frontend_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontendDiagnosticsSummaryRead"];
                 };
             };
         };

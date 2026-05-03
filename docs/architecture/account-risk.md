@@ -2,24 +2,43 @@
 
 Account Risk is an app-known readiness score. It is not a Telegram anti-ban guarantee and does not perform live TDLib checks.
 
-The current scoring lives in the dashboard at:
+The source of truth is now backend-side and read-only:
 
-- `apps/dashboard/src/features/accounts/accountRisk.ts`
+- `backend/app/services/account_risk.py`
+- `GET /api/accounts/risk-summary`
+- `GET /api/accounts/{account_id}/risk`
 
-Inputs are safe, already-known API data:
+The dashboard renders backend results through `@stylisttg/api-client`. `apps/dashboard/src/features/accounts/accountRisk.ts` only keeps UI types and threshold helpers compatible with the backend contract.
 
-- account state and runtime health;
-- account safety summary;
-- proxy summary;
-- active cooldowns.
-
-Levels:
+## Levels
 
 - `low`: 0-24
 - `medium`: 25-59
 - `high`: 60-79
 - `critical`: 80-100
 
-Risk reasons are deterministic and visible in the UI. The Accounts table shows a risk column, and Health Center shows aggregate risk counts.
+## Factors
 
-Future work can move this scoring to a tenant-scoped read-only backend endpoint when the API contract stabilizes. That endpoint must not call live Telegram/TDLib and must not expose secrets or session paths.
+The score is deterministic and based only on stored app signals:
+
+- `reauth_required`
+- `missing_session`
+- `runtime_unhealthy`
+- proxy check failures
+- active operation cooldowns
+- repeated stored job failures
+- account locked/unknown state
+- profile snapshot not synced
+
+Signals that do not exist yet are left as future factors and are not faked.
+
+## Safety Contract
+
+Risk endpoints are safe for dashboard refresh loops:
+
+- tenant/workspace-scoped like account read/list endpoints;
+- read-only;
+- no TDLib live calls;
+- no Telegram profile/story/music execution;
+- no account/session mutation;
+- no raw secrets, Redis URLs, DB URLs, S3 keys, JWTs, or TDLib session paths.

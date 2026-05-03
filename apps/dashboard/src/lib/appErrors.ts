@@ -11,6 +11,16 @@ export function normalizeError(error: unknown): ApiError {
   if (isApiError(error)) {
     return error
   }
+  if (isApiClientError(error)) {
+    return {
+      error_code: error.code ?? 'API_CLIENT_ERROR',
+      error_class: 'api_client',
+      message: error.message,
+      details: isRecord(error.details) ? error.details : null,
+      field_errors: [],
+      request_id: 'frontend',
+    }
+  }
 
   return {
     error_code: 'NETWORK_ERROR',
@@ -30,4 +40,12 @@ export function isApiError(error: unknown): error is ApiError {
     'error_class' in error &&
     'message' in error
   )
+}
+
+function isApiClientError(error: unknown): error is { code?: string; message: string; details?: unknown } {
+  return typeof error === 'object' && error !== null && 'message' in error && ('status' in error || 'code' in error)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

@@ -26,6 +26,8 @@ export type StylistTgClient = {
 
 export type AccountListItem = Schema<'AccountListItemRead'>
 export type AccountRead = Schema<'AccountRead'>
+export type AccountReadinessRisk = Schema<'AccountReadinessRiskRead'>
+export type AccountReadinessRiskSummary = Schema<'AccountReadinessRiskSummaryRead'>
 export type AccountSafety = Schema<'AccountSafetyRead'>
 export type AccountSafetySummary = Schema<'AccountSafetySummaryRead'>
 export type AccountValidityCheck = Schema<'AccountValidityCheckRead'>
@@ -39,6 +41,7 @@ export type AccountOperationLogPage = Schema<'AccountOperationLogPageRead'>
 export type AccountProxyInput = Schema<'AccountProxyUpsert'>
 export type DashboardProfile = Schema<'DashboardProfileRead'>
 export type DiagnosticsRead = Schema<'DiagnosticsRead'>
+export type FrontendDiagnosticsSummary = Schema<'FrontendDiagnosticsSummaryRead'>
 export type ExecutionPolicy = Schema<'ExecutionPolicyRead'>
 export type ExecutionPolicyUpdate = Schema<'ExecutionPolicyUpdate'>
 export type JobDetail = Schema<'JobDetailRead'>
@@ -52,6 +55,17 @@ export type StoryCapabilities = Schema<'StoryCapabilitiesRead'>
 export type StoryDraftRead = Schema<'StoryDraftRead'>
 export type StoryDraftCreate = Schema<'StoryDraftCreate'>
 export type StoryDraftUpdate = Schema<'StoryDraftUpdate'>
+export type AuthState = Schema<'AuthStateRead'>
+export type AuthRuntimeMode = Schema<'AuthRuntimeModeRead'>
+export type AuthRuntimeModeUpdate = Schema<'AuthRuntimeModeUpdate'>
+export type AuthBatchPhoneInput = Schema<'AuthBatchPhoneInput'>
+export type AuthBatchValidate = Schema<'AuthBatchValidateRead'>
+export type AuthBatchCreate = Schema<'AuthBatchCreate'>
+export type AuthBatchRead = Schema<'AuthBatchRead'>
+export type AuthBatchSnapshot = Schema<'AuthBatchSnapshotRead'>
+export type AuthBatchPoll = Schema<'AuthBatchPollRead'>
+export type AuthBatchItem = Schema<'AuthBatchItemRead'>
+export type AuthBatchEvent = Schema<'AuthBatchEventRead'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
@@ -154,6 +168,10 @@ export async function fetchLivePreflight(client: StylistTgClient): Promise<LiveP
   return unwrap(client.openapi.GET('/diagnostics/live-preflight'), 'live preflight')
 }
 
+export async function fetchFrontendDiagnosticsSummary(client: StylistTgClient): Promise<FrontendDiagnosticsSummary> {
+  return unwrap(client.openapi.GET('/diagnostics/frontend-summary'), 'frontend diagnostics')
+}
+
 export async function fetchAccounts(client: StylistTgClient): Promise<AccountListItem[]> {
   return unwrap(client.openapi.GET('/api/accounts'), 'accounts')
 }
@@ -177,6 +195,19 @@ export async function fetchAccountSafety(client: StylistTgClient, accountId: str
       params: { path: { account_id: accountId } },
     }),
     'account safety',
+  )
+}
+
+export async function fetchAccountRiskSummary(client: StylistTgClient): Promise<AccountReadinessRiskSummary> {
+  return unwrap(client.openapi.GET('/api/accounts/risk-summary'), 'account risk summary')
+}
+
+export async function fetchAccountRisk(client: StylistTgClient, accountId: string): Promise<AccountReadinessRisk> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/risk', {
+      params: { path: { account_id: accountId } },
+    }),
+    'account risk',
   )
 }
 
@@ -362,6 +393,177 @@ export async function refreshRuntime(client: StylistTgClient, accountId: string,
   })
 }
 
+export async function fetchAuthRuntimeMode(client: StylistTgClient): Promise<AuthRuntimeMode> {
+  return unwrap(client.openapi.GET('/api/auth/runtime-mode'), 'auth runtime mode')
+}
+
+export async function updateAuthRuntimeMode(client: StylistTgClient, payload: AuthRuntimeModeUpdate): Promise<AuthRuntimeMode> {
+  return unwrap(client.openapi.PATCH('/api/auth/runtime-mode', { body: payload }), 'update auth runtime mode')
+}
+
+export async function startOtp(client: StylistTgClient, phoneNumber: string): Promise<AuthState> {
+  return unwrap(client.openapi.POST('/api/auth/otp/start', { body: { phone_number: phoneNumber } }), 'start otp')
+}
+
+export async function confirmOtp(client: StylistTgClient, accountId: string, code: string): Promise<AuthState> {
+  return unwrap(client.openapi.POST('/api/auth/otp/confirm', { body: { account_id: accountId, code } }), 'confirm otp')
+}
+
+export async function submitPassword(client: StylistTgClient, accountId: string, password: string): Promise<AuthState> {
+  return unwrap(client.openapi.POST('/api/auth/password', { body: { account_id: accountId, password } }), 'submit password')
+}
+
+export async function fetchAuthState(client: StylistTgClient, accountId: string): Promise<AuthState> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/auth-state', {
+      params: { path: { account_id: accountId } },
+    }),
+    'auth state',
+  )
+}
+
+export async function validateAuthBatchPhones(
+  client: StylistTgClient,
+  items: AuthBatchPhoneInput[],
+): Promise<AuthBatchValidate> {
+  return unwrap(client.openapi.POST('/api/auth-batches/validate-phones', { body: { items } }), 'auth batch validation')
+}
+
+export async function createAuthBatch(client: StylistTgClient, payload: AuthBatchCreate): Promise<AuthBatchSnapshot> {
+  return unwrap(client.openapi.POST('/api/auth-batches', { body: payload }), 'create auth batch')
+}
+
+export async function fetchAuthBatches(client: StylistTgClient): Promise<AuthBatchRead[]> {
+  return unwrap(client.openapi.GET('/api/auth-batches'), 'auth batches')
+}
+
+export async function fetchAuthBatch(client: StylistTgClient, batchId: string): Promise<AuthBatchSnapshot> {
+  return unwrap(
+    client.openapi.GET('/api/auth-batches/{batch_id}', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'auth batch',
+  )
+}
+
+export async function pollAuthBatch(client: StylistTgClient, batchId: string, sinceEventId?: string): Promise<AuthBatchPoll> {
+  return unwrap(
+    client.openapi.GET('/api/auth-batches/{batch_id}/poll', {
+      params: { path: { batch_id: batchId }, query: sinceEventId ? { updated_since: sinceEventId } : undefined },
+    }),
+    'auth batch poll',
+  )
+}
+
+export async function startAuthBatch(client: StylistTgClient, batchId: string): Promise<AuthBatchSnapshot> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/start', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'start auth batch',
+  )
+}
+
+export async function pauseAuthBatch(client: StylistTgClient, batchId: string): Promise<AuthBatchSnapshot> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/pause', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'pause auth batch',
+  )
+}
+
+export async function resumeAuthBatch(client: StylistTgClient, batchId: string): Promise<AuthBatchSnapshot> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/resume', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'resume auth batch',
+  )
+}
+
+export async function cancelAuthBatch(client: StylistTgClient, batchId: string): Promise<AuthBatchSnapshot> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/cancel', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'cancel auth batch',
+  )
+}
+
+export async function submitAuthBatchCode(
+  client: StylistTgClient,
+  batchId: string,
+  itemId: string,
+  code: string,
+  idempotencyKey = newIdempotencyKey(),
+): Promise<AuthBatchItem> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/items/{item_id}/submit-code', {
+      params: { path: { batch_id: batchId, item_id: itemId } },
+      body: { code, idempotency_key: idempotencyKey },
+    }),
+    'submit auth batch code',
+  )
+}
+
+export async function submitAuthBatchPassword(
+  client: StylistTgClient,
+  batchId: string,
+  itemId: string,
+  password: string,
+  idempotencyKey = newIdempotencyKey(),
+): Promise<AuthBatchItem> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/items/{item_id}/submit-2fa', {
+      params: { path: { batch_id: batchId, item_id: itemId } },
+      body: { password, idempotency_key: idempotencyKey },
+    }),
+    'submit auth batch password',
+  )
+}
+
+export async function retryAuthBatchItem(client: StylistTgClient, batchId: string, itemId: string): Promise<AuthBatchItem> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/items/{item_id}/retry', {
+      params: { path: { batch_id: batchId, item_id: itemId } },
+    }),
+    'retry auth batch item',
+  )
+}
+
+export async function requestNewAuthBatchCode(
+  client: StylistTgClient,
+  batchId: string,
+  itemId: string,
+): Promise<AuthBatchItem> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/items/{item_id}/request-new-code', {
+      params: { path: { batch_id: batchId, item_id: itemId } },
+    }),
+    'request new auth batch code',
+  )
+}
+
+export async function cancelAuthBatchItem(client: StylistTgClient, batchId: string, itemId: string): Promise<AuthBatchItem> {
+  return unwrap(
+    client.openapi.POST('/api/auth-batches/{batch_id}/items/{item_id}/cancel', {
+      params: { path: { batch_id: batchId, item_id: itemId } },
+    }),
+    'cancel auth batch item',
+  )
+}
+
+export async function fetchAuthBatchEvents(client: StylistTgClient, batchId: string, sinceEventId?: string): Promise<AuthBatchEvent[]> {
+  void sinceEventId
+  return unwrap(
+    client.openapi.GET('/api/auth-batches/{batch_id}/events', {
+      params: { path: { batch_id: batchId } },
+    }),
+    'auth batch events',
+  )
+}
+
 export async function fetchAccountRuntimeDiagnostics(
   client: StylistTgClient,
   accountId: string,
@@ -497,4 +699,8 @@ function headersToObject(headers: RequestInit['headers']): Record<string, string
   if (headers instanceof Headers) return Object.fromEntries(headers.entries())
   if (Array.isArray(headers)) return Object.fromEntries(headers)
   return Object.fromEntries(Object.entries(headers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
+}
+
+function newIdempotencyKey(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `request-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }

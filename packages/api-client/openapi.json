@@ -1120,6 +1120,27 @@
         }
       }
     },
+    "/api/accounts/risk-summary": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Accounts Risk Summary",
+        "operationId": "get_accounts_risk_summary_api_accounts_risk_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountReadinessRiskSummaryRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/proxy-summary": {
       "get": {
         "tags": [
@@ -1138,6 +1159,48 @@
                   },
                   "type": "array",
                   "title": "Response Get Accounts Proxy Summary Api Accounts Proxy Summary Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/risk": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Risk",
+        "operationId": "get_account_risk_api_accounts__account_id__risk_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountReadinessRiskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2501,6 +2564,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diagnostics/frontend-summary": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Frontend Summary",
+        "operationId": "frontend_summary_diagnostics_frontend_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendDiagnosticsSummaryRead"
                 }
               }
             }
@@ -4245,6 +4329,154 @@
           "updated_at"
         ],
         "title": "AccountRead"
+      },
+      "AccountReadinessRiskRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Level"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/AccountReadinessRiskReasonRead"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "score",
+          "level",
+          "reasons",
+          "computed_at"
+        ],
+        "title": "AccountReadinessRiskRead"
+      },
+      "AccountReadinessRiskReasonRead": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "AccountReadinessRiskReasonRead"
+      },
+      "AccountReadinessRiskSummaryRead": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "low": {
+            "type": "integer",
+            "title": "Low"
+          },
+          "medium": {
+            "type": "integer",
+            "title": "Medium"
+          },
+          "high": {
+            "type": "integer",
+            "title": "High"
+          },
+          "critical": {
+            "type": "integer",
+            "title": "Critical"
+          },
+          "reauth_required": {
+            "type": "integer",
+            "title": "Reauth Required"
+          },
+          "missing_session": {
+            "type": "integer",
+            "title": "Missing Session"
+          },
+          "runtime_unhealthy": {
+            "type": "integer",
+            "title": "Runtime Unhealthy"
+          },
+          "proxy_problem": {
+            "type": "integer",
+            "title": "Proxy Problem"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccountReadinessRiskRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "low",
+          "medium",
+          "high",
+          "critical",
+          "reauth_required",
+          "missing_session",
+          "runtime_unhealthy",
+          "proxy_problem",
+          "computed_at"
+        ],
+        "title": "AccountReadinessRiskSummaryRead"
       },
       "AccountRiskRead": {
         "properties": {
@@ -7078,6 +7310,158 @@
         },
         "type": "object",
         "title": "ExecutionPolicyUpdate"
+      },
+      "FrontendDiagnosticsDatabaseRead": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "mode"
+        ],
+        "title": "FrontendDiagnosticsDatabaseRead"
+      },
+      "FrontendDiagnosticsRedisRead": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "configured"
+        ],
+        "title": "FrontendDiagnosticsRedisRead"
+      },
+      "FrontendDiagnosticsStorageRead": {
+        "properties": {
+          "backend": {
+            "type": "string",
+            "title": "Backend"
+          },
+          "bucket_configured": {
+            "type": "boolean",
+            "title": "Bucket Configured"
+          },
+          "signed_url_enabled": {
+            "type": "boolean",
+            "title": "Signed Url Enabled"
+          },
+          "public_base_url_configured": {
+            "type": "boolean",
+            "title": "Public Base Url Configured"
+          }
+        },
+        "type": "object",
+        "required": [
+          "backend",
+          "bucket_configured",
+          "signed_url_enabled",
+          "public_base_url_configured"
+        ],
+        "title": "FrontendDiagnosticsStorageRead"
+      },
+      "FrontendDiagnosticsSummaryRead": {
+        "properties": {
+          "app_env": {
+            "type": "string",
+            "title": "App Env"
+          },
+          "auth_mode": {
+            "type": "string",
+            "title": "Auth Mode"
+          },
+          "db": {
+            "$ref": "#/components/schemas/FrontendDiagnosticsDatabaseRead"
+          },
+          "redis": {
+            "$ref": "#/components/schemas/FrontendDiagnosticsRedisRead"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/FrontendDiagnosticsStorageRead"
+          },
+          "tdlib": {
+            "$ref": "#/components/schemas/FrontendDiagnosticsTdlibRead"
+          },
+          "workers": {
+            "$ref": "#/components/schemas/FrontendDiagnosticsWorkersRead"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_env",
+          "auth_mode",
+          "db",
+          "redis",
+          "storage",
+          "tdlib",
+          "workers",
+          "generated_at"
+        ],
+        "title": "FrontendDiagnosticsSummaryRead"
+      },
+      "FrontendDiagnosticsTdlibRead": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "profile_execution_adapter": {
+            "type": "string",
+            "title": "Profile Execution Adapter"
+          },
+          "live_enabled": {
+            "type": "boolean",
+            "title": "Live Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "profile_execution_adapter",
+          "live_enabled"
+        ],
+        "title": "FrontendDiagnosticsTdlibRead"
+      },
+      "FrontendDiagnosticsWorkersRead": {
+        "properties": {
+          "queues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queues"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queues",
+          "mode"
+        ],
+        "title": "FrontendDiagnosticsWorkersRead"
       },
       "HTTPValidationError": {
         "properties": {

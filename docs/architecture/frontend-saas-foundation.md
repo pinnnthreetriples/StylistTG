@@ -41,9 +41,12 @@ That command fails when generated OpenAPI artifacts are stale. The dashboard now
 
 ## Health and Risk
 
-Health Center shows API liveness, readiness, database, Redis, TDLib mode, app environment, auth mode, storage posture, and aggregate account risk.
+Health Center shows API liveness, readiness, database, Redis, TDLib mode, app environment, auth mode, storage posture, and aggregate account risk from backend-backed endpoints:
 
-Account Risk is a deterministic app-known readiness score based on existing account state, runtime health, safety summary, proxy summary, and cooldown signals. It is not a Telegram anti-ban guarantee and does not run live TDLib checks.
+- `GET /diagnostics/frontend-summary`
+- `GET /api/accounts/risk-summary`
+
+Account Risk is a deterministic backend app-known readiness score based on stored account state, runtime health, proxy/cooldown/job-failure signals, and profile sync posture. It is not a Telegram anti-ban guarantee and does not run live TDLib checks.
 
 ## Browser QA
 

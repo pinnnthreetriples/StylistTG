@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { AccountsTable } from '@/features/accounts/AccountsTable'
-import { buildAccountRisk, summarizeAccountRisks } from '@/features/accounts/accountRisk'
+import { EMPTY_ACCOUNT_RISK_SUMMARY } from '@/features/accounts/accountRisk'
 import { SettingsPanel } from '@/components/dashboard/accounts/SettingsPanel'
 import {
   useAccountSafetySummaryQuery,
@@ -30,8 +30,13 @@ import {
   usePrefetchSettingsBundle,
   useProxySummaryQuery,
 } from '@/hooks/queries/useAccountsQueries'
-import { buildAssetContentUrl, type AccountListItem } from '@/lib/api'
-import { accountBatchSafetyPreviewQueryOptions, settingsBundleQueryOptions } from '@/lib/queries'
+import {
+  buildAssetContentUrl,
+  type AccountListItem,
+  type AccountReadinessRisk,
+  type AccountReadinessRiskSummary,
+} from '@/lib/api'
+import { accountBatchSafetyPreviewQueryOptions, accountRiskSummaryQueryOptions, settingsBundleQueryOptions } from '@/lib/queries'
 import {
   compactSafetyReasons,
   activeCooldownLabels,
@@ -113,6 +118,7 @@ export function AccountList({
   const accountsQuery = useAccountsQuery()
   const safetySummaryQuery = useAccountSafetySummaryQuery()
   const proxySummaryQuery = useProxySummaryQuery()
+  const accountRiskSummaryQuery = useQuery(accountRiskSummaryQueryOptions())
   const deleteAccountMutation = useDeleteAccountMutation()
   const prefetchSettingsBundle = usePrefetchSettingsBundle()
   const prefetchAccountWorkspace = usePrefetchAccountWorkspace()
@@ -128,14 +134,11 @@ export function AccountList({
   const riskByAccount = useMemo(
     () =>
       new Map(
-        accounts.map((account) => [
-          account.account_id,
-          buildAccountRisk(account, safetyByAccount.get(account.account_id), proxyByAccount.get(account.account_id)),
-        ]),
+        (accountRiskSummaryQuery.data?.items ?? []).map((risk) => [risk.account_id, risk]),
       ),
-    [accounts, proxyByAccount, safetyByAccount],
+    [accountRiskSummaryQuery.data],
   )
-  const riskSummary = useMemo(() => summarizeAccountRisks([...riskByAccount.values()]), [riskByAccount])
+  const riskSummary = accountRiskSummaryQuery.data ?? EMPTY_ACCOUNT_RISK_SUMMARY
   const batchSafetyQuery = useQuery(accountBatchSafetyPreviewQueryOptions(accounts.map((account) => account.account_id), 'batch_operation'))
   const settingsBundleQuery = useQuery(settingsBundleQueryOptions())
   const [accountsError, setAccountsError] = useState<string | null>(null)
@@ -344,8 +347,8 @@ function AccountsContent({
   proxyByAccount: Map<string, AccountProxySummary>
   batchSafety: { counts: Record<string, number>; can_start: boolean } | null
   stats: ReturnType<typeof accountStats>
-  riskByAccount: Map<string, ReturnType<typeof buildAccountRisk>>
-  riskSummary: ReturnType<typeof summarizeAccountRisks>
+  riskByAccount: Map<string, AccountReadinessRisk>
+  riskSummary: AccountReadinessRiskSummary
 }) {
   if (isLoading) {
     return (
@@ -452,7 +455,7 @@ function StatsRow({ stats }: { stats: ReturnType<typeof accountStats> }) {
   )
 }
 
-function RiskSummaryRow({ summary }: { summary: ReturnType<typeof summarizeAccountRisks> }) {
+function RiskSummaryRow({ summary }: { summary: AccountReadinessRiskSummary }) {
   return (
     <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -468,6 +471,7 @@ function RiskSummaryRow({ summary }: { summary: ReturnType<typeof summarizeAccou
     </section>
   )
 }
+
 
 function RiskMetric({ className, label, value }: { className: string; label: string; value: number }) {
   return (

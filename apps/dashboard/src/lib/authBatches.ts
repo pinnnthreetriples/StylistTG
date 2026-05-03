@@ -1,60 +1,45 @@
-import { apiRequest } from '@/lib/http'
+import {
+  cancelAuthBatch as cancelTypedAuthBatch,
+  createApiClient,
+  createAuthBatch as createTypedAuthBatch,
+  fetchAuthBatch as fetchTypedAuthBatch,
+  pauseAuthBatch as pauseTypedAuthBatch,
+  pollAuthBatch as pollTypedAuthBatch,
+  resumeAuthBatch as resumeTypedAuthBatch,
+  retryAuthBatchItem as retryTypedAuthBatchItem,
+  startAuthBatch as startTypedAuthBatch,
+  submitAuthBatchCode as submitTypedAuthBatchCode,
+  submitAuthBatchPassword as submitTypedAuthBatchPassword,
+  validateAuthBatchPhones as validateTypedAuthBatchPhones,
+  type AuthBatchItem as TypedAuthBatchItem,
+  type AuthBatchPhoneInput as TypedAuthBatchPhoneInput,
+  type AuthBatchRead as TypedAuthBatch,
+  type AuthBatchSnapshot as TypedAuthBatchSnapshot,
+  type AuthBatchValidate as TypedAuthBatchValidation,
+} from '@stylisttg/api-client'
 
-export type AuthBatchPhoneInput = {
-  phone_number: string
-  label?: string | null
-}
+import { getApiBaseUrl } from '@/lib/config'
 
-export type AuthBatch = {
-  id: string
-  label: string | null
-  status: string
-  total_count: number
-  success_count: number
-  failed_count: number
-  cancelled_count: number
-  skipped_count: number
-  max_running_commands: number
-  max_waiting_input: number
-  max_total_active: number
-  created_at: string
-  started_at: string | null
-  finished_at: string | null
-}
+export type AuthBatchPhoneInput = TypedAuthBatchPhoneInput
 
-export type AuthBatchItem = {
-  id: string
-  batch_id: string
-  account_id: string
-  phone_number: string
-  label: string | null
-  position: number
-  status: string
-  attempt_count: number
-  resend_count: number
-  code_error_count: number
-  password_error_count: number
-  code_expires_at: string | null
-  next_retry_at: string | null
-  error_code: string | null
-  error_message: string | null
-  updated_at: string
-  authorized_at: string | null
-}
+export type AuthBatch = TypedAuthBatch
 
-export type AuthBatchSnapshot = {
-  batch: AuthBatch
-  items: AuthBatchItem[]
-  server_time: string
-  poll_again_in_ms: number
-}
+export type AuthBatchItem = TypedAuthBatchItem
 
-export type AuthBatchValidation = {
-  valid_items: Array<{ phone_number: string; label: string | null; position: number }>
-  invalid_items: Array<{ input: string; label: string | null; position: number; error: string }>
-  duplicates: Array<{ phone_number: string; label: string | null; position: number; account_id: string | null; batch_item_id: string | null; batch_id: string | null }>
-  existing_accounts: Array<{ phone_number: string; label: string | null; position: number; account_id: string | null; batch_item_id: string | null; batch_id: string | null }>
-  active_batch_conflicts: Array<{ phone_number: string; label: string | null; position: number; account_id: string | null; batch_item_id: string | null; batch_id: string | null }>
+export type AuthBatchSnapshot = TypedAuthBatchSnapshot
+
+export type AuthBatchValidation = TypedAuthBatchValidation
+
+const authBatchClient = createApiClient({
+  baseUrl: getTypedApiBaseUrl(),
+  fetch: (...args) => globalThis.fetch(...args),
+})
+
+function getTypedApiBaseUrl(): string {
+  const configuredBaseUrl = getApiBaseUrl()
+  if (configuredBaseUrl) return configuredBaseUrl
+  if (typeof window !== 'undefined') return window.location.origin
+  return 'http://localhost'
 }
 
 export type ParsedBulkPhoneLine = {
@@ -160,7 +145,7 @@ export function uniqueBulkPhoneLines(lines: ParsedBulkPhoneLine[]): string[] {
 }
 
 export function buildBackendValidItemLines(validation: AuthBatchValidation | null): string[] {
-  return validation?.valid_items.map((item) => formatBulkPhoneLine(item.phone_number, item.label)) ?? []
+  return validation?.valid_items.map((item) => formatBulkPhoneLine(item.phone_number, item.label ?? null)) ?? []
 }
 
 export function buildAuthBatchPrimaryActionLabel(count: number): string {
@@ -220,11 +205,7 @@ export function buildAuthBatchValidationMessage(validation: AuthBatchValidation)
 }
 
 export async function validateAuthBatchPhones(items: AuthBatchPhoneInput[]): Promise<AuthBatchValidation> {
-  return apiRequest<AuthBatchValidation>('/api/auth-batches/validate-phones', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items }),
-  })
+  return validateTypedAuthBatchPhones(authBatchClient, items)
 }
 
 export async function createAuthBatch(payload: {
@@ -235,54 +216,41 @@ export async function createAuthBatch(payload: {
   max_waiting_input: number
   max_total_active: number
 }): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>('/api/auth-batches', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return createTypedAuthBatch(authBatchClient, payload)
 }
 
 export async function startAuthBatch(batchId: string): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}/start`, { method: 'POST' })
+  return startTypedAuthBatch(authBatchClient, batchId)
 }
 
 export async function fetchAuthBatch(batchId: string): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}`)
+  return fetchTypedAuthBatch(authBatchClient, batchId)
 }
 
 export async function pauseAuthBatch(batchId: string): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}/pause`, { method: 'POST' })
+  return pauseTypedAuthBatch(authBatchClient, batchId)
 }
 
 export async function resumeAuthBatch(batchId: string): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}/resume`, { method: 'POST' })
+  return resumeTypedAuthBatch(authBatchClient, batchId)
 }
 
 export async function cancelAuthBatch(batchId: string): Promise<AuthBatchSnapshot> {
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}/cancel`, { method: 'POST' })
+  return cancelTypedAuthBatch(authBatchClient, batchId)
 }
 
 export async function pollAuthBatch(batchId: string, updatedSince?: string | null): Promise<AuthBatchSnapshot> {
-  const qs = updatedSince ? `?updated_since=${encodeURIComponent(updatedSince)}` : ''
-  return apiRequest<AuthBatchSnapshot>(`/api/auth-batches/${batchId}/poll${qs}`)
+  return pollTypedAuthBatch(authBatchClient, batchId, updatedSince ?? undefined)
 }
 
 export async function submitAuthBatchCode(batchId: string, itemId: string, code: string): Promise<AuthBatchItem> {
-  return apiRequest<AuthBatchItem>(`/api/auth-batches/${batchId}/items/${itemId}/submit-code`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, idempotency_key: crypto.randomUUID() }),
-  })
+  return submitTypedAuthBatchCode(authBatchClient, batchId, itemId, code)
 }
 
 export async function submitAuthBatchPassword(batchId: string, itemId: string, password: string): Promise<AuthBatchItem> {
-  return apiRequest<AuthBatchItem>(`/api/auth-batches/${batchId}/items/${itemId}/submit-2fa`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, idempotency_key: crypto.randomUUID() }),
-  })
+  return submitTypedAuthBatchPassword(authBatchClient, batchId, itemId, password)
 }
 
 export async function retryAuthBatchItem(batchId: string, itemId: string): Promise<AuthBatchItem> {
-  return apiRequest<AuthBatchItem>(`/api/auth-batches/${batchId}/items/${itemId}/retry`, { method: 'POST' })
+  return retryTypedAuthBatchItem(authBatchClient, batchId, itemId)
 }

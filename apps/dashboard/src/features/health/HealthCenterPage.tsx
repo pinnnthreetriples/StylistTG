@@ -1,11 +1,10 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button, PageHeader, SectionCard, StatusCard, StatusPill } from '@stylisttg/ui'
 import { RefreshCw } from 'lucide-react'
 
-import { buildAccountRisk, summarizeAccountRisks } from '@/features/accounts/accountRisk'
+import { EMPTY_ACCOUNT_RISK_SUMMARY } from '@/features/accounts/accountRisk'
 import { fetchHealth, fetchReady } from '@/lib/api'
-import { accountSafetySummaryQueryOptions, accountsQueryOptions, proxySummaryQueryOptions } from '@/lib/queries'
+import { accountRiskSummaryQueryOptions, frontendDiagnosticsQueryOptions } from '@/lib/queries'
 
 export function HealthCenterPage() {
   const healthQuery = useQuery({
@@ -18,31 +17,17 @@ export function HealthCenterPage() {
     queryFn: fetchReady,
     staleTime: 30_000,
   })
-  const accountsQuery = useQuery(accountsQueryOptions())
-  const safetySummaryQuery = useQuery(accountSafetySummaryQueryOptions())
-  const proxySummaryQuery = useQuery(proxySummaryQueryOptions())
-
-  const riskSummary = useMemo(() => {
-    const safetyByAccount = new Map((safetySummaryQuery.data ?? []).map((item) => [item.account_id, item]))
-    const proxyByAccount = new Map((proxySummaryQuery.data ?? []).map((item) => [item.account_id, item]))
-    return summarizeAccountRisks(
-      (accountsQuery.data ?? []).map((account) =>
-        buildAccountRisk(account, safetyByAccount.get(account.account_id), proxyByAccount.get(account.account_id)),
-      ),
-    )
-  }, [accountsQuery.data, proxySummaryQuery.data, safetySummaryQuery.data])
-
+  const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
+  const accountRiskQuery = useQuery(accountRiskSummaryQueryOptions())
   const ready = readyQuery.data
-  const appEnv = import.meta.env.VITE_APP_ENV?.trim() || 'local'
-  const authMode = import.meta.env.VITE_SUPABASE_URL ? 'supabase_jwt' : 'local/dev'
-  const storageBackend = appEnv === 'staging' ? 's3' : 'local/dev'
+  const diagnostics = diagnosticsQuery.data
+  const riskSummary = accountRiskQuery.data ?? EMPTY_ACCOUNT_RISK_SUMMARY
 
   function refresh() {
     void healthQuery.refetch()
     void readyQuery.refetch()
-    void accountsQuery.refetch()
-    void safetySummaryQuery.refetch()
-    void proxySummaryQuery.refetch()
+    void diagnosticsQuery.refetch()
+    void accountRiskQuery.refetch()
   }
 
   return (
@@ -72,12 +57,29 @@ export function HealthCenterPage() {
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <HealthStatusCard label="TDLib" value={ready?.tdlib} notConfiguredTone="warning" />
-          <StatusCard label="App environment" value={appEnv} tone={appEnv === 'staging' ? 'info' : 'neutral'} />
-          <StatusCard label="Auth mode" value={authMode} tone={authMode === 'supabase_jwt' ? 'info' : 'warning'} />
+          <StatusCard
+            label="App environment"
+            value={diagnostics?.app_env ?? 'checking'}
+            tone={diagnostics?.app_env === 'staging' ? 'info' : 'neutral'}
+          />
+          <StatusCard
+            label="Auth mode"
+            value={diagnostics?.auth_mode ?? 'checking'}
+            tone={diagnostics?.auth_mode === 'supabase_jwt' ? 'info' : 'warning'}
+          />
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <StatusCard label="Storage backend" value={storageBackend} tone={storageBackend === 's3' ? 'info' : 'neutral'} />
-          <StatusCard label="Last checked" value={new Date().toLocaleTimeString()} detail="Browser-side timestamp" />
+          <StatusCard
+            label="Storage backend"
+            value={diagnostics?.storage.backend ?? 'checking'}
+            tone={diagnostics?.storage.backend === 's3' ? 'info' : 'neutral'}
+            detail={diagnostics ? storageDetail(diagnostics.storage) : undefined}
+          />
+          <StatusCard
+            label="Last checked"
+            value={diagnostics?.generated_at ? new Date(diagnostics.generated_at).toLocaleTimeString() : 'checking'}
+            detail="Backend diagnostics timestamp"
+          />
           <StatusCard
             label="Staging smoke"
             value="external command"
@@ -90,6 +92,11 @@ export function HealthCenterPage() {
             Readiness diagnostics are unavailable. Check API network access and backend logs.
           </div>
         ) : null}
+        {diagnosticsQuery.isError ? (
+          <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+            Backend diagnostics summary is unavailable. Readiness may still be available from /ready.
+          </div>
+        ) : null}
       </SectionCard>
 
       <SectionCard title="Account risk summary">
@@ -100,19 +107,35 @@ export function HealthCenterPage() {
           <StatusCard label="Critical" value={riskSummary.critical} tone={riskSummary.critical > 0 ? 'danger' : 'ok'} />
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <StatusPill tone={riskSummary.requiringReauth > 0 ? 'red' : 'green'}>
-            Reauth required: {riskSummary.requiringReauth}
+          <StatusPill tone={riskSummary.reauth_required > 0 ? 'red' : 'green'}>
+            Reauth required: {riskSummary.reauth_required}
           </StatusPill>
-          <StatusPill tone={riskSummary.withoutSession > 0 ? 'amber' : 'green'}>
-            Runtime problems: {riskSummary.withoutSession}
+          <StatusPill tone={riskSummary.missing_session + riskSummary.runtime_unhealthy > 0 ? 'amber' : 'green'}>
+            Runtime problems: {riskSummary.missing_session + riskSummary.runtime_unhealthy}
           </StatusPill>
-          <StatusPill tone={riskSummary.proxyProblems > 0 ? 'amber' : 'green'}>
-            Proxy problems: {riskSummary.proxyProblems}
+          <StatusPill tone={riskSummary.proxy_problem > 0 ? 'amber' : 'green'}>
+            Proxy problems: {riskSummary.proxy_problem}
           </StatusPill>
         </div>
+        {accountRiskQuery.isError ? (
+          <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+            Account risk summary is unavailable.
+          </div>
+        ) : null}
       </SectionCard>
     </div>
   )
+}
+
+function storageDetail(storage: {
+  bucket_configured: boolean
+  signed_url_enabled: boolean
+  public_base_url_configured: boolean
+}): string {
+  const bucket = storage.bucket_configured ? 'bucket configured' : 'bucket missing'
+  const signedUrls = storage.signed_url_enabled ? 'signed URLs enabled' : 'signed URLs off'
+  const publicBase = storage.public_base_url_configured ? 'public base configured' : 'private/object URLs only'
+  return `${bucket}; ${signedUrls}; ${publicBase}`
 }
 
 function HealthStatusCard({

@@ -1,15 +1,24 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from redis import Redis
 from redis.exceptions import RedisError
 from rq import Worker
 
 from app.config import settings
 from app.job_queue.rq import AUTH_QUEUE_NAME, PROFILE_QUEUE_NAME
-from app.schemas import DiagnosticsRead, LivePreflightRead
+from app.schemas import DiagnosticsRead, FrontendDiagnosticsSummaryRead, LivePreflightRead
+from app.services.auth_context import AuthContext, require_authenticated
+from app.services.frontend_diagnostics import build_frontend_diagnostics_summary
 from app.services.live_preflight import LivePreflightService
 from app.services.runtime_diagnostics import build_runtime_diagnostics
 
 router = APIRouter(prefix="/diagnostics", tags=["diagnostics"])
+
+
+@router.get("/frontend-summary", response_model=FrontendDiagnosticsSummaryRead)
+def frontend_summary(
+    _auth: AuthContext = Depends(require_authenticated),
+):
+    return build_frontend_diagnostics_summary(build_runtime_diagnostics())
 
 
 @router.get("/runtime", response_model=DiagnosticsRead)

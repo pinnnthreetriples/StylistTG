@@ -132,6 +132,7 @@ cd backend
 python -m app.tools.live_preflight
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/live-preflight
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/runtime
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/frontend-summary
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/ready
 ```
 
@@ -141,6 +142,7 @@ Readiness semantics:
 - `/ready` returns `200` only when both `database=ok` and `redis=ok`.
 - `/ready` returns `503` when either database or redis is down.
 - `/diagnostics/runtime` and `/diagnostics/live-preflight` always return structured payloads for troubleshooting.
+- `/diagnostics/frontend-summary` returns safe dashboard metadata only; it must not expose DB URLs, Redis URLs, S3 credentials, JWTs, or TDLib session paths.
 
 OTP auth flow:
 
@@ -150,6 +152,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/auth/otp/confirm -
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/auth-state
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/accounts/<account-id>/refresh-runtime
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/runtime-diagnostics
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/risk-summary
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/risk
 ```
 
 TDLib configuration:

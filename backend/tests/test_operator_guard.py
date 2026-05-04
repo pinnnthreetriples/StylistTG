@@ -54,3 +54,19 @@ def test_operator_token_allows_mutating_requests(monkeypatch) -> None:
     )
 
     assert response.status_code == 200
+
+
+def test_operator_guard_allows_public_runtime_diagnostics(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "enforce_localhost_only", True)
+    monkeypatch.setattr(settings, "operator_allowed_client_hosts", "127.0.0.1")
+    monkeypatch.setattr(
+        "app.api.diagnostics.build_runtime_diagnostics",
+        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
+    )
+    client = TestClient(app)
+
+    runtime = client.get("/diagnostics/runtime")
+    frontend_summary = client.get("/diagnostics/frontend-summary")
+
+    assert runtime.status_code == 200
+    assert frontend_summary.status_code == 403

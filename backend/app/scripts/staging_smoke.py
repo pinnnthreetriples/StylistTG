@@ -40,6 +40,7 @@ def run_staging_smoke(
         fetcher = http_fetcher or _http_get_json
         _check_endpoint(report, "health_endpoint", base_url, "health", fetcher)
         _check_endpoint(report, "ready_endpoint", base_url, "ready", fetcher)
+        _check_endpoint(report, "runtime_diagnostics_endpoint", base_url, "diagnostics/runtime", fetcher)
 
     for child in (
         cloud_config_runner(effective_env),

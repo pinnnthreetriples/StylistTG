@@ -161,6 +161,7 @@ Account lifecycle and production-plane docs:
 - `docs/runbooks/telegram-auth-flow.md`
 - `docs/runbooks/account-import.md`
 - `docs/security/telegram-session-handling.md`
+- `docs/runbooks/northflank-staging-readiness.md`
 
 OTP auth flow:
 

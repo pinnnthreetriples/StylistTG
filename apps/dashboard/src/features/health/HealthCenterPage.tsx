@@ -120,6 +120,12 @@ export function HealthCenterPage() {
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <StatusCard
+            label="Execution plane"
+            value={diagnostics?.tdlib.execution_plane_ready ? 'ready' : 'not ready'}
+            tone={diagnostics?.tdlib.execution_plane_ready ? 'warning' : 'ok'}
+            detail="Live profile/story/music execution remains disabled until a separate review."
+          />
+          <StatusCard
             label="API credentials"
             value={diagnostics?.tdlib.api_id_configured ? 'api id configured' : 'not configured'}
             tone={diagnostics?.tdlib.api_id_configured && diagnostics?.tdlib.api_hash_configured ? 'ok' : 'neutral'}

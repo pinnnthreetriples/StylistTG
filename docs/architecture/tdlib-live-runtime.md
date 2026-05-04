@@ -4,12 +4,14 @@ Live TDLib remains disabled by default. This foundation adds runtime detection, 
 
 ## Runtime Packaging
 
-The existing API image remains compatible. Live workers may either mount/provide `libtdjson` through `TDLIB_SHARED_LIBRARY_PATH` or use a future TDLib-specific image. The verification helper checks loadability without starting Telegram network actions:
+The existing API image remains compatible and remains the default deployment path. Live workers may either mount/provide `libtdjson` through `TDLIB_SHARED_LIBRARY_PATH` or use the optional TDLib worker image scaffold in `backend/Dockerfile.tdlib`. That image does not change the current API/worker deployment and still defaults to mock mode.
+
+The verification helper checks loadability without starting Telegram network actions:
 
 ```powershell
 cd backend
 python scripts/verify_tdlib_runtime.py
-python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check
+python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json
 ```
 
 If the library is absent, diagnostics report `not_configured` and mock mode continues to work.

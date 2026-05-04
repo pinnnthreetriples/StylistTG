@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from io import BytesIO
+import json
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -10,10 +11,12 @@ from app.db import Base
 from app.config import Settings
 from app.main import app
 from app.models import AccountImportBatch, SensitiveAuditEvent, TelegramAuthSession
+from app.scripts.tdlib_runtime_smoke import main as tdlib_runtime_smoke_main
 from app.services.database import create_sqlite_test_session_factory
 from app.services.import_validation import validate_import_source
 from app.services.tdlib_paths import build_auth_session_tdlib_paths
 from app.services.tdlib_runtime import detect_tdlib_runtime
+from app.services.worker_plane import assert_queue_allowed, worker_diagnostics
 
 from conftest import override_app_session
 
@@ -25,6 +28,53 @@ def test_tdlib_runtime_disabled_default_is_safe() -> None:
     assert status.configured is False
     assert status.library_loadable is False
     assert "path" not in str(status.to_safe_dict()).lower()
+
+
+def test_tdlib_runtime_smoke_json_default_is_safe(capsys) -> None:
+    exit_code = tdlib_runtime_smoke_main(["--json"])
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "PASS"
+    assert payload["checks"]["runtime"] == "PASS"
+    assert payload["checks"]["library"] == "SKIP"
+    assert payload["checks"]["readonly_auth"] == "DISABLED"
+    serialized = json.dumps(payload).lower()
+    assert "tdlib/database" not in serialized
+    assert "telegram_api_hash" not in serialized
+
+
+def test_tdlib_runtime_smoke_readonly_auth_requires_explicit_flags(capsys) -> None:
+    exit_code = tdlib_runtime_smoke_main(["--readonly-auth-check", "--auth-session-id", "auth-1", "--json"])
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["checks"]["readonly_auth"] == "DISABLED"
+    assert payload["readonly_auth_check"] == "disabled"
+
+
+def test_worker_diagnostics_are_safe_and_queue_allowlist_rejects_unknown() -> None:
+    diagnostics = worker_diagnostics(
+        Settings(
+            tdlib_database_root="C:/private/tdlib/database",
+            tdlib_files_root="C:/private/tdlib/files",
+            tdlib_shared_library_path="C:/private/libtdjson.dll",
+        )
+    )
+
+    assert_queue_allowed("auth_jobs")
+    try:
+        assert_queue_allowed("unknown_jobs")
+    except ValueError as exc:
+        assert "unsupported worker queue" in str(exc)
+    else:
+        raise AssertionError("unknown queue was accepted")
+
+    assert diagnostics["tdlib"]["auth_worker_ready"] is True
+    assert diagnostics["tdlib"]["live_enabled"] is False
+    serialized = str(diagnostics).lower()
+    assert "private/tdlib" not in serialized
+    assert "libtdjson.dll" not in serialized
 
 
 def test_tdlib_paths_are_isolated_and_reject_traversal(tmp_path) -> None:

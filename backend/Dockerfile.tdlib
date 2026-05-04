@@ -1,0 +1,37 @@
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    LOCAL_STORAGE_PATH=/var/lib/stylisttg/storage \
+    TDLIB_LIVE_ENABLED=false \
+    TDLIB_RUNTIME_MODE=mock \
+    PROFILE_EXECUTION_ADAPTER=mock \
+    TDLIB_READONLY_SMOKE_ENABLED=false \
+    TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database \
+    TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
+
+WORKDIR /app
+
+RUN addgroup --system stylisttg && \
+    adduser --system --ingroup stylisttg stylisttg && \
+    mkdir -p /var/lib/stylisttg/storage \
+        /var/lib/stylisttg/logs \
+        /var/lib/stylisttg/tdlib/database \
+        /var/lib/stylisttg/tdlib/files \
+        /usr/local/lib && \
+    chown -R stylisttg:stylisttg /var/lib/stylisttg
+
+COPY backend/pyproject.toml backend/alembic.ini ./
+COPY backend/app ./app
+COPY backend/migrations ./migrations
+COPY backend/scripts ./scripts
+
+RUN python -m pip install --upgrade pip && \
+    python -m pip install .
+
+USER stylisttg
+
+# This optional image is for future TDLib auth workers. Operators must provide
+# TDLIB_SHARED_LIBRARY_PATH with a mounted or baked libtdjson before enabling live auth.
+CMD ["sh", "-c", "python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json && python -m app.workers.run_worker --queues auth_jobs"]

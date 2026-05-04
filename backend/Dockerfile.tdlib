@@ -8,7 +8,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TDLIB_RUNTIME_MODE=mock \
     PROFILE_EXECUTION_ADAPTER=mock \
     TDLIB_READONLY_SMOKE_ENABLED=false \
-    TDLIB_SHARED_LIBRARY_PATH=/usr/local/lib/libtdjson.so \
     TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database \
     TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
 
@@ -33,6 +32,6 @@ RUN python -m pip install --upgrade pip && \
 
 USER stylisttg
 
-# This optional image is for future TDLib auth workers. Mount or bake libtdjson at
-# TDLIB_SHARED_LIBRARY_PATH before enabling live auth.
+# This optional image is for future TDLib auth workers. Operators must provide
+# TDLIB_SHARED_LIBRARY_PATH with a mounted or baked libtdjson before enabling live auth.
 CMD ["sh", "-c", "python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json && python -m app.workers.run_worker --queues auth_jobs"]

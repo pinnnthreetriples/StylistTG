@@ -37,7 +37,8 @@ Manual build, when Docker is available:
 docker build -f backend/Dockerfile.tdlib -t stylisttg-backend-tdlib:test .
 ```
 
-Before running it as a live auth worker, provide:
+Before running it as a live auth worker, provide `TDLIB_SHARED_LIBRARY_PATH` and
+mount or bake the library at that location:
 
 ```text
 TDLIB_SHARED_LIBRARY_PATH=/usr/local/lib/libtdjson.so

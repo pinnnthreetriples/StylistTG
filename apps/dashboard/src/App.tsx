@@ -15,11 +15,15 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { DashboardActionBar } from '@/components/dashboard/DashboardActionBar'
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
+import { AccountHeader } from '@/components/dashboard/accountWorkspace/AccountHeader'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 import { ErrorBanner } from '@/components/dashboard/ErrorBanner'
 import { JobStepPanel } from '@/components/dashboard/jobs/JobPanels'
 import { ProfileEditor } from '@/components/dashboard/profile/ProfilePanels'
+import { StoriesBlock } from '@/components/dashboard/profile/StoriesBlock'
+import { MusicBlock } from '@/components/dashboard/profile/MusicBlock'
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs'
+import { AccountRiskTab } from '@/components/dashboard/accountWorkspace/AccountRiskTab'
 import {
   OperationLogsPanel,
   ProxyPanel,
@@ -53,6 +57,8 @@ import {
   useAccountValidityChecksQuery,
   useCreateAccountSafetyOverrideMutation,
   useAccountOperationLogsQuery,
+  useAccountRiskQuery,
+  useAccountCooldownsQuery,
   useAccountProxyQuery,
   useCheckAccountProxyMutation,
   useDeleteAccountProxyMutation,
@@ -66,7 +72,7 @@ import {
   type AccountProxyInput,
 } from '@/lib/proxy'
 import type { AuthPhase } from '@/lib/auth'
-import { appRoutes, type AppRouteState } from '@/lib/routes'
+import { accountWorkspaceRoute, appRoutes, type AccountWorkspaceSection, type AppRouteState } from '@/lib/routes'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()
 type AccountRouteState = Extract<AppRouteState, { screen: 'account' }>
@@ -113,6 +119,8 @@ function App({ route }: { route: AccountRouteState }) {
   const validityCheckMutation = useRunAccountValidityCheckMutation()
   const safetyOverrideMutation = useCreateAccountSafetyOverrideMutation()
   const accountSafetyQuery = useAccountSafetyQuery(activeAccountId)
+  const accountRiskQuery = useAccountRiskQuery(activeAccountId)
+  const accountCooldownsQuery = useAccountCooldownsQuery(activeAccountId)
   const validityChecksQuery = useAccountValidityChecksQuery(activeAccountId)
   const accountProxyQuery = useAccountProxyQuery(activeAccountId)
   const accountLogsQuery = useAccountOperationLogsQuery(activeAccountId)
@@ -520,22 +528,24 @@ function App({ route }: { route: AccountRouteState }) {
 
   return (
     <div className="min-h-screen bg-cream">
-      <DashboardHeader
-        displayName={dashboard?.account.display_name}
-        username={dashboard?.account.username}
-        isExecutionUsable={Boolean(dashboard?.account.is_execution_usable)}
-        isBootRefreshing={isBootRefreshing}
-        isLoading={isLoading}
-        isRefreshingRuntime={isRefreshingRuntime}
-        isCheckingValidity={validityCheckMutation.isPending}
-        safety={accountSafetyQuery.data ?? null}
-        proxy={accountProxyQuery.data ?? null}
-        onBack={handleDashboardBackToAccounts}
-        onRefresh={handleRefreshRuntime}
-        onCheckValidity={handleCheckValidity}
-      />
+      {dashboard?.account ? (
+        <AccountHeader
+          account={dashboard.account}
+          isChecking={validityCheckMutation.isPending}
+          isSyncing={isRefreshingRuntime || isBootRefreshing || isLoading}
+          proxyStatus={accountProxyQuery.data?.status ?? accountSafetyQuery.data?.proxy_status}
+          risk={accountRiskQuery.data ?? null}
+          onCheck={handleCheckValidity}
+          onBack={handleDashboardBackToAccounts}
+          onSync={handleRefreshRuntime}
+        />
+      ) : (
+        <div className="border-b border-gray-200/70 bg-white px-4 py-3 sm:px-6">
+          <div className="mx-auto max-w-6xl text-sm text-gray-500">Загружаем аккаунт...</div>
+        </div>
+      )}
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-24">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-24">
         {/* Page title + job metrics */}
         <div className="flex items-center justify-between mb-4 fade-in">
           <div className="flex items-center gap-3">
@@ -562,47 +572,142 @@ function App({ route }: { route: AccountRouteState }) {
           </>
         ) : null}
 
-        <div className="space-y-4">
-          <ProxyPanel
-            key={accountProxyQuery.data ? `${accountProxyQuery.data.proxy_type}:${accountProxyQuery.data.host}:${accountProxyQuery.data.port}:${accountProxyQuery.data.username ?? ''}:${accountProxyQuery.data.has_password}` : 'proxy-empty'}
-            isChecking={checkProxyMutation.isPending}
-            isDeleting={deleteProxyMutation.isPending}
-            isSaving={saveProxyMutation.isPending}
-            onCheck={handleCheckProxy}
-            onDelete={handleDeleteProxy}
-            onSave={handleSaveProxy}
-            proxy={accountProxyQuery.data ?? null}
-          />
-          {route.section !== 'debug' ? (
-            <OperationLogsPanel logs={(accountLogsQuery.data?.items ?? []).slice(0, 5)} title="История операций" />
-          ) : null}
-          <ProfileEditor
-            changeItems={changeItems}
-            hasSelectedPhoto={Boolean(form.profilePhotoAssetId)}
-            photoPreviewUrl={photoPreview.imageUrl}
-            onClearPhoto={handleClearProfilePhoto}
-            onChoosePhoto={() => fileInputRef.current?.click()}
-            isUploadingPhoto={isUploadingPhoto}
-            selectedPhotoName={selectedPhotoName}
-            profileAudio={dashboard?.profile_audio ?? null}
-            profileAudioAction={form.profileAudioAction}
-            selectedAudioName={selectedAudioName}
-            isUploadingAudio={isUploadingAudio}
-            onChooseAudio={() => audioInputRef.current?.click()}
-            onKeepAudio={handleKeepProfileAudio}
-            onRemoveAudio={handleRemoveProfileAudio}
-            stories={form.stories}
-            isUploadingStory={isUploadingStory}
-            deletingStoryPostId={deletingStoryPostId}
-            onChooseStoryImage={() => storyImageInputRef.current?.click()}
-            onUpdateStory={handleUpdateStory}
-            onRemoveStory={handleRemoveStory}
-            onDeleteStoryPost={handleDeleteStoryPost}
-            storyPosts={dashboard?.story_posts ?? []}
-            storyCapabilities={storyCapabilities}
-            currentProfile={currentProfile}
-            form={form}
-            onChange={draft.updateForm}
+        <div className="mb-4">
+          <AnimatedTabs
+            value={route.section}
+            onValueChange={(section) => {
+              navigateToRoute(accountWorkspaceRoute(accountId, section as AccountWorkspaceSection))
+            }}
+            tabs={[
+              {
+                value: 'profile',
+                label: 'Профиль',
+                content: (
+                  <ProfileEditor
+                    changeItems={changeItems}
+                    hasSelectedPhoto={Boolean(form.profilePhotoAssetId)}
+                    photoPreviewUrl={photoPreview.imageUrl}
+                    onClearPhoto={handleClearProfilePhoto}
+                    onChoosePhoto={() => fileInputRef.current?.click()}
+                    isUploadingPhoto={isUploadingPhoto}
+                    selectedPhotoName={selectedPhotoName}
+                    profileAudio={dashboard?.profile_audio ?? null}
+                    profileAudioAction={form.profileAudioAction}
+                    selectedAudioName={selectedAudioName}
+                    isUploadingAudio={isUploadingAudio}
+                    onChooseAudio={() => audioInputRef.current?.click()}
+                    onKeepAudio={handleKeepProfileAudio}
+                    onRemoveAudio={handleRemoveProfileAudio}
+                    stories={form.stories}
+                    isUploadingStory={isUploadingStory}
+                    deletingStoryPostId={deletingStoryPostId}
+                    onChooseStoryImage={() => storyImageInputRef.current?.click()}
+                    onUpdateStory={handleUpdateStory}
+                    onRemoveStory={handleRemoveStory}
+                    onDeleteStoryPost={handleDeleteStoryPost}
+                    storyPosts={dashboard?.story_posts ?? []}
+                    storyCapabilities={storyCapabilities}
+                    currentProfile={currentProfile}
+                    form={form}
+                    onChange={draft.updateForm}
+                  />
+                ),
+              },
+              {
+                value: 'stories',
+                label: 'Истории',
+                content: (
+                  <div className="py-4">
+                    <StoriesBlock
+                      stories={form.stories}
+                      storyPosts={dashboard?.story_posts ?? []}
+                      storyCapabilities={storyCapabilities}
+                      isUploadingStory={isUploadingStory}
+                      deletingStoryPostId={deletingStoryPostId}
+                      onChooseStoryImage={() => storyImageInputRef.current?.click()}
+                      onUpdateStory={handleUpdateStory}
+                      onRemoveStory={handleRemoveStory}
+                      onDeleteStoryPost={handleDeleteStoryPost}
+                    />
+                  </div>
+                ),
+              },
+              {
+                value: 'music',
+                label: 'Музыка',
+                content: (
+                  <div className="py-4">
+                    <MusicBlock
+                      profileAudio={dashboard?.profile_audio ?? null}
+                      profileAudioAction={form.profileAudioAction}
+                      selectedAudioName={selectedAudioName}
+                      isUploadingAudio={isUploadingAudio}
+                      onChooseAudio={() => audioInputRef.current?.click()}
+                      onKeepAudio={handleKeepProfileAudio}
+                      onRemoveAudio={handleRemoveProfileAudio}
+                    />
+                  </div>
+                ),
+              },
+              {
+                value: 'proxy',
+                label: 'Прокси',
+                content: (
+                  <div className="py-4">
+                    <ProxyPanel
+                      key={accountProxyQuery.data ? `${accountProxyQuery.data.proxy_type}:${accountProxyQuery.data.host}:${accountProxyQuery.data.port}:${accountProxyQuery.data.username ?? ''}:${accountProxyQuery.data.has_password}` : 'proxy-empty'}
+                      isChecking={checkProxyMutation.isPending}
+                      isDeleting={deleteProxyMutation.isPending}
+                      isSaving={saveProxyMutation.isPending}
+                      onCheck={handleCheckProxy}
+                      onDelete={handleDeleteProxy}
+                      onSave={handleSaveProxy}
+                      proxy={accountProxyQuery.data ?? null}
+                    />
+                  </div>
+                ),
+              },
+              {
+                value: 'jobs',
+                label: 'Задачи',
+                content: (
+                  <div className="py-4 space-y-4">
+                    {shouldShowJobPanel ? (
+                      <JobStepPanel
+                        currentJob={currentJob}
+                        items={jobDisplayItems}
+                        onHide={jobPanelKey ? () => setHiddenJobPanelKey(jobPanelKey) : undefined}
+                        progressSummary={jobProgressSummary}
+                        resultSummary={jobResultSummary}
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500">Нет активных задач.</div>
+                    )}
+                    <OperationLogsPanel logs={(accountLogsQuery.data?.items ?? []).slice(0, 10)} title="История задач" />
+                  </div>
+                ),
+              },
+              {
+                value: 'risk',
+                label: 'Риск и аудит',
+                content: (
+                  <div className="space-y-4">
+                    <AccountRiskTab
+                      accountState={dashboard?.account.account_state}
+                      cooldowns={(accountCooldownsQuery.data ?? []).map((cooldown) => ({
+                        operation: cooldown.operation,
+                        expires_at: cooldown.retry_after_at,
+                      }))}
+                      proxyStatus={accountProxyQuery.data?.status ?? accountSafetyQuery.data?.proxy_status}
+                      risk={accountRiskQuery.data ?? null}
+                      runtimeHealth={dashboard?.account.runtime_health ?? accountSafetyQuery.data?.health_status}
+                      validityChecks={validityChecksQuery.data ?? []}
+                    />
+                    <OperationLogsPanel logs={accountLogsQuery.data?.items ?? []} title="Полный журнал аудита" />
+                  </div>
+                ),
+              },
+            ]}
           />
         </div>
       </main>

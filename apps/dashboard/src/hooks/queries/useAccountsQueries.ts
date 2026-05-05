@@ -12,6 +12,7 @@ import {
 } from '@/lib/api'
 import {
   accountOperationLogsQueryOptions,
+  accountRiskQueryOptions,
   accountProxyQueryOptions,
   accountDeletionPreviewQueryOptions,
   accountDeletionRequestsQueryOptions,
@@ -44,6 +45,13 @@ export function useAccountSafetySummaryQuery() {
 export function useAccountSafetyQuery(accountId: string | null | undefined) {
   return useQuery({
     ...accountSafetyQueryOptions(accountId ?? ''),
+    enabled: Boolean(accountId),
+  })
+}
+
+export function useAccountRiskQuery(accountId: string | null | undefined) {
+  return useQuery({
+    ...accountRiskQueryOptions(accountId ?? ''),
     enabled: Boolean(accountId),
   })
 }

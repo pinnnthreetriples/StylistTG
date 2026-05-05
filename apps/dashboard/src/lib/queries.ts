@@ -6,6 +6,7 @@ import {
   fetchAccountProxy,
   fetchAccountSafety,
   fetchAccountSafetySummary,
+  fetchAccountRisk,
   fetchAccountRiskSummary,
   fetchAccountDeletionPreview,
   fetchAccountDeletionRequests,
@@ -56,6 +57,7 @@ export const queryKeys = {
   },
   accountRisk: {
     summary: ['accountRisk', 'summary'] as const,
+    account: (accountId: string) => ['accountRisk', accountId] as const,
     actionGate: (accountId: string, actionType: string) => ['accountRisk', accountId, 'actionGate', actionType] as const,
   },
   accountLifecycle: {
@@ -170,6 +172,13 @@ export function accountRiskSummaryQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.accountRisk.summary,
     queryFn: fetchAccountRiskSummary,
+  })
+}
+
+export function accountRiskQueryOptions(accountId: string) {
+  return queryOptions({
+    queryKey: queryKeys.accountRisk.account(accountId),
+    queryFn: () => fetchAccountRisk(accountId),
   })
 }
 

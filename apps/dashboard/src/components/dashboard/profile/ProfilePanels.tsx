@@ -8,7 +8,8 @@
  *   - StoriesBlock.tsx
  */
 
-import { memo } from 'react'
+import { memo, useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,8 +24,8 @@ import {
 } from '@/lib/dashboard'
 
 import { AvatarBlock } from './AvatarBlock'
-import { MusicBlock } from './MusicBlock'
-import { StoriesBlock } from './StoriesBlock'
+
+type ProfileTextField = 'firstName' | 'lastName' | 'username' | 'bio'
 
 export const ProfileEditor = memo(function ProfileEditor({
   changeItems,
@@ -34,24 +35,8 @@ export const ProfileEditor = memo(function ProfileEditor({
   onChoosePhoto,
   isUploadingPhoto,
   selectedPhotoName,
-  profileAudio,
-  profileAudioAction,
-  selectedAudioName,
-  isUploadingAudio,
-  onChooseAudio,
-  onKeepAudio,
-  onRemoveAudio,
-  stories,
-  isUploadingStory,
-  deletingStoryPostId,
-  onChooseStoryImage,
-  onUpdateStory,
-  onRemoveStory,
-  onDeleteStoryPost,
-  storyPosts,
-  storyCapabilities,
   currentProfile,
-  form,
+  form: draftForm,
   onChange,
 }: {
   changeItems: ReturnType<typeof buildChangeItems>
@@ -86,7 +71,35 @@ export const ProfileEditor = memo(function ProfileEditor({
   form: FormState
   onChange: (next: FormState | ((previous: FormState) => FormState)) => void
 }) {
-  const characterCount = form.bio.length
+  const form = useForm({
+    defaultValues: {
+      firstName: draftForm.firstName,
+      lastName: draftForm.lastName,
+      username: draftForm.username,
+      bio: draftForm.bio,
+    },
+  })
+
+  function updateDraftField(fieldName: ProfileTextField, value: string) {
+    onChange((prev) => ({ ...prev, [fieldName]: value }))
+  }
+
+  // Support external resets (e.g. from DashboardActionBar)
+  useEffect(() => {
+    if (
+      draftForm.firstName !== form.state.values.firstName ||
+      draftForm.lastName !== form.state.values.lastName ||
+      draftForm.username !== form.state.values.username ||
+      draftForm.bio !== form.state.values.bio
+    ) {
+      form.setFieldValue('firstName', draftForm.firstName)
+      form.setFieldValue('lastName', draftForm.lastName)
+      form.setFieldValue('username', draftForm.username)
+      form.setFieldValue('bio', draftForm.bio)
+    }
+  }, [draftForm, form])
+
+  const characterCount = draftForm.bio.length
 
   return (
     <>
@@ -97,7 +110,7 @@ export const ProfileEditor = memo(function ProfileEditor({
             {syncStateLabels.telegramCurrent}
           </span>
           <span className="text-[10px] text-gray-400">
-            Текстовые поля подтягиваются из Telegram. {appKnownMediaSyncNote}
+            Данные профиля синхронизируются после проверки аккаунта. {appKnownMediaSyncNote}
           </span>
         </div>
         <div className="flex flex-col sm:flex-row gap-5">
@@ -124,14 +137,22 @@ export const ProfileEditor = memo(function ProfileEditor({
                   Имя
                 </label>
                 <div className="relative">
-                  <Input
-                    className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
-                    id="first-name"
-                    onChange={(e) => onChange((prev) => ({ ...prev, firstName: e.target.value }))}
-                    value={form.firstName}
-                    placeholder="Имя"
-                  />
-                  {(currentProfile.first_name ?? '') !== form.firstName && (
+                  <form.Field name="firstName">
+                    {(field) => (
+                      <Input
+                        className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
+                        id="first-name"
+                        onChange={(e) => {
+                          field.handleChange(e.target.value)
+                          updateDraftField('firstName', e.target.value)
+                        }}
+                        onBlur={field.handleBlur}
+                        value={field.state.value}
+                        placeholder="Имя"
+                      />
+                    )}
+                  </form.Field>
+                  {(currentProfile.first_name ?? '') !== draftForm.firstName && (
                     <DirtyDot />
                   )}
                 </div>
@@ -145,14 +166,22 @@ export const ProfileEditor = memo(function ProfileEditor({
                   Фамилия
                 </label>
                 <div className="relative">
-                  <Input
-                    className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
-                    id="last-name"
-                    onChange={(e) => onChange((prev) => ({ ...prev, lastName: e.target.value }))}
-                    value={form.lastName}
-                    placeholder="Фамилия"
-                  />
-                  {(currentProfile.last_name ?? '') !== form.lastName && <DirtyDot />}
+                  <form.Field name="lastName">
+                    {(field) => (
+                      <Input
+                        className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
+                        id="last-name"
+                        onChange={(e) => {
+                          field.handleChange(e.target.value)
+                          updateDraftField('lastName', e.target.value)
+                        }}
+                        onBlur={field.handleBlur}
+                        value={field.state.value}
+                        placeholder="Фамилия"
+                      />
+                    )}
+                  </form.Field>
+                  {(currentProfile.last_name ?? '') !== draftForm.lastName && <DirtyDot />}
                 </div>
               </div>
             </div>
@@ -169,19 +198,23 @@ export const ProfileEditor = memo(function ProfileEditor({
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-gray-400">
                   @
                 </span>
-                <Input
-                  className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white pl-7 pr-3 text-sm transition-colors font-mono"
-                  id="username"
-                  onChange={(e) =>
-                    onChange((prev) => ({
-                      ...prev,
-                      username: e.target.value.replace(/^@/, ''),
-                    }))
-                  }
-                  value={form.username}
-                  placeholder="username"
-                />
-                {(currentProfile.username ?? '') !== form.username && <DirtyDot />}
+                <form.Field name="username">
+                  {(field) => (
+                    <Input
+                      className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white pl-7 pr-3 text-sm transition-colors font-mono"
+                      id="username"
+                      onChange={(e) => {
+                        const nextValue = e.target.value.replace(/^@/, '')
+                        field.handleChange(nextValue)
+                        updateDraftField('username', nextValue)
+                      }}
+                      onBlur={field.handleBlur}
+                      value={field.state.value}
+                      placeholder="username"
+                    />
+                  )}
+                </form.Field>
+                {(currentProfile.username ?? '') !== draftForm.username && <DirtyDot />}
               </div>
             </div>
 
@@ -203,14 +236,22 @@ export const ProfileEditor = memo(function ProfileEditor({
                 </span>
               </div>
               <div className="relative">
-                <Textarea
-                  className="min-h-[72px] resize-none rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 py-2 text-sm leading-relaxed transition-colors"
-                  id="bio"
-                  onChange={(e) => onChange((prev) => ({ ...prev, bio: e.target.value }))}
-                  value={form.bio}
-                  placeholder="Расскажите о себе"
-                />
-                {(currentProfile.bio ?? '') !== form.bio && (
+                <form.Field name="bio">
+                  {(field) => (
+                    <Textarea
+                      className="min-h-[72px] resize-none rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 py-2 text-sm leading-relaxed transition-colors"
+                      id="bio"
+                      onChange={(e) => {
+                        field.handleChange(e.target.value)
+                        updateDraftField('bio', e.target.value)
+                      }}
+                      onBlur={field.handleBlur}
+                      value={field.state.value}
+                      placeholder="Расскажите о себе"
+                    />
+                  )}
+                </form.Field>
+                {(currentProfile.bio ?? '') !== draftForm.bio && (
                   <span className="absolute right-2.5 top-3 size-1.5 rounded-full bg-tangerine-400" />
                 )}
               </div>
@@ -230,33 +271,7 @@ export const ProfileEditor = memo(function ProfileEditor({
         </div>
       </div>
 
-      {/* ════════ BLOCK 2: MUSIC ════════ */}
-      <div id="account-workspace-music">
-        <MusicBlock
-          profileAudio={profileAudio}
-          profileAudioAction={profileAudioAction}
-          selectedAudioName={selectedAudioName}
-          isUploadingAudio={isUploadingAudio}
-          onChooseAudio={onChooseAudio}
-          onKeepAudio={onKeepAudio}
-          onRemoveAudio={onRemoveAudio}
-        />
-      </div>
 
-      {/* ════════ BLOCK 3: STORIES ════════ */}
-      <div id="account-workspace-stories">
-        <StoriesBlock
-          stories={stories}
-          storyPosts={storyPosts}
-          storyCapabilities={storyCapabilities}
-          isUploadingStory={isUploadingStory}
-          deletingStoryPostId={deletingStoryPostId}
-          onChooseStoryImage={onChooseStoryImage}
-          onUpdateStory={onUpdateStory}
-          onRemoveStory={onRemoveStory}
-          onDeleteStoryPost={onDeleteStoryPost}
-        />
-      </div>
 
       {/* ════════ BLOCK 4: CHANGE SUMMARY ════════ */}
       <div className="section-card bg-white rounded-xl border border-gray-200 p-4 delay-4">

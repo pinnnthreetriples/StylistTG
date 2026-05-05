@@ -58,7 +58,7 @@ export function StoriesBlock({
             {isUploadingStory && <Loader2 className="size-3.5 animate-spin text-gray-400" />}
           </div>
           <p className={`mt-1 text-[10px] ${capabilityStatusClass(capabilityStatus.tone)}`}>
-            {capabilityStatus.description}
+            Создайте историю для этого аккаунта. Перед публикацией система проверит ограничения и риск.
           </p>
         </div>
       </div>
@@ -73,10 +73,17 @@ export function StoriesBlock({
           </ul>
         ) : (
           <p className="mt-1 text-[10px] leading-snug">
-            {stories.length > 0 ? syncStateLabels.draft : 'Истории доступны как модуль StylistTG.'}
+            {stories.length > 0 ? syncStateLabels.draft : 'Публикация в live-режиме выключена безопасно. Можно подготовить черновик и задачу без live-запуска.'}
           </p>
         )}
       </div>
+
+      {stories.length === 0 ? (
+        <div className="mb-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-5 text-center">
+          <p className="text-sm font-semibold text-gray-900">Историй пока нет</p>
+          <p className="mt-1 text-xs text-gray-500">Добавьте фото или видео, чтобы подготовить историю.</p>
+        </div>
+      ) : null}
 
       {/* ── Grid ── */}
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">

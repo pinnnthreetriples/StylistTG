@@ -11,7 +11,7 @@ export function SubmitPasswordForm({
   const [password, setPassword] = useState('')
 
   return (
-    <SectionCard title="Submit 2FA password" description="Password is never persisted in the UI and is cleared after submit.">
+    <SectionCard title="Введите пароль 2FA" description="Пароль не сохраняется в интерфейсе и очищается после отправки.">
       <form
         className="flex flex-col gap-3 sm:flex-row"
         onSubmit={(event) => {
@@ -26,12 +26,12 @@ export function SubmitPasswordForm({
           className="h-10 flex-1 rounded-md border border-gray-200 px-3 text-sm"
           disabled={disabled}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="2FA password"
+          placeholder="Пароль 2FA"
           type="password"
           value={password}
         />
         <Button disabled={disabled || password.trim().length === 0} type="submit">
-          Submit password
+          Отправить пароль
         </Button>
       </form>
     </SectionCard>

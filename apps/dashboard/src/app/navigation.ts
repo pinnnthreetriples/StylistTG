@@ -1,4 +1,4 @@
-import { Activity, BriefcaseBusiness, CreditCard, HeartPulse, Network, Settings, Users } from 'lucide-react'
+import { Activity, CreditCard, HeartPulse, Home, Settings, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { appRoutes } from '@/lib/routes'
@@ -10,15 +10,23 @@ export type NavigationItem = {
   disabled?: boolean
 }
 
+/**
+ * Primary navigation — Accounts-first product structure.
+ * Operations and Proxy Center are removed from main nav per product architecture.
+ * - Operations → Settings → Расширенные → Журнал операций
+ * - Proxy → inside individual account detail
+ */
 export const primaryNavigation: NavigationItem[] = [
-  { label: 'Accounts', href: appRoutes.accounts(), icon: Users },
-  { label: 'Health Center', href: appRoutes.health(), icon: HeartPulse },
-  { label: 'Jobs', href: appRoutes.jobs(), icon: Activity },
-  { label: 'Proxy Center', href: appRoutes.proxy(), icon: Network },
-  { label: 'Settings', href: appRoutes.settings(), icon: Settings },
-  { label: 'Billing', href: '#billing-later', icon: CreditCard, disabled: true },
+  { label: 'Главная', href: '/home', icon: Home },
+  { label: 'Аккаунты', href: appRoutes.accounts(), icon: Users },
+  { label: 'Здоровье', href: appRoutes.health(), icon: HeartPulse },
+  { label: 'Задачи', href: appRoutes.jobs(), icon: Activity },
+  { label: 'Настройки', href: appRoutes.settings(), icon: Settings },
+  { label: 'Биллинг', href: '/billing', icon: CreditCard, disabled: true },
 ]
 
-export const workspaceNavigation: NavigationItem[] = [
-  { label: 'Operations', href: appRoutes.operations(), icon: BriefcaseBusiness },
-]
+/**
+ * Workspace navigation is now empty.
+ * Operations moved to Settings → Advanced.
+ */
+export const workspaceNavigation: NavigationItem[] = []

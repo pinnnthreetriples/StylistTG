@@ -214,3 +214,189 @@ function labelDynamicStoryStep(value: string): string | null {
 
   return `История ${storyNumber} · ${actionLabel}`
 }
+
+// --- Risk level labels ---
+
+const riskLevelLabels: Record<string, string> = {
+  low: 'Низкий риск',
+  medium: 'Средний риск',
+  high: 'Высокий риск',
+  critical: 'Критический риск',
+}
+
+export function labelRiskLevel(value: string | null | undefined): string {
+  return labelFromMap(value, riskLevelLabels, 'Риск')
+}
+
+// Short labels (no "риск" suffix) for badges
+const riskLevelShortLabels: Record<string, string> = {
+  low: 'Низкий',
+  medium: 'Средний',
+  high: 'Высокий',
+  critical: 'Критический',
+}
+
+export function labelRiskLevelShort(value: string | null | undefined): string {
+  return labelFromMap(value, riskLevelShortLabels, 'Риск')
+}
+
+// --- Runtime health labels ---
+
+const runtimeHealthLabels: Record<string, string> = {
+  ok: 'Готов',
+  ready: 'Готов',
+  not_ready: 'Не готов',
+  checking: 'Проверка',
+  timeout: 'Таймаут',
+  error: 'Ошибка',
+  failed: 'Проблема',
+  broken: 'Проблема',
+  runtime_broken: 'Проблема',
+  awaiting_code: 'Ожидает действия',
+  awaiting_password: 'Ожидает действия',
+  unknown: 'Неизвестно',
+}
+
+export function labelRuntimeHealth(value: string | null | undefined): string {
+  return labelFromMap(value, runtimeHealthLabels, 'Среда')
+}
+
+export function runtimeHealthTone(value: string | null | undefined): 'green' | 'amber' | 'red' | 'gray' {
+  const normalized = value ? normalizeKey(value) : ''
+  if (normalized === 'ok' || normalized === 'ready') return 'green'
+  if (normalized === 'awaiting_code' || normalized === 'awaiting_password' || normalized === 'checking' || normalized === 'not_ready') return 'amber'
+  if (normalized === 'broken' || normalized === 'runtime_broken' || normalized === 'error' || normalized === 'failed' || normalized === 'timeout') return 'red'
+  return 'gray'
+}
+
+// --- Account state labels ---
+
+const accountStateLabels: Record<string, string> = {
+  registered: 'Зарегистрирован',
+  auth_pending: 'Ожидает входа',
+  awaiting_code: 'Ожидает код',
+  awaiting_password: 'Ожидает пароль',
+  authorized_ready: 'Авторизован',
+  execution_usable: 'Готов к задачам',
+  runtime_broken: 'Среда не готова',
+  reauth_required: 'Нужен повторный вход',
+  manual_intervention_needed: 'Нужна ручная проверка',
+  disabled: 'Отключён',
+}
+
+export function labelAccountState(value: string | null | undefined): string {
+  return labelFromMap(value, accountStateLabels, 'Статус')
+}
+
+// --- Proxy status labels ---
+
+const proxyStatusLabelsMap: Record<string, string> = {
+  none: 'Не назначен',
+  configured: 'Настроен',
+  tcp_working: 'TCP работает',
+  tdlib_working: 'Работает (TDLib)',
+  tdlib_unverified: 'Не проверен через TDLib',
+  failed: 'Ошибка подключения',
+  tdlib_failed: 'Ошибка TDLib',
+  checking: 'Проверка...',
+}
+
+export function labelProxyStatus(value: string | null | undefined): string {
+  return labelFromMap(value, proxyStatusLabelsMap, 'Прокси')
+}
+
+// --- Health center labels ---
+
+const healthDependencyLabels: Record<string, string> = {
+  ok: 'Работает',
+  not_configured: 'Не настроен',
+  down: 'Недоступен',
+  checking: 'Проверка...',
+  error: 'Ошибка',
+}
+
+export function labelHealthDependency(value: string | null | undefined): string {
+  return labelFromMap(value, healthDependencyLabels, 'Состояние')
+}
+
+// --- System readiness labels ---
+
+export function labelSystemReadiness(health: {
+  apiOk: boolean
+  dbOk: boolean
+  redisOk: boolean
+}): string {
+  if (health.apiOk && health.dbOk && health.redisOk) return 'Система готова'
+  if (!health.apiOk) return 'API недоступен'
+  if (!health.dbOk || !health.redisOk) return 'Есть проблемы'
+  return 'Нужно действие'
+}
+
+// --- Risk reason labels (for risk reason messages from API) ---
+
+const riskReasonLabels: Record<string, string> = {
+  reauth_required: 'Нужна повторная авторизация',
+  missing_session: 'Сессия аккаунта не найдена',
+  proxy_not_assigned: 'Прокси не назначен',
+  proxy_unstable: 'Прокси работает нестабильно',
+  safety_pause: 'Аккаунт на паузе безопасности',
+  recent_job_errors: 'Недавние ошибки задач',
+  check_before_profile: 'Перед изменением профиля проверьте аккаунт',
+  runtime_unhealthy: 'Среда аккаунта не готова',
+  proxy_problem: 'Проблема с прокси',
+}
+
+export function labelRiskReason(value: string | null | undefined): string {
+  if (!value) return 'Неизвестная причина'
+  const normalized = normalizeKey(value)
+  return riskReasonLabels[normalized] ?? errorLabels[normalized] ?? sentenceCase(normalized)
+}
+
+// --- Auth/import labels ---
+
+const authSessionStatusLabels: Record<string, string> = {
+  not_started: 'Не начато',
+  created: 'Создано',
+  queued: 'В очереди',
+  waiting_phone: 'Ожидает номер',
+  waiting_code: 'Ожидает код',
+  waiting_password: 'Ожидает пароль 2FA',
+  ready: 'Авторизован',
+  failed: 'Ошибка',
+  canceled: 'Отменено',
+  expired: 'Истёк срок',
+}
+
+export function labelAuthSessionStatus(value: string | null | undefined): string {
+  return labelFromMap(value, authSessionStatusLabels, 'Авторизация')
+}
+
+const importSourceTypeLabels: Record<string, string> = {
+  'json-metadata': 'JSON-метаданные',
+  'tdlib-directory': 'Папка TDLib',
+  tdata: 'Архив tdata',
+  'session-file': 'Файл сессии',
+}
+
+export function labelImportSourceType(value: string | null | undefined): string {
+  return labelFromMap(value, importSourceTypeLabels, 'Источник')
+}
+
+const importStatusLabels: Record<string, string> = {
+  uploaded: 'Загружен',
+  validating: 'Проверяется',
+  preview_ready: 'Предпросмотр готов',
+  ready_for_import: 'Готов к подтверждению',
+  importing: 'Импортируется',
+  completed: 'Готово',
+  failed: 'Ошибка',
+  canceled: 'Отменён',
+  valid: 'Поддерживается',
+  unsupported: 'Не поддерживается',
+  skipped: 'Пропущен',
+  pending: 'Ожидает проверки',
+}
+
+export function labelImportStatus(value: string | null | undefined): string {
+  return labelFromMap(value, importStatusLabels, 'Статус')
+}

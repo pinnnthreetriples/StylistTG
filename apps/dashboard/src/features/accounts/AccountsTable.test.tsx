@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
 
 import { AccountsTable } from '@/features/accounts/AccountsTable'
+import { accountsViewStorageKey } from '@/features/accounts/accountsViewStorage'
 import type { AccountListItem } from '@/lib/api'
 
 const account: AccountListItem = {
@@ -23,6 +24,13 @@ describe('AccountsTable', () => {
     const html = renderToStaticMarkup(<AccountsTable accounts={[account]} />)
 
     expect(html).toContain('Demo Account')
-    expect(html).toContain('Runtime')
+    expect(html).toContain('Среда')
+  })
+
+  test('scopes saved accounts view keys by env workspace and user', () => {
+    expect(accountsViewStorageKey({ appEnv: 'staging', workspaceId: 'workspace-1', userId: 'user-1' })).toBe(
+      'stylisttg:staging:workspace-1:user-1:accounts:view',
+    )
+    expect(accountsViewStorageKey({ appEnv: 'local' })).toBe('stylisttg:local:local:local:accounts:view')
   })
 })

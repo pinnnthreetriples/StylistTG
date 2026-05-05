@@ -32,9 +32,9 @@ export function buildPreflightItems(preflight: LivePreflight | null): SettingsSt
     boolItem('tdlib_credentials', 'TDLib API', preflight.tdlib_credentials_present, 'API ID и API Hash Telegram. Нужны TDLib, чтобы авторизовать аккаунты и выполнять действия.'),
     boolItem('postgres', 'PostgreSQL', preflight.postgres_reachable, 'Основная база данных проекта. Здесь хранятся аккаунты, профили, задачи и их статусы.'),
     boolItem('redis', 'Redis', preflight.redis_reachable, 'Быстрое хранилище очереди. Через него backend передает задачи RQ worker.'),
-    boolItem('storage', 'Storage', preflight.storage_writable, 'Локальные папки для файлов TDLib и загруженных данных. Проверка показывает, можно ли туда писать.'),
-    workerItem('profile_worker', 'Profile worker', preflight, preflight.profile_worker_status ?? preflight.rq_worker_status, 'profile_jobs'),
-    workerItem('auth_worker', 'Auth worker', preflight, preflight.auth_worker_status ?? preflight.rq_worker_status, 'auth_jobs'),
+    boolItem('storage', 'Хранилище', preflight.storage_writable, 'Локальные папки для файлов TDLib и загруженных данных. Проверка показывает, можно ли туда писать.'),
+    workerItem('profile_worker', 'Воркер профиля', preflight, preflight.profile_worker_status ?? preflight.rq_worker_status, 'profile_jobs'),
+    workerItem('auth_worker', 'Воркер авторизации', preflight, preflight.auth_worker_status ?? preflight.rq_worker_status, 'auth_jobs'),
     {
       key: 'overall',
       label: 'Live статус',

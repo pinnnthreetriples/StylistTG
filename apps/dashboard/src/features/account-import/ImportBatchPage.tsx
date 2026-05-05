@@ -25,7 +25,7 @@ export function ImportBatchPage() {
     try {
       setBatch(await action())
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : 'Import action failed safely.')
+      setError(currentError instanceof Error ? currentError.message : 'Действие импорта безопасно остановлено.')
     } finally {
       setPending(false)
     }
@@ -48,9 +48,9 @@ export function ImportBatchPage() {
   return (
     <div className="grid gap-4">
       <PageHeader
-        eyebrow="Account import foundation"
-        title="Preview account packages"
-        description="Validate tdata, TDLib directories, session files, or metadata without automatic live import."
+        eyebrow="Импорт аккаунтов"
+        title="Предпросмотр пакета"
+        description="Проверяет tdata, папки TDLib, файлы сессий или метаданные без автоматического live-импорта."
       />
       <ImportUploadForm disabled={pending} onCreate={createBatch} />
       <ImportConfirmPanel batch={batch} disabled={pending} onConfirm={confirmBatch} onValidate={validateBatch} />

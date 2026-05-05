@@ -52,7 +52,8 @@ export function MusicBlock({
       {isEmpty ? (
         /* ── Empty state ── */
         <div className="rounded-lg bg-gray-50 px-3 py-6 text-center border border-dashed border-gray-200 flex flex-col items-center justify-center">
-          <p className="text-xs text-gray-400 mb-3">Музыка не выбрана</p>
+          <p className="text-sm font-semibold text-gray-900">Музыка профиля не выбрана</p>
+          <p className="mb-3 mt-1 text-xs text-gray-500">Загрузите MP3/M4A, чтобы подготовить задачу на добавление музыки.</p>
           <button
             onClick={onChooseAudio}
             disabled={isUploadingAudio}

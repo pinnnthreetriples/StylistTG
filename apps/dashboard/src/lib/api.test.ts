@@ -83,17 +83,16 @@ describe('story draft api contract', () => {
     })
   })
 
-  it('fetches story drafts by account id', async () => {
+  it('fetches story drafts through path parameter', async () => {
     const fetchMock = mockFetch([])
 
     await expect(fetchStoryDrafts('account-1')).resolves.toEqual([])
 
     const request = requestDetails(fetchMock.mock.calls[0])
-    expect(request.url).toBe('/api/story-drafts')
-    expect(request.headers.get('X-Account-Id')).toBe('account-1')
+    expect(request.url).toBe('/api/story-drafts/account-1')
   })
 
-  it('fetches story capabilities by account id', async () => {
+  it('fetches story capabilities through path parameter', async () => {
     const payload = {
       account_id: 'account-1',
       stories_enabled: true,
@@ -112,18 +111,16 @@ describe('story draft api contract', () => {
     await expect(fetchStoryCapabilities('account-1')).resolves.toEqual(payload)
 
     const request = requestDetails(fetchMock.mock.calls[0])
-    expect(request.url).toBe('/api/story-capabilities')
-    expect(request.headers.get('X-Account-Id')).toBe('account-1')
+    expect(request.url).toBe('/api/story-capabilities/account-1')
   })
 
-  it('fetches dashboard through account header instead of account id in url', async () => {
+  it('fetches dashboard through path parameter', async () => {
     const fetchMock = mockFetch({ ok: true })
 
     await fetchDashboard('account-1')
 
     const request = requestDetails(fetchMock.mock.calls[0])
-    expect(request.url).toBe('/api/dashboard/profile')
-    expect(request.headers.get('X-Account-Id')).toBe('account-1')
+    expect(request.url).toBe('/api/dashboard/profile/account-1')
   })
 
   it('fetches account summaries for the account list', async () => {

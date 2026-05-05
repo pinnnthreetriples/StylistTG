@@ -12,6 +12,6 @@ describe('VirtualJobLogList', () => {
   test('renders a large list without a browser crash', () => {
     const html = renderToStaticMarkup(<VirtualJobLogList entries={createDemoJobLogRows(1000)} />)
 
-    expect(html).toContain('Mock worker event 1')
+    expect(html).toContain('Служебное событие воркера 1')
   })
 })

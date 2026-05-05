@@ -9,10 +9,12 @@ describe('ImportBatchPage', () => {
   test('renders dry-run import foundation', () => {
     const html = renderToStaticMarkup(<ImportBatchPage />)
 
-    expect(html).toContain('Account import foundation')
-    expect(html).toContain('dry-run')
-    expect(html).toContain('preview-first')
-    expect(html).toContain('Type IMPORT to confirm')
+    expect(html).toContain('Импорт аккаунтов')
+    expect(html).toContain('Предпросмотр')
+    expect(html).toContain('Введите IMPORT для подтверждения')
+    expect(html).not.toContain('Account import foundation')
+    expect(html).not.toContain('tdlib-directory')
+    expect(html).not.toContain('session-file')
   })
 
   test('confirmation is disabled without explicit IMPORT text', () => {
@@ -20,7 +22,7 @@ describe('ImportBatchPage', () => {
       <ImportConfirmPanel batch={null} onConfirm={async () => undefined} onValidate={async () => undefined} />,
     )
 
-    expect(html).toContain('Type IMPORT to confirm')
+    expect(html).toContain('Введите IMPORT для подтверждения')
     expect(html).toContain('disabled=""')
   })
 

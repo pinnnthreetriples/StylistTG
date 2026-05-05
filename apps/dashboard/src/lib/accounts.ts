@@ -12,7 +12,7 @@ export type AccountStatus = {
   detail: string
 }
 
-const waitingStates = new Set(['registered', 'auth_pending', 'awaiting_code', 'awaiting_password'])
+const waitingStates = new Set(['registered', 'auth_pending', 'awaiting_phone', 'awaiting_code', 'awaiting_password'])
 const errorStates = new Set(['runtime_broken', 'reauth_required', 'manual_intervention_needed', 'disabled'])
 
 export function accountStatus(account: AccountListItem): AccountStatus {
@@ -25,7 +25,10 @@ export function accountStatus(account: AccountListItem): AccountStatus {
   }
 
   if (waitingStates.has(account.account_state)) {
-    return { kind: 'waiting', label: account.account_state === 'awaiting_code' ? 'Ожидает кода' : 'Требует входа', detail: 'Нужно завершить вход' }
+    if (account.account_state === 'awaiting_phone') return { kind: 'waiting', label: 'Ожидает номер телефона', detail: 'Нужно начать вход' }
+    if (account.account_state === 'awaiting_code') return { kind: 'waiting', label: 'Ожидает код Telegram', detail: 'Нужно ввести код' }
+    if (account.account_state === 'awaiting_password') return { kind: 'waiting', label: 'Ожидает пароль 2FA', detail: 'Нужно ввести пароль' }
+    return { kind: 'waiting', label: 'Требует входа', detail: 'Нужно завершить вход' }
   }
 
   return { kind: 'error', label: 'Проверить', detail: 'Требуется проверка' }

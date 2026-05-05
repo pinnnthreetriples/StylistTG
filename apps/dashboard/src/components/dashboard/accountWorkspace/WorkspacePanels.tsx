@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from 'lucide-react'
 import { useState } from 'react'
+import { Button, FormField, Input, Select } from '@stylisttg/ui'
 
 import { formatChangeOperationLabel, groupRealExecutionChanges, type ChangeItem } from '@/lib/dashboard'
 import { validityCheckSummary, type AccountValidityCheck } from '@/lib/accountSafety'
@@ -68,36 +69,45 @@ export function ProxyPanel({
     <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-soft">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Сеть и Proxy</h2>
+          <h2 className="text-sm font-bold text-gray-900">Сеть и прокси</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            Proxy используется для сетевой маршрутизации аккаунта и диагностики подключения.
+            Прокси используется для сетевой маршрутизации аккаунта и диагностики подключения.
           </p>
         </div>
         <span className="rounded-lg bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
           {proxyStatusLabel(proxy?.status)}
         </span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-[110px_1fr_90px]">
-        <select
-          className="rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-sm"
-          onChange={(event) => setProxyType(event.currentTarget.value as AccountProxyInput['proxy_type'])}
-          value={proxyType}
-        >
-          <option value="socks5">SOCKS5</option>
-          <option value="http">HTTP</option>
-        </select>
-        <input className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm" onChange={(event) => setHost(event.currentTarget.value)} placeholder="host" value={host} />
-        <input className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm" onChange={(event) => setPort(Number(event.currentTarget.value))} placeholder="port" type="number" value={port} />
+      <div className="grid gap-2 sm:grid-cols-[150px_1fr_120px]">
+        <FormField label="Тип прокси">
+          <Select
+            onChange={(event) => setProxyType(event.currentTarget.value as AccountProxyInput['proxy_type'])}
+            value={proxyType}
+          >
+            <option value="socks5">SOCKS5</option>
+            <option value="http">HTTP</option>
+          </Select>
+        </FormField>
+        <FormField label="Хост">
+          <Input onChange={(event) => setHost(event.currentTarget.value)} placeholder="proxy.example.com" value={host} />
+        </FormField>
+        <FormField label="Порт">
+          <Input onChange={(event) => setPort(Number(event.currentTarget.value))} placeholder="1080" type="number" value={port} />
+        </FormField>
       </div>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        <input className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm" onChange={(event) => setUsername(event.currentTarget.value)} placeholder="username" value={username} />
-        <input
-          className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm"
-          onChange={(event) => setPassword(event.currentTarget.value)}
-          placeholder={proxy?.has_password ? 'пароль сохранён, новый ввод заменит его' : 'password'}
-          type="password"
-          value={password}
-        />
+        <FormField label="Логин">
+          <Input onChange={(event) => setUsername(event.currentTarget.value)} placeholder="Логин прокси" value={username} />
+        </FormField>
+        <FormField label="Пароль" hint="Оставьте пустым, чтобы не менять пароль">
+          <Input
+            autoComplete="new-password"
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            placeholder={proxy?.has_password ? 'Пароль уже сохранён' : 'Пароль прокси'}
+            type="password"
+            value={password}
+          />
+        </FormField>
       </div>
       {proxy?.last_checked_at || errorLabel ? (
         <p className="mt-2 text-xs text-gray-500">
@@ -106,20 +116,22 @@ export function ProxyPanel({
         </p>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          className="rounded-lg bg-navy-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+        <Button
           disabled={isSaving}
-          onClick={() => onSave({ proxy_type: proxyType, host, port, username: username || null, password: password || null })}
+          onClick={() => {
+            onSave({ proxy_type: proxyType, host, port, username: username || null, password: password || null })
+            setPassword('')
+          }}
           type="button"
         >
           {isSaving ? 'Сохраняем…' : 'Сохранить'}
-        </button>
-        <button className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 disabled:opacity-50" disabled={!proxy || isChecking} onClick={onCheck} type="button">
-          {isChecking ? 'Проверяем…' : 'Проверить proxy'}
-        </button>
-        <button className="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-500 disabled:opacity-50" disabled={!proxy || isDeleting} onClick={onDelete} type="button">
+        </Button>
+        <Button disabled={!proxy || isChecking} onClick={onCheck} type="button" variant="secondary">
+          {isChecking ? 'Проверяем…' : 'Проверить прокси'}
+        </Button>
+        <Button disabled={!proxy || isDeleting} onClick={onDelete} type="button" variant="danger">
           {isDeleting ? 'Удаляем…' : 'Удалить'}
-        </button>
+        </Button>
       </div>
     </section>
   )

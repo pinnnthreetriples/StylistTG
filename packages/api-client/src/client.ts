@@ -196,8 +196,8 @@ export async function fetchAccounts(client: StylistTgClient): Promise<AccountLis
 
 export async function fetchDashboard(client: StylistTgClient, accountId: string): Promise<DashboardProfile> {
   return unwrap(
-    client.openapi.GET('/api/dashboard/profile', {
-      params: { header: accountHeader(accountId) },
+    client.openapi.GET('/api/dashboard/profile/{account_id}', {
+      params: { path: { account_id: accountId } },
     }),
     'dashboard profile',
   )
@@ -458,8 +458,8 @@ export async function fetchLatestJobs(
   limit = 10,
 ): Promise<JobSummary[]> {
   return unwrap(
-    client.openapi.GET('/api/accounts/jobs', {
-      params: { header: accountHeader(accountId), query: { limit } },
+    client.openapi.GET('/api/accounts/{account_id}/jobs', {
+      params: { path: { account_id: accountId }, query: { limit } },
     }),
     'jobs',
   )
@@ -467,8 +467,8 @@ export async function fetchLatestJobs(
 
 export async function fetchLatestJob(client: StylistTgClient, accountId: string): Promise<JobSummary> {
   return unwrap(
-    client.openapi.GET('/api/accounts/jobs/latest', {
-      params: { header: accountHeader(accountId) },
+    client.openapi.GET('/api/accounts/{account_id}/jobs/latest', {
+      params: { path: { account_id: accountId } },
     }),
     'latest job',
   )
@@ -714,8 +714,8 @@ export async function updateExecutionPolicy(
 
 export async function fetchStoryDrafts(client: StylistTgClient, accountId: string): Promise<StoryDraftRead[]> {
   return unwrap(
-    client.openapi.GET('/api/story-drafts', {
-      params: { header: accountHeader(accountId) },
+    client.openapi.GET('/api/story-drafts/{account_id}', {
+      params: { path: { account_id: accountId } },
     }),
     'story drafts',
   )
@@ -723,8 +723,8 @@ export async function fetchStoryDrafts(client: StylistTgClient, accountId: strin
 
 export async function fetchStoryCapabilities(client: StylistTgClient, accountId: string): Promise<StoryCapabilities> {
   return unwrap(
-    client.openapi.GET('/api/story-capabilities', {
-      params: { header: accountHeader(accountId) },
+    client.openapi.GET('/api/story-capabilities/{account_id}', {
+      params: { path: { account_id: accountId } },
     }),
     'story capabilities',
   )

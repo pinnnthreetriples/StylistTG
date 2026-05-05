@@ -8,41 +8,57 @@ test('SaaS shell loads and captures the primary pages', async ({ page, isMobile 
   test.skip(isMobile, 'desktop navigation is covered by the chromium project')
   await page.goto('/')
   await expect(page.getByText('StylistTG').first()).toBeVisible()
-  await expect(page.getByText('Workspace: Staging Ops')).toBeVisible()
-  await expect(page.getByText('TDLib live-disabled')).toBeVisible()
-  await expect(page.getByText('Account Risk')).toBeVisible()
+  await expect(page).toHaveURL(/\/home$/)
+  await expect(page.getByRole('heading', { name: 'Контрольная панель' })).toBeVisible()
+  await expect(page.getByText('TDLib отключён').first()).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('saas-shell-dashboard.png'), fullPage: true })
 
-  await expect(page.getByText('Demo Account').first()).toBeVisible()
+  await page.goto('/accounts')
+  await expect(page.locator('tbody tr', { hasText: 'Demo Account' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Обновить риск/ })).toBeDisabled()
   await page.screenshot({ path: testInfo.outputPath('accounts-page.png'), fullPage: true })
 
+  await page.goto('/accounts/add')
+  await expect(page.getByRole('heading', { name: 'Добавление аккаунтов' })).toBeVisible()
+  await expect(page.getByText('Один аккаунт')).toBeVisible()
+  await expect(page.getByText('Импорт пакета')).toBeVisible()
+
+  await page.goto('/accounts/acc_1/profile')
+  await expect(page.getByText('Demo Account').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Редактирование профиля' })).toBeVisible()
+  await expect(page.getByText('Профиль').first()).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('account-profile.png'), fullPage: true })
+
+  await page.goto('/accounts/acc_1/proxy')
+  await expect(page.getByText('Сеть и прокси')).toBeVisible()
+  await expect(page.getByText('Оставьте пустым, чтобы не менять пароль')).toBeVisible()
+
+  await page.goto('/accounts/acc_1/risk')
+  await expect(page.getByText('Причины риска')).toBeVisible()
+  await expect(page.getByText('Готовность аккаунта')).toBeVisible()
+
   await page.goto('/health')
-  await expect(page.getByRole('heading', { name: 'Runtime Readiness' })).toBeVisible()
-  await expect(page.getByText('Account risk summary')).toBeVisible()
-  await expect(page.getByText('TDLib library')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Состояние системы' })).toBeVisible()
+  await expect(page.getByText('Готовность аккаунтов')).toBeVisible()
+  await expect(page.getByText(/TDLib, планировщик/)).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('health-center.png'), fullPage: true })
 
-  await page.goto('/auth/batch')
-  await expect(page.getByRole('heading', { name: 'Real authorization' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Preview account packages' })).toBeVisible()
-
   await page.goto('/jobs')
-  await expect(page.getByRole('heading', { name: 'Worker Activity' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Задачи' })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('jobs-page.png'), fullPage: true })
 
-  await page.goto('/proxy')
-  await expect(page.getByRole('heading', { name: 'Proxy Inventory' })).toBeVisible()
-
   await page.goto('/settings')
-  await expect(page.getByRole('button', { name: 'Настройки', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Настройки рабочей области' })).toBeVisible()
+  await expect(page.getByText('Биллинг')).toBeVisible()
 })
 
 test('mobile shell renders without a blank screen', async ({ page, isMobile }, testInfo) => {
   test.skip(!isMobile, 'mobile screenshot is covered by the mobile project')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Контрольная панель' })).toBeVisible()
   await page.goto('/health')
-  await expect(page.getByRole('heading', { name: 'Runtime Readiness' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Состояние системы' })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('mobile-shell.png'), fullPage: true })
 })
 
@@ -192,6 +208,103 @@ async function mockApi(page: Page) {
     }),
   )
   await page.route('**/api/accounts', (route) => route.fulfill({ json: accounts }))
+  await page.route('**/api/accounts/acc_1/auth-state', (route) =>
+    route.fulfill({
+      json: {
+        account_id: 'acc_1',
+        authorized: true,
+        branch: 'authorized',
+        can_submit_code: false,
+        can_submit_password: false,
+        cooldown_until: null,
+        display_message: 'Готов',
+        last_error_code: null,
+        phone_number: '+15550102000',
+      },
+    }),
+  )
+  await page.route('**/api/dashboard/profile/acc_1', (route) =>
+    route.fulfill({
+      json: {
+        account: accounts[0],
+        current_profile: {
+          first_name: 'Demo',
+          last_name: 'Account',
+          bio: '',
+          username: 'demo',
+          profile_photo_asset_id: null,
+        },
+        diagnostics: {
+          authorized_last_confirmed_at: '2026-05-03T00:00:00Z',
+          last_error_class: null,
+          last_error_code: null,
+          real_execution_enabled: false,
+          stories_live_execution_enabled: false,
+        },
+        editable_fields: {
+          bio: '',
+          name: 'Demo Account',
+          profile_photo: null,
+          username: 'demo',
+        },
+        pipeline: {
+          has_active_job: false,
+          latest_job: null,
+          latest_job_finished_at: null,
+          latest_job_id: null,
+          latest_job_state: null,
+          unsaved_changes_supported: true,
+        },
+        profile_audio: null,
+        story_posts: [],
+      },
+    }),
+  )
+  await page.route('**/api/accounts/acc_1/jobs**', (route) =>
+    route.request().url().endsWith('/latest')
+      ? route.fulfill({ json: null })
+      : route.fulfill({ json: [] }),
+  )
+  await page.route('**/api/story-drafts/acc_1', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/story-capabilities/acc_1', (route) =>
+    route.fulfill({ json: { can_post: false, reason_code: 'stories_live_disabled', warnings: [] } }),
+  )
+  await page.route('**/api/accounts/acc_1/risk', (route) =>
+    route.fulfill({
+      json: {
+        account_id: 'acc_1',
+        score: 10,
+        level: 'low',
+        reasons: [],
+        recommended_action: 'Аккаунт готов к работе.',
+        computed_at: '2026-05-03T00:00:00Z',
+      },
+    }),
+  )
+  await page.route('**/api/accounts/acc_1/validity-checks**', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/accounts/acc_1/cooldowns', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/accounts/acc_1/proxy', (route) =>
+    route.fulfill({
+      json: {
+        account_id: 'acc_1',
+        created_at: '2026-05-03T00:00:00Z',
+        has_password: true,
+        host: 'proxy.example.com',
+        last_check_scope: null,
+        last_checked_at: null,
+        last_error_code: null,
+        last_error_message: null,
+        port: 1080,
+        proxy_type: 'socks5',
+        status: 'configured',
+        tdlib_last_error_code: null,
+        tdlib_last_error_message: null,
+        tdlib_verified_at: null,
+        updated_at: '2026-05-03T00:00:00Z',
+        username: 'operator',
+      },
+    }),
+  )
   await page.route('**/api/accounts/safety-summary', (route) => route.fulfill({ json: safety }))
   await page.route('**/api/accounts/proxy-summary', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/accounts/safety-batch-preview', (route) =>
@@ -233,7 +346,7 @@ async function mockApi(page: Page) {
   await page.route('**/api/operation-logs?**', (route) =>
     route.fulfill({ json: { items: [], total: 0, limit: 100, offset: 0 } }),
   )
-  for (const path of ['/auth/batch', '/jobs', '/proxy', '/settings']) {
+  for (const path of ['/accounts/add', '/auth/batch', '/jobs', '/settings']) {
     await page.route(`**${path}`, (route) =>
       route.request().resourceType() === 'document'
         ? route.fulfill({ path: 'dist/index.html', contentType: 'text/html' })

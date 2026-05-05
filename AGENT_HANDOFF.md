@@ -50,6 +50,7 @@ Implemented or actively wired:
   - `python -m app.scripts.cloud_config_check` validates Neon/Supabase/R2/Redis/TDLib boundaries without printing secrets;
   - `python -m app.scripts.cloud_smoke` orchestrates safe read-only/dry-run smoke checks;
   - `python -m app.scripts.staging_smoke` checks deployed `/health` and `/ready`, then runs safe cloud config, Neon, Supabase, Redis, and optional storage smoke checks;
+  - staging smoke also checks `/diagnostics/runtime` when a deployed base URL is supplied;
   - object storage writes require `--allow-write-cloud`;
   - migrations require `--allow-migrations`;
   - production smoke requires explicit `--allow-production`.
@@ -212,7 +213,8 @@ Redis note:
 - Settings UI shows system/runtime readiness and should use Russian labels/tooltips.
 - Production SaaS deployment runbook: `docs/runbooks/saas-production-deployment.md`.
 - API error model migration note: `docs/architecture/api-error-model.md`.
-- TDLib runtime docs: `docs/architecture/tdlib-live-runtime.md`, `docs/runbooks/tdlib-runtime.md`, `docs/runbooks/telegram-auth-flow.md`, `docs/runbooks/account-import.md`, and `docs/security/telegram-session-handling.md`.
+  - TDLib runtime docs: `docs/architecture/tdlib-live-runtime.md`, `docs/runbooks/tdlib-runtime.md`, `docs/runbooks/telegram-auth-flow.md`, `docs/runbooks/account-import.md`, and `docs/security/telegram-session-handling.md`.
+  - Northflank staging readiness checklist: `docs/runbooks/northflank-staging-readiness.md`.
 
 Important operational point:
 

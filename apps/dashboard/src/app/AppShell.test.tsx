@@ -6,18 +6,18 @@ import { primaryNavigation } from '@/app/navigation'
 describe('SaaS shell navigation', () => {
   test('defines the expected product zones', () => {
     expect(primaryNavigation.map((item) => item.label)).toEqual([
-      'Accounts',
-      'Health Center',
-      'Jobs',
-      'Proxy Center',
-      'Settings',
-      'Billing',
+      'Главная',
+      'Аккаунты',
+      'Здоровье',
+      'Задачи',
+      'Настройки',
+      'Биллинг',
     ])
   })
 
   test('can render simple shell content without a browser', () => {
-    const html = renderToStaticMarkup(<div data-shell="saas">Workspace: Staging Ops</div>)
+    const html = renderToStaticMarkup(<div data-shell="saas">Рабочая область</div>)
 
-    expect(html).toContain('Workspace: Staging Ops')
+    expect(html).toContain('Рабочая область')
   })
 })

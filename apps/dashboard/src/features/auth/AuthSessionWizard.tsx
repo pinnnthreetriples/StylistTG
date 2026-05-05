@@ -27,7 +27,7 @@ export function AuthSessionWizard({ accountId }: { accountId?: string }) {
     try {
       setSession(await action())
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : 'Auth action failed safely.')
+      setError(currentError instanceof Error ? currentError.message : 'Действие авторизации не выполнено безопасно.')
     } finally {
       setPending(false)
     }
@@ -38,16 +38,16 @@ export function AuthSessionWizard({ accountId }: { accountId?: string }) {
   return (
     <div className="grid gap-4">
       <PageHeader
-        eyebrow="TDLib auth foundation"
-        title={accountId ? 'Reauthorize account' : 'Real authorization'}
-        description="Controlled Telegram authorization through TDLib with live runtime disabled by default and no profile/story/music execution."
+        eyebrow="Авторизация"
+        title={accountId ? 'Повторный вход в аккаунт' : 'Добавление одного аккаунта'}
+        description="Безопасный вход через Telegram. Live-исполнение профиля, историй и музыки не запускается."
       />
-      <SectionCard title="Safety gates">
+      <SectionCard title="Защита операции">
         <div className="flex flex-wrap gap-2">
-          <StatusPill tone="green">explicit user action</StatusPill>
-          <StatusPill tone="green">audit event</StatusPill>
-          <StatusPill tone="green">rate limit and lock foundation</StatusPill>
-          <StatusPill tone="amber">live disabled unless configured</StatusPill>
+          <StatusPill tone="green">Только по вашему действию</StatusPill>
+          <StatusPill tone="green">Запись в аудит</StatusPill>
+          <StatusPill tone="green">Лимиты и блокировки</StatusPill>
+          <StatusPill tone="amber">Live-режим выключен</StatusPill>
         </div>
       </SectionCard>
       <StartAuthForm
@@ -69,7 +69,7 @@ export function AuthSessionWizard({ accountId }: { accountId?: string }) {
       {selectedSessionId && session?.status !== 'canceled' ? (
         <div>
           <Button disabled={pending} onClick={() => void run(() => cancelTelegramAuthSession(selectedSessionId))} variant="secondary">
-            Cancel auth session
+            Отменить вход
           </Button>
         </div>
       ) : null}
@@ -80,7 +80,7 @@ export function AuthSessionWizard({ accountId }: { accountId?: string }) {
       ) : null}
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
         <ShieldCheck className="size-4" />
-        Codes and passwords are never stored in browser storage by this flow.
+        Коды и пароли не сохраняются в браузере.
       </div>
     </div>
   )

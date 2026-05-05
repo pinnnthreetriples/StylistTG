@@ -102,8 +102,14 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     _check_tdlib_root(report, tdlib_db_root, env)
     _check_tdlib_root(report, tdlib_files_root, env)
     adapter = env_value("PROFILE_EXECUTION_ADAPTER", env) or "mock"
-    if adapter == "tdlib" and not bool_env("ALLOW_TDLIB_LIVE_SMOKE", env):
-        report.add("tdlib_adapter", "WARN", "TDLib live adapter selected; do not run cloud smoke without explicit live approval")
+    live_enabled = bool_env("TDLIB_LIVE_ENABLED", env)
+    allow_live_smoke = bool_env("ALLOW_TDLIB_LIVE_SMOKE", env)
+    if live_enabled and not allow_live_smoke:
+        report.add("tdlib_live_enabled", "FAIL", "TDLib live mode must stay disabled for cloud smoke without explicit live approval")
+    else:
+        report.add("tdlib_live_enabled", "PASS", "TDLib live mode is safe for cloud smoke", live_enabled=live_enabled)
+    if adapter == "tdlib" and not allow_live_smoke:
+        report.add("tdlib_adapter", "FAIL", "TDLib live adapter selected; refuse cloud smoke without explicit live approval")
     else:
         report.add("tdlib_adapter", "PASS", "Profile execution adapter is safe for cloud smoke", adapter=adapter)
     return report

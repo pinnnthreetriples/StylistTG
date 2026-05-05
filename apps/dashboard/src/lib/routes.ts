@@ -1,4 +1,4 @@
-export type AccountWorkspaceSection = 'profile' | 'jobs' | 'stories' | 'music' | 'debug'
+export type AccountWorkspaceSection = 'profile' | 'jobs' | 'stories' | 'music' | 'proxy' | 'risk' | 'debug'
 
 export type AppRouteState =
   | { screen: 'accounts' }
@@ -23,10 +23,16 @@ export type AppRouteName =
   | 'account-jobs'
   | 'account-stories'
   | 'account-music'
+  | 'account-proxy'
+  | 'account-risk'
   | 'account-debug'
 
 export function accountListRoute(): string {
-  return '/'
+  return '/accounts'
+}
+
+export function accountAddRoute(): string {
+  return '/accounts/add'
 }
 
 export function accountProfileRoute(accountId: string): string {
@@ -49,14 +55,23 @@ export function accountMusicRoute(accountId: string): string {
   return `/accounts/${encodeURIComponent(accountId)}/music`
 }
 
+export function accountProxyRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/proxy`
+}
+
+export function accountRiskRoute(accountId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/risk`
+}
+
 export function accountDebugRoute(accountId: string): string {
   return `/accounts/${encodeURIComponent(accountId)}/debug`
 }
 
 export const appRoutes = {
   accounts: accountListRoute,
+  accountAdd: accountAddRoute,
   settings: () => '/settings',
-  authBatch: () => '/auth/batch',
+  authBatch: accountAddRoute,
   operations: () => '/operations',
   health: () => '/health',
   jobs: () => '/jobs',
@@ -66,6 +81,8 @@ export const appRoutes = {
   accountJobs: accountJobsRoute,
   accountStories: accountStoriesRoute,
   accountMusic: accountMusicRoute,
+  accountProxy: accountProxyRoute,
+  accountRisk: accountRiskRoute,
   accountDebug: accountDebugRoute,
 } as const
 
@@ -74,6 +91,8 @@ export function accountWorkspaceRoute(accountId: string, section: AccountWorkspa
   if (section === 'jobs') return appRoutes.accountJobs(accountId)
   if (section === 'stories') return appRoutes.accountStories(accountId)
   if (section === 'music') return appRoutes.accountMusic(accountId)
+  if (section === 'proxy') return appRoutes.accountProxy(accountId)
+  if (section === 'risk') return appRoutes.accountRisk(accountId)
   return appRoutes.accountDebug(accountId)
 }
 

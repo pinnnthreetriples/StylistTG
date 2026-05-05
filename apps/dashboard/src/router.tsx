@@ -21,16 +21,19 @@ import { RouteError } from '@/routes/error'
 import { RoutePending } from '@/routes/pending'
 
 const AccountsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'AccountsRoute')
-const SettingsRouteComponent = lazyRouteComponent(() => import('@/routes/AccountsRoute'), 'SettingsRoute')
+const SettingsRouteComponent = lazyRouteComponent(() => import('@/routes/SettingsRoute'), 'SettingsRoute')
 const AuthBatchRouteComponent = lazyRouteComponent(() => import('@/routes/AuthBatchRoute'), 'AuthBatchRoute')
 const OperationsRouteComponent = lazyRouteComponent(() => import('@/routes/OperationsRoute'), 'OperationsRoute')
 const HealthCenterRouteComponent = lazyRouteComponent(() => import('@/routes/HealthCenterRoute'), 'HealthCenterRoute')
 const JobsRouteComponent = lazyRouteComponent(() => import('@/routes/JobsRoute'), 'JobsRoute')
+const BillingRouteComponent = lazyRouteComponent(() => import('@/routes/BillingRoute'), 'BillingRoute')
 const ProxyCenterRouteComponent = lazyRouteComponent(() => import('@/routes/ProxyCenterRoute'), 'ProxyCenterRoute')
 const AccountWorkspaceRouteComponent = lazyRouteComponent(
   () => import('@/routes/AccountWorkspaceRoute'),
   'AccountWorkspaceRoute',
 )
+
+const HomeRouteComponent = lazyRouteComponent(() => import('@/routes/HomeRoute'), 'HomeRoute')
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -39,6 +42,7 @@ const rootRoute = createRootRoute({
     if (canonicalRoute) {
       throw redirect({ href: canonicalRoute, replace: true })
     }
+    throw redirect({ to: '/home', replace: true })
   },
   component: () => (
     <AppShell>
@@ -47,9 +51,15 @@ const rootRoute = createRootRoute({
   ),
 })
 
+const homeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/home',
+  component: HomeRouteComponent,
+})
+
 const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: '/accounts',
   loader: () => queryClient.ensureQueryData(accountsQueryOptions()),
   component: AccountsRouteComponent,
 })
@@ -67,6 +77,13 @@ const authBatchRoute = createRoute({
   component: AuthBatchRouteComponent,
 })
 
+const accountAddRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'accounts/add',
+  component: AuthBatchRouteComponent,
+})
+
+// Operations route still exists for deep links / Settings → Advanced
 const operationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'operations',
@@ -86,6 +103,13 @@ const jobsRoute = createRoute({
   component: JobsRouteComponent,
 })
 
+const billingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'billing',
+  component: BillingRouteComponent,
+})
+
+// Proxy center route kept for deep links only (not in primary nav)
 const proxyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'proxy',
@@ -134,6 +158,20 @@ const accountMusicRoute = createRoute({
   component: () => <AccountWorkspaceRouteComponent section="music" />,
 })
 
+const accountProxyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'accounts/$accountId/proxy',
+  loader: ({ params }) => loadAccountWorkspace(params.accountId),
+  component: () => <AccountWorkspaceRouteComponent section="proxy" />,
+})
+
+const accountRiskRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'accounts/$accountId/risk',
+  loader: ({ params }) => loadAccountWorkspace(params.accountId),
+  component: () => <AccountWorkspaceRouteComponent section="risk" />,
+})
+
 const accountDebugRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'accounts/$accountId/debug',
@@ -142,18 +180,23 @@ const accountDebugRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
+  homeRoute,
   accountsRoute,
+  accountAddRoute,
   settingsRoute,
   authBatchRoute,
   operationsRoute,
   healthRoute,
   jobsRoute,
+  billingRoute,
   proxyRoute,
   accountRoute,
   accountProfileRoute,
   accountJobsRoute,
   accountStoriesRoute,
   accountMusicRoute,
+  accountProxyRoute,
+  accountRiskRoute,
   accountDebugRoute,
 ])
 

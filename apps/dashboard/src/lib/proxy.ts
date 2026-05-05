@@ -51,13 +51,13 @@ export type AccountProxySummary = {
 }
 
 export function proxyStatusLabel(status: ProxyStatus | null | undefined): string {
-  if (!status || status === 'none') return 'Proxy: не назначен'
+  if (!status || status === 'none') return 'Прокси не назначен'
   if (status === 'working' || status === 'tcp_working') return 'TCP доступен'
-  if (status === 'tdlib_working') return 'Telegram через proxy проверен'
-  if (status === 'tdlib_unverified') return 'Telegram через proxy не проверен'
-  if (status === 'failed') return 'Proxy: ошибка'
-  if (status === 'tdlib_failed') return 'TDLib через proxy не прошёл'
-  return 'Proxy: не проверен'
+  if (status === 'tdlib_working') return 'Telegram через прокси проверен'
+  if (status === 'tdlib_unverified') return 'Telegram через прокси не проверен'
+  if (status === 'failed') return 'Прокси: ошибка'
+  if (status === 'tdlib_failed') return 'Проверка Telegram через прокси не прошла'
+  return 'Прокси не проверен'
 }
 
 export function proxyStatusTone(status: ProxyStatus | null | undefined): 'green' | 'amber' | 'red' | 'gray' {
@@ -70,21 +70,21 @@ export function proxyStatusTone(status: ProxyStatus | null | undefined): 'green'
 export function proxyErrorLabel(code: string | null | undefined): string {
   if (!code) return ''
   const labels: Record<string, string> = {
-    proxy_timeout: 'proxy не ответил вовремя',
-    proxy_auth_failed: 'ошибка логина или пароля proxy',
-    proxy_connection_refused: 'proxy отклонил подключение',
-    proxy_dns_failed: 'host proxy не найден',
-    proxy_unsupported: 'тип proxy не поддерживается',
-    proxy_connection_failed: 'не удалось подключиться к proxy',
-    PROXY_CREDENTIALS_KEY_REQUIRED: 'Пароль proxy нельзя сохранить: не настроен ключ шифрования.',
-    PROXY_CREDENTIALS_CRYPTO_UNAVAILABLE: 'Пароль proxy нельзя сохранить: backend dependency для шифрования не установлена.',
+    proxy_timeout: 'прокси не ответил вовремя',
+    proxy_auth_failed: 'ошибка логина или пароля прокси',
+    proxy_connection_refused: 'прокси отклонил подключение',
+    proxy_dns_failed: 'хост прокси не найден',
+    proxy_unsupported: 'тип прокси не поддерживается',
+    proxy_connection_failed: 'не удалось подключиться к прокси',
+    PROXY_CREDENTIALS_KEY_REQUIRED: 'Пароль прокси нельзя сохранить: не настроен ключ шифрования.',
+    PROXY_CREDENTIALS_CRYPTO_UNAVAILABLE: 'Пароль прокси нельзя сохранить: зависимость backend для шифрования не установлена.',
   }
-  return labels[code] ?? 'ошибка proxy'
+  return labels[code] ?? 'ошибка прокси'
 }
 
 export function validateProxyInput(input: AccountProxyInput): string | null {
-  if (!['socks5', 'http'].includes(input.proxy_type)) return 'Поддерживаются только SOCKS5 и HTTP proxy'
-  if (!input.host.trim()) return 'Укажите host proxy'
-  if (!Number.isInteger(input.port) || input.port < 1 || input.port > 65535) return 'Port должен быть от 1 до 65535'
+  if (!['socks5', 'http'].includes(input.proxy_type)) return 'Поддерживаются только SOCKS5 и HTTP прокси'
+  if (!input.host.trim()) return 'Укажите хост прокси'
+  if (!Number.isInteger(input.port) || input.port < 1 || input.port > 65535) return 'Порт должен быть от 1 до 65535'
   return null
 }

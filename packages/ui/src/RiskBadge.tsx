@@ -13,16 +13,17 @@ const styles: Record<RiskLevel, string> = {
 
 export type RiskBadgeProps = HTMLAttributes<HTMLSpanElement> & {
   level: RiskLevel
+  label?: string
   score?: number
 }
 
-export function RiskBadge({ className, level, score, ...props }: RiskBadgeProps) {
+export function RiskBadge({ className, level, label, score, ...props }: RiskBadgeProps) {
   return (
     <span
       className={cn('inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold', styles[level], className)}
       {...props}
     >
-      {level}
+      {label ?? level}
       {typeof score === 'number' ? <span className="ml-1 opacity-75">{score}</span> : null}
     </span>
   )

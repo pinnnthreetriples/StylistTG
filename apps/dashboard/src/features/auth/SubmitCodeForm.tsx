@@ -11,7 +11,7 @@ export function SubmitCodeForm({
   const [code, setCode] = useState('')
 
   return (
-    <SectionCard title="Submit Telegram code" description="Code is sent once and cleared from browser state after submit.">
+    <SectionCard title="Введите код Telegram" description="Код отправляется один раз и сразу очищается из состояния формы.">
       <form
         className="flex flex-col gap-3 sm:flex-row"
         onSubmit={(event) => {
@@ -26,11 +26,11 @@ export function SubmitCodeForm({
           className="h-10 flex-1 rounded-md border border-gray-200 px-3 text-sm"
           disabled={disabled}
           onChange={(event) => setCode(event.target.value)}
-          placeholder="Telegram code"
+          placeholder="Код Telegram"
           value={code}
         />
         <Button disabled={disabled || code.trim().length === 0} type="submit">
-          Submit code
+          Отправить код
         </Button>
       </form>
     </SectionCard>

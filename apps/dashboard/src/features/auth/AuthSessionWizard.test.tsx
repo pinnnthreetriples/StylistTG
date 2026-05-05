@@ -10,9 +10,11 @@ describe('AuthSessionWizard', () => {
   test('renders TDLib live auth safety copy', () => {
     const html = renderToStaticMarkup(<AuthSessionWizard />)
 
-    expect(html).toContain('TDLib auth foundation')
-    expect(html).toContain('live runtime disabled')
-    expect(html).toContain('Codes and passwords are never stored')
+    expect(html).toContain('Авторизация')
+    expect(html).toContain('Live-режим выключен')
+    expect(html).toContain('Коды и пароли не сохраняются в браузере')
+    expect(html).not.toContain('TDLib auth foundation')
+    expect(html).not.toContain('Submit Telegram code')
   })
 
   test('code and password forms avoid persisted default values', () => {

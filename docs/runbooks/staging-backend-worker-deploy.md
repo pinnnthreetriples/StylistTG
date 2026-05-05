@@ -130,7 +130,7 @@ Web runtime should not require `DATABASE_DIRECT_URL` if migrations run as a sepa
 ## Staging Smoke Checklist
 
 1. `python -m app.scripts.staging_smoke --base-url https://<staging-backend> --include-storage --env-file .env.cloud.local`
-2. Confirm `/health` and `/ready` pass.
+2. Confirm `/health`, `/ready`, and `/diagnostics/runtime` pass.
 3. Confirm `cloud_config_check` passes or only reports understood warnings.
 4. Confirm Neon runtime and Alembic current checks pass.
 5. Confirm Supabase JWKS fetch passes.
@@ -189,3 +189,9 @@ Web runtime should not require `DATABASE_DIRECT_URL` if migrations run as a sepa
 - Use the same Dockerfile.
 - Define separate process groups for web and worker.
 - Attach a persistent volume only in the later TDLib runtime PR, not in this staging mock deploy.
+
+## Northflank Notes
+
+Use `docs/runbooks/northflank-staging-readiness.md` as the provider-specific
+readiness checklist. It keeps Northflank config changes separate from code
+changes and treats this stage as mock-safe SaaS staging validation.

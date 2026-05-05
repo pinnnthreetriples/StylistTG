@@ -15,10 +15,11 @@ import {
 
 describe('app route contracts', () => {
   it('keeps canonical top-level URL contracts stable', () => {
-    expect(accountListRoute()).toBe('/')
-    expect(appRoutes.accounts()).toBe('/')
+    expect(accountListRoute()).toBe('/accounts')
+    expect(appRoutes.accounts()).toBe('/accounts')
+    expect(appRoutes.accountAdd()).toBe('/accounts/add')
     expect(appRoutes.settings()).toBe('/settings')
-    expect(appRoutes.authBatch()).toBe('/auth/batch')
+    expect(appRoutes.authBatch()).toBe('/accounts/add')
     expect(appRoutes.operations()).toBe('/operations')
   })
 
@@ -42,7 +43,7 @@ describe('app route contracts', () => {
 
   it('centralizes legacy query URL compatibility', () => {
     expect(resolveLegacyQueryRoute('?view=settings')).toBe('/settings')
-    expect(resolveLegacyQueryRoute('?view=auth-batch')).toBe('/auth/batch')
+    expect(resolveLegacyQueryRoute('?view=auth-batch')).toBe('/accounts/add')
     expect(resolveLegacyQueryRoute('?account_id=account 1')).toBe('/accounts/account%201')
     expect(resolveLegacyQueryRoute('?tab=profile')).toBeNull()
   })

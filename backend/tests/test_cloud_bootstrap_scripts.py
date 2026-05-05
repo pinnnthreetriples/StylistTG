@@ -104,6 +104,18 @@ def test_cloud_config_rejects_tdlib_root_under_asset_root() -> None:
     assert _statuses(report)["tdlib_storage_boundary"] == "FAIL"
 
 
+def test_cloud_config_fails_closed_when_tdlib_live_is_enabled_without_override() -> None:
+    report = validate_cloud_config(
+        _valid_cloud_env(
+            TDLIB_LIVE_ENABLED="true",
+            PROFILE_EXECUTION_ADAPTER="tdlib",
+        )
+    )
+
+    assert _statuses(report)["tdlib_live_enabled"] == "FAIL"
+    assert _statuses(report)["tdlib_adapter"] == "FAIL"
+
+
 def test_supabase_auth_smoke_fetches_jwks() -> None:
     report = run_supabase_auth_smoke(
         env=_valid_cloud_env(),
@@ -307,6 +319,7 @@ def test_staging_smoke_checks_health_and_ready_when_base_url_provided() -> None:
     assert requested_urls == [
         ("https://staging.example.com/health", 5.0),
         ("https://staging.example.com/ready", 5.0),
+        ("https://staging.example.com/diagnostics/runtime", 5.0),
     ]
 
 

@@ -298,7 +298,7 @@ Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Obj
 
 try {
     $frontendProc = Start-Process -FilePath "cmd.exe" `
-        -ArgumentList "/c", "npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort" `
+        -ArgumentList "/c", "npm", "--workspace", "@stylisttg/dashboard", "run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort" `
         -WorkingDirectory $ProjectRoot `
         -RedirectStandardOutput $frontendLogOut `
         -RedirectStandardError $frontendLogErr `

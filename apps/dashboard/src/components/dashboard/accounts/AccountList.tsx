@@ -410,7 +410,7 @@ function AccountsContent({
 
       <section className="fade-in d12 mt-5 rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
         <div className="mb-3">
-          <h2 className="text-sm font-bold text-navy-900">SaaS table foundation</h2>
+          <h2 className="text-sm font-bold text-navy-900">Таблица аккаунтов</h2>
           <p className="mt-1 text-xs text-gray-500">
             TanStack Table view for sorting, selection, and column visibility migration.
           </p>
@@ -453,14 +453,14 @@ function RiskSummaryRow({ summary }: { summary: AccountReadinessRiskSummary }) {
   return (
     <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="text-sm font-bold text-navy-900">Account Risk</div>
+        <div className="text-sm font-bold text-navy-900">Риск аккаунтов</div>
         <div className="text-[11px] font-semibold text-gray-500">app-known readiness score</div>
       </div>
       <div className="grid gap-2 sm:grid-cols-4">
-        <RiskMetric label="Low" value={summary.low} className="bg-emerald-50 text-emerald-700" />
-        <RiskMetric label="Medium" value={summary.medium} className="bg-honey-50 text-honey-700" />
-        <RiskMetric label="High" value={summary.high} className="bg-orange-50 text-orange-700" />
-        <RiskMetric label="Critical" value={summary.critical} className="bg-red-50 text-red-700" />
+        <RiskMetric label="Низкий" value={summary.low} className="bg-emerald-50 text-emerald-700" />
+        <RiskMetric label="Средний" value={summary.medium} className="bg-honey-50 text-honey-700" />
+        <RiskMetric label="Высокий" value={summary.high} className="bg-orange-50 text-orange-700" />
+        <RiskMetric label="Критический" value={summary.critical} className="bg-red-50 text-red-700" />
       </div>
     </section>
   )

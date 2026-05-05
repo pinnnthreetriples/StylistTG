@@ -8,7 +8,9 @@ describe('TanStack Router route tree', () => {
 
     expect(routesByPath).toEqual(
       expect.arrayContaining([
-        '/',
+        '/home',
+        '/accounts',
+        '/accounts/add',
         '/settings',
         '/auth/batch',
         '/operations',

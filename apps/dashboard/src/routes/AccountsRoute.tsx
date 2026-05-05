@@ -1,19 +1,15 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
-import { AccountList } from '@/components/dashboard/accounts/AccountList'
+import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { appRoutes } from '@/lib/routes'
+import { accountsQueryOptions, accountRiskSummaryQueryOptions } from '@/lib/queries'
 
 export function AccountsRoute() {
-  return <AccountsArea activeTab="accounts" />
-}
-
-export function SettingsRoute() {
-  return <AccountsArea activeTab="settings" />
-}
-
-function AccountsArea({ activeTab }: { activeTab: 'accounts' | 'settings' }) {
   const navigate = useNavigate()
+  const accountsQuery = useQuery(accountsQueryOptions())
+  const riskQuery = useQuery(accountRiskSummaryQueryOptions())
   const navigateToRoute = useCallback(
     (href: string) => {
       void navigate({ href })
@@ -21,12 +17,16 @@ function AccountsArea({ activeTab }: { activeTab: 'accounts' | 'settings' }) {
     [navigate],
   )
 
+  const riskByAccount = new Map((riskQuery.data?.items ?? []).map((risk) => [risk.account_id, risk]))
+
   return (
-    <AccountList
-      activeTab={activeTab}
-      onAddBatch={() => navigateToRoute(appRoutes.authBatch())}
+    <AccountsPage
+      accounts={accountsQuery.data ?? []}
+      isLoading={accountsQuery.isLoading}
+      onAddAccounts={() => navigateToRoute(appRoutes.accountAdd())}
       onSelectAccount={(accountId) => navigateToRoute(appRoutes.account(accountId))}
-      onTabChange={(tab) => navigateToRoute(tab === 'settings' ? appRoutes.settings() : appRoutes.accounts())}
+      riskByAccount={riskByAccount}
+      riskSummary={riskQuery.data}
     />
   )
 }

@@ -13,7 +13,7 @@ The frontend is polling-first:
 
 There is no WebSocket/SSE contract.
 
-Frontend route/query architecture is documented in `docs/frontend-architecture.md`.
+Frontend route/query architecture is documented in `docs/architecture/frontend-saas-foundation.md`.
 
 Mutating local operator endpoints may require `X-Operator-Token` when `OPERATOR_API_TOKEN` is configured. The backend defaults to localhost-only access for operator safety. The browser UI does not store or send `OPERATOR_API_TOKEN`; use it only for API/reverse-proxy clients.
 
@@ -27,16 +27,26 @@ SaaS boundary:
 
 Canonical frontend routes are:
 
-- `/`
-- `/settings`
-- `/auth/batch`
-- `/operations`
-- `/accounts/$accountId`
+- `/` -> `/home`
+- `/home`
+- `/accounts`
+- `/accounts/add`
 - `/accounts/$accountId/profile`
-- `/accounts/$accountId/jobs`
 - `/accounts/$accountId/stories`
 - `/accounts/$accountId/music`
-- `/accounts/$accountId/debug`
+- `/accounts/$accountId/proxy`
+- `/accounts/$accountId/jobs`
+- `/accounts/$accountId/risk`
+- `/health`
+- `/jobs`
+- `/settings`
+- `/billing`
+
+Compatibility routes:
+
+- `/auth/batch`
+- `/operations`
+- `/accounts/$accountId/profile`
 
 Legacy query URLs are compatibility redirects only.
 
@@ -498,15 +508,26 @@ Important:
 
 Canonical frontend routes:
 
-- `/`
+- `/` -> `/home`
+- `/home`
+- `/accounts`
+- `/accounts/add`
 - `/settings`
-- `/auth/batch`
 - `/accounts/$accountId`
 - `/accounts/$accountId/profile`
 - `/accounts/$accountId/jobs`
 - `/accounts/$accountId/stories`
 - `/accounts/$accountId/music`
-- `/accounts/$accountId/debug`
+- `/accounts/$accountId/proxy`
+- `/accounts/$accountId/risk`
+- `/health`
+- `/jobs`
+- `/billing`
+
+Compatibility routes:
+
+- `/auth/batch`
+- `/operations`
 
 Legacy query URLs are compatibility redirects only:
 

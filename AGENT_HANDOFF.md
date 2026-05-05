@@ -87,7 +87,7 @@ Implemented or actively wired:
     - auth code and 2FA password are never persisted by the new auth-session flow;
     - import batches validate `tdlib-directory`, `tdata`, `session-file`, and `json-metadata` in preview-first mode;
     - unsupported session formats require manual reauth and are not automatically converted or attached;
-    - dashboard `/auth/batch` shows live auth wizard and import preview foundation;
+    - dashboard `/accounts/add` is the canonical Add Accounts surface; `/auth/batch` remains a compatibility route;
     - `python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check` is the safe runtime smoke.
   - Playwright browser QA lives in `apps/dashboard/e2e` and uses mocked API data with screenshots stored in ignored artifacts;
   - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
@@ -500,18 +500,27 @@ Important query rules:
 
 ## Frontend Navigation
 
-TanStack Router is the canonical frontend routing layer. Route tree:
+TanStack Router is the canonical frontend routing layer. Canonical route tree:
 
-- `/` for accounts
+- `/` redirects to `/home`
+- `/home`
+- `/accounts`
+- `/accounts/add`
 - `/settings`
-- `/auth/batch`
-- `/operations`
-- `/accounts/$accountId`
+- `/health`
+- `/jobs`
+- `/billing`
 - `/accounts/$accountId/profile`
 - `/accounts/$accountId/jobs`
 - `/accounts/$accountId/stories`
 - `/accounts/$accountId/music`
-- `/accounts/$accountId/debug`
+- `/accounts/$accountId/proxy`
+- `/accounts/$accountId/risk`
+
+Compatibility routes:
+
+- `/auth/batch`
+- `/operations`
 
 Helper:
 
@@ -531,7 +540,7 @@ Rules:
 - Browser back/forward is owned by TanStack Router, not manual `popstate` listeners.
 - Use `src/lib/routes.ts` for route strings; do not add ad-hoc route strings in components.
 - Route-level code splitting is done through TanStack Router `lazyRouteComponent`.
-- Split at product route boundaries first: accounts/settings, batch auth, and account workspace.
+- Split at product route boundaries first: home, accounts, add accounts, settings/health/jobs, and account workspace.
 - Keep account workspace loaders data-first: `authState` and `dashboardBundle` should be ready before the editor renders.
 - Use the small route pending fallback for cold loads only; warm cached navigation should render from TanStack Query cache without a full skeleton flash.
 - Route loader/component failures use the TanStack Router error component with user-facing Russian text and hidden technical details.

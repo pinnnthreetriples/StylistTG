@@ -28,9 +28,9 @@ describe('settings helpers', () => {
       { key: 'tdlib_credentials', label: 'TDLib API', status: 'down', message: 'Недоступен' },
       { key: 'postgres', label: 'PostgreSQL', status: 'ok', message: 'Готов' },
       { key: 'redis', label: 'Redis', status: 'down', message: 'Недоступен' },
-      { key: 'storage', label: 'Storage', status: 'ok', message: 'Готов' },
-      { key: 'profile_worker', label: 'Profile worker', status: 'attention', message: 'Worker нужен для выполнения задач' },
-      { key: 'auth_worker', label: 'Auth worker', status: 'attention', message: 'Worker нужен для выполнения задач' },
+      { key: 'storage', label: 'Хранилище', status: 'ok', message: 'Готов' },
+      { key: 'profile_worker', label: 'Воркер профиля', status: 'attention', message: 'Worker нужен для выполнения задач' },
+      { key: 'auth_worker', label: 'Воркер авторизации', status: 'attention', message: 'Worker нужен для выполнения задач' },
       { key: 'overall', label: 'Live статус', status: 'attention', message: 'Ограничен' },
     ].map((item) => expect.objectContaining(item)))
   })

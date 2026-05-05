@@ -11,12 +11,12 @@ export function VirtualJobLogList({
   entries?: JobLogEntry[]
   isLoading?: boolean
 }) {
-  if (isLoading) return <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">Loading logs...</div>
+  if (isLoading) return <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">Загружаем журнал...</div>
   if (entries.length === 0) {
     return (
       <EmptyState
-        title="No job logs"
-        description="Worker log entries will appear here when read-only endpoints are available."
+        title="Задач пока нет"
+        description="Создайте задачу из карточки аккаунта после проверки риска."
       />
     )
   }
@@ -67,10 +67,11 @@ function VirtualJobLogListBrowser({ entries }: { entries: JobLogEntry[] }) {
 
 function JobLogRow({ entry }: { entry: JobLogEntry }) {
   const tone = entry.level === 'error' ? 'text-red-600' : entry.level === 'warning' ? 'text-honey-700' : 'text-gray-600'
+  const levelLabel = entry.level === 'error' ? 'Ошибка' : entry.level === 'warning' ? 'Внимание' : 'Инфо'
   return (
     <div className="grid grid-cols-[11rem_5rem_1fr] gap-3 border-b border-gray-100 px-4 py-3 text-xs">
       <span className="font-mono text-gray-400">{entry.timestamp}</span>
-      <span className={`font-bold uppercase ${tone}`}>{entry.level}</span>
+      <span className={`font-bold ${tone}`}>{levelLabel}</span>
       <span className="truncate text-gray-700">{entry.message}</span>
     </div>
   )

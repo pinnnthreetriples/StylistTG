@@ -34,13 +34,13 @@ export function AccountsPage({
           description="Управляйте Telegram-аккаунтами, рисками, прокси и задачами."
           actions={
             onAddAccounts ? (
-              <Button onClick={onAddAccounts} type="button">
+              <Button onClick={onAddAccounts} type="button" variant="secondary">
                 <Plus className="size-4" />
                 Добавить аккаунты
               </Button>
             ) : (
               <Link to="/accounts/add">
-                <Button type="button">
+                <Button type="button" variant="secondary">
                   <Plus className="size-4" />
                   Добавить аккаунты
                 </Button>

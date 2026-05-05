@@ -54,7 +54,7 @@ export function HomePage() {
           description="Состояние аккаунтов, задач и инфраструктуры рабочей области."
           actions={
             <Link to="/accounts/add">
-              <Button type="button">
+              <Button type="button" variant="secondary">
                 <Plus className="size-4 mr-2" />
                 Добавить аккаунты
               </Button>
@@ -107,7 +107,7 @@ export function HomePage() {
             description="После добавления вы сможете редактировать профиль, истории, музыку, прокси и видеть риск блокировки."
             action={
               <Link to="/accounts/add">
-                <Button type="button">Добавить аккаунты</Button>
+                <Button type="button" variant="secondary">Добавить аккаунты</Button>
               </Link>
             }
             secondaryAction={

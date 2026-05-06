@@ -25,11 +25,17 @@ The smoke command returns `PASS` in mock/staging mode when the library is not
 configured. If `TDLIB_SHARED_LIBRARY_PATH` is configured, `--library-check`
 requires the library to load and expose the expected TDLib JSON symbols.
 
-## Optional TDLib Worker Image
+## TDLib Worker Image
 
 The current `backend/Dockerfile` remains the API and standard worker image. The
-optional `backend/Dockerfile.tdlib` is reserved for future auth workers that need
-`libtdjson` and isolated TDLib volume mounts.
+`backend/Dockerfile.tdlib` builds a worker image with `libtdjson` baked into:
+
+```text
+/usr/local/lib/libtdjson.so
+```
+
+Use this Dockerfile for the Northflank worker service when cloud TDLib live
+execution is being validated. Do not switch the API service to this image.
 
 Manual build, when Docker is available:
 
@@ -37,13 +43,25 @@ Manual build, when Docker is available:
 docker build -f backend/Dockerfile.tdlib -t stylisttg-backend-tdlib:test .
 ```
 
-Before running it as a live auth worker, provide `TDLIB_SHARED_LIBRARY_PATH` and
-mount or bake the library at that location:
+The build compiles TDLib from the pinned upstream commit configured by
+`TDLIB_GIT_REF`. If the build host is memory constrained, keep
+`TDLIB_BUILD_PARALLELISM=1`.
+
+Before running it as a live worker, provide `TDLIB_SHARED_LIBRARY_PATH` and
+private TDLib roots:
 
 ```text
 TDLIB_SHARED_LIBRARY_PATH=/usr/local/lib/libtdjson.so
 TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database
 TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
+```
+
+For a two-service Northflank staging contour, keep the API service on the normal
+image and switch only `stylisttg-staging-worker` to `backend/Dockerfile.tdlib`.
+The worker command can listen to all live-capable queues:
+
+```bash
+python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json && python -m app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs
 ```
 
 Do not set `TDLIB_LIVE_ENABLED=true` until the controlled live auth validation

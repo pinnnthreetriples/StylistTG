@@ -47,6 +47,25 @@ The build compiles TDLib from the pinned upstream commit configured by
 `TDLIB_GIT_REF`. If the build host is memory constrained, keep
 `TDLIB_BUILD_PARALLELISM=1`.
 
+Northflank's free/small worker resources can time out while compiling TDLib.
+The preferred cloud path is to build this image in GitHub Actions and push it
+to GitHub Container Registry:
+
+```text
+ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:main
+ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:sha-<commit>
+```
+
+The workflow lives at:
+
+```text
+.github/workflows/tdlib-worker-image.yml
+```
+
+It runs on `main` when the TDLib worker image inputs change, and can also be
+started manually from GitHub Actions. Northflank should then pull the ready
+image from GHCR instead of compiling `backend/Dockerfile.tdlib` itself.
+
 Before running it as a live worker, provide `TDLIB_SHARED_LIBRARY_PATH` and
 private TDLib roots:
 
@@ -66,6 +85,19 @@ python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json
 
 Do not set `TDLIB_LIVE_ENABLED=true` until the controlled live auth validation
 runbook has been followed in an isolated staging/dev environment.
+
+When using the GHCR image on Northflank, the worker service should use the
+prebuilt image instead of the repository Dockerfile build. Keep the API service
+unchanged. The worker still uses the same command:
+
+```bash
+python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json && python -m app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs
+```
+
+For persistent Telegram sessions, mount a private worker volume for
+`TDLIB_DATABASE_ROOT` and `TDLIB_FILES_ROOT`. Temporary paths such as `/tmp`
+are acceptable only for disposable smoke validation because they are lost on
+redeploy.
 
 ## Optional Read-Only Smoke
 

@@ -35,9 +35,10 @@ def test_dockerfile_defaults_to_web_command_and_non_root_user() -> None:
 def test_tdlib_dockerfile_bakes_library_but_keeps_live_disabled() -> None:
     dockerfile = (ROOT / "backend" / "Dockerfile.tdlib").read_text(encoding="utf-8")
 
-    assert "AS tdlib-builder" in dockerfile
-    assert "cmake --build build --target tdjson" in dockerfile
-    assert "COPY --from=tdlib-builder /tdlib-runtime/lib/libtdjson.so*" in dockerfile
+    assert "ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:main AS tdlib-runtime" in dockerfile
+    assert "COPY --from=tdlib-runtime /usr/local/lib/libtdjson.so*" in dockerfile
+    assert "cmake --build build --target tdjson" not in dockerfile
+    assert "git clone --depth 1 https://github.com/tdlib/td.git" not in dockerfile
     assert "TDLIB_SHARED_LIBRARY_PATH=/usr/local/lib/libtdjson.so" in dockerfile
     assert "TDLIB_LIVE_ENABLED=false" in dockerfile
     assert "PROFILE_EXECUTION_ADAPTER=mock" in dockerfile

@@ -1,0 +1,67 @@
+name: TDLib Worker Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/Dockerfile.tdlib"
+      - "backend/app/**"
+      - "backend/migrations/**"
+      - "backend/scripts/**"
+      - "backend/pyproject.toml"
+      - "backend/alembic.ini"
+      - ".github/workflows/tdlib-worker-image.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker
+
+jobs:
+  build-and-push:
+    name: Build and push TDLib worker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.tdlib
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            TDLIB_BUILD_PARALLELISM=2
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

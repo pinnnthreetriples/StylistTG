@@ -1,33 +1,4 @@
-FROM python:3.12-slim AS tdlib-builder
-
-ARG TDLIB_GIT_REF=8fc2344f3e3daf55983032a44c4156bd8a1a7533
-ARG TDLIB_BUILD_PARALLELISM=1
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        cmake \
-        gperf \
-        git \
-        libssl-dev \
-        ninja-build \
-        zlib1g-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /tmp
-
-RUN git clone --depth 1 https://github.com/tdlib/td.git td && \
-    cd td && \
-    git checkout "${TDLIB_GIT_REF}" && \
-    cmake -S . -B build -GNinja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/tdlib-install \
-        -DTD_ENABLE_LTO=OFF && \
-    cmake --build build --target tdjson --parallel "${TDLIB_BUILD_PARALLELISM}" && \
-    mkdir -p /tdlib-runtime/lib && \
-    find build -name 'libtdjson.so*' -exec cp -P {} /tdlib-runtime/lib/ \; && \
-    test -e /tdlib-runtime/lib/libtdjson.so
+FROM ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:main AS tdlib-runtime
 
 FROM python:3.12-slim AS runtime
 
@@ -61,7 +32,7 @@ RUN apt-get update && \
         /usr/local/lib && \
     chown -R stylisttg:stylisttg /var/lib/stylisttg
 
-COPY --from=tdlib-builder /tdlib-runtime/lib/libtdjson.so* /usr/local/lib/
+COPY --from=tdlib-runtime /usr/local/lib/libtdjson.so* /usr/local/lib/
 RUN ldconfig
 
 COPY backend/pyproject.toml backend/alembic.ini ./

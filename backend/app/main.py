@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
@@ -69,7 +70,19 @@ async def _stale_job_reaper_loop() -> None:
             )
 
 
+def _configured_cors_origins() -> list[str]:
+    return [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+
+
 app = FastAPI(title="StylistTG API", lifespan=lifespan)
+if _configured_cors_origins():
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_configured_cors_origins(),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

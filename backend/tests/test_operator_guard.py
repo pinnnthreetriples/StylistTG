@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.main import app, _is_local_client
+from app.main import app, _configured_cors_origins, _is_local_client
 
 
 class DummyClient:
@@ -70,3 +70,16 @@ def test_operator_guard_allows_public_runtime_diagnostics(monkeypatch) -> None:
 
     assert runtime.status_code == 200
     assert frontend_summary.status_code == 403
+
+
+def test_cors_origin_parser_trims_configured_pages_origins(monkeypatch) -> None:
+    monkeypatch.setattr(
+        settings,
+        "cors_origins",
+        "https://stylisttg-dashboard.pages.dev, https://0df59c45.stylisttg-dashboard.pages.dev",
+    )
+
+    assert _configured_cors_origins() == [
+        "https://stylisttg-dashboard.pages.dev",
+        "https://0df59c45.stylisttg-dashboard.pages.dev",
+    ]

@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     operator_api_token: str | None = None
     enforce_localhost_only: bool = True
     operator_allowed_client_hosts: str = "127.0.0.1,::1,localhost,testclient"
+    cors_origins: str = ""
     profile_photo_max_bytes: int = 20 * 1024 * 1024
     profile_audio_max_bytes: int = 20 * 1024 * 1024
     story_image_max_bytes: int = 10 * 1024 * 1024

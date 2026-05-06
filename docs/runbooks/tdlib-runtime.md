@@ -37,19 +37,20 @@ The current `backend/Dockerfile` remains the API and standard worker image. The
 Use this Dockerfile for the Northflank worker service when cloud TDLib live
 execution is being validated. Do not switch the API service to this image.
 
+To keep Northflank builds short, this Dockerfile does not compile TDLib from
+source. It copies `libtdjson.so` from the prebuilt GHCR image:
+
+```text
+ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:main
+```
+
 Manual build, when Docker is available:
 
 ```powershell
 docker build -f backend/Dockerfile.tdlib -t stylisttg-backend-tdlib:test .
 ```
 
-The build compiles TDLib from the pinned upstream commit configured by
-`TDLIB_GIT_REF`. If the build host is memory constrained, keep
-`TDLIB_BUILD_PARALLELISM=1`.
-
-Northflank's free/small worker resources can time out while compiling TDLib.
-The preferred cloud path is to build this image in GitHub Actions and push it
-to GitHub Container Registry:
+The prebuilt base image is published by GitHub Actions:
 
 ```text
 ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker:main
@@ -64,7 +65,7 @@ The workflow lives at:
 
 It runs on `main` when the TDLib worker image inputs change, and can also be
 started manually from GitHub Actions. Northflank should then pull the ready
-image from GHCR instead of compiling `backend/Dockerfile.tdlib` itself.
+`libtdjson.so` layer from GHCR instead of compiling TDLib itself.
 
 Before running it as a live worker, provide `TDLIB_SHARED_LIBRARY_PATH` and
 private TDLib roots:
@@ -85,14 +86,6 @@ python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json
 
 Do not set `TDLIB_LIVE_ENABLED=true` until the controlled live auth validation
 runbook has been followed in an isolated staging/dev environment.
-
-When using the GHCR image on Northflank, the worker service should use the
-prebuilt image instead of the repository Dockerfile build. Keep the API service
-unchanged. The worker still uses the same command:
-
-```bash
-python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json && python -m app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs
-```
 
 For persistent Telegram sessions, mount a private worker volume for
 `TDLIB_DATABASE_ROOT` and `TDLIB_FILES_ROOT`. Temporary paths such as `/tmp`

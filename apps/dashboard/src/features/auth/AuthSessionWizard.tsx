@@ -15,8 +15,9 @@ import {
   submitTelegramAuthPassword,
   type TelegramAuthSession,
 } from '@/lib/api'
+import { getLiveStatus, type LiveStatus } from '@/lib/liveStatus'
 
-export function AuthSessionWizard({ accountId }: { accountId?: string }) {
+export function AuthSessionWizard({ accountId, liveStatus = getLiveStatus() }: { accountId?: string; liveStatus?: LiveStatus }) {
   const [session, setSession] = useState<TelegramAuthSession | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -47,11 +48,12 @@ export function AuthSessionWizard({ accountId }: { accountId?: string }) {
           <StatusPill tone="green">Только по вашему действию</StatusPill>
           <StatusPill tone="green">Запись в аудит</StatusPill>
           <StatusPill tone="green">Лимиты и блокировки</StatusPill>
-          <StatusPill tone="amber">Live-режим выключен</StatusPill>
+          <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
         </div>
       </SectionCard>
       <StartAuthForm
         disabled={pending}
+        liveStatus={liveStatus}
         onStart={(payload) =>
           run(() => (accountId ? createReauthSession(accountId, payload) : createTelegramAuthSession(payload)))
         }

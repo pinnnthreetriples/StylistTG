@@ -90,9 +90,7 @@ export function HomePage() {
               <div className="text-xs font-semibold uppercase text-gray-500">Live-режим</div>
               <div className="mt-2 text-lg font-bold text-navy-950">{liveStatus.label}</div>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                {liveStatus.ready
-                  ? 'TDLib runtime загружается, worker готов к контролируемому тесту на тестовом аккаунте.'
-                  : 'Инфраструктура может быть готова, но реальные live-действия Telegram не включаются без отдельного ревью.'}
+                Зелёный статус означает, что live включён и исполнительная среда реально готова.
               </p>
             </div>
           </Card>

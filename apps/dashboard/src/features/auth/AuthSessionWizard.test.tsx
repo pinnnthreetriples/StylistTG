@@ -8,10 +8,19 @@ import { SubmitPasswordForm } from '@/features/auth/SubmitPasswordForm'
 
 describe('AuthSessionWizard', () => {
   test('renders TDLib live auth safety copy', () => {
-    const html = renderToStaticMarkup(<AuthSessionWizard />)
+    const html = renderToStaticMarkup(
+      <AuthSessionWizard
+        liveStatus={{
+          enabled: false,
+          ready: true,
+          label: 'Live-инфраструктура готова, запуск выключен',
+          tone: 'amber',
+        }}
+      />,
+    )
 
     expect(html).toContain('Авторизация')
-    expect(html).toContain('Live-режим выключен')
+    expect(html).toContain('Live-инфраструктура готова, запуск выключен')
     expect(html).toContain('Коды и пароли не сохраняются в браузере')
     expect(html).not.toContain('TDLib auth foundation')
     expect(html).not.toContain('Submit Telegram code')

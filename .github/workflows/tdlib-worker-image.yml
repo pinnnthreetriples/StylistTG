@@ -20,6 +20,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/pinnnthreetriples/stylisttg-tdlib-worker
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build-and-push:

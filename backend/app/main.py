@@ -36,7 +36,16 @@ from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics
 from app.services.stale_jobs import reap_stale_jobs
 
-configure_logging(log_dir=settings.storage_root.parent / "logs")
+configure_logging(
+    log_dir=settings.storage_root.parent / "logs",
+    betterstack_source_token=(
+        settings.betterstack_source_token.get_secret_value()
+        if settings.betterstack_source_token
+        else None
+    ),
+    betterstack_ingesting_host=settings.betterstack_ingesting_host,
+    betterstack_request_timeout_seconds=settings.betterstack_request_timeout_seconds,
+)
 
 
 @asynccontextmanager

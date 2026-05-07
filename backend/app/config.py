@@ -109,6 +109,9 @@ class Settings(BaseSettings):
     supabase_auth_jwks_request_timeout_seconds: float = 5.0
     supabase_auth_jwks_max_retries: int = 1
     default_workspace_mode: str = "local"
+    betterstack_source_token: SecretStr | None = None
+    betterstack_ingesting_host: str | None = None
+    betterstack_request_timeout_seconds: float = 0.5
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

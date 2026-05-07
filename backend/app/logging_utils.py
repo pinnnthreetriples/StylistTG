@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import uuid
 from datetime import UTC, datetime
+from time import monotonic
 from pathlib import Path
 from typing import Any
+from urllib import request
 
 # ── Logger singleton ─────────────────────────────────────────────────────────
 
@@ -15,7 +18,14 @@ logger = logging.getLogger("stylisttg")
 _configured = False
 
 
-def configure_logging(*, log_dir: str | Path = "logs", level: int = logging.INFO) -> None:
+def configure_logging(
+    *,
+    log_dir: str | Path = "logs",
+    level: int = logging.INFO,
+    betterstack_source_token: str | None = None,
+    betterstack_ingesting_host: str | None = None,
+    betterstack_request_timeout_seconds: float | None = None,
+) -> None:
     """Configure structured logging to console and file. Safe to call multiple times."""
     global _configured
     if _configured:
@@ -42,6 +52,15 @@ def configure_logging(*, log_dir: str | Path = "logs", level: int = logging.INFO
     file_handler.setLevel(level)
     file_handler.setFormatter(_JsonFormatter())
     logger.addHandler(file_handler)
+
+    betterstack_handler = _build_betterstack_handler(
+        source_token=betterstack_source_token,
+        ingesting_host=betterstack_ingesting_host,
+        timeout_seconds=betterstack_request_timeout_seconds,
+        level=level,
+    )
+    if betterstack_handler:
+        logger.addHandler(betterstack_handler)
 
 
 # ── Public helpers ───────────────────────────────────────────────────────────
@@ -153,6 +172,40 @@ class _JsonFormatter(logging.Formatter):
         return json.dumps(entry, default=str, ensure_ascii=False)
 
 
+class _BetterStackHandler(logging.Handler):
+    """Send structured log records to Better Stack Telemetry over HTTPS."""
+
+    _failure_backoff_seconds = 60.0
+
+    def __init__(self, *, source_token: str, ingesting_host: str, timeout_seconds: float) -> None:
+        super().__init__()
+        self.source_token = source_token
+        self.ingesting_host = ingesting_host
+        self.timeout_seconds = timeout_seconds
+        self.formatter = _JsonFormatter()
+        self._disabled_until = 0.0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if monotonic() < self._disabled_until:
+            return
+        try:
+            payload = self.format(record).encode("utf-8")
+            req = request.Request(
+                self.ingesting_host,
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {self.source_token}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with request.urlopen(req, timeout=self.timeout_seconds):
+                pass
+        except Exception:
+            self._disabled_until = monotonic() + self._failure_backoff_seconds
+            self.handleError(record)
+
+
 def _format_value(v: Any) -> str:
     """Format a value for console display."""
     if isinstance(v, str) and len(v) > 60:
@@ -160,3 +213,35 @@ def _format_value(v: Any) -> str:
     if isinstance(v, float):
         return f"{v:.1f}"
     return str(v)
+
+
+def _build_betterstack_handler(
+    *,
+    source_token: str | None,
+    ingesting_host: str | None,
+    timeout_seconds: float | None,
+    level: int,
+) -> logging.Handler | None:
+    token = source_token or os.getenv("BETTERSTACK_SOURCE_TOKEN")
+    host = ingesting_host or os.getenv("BETTERSTACK_INGESTING_HOST")
+    if not token or not host:
+        return None
+
+    handler = _BetterStackHandler(
+        source_token=token,
+        ingesting_host=_normalize_betterstack_host(host),
+        timeout_seconds=timeout_seconds
+        if timeout_seconds is not None
+        else float(os.getenv("BETTERSTACK_REQUEST_TIMEOUT_SECONDS", "2.0")),
+    )
+    handler.setLevel(level)
+    return handler
+
+
+def _normalize_betterstack_host(host: str) -> str:
+    normalized = host.strip().rstrip("/")
+    if not normalized:
+        return normalized
+    if normalized.startswith(("http://", "https://")):
+        return normalized
+    return f"https://{normalized}"

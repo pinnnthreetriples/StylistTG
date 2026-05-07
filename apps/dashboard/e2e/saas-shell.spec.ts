@@ -23,7 +23,8 @@ test('SaaS shell loads and captures the primary pages', async ({ page, isMobile 
 
   await page.goto('/accounts/add')
   await expect(page.getByRole('heading', { name: 'Добавление аккаунтов' })).toBeVisible()
-  await expect(page.getByText('Один аккаунт')).toBeVisible()
+  await expect(page.getByText('Введите один номер для ручной авторизации или несколько номеров для пачки.')).toBeVisible()
+  await expect(page.getByText('Номера', { exact: true })).toBeVisible()
   await expect(page.getByText('Импорт пакета')).toBeVisible()
 
   await page.goto('/accounts/acc_1/profile')

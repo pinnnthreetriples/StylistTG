@@ -72,6 +72,26 @@ def test_operator_guard_allows_public_runtime_diagnostics(monkeypatch) -> None:
     assert frontend_summary.status_code == 403
 
 
+def test_worker_diagnostics_is_public_safe_metadata(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "enforce_localhost_only", True)
+    monkeypatch.setattr(settings, "tdlib_database_root", "C:/real/session/db")
+    monkeypatch.setattr(settings, "tdlib_files_root", "C:/real/session/files")
+    client = TestClient(app)
+
+    response = client.get("/api/workers/diagnostics")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "redis_rq"
+    assert {"auth_jobs", "profile_jobs", "warmup_jobs"}.issubset(
+        {queue["name"] for queue in payload["queues"]}
+    )
+    serialized = str(payload)
+    assert "session/db" not in serialized
+    assert "session/files" not in serialized
+    assert "rediss://" not in serialized
+
+
 def test_cors_origin_parser_trims_configured_pages_origins(monkeypatch) -> None:
     monkeypatch.setattr(
         settings,

@@ -16,7 +16,7 @@ def get_worker_queues(_auth: AuthContext = Depends(require_authenticated)):
 
 
 @router.get("/diagnostics", response_model=WorkerDiagnosticsRead)
-def get_worker_diagnostics(_auth: AuthContext = Depends(require_authenticated)):
+def get_worker_diagnostics():
     return WorkerDiagnosticsRead(**worker_diagnostics())
 
 

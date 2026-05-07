@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('stylisttg:e2e-auth-bypass', 'true')
+  })
   await mockApi(page)
 })
 

@@ -84,6 +84,7 @@ export type AccountImportBatch = Schema<'AccountImportBatchRead'>
 export type AccountImportBatchCreate = Schema<'AccountImportBatchCreate'>
 export type AccountImportBatchValidate = Schema<'AccountImportBatchValidate'>
 export type AccountImportBatchConfirm = Schema<'AccountImportBatchConfirm'>
+export type CurrentUser = Schema<'CurrentUserRead'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
@@ -111,16 +112,27 @@ export const createStylistTgClient = createApiClient
 
 function createFetchWithAuth(baseFetch: typeof fetch, getAccessToken: ApiClientOptions['getAccessToken']): typeof fetch {
   return async (input, init) => {
-    const headers = new Headers(init?.headers)
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
     const token = await getAccessToken?.()
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`)
     }
-    if (typeof init?.body === 'string' && !headers.has('Content-Type')) {
+    const body = init?.body ?? (input instanceof Request ? input.body : undefined)
+    if (shouldDefaultJsonContentType(body) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json')
     }
     return baseFetch(input, { ...init, headers })
   }
+}
+
+function shouldDefaultJsonContentType(body: unknown): boolean {
+  if (body === undefined || body === null) return false
+  if (typeof FormData !== 'undefined' && body instanceof FormData) return false
+  if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) return false
+  if (typeof Blob !== 'undefined' && body instanceof Blob) return false
+  if (body instanceof ArrayBuffer) return false
+  if (ArrayBuffer.isView(body)) return false
+  return true
 }
 
 function buildUrl(baseUrl: string, path: string): string {
@@ -192,6 +204,10 @@ export async function fetchFrontendDiagnosticsSummary(client: StylistTgClient): 
 
 export async function fetchAccounts(client: StylistTgClient): Promise<AccountListItem[]> {
   return unwrap(client.openapi.GET('/api/accounts'), 'accounts')
+}
+
+export async function fetchCurrentUser(client: StylistTgClient): Promise<CurrentUser> {
+  return client.request<CurrentUser>('/api/me')
 }
 
 export async function fetchDashboard(client: StylistTgClient, accountId: string): Promise<DashboardProfile> {

@@ -87,6 +87,11 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = False
     reaper_enabled: bool = False
     reaper_mode: str = "dry_run"
+    warmup_workers_enabled: bool = False
+    warmup_dry_run: bool = True
+    warmup_default_cadence_hours: int = 24
+    warmup_max_consecutive_failures: int = 3
+    warmup_batch_limit: int = 50
     rate_limit_auth_jobs_per_tenant_per_hour: int = 20
     rate_limit_profile_jobs_per_tenant_per_hour: int = 100
     rate_limit_media_jobs_per_tenant_per_hour: int = 50

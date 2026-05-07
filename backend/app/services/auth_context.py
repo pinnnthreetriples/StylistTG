@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_session
 from app.errors import AppError
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID, WorkspaceMember
 from app.services.supabase_jwt import SupabaseJwtVerifier
+from app.services.workspace_onboarding import resolve_workspace_membership
 from app.services.workspaces import ensure_default_workspace
 
 
@@ -53,10 +53,10 @@ def get_current_auth_context(
             email=email,
             display_name=claims.get("name"),
         )
-        member = (
-            session.query(WorkspaceMember)
-            .filter_by(user_id=user.id, workspace_id=request.headers.get("X-Workspace-Id", DEFAULT_LOCAL_WORKSPACE_ID))
-            .one_or_none()
+        member = resolve_workspace_membership(
+            session,
+            user=user,
+            requested_workspace_id=request.headers.get("X-Workspace-Id"),
         )
         if member is None:
             raise AppError(
@@ -65,6 +65,7 @@ def get_current_auth_context(
                 error_class="forbidden",
                 message="workspace access denied",
             )
+        session.commit()
         return AuthContext(
             user_id=user.id,
             workspace_id=member.workspace_id,

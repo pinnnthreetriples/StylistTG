@@ -211,6 +211,7 @@ def test_accounts_list_returns_profile_summary() -> None:
         "is_test_dc": False,
         "profile_photo_asset_id": "asset-1",
         "updated_at": payload[0]["updated_at"],
+        "warmup": None,
     }
     assert payload[0]["updated_at"]
 

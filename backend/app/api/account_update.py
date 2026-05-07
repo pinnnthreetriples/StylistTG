@@ -13,6 +13,7 @@ from app.services.accounts import get_account
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.dashboard import job_summary
 from app.services.operation_logs import log_operation
+from app.services.warmup import warmup_operation_policy
 from app.config import settings
 from app.workers.account_update_jobs import execute_account_update_job
 
@@ -61,6 +62,19 @@ def post_account_update_job(
 ):
     if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    warmup_policy = warmup_operation_policy(
+        session,
+        account_id=payload.account_id,
+        workspace_id=auth.workspace_id,
+        operation="profile_update",
+    )
+    if warmup_policy["is_locked"]:
+        raise AppError(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_WARMUP_LOCKED",
+            error_class="state_conflict",
+            message=warmup_policy["reason"],
+        )
     try:
         job = create_account_update_job(
             session,

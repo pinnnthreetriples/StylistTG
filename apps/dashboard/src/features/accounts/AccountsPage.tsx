@@ -14,6 +14,8 @@ export function AccountsPage({
   riskByAccount,
   riskSummary,
   onAddAccounts,
+  userId,
+  workspaceId,
 }: {
   accounts: AccountListItem[]
   isLoading?: boolean
@@ -21,6 +23,8 @@ export function AccountsPage({
   riskByAccount?: Map<string, AccountRisk>
   riskSummary?: AccountRiskSummary
   onAddAccounts?: () => void
+  userId?: string | null
+  workspaceId?: string | null
 }) {
   const readyCount = accounts.filter((account) => account.is_execution_usable).length
   const attentionCount = (riskSummary?.medium ?? 0) + (riskSummary?.high ?? 0) + (riskSummary?.critical ?? 0)
@@ -61,6 +65,8 @@ export function AccountsPage({
           isLoading={isLoading}
           onSelectAccount={onSelectAccount}
           riskByAccount={riskByAccount}
+          userId={userId}
+          workspaceId={workspaceId}
         />
       </PageShell>
     </AnimatedPage>

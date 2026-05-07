@@ -13,6 +13,7 @@ from app.logging_utils import log_event
 from app.models import Account
 from app.schemas import (
     AccountCreate,
+    AccountWarmupInfoRead,
     AccountBatchSafetyPreviewRead,
     AccountBatchSafetyPreviewRequest,
     AccountDeletionPreviewRead,
@@ -76,6 +77,7 @@ from app.services.proxy_checks import check_account_proxy
 from app.services.risk_gate import evaluate_action_gate
 from app.services.sensitive_audit import audit_event_to_dict, list_sensitive_audit_events
 from app.services.telegram_auth_sessions import auth_session_to_dict, create_auth_session, process_auth_action
+from app.services.warmup import warmup_operation_policy
 from app.job_queue.rq import enqueue_telegram_auth_action
 from app.schemas import SensitiveAuditEventPageRead, SensitiveAuditEventRead
 
@@ -575,6 +577,7 @@ def put_account_proxy(
 ):
     if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    _raise_if_warmup_locked(session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change")
     try:
         return upsert_account_proxy(
             session,
@@ -598,6 +601,7 @@ def delete_account_proxy_endpoint(
 ):
     if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
         raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    _raise_if_warmup_locked(session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change")
     try:
         delete_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
@@ -769,6 +773,22 @@ def _proxy_error(exc: ValueError) -> AppError:
     )
 
 
+def _raise_if_warmup_locked(session: Session, *, account_id: str, workspace_id: str, operation: str) -> None:
+    policy = warmup_operation_policy(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        operation=operation,
+    )
+    if policy["is_locked"]:
+        raise AppError(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_WARMUP_LOCKED",
+            error_class="state_conflict",
+            message=policy["reason"],
+        )
+
+
 def _account_not_found_error(exc: ValueError | None = None) -> AppError:
     return AppError(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -851,6 +871,12 @@ def _account_list_item(session: Session, account: Account) -> AccountListItemRea
     display_name = " ".join(part for part in [first_name, last_name] if part).strip() or None
     username = profile.username if profile else None
     runtime = account.runtime_state
+    warmup_policy = warmup_operation_policy(
+        session,
+        account_id=account.id,
+        workspace_id=account.workspace_id,
+        operation="profile_update",
+    )
     return AccountListItemRead(
         account_id=account.id,
         display_name=display_name,
@@ -863,6 +889,14 @@ def _account_list_item(session: Session, account: Account) -> AccountListItemRea
         is_test_dc=_is_test_dc_account(account),
         profile_photo_asset_id=latest_applied_profile_photo_asset_id(session, account.id),
         updated_at=account.updated_at,
+        warmup=AccountWarmupInfoRead(
+            session_id=warmup_policy["session_id"],
+            status=warmup_policy["status"],
+            current_day=warmup_policy["current_day"],
+            is_locked=warmup_policy["is_locked"],
+        )
+        if warmup_policy["session_id"]
+        else None,
     )
 
 

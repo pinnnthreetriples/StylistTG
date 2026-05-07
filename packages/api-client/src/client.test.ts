@@ -7,6 +7,7 @@ import {
   createAccountImportBatch,
   createAuthBatch,
   createTelegramAuthSession,
+  fetchCurrentUser,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
   fetchRuntimeDiagnostics,
@@ -136,9 +137,9 @@ describe('@stylisttg/api-client', () => {
   })
 
   test('auth batch endpoint wrappers use typed OpenAPI requests', async () => {
-    const calls: string[] = []
-    const fetchMock = async (input: RequestInfo | URL) => {
-      calls.push(requestUrl(input))
+    const calls: Array<{ url: string; contentType: string | null }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: requestUrl(input), contentType: requestContentType(input, init) })
       if (requestUrl(input).endsWith('/validate-phones')) {
         return jsonResponse({ valid_items: [], invalid_items: [], duplicates: [], existing_accounts: [], active_batch_conflicts: [] })
       }
@@ -171,7 +172,10 @@ describe('@stylisttg/api-client', () => {
       max_total_active: 6,
     })
 
-    expect(calls).toEqual(['http://api.test/api/auth-batches/validate-phones', 'http://api.test/api/auth-batches'])
+    expect(calls).toEqual([
+      { url: 'http://api.test/api/auth-batches/validate-phones', contentType: 'application/json' },
+      { url: 'http://api.test/api/auth-batches', contentType: 'application/json' },
+    ])
   })
 
   test('diagnostics and risk wrappers expose backend-backed health data', async () => {
@@ -211,6 +215,28 @@ describe('@stylisttg/api-client', () => {
 
     await expect(fetchFrontendDiagnosticsSummary(client)).resolves.toMatchObject({ app_env: 'staging' })
     await expect(fetchAccountRiskSummary(client)).resolves.toMatchObject({ total: 1, low: 1 })
+  })
+
+  test('current user wrapper reads /api/me', async () => {
+    const fetchMock = async (input: RequestInfo | URL) => {
+      expect(requestUrl(input)).toBe('http://api.test/api/me')
+      return jsonResponse({
+        user_id: 'user-1',
+        email: 'user@example.test',
+        display_name: 'User',
+        workspace_id: 'workspace-1',
+        workspace_name: 'User workspace',
+        role: 'owner',
+        auth_source: 'supabase_jwt',
+      })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await expect(fetchCurrentUser(client)).resolves.toMatchObject({
+      user_id: 'user-1',
+      workspace_id: 'workspace-1',
+      auth_source: 'supabase_jwt',
+    })
   })
 
   test('TDLib auth and import wrappers use generated endpoint paths without leaking secrets in errors', async () => {
@@ -262,6 +288,11 @@ function jsonResponse(payload: unknown): Response {
 
 function requestUrl(input: RequestInfo | URL): string {
   return input instanceof Request ? input.url : String(input)
+}
+
+function requestContentType(input: RequestInfo | URL, init?: RequestInit): string | null {
+  const headers = init?.headers ?? (input instanceof Request ? input.headers : undefined)
+  return new Headers(headers).get('Content-Type')
 }
 
 async function requestBody(input: RequestInfo | URL, init?: RequestInit): Promise<unknown> {

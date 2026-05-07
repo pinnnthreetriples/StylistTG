@@ -13,6 +13,7 @@ from app.config import settings
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
 from app.workers.account_update_jobs import run_account_update_job
+from app.workers.warmup_jobs import run_warmup_due_sessions
 from app.workers.profile_jobs import run_profile_job
 from app.services.worker_plane import (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
@@ -22,6 +23,7 @@ from app.services.worker_plane import (
     PROFILE_QUEUE_NAME,
     SCHEDULER_QUEUE_NAME,
     STORY_QUEUE_NAME,
+    WARMUP_QUEUE_NAME,
     PRODUCTION_QUEUE_NAMES,
 )
 
@@ -36,10 +38,12 @@ __all__ = [
     "QUEUE_NAME",
     "SCHEDULER_QUEUE_NAME",
     "STORY_QUEUE_NAME",
+    "WARMUP_QUEUE_NAME",
     "enqueue_account_update_job",
     "enqueue_batch_start_auth",
     "enqueue_telegram_auth_action",
     "enqueue_profile_job",
+    "enqueue_warmup_due_sessions",
     "get_auth_queue",
     "get_profile_queue",
     "get_queue",
@@ -77,6 +81,15 @@ def enqueue_account_update_job(job_id: str) -> bool:
     queue = get_profile_queue()
     try:
         queue.enqueue_call(func=run_account_update_job, args=(job_id,), job_id=job_id, unique=True)
+    except RedisError:
+        return False
+    return True
+
+
+def enqueue_warmup_due_sessions() -> bool:
+    queue = get_queue(WARMUP_QUEUE_NAME)
+    try:
+        queue.enqueue_call(func=run_warmup_due_sessions, job_id="warmup-due-sessions", unique=True)
     except RedisError:
         return False
     return True

@@ -1,9 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getApiBaseUrl, getPollingIntervalMs, getRequestTimeoutMs } from '@/lib/config'
 import { apiRequest, isApiError } from '@/lib/http'
 
 describe('frontend config', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('uses safe defaults for local development', () => {
     expect(getApiBaseUrl()).toBe('')
     expect(getPollingIntervalMs()).toBe(3000)
@@ -12,8 +20,13 @@ describe('frontend config', () => {
 })
 
 describe('apiRequest', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it('returns parsed json for successful responses', async () => {

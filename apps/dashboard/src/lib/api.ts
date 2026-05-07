@@ -4,7 +4,6 @@ import {
   checkAccountProxy as checkTypedAccountProxy,
   createAccountSafetyOverride as createTypedAccountSafetyOverride,
   createAccountUpdateJob as createTypedAccountUpdateJob,
-  createApiClient,
   createProfileJob as createTypedProfileJob,
   createStoryDraft as createTypedStoryDraft,
   deleteAccount as deleteTypedAccount,
@@ -51,6 +50,7 @@ import {
   fetchFrontendDiagnosticsSummary as fetchTypedFrontendDiagnosticsSummary,
   fetchGlobalOperationLogs as fetchTypedGlobalOperationLogs,
   fetchHealth as fetchTypedHealth,
+  fetchCurrentUser as fetchTypedCurrentUser,
   fetchJob as fetchTypedJob,
   fetchJobSteps as fetchTypedJobSteps,
   fetchLatestJob as fetchTypedLatestJob,
@@ -96,6 +96,7 @@ import {
   type AccountImportBatchCreate,
   type AccountImportBatchValidate,
   type AccountImportBatchConfirm,
+  type CurrentUser,
   type StoryDraftRead,
 } from '@stylisttg/api-client'
 
@@ -111,12 +112,12 @@ import type {
   UnknownCapabilityPolicy,
 } from '@/lib/accountSafety'
 import { composeDisplayName } from '@/lib/dashboard'
-import { getApiBaseUrl } from '@/lib/config'
 import type { AccountRuntimeDiagnostics, RuntimeDiagnostics } from '@/lib/diagnostics'
 import { isApiError } from '@/lib/http'
 import type { OperationLogPage } from '@/lib/operationLogs'
 import type { AccountProxy, AccountProxyInput, AccountProxySummary } from '@/lib/proxy'
 import type { LivePreflight } from '@/lib/settings'
+import { dashboardApiClient } from '@/lib/apiClient'
 
 const RUNTIME_REFRESH_TIMEOUT_MS = 45000
 
@@ -157,6 +158,7 @@ export type {
   AccountImportBatchCreate,
   AccountImportBatchValidate,
   AccountImportBatchConfirm,
+  CurrentUser,
 }
 
 export type JobDetail = {
@@ -312,17 +314,7 @@ export type StoryCapabilities = {
   warnings: string[]
 }
 
-const typedClient = createApiClient({
-  baseUrl: getTypedApiBaseUrl(),
-  fetch: (...args) => globalThis.fetch(...args),
-})
-
-function getTypedApiBaseUrl(): string {
-  const configuredBaseUrl = getApiBaseUrl()
-  if (configuredBaseUrl) return configuredBaseUrl
-  if (typeof window !== 'undefined') return window.location.origin
-  return 'http://localhost'
-}
+const typedClient = dashboardApiClient
 
 export function storyDraftReadToPayload(draft: StoryDraftRead): StoryDraftPayload {
   return {
@@ -573,6 +565,10 @@ export function fetchHealth(): Promise<{ status: string }> {
 
 export function fetchReady(): Promise<RuntimeDiagnostics> {
   return fetchTypedReady(typedClient)
+}
+
+export function fetchCurrentUser(): Promise<CurrentUser> {
+  return fetchTypedCurrentUser(typedClient)
 }
 
 export function fetchLivePreflight(): Promise<LivePreflight> {

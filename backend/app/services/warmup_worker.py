@@ -1,0 +1,225 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.models import (
+    AccountRuntimeState,
+    WarmupSession,
+    WarmupStatus,
+    WarmupTaskRun,
+    WarmupTaskRunStatus,
+    new_id,
+)
+from app.services.warmup import write_warmup_event
+
+DRY_RUN_TASK_TYPE = "dry_run_day"
+
+
+def process_due_warmup_sessions(
+    session: Session,
+    *,
+    workspace_id: str | None = None,
+    now: datetime | None = None,
+    worker_id: str,
+    limit: int | None = None,
+) -> int:
+    timestamp = now or datetime.now(UTC)
+    query = select(WarmupSession).where(
+        WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]),
+        (WarmupSession.next_step_at.is_(None)) | (WarmupSession.next_step_at <= timestamp),
+    )
+    if workspace_id is not None:
+        query = query.where(WarmupSession.workspace_id == workspace_id)
+    query = query.order_by(WarmupSession.updated_at.asc()).limit(limit or settings.warmup_batch_limit)
+
+    processed = 0
+    for warmup_session in session.execute(query).scalars().all():
+        if _process_one_due_session(session, warmup_session, now=timestamp, worker_id=worker_id):
+            processed += 1
+    session.commit()
+    return processed
+
+
+def handle_warmup_step_failure(
+    session: Session,
+    *,
+    warmup_session: WarmupSession,
+    error: str,
+    max_failures: int | None = None,
+    now: datetime | None = None,
+) -> None:
+    threshold = max_failures or settings.warmup_max_consecutive_failures
+    timestamp = now or datetime.now(UTC)
+    warmup_session.consecutive_failures += 1
+    warmup_session.updated_at = timestamp
+    if warmup_session.consecutive_failures >= threshold:
+        warmup_session.status = WarmupStatus.FAILED
+        write_warmup_event(
+            session,
+            warmup_session,
+            "circuit_breaker_triggered",
+            {"error": error, "consecutive_failures": warmup_session.consecutive_failures},
+        )
+    else:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "task_skipped",
+            {"reason": "worker_failure", "error": error},
+        )
+    session.flush()
+
+
+def claim_account_runtime_lock(
+    session: Session,
+    *,
+    account_id: str,
+    owner: str,
+    now: datetime,
+) -> bool:
+    result = session.execute(
+        update(AccountRuntimeState)
+        .where(
+            AccountRuntimeState.account_id == account_id,
+            AccountRuntimeState.lock_owner.is_(None),
+        )
+        .values(
+            lock_owner=owner,
+            lock_epoch=AccountRuntimeState.lock_epoch + 1,
+            recovery_marker=f"warmup_lock_acquired:{owner}",
+            updated_at=now,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    return bool(result.rowcount)
+
+
+def release_account_runtime_lock(
+    session: Session,
+    *,
+    account_id: str,
+    owner: str,
+    now: datetime,
+) -> None:
+    session.execute(
+        update(AccountRuntimeState)
+        .where(
+            AccountRuntimeState.account_id == account_id,
+            AccountRuntimeState.lock_owner == owner,
+        )
+        .values(
+            lock_owner=None,
+            recovery_marker=f"warmup_lock_released:{owner}",
+            updated_at=now,
+        )
+        .execution_options(synchronize_session=False)
+    )
+
+
+def _process_one_due_session(
+    session: Session,
+    warmup_session: WarmupSession,
+    *,
+    now: datetime,
+    worker_id: str,
+) -> bool:
+    owner = f"warmup:{worker_id}:{warmup_session.id}"
+    runtime = session.get(AccountRuntimeState, warmup_session.account_id)
+    if runtime is None or not claim_account_runtime_lock(
+        session,
+        account_id=warmup_session.account_id,
+        owner=owner,
+        now=now,
+    ):
+        write_warmup_event(
+            session,
+            warmup_session,
+            "task_skipped",
+            {"reason": "account_locked", "day": warmup_session.current_day},
+        )
+        session.flush()
+        return False
+    try:
+        return _process_one_locked_session(session, warmup_session, now=now, worker_id=worker_id)
+    finally:
+        release_account_runtime_lock(
+            session,
+            account_id=warmup_session.account_id,
+            owner=owner,
+            now=now,
+        )
+
+
+def _process_one_locked_session(
+    session: Session,
+    warmup_session: WarmupSession,
+    *,
+    now: datetime,
+    worker_id: str,
+) -> bool:
+    existing = session.execute(
+        select(WarmupTaskRun).where(
+            WarmupTaskRun.session_id == warmup_session.id,
+            WarmupTaskRun.day == warmup_session.current_day,
+            WarmupTaskRun.task_type == DRY_RUN_TASK_TYPE,
+        )
+    ).scalars().first()
+    if existing is not None:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "task_skipped",
+            {"reason": "duplicate_task_run", "day": warmup_session.current_day},
+        )
+        return False
+
+    if warmup_session.current_day >= 14:
+        _complete_session(session, warmup_session, now=now)
+        return True
+
+    task_run = WarmupTaskRun(
+        id=new_id(),
+        workspace_id=warmup_session.workspace_id,
+        session_id=warmup_session.id,
+        day=warmup_session.current_day,
+        task_type=DRY_RUN_TASK_TYPE,
+        status=WarmupTaskRunStatus.COMPLETED,
+        worker_id=worker_id,
+        metadata_json={"dry_run": True},
+        started_at=now,
+        completed_at=now,
+    )
+    session.add(task_run)
+
+    next_day = warmup_session.current_day + 1
+    warmup_session.current_day = next_day
+    warmup_session.last_step_at = now
+    warmup_session.worker_id = worker_id
+    warmup_session.consecutive_failures = 0
+    warmup_session.updated_at = now
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_executed",
+        {"task_type": DRY_RUN_TASK_TYPE, "day": task_run.day, "dry_run": True},
+    )
+    write_warmup_event(session, warmup_session, "day_advanced", {"day": next_day})
+
+    if next_day >= 14:
+        _complete_session(session, warmup_session, now=now)
+    else:
+        warmup_session.status = WarmupStatus.ACTIVE
+        warmup_session.next_step_at = now + timedelta(hours=warmup_session.cadence_hours)
+    return True
+
+
+def _complete_session(session: Session, warmup_session: WarmupSession, *, now: datetime) -> None:
+    warmup_session.status = WarmupStatus.COMPLETED
+    warmup_session.completed_at = now
+    warmup_session.next_step_at = None
+    warmup_session.updated_at = now
+    write_warmup_event(session, warmup_session, "completed", {"day": warmup_session.current_day})

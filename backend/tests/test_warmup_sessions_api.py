@@ -1,0 +1,308 @@
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.db import get_session
+from app.main import app
+from app.models import (
+    AccountRuntimeState,
+    AccountState,
+    DEFAULT_LOCAL_WORKSPACE_ID,
+    WarmupEvent,
+    WarmupSession,
+    WarmupStatus,
+    WarmupStrategy,
+    new_id,
+)
+from app.services.accounts import create_account
+from app.services.warmup import (
+    create_warmup_session,
+    delete_warmup_session,
+    get_warmup_session,
+    list_warmup_events,
+    list_warmup_sessions,
+    pause_warmup_session,
+    resume_warmup_session,
+)
+
+
+def test_create_warmup_session_schedules_session_and_writes_event(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    now = datetime(2026, 5, 5, 12, 0, tzinfo=UTC)
+
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        now=now,
+    )
+    db_session.commit()
+
+    assert created.status == WarmupStatus.SCHEDULED
+    assert created.current_day == 0
+    assert created.cadence_hours == 24
+    assert created.next_step_at == now
+    event = db_session.query(WarmupEvent).one()
+    assert event.event_type == "session_created"
+    assert event.session_id == created.id
+
+
+def test_create_warmup_session_rejects_blocked_readiness(db_session) -> None:
+    account = create_account(
+        db_session,
+        external_ref=f"+7999{new_id()[:8]}",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    strategy = _seed_strategy(db_session)
+
+    with pytest.raises(ValueError, match="Аккаунт не готов"):
+        create_warmup_session(
+            db_session,
+            account_id=account.id,
+            strategy_id=strategy.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+
+
+def test_create_warmup_session_rejects_duplicate_active_session(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    first = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="активная подготовка"):
+        create_warmup_session(
+            db_session,
+            account_id=account.id,
+            strategy_id=first.strategy_id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+
+
+def test_list_detail_status_and_events(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    items, total = list_warmup_sessions(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+    detail = get_warmup_session(db_session, session_id=created.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+    events, event_total = list_warmup_events(
+        db_session,
+        session_id=created.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert total == 1
+    assert items[0].id == created.id
+    assert detail.id == created.id
+    assert event_total == 1
+    assert events[0].event_type == "session_created"
+
+
+def test_delete_warmup_session_removes_session_and_events(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    delete_warmup_session(
+        db_session,
+        session_id=created.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    assert db_session.query(WarmupSession).count() == 0
+    assert db_session.query(WarmupEvent).count() == 0
+
+
+def test_pause_and_resume_warmup_session(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    paused = pause_warmup_session(
+        db_session,
+        session_id=created.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        reason="Проверка proxy",
+    )
+    resumed = resume_warmup_session(
+        db_session,
+        session_id=created.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        now=datetime.now(UTC) + timedelta(hours=1),
+    )
+    db_session.commit()
+
+    assert paused.id == created.id
+    assert resumed.status == WarmupStatus.SCHEDULED
+    assert db_session.query(WarmupEvent).filter_by(event_type="paused").count() == 1
+    assert db_session.query(WarmupEvent).filter_by(event_type="resumed").count() == 1
+
+
+def test_resume_rejects_future_retry(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    created.status = WarmupStatus.PAUSED_RISK
+    created.next_attempt_at = datetime(2026, 5, 6, 12, 0, tzinfo=UTC)
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="retry_not_ready"):
+        resume_warmup_session(
+            db_session,
+            session_id=created.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+            now=datetime(2026, 5, 5, 12, 0, tzinfo=UTC),
+        )
+
+
+def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(db_session, monkeypatch) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    enqueued: list[str] = []
+
+    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/warmup/sessions",
+        json={"account_id": account.id, "strategy_id": strategy.id},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 201
+    assert enqueued == []
+
+
+def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(db_session, monkeypatch) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    enqueued: list[str] = []
+
+    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/warmup/sessions",
+        json={"account_id": account.id, "strategy_id": strategy.id},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 201
+    assert enqueued == ["warmup"]
+
+
+def test_create_warmup_session_marks_session_failed_when_enqueue_fails(db_session, monkeypatch) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+
+    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: False)
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/warmup/sessions",
+        json={"account_id": account.id, "strategy_id": strategy.id},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 503
+    warmup_session = db_session.query(WarmupSession).one()
+    assert warmup_session.status == WarmupStatus.FAILED
+    assert db_session.query(WarmupEvent).filter_by(event_type="queue_enqueue_failed").count() == 1
+
+
+def test_delete_warmup_session_endpoint(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.delete(f"/api/warmup/sessions/{created.id}")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 204
+    assert db_session.query(WarmupSession).count() == 0
+
+
+def _seed_ready_account(db_session):
+    account = create_account(
+        db_session,
+        external_ref=f"+7999{new_id()[:8]}",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    account.account_state = AccountState.EXECUTION_USABLE
+    account.runtime_state = AccountRuntimeState(
+        account_id=account.id,
+        session_present=True,
+        runtime_health="ready",
+        reauth_required=False,
+    )
+    db_session.commit()
+    return account
+
+
+def _seed_strategy(db_session) -> WarmupStrategy:
+    strategy = WarmupStrategy(
+        id=new_id(),
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        name=f"Стратегия {new_id()[:8]}",
+        description="Тестовая стратегия",
+        tier_limits_json={},
+        target_channels_json=[],
+        is_preset=True,
+    )
+    db_session.add(strategy)
+    db_session.commit()
+    return strategy
+
+
+def _override_session(session):
+    def _override():
+        yield session
+
+    return _override

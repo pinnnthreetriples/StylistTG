@@ -1,4 +1,4 @@
-import { Activity, CreditCard, HeartPulse, Home, Settings, Users } from 'lucide-react'
+import { Activity, CreditCard, Flame, HeartPulse, Home, Settings, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { appRoutes } from '@/lib/routes'
@@ -21,6 +21,7 @@ export const primaryNavigation: NavigationItem[] = [
   { label: 'Аккаунты', href: appRoutes.accounts(), icon: Users },
   { label: 'Здоровье', href: appRoutes.health(), icon: HeartPulse },
   { label: 'Задачи', href: appRoutes.jobs(), icon: Activity },
+  { label: 'Прогрев аккаунтов', href: appRoutes.warmup(), icon: Flame },
   { label: 'Настройки', href: appRoutes.settings(), icon: Settings },
   { label: 'Биллинг', href: '/billing', icon: CreditCard, disabled: true },
 ]

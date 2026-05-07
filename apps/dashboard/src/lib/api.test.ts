@@ -43,6 +43,14 @@ function requestDetails(call: unknown[]) {
       body: input.body,
     }
   }
+  if (typeof input === 'string' && /^https?:\/\//.test(input)) {
+    return {
+      url: new URL(input).pathname,
+      method: init.method ?? 'GET',
+      headers: new Headers(init.headers),
+      body: init.body,
+    }
+  }
   return {
     url: String(input).replace(/^http:\/\/localhost/, ''),
     method: init.method ?? 'GET',
@@ -142,9 +150,8 @@ describe('story draft api contract', () => {
 
     await expect(fetchAccounts()).resolves.toEqual(payload)
 
-    const [request] = fetchMock.mock.calls[0] as [Request]
-    expect(request.url).toBe('http://localhost/api/accounts')
-    expect(request.signal).toBeInstanceOf(AbortSignal)
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/accounts')
   })
 
   it('deletes an account by id', async () => {

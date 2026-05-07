@@ -13,6 +13,7 @@ import {
   frontendDiagnosticsQueryOptions,
   workerDiagnosticsQueryOptions,
 } from '@/lib/queries'
+import { getLiveStatus } from '@/lib/liveStatus'
 import { labelHealthDependency } from '@/lib/uiLabels'
 
 export function HomePage() {
@@ -32,6 +33,7 @@ export function HomePage() {
   const attentionCount = riskSummary.medium + riskSummary.high + riskSummary.critical
   const highRiskCount = riskSummary.high + riskSummary.critical
   const dataUnavailable = accountsQuery.isError || riskQuery.isError || readyQuery.isError
+  const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
   const heroTitle =
     accounts.length === 0
       ? 'Добавьте первый аккаунт'
@@ -86,11 +88,9 @@ export function HomePage() {
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
               <div className="text-xs font-semibold uppercase text-gray-500">Live-режим</div>
-              <div className="mt-2 text-lg font-bold text-navy-950">
-                {diagnosticsQuery.data?.tdlib.live_enabled ? 'Включён' : 'Отключён безопасно'}
-              </div>
+              <div className="mt-2 text-lg font-bold text-navy-950">{liveStatus.label}</div>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                Инфраструктура может быть готова, но реальные live-действия Telegram не включаются без отдельного ревью.
+                Зелёный статус означает, что live включён и исполнительная среда реально готова.
               </p>
             </div>
           </Card>
@@ -171,8 +171,8 @@ export function HomePage() {
                  </div>
                  <div className="flex justify-between items-center text-sm">
                    <span className="text-muted-foreground">Live-режим</span>
-                   <StatusPill tone={diagnosticsQuery.data?.tdlib.live_enabled ? 'red' : 'amber'}>
-                     {diagnosticsQuery.data?.tdlib.live_enabled ? 'Включён' : 'Отключён безопасно'}
+                   <StatusPill tone={liveStatus.tone}>
+                     {liveStatus.label}
                    </StatusPill>
                  </div>
               </div>

@@ -93,7 +93,7 @@ function headerRuntimeStatus(preflight: { overall_status: string; rq_worker_stat
   }
   if (preflight.overall_status === 'ok' && preflight.rq_worker_status === 'ready') {
     return {
-      label: 'Live-режим готов',
+      label: 'Live-инфраструктура готова',
       className: 'bg-emerald-50 text-emerald-700',
       dotClassName: 'bg-emerald-500',
     }
@@ -106,7 +106,7 @@ function headerRuntimeStatus(preflight: { overall_status: string; rq_worker_stat
     }
   }
   return {
-    label: 'Live-режим ограничен',
+    label: 'Live-инфраструктура ограничена',
     className: 'bg-amber-50 text-amber-700',
     dotClassName: 'bg-amber-500',
   }

@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { Badge, StatusPill } from '@stylisttg/ui'
 import { LogOut, Menu, Sparkles, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -6,6 +7,8 @@ import { useState, type ReactNode } from 'react'
 import { primaryNavigation } from '@/app/navigation'
 import { useSupabaseAuth } from '@/features/auth/SupabaseAuthContext'
 import { useCurrentUser } from '@/hooks/queries/useCurrentUser'
+import { getLiveStatus } from '@/lib/liveStatus'
+import { frontendDiagnosticsQueryOptions, workerDiagnosticsQueryOptions } from '@/lib/queries'
 
 function normalizeEnvName(value: string | undefined): string {
   const env = value?.trim() || 'local'
@@ -26,8 +29,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { signOut } = useSupabaseAuth()
   const currentUserQuery = useCurrentUser()
+  const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
+  const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
   const currentUser = currentUserQuery.data
   const workspaceLabel = currentUser?.workspace_name ?? 'Рабочая область'
+  const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
   const handleSignOut = async () => {
     await signOut()
     void navigate({ to: '/login', replace: true })
@@ -72,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {/* Bottom section: environment info */}
           <div className="mt-auto space-y-2 px-1">
-            <StatusPill tone="amber">TDLib отключён безопасно</StatusPill>
+            <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             <button
               className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-navy-900"
               onClick={() => void handleSignOut()}
@@ -104,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="truncate text-sm font-bold text-navy-900">{workspaceLabel}</span>
               <Badge tone={appEnv === 'staging' ? 'blue' : 'gray'}>{appEnv}</Badge>
             </div>
-            <StatusPill tone="amber">TDLib отключён</StatusPill>
+            <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             <button
               className="hidden h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-navy-900 sm:flex"
               onClick={() => void handleSignOut()}

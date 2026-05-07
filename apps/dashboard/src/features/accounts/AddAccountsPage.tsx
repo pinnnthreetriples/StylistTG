@@ -1,9 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { AnimatedTabs } from '@/components/ui/AnimatedTabs'
 import { AuthSessionWizard } from '@/features/auth/AuthSessionWizard'
 import { ImportBatchPage } from '@/features/account-import/ImportBatchPage'
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
+import { getLiveStatus } from '@/lib/liveStatus'
+import { frontendDiagnosticsQueryOptions, workerDiagnosticsQueryOptions } from '@/lib/queries'
 
 export function AddAccountsPage({
   testDcEnabled,
@@ -17,6 +20,9 @@ export function AddAccountsPage({
   onBack: () => void
 }) {
   const [activeTab, setActiveTab] = useState('single')
+  const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
+  const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
+  const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -40,7 +46,7 @@ export function AddAccountsPage({
             label: 'Один аккаунт',
             content: (
               <div className="py-4">
-                <AuthSessionWizard />
+                <AuthSessionWizard liveStatus={liveStatus} />
               </div>
             ),
           },

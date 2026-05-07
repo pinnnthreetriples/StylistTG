@@ -12,6 +12,7 @@ import {
   workerDiagnosticsQueryOptions,
 } from '@/lib/queries'
 import { compactOperationLogLabel, type OperationLog } from '@/lib/operationLogs'
+import { getLiveStatus } from '@/lib/liveStatus'
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds} сек`
@@ -31,6 +32,7 @@ export function SettingsPage() {
   const diagnostics = diagnosticsQuery.data
   const settings = settingsQuery.data
   const policy = settings?.policy
+  const liveStatus = getLiveStatus(diagnostics, workerDiagnosticsQuery.data)
 
   return (
     <AnimatedPage>
@@ -110,12 +112,10 @@ export function SettingsPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Среда исполнения</span>
-              <StatusPill tone={diagnostics?.tdlib.execution_plane_ready ? 'amber' : 'green'}>
-                {diagnostics?.tdlib.execution_plane_ready ? 'Готова' : 'Не активна'}
-              </StatusPill>
+              <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             </div>
             <p className="text-xs text-gray-400">
-              Live-режим отключён безопасно. Для включения требуется отдельный PR и ревью.
+              Зелёный статус означает, что live включён и исполнительная среда реально готова.
             </p>
           </div>
         </SectionCard>

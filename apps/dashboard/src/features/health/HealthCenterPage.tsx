@@ -12,6 +12,7 @@ import {
   jobPoliciesQueryOptions,
   workerDiagnosticsQueryOptions,
 } from '@/lib/queries'
+import { getLiveStatus, liveStatusCardTone } from '@/lib/liveStatus'
 import { labelHealthDependency, labelSystemReadiness } from '@/lib/uiLabels'
 
 export function HealthCenterPage() {
@@ -33,6 +34,7 @@ export function HealthCenterPage() {
   const diagnostics = diagnosticsQuery.data
   const workerDiagnostics = workerDiagnosticsQuery.data
   const riskSummary = accountRiskQuery.data ?? EMPTY_ACCOUNT_RISK_SUMMARY
+  const liveStatus = getLiveStatus(diagnostics, workerDiagnostics)
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const apiOk = healthQuery.data?.status === 'ok'
@@ -72,8 +74,8 @@ export function HealthCenterPage() {
         {/* Top-level banner */}
         <Alert variant={systemTone as 'info' | 'success' | 'warning' | 'error'} icon={<SystemIcon className="size-5" />}>
           <div className="font-semibold">{systemLabel}</div>
-          {diagnostics && !diagnostics.tdlib.live_enabled ? (
-            <div className="mt-1 text-xs opacity-75">Live-режим отключён безопасно</div>
+          {diagnostics || workerDiagnostics ? (
+            <div className="mt-1 text-xs opacity-75">{liveStatus.label}</div>
           ) : null}
         </Alert>
 
@@ -167,8 +169,8 @@ export function HealthCenterPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <StatusCard
                 label="Live-режим"
-                value={diagnostics?.tdlib.live_enabled ? 'Включён' : 'Отключён'}
-                tone={diagnostics?.tdlib.live_enabled ? 'danger' : 'ok'}
+                value={liveStatus.label}
+                tone={liveStatusCardTone(liveStatus)}
               />
               <StatusCard
                 label="Библиотека TDLib"
@@ -183,7 +185,7 @@ export function HealthCenterPage() {
               <StatusCard
                 label="Исполнительная среда"
                 value={diagnostics?.tdlib.execution_plane_ready ? 'Готова' : 'Не готова'}
-                tone={diagnostics?.tdlib.execution_plane_ready ? 'warning' : 'ok'}
+                tone={diagnostics?.tdlib.execution_plane_ready ? 'ok' : liveStatus.enabled ? 'danger' : 'neutral'}
               />
               <StatusCard
                 label="Планировщик"

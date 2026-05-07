@@ -13,7 +13,7 @@ test('SaaS shell loads and captures the primary pages', async ({ page, isMobile 
   await expect(page.getByText('StylistTG').first()).toBeVisible()
   await expect(page).toHaveURL(/\/home$/)
   await expect(page.getByRole('heading', { name: 'Контрольная панель' })).toBeVisible()
-  await expect(page.getByText('TDLib отключён').first()).toBeVisible()
+  await expect(page.getByText('Отключён безопасно').first()).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('saas-shell-dashboard.png'), fullPage: true })
 
   await page.goto('/accounts')

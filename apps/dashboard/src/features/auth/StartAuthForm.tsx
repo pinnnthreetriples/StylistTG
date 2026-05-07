@@ -1,11 +1,15 @@
 import { Button, SectionCard } from '@stylisttg/ui'
 import { useState } from 'react'
 
+import type { LiveStatus } from '@/lib/liveStatus'
+
 export function StartAuthForm({
   disabled,
+  liveStatus,
   onStart,
 }: {
   disabled?: boolean
+  liveStatus: LiveStatus
   onStart: (payload: { phone_number: string; label?: string }) => Promise<void>
 }) {
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -14,7 +18,7 @@ export function StartAuthForm({
   return (
     <SectionCard
       title="Введите номер телефона"
-      description="Создаёт контролируемую сессию входа. Live-режим остаётся выключенным, пока оператор не включит его отдельно."
+      description={`Создаёт контролируемую сессию входа. ${liveStatus.label}.`}
     >
       <form
         className="grid gap-3 md:grid-cols-[1fr_1fr_auto]"

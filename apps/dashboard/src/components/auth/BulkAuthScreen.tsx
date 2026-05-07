@@ -1,6 +1,18 @@
-import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Pause, Play, RotateCcw, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, ShieldCheck, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { Button } from '@stylisttg/ui'
+import { AuthSessionStatusCard } from '@/features/auth/AuthSessionStatusCard'
+import { SubmitCodeForm } from '@/features/auth/SubmitCodeForm'
+import { SubmitPasswordForm } from '@/features/auth/SubmitPasswordForm'
+import { redactAuthUiError } from '@/features/auth/authUiSecurity'
+import {
+  cancelTelegramAuthSession,
+  createTelegramAuthSession,
+  submitTelegramAuthCode,
+  submitTelegramAuthPassword,
+  type TelegramAuthSession,
+} from '@/lib/api'
 import {
   buildAuthBatchPrimaryActionLabel,
   buildAuthBatchValidationMessage,
@@ -28,18 +40,19 @@ import {
   type AuthBatchValidation,
 } from '@/lib/authBatches'
 import { normalizeError } from '@/lib/appErrors'
+import type { LiveStatus } from '@/lib/liveStatus'
 import { labelIssue } from '@/lib/uiLabels'
 
 const LAST_AUTH_BATCH_STORAGE_KEY = 'stylisttg.last_auth_batch_id'
 const AUTH_BATCH_DRAFT_STORAGE_KEY = 'stylisttg.auth_batch_draft'
 
 export function BulkAuthScreen({
-  onBack,
+  liveStatus,
   onTestDcChange,
   testDcEnabled,
   testDcPending,
 }: {
-  onBack: () => void
+  liveStatus: LiveStatus
   onTestDcChange: (enabled: boolean) => void
   testDcEnabled: boolean
   testDcPending: boolean
@@ -49,6 +62,7 @@ export function BulkAuthScreen({
   const [label, setLabel] = useState(draft.label)
   const [validation, setValidation] = useState<AuthBatchValidation | null>(null)
   const [snapshot, setSnapshot] = useState<AuthBatchSnapshot | null>(null)
+  const [session, setSession] = useState<TelegramAuthSession | null>(null)
   const [isBusy, setIsBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastPollRef = useRef<string | null>(null)
@@ -64,12 +78,15 @@ export function BulkAuthScreen({
     (validation === null || validation.valid_items.length > 0)
   const primaryActionLabel = buildAuthBatchPrimaryActionLabel(parsedItems.length)
   const waitingItems = snapshot?.items.filter((item) => item.status === 'waiting_code' || item.status === 'waiting_2fa') ?? []
+  const selectedSessionId = session?.id
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     window.localStorage.setItem(AUTH_BATCH_DRAFT_STORAGE_KEY, JSON.stringify({ label, rawInput }))
   }, [label, rawInput])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     const batchId = window.localStorage.getItem(LAST_AUTH_BATCH_STORAGE_KEY)
     if (!batchId) return
     void fetchAuthBatch(batchId)
@@ -125,6 +142,16 @@ export function BulkAuthScreen({
       const validationMessage = buildAuthBatchValidationMessage(currentValidation)
       if (validationMessage) {
         setError(validationMessage)
+        return
+      }
+      if (currentValidation.valid_items.length === 1) {
+        const item = currentValidation.valid_items[0]
+        const createdSession = await createTelegramAuthSession({
+          phone_number: item.phone_number,
+          label: item.label ?? (label || undefined),
+        })
+        setSession(createdSession)
+        setSnapshot(null)
         return
       }
       const created = await createAuthBatch({
@@ -195,32 +222,28 @@ export function BulkAuthScreen({
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="sticky top-0 z-40 border-b border-gray-200/70 bg-white">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-5">
-          <button className="flex size-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100" onClick={onBack} type="button">
-            <ArrowLeft className="size-4" />
-          </button>
-          <div>
-            <h1 className="font-display text-base font-bold text-navy-900">Добавление аккаунтов</h1>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto grid max-w-5xl gap-4 px-5 py-5 lg:grid-cols-[360px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
+          <div className="mb-4 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Только по вашему действию</span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Запись в аудит</span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Лимиты и блокировки</span>
+            <span className={`rounded-full px-2.5 py-1 font-semibold ${liveStatusClassName(liveStatus.tone)}`}>{liveStatus.label}</span>
+          </div>
           {testDcEnabled ? (
             <div className="mb-4 rounded-xl border border-honey-100 bg-honey-50 px-3 py-2 text-xs text-honey-700">
               <div className="font-semibold">Включена тестовая среда Telegram</div>
               <div className="mt-1">Обычные Telegram-аккаунты здесь не авторизуются.</div>
-              <button
-                className="mt-2 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-honey-700 shadow-sm disabled:opacity-60"
+              <Button
+                className="mt-2"
                 disabled={testDcPending}
                 onClick={() => void onTestDcChange(false)}
+                size="sm"
                 type="button"
+                variant="secondary"
               >
                 Выключить Test DC
-              </button>
+              </Button>
             </div>
           ) : null}
           <label className="block text-xs font-semibold uppercase text-gray-400">Номера</label>
@@ -229,37 +252,48 @@ export function BulkAuthScreen({
             onChange={(e) => {
               setRawInput(sanitizeBulkPhoneInput(e.target.value))
               setValidation(null)
+              setSession(null)
             }}
             placeholder="+79990000001&#10;79990000002, Марина"
             value={rawInput}
           />
           <div className="mt-2 flex flex-wrap items-center gap-1.5 border-b border-gray-100 pb-3">
-            <button className="rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-500 hover:bg-gray-50" onClick={() => { setRawInput(uniqueBulkPhoneLines(parsedLines).join('\n')); setValidation(null) }} type="button">
+            <Button onClick={() => { setRawInput(uniqueBulkPhoneLines(parsedLines).join('\n')); setValidation(null) }} size="sm" type="button" variant="secondary">
               Уникализировать
-            </button>
-            <button className="rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-500 hover:bg-gray-50" onClick={() => { setRawInput(newLinesOnly(validation, parsedLines).join('\n')); setValidation(null) }} type="button">
+            </Button>
+            <Button onClick={() => { setRawInput(newLinesOnly(validation, parsedLines).join('\n')); setValidation(null) }} size="sm" type="button" variant="secondary">
               Только новые
-            </button>
-            <button className="ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold text-gray-400 hover:bg-gray-50 hover:text-gray-600" onClick={() => { setRawInput(''); setValidation(null) }} type="button">
+            </Button>
+            <Button className="ml-auto" onClick={() => { setRawInput(''); setValidation(null) }} size="sm" type="button" variant="ghost">
               Очистить всё
-            </button>
+            </Button>
           </div>
           <ValidationSummary localInvalidRows={localInvalidRows} parsedCount={parsedLines.length} validation={validation} />
-          <label className="mt-4 block text-xs font-semibold uppercase text-gray-400">Название пачки</label>
+          <label className="mt-4 block text-xs font-semibold uppercase text-gray-400">{parsedItems.length === 1 ? 'Название аккаунта' : 'Название пачки'}</label>
           <input className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-navy-300 focus:outline-none focus:ring-2 focus:ring-navy-100" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Необязательно" />
           {error ? <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div> : null}
           <div className="mt-4 flex gap-2">
-            <button className="min-w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button">
+            <Button className="min-w-28" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button" variant="secondary">
               Проверить
-            </button>
-            <button className="flex-1 rounded-lg bg-navy-400 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!canCreate} onClick={handleCreateAndStart} type="button">
+            </Button>
+            <Button className="flex-1" disabled={!canCreate} onClick={handleCreateAndStart} type="button">
               {isBusy ? <Loader2 className="mx-auto size-4 animate-spin" /> : primaryActionLabel}
-            </button>
+            </Button>
           </div>
         </section>
 
         <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
-          {snapshot ? (
+          {session ? (
+            <SingleAuthDashboard
+              error={error}
+              pending={isBusy}
+              selectedSessionId={selectedSessionId}
+              session={session}
+              setError={setError}
+              setIsBusy={setIsBusy}
+              setSession={setSession}
+            />
+          ) : snapshot ? (
             <BatchDashboard
               isBusy={isBusy}
               onCancel={() => void updateSnapshot(() => cancelAuthBatch(snapshot.batch.id))}
@@ -268,7 +302,6 @@ export function BulkAuthScreen({
               onRetryItem={(item) => void updateItem(() => retryAuthBatchItem(snapshot.batch.id, item.id))}
               onSubmitCode={(item, code) => void updateItem(() => submitAuthBatchCode(snapshot.batch.id, item.id, code))}
               onSubmitPassword={(item, password) => void updateItem(() => submitAuthBatchPassword(snapshot.batch.id, item.id, password))}
-              onBackToAccounts={onBack}
               snapshot={snapshot}
               waitingItems={waitingItems}
             />
@@ -276,8 +309,7 @@ export function BulkAuthScreen({
             <BatchPreview lines={parsedLines} />
           )}
         </section>
-      </main>
-    </div>
+      </div>
   )
 }
 
@@ -287,7 +319,15 @@ function formatBulkError(error: unknown): string {
 }
 
 function rememberBatch(batchId: string) {
+  if (typeof window === 'undefined') return
   window.localStorage.setItem(LAST_AUTH_BATCH_STORAGE_KEY, batchId)
+}
+
+function liveStatusClassName(tone: LiveStatus['tone']): string {
+  if (tone === 'green') return 'bg-emerald-50 text-emerald-700'
+  if (tone === 'red') return 'bg-red-50 text-red-700'
+  if (tone === 'amber') return 'bg-amber-50 text-amber-700'
+  return 'bg-gray-50 text-gray-500'
 }
 
 function ValidationSummary({
@@ -393,7 +433,6 @@ function BatchDashboard({
   onRetryItem,
   onSubmitCode,
   onSubmitPassword,
-  onBackToAccounts,
   snapshot,
   waitingItems,
 }: {
@@ -404,7 +443,6 @@ function BatchDashboard({
   onRetryItem: (item: AuthBatchItem) => void
   onSubmitCode: (item: AuthBatchItem, code: string) => void
   onSubmitPassword: (item: AuthBatchItem, password: string) => void
-  onBackToAccounts: () => void
   snapshot: AuthBatchSnapshot
   waitingItems: AuthBatchItem[]
 }) {
@@ -421,11 +459,11 @@ function BatchDashboard({
         {!isTerminalBatch ? (
           <div className="flex gap-2">
             {batch.status === 'paused' ? (
-              <button className="rounded-lg bg-navy-400 px-3 py-2 text-sm font-semibold text-white" disabled={isBusy} onClick={onResume} type="button"><Play className="mr-1 inline size-4" />Продолжить</button>
+              <Button disabled={isBusy} icon={<Play className="size-4" />} onClick={onResume} type="button">Продолжить</Button>
             ) : (
-              <button className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600" disabled={isBusy} onClick={onPause} type="button"><Pause className="mr-1 inline size-4" />Пауза</button>
+              <Button disabled={isBusy} icon={<Pause className="size-4" />} onClick={onPause} type="button" variant="secondary">Пауза</Button>
             )}
-            <button className="rounded-lg border border-red-100 px-3 py-2 text-sm font-semibold text-red-600" disabled={isBusy} onClick={onCancel} type="button"><XCircle className="mr-1 inline size-4" />Отмена</button>
+            <Button disabled={isBusy} icon={<XCircle className="size-4" />} onClick={onCancel} type="button" variant="danger">Отмена</Button>
           </div>
         ) : null}
       </div>
@@ -436,9 +474,6 @@ function BatchDashboard({
             <div className="text-sm font-semibold text-emerald-800">Пачка завершена</div>
             <div className="text-xs text-emerald-700">{batch.success_count} из {batch.total_count} аккаунтов готовы</div>
           </div>
-          <button className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50" onClick={onBackToAccounts} type="button">
-            К списку аккаунтов
-          </button>
         </div>
       ) : null}
 
@@ -463,7 +498,7 @@ function BatchDashboard({
             <div className="flex items-center gap-2">
               <StatusPill status={item.status} />
               {!isTerminalBatch && ['failed', 'timed_out'].includes(item.status) ? (
-                <button className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100" onClick={() => onRetryItem(item)} type="button"><RotateCcw className="size-4" /></button>
+                <Button aria-label="Повторить" icon={<RotateCcw className="size-4" />} onClick={() => onRetryItem(item)} size="icon" type="button" variant="ghost" />
               ) : null}
             </div>
           </div>
@@ -480,9 +515,9 @@ function CredentialRow({ item, onSubmitCode, onSubmitPassword }: { item: AuthBat
     <div className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_180px_auto] sm:items-center">
       <div className="text-sm font-semibold text-navy-900">{item.phone_number}</div>
       <input className="rounded-lg border border-gray-200 px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
-      <button className="rounded-lg bg-navy-400 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={value.length < 4} onClick={() => isPassword ? onSubmitPassword(item, value) : onSubmitCode(item, value)} type="button">
+      <Button disabled={value.length < 4} onClick={() => isPassword ? onSubmitPassword(item, value) : onSubmitCode(item, value)} type="button">
         Отправить
-      </button>
+      </Button>
     </div>
   )
 }
@@ -499,12 +534,74 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function readDraft(): { label: string; rawInput: string } {
+  if (typeof window === 'undefined') return { label: '', rawInput: '' }
   try {
     const parsed = JSON.parse(window.localStorage.getItem(AUTH_BATCH_DRAFT_STORAGE_KEY) || '{}') as Partial<{ label: string; rawInput: string }>
     return { label: parsed.label ?? '', rawInput: parsed.rawInput ?? '' }
   } catch {
     return { label: '', rawInput: '' }
   }
+}
+
+function SingleAuthDashboard({
+  error,
+  pending,
+  selectedSessionId,
+  session,
+  setError,
+  setIsBusy,
+  setSession,
+}: {
+  error: string | null
+  pending: boolean
+  selectedSessionId?: string
+  session: TelegramAuthSession
+  setError: (error: string | null) => void
+  setIsBusy: (pending: boolean) => void
+  setSession: (session: TelegramAuthSession) => void
+}) {
+  async function run(action: () => Promise<TelegramAuthSession>) {
+    setIsBusy(true)
+    setError(null)
+    try {
+      setSession(await action())
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : 'Действие авторизации не выполнено безопасно.')
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <AuthSessionStatusCard session={session} />
+      {session.requires_code && selectedSessionId ? (
+        <SubmitCodeForm disabled={pending} onSubmitCode={(code) => run(() => submitTelegramAuthCode(selectedSessionId, { code }))} />
+      ) : null}
+      {session.requires_password && selectedSessionId ? (
+        <SubmitPasswordForm
+          disabled={pending}
+          onSubmitPassword={(password) => run(() => submitTelegramAuthPassword(selectedSessionId, { password }))}
+        />
+      ) : null}
+      {selectedSessionId && session.status !== 'canceled' ? (
+        <div>
+          <Button disabled={pending} onClick={() => void run(() => cancelTelegramAuthSession(selectedSessionId))} type="button" variant="secondary">
+            Отменить вход
+          </Button>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+          {redactAuthUiError(error)}
+        </div>
+      ) : null}
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <ShieldCheck className="size-4" />
+        Коды и пароли не сохраняются в браузере.
+      </div>
+    </div>
+  )
 }
 
 function newLinesOnly(validation: AuthBatchValidation | null, lines: ReturnType<typeof parseBulkPhoneLines>): string[] {

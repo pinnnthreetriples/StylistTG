@@ -59,7 +59,7 @@ export function ImportUploadForm({
             ))}
           </select>
         </label>
-        <Button className="self-end" disabled={disabled} type="submit">
+        <Button className="self-end" disabled={disabled} type="submit" variant="secondary">
           Создать предпросмотр
         </Button>
       </form>

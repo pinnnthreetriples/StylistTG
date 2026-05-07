@@ -74,7 +74,7 @@ export function HomePage() {
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">{heroDescription}</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link to="/accounts">
-                  <Button type="button">
+                  <Button type="button" variant="secondary">
                     Открыть аккаунты
                     <ArrowRight className="size-4" />
                   </Button>

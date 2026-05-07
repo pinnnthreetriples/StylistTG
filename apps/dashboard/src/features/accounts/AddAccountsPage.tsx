@@ -1,8 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
 
-import { AnimatedTabs } from '@/components/ui/AnimatedTabs'
-import { AuthSessionWizard } from '@/features/auth/AuthSessionWizard'
 import { ImportBatchPage } from '@/features/account-import/ImportBatchPage'
 import { BulkAuthScreen } from '@/components/auth/BulkAuthScreen'
 import { getLiveStatus } from '@/lib/liveStatus'
@@ -12,14 +9,11 @@ export function AddAccountsPage({
   testDcEnabled,
   testDcPending,
   onTestDcChange,
-  onBack,
 }: {
   testDcEnabled: boolean
   testDcPending: boolean
   onTestDcChange: (enabled: boolean) => void
-  onBack: () => void
 }) {
-  const [activeTab, setActiveTab] = useState('single')
   const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
   const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
   const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
@@ -32,49 +26,28 @@ export function AddAccountsPage({
             Добавление аккаунтов
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Выберите удобный способ добавления аккаунтов в систему.
+            Введите один номер для ручной авторизации или несколько номеров для пачки.
           </p>
         </div>
       </div>
 
-      <AnimatedTabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        tabs={[
-          {
-            value: 'single',
-            label: 'Один аккаунт',
-            content: (
-              <div className="py-4">
-                <AuthSessionWizard liveStatus={liveStatus} />
-              </div>
-            ),
-          },
-          {
-            value: 'list',
-            label: 'Список номеров',
-            content: (
-              <div className="py-4">
-                <BulkAuthScreen
-                  onBack={onBack}
-                  onTestDcChange={onTestDcChange}
-                  testDcEnabled={testDcEnabled}
-                  testDcPending={testDcPending}
-                />
-              </div>
-            ),
-          },
-          {
-            value: 'import',
-            label: 'Импорт пакета',
-            content: (
-              <div className="py-4">
-                <ImportBatchPage />
-              </div>
-            ),
-          },
-        ]}
-      />
+      <div className="grid gap-4">
+        <BulkAuthScreen
+          liveStatus={liveStatus}
+          onTestDcChange={onTestDcChange}
+          testDcEnabled={testDcEnabled}
+          testDcPending={testDcPending}
+        />
+        <details className="rounded-xl border border-gray-200/70 bg-white shadow-soft">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-navy-900">
+            Импорт пакета
+            <span className="ml-2 font-normal text-gray-400">предпросмотр и ручное подтверждение</span>
+          </summary>
+          <div className="border-t border-gray-100 p-4">
+            <ImportBatchPage compact />
+          </div>
+        </details>
+      </div>
     </div>
   )
 }

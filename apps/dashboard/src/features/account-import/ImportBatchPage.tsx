@@ -14,7 +14,7 @@ import {
   type AccountImportBatchCreate,
 } from '@/lib/api'
 
-export function ImportBatchPage() {
+export function ImportBatchPage({ compact = false }: { compact?: boolean }) {
   const [batch, setBatch] = useState<AccountImportBatch | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -47,15 +47,17 @@ export function ImportBatchPage() {
 
   return (
     <div className="grid gap-4">
-      <PageHeader
-        eyebrow="Импорт аккаунтов"
-        title="Предпросмотр пакета"
-        description="Проверяет tdata, папки TDLib, файлы сессий или метаданные без автоматического live-импорта."
-      />
+      {compact ? null : (
+        <PageHeader
+          eyebrow="Импорт аккаунтов"
+          title="Предпросмотр пакета"
+          description="Проверяет tdata, папки TDLib, файлы сессий или метаданные без автоматического live-импорта."
+        />
+      )}
       <ImportUploadForm disabled={pending} onCreate={createBatch} />
       <ImportConfirmPanel batch={batch} disabled={pending} onConfirm={confirmBatch} onValidate={validateBatch} />
-      <ImportPreviewTable batch={batch} />
-      <ImportValidationResult batch={batch} />
+      {compact && !batch ? null : <ImportPreviewTable batch={batch} />}
+      {compact && !batch ? null : <ImportValidationResult batch={batch} />}
       {error ? (
         <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
           {redactImportUiError(error)}

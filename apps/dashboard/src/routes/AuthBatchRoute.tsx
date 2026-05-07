@@ -1,12 +1,9 @@
-import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 
 import { fetchAuthRuntimeMode, updateAuthRuntimeMode } from '@/lib/auth'
-import { appRoutes } from '@/lib/routes'
 import { AddAccountsPage } from '@/features/accounts/AddAccountsPage'
 
 export function AuthBatchRoute() {
-  const navigate = useNavigate()
   const [testDcEnabled, setTestDcEnabled] = useState(false)
   const [testDcPending, setTestDcPending] = useState(false)
 
@@ -38,7 +35,6 @@ export function AuthBatchRoute() {
 
   return (
     <AddAccountsPage
-      onBack={() => void navigate({ href: appRoutes.accounts() })}
       onTestDcChange={(enabled) => void handleTestDcChange(enabled)}
       testDcEnabled={testDcEnabled}
       testDcPending={testDcPending}

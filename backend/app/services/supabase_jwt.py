@@ -8,7 +8,7 @@ from typing import Any
 from urllib.request import urlopen
 from urllib.error import URLError
 
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa, utils
 from cryptography.hazmat.primitives import hashes
 
 from app.config import Settings
@@ -46,7 +46,8 @@ class SupabaseJwtVerifier:
 
     def verify(self, token: str) -> dict[str, Any]:
         header, payload, signature, signing_input = _split_jwt(token)
-        if header.get("alg") != "RS256":
+        alg = str(header.get("alg") or "")
+        if alg not in {"RS256", "ES256"}:
             raise _auth_error("JWT_ALG_UNSUPPORTED", "unsupported JWT algorithm")
         kid = str(header.get("kid") or "")
         try:
@@ -55,11 +56,7 @@ class SupabaseJwtVerifier:
             if exc.error_code != "JWT_KEY_NOT_FOUND" or not self.refresh_on_kid_miss:
                 raise
             key = _find_jwk(self._cached_jwks(force_refresh=True), kid)
-        public_key = _rsa_public_key_from_jwk(key)
-        try:
-            public_key.verify(signature, signing_input, padding.PKCS1v15(), hashes.SHA256())
-        except Exception as exc:
-            raise _auth_error("JWT_SIGNATURE_INVALID", "JWT signature is invalid") from exc
+        _verify_signature(alg, key, signature, signing_input)
         now = int(time.time())
         if int(payload.get("exp", 0)) <= now:
             raise _auth_error("JWT_EXPIRED", "JWT is expired")
@@ -147,6 +144,41 @@ def _rsa_public_key_from_jwk(jwk: dict[str, Any]):
     n = int.from_bytes(_b64decode(jwk["n"]), "big")
     e = int.from_bytes(_b64decode(jwk["e"]), "big")
     return rsa.RSAPublicNumbers(e=e, n=n).public_key()
+
+
+def _ec_public_key_from_jwk(jwk: dict[str, Any]):
+    x = int.from_bytes(_b64decode(jwk["x"]), "big")
+    y = int.from_bytes(_b64decode(jwk["y"]), "big")
+    return ec.EllipticCurvePublicNumbers(x=x, y=y, curve=ec.SECP256R1()).public_key()
+
+
+def _verify_signature(alg: str, jwk: dict[str, Any], signature: bytes, signing_input: bytes) -> None:
+    jwk_alg = jwk.get("alg")
+    if jwk_alg and jwk_alg != alg:
+        raise _auth_error("JWT_ALG_UNSUPPORTED", "unsupported JWT algorithm")
+    try:
+        if alg == "RS256":
+            if jwk.get("kty") != "RSA":
+                raise ValueError("RS256 requires an RSA JWK")
+            public_key = _rsa_public_key_from_jwk(jwk)
+            public_key.verify(signature, signing_input, padding.PKCS1v15(), hashes.SHA256())
+            return
+        if jwk.get("kty") != "EC" or jwk.get("crv") != "P-256":
+            raise ValueError("ES256 requires an EC P-256 JWK")
+        public_key = _ec_public_key_from_jwk(jwk)
+        public_key.verify(_es256_signature_to_der(signature), signing_input, ec.ECDSA(hashes.SHA256()))
+    except AppError:
+        raise
+    except Exception as exc:
+        raise _auth_error("JWT_SIGNATURE_INVALID", "JWT signature is invalid") from exc
+
+
+def _es256_signature_to_der(signature: bytes) -> bytes:
+    if len(signature) != 64:
+        raise ValueError("ES256 signatures must contain 64 raw bytes")
+    r = int.from_bytes(signature[:32], "big")
+    s = int.from_bytes(signature[32:], "big")
+    return utils.encode_dss_signature(r, s)
 
 
 def _auth_error(code: str, message: str) -> AppError:

@@ -141,7 +141,29 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         error_code="REQUEST_VALIDATION_ERROR",
         error_class="validation",
         message="request validation failed",
-        details={"errors": exc.errors()},
+        details={"errors": [_sanitize_validation_error(error) for error in exc.errors()]},
         field_errors=field_errors,
         request_id=request_id,
     )
+
+
+def _sanitize_validation_error(error: dict[str, Any]) -> dict[str, Any]:
+    safe: dict[str, Any] = {}
+    for key, value in error.items():
+        if key == "input":
+            safe[key] = "[redacted]"
+            continue
+        safe[key] = _json_safe(value)
+    return safe
+
+
+def _json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, bytes | bytearray | memoryview):
+        return "[redacted]"
+    if isinstance(value, tuple | list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    return str(value)

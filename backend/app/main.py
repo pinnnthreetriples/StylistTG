@@ -17,6 +17,7 @@ from app.api.assets import router as assets_router
 from app.api.dashboard import router as dashboard_router
 from app.api.diagnostics import router as diagnostics_router
 from app.api.jobs import router as jobs_router
+from app.api.me import router as me_router
 from app.api.operation_logs import router as operation_logs_router
 from app.api.settings import router as settings_router
 from app.api.story_drafts import router as story_drafts_router
@@ -24,6 +25,7 @@ from app.api.story_capabilities import router as story_capabilities_router
 from app.api.story_posts import router as story_posts_router
 from app.api.telegram_auth import router as telegram_auth_router
 from app.api.tdlib_runtime import router as tdlib_runtime_router
+from app.api.warmup import router as warmup_router
 from app.api.workers import router as workers_router
 from app.config import settings
 from app.db import SessionLocal
@@ -96,6 +98,7 @@ app.include_router(assets_router)
 app.include_router(dashboard_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
+app.include_router(me_router)
 app.include_router(operation_logs_router)
 app.include_router(settings_router)
 app.include_router(story_drafts_router)
@@ -103,6 +106,7 @@ app.include_router(story_capabilities_router)
 app.include_router(story_posts_router)
 app.include_router(telegram_auth_router)
 app.include_router(tdlib_runtime_router)
+app.include_router(warmup_router)
 app.include_router(workers_router)
 
 

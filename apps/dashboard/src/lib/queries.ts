@@ -33,6 +33,7 @@ import {
   fetchLatestJob,
   fetchExecutionPolicy,
   fetchFrontendDiagnosticsSummary,
+  fetchCurrentUser,
   fetchLatestJobs,
   fetchLivePreflight,
   fetchRuntimeDiagnostics,
@@ -44,6 +45,7 @@ import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
 import { fetchAuthRuntimeMode, fetchAuthState } from '@/lib/auth'
 
 export const queryKeys = {
+  currentUser: ['currentUser'] as const,
   accounts: ['accounts'] as const,
   accountSafety: {
     root: ['accountSafety'] as const,
@@ -137,6 +139,14 @@ export type JobStateBundle = {
   steps: Awaited<ReturnType<typeof fetchJobSteps>>
   latestJob: Awaited<ReturnType<typeof fetchLatestJob>>
   jobs: Awaited<ReturnType<typeof fetchLatestJobs>>
+}
+
+export function currentUserQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.currentUser,
+    queryFn: fetchCurrentUser,
+    staleTime: 60_000,
+  })
 }
 
 export function settingsBundleQueryOptions() {

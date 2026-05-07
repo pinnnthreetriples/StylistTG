@@ -39,6 +39,8 @@ def test_api_contract_creates_account_asset_and_profile_job(tmp_path, monkeypatc
     assert content_response.headers["content-type"] == "image/jpeg"
     assert content_response.content
 
+    monkeypatch.setattr("app.api.jobs.enqueue_profile_job", lambda job_id: True)
+
     job_response = client.post(
         "/api/jobs/profile",
         json={

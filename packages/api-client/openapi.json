@@ -3736,6 +3736,27 @@
         }
       }
     },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get Me",
+        "operationId": "get_me_api_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/operation-logs": {
       "get": {
         "tags": [
@@ -4507,6 +4528,483 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TdlibRuntimeStatusRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/readiness": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Readiness",
+        "operationId": "get_warmup_readiness_api_warmup_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupReadinessRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/validate": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Validate",
+        "operationId": "post_warmup_validate_api_warmup_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupValidateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/strategies": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Strategies",
+        "operationId": "get_warmup_strategies_api_warmup_strategies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupStrategyRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Warmup Strategies Api Warmup Strategies Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Session",
+        "operationId": "post_warmup_session_api_warmup_sessions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupSessionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Sessions",
+        "operationId": "get_warmup_sessions_api_warmup_sessions_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionPageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Session Detail",
+        "operationId": "get_warmup_session_detail_api_warmup_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Delete Warmup Session Endpoint",
+        "operationId": "delete_warmup_session_endpoint_api_warmup_sessions__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions/{session_id}/status": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Session Status",
+        "operationId": "get_warmup_session_status_api_warmup_sessions__session_id__status_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions/{session_id}/pause": {
+      "put": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Put Warmup Session Pause",
+        "operationId": "put_warmup_session_pause_api_warmup_sessions__session_id__pause_put",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupPauseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions/{session_id}/resume": {
+      "put": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Put Warmup Session Resume",
+        "operationId": "put_warmup_session_resume_api_warmup_sessions__session_id__resume_put",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup/sessions/{session_id}/events": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Session Events",
+        "operationId": "get_warmup_session_events_api_warmup_sessions__session_id__events_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupEventPageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -5559,6 +6057,16 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "warmup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountWarmupInfoRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7279,6 +7787,50 @@
         "type": "object",
         "title": "AccountValidityCheckRequest"
       },
+      "AccountWarmupInfoRead": {
+        "properties": {
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "current_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Day"
+          },
+          "is_locked": {
+            "type": "boolean",
+            "title": "Is Locked",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AccountWarmupInfoRead"
+      },
       "ActionGateRead": {
         "properties": {
           "account_id": {
@@ -8366,6 +8918,56 @@
           "file"
         ],
         "title": "Body_post_story_video_api_assets_story_video_post"
+      },
+      "CurrentUserRead": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "workspace_name": {
+            "type": "string",
+            "title": "Workspace Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "auth_source": {
+            "type": "string",
+            "title": "Auth Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "workspace_id",
+          "workspace_name",
+          "role",
+          "auth_source"
+        ],
+        "title": "CurrentUserRead"
       },
       "DashboardAccountRead": {
         "properties": {
@@ -10966,6 +11568,566 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WarmupCheckItemRead": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/WarmupCheckSeverityRead"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "passed",
+          "severity"
+        ],
+        "title": "WarmupCheckItemRead"
+      },
+      "WarmupCheckSeverityRead": {
+        "type": "string",
+        "enum": [
+          "error",
+          "warning"
+        ],
+        "title": "WarmupCheckSeverityRead"
+      },
+      "WarmupEventPageRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupEventRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ],
+        "title": "WarmupEventPageRead"
+      },
+      "WarmupEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_type",
+          "created_at"
+        ],
+        "title": "WarmupEventRead"
+      },
+      "WarmupPauseRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "WarmupPauseRequest"
+      },
+      "WarmupReadinessRead": {
+        "properties": {
+          "workers_enabled": {
+            "type": "boolean",
+            "title": "Workers Enabled"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run"
+          },
+          "redis_connected": {
+            "type": "boolean",
+            "title": "Redis Connected"
+          },
+          "database_connected": {
+            "type": "boolean",
+            "title": "Database Connected"
+          },
+          "active_sessions": {
+            "type": "integer",
+            "title": "Active Sessions"
+          },
+          "strategies_available": {
+            "type": "integer",
+            "title": "Strategies Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workers_enabled",
+          "dry_run",
+          "redis_connected",
+          "database_connected",
+          "active_sessions",
+          "strategies_available"
+        ],
+        "title": "WarmupReadinessRead"
+      },
+      "WarmupSessionCreateRequest": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "strategy_id": {
+            "type": "string",
+            "title": "Strategy Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "strategy_id"
+        ],
+        "title": "WarmupSessionCreateRequest"
+      },
+      "WarmupSessionPageRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupSessionSummaryRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ],
+        "title": "WarmupSessionPageRead"
+      },
+      "WarmupSessionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "strategy_id": {
+            "type": "string",
+            "title": "Strategy Id"
+          },
+          "strategy_name": {
+            "type": "string",
+            "title": "Strategy Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WarmupStatusRead"
+          },
+          "current_day": {
+            "type": "integer",
+            "title": "Current Day"
+          },
+          "cadence_hours": {
+            "type": "integer",
+            "title": "Cadence Hours"
+          },
+          "next_step_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step At"
+          },
+          "last_step_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Step At"
+          },
+          "next_attempt_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Attempt At"
+          },
+          "consecutive_failures": {
+            "type": "integer",
+            "title": "Consecutive Failures"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "strategy_id",
+          "strategy_name",
+          "status",
+          "current_day",
+          "cadence_hours",
+          "consecutive_failures",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WarmupSessionRead"
+      },
+      "WarmupSessionStatusRead": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/WarmupStatusRead"
+          },
+          "current_day": {
+            "type": "integer",
+            "title": "Current Day"
+          },
+          "next_step_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step At"
+          },
+          "next_attempt_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Attempt At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "current_day"
+        ],
+        "title": "WarmupSessionStatusRead"
+      },
+      "WarmupSessionSummaryRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "account_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Label"
+          },
+          "strategy_name": {
+            "type": "string",
+            "title": "Strategy Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WarmupStatusRead"
+          },
+          "current_day": {
+            "type": "integer",
+            "title": "Current Day"
+          },
+          "cadence_hours": {
+            "type": "integer",
+            "title": "Cadence Hours"
+          },
+          "next_step_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "strategy_name",
+          "status",
+          "current_day",
+          "cadence_hours",
+          "updated_at"
+        ],
+        "title": "WarmupSessionSummaryRead"
+      },
+      "WarmupStatusRead": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "validating",
+          "scheduled",
+          "active",
+          "paused_risk",
+          "paused_manual",
+          "completed",
+          "failed"
+        ],
+        "title": "WarmupStatusRead"
+      },
+      "WarmupStrategyRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "is_preset": {
+            "type": "boolean",
+            "title": "Is Preset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_preset"
+        ],
+        "title": "WarmupStrategyRead"
+      },
+      "WarmupValidateRead": {
+        "properties": {
+          "is_ready": {
+            "type": "boolean",
+            "title": "Is Ready"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupCheckItemRead"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "blocking_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blocking Reasons"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_ready",
+          "checks",
+          "blocking_reasons",
+          "warnings"
+        ],
+        "title": "WarmupValidateRead"
+      },
+      "WarmupValidateRequest": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "strategy_id": {
+            "type": "string",
+            "title": "Strategy Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "strategy_id"
+        ],
+        "title": "WarmupValidateRequest"
       },
       "WorkerDiagnosticsRead": {
         "properties": {

@@ -12,6 +12,23 @@ class AccountCreate(BaseModel):
     telegram_user_id: str | None = None
 
 
+class AccountWarmupInfoRead(BaseModel):
+    session_id: str | None = None
+    status: str | None = None
+    current_day: int | None = None
+    is_locked: bool = False
+
+
+class CurrentUserRead(BaseModel):
+    user_id: str
+    email: str
+    display_name: str | None
+    workspace_id: str
+    workspace_name: str
+    role: str
+    auth_source: str
+
+
 class AccountRead(BaseModel):
     id: str
     external_ref: str
@@ -36,6 +53,7 @@ class AccountListItemRead(BaseModel):
     is_test_dc: bool
     profile_photo_asset_id: str | None
     updated_at: datetime
+    warmup: AccountWarmupInfoRead | None = None
 
 
 class RuntimeRefreshRead(BaseModel):
@@ -230,6 +248,127 @@ class ActionGateRead(BaseModel):
     risk_score: int
     reasons: list[AccountReadinessRiskReasonRead]
     required_override_reason: bool
+
+
+class WarmupStatusRead(StrEnum):
+    DRAFT = "draft"
+    VALIDATING = "validating"
+    SCHEDULED = "scheduled"
+    ACTIVE = "active"
+    PAUSED_RISK = "paused_risk"
+    PAUSED_MANUAL = "paused_manual"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class WarmupCheckSeverityRead(StrEnum):
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class WarmupValidateRequest(BaseModel):
+    account_id: str
+    strategy_id: str
+
+
+class WarmupCheckItemRead(BaseModel):
+    key: str
+    label: str
+    passed: bool
+    severity: WarmupCheckSeverityRead
+    detail: str | None = None
+
+
+class WarmupValidateRead(BaseModel):
+    is_ready: bool
+    checks: list[WarmupCheckItemRead]
+    blocking_reasons: list[str]
+    warnings: list[str]
+
+
+class WarmupSessionCreateRequest(BaseModel):
+    account_id: str
+    strategy_id: str
+
+
+class WarmupSessionRead(BaseModel):
+    id: str
+    account_id: str
+    strategy_id: str
+    strategy_name: str
+    status: WarmupStatusRead
+    current_day: int
+    cadence_hours: int
+    next_step_at: datetime | None = None
+    last_step_at: datetime | None = None
+    next_attempt_at: datetime | None = None
+    consecutive_failures: int
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None = None
+    paused_at: datetime | None = None
+    completed_at: datetime | None = None
+    worker_id: str | None = None
+
+
+class WarmupSessionSummaryRead(BaseModel):
+    id: str
+    account_id: str
+    account_label: str | None = None
+    strategy_name: str
+    status: WarmupStatusRead
+    current_day: int
+    cadence_hours: int
+    next_step_at: datetime | None = None
+    updated_at: datetime
+
+
+class WarmupSessionPageRead(BaseModel):
+    items: list[WarmupSessionSummaryRead]
+    total: int
+    page: int
+    limit: int
+
+
+class WarmupSessionStatusRead(BaseModel):
+    status: WarmupStatusRead
+    current_day: int
+    next_step_at: datetime | None = None
+    next_attempt_at: datetime | None = None
+
+
+class WarmupPauseRequest(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+class WarmupEventRead(BaseModel):
+    id: str
+    event_type: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class WarmupEventPageRead(BaseModel):
+    items: list[WarmupEventRead]
+    total: int
+    page: int
+    limit: int
+
+
+class WarmupStrategyRead(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    is_preset: bool
+
+
+class WarmupReadinessRead(BaseModel):
+    workers_enabled: bool
+    dry_run: bool
+    redis_connected: bool
+    database_connected: bool
+    active_sessions: int
+    strategies_available: int
 
 
 class QueueDescriptorRead(BaseModel):

@@ -66,7 +66,7 @@ cd backend && python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/
 
 - Python 3.12+, ruff for linting, type hints everywhere
 - TypeScript strict, functional React + hooks, Tailwind CSS v4
-- shadcn/ui for UI components
+- `@stylisttg/ui` is the single product UI system for dashboard modules. Do not import `apps/dashboard/src/components/ui/*` directly in product modules when an equivalent exists in `@stylisttg/ui`; shadcn-style files are references/scaffolding, not a parallel design system.
 
 ## Testing
 
@@ -89,6 +89,5 @@ cd backend && python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/
 - Live validation → `docs/runbooks/live-validation.md`
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Current Spec Kit plan: `specs/001-account-preparation/plan.md`
 <!-- SPECKIT END -->

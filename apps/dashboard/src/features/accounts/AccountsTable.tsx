@@ -24,18 +24,22 @@ export function AccountsTable({
   isLoading = false,
   onSelectAccount,
   riskByAccount,
+  userId,
+  workspaceId,
 }: {
   accounts: AccountListItem[]
   isLoading?: boolean
   onSelectAccount?: (accountId: string) => void
   riskByAccount?: Map<string, AccountRisk>
+  userId?: string | null
+  workspaceId?: string | null
 }) {
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [activeView, setActiveView] = useState<AccountsView>('all')
-  const storageKey = accountsViewStorageKey()
+  const storageKey = accountsViewStorageKey({ workspaceId: workspaceId ?? undefined, userId: userId ?? undefined })
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey) as AccountsView

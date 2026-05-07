@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON, Uuid
 
@@ -247,6 +247,33 @@ class AssetStatus(StrEnum):
     ORPHANED = "orphaned"
 
 
+class WarmupStatus(StrEnum):
+    DRAFT = "draft"
+    VALIDATING = "validating"
+    SCHEDULED = "scheduled"
+    ACTIVE = "active"
+    PAUSED_RISK = "paused_risk"
+    PAUSED_MANUAL = "paused_manual"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class WarmupTaskRunStatus(StrEnum):
+    STARTED = "started"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+
+ACTIVE_WARMUP_STATUSES = {
+    WarmupStatus.VALIDATING,
+    WarmupStatus.SCHEDULED,
+    WarmupStatus.ACTIVE,
+    WarmupStatus.PAUSED_RISK,
+    WarmupStatus.PAUSED_MANUAL,
+}
+
+
 TERMINAL_JOB_STATES = {
     JobState.DEDUP_BLOCKED,
     JobState.PARTIALLY_COMPLETED,
@@ -333,6 +360,7 @@ class Account(Base):
     telegram_auth_sessions: Mapped[list[TelegramAuthSession]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+    warmup_sessions: Mapped[list[WarmupSession]] = relationship(back_populates="account")
 
 
 class AccountLifecycleEvent(Base):
@@ -452,6 +480,128 @@ class TelegramAuthSession(Base):
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     account: Mapped[Account | None] = relationship(back_populates="telegram_auth_sessions")
+
+
+class WarmupStrategy(Base):
+    __tablename__ = "warmup_strategy"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "name", name="uq_warmup_strategy_workspace_name"),
+        Index("ix_warmup_strategy_workspace_id", "workspace_id"),
+        Index("ix_warmup_strategy_preset", "is_preset"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tier_limits_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    target_channels_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    is_preset: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    sessions: Mapped[list[WarmupSession]] = relationship(back_populates="strategy")
+
+
+class WarmupSession(Base):
+    __tablename__ = "warmup_session"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'validating', 'scheduled', 'active', 'paused_risk', 'paused_manual', 'completed', 'failed')",
+            name="ck_warmup_session_status",
+        ),
+        CheckConstraint("current_day BETWEEN 0 AND 14", name="ck_warmup_session_current_day"),
+        CheckConstraint("cadence_hours >= 1", name="ck_warmup_session_cadence_hours"),
+        CheckConstraint("flood_wait_count >= 0", name="ck_warmup_session_flood_wait_count"),
+        CheckConstraint("consecutive_failures >= 0", name="ck_warmup_session_consecutive_failures"),
+        Index("ix_warmup_session_workspace_id", "workspace_id"),
+        Index("ix_warmup_session_account_id", "account_id"),
+        Index("ix_warmup_session_status", "status"),
+        Index(
+            "ix_warmup_session_due",
+            "next_step_at",
+            postgresql_where=text("status IN ('scheduled', 'active')"),
+            sqlite_where=text("status IN ('scheduled', 'active')"),
+        ),
+        Index(
+            "ux_warmup_session_active_account",
+            "workspace_id",
+            "account_id",
+            unique=True,
+            postgresql_where=text("status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"),
+            sqlite_where=text("status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    strategy_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_strategy.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default=WarmupStatus.DRAFT)
+    current_day: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cadence_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
+    next_step_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_step_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    flood_wait_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    worker_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    account: Mapped[Account] = relationship(back_populates="warmup_sessions")
+    strategy: Mapped[WarmupStrategy] = relationship(back_populates="sessions")
+    events: Mapped[list[WarmupEvent]] = relationship(back_populates="session", cascade="all, delete-orphan")
+    task_runs: Mapped[list[WarmupTaskRun]] = relationship(back_populates="session", cascade="all, delete-orphan")
+
+
+class WarmupEvent(Base):
+    __tablename__ = "warmup_event"
+    __table_args__ = (
+        Index("ix_warmup_event_workspace_id", "workspace_id"),
+        Index("ix_warmup_event_session_created", "session_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    session_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_session.id"), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    session: Mapped[WarmupSession] = relationship(back_populates="events")
+
+
+class WarmupTaskRun(Base):
+    __tablename__ = "warmup_task_run"
+    __table_args__ = (
+        CheckConstraint("day BETWEEN 0 AND 14", name="ck_warmup_task_run_day"),
+        CheckConstraint(
+            "status IN ('started', 'completed', 'skipped', 'failed')",
+            name="ck_warmup_task_run_status",
+        ),
+        UniqueConstraint("session_id", "day", "task_type", name="uq_warmup_task_run_session_day_type"),
+        Index("ix_warmup_task_run_workspace_id", "workspace_id"),
+        Index("ix_warmup_task_run_session_id", "session_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    session_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_session.id"), nullable=False)
+    day: Mapped[int] = mapped_column(Integer, nullable=False)
+    task_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    worker_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    session: Mapped[WarmupSession] = relationship(back_populates="task_runs")
 
 
 class AccountAuthAttempt(Base):

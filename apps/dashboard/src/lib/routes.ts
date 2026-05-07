@@ -7,6 +7,7 @@ export type AppRouteState =
   | { screen: 'operations' }
   | { screen: 'health' }
   | { screen: 'jobs' }
+  | { screen: 'warmup' }
   | { screen: 'proxy' }
   | { screen: 'account'; accountId: string; section: AccountWorkspaceSection }
 
@@ -17,6 +18,7 @@ export type AppRouteName =
   | 'operations'
   | 'health'
   | 'jobs'
+  | 'warmup'
   | 'proxy'
   | 'account'
   | 'account-profile'
@@ -75,7 +77,9 @@ export const appRoutes = {
   operations: () => '/operations',
   health: () => '/health',
   jobs: () => '/jobs',
+  warmup: () => '/modules/warmup',
   proxy: () => '/proxy',
+  login: () => '/login',
   account: accountRoute,
   accountProfile: accountProfileRoute,
   accountJobs: accountJobsRoute,

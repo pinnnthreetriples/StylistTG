@@ -12,6 +12,7 @@ STORY_QUEUE_NAME = "story_jobs"
 ACCOUNT_LIFECYCLE_QUEUE_NAME = "account_lifecycle_jobs"
 MAINTENANCE_QUEUE_NAME = "maintenance_jobs"
 SCHEDULER_QUEUE_NAME = "scheduler_jobs"
+WARMUP_QUEUE_NAME = "warmup_jobs"
 
 PRODUCTION_QUEUE_NAMES = (
     AUTH_QUEUE_NAME,
@@ -21,6 +22,7 @@ PRODUCTION_QUEUE_NAMES = (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
     MAINTENANCE_QUEUE_NAME,
     SCHEDULER_QUEUE_NAME,
+    WARMUP_QUEUE_NAME,
 )
 
 
@@ -47,6 +49,7 @@ def queue_descriptors() -> list[QueueDescriptor]:
         QueueDescriptor(ACCOUNT_LIFECYCLE_QUEUE_NAME, "Account deletion/export/lifecycle jobs"),
         QueueDescriptor(MAINTENANCE_QUEUE_NAME, "Dry-run maintenance and safe cleanup reports"),
         QueueDescriptor(SCHEDULER_QUEUE_NAME, "Future scheduled checks and enqueue decisions"),
+        QueueDescriptor(WARMUP_QUEUE_NAME, "Dry-run account preparation jobs"),
     ]
 
 

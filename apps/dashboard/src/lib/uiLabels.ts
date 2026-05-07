@@ -38,6 +38,7 @@ const stepStatusLabels: Record<string, string> = {
 
 const errorLabels: Record<string, string> = {
   ACCOUNT_NOT_FOUND: 'Аккаунт не найден',
+  API_CLIENT_ERROR: 'Запрос не выполнен',
   AUTH_MANUAL_INTERVENTION_REQUIRED: 'Нужна ручная проверка аккаунта',
   AUTH_BATCH_EMPTY: 'В пачке нет новых аккаунтов',
   AUTH_BATCH_ITEM_NOT_FOUND: 'Аккаунт в пачке не найден',
@@ -53,6 +54,7 @@ const errorLabels: Record<string, string> = {
   NETWORK_ERROR: 'Нет связи с backend',
   QUEUE_UNAVAILABLE: 'Очередь задач недоступна',
   PROFILE_JOB_QUEUE_UNAVAILABLE: 'Очередь задач недоступна',
+  REQUEST_VALIDATION_ERROR: 'Проверьте данные формы',
   PHONE_CODE_EXPIRED: 'Код Telegram истёк. Запросите новый код',
   PHONE_CODE_INVALID: 'Неверный код Telegram',
   PHONE_NUMBER_BANNED: 'Telegram заблокировал этот номер',

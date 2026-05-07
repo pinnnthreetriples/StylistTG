@@ -1,6 +1,5 @@
 import {
   cancelAuthBatch as cancelTypedAuthBatch,
-  createApiClient,
   createAuthBatch as createTypedAuthBatch,
   fetchAuthBatch as fetchTypedAuthBatch,
   pauseAuthBatch as pauseTypedAuthBatch,
@@ -18,7 +17,7 @@ import {
   type AuthBatchValidate as TypedAuthBatchValidation,
 } from '@stylisttg/api-client'
 
-import { getApiBaseUrl } from '@/lib/config'
+import { dashboardApiClient } from '@/lib/apiClient'
 
 export type AuthBatchPhoneInput = TypedAuthBatchPhoneInput
 
@@ -30,17 +29,7 @@ export type AuthBatchSnapshot = TypedAuthBatchSnapshot
 
 export type AuthBatchValidation = TypedAuthBatchValidation
 
-const authBatchClient = createApiClient({
-  baseUrl: getTypedApiBaseUrl(),
-  fetch: (...args) => globalThis.fetch(...args),
-})
-
-function getTypedApiBaseUrl(): string {
-  const configuredBaseUrl = getApiBaseUrl()
-  if (configuredBaseUrl) return configuredBaseUrl
-  if (typeof window !== 'undefined') return window.location.origin
-  return 'http://localhost'
-}
+const authBatchClient = dashboardApiClient
 
 export type ParsedBulkPhoneLine = {
   input: string

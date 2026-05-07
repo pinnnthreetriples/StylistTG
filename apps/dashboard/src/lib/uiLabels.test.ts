@@ -25,6 +25,8 @@ describe('ui labels', () => {
   })
 
   it('labels auth and batch failures without leaking backend enum names', () => {
+    expect(labelIssue('REQUEST_VALIDATION_ERROR')).toBe('Проверьте данные формы')
+    expect(labelIssue('API_CLIENT_ERROR')).toBe('Запрос не выполнен')
     expect(labelIssue('PHONE_CODE_INVALID')).toBe('Неверный код Telegram')
     expect(labelIssue('PHONE_CODE_EXPIRED')).toBe('Код Telegram истёк. Запросите новый код')
     expect(labelIssue('PASSWORD_HASH_INVALID')).toBe('Неверный пароль 2FA')

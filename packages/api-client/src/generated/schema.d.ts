@@ -1306,6 +1306,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Me */
+        get: operations["get_me_api_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/operation-logs": {
         parameters: {
             query?: never;
@@ -1540,6 +1557,161 @@ export interface paths {
         };
         /** Get Tdlib Runtime */
         get: operations["get_tdlib_runtime_api_tdlib_runtime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Readiness */
+        get: operations["get_warmup_readiness_api_warmup_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Warmup Validate */
+        post: operations["post_warmup_validate_api_warmup_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/strategies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Strategies */
+        get: operations["get_warmup_strategies_api_warmup_strategies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Sessions */
+        get: operations["get_warmup_sessions_api_warmup_sessions_get"];
+        put?: never;
+        /** Post Warmup Session */
+        post: operations["post_warmup_session_api_warmup_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Session Detail */
+        get: operations["get_warmup_session_detail_api_warmup_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Warmup Session Endpoint */
+        delete: operations["delete_warmup_session_endpoint_api_warmup_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions/{session_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Session Status */
+        get: operations["get_warmup_session_status_api_warmup_sessions__session_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions/{session_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Warmup Session Pause */
+        put: operations["put_warmup_session_pause_api_warmup_sessions__session_id__pause_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions/{session_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Warmup Session Resume */
+        put: operations["put_warmup_session_resume_api_warmup_sessions__session_id__resume_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup/sessions/{session_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Session Events */
+        get: operations["get_warmup_session_events_api_warmup_sessions__session_id__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1940,6 +2112,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            warmup?: components["schemas"]["AccountWarmupInfoRead"] | null;
         };
         /** AccountOperationCooldownRead */
         AccountOperationCooldownRead: {
@@ -2537,6 +2710,20 @@ export interface components {
              */
             mode: "db_snapshot" | "tdlib_readonly" | "full_capability";
         };
+        /** AccountWarmupInfoRead */
+        AccountWarmupInfoRead: {
+            /** Session Id */
+            session_id?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Current Day */
+            current_day?: number | null;
+            /**
+             * Is Locked
+             * @default false
+             */
+            is_locked: boolean;
+        };
         /** ActionGateRead */
         ActionGateRead: {
             /** Account Id */
@@ -2889,6 +3076,23 @@ export interface components {
         Body_post_story_video_api_assets_story_video_post: {
             /** File */
             file: string;
+        };
+        /** CurrentUserRead */
+        CurrentUserRead: {
+            /** User Id */
+            user_id: string;
+            /** Email */
+            email: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Workspace Name */
+            workspace_name: string;
+            /** Role */
+            role: string;
+            /** Auth Source */
+            auth_source: string;
         };
         /** DashboardAccountRead */
         DashboardAccountRead: {
@@ -3694,6 +3898,197 @@ export interface components {
             ctx?: {
                 [key: string]: unknown;
             };
+        };
+        /** WarmupCheckItemRead */
+        WarmupCheckItemRead: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Passed */
+            passed: boolean;
+            severity: components["schemas"]["WarmupCheckSeverityRead"];
+            /** Detail */
+            detail?: string | null;
+        };
+        /**
+         * WarmupCheckSeverityRead
+         * @enum {string}
+         */
+        WarmupCheckSeverityRead: "error" | "warning";
+        /** WarmupEventPageRead */
+        WarmupEventPageRead: {
+            /** Items */
+            items: components["schemas"]["WarmupEventRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** WarmupEventRead */
+        WarmupEventRead: {
+            /** Id */
+            id: string;
+            /** Event Type */
+            event_type: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WarmupPauseRequest */
+        WarmupPauseRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** WarmupReadinessRead */
+        WarmupReadinessRead: {
+            /** Workers Enabled */
+            workers_enabled: boolean;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Redis Connected */
+            redis_connected: boolean;
+            /** Database Connected */
+            database_connected: boolean;
+            /** Active Sessions */
+            active_sessions: number;
+            /** Strategies Available */
+            strategies_available: number;
+        };
+        /** WarmupSessionCreateRequest */
+        WarmupSessionCreateRequest: {
+            /** Account Id */
+            account_id: string;
+            /** Strategy Id */
+            strategy_id: string;
+        };
+        /** WarmupSessionPageRead */
+        WarmupSessionPageRead: {
+            /** Items */
+            items: components["schemas"]["WarmupSessionSummaryRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** WarmupSessionRead */
+        WarmupSessionRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string;
+            /** Strategy Id */
+            strategy_id: string;
+            /** Strategy Name */
+            strategy_name: string;
+            status: components["schemas"]["WarmupStatusRead"];
+            /** Current Day */
+            current_day: number;
+            /** Cadence Hours */
+            cadence_hours: number;
+            /** Next Step At */
+            next_step_at?: string | null;
+            /** Last Step At */
+            last_step_at?: string | null;
+            /** Next Attempt At */
+            next_attempt_at?: string | null;
+            /** Consecutive Failures */
+            consecutive_failures: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Paused At */
+            paused_at?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Worker Id */
+            worker_id?: string | null;
+        };
+        /** WarmupSessionStatusRead */
+        WarmupSessionStatusRead: {
+            status: components["schemas"]["WarmupStatusRead"];
+            /** Current Day */
+            current_day: number;
+            /** Next Step At */
+            next_step_at?: string | null;
+            /** Next Attempt At */
+            next_attempt_at?: string | null;
+        };
+        /** WarmupSessionSummaryRead */
+        WarmupSessionSummaryRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string;
+            /** Account Label */
+            account_label?: string | null;
+            /** Strategy Name */
+            strategy_name: string;
+            status: components["schemas"]["WarmupStatusRead"];
+            /** Current Day */
+            current_day: number;
+            /** Cadence Hours */
+            cadence_hours: number;
+            /** Next Step At */
+            next_step_at?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * WarmupStatusRead
+         * @enum {string}
+         */
+        WarmupStatusRead: "draft" | "validating" | "scheduled" | "active" | "paused_risk" | "paused_manual" | "completed" | "failed";
+        /** WarmupStrategyRead */
+        WarmupStrategyRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Is Preset */
+            is_preset: boolean;
+        };
+        /** WarmupValidateRead */
+        WarmupValidateRead: {
+            /** Is Ready */
+            is_ready: boolean;
+            /** Checks */
+            checks: components["schemas"]["WarmupCheckItemRead"][];
+            /** Blocking Reasons */
+            blocking_reasons: string[];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** WarmupValidateRequest */
+        WarmupValidateRequest: {
+            /** Account Id */
+            account_id: string;
+            /** Strategy Id */
+            strategy_id: string;
         };
         /** WorkerDiagnosticsRead */
         WorkerDiagnosticsRead: {
@@ -6377,6 +6772,26 @@ export interface operations {
             };
         };
     };
+    get_me_api_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserRead"];
+                };
+            };
+        };
+    };
     get_operation_logs_api_operation_logs_get: {
         parameters: {
             query?: {
@@ -6918,6 +7333,336 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TdlibRuntimeStatusRead"];
+                };
+            };
+        };
+    };
+    get_warmup_readiness_api_warmup_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupReadinessRead"];
+                };
+            };
+        };
+    };
+    post_warmup_validate_api_warmup_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupValidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupValidateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_strategies_api_warmup_strategies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupStrategyRead"][];
+                };
+            };
+        };
+    };
+    get_warmup_sessions_api_warmup_sessions_get: {
+        parameters: {
+            query?: {
+                status?: string[] | null;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionPageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_warmup_session_api_warmup_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupSessionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_session_detail_api_warmup_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_warmup_session_endpoint_api_warmup_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_session_status_api_warmup_sessions__session_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionStatusRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_warmup_session_pause_api_warmup_sessions__session_id__pause_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupPauseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_warmup_session_resume_api_warmup_sessions__session_id__resume_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_session_events_api_warmup_sessions__session_id__events_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupEventPageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

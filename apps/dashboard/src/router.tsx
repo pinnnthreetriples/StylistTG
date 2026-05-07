@@ -3,11 +3,10 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
-  Outlet,
   redirect,
 } from '@tanstack/react-router'
 
-import { AppShell } from '@/app/AppShell'
+import { RootFrame } from '@/app/RootFrame'
 import { queryClient } from '@/lib/queryClient'
 import {
   accountsQueryOptions,
@@ -17,6 +16,7 @@ import {
   settingsBundleQueryOptions,
 } from '@/lib/queries'
 import { resolveLegacyQueryRoute } from '@/lib/routes'
+import { getSupabaseSession } from '@/lib/supabase'
 import { RouteError } from '@/routes/error'
 import { RoutePending } from '@/routes/pending'
 
@@ -26,29 +26,41 @@ const AuthBatchRouteComponent = lazyRouteComponent(() => import('@/routes/AuthBa
 const OperationsRouteComponent = lazyRouteComponent(() => import('@/routes/OperationsRoute'), 'OperationsRoute')
 const HealthCenterRouteComponent = lazyRouteComponent(() => import('@/routes/HealthCenterRoute'), 'HealthCenterRoute')
 const JobsRouteComponent = lazyRouteComponent(() => import('@/routes/JobsRoute'), 'JobsRoute')
+const WarmupRouteComponent = lazyRouteComponent(() => import('@/routes/WarmupRoute'), 'WarmupRoute')
 const BillingRouteComponent = lazyRouteComponent(() => import('@/routes/BillingRoute'), 'BillingRoute')
 const ProxyCenterRouteComponent = lazyRouteComponent(() => import('@/routes/ProxyCenterRoute'), 'ProxyCenterRoute')
 const AccountWorkspaceRouteComponent = lazyRouteComponent(
   () => import('@/routes/AccountWorkspaceRoute'),
   'AccountWorkspaceRoute',
 )
+const LoginRouteComponent = lazyRouteComponent(() => import('@/features/auth/LoginPage'), 'LoginPage')
 
 const HomeRouteComponent = lazyRouteComponent(() => import('@/routes/HomeRoute'), 'HomeRoute')
 
 const rootRoute = createRootRoute({
-  beforeLoad: ({ location }) => {
-    if (location.pathname !== '/') return
-    const canonicalRoute = resolveLegacyQueryRoute(location.searchStr)
-    if (canonicalRoute) {
-      throw redirect({ href: canonicalRoute, replace: true })
+  beforeLoad: async ({ location }) => {
+    if (location.pathname === '/') {
+      const canonicalRoute = resolveLegacyQueryRoute(location.searchStr)
+      if (canonicalRoute) {
+        throw redirect({ href: canonicalRoute, replace: true })
+      }
+      throw redirect({ to: '/home', replace: true })
     }
-    throw redirect({ to: '/home', replace: true })
+    const session = await getSupabaseSession()
+    if (!session && location.pathname !== '/login') {
+      throw redirect({ to: '/login', replace: true })
+    }
+    if (session && location.pathname === '/login') {
+      throw redirect({ to: '/home', replace: true })
+    }
   },
-  component: () => (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  ),
+  component: RootFrame,
+})
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: LoginRouteComponent,
 })
 
 const homeRoute = createRoute({
@@ -101,6 +113,12 @@ const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'jobs',
   component: JobsRouteComponent,
+})
+
+const warmupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'modules/warmup',
+  component: WarmupRouteComponent,
 })
 
 const billingRoute = createRoute({
@@ -180,6 +198,7 @@ const accountDebugRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
   homeRoute,
   accountsRoute,
   accountAddRoute,
@@ -188,6 +207,7 @@ const routeTree = rootRoute.addChildren([
   operationsRoute,
   healthRoute,
   jobsRoute,
+  warmupRoute,
   billingRoute,
   proxyRoute,
   accountRoute,

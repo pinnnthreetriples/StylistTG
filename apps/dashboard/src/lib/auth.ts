@@ -1,6 +1,5 @@
 import {
   confirmOtp as confirmTypedOtp,
-  createApiClient,
   fetchAuthRuntimeMode as fetchTypedAuthRuntimeMode,
   fetchAuthState as fetchTypedAuthState,
   refreshRuntime as refreshTypedRuntime,
@@ -11,7 +10,7 @@ import {
   type AuthState as TypedAuthState,
 } from '@stylisttg/api-client'
 
-import { getApiBaseUrl } from '@/lib/config'
+import { dashboardApiClient } from '@/lib/apiClient'
 import type { ApiError } from '@/lib/http'
 import { labelIssue } from '@/lib/uiLabels'
 
@@ -36,17 +35,7 @@ export type AuthErrorMessage = {
 
 export type AuthRuntimeMode = TypedAuthRuntimeMode
 
-const authClient = createApiClient({
-  baseUrl: getTypedApiBaseUrl(),
-  fetch: (...args) => globalThis.fetch(...args),
-})
-
-function getTypedApiBaseUrl(): string {
-  const configuredBaseUrl = getApiBaseUrl()
-  if (configuredBaseUrl) return configuredBaseUrl
-  if (typeof window !== 'undefined') return window.location.origin
-  return 'http://localhost'
-}
+const authClient = dashboardApiClient
 
 export function readStoredAccountId(storage: Pick<Storage, 'getItem'> | null): string | null {
   return storage?.getItem(ACCOUNT_STORAGE_KEY) ?? null

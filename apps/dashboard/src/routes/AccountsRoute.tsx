@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { appRoutes } from '@/lib/routes'
 import { accountsQueryOptions, accountRiskSummaryQueryOptions } from '@/lib/queries'
+import { useCurrentUser } from '@/hooks/queries/useCurrentUser'
 
 export function AccountsRoute() {
   const navigate = useNavigate()
   const accountsQuery = useQuery(accountsQueryOptions())
   const riskQuery = useQuery(accountRiskSummaryQueryOptions())
+  const currentUserQuery = useCurrentUser()
   const navigateToRoute = useCallback(
     (href: string) => {
       void navigate({ href })
@@ -27,6 +29,8 @@ export function AccountsRoute() {
       onSelectAccount={(accountId) => navigateToRoute(appRoutes.account(accountId))}
       riskByAccount={riskByAccount}
       riskSummary={riskQuery.data}
+      userId={currentUserQuery.data?.user_id}
+      workspaceId={currentUserQuery.data?.workspace_id}
     />
   )
 }

@@ -1,17 +1,18 @@
 import { createApiClient } from '@stylisttg/api-client'
 
 import { getApiBaseUrl } from '@/lib/config'
+import { getSupabaseAccessToken } from '@/lib/supabase'
 
 type AccessTokenProvider = () => string | Promise<string | null> | null
 
-let accessTokenProvider: AccessTokenProvider = () => null
+let accessTokenProvider: AccessTokenProvider = getSupabaseAccessToken
 
 export function setApiAccessTokenProvider(provider: AccessTokenProvider): void {
   accessTokenProvider = provider
 }
 
 export function resetApiAccessTokenProvider(): void {
-  accessTokenProvider = () => null
+  accessTokenProvider = getSupabaseAccessToken
 }
 
 export const dashboardApiClient = createApiClient({

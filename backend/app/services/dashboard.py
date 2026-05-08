@@ -5,22 +5,21 @@ from sqlalchemy.orm import Session
 from app.logging_utils import log_event, log_warn
 from app.config import settings
 from app.models import Job, JobState, TERMINAL_JOB_STATES
-from app.services.accounts import get_account
-from app.services.jobs import get_latest_account_job
+from app.services.account_bundle import get_account_dashboard_bundle, get_latest_job_for_account
 from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.profile_audio_state import profile_audio_state_payload
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
 from app.services.story_posts import list_story_posts, story_post_payload
 
 def build_dashboard_profile(session: Session, account_id: str) -> dict:
-    account = get_account(session, account_id)
+    account = get_account_dashboard_bundle(session, account_id)
     if account is None:
         log_warn("dashboard_account_not_found", account_id=account_id)
         raise ValueError("account not found")
 
     log_event("dashboard_build", account_id=account_id, state=account.account_state)
 
-    latest_job = get_latest_account_job(session, account_id)
+    latest_job = get_latest_job_for_account(session, account_id)
     runtime = account_runtime_diagnostics(session, account_id)
     profile_state = account.profile_state
 

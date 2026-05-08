@@ -31,6 +31,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.errors import app_error_handler, http_exception_handler, validation_exception_handler, AppError
 from app.logging_utils import configure_logging, generate_request_id, log_event, log_request
+from app.observability import init_api_observability
 from app.schemas import DiagnosticsRead
 from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics
@@ -38,6 +39,7 @@ from app.services.stale_jobs import reap_stale_jobs
 
 configure_logging(
     log_dir=settings.storage_root.parent / "logs",
+    log_to_file=settings.log_to_file,
     betterstack_source_token=(
         settings.betterstack_source_token.get_secret_value()
         if settings.betterstack_source_token
@@ -46,20 +48,33 @@ configure_logging(
     betterstack_ingesting_host=settings.betterstack_ingesting_host,
     betterstack_request_timeout_seconds=settings.betterstack_request_timeout_seconds,
 )
+init_api_observability()
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     reaper_task: asyncio.Task[None] | None = None
+    warmup_ticker_task: asyncio.Task[None] | None = None
     if settings.stale_job_reaper_enabled:
         reaper_task = asyncio.create_task(_stale_job_reaper_loop())
+    if settings.warmup_scheduler_enabled and settings.warmup_workers_enabled:
+        warmup_ticker_task = asyncio.create_task(_warmup_scheduler_loop())
     try:
         yield
     finally:
-        if reaper_task is not None:
-            reaper_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await reaper_task
+        for task in (reaper_task, warmup_ticker_task):
+            if task is not None:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+
+
+def _reap_stale_sync() -> tuple[int, int]:
+    """Run stale-job reaping and auth-batch recovery in a synchronous context."""
+    with SessionLocal() as session:
+        reaped = reap_stale_jobs(session, stale_after_seconds=settings.stale_job_timeout_seconds)
+        recovered = recover_auth_batches(session)
+    return reaped, recovered
 
 
 async def _stale_job_reaper_loop() -> None:
@@ -67,9 +82,7 @@ async def _stale_job_reaper_loop() -> None:
     while True:
         await asyncio.sleep(interval_seconds)
         try:
-            with SessionLocal() as session:
-                reaped = reap_stale_jobs(session, stale_after_seconds=settings.stale_job_timeout_seconds)
-                recovered_auth_batches = recover_auth_batches(session)
+            reaped, recovered_auth_batches = await asyncio.to_thread(_reap_stale_sync)
             if reaped:
                 log_event("stale_job_reaper_reaped", count=reaped)
             if recovered_auth_batches:
@@ -77,6 +90,51 @@ async def _stale_job_reaper_loop() -> None:
         except Exception as exc:
             log_event(
                 "stale_job_reaper_error",
+                error_class=exc.__class__.__name__,
+            )
+
+
+def _warmup_tick_sync() -> tuple[bool, bool | None]:
+    """Execute warmup enqueue calls synchronously (Redis + rq are blocking)."""
+    from app.job_queue.rq import (
+        enqueue_warmup_dispatch_tick,
+        enqueue_warmup_due_sessions,
+    )
+
+    enqueued = enqueue_warmup_due_sessions()
+    dispatch_enqueued: bool | None = None
+    if settings.warmup_live_enabled:
+        dispatch_enqueued = enqueue_warmup_dispatch_tick()
+    return enqueued, dispatch_enqueued
+
+
+async def _warmup_scheduler_loop() -> None:
+    """Periodic ticker that asks the warmup worker to scan for due sessions.
+
+    Сам решение «какую сессию запустить» принимает воркер; тикер только
+    рассылает безопасный enqueue (`unique=True`) с фиксированным `job_id`
+    — повторные тики не плодят дубликаты в Redis. Hard kill-switch:
+    `WARMUP_HARD_DISABLE=true` глушит цикл даже при включённом флаге
+    `warmup_scheduler_enabled`.
+    """
+    interval_seconds = max(1, settings.warmup_scheduler_tick_seconds)
+    while True:
+        await asyncio.sleep(interval_seconds)
+        if settings.warmup_hard_disable:
+            continue
+        if not settings.warmup_workers_enabled:
+            continue
+        try:
+            enqueued, dispatch_enqueued = await asyncio.to_thread(_warmup_tick_sync)
+            log_event("warmup_scheduler_tick", outcome="enqueued" if enqueued else "skipped")
+            if dispatch_enqueued is not None:
+                log_event(
+                    "warmup_dispatch_tick",
+                    outcome="enqueued" if dispatch_enqueued else "skipped",
+                )
+        except Exception as exc:
+            log_event(
+                "warmup_scheduler_error",
                 error_class=exc.__class__.__name__,
             )
 

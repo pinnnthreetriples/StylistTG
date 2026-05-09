@@ -691,6 +691,10 @@ class DiagnosticsRead(BaseModel):
     tdlib: str
 
 
+class ReadinessRead(BaseModel):
+    status: str
+
+
 class FrontendDiagnosticsDatabaseRead(BaseModel):
     status: str
     mode: str

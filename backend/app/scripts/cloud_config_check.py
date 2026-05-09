@@ -122,6 +122,8 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     else:
         report.add("redis_url", "PASS", "Cloud Redis URL present", url=sanitized_url(redis_url))
 
+    _check_proxy_credentials_key(report, env)
+
     tdlib_db_root = env_value("TDLIB_DATABASE_ROOT", env)
     tdlib_files_root = env_value("TDLIB_FILES_ROOT", env)
     _required(report, "TDLIB_DATABASE_ROOT", env)
@@ -157,6 +159,24 @@ def _check_tdlib_root(report: CheckReport, tdlib_root: str | None, env: dict[str
     asset_path = PurePosixPath(asset_root.replace("\\", "/"))
     if tdlib_path == asset_path or asset_path in tdlib_path.parents:
         report.add("tdlib_storage_boundary", "FAIL", "TDLib root must not live under public asset storage", tdlib_root=tdlib_root)
+
+
+def _check_proxy_credentials_key(report: CheckReport, env: dict[str, str] | None) -> None:
+    key = env_value("PROXY_CREDENTIALS_ENCRYPTION_KEY", env)
+    if not key:
+        if is_cloud_env(env):
+            report.add("proxy_credentials_encryption_key", "FAIL", "Cloud proxy credentials require a Fernet encryption key")
+        else:
+            report.add("proxy_credentials_encryption_key", "WARN", "Proxy password encryption key is not configured")
+        return
+    try:
+        from cryptography.fernet import Fernet
+
+        Fernet(key.encode("utf-8"))
+    except Exception:
+        report.add("proxy_credentials_encryption_key", "FAIL", "Proxy credentials encryption key is not a valid Fernet key")
+        return
+    report.add("proxy_credentials_encryption_key", "PASS", "Proxy credentials encryption key is valid")
 
 
 def main() -> None:

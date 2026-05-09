@@ -570,6 +570,7 @@ def test_safety_override_with_reason_allows_overridable_preview_blocker(db_sessi
     create_safety_override(
         db_session,
         account.id,
+        workspace_id=account.workspace_id,
         operation="profile_music",
         reason="Оператор проверил файл и принимает предупреждение",
         requested_blockers=["music_capability_not_checked"],
@@ -597,6 +598,7 @@ def test_safety_override_rejects_non_overridable_blocker(db_session) -> None:
         create_safety_override(
             db_session,
             account.id,
+            workspace_id=account.workspace_id,
             operation="profile_update",
             reason="try hard override",
             requested_blockers=["reauth_required"],
@@ -605,6 +607,41 @@ def test_safety_override_rejects_non_overridable_blocker(db_session) -> None:
         assert "non-overridable blocker" in str(exc)
     else:
         raise AssertionError("override should reject non-overridable blockers")
+
+
+def test_safety_override_service_requires_matching_workspace(db_session) -> None:
+    from app.models import User, Workspace, WorkspaceMember, WorkspacePlan
+    from app.services.account_safety_overrides import create_safety_override
+
+    account = create_account(db_session, external_ref="+15550102024")
+    user = User(
+        email="foreign-override@example.test",
+        external_auth_provider="test",
+        external_auth_user_id="foreign-override",
+        status="active",
+    )
+    db_session.add(user)
+    db_session.flush()
+    workspace = Workspace(name="foreign override", slug="foreign-override", owner_user_id=user.id, status="active")
+    db_session.add(workspace)
+    db_session.flush()
+    db_session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="owner"))
+    db_session.add(WorkspacePlan(workspace_id=workspace.id))
+    db_session.commit()
+
+    try:
+        create_safety_override(
+            db_session,
+            account.id,
+            workspace_id=workspace.id,
+            operation="profile_update",
+            reason="wrong tenant",
+            requested_blockers=["fresh_validity_required"],
+        )
+    except ValueError as exc:
+        assert str(exc) == "account not found"
+    else:
+        raise AssertionError("override should require matching workspace")
 
 
 def test_recent_failure_policy_creates_warning_cooldown_for_soft_failure(db_session) -> None:

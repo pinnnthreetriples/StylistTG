@@ -635,6 +635,7 @@ def post_account_safety_override(
         return create_safety_override(
             session,
             account_id,
+            workspace_id=auth.workspace_id,
             operation=payload.operation,
             reason=payload.reason,
             requested_blockers=payload.requested_blockers,

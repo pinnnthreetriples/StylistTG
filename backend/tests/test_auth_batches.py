@@ -2,16 +2,32 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.config import settings
 from app.adapters.tdlib_auth import TdlibAuthResult, TdlibAuthStatus
+from app.config import settings
 from app.db import Base
 from app.main import app
-from app.models import Account, AccountRuntimeState, AccountState, AuthBatch, AuthBatchEvent, AuthBatchItem
+from app.models import (
+    Account,
+    AccountRuntimeState,
+    AccountState,
+    AuthBatch,
+    AuthBatchEvent,
+    AuthBatchItem,
+    IdempotencyKey,
+)
 from app.services.accounts import create_account
-from app.services.auth_batches import PhoneInput, validate_batch_phones
+from app.services.auth_batches import (
+    PhoneInput,
+    create_auth_batch,
+    get_idempotency_result,
+    save_idempotency_result,
+    validate_batch_phones,
+)
 from app.services.database import create_sqlite_test_session_factory
+from app.services.phone_hints import phone_hint, required_phone_hint
 
 from conftest import override_app_session
 
@@ -476,7 +492,7 @@ def test_auth_batch_dispatches_multiple_items_without_scheduler_delay(monkeypatc
     app.dependency_overrides.clear()
 
 
-def test_auth_batch_submit_code_authorizes_without_persisting_secret(monkeypatch) -> None:
+def test_auth_batch_submit_code_updates_item_without_persisting_code(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
     adapter = BatchFakeAuthAdapter()
@@ -519,3 +535,322 @@ def test_auth_batch_submit_code_authorizes_without_persisting_secret(monkeypatch
         assert "999888" not in str([event.payload_json for event in persisted_events])
 
     app.dependency_overrides.clear()
+
+
+def test_submit_code_idempotency_key_is_scoped_to_item(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    adapter = BatchFakeAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
+
+    with session_factory() as session:
+        account_one = create_account(session, external_ref="+15550102010")
+        account_two = create_account(session, external_ref="+15550102011")
+        batch = AuthBatch(idempotency_key="batch-key-idempotency-scope", label="Codes", status="running", total_count=2)
+        session.add(batch)
+        session.flush()
+        item_one = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account_one.id,
+            phone_number=account_one.external_ref,
+            position=0,
+            status="waiting_code",
+            code_expires_at=datetime.now(UTC) + timedelta(minutes=3),
+        )
+        item_two = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account_two.id,
+            phone_number=account_two.external_ref,
+            position=1,
+            status="waiting_code",
+            code_expires_at=datetime.now(UTC) + timedelta(minutes=3),
+        )
+        session.add_all([item_one, item_two])
+        session.commit()
+        batch_id = batch.id
+        item_one_id = item_one.id
+        item_two_id = item_two.id
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+    try:
+        first = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_one_id}/submit-code",
+            json={"code": "111111", "idempotency_key": "shared-code-key"},
+        )
+        second = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_two_id}/submit-code",
+            json={"code": "222222", "idempotency_key": "shared-code-key"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert first.json()["id"] == item_one_id
+    assert second.json()["error_code"] == "AUTH_BATCH_STATE_CONFLICT"
+    assert adapter.confirmed == [(first.json()["account_id"], "111111")]
+
+
+def test_idempotency_result_allows_expired_key_reuse() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+
+    with session_factory() as session:
+        session.add(
+            IdempotencyKey(
+                key="expired-code-key",
+                operation="submit_code",
+                entity_id="entity-one",
+                response_json={"status": "old"},
+                expires_at=datetime.now(UTC) - timedelta(seconds=1),
+            )
+        )
+        session.commit()
+
+        assert (
+            get_idempotency_result(
+                session,
+                key="expired-code-key",
+                operation="submit_code",
+                entity_id="entity-one",
+            )
+            is None
+        )
+        save_idempotency_result(
+            session,
+            key="expired-code-key",
+            operation="submit_code",
+            entity_id="entity-one",
+            response_json={"status": "new"},
+        )
+        session.commit()
+
+        assert get_idempotency_result(
+            session,
+            key="expired-code-key",
+            operation="submit_code",
+            entity_id="entity-one",
+        ) == {"status": "new"}
+
+
+def test_idempotency_result_rejects_operation_and_entity_mismatch() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+
+    with session_factory() as session:
+        save_idempotency_result(
+            session,
+            key="shared-idempotency-key",
+            operation="submit_code",
+            entity_id="entity-one",
+            response_json={"status": "ok"},
+        )
+        session.commit()
+
+        with pytest.raises(ValueError, match="another operation"):
+            get_idempotency_result(
+                session,
+                key="shared-idempotency-key",
+                operation="submit_2fa",
+                entity_id="entity-one",
+            )
+
+        with pytest.raises(ValueError, match="another entity"):
+            get_idempotency_result(
+                session,
+                key="shared-idempotency-key",
+                operation="submit_code",
+                entity_id="entity-two",
+            )
+
+
+def test_submit_code_expired_idempotency_key_allows_new_submission(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    adapter = BatchFakeAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
+
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550102020")
+        batch = AuthBatch(idempotency_key="batch-key-expired-http", label="Codes", status="running", total_count=1)
+        session.add(batch)
+        session.flush()
+        item = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account.id,
+            phone_number=account.external_ref,
+            position=0,
+            status="waiting_code",
+            code_expires_at=datetime.now(UTC) + timedelta(minutes=3),
+        )
+        session.add(item)
+        session.flush()
+        session.add(
+            IdempotencyKey(
+                key="expired-http-key",
+                operation="submit_code",
+                entity_id=item.id,
+                response_json={"status": "old"},
+                expires_at=datetime.now(UTC) - timedelta(seconds=1),
+            )
+        )
+        session.commit()
+        batch_id = batch.id
+        item_id = item.id
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+    try:
+        response = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_id}/submit-code",
+            json={"code": "555555", "idempotency_key": "expired-http-key"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "authorized"
+    assert adapter.confirmed == [(response.json()["account_id"], "555555")]
+
+
+def test_submit_2fa_idempotency_key_scoped_to_item(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    adapter = BatchFakeAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
+
+    with session_factory() as session:
+        account_one = create_account(session, external_ref="+15550102030")
+        account_two = create_account(session, external_ref="+15550102031")
+        batch = AuthBatch(idempotency_key="batch-key-2fa-scope", label="2FA", status="running", total_count=2)
+        session.add(batch)
+        session.flush()
+        item_one = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account_one.id,
+            phone_number=account_one.external_ref,
+            position=0,
+            status="waiting_2fa",
+        )
+        item_two = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account_two.id,
+            phone_number=account_two.external_ref,
+            position=1,
+            status="waiting_2fa",
+        )
+        session.add_all([item_one, item_two])
+        session.commit()
+        batch_id = batch.id
+        item_one_id = item_one.id
+        item_two_id = item_two.id
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+    try:
+        first = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_one_id}/submit-2fa",
+            json={"password": "pass1", "idempotency_key": "shared-2fa-key"},
+        )
+        second = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_two_id}/submit-2fa",
+            json={"password": "pass2", "idempotency_key": "shared-2fa-key"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert first.json()["id"] == item_one_id
+    assert second.json()["error_code"] == "AUTH_BATCH_STATE_CONFLICT"
+    assert adapter.passwords == [(first.json()["account_id"], "pass1")]
+
+
+def test_submit_code_operation_mismatch_returns_generic_409(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    adapter = BatchFakeAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
+
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550102040")
+        batch = AuthBatch(idempotency_key="batch-key-op-mismatch", label="Codes", status="running", total_count=1)
+        session.add(batch)
+        session.flush()
+        item = AuthBatchItem(
+            batch_id=batch.id,
+            account_id=account.id,
+            phone_number=account.external_ref,
+            position=0,
+            status="waiting_code",
+            code_expires_at=datetime.now(UTC) + timedelta(minutes=3),
+        )
+        session.add(item)
+        session.flush()
+        save_idempotency_result(
+            session,
+            key="op-mismatch-key",
+            operation="submit_2fa",
+            entity_id=item.id,
+            response_json={"status": "ok"},
+        )
+        session.commit()
+        batch_id = batch.id
+        item_id = item.id
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+    try:
+        response = client.post(
+            f"/api/auth-batches/{batch_id}/items/{item_id}/submit-code",
+            json={"code": "123456", "idempotency_key": "op-mismatch-key"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "AUTH_BATCH_STATE_CONFLICT"
+    assert len(adapter.confirmed) == 0
+
+
+def test_auth_batch_item_read_uses_phone_hint() -> None:
+    from app.models import DEFAULT_LOCAL_WORKSPACE_ID
+    from app.services.auth_context import AuthContext, get_current_auth_context
+
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="batch-hint-integration",
+            label="hint",
+            inputs=[PhoneInput(phone_number="+15550102050")],
+        )
+        session.commit()
+        batch_id = batch.id
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="viewer-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="viewer",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/auth-batches/{batch_id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["phone_hint"] == "***2050"
+    assert item["phone_number"] is None
+
+
+def test_phone_hint_helper_masks_consistently() -> None:
+    assert phone_hint("+1 (555) 010-2000") == "***2000"
+    assert phone_hint("123") == "***"
+    assert phone_hint("") is None
+    assert phone_hint(None) is None
+    assert required_phone_hint("") == "***"

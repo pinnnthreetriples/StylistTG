@@ -15,6 +15,7 @@ import {
 } from '@/lib/queries'
 import { getLiveStatus } from '@/lib/liveStatus'
 import { labelHealthDependency } from '@/lib/uiLabels'
+import { getHomeApiReadinessStatus } from './readinessStatus'
 
 export function HomePage() {
   const accountsQuery = useQuery(accountsQueryOptions())
@@ -33,6 +34,8 @@ export function HomePage() {
   const attentionCount = riskSummary.medium + riskSummary.high + riskSummary.critical
   const highRiskCount = riskSummary.high + riskSummary.critical
   const dataUnavailable = accountsQuery.isError || riskQuery.isError || readyQuery.isError
+  const dbStatus = diagnosticsQuery.data?.db.status
+  const apiReadiness = getHomeApiReadinessStatus(readyQuery.data, readyQuery.isError)
   const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
   const heroTitle =
     accounts.length === 0
@@ -153,8 +156,8 @@ export function HomePage() {
               <div className="space-y-3">
                  <div className="flex justify-between items-center text-sm">
                    <span className="text-muted-foreground">API backend</span>
-                   <StatusPill tone={readyQuery.isError ? 'red' : readyQuery.data ? 'green' : 'muted'}>
-                     {readyQuery.isError ? 'Недоступен' : readyQuery.data ? 'Работает' : 'Проверка...'}
+                   <StatusPill tone={apiReadiness.tone}>
+                     {apiReadiness.label}
                    </StatusPill>
                  </div>
                  <div className="flex justify-between items-center text-sm">
@@ -165,8 +168,8 @@ export function HomePage() {
                  </div>
                  <div className="flex justify-between items-center text-sm">
                    <span className="text-muted-foreground">База данных</span>
-                   <StatusPill tone={readyQuery.data?.database === 'ok' ? 'green' : readyQuery.data ? 'red' : 'muted'}>
-                     {labelHealthDependency(readyQuery.data?.database)}
+                   <StatusPill tone={dbStatus === 'ok' ? 'green' : dbStatus ? 'red' : 'muted'}>
+                     {labelHealthDependency(dbStatus)}
                    </StatusPill>
                  </div>
                  <div className="flex justify-between items-center text-sm">

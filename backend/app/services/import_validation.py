@@ -9,6 +9,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from app.config import Settings, settings
+from app.services.phone_hints import phone_hint
 
 SUPPORTED_IMPORT_SOURCE_TYPES = {"tdlib-directory", "tdata", "session-file", "json-metadata"}
 
@@ -59,7 +60,7 @@ def _validate_json_metadata(*, content: bytes | None, metadata: dict[str, Any] |
         except (UnicodeDecodeError, json.JSONDecodeError):
             return _unsupported("json_metadata_invalid", "JSON metadata is not valid.")
     username = _safe_hint(payload.get("username"))
-    phone = _phone_hint(payload.get("phone") or payload.get("phone_number"))
+    phone = phone_hint(payload.get("phone") or payload.get("phone_number"))
     return ImportValidationItem(
         status="valid",
         validation_code="json_metadata_preview",
@@ -124,12 +125,3 @@ def _safe_hint(value: object) -> str | None:
     if not isinstance(value, str) or not value:
         return None
     return value[:64]
-
-
-def _phone_hint(value: object) -> str | None:
-    if not isinstance(value, str) or not value:
-        return None
-    digits = "".join(ch for ch in value if ch.isdigit())
-    if len(digits) < 4:
-        return "***"
-    return f"***{digits[-4:]}"

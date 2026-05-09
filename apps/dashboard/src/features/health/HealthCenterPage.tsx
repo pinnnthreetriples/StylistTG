@@ -38,8 +38,11 @@ export function HealthCenterPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const apiOk = healthQuery.data?.status === 'ok'
-  const dbOk = ready?.database === 'ok'
-  const redisOk = ready?.redis === 'ok'
+  const readyOk = ready?.status === 'ok'
+  const dbStatus = diagnostics?.db.status
+  const redisStatus = diagnostics?.redis.status
+  const dbOk = dbStatus ? dbStatus === 'ok' : readyOk
+  const redisOk = redisStatus ? redisStatus === 'ok' : readyOk
   const systemLabel = healthQuery.isError
     ? 'API недоступен'
     : labelSystemReadiness({ apiOk, dbOk: dbOk ?? false, redisOk: redisOk ?? false })
@@ -87,8 +90,8 @@ export function HealthCenterPage() {
               value={healthQuery.data?.status === 'ok' ? 'Работает' : healthQuery.isError ? 'Недоступен' : 'Проверка...'}
               tone={apiOk ? 'ok' : healthQuery.isError ? 'danger' : 'neutral'}
             />
-            <StatusCard label="База данных" value={labelHealthDependency(ready?.database)} tone={dbOk ? 'ok' : ready?.database ? 'danger' : 'neutral'} />
-            <StatusCard label="Redis" value={labelHealthDependency(ready?.redis)} tone={redisOk ? 'ok' : ready?.redis ? 'danger' : 'neutral'} />
+            <StatusCard label="База данных" value={labelHealthDependency(dbStatus)} tone={dbOk ? 'ok' : dbStatus ? 'danger' : 'neutral'} />
+            <StatusCard label="Redis" value={labelHealthDependency(redisStatus)} tone={redisOk ? 'ok' : redisStatus ? 'danger' : 'neutral'} />
           </div>
         </SectionCard>
 

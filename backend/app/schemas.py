@@ -901,7 +901,8 @@ class AuthBatchItemRead(BaseModel):
     id: str
     batch_id: str
     account_id: str
-    phone_number: str
+    phone_number: str | None
+    phone_hint: str
     label: str | None
     position: int
     status: str

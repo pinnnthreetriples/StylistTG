@@ -10,6 +10,7 @@ import {
   fetchCurrentUser,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
+  fetchReady,
   fetchRuntimeDiagnostics,
   fetchAccountRiskSummary,
   fetchTdlibRuntimeStatus,
@@ -68,6 +69,18 @@ describe('@stylisttg/api-client', () => {
       redis: 'ok',
       tdlib: 'not_configured',
     })
+  })
+
+  test('ready endpoint wrapper returns minimal readiness status', async () => {
+    const client = createApiClient({
+      baseUrl: 'http://localhost:8000',
+      fetch: (async () =>
+        new Response(JSON.stringify({ status: 'ok' }), {
+          headers: { 'Content-Type': 'application/json' },
+        })) as typeof fetch,
+    })
+
+    await expect(fetchReady(client)).resolves.toEqual({ status: 'ok' })
   })
 
   test('normalizes backend and network errors', () => {

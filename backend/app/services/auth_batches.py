@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -126,7 +126,10 @@ def create_auth_batch(
     if workspace_id == DEFAULT_LOCAL_WORKSPACE_ID:
         ensure_default_workspace(session)
     existing = session.execute(
-        select(AuthBatch).where(AuthBatch.idempotency_key == idempotency_key)
+        select(AuthBatch).where(
+            AuthBatch.workspace_id == workspace_id,
+            AuthBatch.idempotency_key == idempotency_key,
+        )
     ).scalars().first()
     if existing is not None:
         return existing, False
@@ -315,10 +318,12 @@ def save_idempotency_result(
     operation: str,
     entity_id: str,
     response_json: dict,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     ttl_seconds: int = 600,
 ) -> None:
     session.add(
         IdempotencyKey(
+            workspace_id=workspace_id,
             key=key,
             operation=operation,
             entity_id=entity_id,
@@ -328,11 +333,30 @@ def save_idempotency_result(
     )
 
 
-def get_idempotency_result(session: Session, *, key: str, operation: str) -> dict | None:
-    row = session.get(IdempotencyKey, key)
-    if row is None or row.operation != operation or row.expires_at < utc_now():
+def get_idempotency_result(
+    session: Session,
+    *,
+    key: str,
+    operation: str,
+    entity_id: str | None = None,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+) -> dict | None:
+    row = session.get(IdempotencyKey, {"workspace_id": workspace_id, "key": key})
+    if row is None:
         return None
+    if _as_aware_utc(row.expires_at) < utc_now():
+        session.delete(row)
+        session.flush()
+        return None
+    if row.operation != operation:
+        raise ValueError("idempotency key belongs to another operation")
+    if entity_id is not None and row.entity_id != entity_id:
+        raise ValueError("idempotency key belongs to another entity")
     return row.response_json
+
+
+def _as_aware_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 def _require_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:

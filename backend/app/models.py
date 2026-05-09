@@ -726,7 +726,7 @@ class AccountAuthAttempt(Base):
 class AuthBatch(Base):
     __tablename__ = "auth_batch"
     __table_args__ = (
-        UniqueConstraint("idempotency_key", name="uq_auth_batch_idempotency_key"),
+        UniqueConstraint("workspace_id", "idempotency_key", name="uq_auth_batch_workspace_idempotency_key"),
         Index("ix_auth_batch_status_created", "status", "created_at"),
     )
 
@@ -845,6 +845,9 @@ class IdempotencyKey(Base):
         Index("ix_idempotency_key_expires", "expires_at"),
     )
 
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), primary_key=True, default=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
     operation: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_id: Mapped[str] = mapped_column(UUIDString, nullable=False)

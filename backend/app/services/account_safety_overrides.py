@@ -25,11 +25,12 @@ def create_safety_override(
     session: Session,
     account_id: str,
     *,
+    workspace_id: str,
     operation: str,
     reason: str,
     requested_blockers: list[str],
 ) -> dict:
-    if get_account(session, account_id) is None:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     if operation not in OPERATION_KEYS:
         raise ValueError("unsupported safety operation")

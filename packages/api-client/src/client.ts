@@ -47,6 +47,7 @@ export type AccountOperationLogPage = Schema<'AccountOperationLogPageRead'>
 export type AccountProxyInput = Schema<'AccountProxyUpsert'>
 export type DashboardProfile = Schema<'DashboardProfileRead'>
 export type DiagnosticsRead = Schema<'DiagnosticsRead'>
+export type Readiness = Schema<'ReadinessRead'>
 export type FrontendDiagnosticsSummary = Schema<'FrontendDiagnosticsSummaryRead'>
 export type ExecutionPolicy = Schema<'ExecutionPolicyRead'>
 export type ExecutionPolicyUpdate = Schema<'ExecutionPolicyUpdate'>
@@ -186,8 +187,8 @@ export async function fetchHealth(client: StylistTgClient): Promise<{ status: st
   return client.request<{ status: string }>('/health')
 }
 
-export async function fetchReady(client: StylistTgClient): Promise<DiagnosticsRead> {
-  return client.request<DiagnosticsRead>('/ready')
+export async function fetchReady(client: StylistTgClient): Promise<Readiness> {
+  return client.request<Readiness>('/ready')
 }
 
 export async function fetchRuntimeDiagnostics(client: StylistTgClient): Promise<RuntimeDiagnostics> {

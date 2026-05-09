@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import {
   createWarmupSession,
@@ -65,11 +65,8 @@ export function useWarmupEvents(sessionId: string | null) {
 const EVENTS_PAGE_SIZE = 50
 
 export function useWarmupEventsPaginated(sessionId: string | null) {
-  const [limit, setLimit] = useState(EVENTS_PAGE_SIZE)
-
-  useEffect(() => {
-    setLimit(EVENTS_PAGE_SIZE)
-  }, [sessionId])
+  const [pagination, setPagination] = useState({ sessionId, limit: EVENTS_PAGE_SIZE })
+  const limit = pagination.sessionId === sessionId ? pagination.limit : EVENTS_PAGE_SIZE
 
   const query = useQuery<WarmupEventPage>({
     queryKey: [...warmupQueryKeys.events(sessionId ?? '__disabled__'), limit] as const,
@@ -85,8 +82,10 @@ export function useWarmupEventsPaginated(sessionId: string | null) {
   const isLoadingMore = query.isFetching && query.isPlaceholderData
 
   const loadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore) setLimit((prev: number) => prev + EVENTS_PAGE_SIZE)
-  }, [hasMore, isLoadingMore])
+    if (hasMore && !isLoadingMore) {
+      setPagination({ sessionId, limit: limit + EVENTS_PAGE_SIZE })
+    }
+  }, [hasMore, isLoadingMore, limit, sessionId])
 
   return { events, total, hasMore, isLoadingMore, loadMore, isLoading: query.isLoading }
 }

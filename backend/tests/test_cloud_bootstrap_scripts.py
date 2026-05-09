@@ -36,6 +36,7 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
         "CORS_ORIGINS": "https://dashboard.example.com",
         "STALE_JOB_REAPER_ENABLED": "false",
         "OPERATOR_API_TOKEN": "operator-token-value",
+        "PROXY_CREDENTIALS_ENCRYPTION_KEY": "uFYaczRrJN1Z__yAGnhqGrnew7Qsztc1AckpdB99XlM=",
     }
     env.update(overrides)
     return env
@@ -121,6 +122,14 @@ def test_cloud_config_rejects_invalid_signed_url_ttl() -> None:
     report = validate_cloud_config(_valid_cloud_env(STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS="30"))
 
     assert _statuses(report)["signed_url_ttl"] == "FAIL"
+
+
+def test_cloud_config_requires_valid_proxy_credentials_key() -> None:
+    missing = validate_cloud_config(_valid_cloud_env(PROXY_CREDENTIALS_ENCRYPTION_KEY=""))
+    malformed = validate_cloud_config(_valid_cloud_env(PROXY_CREDENTIALS_ENCRYPTION_KEY="not-a-fernet-key"))
+
+    assert _statuses(missing)["proxy_credentials_encryption_key"] == "FAIL"
+    assert _statuses(malformed)["proxy_credentials_encryption_key"] == "FAIL"
 
 
 def test_cloud_config_rejects_tdlib_root_under_asset_root() -> None:

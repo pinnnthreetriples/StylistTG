@@ -86,6 +86,7 @@ import {
   type DashboardProfile as DashboardResponse,
   type JobSummary,
   type RuntimeRefresh,
+  type Readiness,
   type FrontendDiagnosticsSummary,
   type TdlibRuntimeStatus,
   type TelegramAuthSession,
@@ -135,6 +136,7 @@ export type {
   OperationLogPage,
   RuntimeDiagnostics,
   RuntimeRefresh,
+  Readiness,
   SafetyOverride,
   StoryDraftRead,
   AccountReadinessRisk,
@@ -563,7 +565,7 @@ export function fetchHealth(): Promise<{ status: string }> {
   return fetchTypedHealth(typedClient)
 }
 
-export function fetchReady(): Promise<RuntimeDiagnostics> {
+export function fetchReady(): Promise<Readiness> {
   return fetchTypedReady(typedClient)
 }
 

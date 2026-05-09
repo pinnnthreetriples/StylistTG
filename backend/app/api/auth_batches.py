@@ -42,6 +42,7 @@ from app.services.auth_batches import (
     start_batch,
     validate_batch_phones,
 )
+from app.services.phone_hints import required_phone_hint
 
 router = APIRouter(prefix="/api/auth-batches", tags=["auth-batches"])
 
@@ -52,7 +53,7 @@ def validate_phones(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return validate_batch_phones(session, [_phone_input(item) for item in payload.items])
+    return validate_batch_phones(session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id)
 
 
 @router.post("", response_model=AuthBatchSnapshotRead, status_code=status.HTTP_201_CREATED)
@@ -82,9 +83,11 @@ def create_batch(
             message=str(exc),
             details=exc.validation,
         ) from exc
+    except ValueError as exc:
+        raise _conflict(str(exc)) from exc
     if not created:
         response.status_code = status.HTTP_200_OK
-    return _snapshot(batch)
+    return _snapshot(batch, include_phone_number=True)
 
 
 @router.get("", response_model=list[AuthBatchRead])
@@ -102,7 +105,7 @@ def get_batch_snapshot(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return _snapshot(_require_batch(session, batch_id, auth.workspace_id))
+    return _snapshot(_require_batch(session, batch_id, auth.workspace_id), include_phone_number=_can_view_full_phone(auth))
 
 
 @router.get("/{batch_id}/poll", response_model=AuthBatchPollRead)
@@ -119,7 +122,7 @@ def poll_batch(
     items = list(session.execute(query.order_by(AuthBatchItem.position)).scalars())
     return AuthBatchPollRead(
         batch=_batch_read(batch),
-        items=[_item_read(item) for item in items],
+        items=[_item_read(item, include_phone_number=_can_view_full_phone(auth)) for item in items],
         server_time=utc_now(),
         poll_again_in_ms=_poll_interval(batch),
     )
@@ -135,7 +138,7 @@ def post_start_batch(
         _require_batch(session, batch_id, auth.workspace_id)
         batch = start_batch(session, batch_id, workspace_id=auth.workspace_id)
         _dispatch_or_raise_queue_unavailable(session, batch)
-        return _snapshot(batch)
+        return _snapshot(batch, include_phone_number=True)
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -148,7 +151,7 @@ def post_pause_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(pause_batch(session, batch_id, workspace_id=auth.workspace_id))
+        return _snapshot(pause_batch(session, batch_id, workspace_id=auth.workspace_id), include_phone_number=True)
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -163,7 +166,7 @@ def post_resume_batch(
         _require_batch(session, batch_id, auth.workspace_id)
         batch = resume_batch(session, batch_id, workspace_id=auth.workspace_id)
         _dispatch_or_raise_queue_unavailable(session, batch)
-        return _snapshot(batch)
+        return _snapshot(batch, include_phone_number=True)
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -176,7 +179,7 @@ def post_cancel_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(cancel_batch(session, batch_id, workspace_id=auth.workspace_id))
+        return _snapshot(cancel_batch(session, batch_id, workspace_id=auth.workspace_id), include_phone_number=True)
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -190,20 +193,21 @@ def post_submit_code(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     _require_item_in_batch(session, batch_id, item_id, auth.workspace_id)
-    existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_code")
-    if existing is not None:
-        return existing
     try:
+        existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_code", entity_id=item_id, workspace_id=auth.workspace_id)
+        if existing is not None:
+            return existing
         item = submit_batch_code(session, item_id, payload.code)
         if item.batch.status == "running":
             dispatch_once(session, item.batch_id)
-        response = _item_read(item)
+        response = _item_read(item, include_phone_number=True)
         save_idempotency_result(
             session,
             key=payload.idempotency_key,
             operation="submit_code",
             entity_id=item.id,
             response_json=response.model_dump(mode="json"),
+            workspace_id=auth.workspace_id,
         )
         session.commit()
         return response
@@ -220,20 +224,21 @@ def post_submit_2fa(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     _require_item_in_batch(session, batch_id, item_id, auth.workspace_id)
-    existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_2fa")
-    if existing is not None:
-        return existing
     try:
+        existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_2fa", entity_id=item_id, workspace_id=auth.workspace_id)
+        if existing is not None:
+            return existing
         item = submit_batch_password(session, item_id, payload.password)
         if item.batch.status == "running":
             dispatch_once(session, item.batch_id)
-        response = _item_read(item)
+        response = _item_read(item, include_phone_number=True)
         save_idempotency_result(
             session,
             key=payload.idempotency_key,
             operation="submit_2fa",
             entity_id=item.id,
             response_json=response.model_dump(mode="json"),
+            workspace_id=auth.workspace_id,
         )
         session.commit()
         return response
@@ -253,7 +258,7 @@ def post_retry_item(
         item = retry_item(session, item_id)
         if item.batch.status == "running":
             dispatch_once(session, item.batch_id)
-        return _item_read(item)
+        return _item_read(item, include_phone_number=True)
     except ValueError as exc:
         raise _conflict(str(exc)) from exc
 
@@ -270,7 +275,7 @@ def post_request_new_code(
         item = request_new_code(session, item_id)
         if item.batch.status == "running":
             dispatch_once(session, item.batch_id)
-        return _item_read(item)
+        return _item_read(item, include_phone_number=True)
     except ValueError as exc:
         raise _conflict(str(exc)) from exc
 
@@ -284,7 +289,7 @@ def post_cancel_item(
 ):
     _require_item_in_batch(session, batch_id, item_id, auth.workspace_id)
     try:
-        return _item_read(cancel_item(session, item_id))
+        return _item_read(cancel_item(session, item_id), include_phone_number=True)
     except ValueError as exc:
         raise _conflict(str(exc)) from exc
 
@@ -317,10 +322,10 @@ def _phone_input(item: AuthBatchPhoneInput) -> PhoneInput:
     return PhoneInput(phone_number=item.phone_number, label=item.label)
 
 
-def _snapshot(batch: AuthBatch) -> AuthBatchSnapshotRead:
+def _snapshot(batch: AuthBatch, *, include_phone_number: bool) -> AuthBatchSnapshotRead:
     return AuthBatchSnapshotRead(
         batch=_batch_read(batch),
-        items=[_item_read(item) for item in batch.items],
+        items=[_item_read(item, include_phone_number=include_phone_number) for item in batch.items],
         server_time=utc_now(),
         poll_again_in_ms=_poll_interval(batch),
     )
@@ -345,12 +350,13 @@ def _batch_read(batch: AuthBatch) -> AuthBatchRead:
     )
 
 
-def _item_read(item: AuthBatchItem) -> AuthBatchItemRead:
+def _item_read(item: AuthBatchItem, *, include_phone_number: bool) -> AuthBatchItemRead:
     return AuthBatchItemRead(
         id=item.id,
         batch_id=item.batch_id,
         account_id=item.account_id,
-        phone_number=item.phone_number,
+        phone_number=item.phone_number if include_phone_number else None,
+        phone_hint=required_phone_hint(item.phone_number),
         label=item.label,
         position=item.position,
         status=item.status,
@@ -365,6 +371,10 @@ def _item_read(item: AuthBatchItem) -> AuthBatchItemRead:
         updated_at=item.updated_at,
         authorized_at=item.authorized_at,
     )
+
+
+def _can_view_full_phone(auth: AuthContext) -> bool:
+    return auth.role in {"operator", "admin", "owner"}
 
 
 def _require_batch(session: Session, batch_id: str, workspace_id: str | None = None) -> AuthBatch:

@@ -689,6 +689,211 @@ def test_cannot_poll_foreign_auth_batch() -> None:
     assert response.status_code == 404
 
 
+def test_same_idempotency_key_allowed_across_workspaces() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        foreign_batch, _ = create_auth_batch(
+            session,
+            idempotency_key="shared-cross-workspace-key",
+            label="foreign",
+            inputs=[PhoneInput(phone_number="+15550106556")],
+            workspace_id=workspace.id,
+        )
+        session.commit()
+        foreign_batch_id = foreign_batch.id
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/auth-batches",
+            json={"idempotency_key": "shared-cross-workspace-key", "items": [{"phone_number": "+15550106656"}]},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    local_batch_id = response.json()["batch"]["id"]
+    assert local_batch_id != foreign_batch_id
+    assert "+15550106556" not in response.text
+
+
+def test_validate_phones_does_not_leak_foreign_workspace_accounts() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        create_account(session, external_ref="+15550109001", workspace_id=workspace.id)
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/auth-batches/validate-phones",
+            json={"items": [{"phone_number": "+15550109001"}]},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["existing_accounts"] == []
+    assert payload["valid_items"][0]["phone_number"] == "+15550109001"
+
+
+def test_validate_phones_does_not_leak_foreign_workspace_batch_conflicts() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        create_auth_batch(
+            session,
+            idempotency_key="foreign-active-batch",
+            label="foreign",
+            inputs=[PhoneInput(phone_number="+15550109002")],
+            workspace_id=workspace.id,
+        )
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/auth-batches/validate-phones",
+            json={"items": [{"phone_number": "+15550109002"}]},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["active_batch_conflicts"] == []
+    assert payload["valid_items"][0]["phone_number"] == "+15550109002"
+
+
+def test_validate_phones_returns_own_workspace_conflicts() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _seed_second_workspace(session)
+        create_account(session, external_ref="+15550109003")
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="own-active-batch",
+            label="own",
+            inputs=[PhoneInput(phone_number="+15550109004")],
+        )
+        session.commit()
+        batch_id = batch.id
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/auth-batches/validate-phones",
+            json={"items": [{"phone_number": "+15550109003"}, {"phone_number": "+15550109004"}]},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["existing_accounts"]) == 1
+    assert payload["existing_accounts"][0]["phone_number"] == "+15550109003"
+    assert len(payload["active_batch_conflicts"]) == 1
+    assert payload["active_batch_conflicts"][0]["phone_number"] == "+15550109004"
+    assert payload["active_batch_conflicts"][0]["batch_id"] == batch_id
+
+
+def test_auth_batch_viewer_receives_phone_hint_not_full_number() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="viewer-phone-mask",
+            label="mask",
+            inputs=[PhoneInput(phone_number="+15550106666")],
+        )
+        batch_id = batch.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="viewer-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="viewer",
+        auth_source="test",
+    )
+    try:
+        snapshot = TestClient(app).get(f"/api/auth-batches/{batch_id}")
+        poll = TestClient(app).get(f"/api/auth-batches/{batch_id}/poll")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert snapshot.status_code == 200
+    assert poll.status_code == 200
+    for payload in (snapshot.json(), poll.json()):
+        item = payload["items"][0]
+        assert item["phone_number"] is None
+        assert item["phone_hint"] == "***6666"
+        assert "+1555" not in item["phone_hint"]
+
+
+def test_auth_batch_operator_receives_full_phone_number() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        batch, _ = create_auth_batch(
+            session,
+            idempotency_key="operator-phone-full",
+            label="full",
+            inputs=[PhoneInput(phone_number="+15550107777")],
+        )
+        batch_id = batch.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="operator-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="operator",
+        auth_source="test",
+    )
+    try:
+        response = TestClient(app).get(f"/api/auth-batches/{batch_id}/poll")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["phone_number"] == "+15550107777"
+    assert item["phone_hint"] == "***7777"
+
+
 def test_cannot_submit_code_for_foreign_auth_batch_item() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

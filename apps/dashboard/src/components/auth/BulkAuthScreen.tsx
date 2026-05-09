@@ -492,7 +492,7 @@ function BatchDashboard({
         {snapshot.items.map((item) => (
           <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2 last:border-b-0" key={item.id}>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-navy-900">{item.phone_number}</div>
+              <div className="truncate text-sm font-semibold text-navy-900">{authBatchItemPhoneLabel(item)}</div>
               <div className="truncate text-xs text-gray-400">{item.label || (item.error_code ? labelIssue(item.error_code) : item.error_message) || 'Без метки'}</div>
             </div>
             <div className="flex items-center gap-2">
@@ -513,7 +513,7 @@ function CredentialRow({ item, onSubmitCode, onSubmitPassword }: { item: AuthBat
   const isPassword = item.status === 'waiting_2fa'
   return (
     <div className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_180px_auto] sm:items-center">
-      <div className="text-sm font-semibold text-navy-900">{item.phone_number}</div>
+      <div className="text-sm font-semibold text-navy-900">{authBatchItemPhoneLabel(item)}</div>
       <input className="rounded-lg border border-gray-200 px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
       <Button disabled={value.length < 4} onClick={() => isPassword ? onSubmitPassword(item, value) : onSubmitCode(item, value)} type="button">
         Отправить
@@ -531,6 +531,10 @@ function StatusPill({ status }: { status: string }) {
       {labelAuthBatchItemStatus(status)}
     </span>
   )
+}
+
+function authBatchItemPhoneLabel(item: AuthBatchItem): string {
+  return item.phone_number ?? item.phone_hint
 }
 
 function readDraft(): { label: string; rawInput: string } {

@@ -2881,7 +2881,9 @@ export interface components {
             /** Account Id */
             account_id: string;
             /** Phone Number */
-            phone_number: string;
+            phone_number: string | null;
+            /** Phone Hint */
+            phone_hint: string;
             /** Label */
             label: string | null;
             /** Position */
@@ -3646,6 +3648,11 @@ export interface components {
             purpose: string;
             /** Live Execution Default */
             live_execution_default: boolean;
+        };
+        /** ReadinessRead */
+        ReadinessRead: {
+            /** Status */
+            status: string;
         };
         /** RetryPolicyRead */
         RetryPolicyRead: {
@@ -7910,7 +7917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiagnosticsRead"];
+                    "application/json": components["schemas"]["ReadinessRead"];
                 };
             };
         };

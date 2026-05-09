@@ -16,6 +16,7 @@ from app.services.tdlib_auth import TdlibAuthStateMachine, TdlibAuthTransition
 from app.services.tdlib_client import MockTdlibJsonClient
 from app.services.tdlib_paths import build_account_tdlib_paths, build_auth_session_tdlib_paths
 from app.services.tdlib_runtime import detect_tdlib_runtime
+from app.services.phone_hints import required_phone_hint
 
 
 SAFE_AUTH_ACTIONS = {"start", "submit_code", "submit_password", "cancel"}
@@ -37,7 +38,7 @@ def create_auth_session(
         id=new_id(),
         workspace_id=workspace_id,
         account_id=account_id,
-        phone_hint=_phone_hint(phone_number),
+        phone_hint=required_phone_hint(phone_number),
         label=label,
         status="created",
         source=source,
@@ -226,8 +227,3 @@ def _audit_action(session: Session, row: TelegramAuthSession, action: str, metad
         account_id=row.account_id,
         metadata=metadata,
     )
-
-
-def _phone_hint(phone_number: str) -> str:
-    digits = "".join(ch for ch in phone_number if ch.isdigit())
-    return f"***{digits[-4:]}" if len(digits) >= 4 else "***"

@@ -106,7 +106,7 @@ class TestCloudConfigEdgeCases:
             "cors_origins": "https://dashboard.example.com",
             "stale_job_reaper_enabled": False,
             "operator_api_token": "operator-token-value",
-            "proxy_credentials_encryption_key": "test-fernet-key",
+            "proxy_credentials_encryption_key": "lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
         }
         base.update(overrides)
         return base
@@ -147,3 +147,14 @@ class TestCloudConfigEdgeCases:
     def test_test_env_does_not_trigger_cloud_validation(self):
         config = Settings(app_env="test", auth_mode="local")
         assert config.auth_mode == "local"
+
+    def test_cloud_rejects_invalid_fernet_key(self):
+        with pytest.raises(ValueError, match="not a valid Fernet key"):
+            Settings(**self._cloud_base(proxy_credentials_encryption_key="not-a-fernet-key"))
+
+    def test_cloud_accepts_valid_fernet_key(self):
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key().decode()
+        config = Settings(**self._cloud_base(proxy_credentials_encryption_key=key))
+        assert config.proxy_credentials_encryption_key == key

@@ -55,6 +55,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
     # Story drafts
+    ("GET", "/api/story-drafts/{account_id}", "viewer", False),
     ("POST", "/api/story-drafts", "operator", True),
 ]
 
@@ -84,6 +85,14 @@ def _setup_test_env(*, role: str):
         auth_source="test",
     )
     return session_factory
+
+
+def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
+    """Replace {account_id} etc. with real or dummy IDs."""
+    if "{account_id}" in path:
+        account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")
+        return path.replace("{account_id}", account_id)
+    return path
 
 
 def _request(client: TestClient, method: str, path: str):
@@ -116,7 +125,8 @@ class TestNoAuth:
         app.dependency_overrides.clear()
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            response = _request(client, method, path)
+            resolved = _resolve_path(path)
+            response = _request(client, method, resolved)
             assert response.status_code in {401, 403}, (
                 f"{method} {path} returned {response.status_code} without auth"
             )
@@ -137,8 +147,9 @@ class TestViewerCannotMutate:
         _setup_test_env(role="viewer")
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            response = _request(client, method, path)
-            assert response.status_code in {403, 422}, (
+            resolved = _resolve_path(path)
+            response = _request(client, method, resolved)
+            assert response.status_code == 403, (
                 f"viewer {method} {path} returned {response.status_code}, expected 403"
             )
         finally:
@@ -158,8 +169,9 @@ class TestViewerReadAccess:
         _setup_test_env(role="viewer")
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            response = _request(client, method, path)
-            assert response.status_code in {200, 404, 422}, (
+            resolved = _resolve_path(path)
+            response = _request(client, method, resolved)
+            assert response.status_code in {200, 404}, (
                 f"viewer {method} {path} returned {response.status_code}, expected 200/404"
             )
         finally:
@@ -179,7 +191,8 @@ class TestOperatorAdminEndpoints:
         _setup_test_env(role="operator")
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            response = _request(client, method, path)
+            resolved = _resolve_path(path)
+            response = _request(client, method, resolved)
             assert response.status_code == 403, (
                 f"operator {method} {path} returned {response.status_code}, expected 403"
             )
@@ -200,8 +213,9 @@ class TestAdminAccess:
         _setup_test_env(role="admin")
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            response = _request(client, method, path)
-            assert response.status_code in {200, 404, 422}, (
+            resolved = _resolve_path(path)
+            response = _request(client, method, resolved)
+            assert response.status_code == 200, (
                 f"admin {method} {path} returned {response.status_code}, expected 200"
             )
         finally:

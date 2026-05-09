@@ -20,7 +20,6 @@ import {
   resolveApiBaseUrl,
   submitTelegramAuthCode,
   startOtp,
-  uploadAsset,
   validateAccountImportBatch,
   validateAuthBatchPhones,
 } from './index'
@@ -376,11 +375,14 @@ describe('@stylisttg/api-client', () => {
   })
 
   test('account runtime diagnostics sends X-Account-Id header', async () => {
-    const calls: Array<{ url: string; headers: Headers }> = []
+    const calls: Array<{ url: string; accountId: string | null }> = []
     const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = input instanceof Request
+        ? input.headers
+        : new Headers(init?.headers)
       calls.push({
         url: requestUrl(input),
-        headers: new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined)),
+        accountId: headers.get('X-Account-Id'),
       })
       return jsonResponse({
         total: 0,
@@ -392,7 +394,8 @@ describe('@stylisttg/api-client', () => {
 
     await fetchAccountRuntimeDiagnostics(client, 'acct-123')
 
-    expect(calls.length).toBeGreaterThanOrEqual(1)
+    expect(calls.length).toBe(1)
+    expect(calls[0].accountId).toBe('acct-123')
   })
 })
 

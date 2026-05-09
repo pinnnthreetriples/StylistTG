@@ -146,7 +146,7 @@ def test_supabase_auth_allowed_in_production() -> None:
         cors_origins="https://dashboard.example.com",
         stale_job_reaper_enabled=False,
         operator_api_token="operator-token-value",
-        proxy_credentials_encryption_key="test-fernet-key",
+        proxy_credentials_encryption_key="lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
     )
 
     assert config.auth_mode == "supabase_jwt"
@@ -161,7 +161,7 @@ def test_local_auth_override_allows_controlled_production_testing() -> None:
         cors_origins="https://dashboard.example.com",
         stale_job_reaper_enabled=False,
         operator_api_token="operator-token-value",
-        proxy_credentials_encryption_key="test-fernet-key",
+        proxy_credentials_encryption_key="lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
     )
 
     assert config.allow_local_auth_in_prod is True

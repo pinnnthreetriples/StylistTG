@@ -234,7 +234,16 @@ class TestCrossWorkspaceReadBlocked:
         r = self._client.get(f"/api/story-drafts/{self._ids['account']}")
         assert r.status_code in {200, 404}
         if r.status_code == 200:
-            assert r.json() == []
+            body = r.json()
+            assert body == [], f"expected empty list, got {body}"
+            all_ids = [
+                self._ids["story_draft"],
+                self._ids["account"],
+                self._ids["asset"],
+            ]
+            raw = r.text
+            for fid in all_ids:
+                assert fid not in raw, f"foreign ID {fid} leaked in response body"
 
     def test_foreign_auth_batch_returns_404(self):
         r = self._client.get(f"/api/auth-batches/{self._ids['auth_batch']}")

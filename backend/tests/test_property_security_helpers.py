@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import string
 import tempfile
-from pathlib import Path, PurePosixPath
+import zipfile
+from pathlib import Path
 
 import pytest
 from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 
+from app.config import Settings
+from app.services.import_validation import _validate_archive_infos
 from app.services.phone_hints import phone_hint, required_phone_hint
 from app.services.secret_redaction import (
     SENSITIVE_FRAGMENTS,
@@ -192,38 +195,56 @@ class TestPhoneHintProperties:
 # ---------------------------------------------------------------------------
 
 
+def _make_zip_info(filename: str, file_size: int = 100) -> zipfile.ZipInfo:
+    """Create a ZipInfo with the given filename and size."""
+    info = zipfile.ZipInfo(filename=filename)
+    info.file_size = file_size
+    return info
+
+
+_ARCHIVE_CONFIG = Settings()
+
+
 @pytest.mark.security
 @pytest.mark.unit
 class TestArchivePathSafety:
-    """Archive path validation from import_validation must reject unsafe paths."""
+    """_validate_archive_infos must reject unsafe paths, absolute paths, and excessive depth."""
 
     @given(
-        path=st.from_regex(r"\.\./[a-z]{1,10}", fullmatch=True),
+        name=st.text(min_size=1, max_size=10, alphabet=string.ascii_lowercase),
     )
     @CI_SETTINGS
-    def test_traversal_rejected(self, path):
-        posix = PurePosixPath(path.replace("\\", "/"))
-        assert ".." in posix.parts
+    def test_traversal_rejected(self, name):
+        info = _make_zip_info(f"../{name}")
+        with pytest.raises(ValueError, match="unsafe paths"):
+            _validate_archive_infos([info], config=_ARCHIVE_CONFIG)
 
     @given(
-        path=st.from_regex(r"/[a-z]{1,10}/[a-z]{1,10}", fullmatch=True),
+        name=st.text(min_size=1, max_size=10, alphabet=string.ascii_lowercase),
     )
     @CI_SETTINGS
-    def test_absolute_paths_detected(self, path):
-        posix = PurePosixPath(path)
-        assert posix.is_absolute()
+    def test_absolute_paths_rejected(self, name):
+        info = _make_zip_info(f"/{name}/file.txt")
+        with pytest.raises(ValueError, match="unsafe paths"):
+            _validate_archive_infos([info], config=_ARCHIVE_CONFIG)
 
     @given(
         segments=st.lists(
             st.text(min_size=1, max_size=8, alphabet=string.ascii_lowercase),
-            min_size=20,
-            max_size=25,
+            min_size=_ARCHIVE_CONFIG.account_import_max_depth + 1,
+            max_size=_ARCHIVE_CONFIG.account_import_max_depth + 5,
         ),
     )
     @CI_SETTINGS
-    def test_excessive_depth_detected(self, segments):
-        path = PurePosixPath("/".join(segments))
-        assert len(path.parts) > 15
+    def test_excessive_depth_rejected(self, segments):
+        filename = "/".join(segments)
+        info = _make_zip_info(filename)
+        with pytest.raises(ValueError, match="nesting is too deep"):
+            _validate_archive_infos([info], config=_ARCHIVE_CONFIG)
+
+    def test_safe_archive_accepted(self):
+        infos = [_make_zip_info("data/file.txt"), _make_zip_info("config.json")]
+        _validate_archive_infos(infos, config=_ARCHIVE_CONFIG)
 
 
 # ---------------------------------------------------------------------------

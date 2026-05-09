@@ -1,6 +1,7 @@
 import logging
 
 from app.logging_utils import _build_betterstack_handler, _normalize_betterstack_host
+from app.services.secret_redaction import redact_metadata
 
 
 def test_betterstack_handler_is_disabled_without_source_config(monkeypatch):
@@ -38,3 +39,7 @@ def test_betterstack_handler_uses_env_without_exposing_token(monkeypatch):
 def test_betterstack_host_normalization():
     assert _normalize_betterstack_host("in.logs.betterstack.com/") == "https://in.logs.betterstack.com"
     assert _normalize_betterstack_host("https://example.com/") == "https://example.com"
+
+
+def test_redact_metadata_redacts_secrets_inside_plain_string():
+    assert redact_metadata({"message": "password=abc token=xyz"}) == {"message": "password=*** token=***"}

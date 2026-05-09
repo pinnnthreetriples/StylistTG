@@ -89,7 +89,7 @@ def test_header_account_runtime_endpoints_do_not_require_account_id_in_url(monke
     app.dependency_overrides.clear()
 
 
-def test_ready_endpoint_checks_database_and_redis(monkeypatch) -> None:
+def test_ready_endpoint_returns_minimal_status(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.build_runtime_diagnostics",
         lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},

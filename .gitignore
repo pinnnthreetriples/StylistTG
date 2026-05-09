@@ -28,7 +28,8 @@ venv/
 tdlib/
 tdlib_database/
 tdlib_files/
-storage/
+/storage/
+!backend/app/storage/
 local_storage/
 uploads/
 tmp/

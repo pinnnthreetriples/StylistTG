@@ -24,6 +24,10 @@ dependencies = [
 dev = [
   "httpx>=0.28.0",
   "pytest>=9.0.0",
+  "pytest-cov>=6.0.0",
+  "pytest-xdist>=3.6.0",
+  "hypothesis>=6.0.0",
+  "freezegun>=1.5.0",
   "ruff>=0.14.0",
 ]
 
@@ -37,6 +41,12 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
+  "unit: pure unit tests — no DB, no HTTP, no external services",
+  "api: FastAPI endpoint tests via TestClient",
+  "security: auth, role, workspace isolation and PII tests",
+  "postgres: requires real PostgreSQL",
+  "redis: requires real Redis",
+  "contract: API/OpenAPI/client contract tests",
   "integration: feature-gated integration tests that require real TDLib credentials and library",
   "live: live environment smoke or verification tests that require external services",
 ]

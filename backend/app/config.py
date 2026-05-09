@@ -168,6 +168,8 @@ class Settings(BaseSettings):
                 raise ValueError("cloud API requires explicit non-wildcard CORS_ORIGINS")
             if self.stale_job_reaper_enabled:
                 raise ValueError("cloud API requires STALE_JOB_REAPER_ENABLED=false")
+            if not self.proxy_credentials_encryption_key:
+                raise ValueError("cloud API requires PROXY_CREDENTIALS_ENCRYPTION_KEY (Fernet key)")
         if self.storage_backend not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be local or s3")
         if self.tdlib_storage_backend != "local":

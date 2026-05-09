@@ -41,8 +41,9 @@ def create_profile_job(
     requested_by_user_id: str | None = None,
     created_from: str = "api",
     request_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> Job:
-    account = get_account(session, account_id)
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     if is_account_hard_stopped(account):
@@ -57,7 +58,7 @@ def create_profile_job(
         raise ValueError("profile job cooldown active")
     check_workspace_limit(session, account.workspace_id, "jobs_per_day")
 
-    payload = normalize_profile_payload(session, payload)
+    payload = normalize_profile_payload(session, payload, workspace_id=account.workspace_id)
     intent_hash = compute_execution_intent_hash(account_id, payload)
     duplicate = find_active_duplicate_job(session, account_id, intent_hash)
     state = JobState.DEDUP_BLOCKED if duplicate else JobState.QUEUED
@@ -132,9 +133,9 @@ def delete_job(session: Session, job_id: str) -> None:
     session.commit()
 
 
-def normalize_profile_payload(session: Session, payload: dict) -> dict:
+def normalize_profile_payload(session: Session, payload: dict, *, workspace_id: str | None = None) -> dict:
     normalized_payload = dict(payload)
-    _validate_profile_asset(session, normalized_payload)
+    _validate_profile_asset(session, normalized_payload, workspace_id=workspace_id)
     return normalized_payload
 
 
@@ -161,14 +162,20 @@ def get_latest_account_job(session: Session, account_id: str, *, workspace_id: s
     return jobs[0] if jobs else None
 
 
-def build_profile_job_preview(session: Session, *, account_id: str, payload: dict) -> dict:
-    account = get_account(session, account_id)
+def build_profile_job_preview(
+    session: Session,
+    *,
+    account_id: str,
+    payload: dict,
+    workspace_id: str | None = None,
+) -> dict:
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
 
     blocking_errors: list[str] = []
     warnings: list[str] = []
-    normalized_payload = normalize_profile_payload(session, payload)
+    normalized_payload = normalize_profile_payload(session, payload, workspace_id=account.workspace_id)
     intent_hash = compute_execution_intent_hash(account_id, normalized_payload)
     duplicate = find_active_duplicate_job(session, account_id, intent_hash)
     plan = build_profile_plan(normalized_payload)
@@ -238,11 +245,11 @@ def build_job_steps(job: Job) -> list[dict]:
     return ordered_steps
 
 
-def _validate_profile_asset(session: Session, payload: dict) -> None:
+def _validate_profile_asset(session: Session, payload: dict, *, workspace_id: str | None = None) -> None:
     asset_id = payload.get("photo_asset_id")
     if not asset_id:
         return
-    asset = get_asset(session, asset_id)
+    asset = get_asset(session, asset_id, workspace_id=workspace_id)
     if asset is None:
         raise ValueError("asset not found")
     if asset.kind != AssetKind.PROFILE_PHOTO:

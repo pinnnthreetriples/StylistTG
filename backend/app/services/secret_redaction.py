@@ -27,6 +27,8 @@ def redact_metadata(value: Any) -> Any:
         return result
     if isinstance(value, list):
         return [redact_metadata(item) for item in value]
+    if isinstance(value, str):
+        return redact_text(value)
     return value
 
 

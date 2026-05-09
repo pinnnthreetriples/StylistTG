@@ -177,7 +177,7 @@ app.include_router(workers_router)
 
 @app.middleware("http")
 async def operator_guard_middleware(request: Request, call_next):
-    if request.url.path in {"/health", "/ready", "/diagnostics/runtime"}:
+    if request.url.path in {"/health", "/ready"}:
         return await call_next(request)
     if settings.enforce_localhost_only and not _is_local_client(request):
         return JSONResponse(

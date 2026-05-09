@@ -11,15 +11,15 @@ from app.services.profile_audio_state import profile_audio_state_payload
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
 from app.services.story_posts import list_story_posts, story_post_payload
 
-def build_dashboard_profile(session: Session, account_id: str) -> dict:
-    account = get_account_dashboard_bundle(session, account_id)
+def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict:
+    account = get_account_dashboard_bundle(session, account_id, workspace_id=workspace_id)
     if account is None:
         log_warn("dashboard_account_not_found", account_id=account_id)
         raise ValueError("account not found")
 
     log_event("dashboard_build", account_id=account_id, state=account.account_state)
 
-    latest_job = get_latest_job_for_account(session, account_id)
+    latest_job = get_latest_job_for_account(session, account_id, workspace_id=workspace_id)
     runtime = account_runtime_diagnostics(session, account_id)
     profile_state = account.profile_state
 
@@ -30,7 +30,7 @@ def build_dashboard_profile(session: Session, account_id: str) -> dict:
     synced_photo_asset_id = profile_state.profile_photo_asset_id if profile_state else None
     profile_photo_asset_id = synced_photo_asset_id or latest_applied_profile_photo_asset_id(session, account_id)
     latest_job_summary = job_summary(latest_job) if latest_job else None
-    story_posts = list_story_posts(session, account_id)
+    story_posts = list_story_posts(session, account_id, workspace_id=workspace_id)
     real_execution_enabled = settings.profile_execution_adapter == "tdlib"
 
     return {

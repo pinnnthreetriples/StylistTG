@@ -162,6 +162,8 @@ class Settings(BaseSettings):
             configured_cors = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
             if self.enforce_localhost_only:
                 raise ValueError("cloud API requires ENFORCE_LOCALHOST_ONLY=false")
+            if not self.operator_api_token:
+                raise ValueError("cloud API requires OPERATOR_API_TOKEN")
             if not configured_cors or "*" in configured_cors:
                 raise ValueError("cloud API requires explicit non-wildcard CORS_ORIGINS")
             if self.stale_job_reaper_enabled:

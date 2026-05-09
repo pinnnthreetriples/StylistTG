@@ -21,14 +21,14 @@ from app.services.auth import (
     start_otp,
     submit_password,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission, require_role
 from app.services.accounts import get_account
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
 
 @router.get("/auth/runtime-mode", response_model=AuthRuntimeModeRead)
-def get_auth_runtime_mode():
+def get_auth_runtime_mode(_auth: AuthContext = Depends(require_authenticated)):
     return AuthRuntimeModeRead(
         tdlib_use_test_dc=settings.tdlib_use_test_dc,
         tdlib_production_auth_enabled=settings.tdlib_production_auth_enabled,
@@ -36,7 +36,10 @@ def get_auth_runtime_mode():
 
 
 @router.patch("/auth/runtime-mode", response_model=AuthRuntimeModeRead)
-def patch_auth_runtime_mode(payload: AuthRuntimeModeUpdate):
+def patch_auth_runtime_mode(
+    payload: AuthRuntimeModeUpdate,
+    _auth: AuthContext = Depends(require_role("admin")),
+):
     settings.tdlib_use_test_dc = payload.tdlib_use_test_dc
     settings.tdlib_production_auth_enabled = not payload.tdlib_use_test_dc
     return AuthRuntimeModeRead(

@@ -7,6 +7,8 @@ from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL.Image import DecompressionBombError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
@@ -22,6 +24,8 @@ PROFILE_AUDIO_EXECUTION_MIMES = {
 }
 
 STORY_VIDEO_ALLOWED_MIMES = {"video/mp4", "video/quicktime", "video/webm"}
+MAX_IMAGE_PIXELS = 24_000_000
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 
 def save_profile_photo_asset(
@@ -37,12 +41,7 @@ def save_profile_photo_asset(
     asset_id = new_id()
     storage = storage_service or _local_storage(storage_root)
 
-    try:
-        image = Image.open(BytesIO(content))
-        image.verify()
-        image = Image.open(BytesIO(content))
-    except UnidentifiedImageError as exc:
-        raise ValueError("uploaded file is not a supported image") from exc
+    image = _open_verified_image(content, error_message="uploaded file is not a supported image")
 
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_name = f"original{Path(filename).suffix or '.upload'}"
@@ -145,12 +144,7 @@ def save_story_image_asset(
     asset_id = new_id()
     storage = storage_service or _local_storage(storage_root)
 
-    try:
-        image = Image.open(BytesIO(content))
-        image.verify()
-        image = Image.open(BytesIO(content))
-    except UnidentifiedImageError as exc:
-        raise ValueError("uploaded file is not a supported story image") from exc
+    image = _open_verified_image(content, error_message="uploaded file is not a supported story image")
 
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_key = asset_source_key(asset_id, f"original{Path(filename).suffix or '.upload'}")
@@ -255,8 +249,14 @@ def save_story_video_asset(
     return asset
 
 
-def get_asset(session: Session, asset_id: str) -> Asset | None:
-    return session.get(Asset, asset_id)
+def get_asset(session: Session, asset_id: str | None, *, workspace_id: str | None = None) -> Asset | None:
+    if not asset_id:
+        return None
+    if workspace_id is None:
+        return session.get(Asset, asset_id)
+    return session.execute(
+        select(Asset).where(Asset.id == asset_id, Asset.workspace_id == workspace_id)
+    ).scalars().first()
 
 
 def _log_asset_uploaded(
@@ -311,6 +311,25 @@ def _guess_audio_mime(filename: str, content: bytes) -> str:
     if len(content) >= 12 and content[4:8] == b"ftyp":
         return "audio/mp4"
     return "application/octet-stream"
+
+
+def _open_verified_image(content: bytes, *, error_message: str) -> Image.Image:
+    try:
+        image = Image.open(BytesIO(content))
+        _enforce_image_pixel_limit(image)
+        image.verify()
+        image = Image.open(BytesIO(content))
+        _enforce_image_pixel_limit(image)
+        image.load()
+        return image
+    except (UnidentifiedImageError, DecompressionBombError, OSError) as exc:
+        raise ValueError(error_message) from exc
+
+
+def _enforce_image_pixel_limit(image: Image.Image) -> None:
+    width, height = image.size
+    if width * height > MAX_IMAGE_PIXELS:
+        raise DecompressionBombError("uploaded image exceeds pixel limit")
 
 
 def _audio_extension_for_mime(mime: str) -> str:

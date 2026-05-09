@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import settings
 from app.schemas import ExecutionPolicyRead, ExecutionPolicyUpdate
+from app.services.auth_context import AuthContext, require_authenticated, require_role
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -17,12 +18,15 @@ NON_OVERRIDABLE_BLOCKERS = [
 
 
 @router.get("/execution-policy", response_model=ExecutionPolicyRead)
-def get_execution_policy():
+def get_execution_policy(_auth: AuthContext = Depends(require_authenticated)):
     return _execution_policy_response()
 
 
 @router.patch("/execution-policy", response_model=ExecutionPolicyRead)
-def patch_execution_policy(payload: ExecutionPolicyUpdate):
+def patch_execution_policy(
+    payload: ExecutionPolicyUpdate,
+    _auth: AuthContext = Depends(require_role("admin")),
+):
     values = payload.model_dump(exclude_unset=True)
     for key, value in values.items():
         if key == "profile_job_cooldown_seconds" and not _is_valid_profile_job_cooldown(int(value)):

@@ -31,13 +31,24 @@ from app.services.profile_photo_state import latest_applied_profile_photo_asset_
 from app.services.step_registry import validate_account_update_plan_steps
 
 
-def build_account_update_preview(session: Session, *, account_id: str, desired_state: dict) -> dict:
-    account = get_account(session, account_id)
+def build_account_update_preview(
+    session: Session,
+    *,
+    account_id: str,
+    desired_state: dict,
+    workspace_id: str | None = None,
+) -> dict:
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
 
     requested_profile_fields = _requested_profile_fields(desired_state)
-    desired_state = _normalize_with_profile_assets(session, account_id=account_id, desired_state=desired_state)
+    desired_state = _normalize_with_profile_assets(
+        session,
+        account_id=account_id,
+        desired_state=desired_state,
+        workspace_id=account.workspace_id,
+    )
     intent_hash = compute_account_update_intent_hash(account_id, desired_state)
     duplicate = find_active_duplicate_job(session, account_id, intent_hash)
     plan = build_account_update_plan(
@@ -99,8 +110,9 @@ def create_account_update_job(
     requested_by_user_id: str | None = None,
     created_from: str = "api",
     request_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> Job:
-    account = get_account(session, account_id)
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     if is_account_hard_stopped(account):
@@ -112,7 +124,12 @@ def create_account_update_job(
             raise ValueError("account is not execution_usable")
 
     requested_profile_fields = _requested_profile_fields(desired_state)
-    desired_state = _normalize_with_profile_assets(session, account_id=account_id, desired_state=desired_state)
+    desired_state = _normalize_with_profile_assets(
+        session,
+        account_id=account_id,
+        desired_state=desired_state,
+        workspace_id=account.workspace_id,
+    )
     if is_profile_job_cooldown_active(session, account_id, config=config):
         raise ValueError("profile job cooldown active")
     check_workspace_limit(session, account.workspace_id, "jobs_per_day")
@@ -183,26 +200,47 @@ def create_account_update_job(
     return job
 
 
-def _normalize_with_profile_assets(session: Session, *, account_id: str, desired_state: dict) -> dict:
+def _normalize_with_profile_assets(
+    session: Session,
+    *,
+    account_id: str,
+    desired_state: dict,
+    workspace_id: str | None = None,
+) -> dict:
     desired_state = normalize_account_update_desired_state(desired_state)
-    profile_payload = normalize_profile_payload(session, account_update_profile_payload(desired_state))
+    profile_payload = normalize_profile_payload(
+        session,
+        account_update_profile_payload(desired_state),
+        workspace_id=workspace_id,
+    )
     desired_state["profile"]["photo_asset_path"] = profile_payload.get("photo_asset_path")
-    _validate_profile_audio_asset(session, account_id=account_id, desired_state=desired_state)
-    _validate_story_assets(session, desired_state)
+    _validate_profile_audio_asset(
+        session,
+        account_id=account_id,
+        desired_state=desired_state,
+        workspace_id=workspace_id,
+    )
+    _validate_story_assets(session, desired_state, workspace_id=workspace_id)
     return desired_state
 
 
-def _validate_profile_audio_asset(session: Session, *, account_id: str, desired_state: dict) -> None:
+def _validate_profile_audio_asset(
+    session: Session,
+    *,
+    account_id: str,
+    desired_state: dict,
+    workspace_id: str | None = None,
+) -> None:
     profile_audio = desired_state.get("profile_audio") or {}
     if profile_audio.get("action") == "remove":
-        account = get_account(session, account_id)
+        account = get_account(session, account_id, workspace_id=workspace_id)
         if account and account.profile_audio_state:
             profile_audio["telegram_file_id"] = account.profile_audio_state.telegram_file_id
         return
     if profile_audio.get("action") != "add":
         return
     asset_id = profile_audio.get("audio_asset_id")
-    asset = get_asset(session, asset_id)
+    asset = get_asset(session, asset_id, workspace_id=workspace_id)
     if asset is None:
         raise ValueError("audio asset not found")
     if asset.kind != AssetKind.PROFILE_AUDIO:
@@ -222,9 +260,9 @@ def _profile_audio_title(filename: str | None) -> str:
     return title[:64]
 
 
-def _validate_story_assets(session: Session, desired_state: dict) -> None:
+def _validate_story_assets(session: Session, desired_state: dict, *, workspace_id: str | None = None) -> None:
     for story in desired_state.get("stories") or []:
-        asset = get_asset(session, story.get("asset_id"))
+        asset = get_asset(session, story.get("asset_id"), workspace_id=workspace_id)
         if asset is None:
             raise ValueError("story asset not found")
         expected_kind = AssetKind.STORY_IMAGE if story.get("action") == "post_image" else AssetKind.STORY_VIDEO

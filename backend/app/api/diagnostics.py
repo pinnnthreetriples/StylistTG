@@ -6,7 +6,7 @@ from rq import Worker
 from app.config import settings
 from app.job_queue.rq import AUTH_QUEUE_NAME, PROFILE_QUEUE_NAME
 from app.schemas import DiagnosticsRead, FrontendDiagnosticsSummaryRead, LivePreflightRead
-from app.services.auth_context import AuthContext, require_authenticated
+from app.services.auth_context import AuthContext, require_authenticated, require_role
 from app.services.frontend_diagnostics import build_frontend_diagnostics_summary
 from app.services.live_preflight import LivePreflightService
 from app.services.runtime_diagnostics import build_runtime_diagnostics
@@ -22,12 +22,12 @@ def frontend_summary(
 
 
 @router.get("/runtime", response_model=DiagnosticsRead)
-def runtime_diagnostics():
+def runtime_diagnostics(_auth: AuthContext = Depends(require_role("admin"))):
     return DiagnosticsRead(**build_runtime_diagnostics())
 
 
 @router.get("/live-preflight", response_model=LivePreflightRead)
-def live_preflight():
+def live_preflight(_auth: AuthContext = Depends(require_role("admin"))):
     redis = Redis.from_url(settings.redis_url)
     service = LivePreflightService(
         database_url=settings.database_url,

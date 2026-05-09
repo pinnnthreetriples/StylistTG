@@ -6,6 +6,7 @@ import binascii
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import get_session
 from app.errors import AppError
 from app.schemas import AccountImportBatchConfirm, AccountImportBatchCreate, AccountImportBatchRead, AccountImportBatchValidate
@@ -86,7 +87,23 @@ def post_confirm_import_batch(
 def _decode_optional_base64(value: str | None) -> bytes | None:
     if value is None:
         return None
+    max_encoded_len = ((settings.account_import_max_upload_bytes + 2) // 3) * 4
+    if len(value) > max_encoded_len:
+        raise AppError(
+            status_code=413,
+            error_code="IMPORT_CONTENT_TOO_LARGE",
+            error_class="validation",
+            message="content_base64 is too large",
+        )
     try:
-        return base64.b64decode(value, validate=True)
+        decoded = base64.b64decode(value, validate=True)
     except binascii.Error as exc:
         raise AppError(status_code=400, error_code="IMPORT_CONTENT_INVALID", error_class="validation", message="content_base64 is invalid") from exc
+    if len(decoded) > settings.account_import_max_upload_bytes:
+        raise AppError(
+            status_code=413,
+            error_code="IMPORT_CONTENT_TOO_LARGE",
+            error_class="validation",
+            message="content_base64 is too large",
+        )
+    return decoded

@@ -56,7 +56,7 @@ def test_operator_token_allows_mutating_requests(monkeypatch) -> None:
     assert response.status_code == 200
 
 
-def test_operator_guard_allows_public_runtime_diagnostics(monkeypatch) -> None:
+def test_operator_guard_blocks_detailed_runtime_diagnostics(monkeypatch) -> None:
     monkeypatch.setattr(settings, "enforce_localhost_only", True)
     monkeypatch.setattr(settings, "operator_allowed_client_hosts", "127.0.0.1")
     monkeypatch.setattr(
@@ -68,7 +68,7 @@ def test_operator_guard_allows_public_runtime_diagnostics(monkeypatch) -> None:
     runtime = client.get("/diagnostics/runtime")
     frontend_summary = client.get("/diagnostics/frontend-summary")
 
-    assert runtime.status_code == 200
+    assert runtime.status_code == 403
     assert frontend_summary.status_code == 403
 
 

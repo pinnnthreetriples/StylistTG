@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.schemas import QueueDescriptorRead, RetryPolicyRead, WorkerDiagnosticsRead
-from app.services.auth_context import AuthContext, require_authenticated
+from app.services.auth_context import AuthContext, require_authenticated, require_role
 from app.services.retry_policy import retry_policy_for
 from app.services.worker_plane import queue_descriptors, worker_diagnostics
 
@@ -16,7 +16,7 @@ def get_worker_queues(_auth: AuthContext = Depends(require_authenticated)):
 
 
 @router.get("/diagnostics", response_model=WorkerDiagnosticsRead)
-def get_worker_diagnostics():
+def get_worker_diagnostics(_auth: AuthContext = Depends(require_role("admin"))):
     return WorkerDiagnosticsRead(**worker_diagnostics())
 
 

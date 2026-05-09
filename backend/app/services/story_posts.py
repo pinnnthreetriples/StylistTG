@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AccountStoryPost, utc_now
+from app.models import Account, AccountStoryPost, utc_now
 from app.services.profile_sync import ProfileSyncAdapter
 
 
@@ -67,7 +67,13 @@ def _story_can_be_deleted(story: dict[str, Any], raw_tdlib_json: dict[str, Any])
     )
 
 
-def list_story_posts(session: Session, account_id: str, *, limit: int = 10) -> list[AccountStoryPost]:
+def list_story_posts(
+    session: Session,
+    account_id: str,
+    *,
+    limit: int = 10,
+    workspace_id: str | None = None,
+) -> list[AccountStoryPost]:
     statement = (
         select(AccountStoryPost)
         .where(AccountStoryPost.account_id == account_id)
@@ -75,6 +81,10 @@ def list_story_posts(session: Session, account_id: str, *, limit: int = 10) -> l
         .order_by(AccountStoryPost.created_at.desc())
         .limit(limit)
     )
+    if workspace_id is not None:
+        statement = statement.join(Account, Account.id == AccountStoryPost.account_id).where(
+            Account.workspace_id == workspace_id
+        )
     return list(session.execute(statement).scalars().all())
 
 
@@ -84,9 +94,18 @@ def delete_profile_story(
     account_id: str,
     story_post_id: str,
     adapter: ProfileSyncAdapter,
+    workspace_id: str | None = None,
 ) -> None:
-    post = session.get(AccountStoryPost, story_post_id)
-    if post is None or post.account_id != account_id:
+    statement = select(AccountStoryPost).where(
+        AccountStoryPost.id == story_post_id,
+        AccountStoryPost.account_id == account_id,
+    )
+    if workspace_id is not None:
+        statement = statement.join(Account, Account.id == AccountStoryPost.account_id).where(
+            Account.workspace_id == workspace_id
+        )
+    post = session.execute(statement).scalars().first()
+    if post is None:
         raise ValueError("story post not found")
     if post.status not in {"posted", "active"}:
         raise ValueError("story post is not active")

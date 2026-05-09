@@ -102,6 +102,23 @@ def test_cloud_config_rejects_localhost_guard_and_wildcard_cors() -> None:
         assert "cloud API requires" in message
 
 
+def test_cloud_config_requires_operator_api_token() -> None:
+    try:
+        Settings(
+            app_env="production",
+            auth_mode="supabase_jwt",
+            enforce_localhost_only=False,
+            cors_origins="https://dashboard.example.com",
+            stale_job_reaper_enabled=False,
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert "OPERATOR_API_TOKEN" in message
+
+
 def test_supabase_auth_allowed_in_production() -> None:
     config = Settings(
         app_env="production",
@@ -109,6 +126,7 @@ def test_supabase_auth_allowed_in_production() -> None:
         enforce_localhost_only=False,
         cors_origins="https://dashboard.example.com",
         stale_job_reaper_enabled=False,
+        operator_api_token="operator-token-value",
     )
 
     assert config.auth_mode == "supabase_jwt"
@@ -122,6 +140,7 @@ def test_local_auth_override_allows_controlled_production_testing() -> None:
         enforce_localhost_only=False,
         cors_origins="https://dashboard.example.com",
         stale_job_reaper_enabled=False,
+        operator_api_token="operator-token-value",
     )
 
     assert config.allow_local_auth_in_prod is True

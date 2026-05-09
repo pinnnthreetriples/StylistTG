@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.account_context import account_id_header
@@ -258,8 +258,8 @@ def get_account_export_request(
 @router.get("/{account_id}/audit-events", response_model=SensitiveAuditEventPageRead)
 def get_account_audit_events(
     account_id: str,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
@@ -420,7 +420,7 @@ def runtime_diagnostics_from_header(
 @router.get("/jobs", response_model=list[JobSummaryRead])
 def list_jobs_from_header(
     account_id: str = Depends(account_id_header),
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
@@ -504,7 +504,7 @@ def post_account_validity_check(
 @router.get("/{account_id}/validity-checks", response_model=list[AccountValidityCheckRead])
 def get_account_validity_checks(
     account_id: str,
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
@@ -523,8 +523,8 @@ def get_account_operation_logs(
     account_id: str,
     operation_type: str | None = None,
     status_filter: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
@@ -821,7 +821,7 @@ def runtime_diagnostics(
 @router.get("/{account_id}/jobs", response_model=list[JobSummaryRead])
 def list_jobs(
     account_id: str,
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):

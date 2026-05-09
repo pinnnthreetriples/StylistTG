@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_session
@@ -14,8 +14,8 @@ def get_operation_logs(
     account_id: str | None = None,
     operation_type: str | None = None,
     status_filter: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):

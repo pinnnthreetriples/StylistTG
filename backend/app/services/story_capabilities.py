@@ -7,8 +7,14 @@ from app.services.accounts import get_account
 from sqlalchemy.orm import Session
 
 
-def build_story_capabilities(session: Session, account_id: str, *, config: Settings = settings) -> dict:
-    account = get_account(session, account_id)
+def build_story_capabilities(
+    session: Session,
+    account_id: str,
+    *,
+    workspace_id: str | None = None,
+    config: Settings = settings,
+) -> dict:
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
 

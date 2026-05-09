@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.account_context import account_id_header
 from app.db import get_session
 from app.errors import AppError
+from app.services.auth_context import AuthContext, require_mutation_permission
 from app.services.profile_sync import build_profile_sync_adapter
 from app.services.story_posts import delete_profile_story
 
@@ -15,6 +16,7 @@ def delete_story_post(
     story_post_id: str,
     account_id: str = Depends(account_id_header),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
 ) -> None:
     try:
         delete_profile_story(
@@ -22,6 +24,7 @@ def delete_story_post(
             account_id=account_id,
             story_post_id=story_post_id,
             adapter=build_profile_sync_adapter(),
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         raise _story_post_error(exc) from exc

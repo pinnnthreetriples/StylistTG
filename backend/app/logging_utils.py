@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib import request
 
+from app.services.secret_redaction import redact_metadata, redact_text
+
 # ── Logger singleton ─────────────────────────────────────────────────────────
 
 logger = logging.getLogger("stylisttg")
@@ -69,17 +71,17 @@ def configure_logging(
 
 def log_event(event: str, **fields: Any) -> None:
     """Emit a structured log entry at INFO level."""
-    logger.info("", extra={"event": event, "fields": fields})
+    logger.info("", extra={"event": redact_text(event), "fields": redact_metadata(fields)})
 
 
 def log_warn(event: str, **fields: Any) -> None:
     """Emit a structured log entry at WARNING level."""
-    logger.warning("", extra={"event": event, "fields": fields})
+    logger.warning("", extra={"event": redact_text(event), "fields": redact_metadata(fields)})
 
 
 def log_error(event: str, **fields: Any) -> None:
     """Emit a structured log entry at ERROR level."""
-    logger.error("", extra={"event": event, "fields": fields})
+    logger.error("", extra={"event": redact_text(event), "fields": redact_metadata(fields)})
 
 
 def log_request(
@@ -107,7 +109,7 @@ def log_request(
     if error_code:
         fields["error_code"] = error_code
 
-    logger.log(level, "", extra={"event": "http_request", "fields": fields})
+    logger.log(level, "", extra={"event": "http_request", "fields": redact_metadata(fields)})
 
 
 def generate_request_id() -> str:
@@ -135,8 +137,8 @@ class _ColorFormatter(logging.Formatter):
         ts = datetime.now(UTC).strftime("%H:%M:%S.%f")[:-3]
         color = _COLORS.get(record.levelname, "")
 
-        event = getattr(record, "event", None)
-        fields = getattr(record, "fields", None)
+        event = redact_text(str(getattr(record, "event", None) or ""))
+        fields = redact_metadata(getattr(record, "fields", None))
 
         if event:
             parts = [
@@ -150,15 +152,15 @@ class _ColorFormatter(logging.Formatter):
             return " ".join(parts)
 
         # Fallback for plain messages (e.g. from uvicorn)
-        return f"{_DIM}{ts}{_RESET} {color}{record.levelname:<7}{_RESET} {record.getMessage()}"
+        return f"{_DIM}{ts}{_RESET} {color}{record.levelname:<7}{_RESET} {redact_text(record.getMessage())}"
 
 
 class _JsonFormatter(logging.Formatter):
     """File formatter: one JSON object per line."""
 
     def format(self, record: logging.LogRecord) -> str:
-        event = getattr(record, "event", record.getMessage() or "log")
-        fields = getattr(record, "fields", {})
+        event = redact_text(str(getattr(record, "event", record.getMessage() or "log")))
+        fields = redact_metadata(getattr(record, "fields", {}))
 
         entry: dict[str, Any] = {
             "ts": datetime.now(UTC).isoformat(),
@@ -167,8 +169,8 @@ class _JsonFormatter(logging.Formatter):
         }
         if fields:
             entry.update(fields)
-        if record.exc_info and record.exc_info[1]:
-            entry["exception"] = str(record.exc_info[1])
+        if isinstance(record.exc_info, tuple) and len(record.exc_info) >= 2 and record.exc_info[1]:
+            entry["exception"] = redact_text(str(record.exc_info[1]))
             entry["exception_type"] = record.exc_info[1].__class__.__name__
 
         return json.dumps(entry, default=str, ensure_ascii=False)
@@ -210,6 +212,8 @@ class _BetterStackHandler(logging.Handler):
 
 def _format_value(v: Any) -> str:
     """Format a value for console display."""
+    if isinstance(v, str):
+        v = redact_text(v)
     if isinstance(v, str) and len(v) > 60:
         return f'"{v[:57]}..."'
     if isinstance(v, float):

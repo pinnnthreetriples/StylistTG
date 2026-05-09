@@ -61,6 +61,7 @@ def preview_profile_job(
             session,
             account_id=payload.account_id,
             payload=payload.model_dump(exclude={"account_id"}, exclude_none=True),
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         message = str(exc)
@@ -101,6 +102,7 @@ def post_profile_job(
             payload=data,
             execution_adapter=build_profile_execution_adapter(),
             requested_by_user_id=auth.user_id,
+            workspace_id=auth.workspace_id,
         )
     except ValueError as exc:
         message = str(exc)

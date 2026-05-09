@@ -28,6 +28,7 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     enforce_localhost = bool_env("ENFORCE_LOCALHOST_ONLY", env, default=True)
     api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=True)
     cors_origins = [origin.strip() for origin in (env_value("CORS_ORIGINS", env) or "").split(",") if origin.strip()]
+    operator_token = env_value("OPERATOR_API_TOKEN", env)
 
     if app_env not in {"staging", "production"}:
         report.add("app_env", "WARN", "Cloud contour usually uses APP_ENV=staging or production", app_env=app_env)
@@ -45,6 +46,12 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
         report.add("operator_guard", "FAIL", "Cloud API must set ENFORCE_LOCALHOST_ONLY=false")
     else:
         report.add("operator_guard", "PASS", "Operator localhost guard is compatible with this contour")
+    if is_cloud_env(env) and not operator_token:
+        report.add("operator_api_token", "FAIL", "Cloud API requires OPERATOR_API_TOKEN")
+    elif operator_token:
+        report.add("operator_api_token", "PASS", "Operator API token is configured")
+    else:
+        report.add("operator_api_token", "WARN", "Operator API token is not configured")
 
     if is_cloud_env(env) and (not cors_origins or "*" in cors_origins):
         report.add("cors_origins", "FAIL", "Cloud API requires explicit non-wildcard CORS_ORIGINS")

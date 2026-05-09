@@ -35,6 +35,7 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
         "ENFORCE_LOCALHOST_ONLY": "false",
         "CORS_ORIGINS": "https://dashboard.example.com",
         "STALE_JOB_REAPER_ENABLED": "false",
+        "OPERATOR_API_TOKEN": "operator-token-value",
     }
     env.update(overrides)
     return env
@@ -83,6 +84,12 @@ def test_cloud_config_rejects_localhost_guard_in_cloud() -> None:
     report = validate_cloud_config(_valid_cloud_env(ENFORCE_LOCALHOST_ONLY="true"))
 
     assert _statuses(report)["operator_guard"] == "FAIL"
+
+
+def test_cloud_config_requires_operator_token() -> None:
+    report = validate_cloud_config(_valid_cloud_env(OPERATOR_API_TOKEN=""))
+
+    assert _statuses(report)["operator_api_token"] == "FAIL"
 
 
 def test_cloud_config_requires_explicit_non_wildcard_cors() -> None:
@@ -342,7 +349,6 @@ def test_staging_smoke_checks_health_and_ready_when_base_url_provided() -> None:
     assert requested_urls == [
         ("https://staging.example.com/health", 5.0),
         ("https://staging.example.com/ready", 5.0),
-        ("https://staging.example.com/diagnostics/runtime", 5.0),
     ]
 
 

@@ -33,6 +33,7 @@ def preview_account_update(
             session,
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
+            workspace_id=auth.workspace_id,
         )
         log_operation(
             session,
@@ -83,6 +84,7 @@ def post_account_update_job(
             execution_adapter=build_profile_execution_adapter(),
             requested_by_user_id=auth.user_id,
             request_id=None,
+            workspace_id=auth.workspace_id,
         )
         log_operation(
             session,

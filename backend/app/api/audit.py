@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_session
@@ -14,8 +14,8 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 @router.get("/events", response_model=SensitiveAuditEventPageRead)
 def get_audit_events(
     account_id: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):

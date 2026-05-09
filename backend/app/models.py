@@ -265,6 +265,28 @@ class WarmupTaskRunStatus(StrEnum):
     FAILED = "failed"
 
 
+class WarmupExecutionMode(StrEnum):
+    DRY_RUN = "dry_run"
+    SHADOW = "shadow"
+    PASSIVE = "passive"
+    NETWORK = "network"
+    ADVANCED = "advanced"
+
+
+class WarmupPresetKind(StrEnum):
+    EXPRESS = "express"
+    STANDARD = "standard"
+    HARDENED = "hardened"
+    CUSTOM = "custom"
+
+
+class ProxyCategory(StrEnum):
+    DATACENTER = "datacenter"
+    RESIDENTIAL = "residential"
+    MOBILE = "mobile"
+    UNKNOWN = "unknown"
+
+
 ACTIVE_WARMUP_STATUSES = {
     WarmupStatus.VALIDATING,
     WarmupStatus.SCHEDULED,
@@ -300,12 +322,15 @@ TERMINAL_AUTH_BATCH_ITEM_STATUSES = {
 
 class Account(Base):
     __tablename__ = "account"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "external_ref", name="uq_account_workspace_external_ref"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
     )
-    external_ref: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    external_ref: Mapped[str] = mapped_column(String(255), nullable=False)
     telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     auth_source: Mapped[str] = mapped_column(String(64), nullable=False, default="otp")
     account_state: Mapped[str] = mapped_column(
@@ -485,6 +510,15 @@ class TelegramAuthSession(Base):
 class WarmupStrategy(Base):
     __tablename__ = "warmup_strategy"
     __table_args__ = (
+        CheckConstraint(
+            "execution_mode IN ('dry_run', 'shadow', 'passive', 'network', 'advanced')",
+            name="ck_warmup_strategy_execution_mode",
+        ),
+        CheckConstraint(
+            "preset_kind IN ('express', 'standard', 'hardened', 'custom')",
+            name="ck_warmup_strategy_preset_kind",
+        ),
+        CheckConstraint("duration_days BETWEEN 3 AND 30", name="ck_warmup_strategy_duration_days"),
         UniqueConstraint("workspace_id", "name", name="uq_warmup_strategy_workspace_name"),
         Index("ix_warmup_strategy_workspace_id", "workspace_id"),
         Index("ix_warmup_strategy_preset", "is_preset"),
@@ -497,6 +531,20 @@ class WarmupStrategy(Base):
     tier_limits_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     target_channels_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
     is_preset: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    execution_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=WarmupExecutionMode.DRY_RUN
+    )
+    preset_kind: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=WarmupPresetKind.CUSTOM
+    )
+    duration_days: Mapped[int] = mapped_column(Integer, nullable=False, default=14)
+    daily_action_limits_json: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    session_window_config_json: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    ui_summary_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -510,7 +558,8 @@ class WarmupSession(Base):
             "status IN ('draft', 'validating', 'scheduled', 'active', 'paused_risk', 'paused_manual', 'completed', 'failed')",
             name="ck_warmup_session_status",
         ),
-        CheckConstraint("current_day BETWEEN 0 AND 14", name="ck_warmup_session_current_day"),
+        CheckConstraint("current_day BETWEEN 0 AND 30", name="ck_warmup_session_current_day"),
+        CheckConstraint("duration_days BETWEEN 3 AND 30", name="ck_warmup_session_duration_days"),
         CheckConstraint("cadence_hours >= 1", name="ck_warmup_session_cadence_hours"),
         CheckConstraint("flood_wait_count >= 0", name="ck_warmup_session_flood_wait_count"),
         CheckConstraint("consecutive_failures >= 0", name="ck_warmup_session_consecutive_failures"),
@@ -549,6 +598,22 @@ class WarmupSession(Base):
     flood_wait_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     worker_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    execution_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=WarmupExecutionMode.DRY_RUN
+    )
+    duration_days: Mapped[int] = mapped_column(Integer, nullable=False, default=14)
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_micro_session_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_micro_session_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    daily_counters_json: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    trusted_peer_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    proxy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -578,7 +643,7 @@ class WarmupEvent(Base):
 class WarmupTaskRun(Base):
     __tablename__ = "warmup_task_run"
     __table_args__ = (
-        CheckConstraint("day BETWEEN 0 AND 14", name="ck_warmup_task_run_day"),
+        CheckConstraint("day BETWEEN 0 AND 30", name="ck_warmup_task_run_day"),
         CheckConstraint(
             "status IN ('started', 'completed', 'skipped', 'failed')",
             name="ck_warmup_task_run_status",
@@ -602,6 +667,42 @@ class WarmupTaskRun(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     session: Mapped[WarmupSession] = relationship(back_populates="task_runs")
+
+
+class WarmupTrustedPeer(Base):
+    __tablename__ = "warmup_trusted_peer"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "account_id", name="uq_warmup_trusted_peer_workspace_account"),
+        Index("ix_warmup_trusted_peer_workspace_eligible", "workspace_id", "eligible_from"),
+        CheckConstraint("max_active_contacts >= 0", name="ck_warmup_trusted_peer_max_active_contacts"),
+        CheckConstraint("current_contacts >= 0", name="ck_warmup_trusted_peer_current_contacts"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    eligible_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    max_active_contacts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    current_contacts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class WarmupIsolationClaim(Base):
+    __tablename__ = "warmup_isolation_claim"
+
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), primary_key=True
+    )
+    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    held_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class AccountAuthAttempt(Base):
@@ -988,6 +1089,9 @@ class AccountProxy(Base):
 
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
     proxy_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    proxy_category: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=ProxyCategory.UNKNOWN
+    )
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)

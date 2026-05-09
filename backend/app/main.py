@@ -102,9 +102,7 @@ def _warmup_tick_sync() -> tuple[bool, bool | None]:
     )
 
     enqueued = enqueue_warmup_due_sessions()
-    dispatch_enqueued: bool | None = None
-    if settings.warmup_live_enabled:
-        dispatch_enqueued = enqueue_warmup_dispatch_tick()
+    dispatch_enqueued = enqueue_warmup_dispatch_tick()
     return enqueued, dispatch_enqueued
 
 

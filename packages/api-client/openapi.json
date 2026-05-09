@@ -5012,6 +5012,49 @@
         }
       }
     },
+    "/api/warmup/isolation/by-account/{account_id}": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Isolation Status",
+        "description": "Phase 1: surface isolation claim so cross-module pages can warn users\nbefore mutating an account that warmup currently owns.\n\nThe endpoint verifies the account belongs to the caller's workspace.\nReturns is_isolated=False with claim=null when no claim exists.",
+        "operationId": "get_warmup_isolation_status_api_warmup_isolation_by_account__account_id__get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupIsolationStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workers/queues": {
       "get": {
         "tags": [
@@ -11675,6 +11718,74 @@
         ],
         "title": "WarmupEventRead"
       },
+      "WarmupExecutionModeRead": {
+        "type": "string",
+        "enum": [
+          "dry_run",
+          "shadow",
+          "passive",
+          "network",
+          "advanced"
+        ],
+        "title": "WarmupExecutionModeRead"
+      },
+      "WarmupIsolationClaimRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "held_by": {
+            "type": "string",
+            "title": "Held By"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "acquired_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Acquired At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "workspace_id",
+          "held_by",
+          "reason",
+          "acquired_at"
+        ],
+        "title": "WarmupIsolationClaimRead"
+      },
+      "WarmupIsolationStatusRead": {
+        "properties": {
+          "is_isolated": {
+            "type": "boolean",
+            "title": "Is Isolated"
+          },
+          "claim": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupIsolationClaimRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_isolated"
+        ],
+        "title": "WarmupIsolationStatusRead"
+      },
       "WarmupPauseRequest": {
         "properties": {
           "reason": {
@@ -11689,6 +11800,16 @@
           "reason"
         ],
         "title": "WarmupPauseRequest"
+      },
+      "WarmupPresetKindRead": {
+        "type": "string",
+        "enum": [
+          "express",
+          "standard",
+          "hardened",
+          "custom"
+        ],
+        "title": "WarmupPresetKindRead"
       },
       "WarmupReadinessRead": {
         "properties": {
@@ -11798,6 +11919,15 @@
           "status": {
             "$ref": "#/components/schemas/WarmupStatusRead"
           },
+          "execution_mode": {
+            "$ref": "#/components/schemas/WarmupExecutionModeRead",
+            "default": "dry_run"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days",
+            "default": 14
+          },
           "current_day": {
             "type": "integer",
             "title": "Current Day"
@@ -11805,6 +11935,17 @@
           "cadence_hours": {
             "type": "integer",
             "title": "Cadence Hours"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
           },
           "next_step_at": {
             "anyOf": [
@@ -11842,9 +11983,57 @@
             ],
             "title": "Next Attempt At"
           },
+          "next_micro_session_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Micro Session At"
+          },
+          "last_micro_session_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Micro Session At"
+          },
           "consecutive_failures": {
             "type": "integer",
             "title": "Consecutive Failures"
+          },
+          "daily_counters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Daily Counters"
+          },
+          "trusted_peer_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Trusted Peer Ids"
+          },
+          "proxy_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Snapshot"
           },
           "created_at": {
             "type": "string",
@@ -11988,6 +12177,15 @@
           "status": {
             "$ref": "#/components/schemas/WarmupStatusRead"
           },
+          "execution_mode": {
+            "$ref": "#/components/schemas/WarmupExecutionModeRead",
+            "default": "dry_run"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days",
+            "default": 14
+          },
           "current_day": {
             "type": "integer",
             "title": "Current Day"
@@ -12007,6 +12205,18 @@
               }
             ],
             "title": "Next Step At"
+          },
+          "next_micro_session_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Micro Session At"
           },
           "updated_at": {
             "type": "string",
@@ -12064,6 +12274,34 @@
           "is_preset": {
             "type": "boolean",
             "title": "Is Preset"
+          },
+          "preset_kind": {
+            "$ref": "#/components/schemas/WarmupPresetKindRead",
+            "default": "custom"
+          },
+          "execution_mode": {
+            "$ref": "#/components/schemas/WarmupExecutionModeRead",
+            "default": "dry_run"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days",
+            "default": 14
+          },
+          "daily_action_limits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Daily Action Limits"
+          },
+          "session_window_config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Session Window Config"
+          },
+          "ui_summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ui Summary"
           }
         },
         "type": "object",
@@ -12142,6 +12380,11 @@
             "type": "string",
             "title": "Mode"
           },
+          "redis": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Redis"
+          },
           "scheduler": {
             "additionalProperties": true,
             "type": "object",
@@ -12169,6 +12412,7 @@
         "required": [
           "queues",
           "mode",
+          "redis",
           "scheduler",
           "reaper",
           "rate_limits",

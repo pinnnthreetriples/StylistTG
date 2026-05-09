@@ -27,7 +27,7 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Worker service command:
 
 ```bash
-python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker
+python -m app.workers.run_worker --queues profile_jobs,auth_jobs
 ```
 
 Queue-specific worker commands are available for later service splits:
@@ -75,6 +75,22 @@ REAPER_ENABLED=false
 REAPER_MODE=dry_run
 ```
 
+API service observability env:
+
+```text
+BETTER_STACK_API_DSN=<Better Stack Errors API DSN>
+SENTRY_ENVIRONMENT=staging
+SENTRY_RELEASE=<release identifier>
+```
+
+Worker service observability env:
+
+```text
+BETTER_STACK_WORKER_DSN=<Better Stack Errors worker DSN>
+SENTRY_ENVIRONMENT=staging
+SENTRY_RELEASE=<release identifier>
+```
+
 Migration-only env:
 
 ```text
@@ -91,6 +107,8 @@ VITE_API_BASE_URL=<Northflank API URL>
 VITE_SUPABASE_URL=<Supabase project URL>
 VITE_SUPABASE_PUBLISHABLE_KEY=<Supabase publishable key>
 VITE_APP_ENV=staging
+VITE_BETTER_STACK_DASHBOARD_DSN=<Better Stack Errors dashboard DSN>
+VITE_SENTRY_RELEASE=<release identifier>
 ```
 
 Never expose Supabase service-role keys, DB URLs, Redis URLs, B2 credentials,

@@ -25,52 +25,32 @@ import {
   SafetyHistoryPanel,
 } from '@/components/dashboard/accountWorkspace/WorkspacePanels'
 import { useFileInputs } from '@/providers/FileInputsProvider'
-import {
-  buildJobMetrics,
-} from '@/lib/dashboard'
+import { buildJobMetrics } from '@/lib/dashboard'
 import type {
   ChangeItem,
+  CurrentProfile,
   FormState,
+  PhotoPreviewState,
   RuntimeBanner,
 } from '@/lib/dashboard'
-import type { JobDetail, JobSummary, ProfilePreview, StoryCapabilities, StoryPost } from '@/lib/api'
-import type { OperationSafety } from '@/lib/accountSafety'
-import type { AccountProxyInput } from '@/lib/proxy'
+import type { JobDetail, JobSummary, ProfilePreview, StoryCapabilities, StoryDraftPayload, StoryPost } from '@/lib/api'
+import type { AccountOperationCooldown, AccountSafety, AccountValidityCheck, OperationSafety } from '@/lib/accountSafety'
+import type { AccountProxy, AccountProxyInput } from '@/lib/proxy'
 import type { AccountWorkspaceSection, AppRouteState } from '@/lib/routes'
 import { accountWorkspaceRoute } from '@/lib/routes'
+import type { AccountRisk } from '@/features/accounts/accountRisk'
+import type { JobDisplayItem, JobProgressSummary, JobResultSummary } from '@/lib/jobs'
+import type { OperationLogPage } from '@/lib/operationLogs'
+import type { DashboardBundle } from '@/lib/queries'
 
 type AccountRouteState = Extract<AppRouteState, { screen: 'account' }>
-
-type JobDisplayItem = {
-  step_key: string
-  label?: string
-  status?: string
-  error_code?: string | null
-  result_payload_json?: unknown
-  [key: string]: unknown
-}
 
 export type AccountDashboardViewProps = {
   route: AccountRouteState
   accountId: string
 
   // Dashboard data
-  dashboard: {
-    account: {
-      account_id: string
-      display_name: string | null
-      username: string | null
-      phone_number: string
-      telegram_user_id: string | null
-      account_state: string
-      runtime_health: string
-      reauth_required: boolean
-      is_execution_usable: boolean
-    }
-    profile_audio: unknown
-    story_posts: StoryPost[]
-    [key: string]: unknown
-  } | null
+  dashboard: DashboardBundle['dashboard'] | null
   jobs: JobSummary[]
   currentJob: JobDetail | null
   storyCapabilities: StoryCapabilities | null
@@ -79,8 +59,8 @@ export type AccountDashboardViewProps = {
   form: FormState
   changeItems: ChangeItem[]
   changedItems: ChangeItem[]
-  currentProfile: { first_name: string | null; last_name: string | null; bio: string | null; username: string | null; profile_photo_asset_id: string | null } | null
-  photoPreview: { imageUrl: string | null }
+  currentProfile: CurrentProfile
+  photoPreview: PhotoPreviewState
   isUploadingPhoto: boolean
   isUploadingAudio: boolean
   isUploadingStory: boolean
@@ -98,16 +78,16 @@ export type AccountDashboardViewProps = {
   shouldShowJobPanel: boolean
   jobDisplayItems: JobDisplayItem[]
   jobPanelKey: string | null
-  jobProgressSummary: string | null
-  jobResultSummary: string | null
+  jobProgressSummary: JobProgressSummary
+  jobResultSummary: JobResultSummary
 
   // Account queries
-  accountProxyData: { proxy_type?: string; host?: string; port?: number; username?: string | null; has_password?: boolean; status?: string; [key: string]: unknown } | null
-  accountSafetyData: { proxy_status?: string; health_status?: string; [key: string]: unknown } | null
-  accountRiskData: unknown
-  accountCooldownsData: Array<{ operation: string; retry_after_at: string }>
-  validityChecksData: Array<{ [key: string]: unknown }>
-  accountLogsData: { items: Array<{ [key: string]: unknown }> } | null
+  accountProxyData: AccountProxy | null
+  accountSafetyData: AccountSafety | null
+  accountRiskData: AccountRisk | null
+  accountCooldownsData: AccountOperationCooldown[]
+  validityChecksData: AccountValidityCheck[]
+  accountLogsData: OperationLogPage | null
 
   // Mutation states
   isCheckingValidity: boolean
@@ -126,8 +106,8 @@ export type AccountDashboardViewProps = {
   onClearPhoto: () => void
   onKeepAudio: () => void
   onRemoveAudio: () => void
-  onUpdateStory: (index: number, patch: Record<string, unknown>) => void
-  onRemoveStory: (index: number) => void
+  onUpdateStory: (clientId: string, patch: Partial<StoryDraftPayload>) => void
+  onRemoveStory: (clientId: string) => void
   onDeleteStoryPost: (post: StoryPost) => void
   onReset: () => void
   onCreateJob: () => void
@@ -138,7 +118,7 @@ export type AccountDashboardViewProps = {
   onHideJobPanel: (key: string) => void
   onCancelRealExecution: () => void
   onConfirmRealExecution: () => void
-  onFormChange: (patch: Partial<FormState>) => void
+  onFormChange: (next: FormState | ((previous: FormState) => FormState)) => void
 }
 
 export function AccountDashboardView({

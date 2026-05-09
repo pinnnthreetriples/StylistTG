@@ -2,6 +2,7 @@ import { apiRequest } from '@/lib/http'
 
 import type {
   WarmupEventPage,
+  WarmupIsolationStatus,
   WarmupReadiness,
   WarmupSessionDetail,
   WarmupSessionPage,
@@ -17,8 +18,12 @@ export function fetchWarmupStrategies(): Promise<WarmupStrategy[]> {
   return apiRequest('/api/warmup/strategies')
 }
 
-export function fetchWarmupSessions(): Promise<WarmupSessionPage> {
-  return apiRequest('/api/warmup/sessions')
+export function fetchWarmupSessions(params?: { page?: number; limit?: number }): Promise<WarmupSessionPage> {
+  const query = new URLSearchParams()
+  if (params?.page != null) query.set('page', String(params.page))
+  if (params?.limit != null) query.set('limit', String(params.limit))
+  const qs = query.toString()
+  return apiRequest(`/api/warmup/sessions${qs ? `?${qs}` : ''}`)
 }
 
 export function validateWarmup(accountId: string, strategyId: string): Promise<WarmupValidateResponse> {
@@ -54,6 +59,18 @@ export function deleteWarmupSession(sessionId: string): Promise<void> {
   })
 }
 
-export function fetchWarmupEvents(sessionId: string): Promise<WarmupEventPage> {
-  return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/events`)
+export function fetchWarmupEvents(sessionId: string, params?: { page?: number; limit?: number }): Promise<WarmupEventPage> {
+  const query = new URLSearchParams()
+  if (params?.page != null) query.set('page', String(params.page))
+  if (params?.limit != null) query.set('limit', String(params.limit))
+  const qs = query.toString()
+  return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/events${qs ? `?${qs}` : ''}`)
+}
+
+export function fetchWarmupSessionDetail(sessionId: string): Promise<WarmupSessionDetail> {
+  return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}`)
+}
+
+export function fetchWarmupIsolationStatus(accountId: string): Promise<WarmupIsolationStatus> {
+  return apiRequest(`/api/warmup/isolation/by-account/${encodeURIComponent(accountId)}`)
 }

@@ -55,12 +55,13 @@ def start_otp(
     actor_user_id: str | None = None,
 ) -> AuthMaterializationResult:
     normalized_phone = normalize_phone_number(phone_number)
-    account = get_account_by_external_ref(session, normalized_phone)
+    target_workspace_id = workspace_id or DEFAULT_LOCAL_WORKSPACE_ID
+    account = get_account_by_external_ref(session, normalized_phone, workspace_id=target_workspace_id)
     if account is None:
         account = create_account(
             session,
             external_ref=normalized_phone,
-            workspace_id=workspace_id or DEFAULT_LOCAL_WORKSPACE_ID,
+            workspace_id=target_workspace_id,
             actor_user_id=actor_user_id,
         )
     elif is_account_hard_stopped(account):

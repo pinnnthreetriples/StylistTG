@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_session
 from app.errors import AppError
+from app.models import UserStatus, WorkspaceRole, WorkspaceStatus
 from app.services.supabase_jwt import SupabaseJwtVerifier
 from app.services.workspace_onboarding import resolve_workspace_membership
 from app.services.workspaces import ensure_default_workspace
@@ -65,6 +66,7 @@ def get_current_auth_context(
                 error_class="forbidden",
                 message="workspace access denied",
             )
+        _ensure_active_membership(user.status, member.workspace.status, member.role)
         session.commit()
         return AuthContext(
             user_id=user.id,
@@ -115,3 +117,27 @@ def _bearer_token(request: Request) -> str:
             message="authorization bearer token is required",
         )
     return authorization[len(prefix) :].strip()
+
+
+def _ensure_active_membership(user_status: str, workspace_status: str, role: str) -> None:
+    if user_status != UserStatus.ACTIVE:
+        raise AppError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="USER_DISABLED",
+            error_class="forbidden",
+            message="user is disabled",
+        )
+    if workspace_status != WorkspaceStatus.ACTIVE:
+        raise AppError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="WORKSPACE_DISABLED",
+            error_class="forbidden",
+            message="workspace is disabled",
+        )
+    if role not in {item.value for item in WorkspaceRole}:
+        raise AppError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="ROLE_INVALID",
+            error_class="forbidden",
+            message="workspace role is invalid",
+        )

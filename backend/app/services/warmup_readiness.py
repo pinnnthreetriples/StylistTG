@@ -77,7 +77,7 @@ def validate_warmup_readiness(
             select(WarmupSession.id).where(
                 WarmupSession.workspace_id == workspace_id,
                 WarmupSession.account_id == account_id,
-                WarmupSession.status.in_([status.value for status in ACTIVE_WARMUP_STATUSES]),
+                WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
             )
         ).first() is not None
     checks.append(

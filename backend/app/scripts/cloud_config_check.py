@@ -25,6 +25,9 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     auth_mode = env_value("AUTH_MODE", env) or "local"
     db_mode = env_value("DB_CONNECTION_MODE", env) or "local"
     allow_local = bool_env("ALLOW_LOCAL_AUTH_IN_PROD", env)
+    enforce_localhost = bool_env("ENFORCE_LOCALHOST_ONLY", env, default=True)
+    api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=True)
+    cors_origins = [origin.strip() for origin in (env_value("CORS_ORIGINS", env) or "").split(",") if origin.strip()]
 
     if app_env not in {"staging", "production"}:
         report.add("app_env", "WARN", "Cloud contour usually uses APP_ENV=staging or production", app_env=app_env)
@@ -37,6 +40,23 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
         report.add("auth_mode", "WARN", "Cloud contour should use AUTH_MODE=supabase_jwt", auth_mode=auth_mode)
     else:
         report.add("auth_mode", "PASS", "Supabase JWT auth mode selected")
+
+    if is_cloud_env(env) and enforce_localhost:
+        report.add("operator_guard", "FAIL", "Cloud API must set ENFORCE_LOCALHOST_ONLY=false")
+    else:
+        report.add("operator_guard", "PASS", "Operator localhost guard is compatible with this contour")
+
+    if is_cloud_env(env) and (not cors_origins or "*" in cors_origins):
+        report.add("cors_origins", "FAIL", "Cloud API requires explicit non-wildcard CORS_ORIGINS")
+    elif cors_origins:
+        report.add("cors_origins", "PASS", "CORS origins are explicit", count=len(cors_origins))
+    else:
+        report.add("cors_origins", "WARN", "CORS origins are empty")
+
+    if is_cloud_env(env) and api_stale_reaper:
+        report.add("api_stale_job_reaper", "FAIL", "Cloud API must set STALE_JOB_REAPER_ENABLED=false")
+    else:
+        report.add("api_stale_job_reaper", "PASS", "API stale job reaper is compatible with this contour")
 
     _required(report, "SUPABASE_AUTH_JWKS_URL", env)
     _required(report, "SUPABASE_AUTH_ISSUER", env)

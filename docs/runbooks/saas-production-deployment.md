@@ -106,8 +106,8 @@ migrations, or production mode.
 
    ```powershell
    cd backend
-   python -m rq.cli worker profile_jobs --url <redis URL> --worker-class rq.SimpleWorker
-   python -m rq.cli worker auth_jobs --url <redis URL> --worker-class rq.SimpleWorker
+   python -m app.workers.run_worker --queues profile_jobs
+   python -m app.workers.run_worker --queues auth_jobs
    ```
 
 6. Check:

@@ -115,6 +115,30 @@ def test_circuit_breaker_fails_after_threshold(db_session) -> None:
     assert db_session.query(WarmupEvent).filter_by(event_type="circuit_breaker_triggered").count() == 1
 
 
+def test_circuit_breaker_respects_explicit_zero_max_failures(db_session) -> None:
+    """Regression: max_failures=0 must trigger the breaker on the very first failure.
+
+    Previously `max_failures or default` treated 0 as falsy and fell back to the
+    global default, making the threshold impossible to set to 0.
+    """
+    session = _seed_session(db_session, current_day=1, next_step_at=datetime(2026, 5, 5, 12, tzinfo=UTC))
+    session.consecutive_failures = 0
+    db_session.commit()
+
+    handle_warmup_step_failure(
+        db_session,
+        warmup_session=session,
+        error="should_trip_immediately",
+        max_failures=0,
+        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
+    )
+    db_session.refresh(session)
+
+    assert session.status == WarmupStatus.FAILED
+    assert session.consecutive_failures == 1
+    assert db_session.query(WarmupEvent).filter_by(event_type="circuit_breaker_triggered").count() == 1
+
+
 def test_account_runtime_lock_claim_uses_database_state_not_stale_identity_map(db_session) -> None:
     session = _seed_session(db_session, current_day=0, next_step_at=datetime(2026, 5, 5, 12, tzinfo=UTC))
     runtime = db_session.get(AccountRuntimeState, session.account_id)
@@ -138,6 +162,27 @@ def test_account_runtime_lock_claim_uses_database_state_not_stale_identity_map(d
     assert claimed is False
     db_session.refresh(runtime)
     assert runtime.lock_owner == "other-worker"
+
+
+def test_session_already_at_or_past_duration_completes_immediately(db_session) -> None:
+    """Regression: if current_day >= duration_days on entry (e.g. scheduler race),
+    the worker should complete the session without creating a duplicate task_run."""
+    session = _seed_session(db_session, current_day=14, next_step_at=datetime(2026, 5, 5, 12, tzinfo=UTC))
+    session.duration_days = 14
+    db_session.commit()
+
+    processed = process_due_warmup_sessions(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
+        worker_id="test-worker",
+    )
+    db_session.refresh(session)
+
+    assert processed == 1
+    assert session.status == WarmupStatus.COMPLETED
+    assert session.completed_at is not None
+    assert db_session.query(WarmupTaskRun).filter_by(session_id=session.id).count() == 0
 
 
 def _seed_session(db_session, *, current_day: int, next_step_at: datetime) -> WarmupSession:

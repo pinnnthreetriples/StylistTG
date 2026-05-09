@@ -72,6 +72,10 @@ def test_worker_diagnostics_are_safe_and_queue_allowlist_rejects_unknown() -> No
 
     assert diagnostics["tdlib"]["auth_worker_ready"] is True
     assert diagnostics["tdlib"]["live_enabled"] is False
+    assert diagnostics["redis"]["status"] in {"ok", "down"}
+    assert {"depth", "failed", "started", "deferred", "oldest_job_age_seconds"}.issubset(
+        diagnostics["redis"]["queues"][0]
+    )
     serialized = str(diagnostics).lower()
     assert "private/tdlib" not in serialized
     assert "libtdjson.dll" not in serialized

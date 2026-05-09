@@ -22,6 +22,7 @@ def configure_logging(
     *,
     log_dir: str | Path = "logs",
     level: int = logging.INFO,
+    log_to_file: bool = True,
     betterstack_source_token: str | None = None,
     betterstack_ingesting_host: str | None = None,
     betterstack_request_timeout_seconds: float | None = None,
@@ -41,17 +42,18 @@ def configure_logging(
     console.setFormatter(_ColorFormatter())
     logger.addHandler(console)
 
-    # File handler — JSON lines, machine-parseable
-    log_path = Path(log_dir)
-    log_path.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(UTC).strftime("%Y-%m-%d")
-    file_handler = logging.FileHandler(
-        log_path / f"stylisttg_{timestamp}.jsonl",
-        encoding="utf-8",
-    )
-    file_handler.setLevel(level)
-    file_handler.setFormatter(_JsonFormatter())
-    logger.addHandler(file_handler)
+    if log_to_file:
+        # File handler — JSON lines, machine-parseable
+        log_path = Path(log_dir)
+        log_path.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d")
+        file_handler = logging.FileHandler(
+            log_path / f"stylisttg_{timestamp}.jsonl",
+            encoding="utf-8",
+        )
+        file_handler.setLevel(level)
+        file_handler.setFormatter(_JsonFormatter())
+        logger.addHandler(file_handler)
 
     betterstack_handler = _build_betterstack_handler(
         source_token=betterstack_source_token,

@@ -1720,6 +1720,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup/isolation/by-account/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Warmup Isolation Status
+         * @description Phase 1: surface isolation claim so cross-module pages can warn users
+         *     before mutating an account that warmup currently owns.
+         *
+         *     The endpoint verifies the account belongs to the caller's workspace.
+         *     Returns is_isolated=False with claim=null when no claim exists.
+         */
+        get: operations["get_warmup_isolation_status_api_warmup_isolation_by_account__account_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workers/queues": {
         parameters: {
             query?: never;
@@ -3943,11 +3967,43 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * WarmupExecutionModeRead
+         * @enum {string}
+         */
+        WarmupExecutionModeRead: "dry_run" | "shadow" | "passive" | "network" | "advanced";
+        /** WarmupIsolationClaimRead */
+        WarmupIsolationClaimRead: {
+            /** Account Id */
+            account_id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Held By */
+            held_by: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Acquired At
+             * Format: date-time
+             */
+            acquired_at: string;
+        };
+        /** WarmupIsolationStatusRead */
+        WarmupIsolationStatusRead: {
+            /** Is Isolated */
+            is_isolated: boolean;
+            claim?: components["schemas"]["WarmupIsolationClaimRead"] | null;
+        };
         /** WarmupPauseRequest */
         WarmupPauseRequest: {
             /** Reason */
             reason: string;
         };
+        /**
+         * WarmupPresetKindRead
+         * @enum {string}
+         */
+        WarmupPresetKindRead: "express" | "standard" | "hardened" | "custom";
         /** WarmupReadinessRead */
         WarmupReadinessRead: {
             /** Workers Enabled */
@@ -3992,18 +4048,41 @@ export interface components {
             /** Strategy Name */
             strategy_name: string;
             status: components["schemas"]["WarmupStatusRead"];
+            /** @default dry_run */
+            execution_mode: components["schemas"]["WarmupExecutionModeRead"];
+            /**
+             * Duration Days
+             * @default 14
+             */
+            duration_days: number;
             /** Current Day */
             current_day: number;
             /** Cadence Hours */
             cadence_hours: number;
+            /** Timezone */
+            timezone?: string | null;
             /** Next Step At */
             next_step_at?: string | null;
             /** Last Step At */
             last_step_at?: string | null;
             /** Next Attempt At */
             next_attempt_at?: string | null;
+            /** Next Micro Session At */
+            next_micro_session_at?: string | null;
+            /** Last Micro Session At */
+            last_micro_session_at?: string | null;
             /** Consecutive Failures */
             consecutive_failures: number;
+            /** Daily Counters */
+            daily_counters?: {
+                [key: string]: unknown;
+            };
+            /** Trusted Peer Ids */
+            trusted_peer_ids?: string[];
+            /** Proxy Snapshot */
+            proxy_snapshot?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Created At
              * Format: date-time
@@ -4044,12 +4123,21 @@ export interface components {
             /** Strategy Name */
             strategy_name: string;
             status: components["schemas"]["WarmupStatusRead"];
+            /** @default dry_run */
+            execution_mode: components["schemas"]["WarmupExecutionModeRead"];
+            /**
+             * Duration Days
+             * @default 14
+             */
+            duration_days: number;
             /** Current Day */
             current_day: number;
             /** Cadence Hours */
             cadence_hours: number;
             /** Next Step At */
             next_step_at?: string | null;
+            /** Next Micro Session At */
+            next_micro_session_at?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -4071,6 +4159,27 @@ export interface components {
             description?: string | null;
             /** Is Preset */
             is_preset: boolean;
+            /** @default custom */
+            preset_kind: components["schemas"]["WarmupPresetKindRead"];
+            /** @default dry_run */
+            execution_mode: components["schemas"]["WarmupExecutionModeRead"];
+            /**
+             * Duration Days
+             * @default 14
+             */
+            duration_days: number;
+            /** Daily Action Limits */
+            daily_action_limits?: {
+                [key: string]: unknown;
+            };
+            /** Session Window Config */
+            session_window_config?: {
+                [key: string]: unknown;
+            };
+            /** Ui Summary */
+            ui_summary?: {
+                [key: string]: unknown;
+            };
         };
         /** WarmupValidateRead */
         WarmupValidateRead: {
@@ -4096,6 +4205,10 @@ export interface components {
             queues: components["schemas"]["QueueDescriptorRead"][];
             /** Mode */
             mode: string;
+            /** Redis */
+            redis: {
+                [key: string]: unknown;
+            };
             /** Scheduler */
             scheduler: {
                 [key: string]: unknown;
@@ -7654,6 +7767,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupEventPageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_isolation_status_api_warmup_isolation_by_account__account_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupIsolationStatusRead"];
                 };
             };
             /** @description Validation Error */

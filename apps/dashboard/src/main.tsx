@@ -5,8 +5,11 @@ import { RouterProvider } from '@tanstack/react-router'
 import './index.css'
 import { MotionProvider } from '@/components/ui/MotionProvider'
 import { SupabaseAuthProvider } from '@/features/auth/SupabaseAuthProvider'
+import { initObservability } from '@/lib/observability'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router'
+
+initObservability()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

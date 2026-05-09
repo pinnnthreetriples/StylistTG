@@ -92,6 +92,23 @@ class Settings(BaseSettings):
     warmup_default_cadence_hours: int = 24
     warmup_max_consecutive_failures: int = 3
     warmup_batch_limit: int = 50
+    warmup_live_enabled: bool = False
+    warmup_passive_enabled: bool = False
+    warmup_network_enabled: bool = False
+    warmup_advanced_enabled: bool = False
+    warmup_hard_disable: bool = False
+    warmup_scheduler_enabled: bool = False
+    warmup_scheduler_tick_seconds: int = 60
+    warmup_default_duration_days: int = 14
+    warmup_micro_session_min_minutes: int = 2
+    warmup_micro_session_max_minutes: int = 7
+    warmup_daily_session_min_count: int = 3
+    warmup_daily_session_max_count: int = 6
+    warmup_quiet_hours_local_start: int = 23
+    warmup_quiet_hours_local_end: int = 8
+    warmup_peer_eligibility_delay_hours: int = 24
+    warmup_datacenter_proxy_policy: str = "warn"
+    warmup_spam_bot_recovery_enabled: bool = False
     rate_limit_auth_jobs_per_tenant_per_hour: int = 20
     rate_limit_profile_jobs_per_tenant_per_hour: int = 100
     rate_limit_media_jobs_per_tenant_per_hour: int = 50
@@ -112,6 +129,11 @@ class Settings(BaseSettings):
     betterstack_source_token: SecretStr | None = None
     betterstack_ingesting_host: str | None = None
     betterstack_request_timeout_seconds: float = 0.5
+    log_to_file: bool = True
+    better_stack_api_dsn: SecretStr | None = None
+    better_stack_worker_dsn: SecretStr | None = None
+    sentry_environment: str | None = None
+    sentry_release: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -136,6 +158,14 @@ class Settings(BaseSettings):
                 "Use AUTH_MODE=supabase_jwt or explicitly set "
                 "ALLOW_LOCAL_AUTH_IN_PROD=true for controlled non-production testing."
             )
+        if cloud_or_prod:
+            configured_cors = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+            if self.enforce_localhost_only:
+                raise ValueError("cloud API requires ENFORCE_LOCALHOST_ONLY=false")
+            if not configured_cors or "*" in configured_cors:
+                raise ValueError("cloud API requires explicit non-wildcard CORS_ORIGINS")
+            if self.stale_job_reaper_enabled:
+                raise ValueError("cloud API requires STALE_JOB_REAPER_ENABLED=false")
         if self.storage_backend not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be local or s3")
         if self.tdlib_storage_backend != "local":

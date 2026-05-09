@@ -17,6 +17,7 @@ dependencies = [
   "python-multipart>=0.0.20",
   "cryptography>=43.0.0",
   "boto3>=1.35.0",
+  "sentry-sdk[fastapi,rq]>=2.48.0",
 ]
 
 [project.optional-dependencies]

@@ -68,6 +68,43 @@ class FakeRedis:
     def ttl(self, key):
         return self.ttls.get(key, 3600)
 
+    def pipeline(self):
+        return FakeRedisPipeline(self)
+
+
+class FakeRedisPipeline:
+    def __init__(self, redis: FakeRedis) -> None:
+        self.redis = redis
+        self.commands = []
+
+    def incr(self, key):
+        self.commands.append(("incr", key))
+        return self
+
+    def expire(self, key, ttl, nx=False):
+        self.commands.append(("expire", key, ttl, nx))
+        return self
+
+    def ttl(self, key):
+        self.commands.append(("ttl", key))
+        return self
+
+    def execute(self):
+        results = []
+        for command in self.commands:
+            name = command[0]
+            if name == "incr":
+                results.append(self.redis.incr(command[1]))
+            elif name == "expire":
+                _name, key, ttl, nx = command
+                if nx and key in self.redis.ttls:
+                    results.append(0)
+                else:
+                    results.append(self.redis.expire(key, ttl))
+            elif name == "ttl":
+                results.append(self.redis.ttl(command[1]))
+        return results
+
 
 def test_deletion_preview_is_tenant_scoped_and_secret_safe(db_session) -> None:
     account = create_account(db_session, external_ref="+15550103000")

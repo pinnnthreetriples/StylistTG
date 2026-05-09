@@ -83,6 +83,8 @@ def test_worker_diagnostics_is_public_safe_metadata(monkeypatch) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["mode"] == "redis_rq"
+    assert payload["redis"]["status"] in {"ok", "down"}
+    assert "worker_count" in payload["redis"]
     assert {"auth_jobs", "profile_jobs", "warmup_jobs"}.issubset(
         {queue["name"] for queue in payload["queues"]}
     )

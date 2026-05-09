@@ -48,7 +48,12 @@ class EmptyAuthBatchError(ValueError):
         self.validation = validation
 
 
-def validate_batch_phones(session: Session, inputs: list[PhoneInput]) -> dict:
+def validate_batch_phones(
+    session: Session,
+    inputs: list[PhoneInput],
+    *,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+) -> dict:
     valid_items: list[dict] = []
     invalid_items: list[dict] = []
     duplicates: list[dict] = []
@@ -74,6 +79,8 @@ def validate_batch_phones(session: Session, inputs: list[PhoneInput]) -> dict:
 
         active_item = session.execute(
             select(AuthBatchItem)
+            .join(AuthBatch, AuthBatch.id == AuthBatchItem.batch_id)
+            .where(AuthBatch.workspace_id == workspace_id)
             .where(AuthBatchItem.phone_number == normalized)
             .where(AuthBatchItem.status.not_in([state.value for state in TERMINAL_AUTH_BATCH_ITEM_STATUSES]))
         ).scalars().first()
@@ -88,7 +95,7 @@ def validate_batch_phones(session: Session, inputs: list[PhoneInput]) -> dict:
             )
             continue
 
-        account = get_account_by_external_ref(session, normalized)
+        account = get_account_by_external_ref(session, normalized, workspace_id=workspace_id)
         if account is not None and not _can_reuse_stale_batch_account(session, account):
             existing_accounts.append({**row, "account_id": account.id, "batch_item_id": None, "batch_id": None})
             continue
@@ -124,7 +131,7 @@ def create_auth_batch(
     if existing is not None:
         return existing, False
 
-    validation = validate_batch_phones(session, inputs)
+    validation = validate_batch_phones(session, inputs, workspace_id=workspace_id)
     valid_items = validation["valid_items"]
     if not valid_items:
         raise EmptyAuthBatchError(validation)
@@ -143,7 +150,7 @@ def create_auth_batch(
     session.flush()
 
     for item in valid_items:
-        account = get_account_by_external_ref(session, item["phone_number"])
+        account = get_account_by_external_ref(session, item["phone_number"], workspace_id=workspace_id)
         if account is not None and _can_reuse_stale_batch_account(session, account):
             _reset_stale_batch_account(account)
         else:

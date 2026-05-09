@@ -1,9 +1,20 @@
-import { SectionCard } from '@stylisttg/ui'
+import { Button, SectionCard } from '@stylisttg/ui'
 
 import { formatWarmupEventPayload, WARMUP_EVENT_LABELS } from '../labels'
 import type { WarmupEvent } from '../types'
 
-export function WarmupEventLog({ events }: { events: WarmupEvent[] }) {
+export function WarmupEventLog({
+  events,
+  total,
+  isLoadingMore,
+  onLoadMore,
+}: {
+  events: WarmupEvent[]
+  total?: number
+  isLoadingMore?: boolean
+  onLoadMore?: () => void
+}) {
+  const hasMore = total != null && events.length < total
   return (
     <SectionCard title="Журнал событий" description="Аудит действий и переходов выбранной сессии.">
       <div className="grid gap-2">
@@ -27,6 +38,18 @@ export function WarmupEventLog({ events }: { events: WarmupEvent[] }) {
             ) : null}
           </div>
         ))}
+        {hasMore ? (
+          <div className="flex items-center justify-between rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2">
+            <span className="text-xs text-gray-500">
+              Показано {events.length} из {total} событий
+            </span>
+            {onLoadMore ? (
+              <Button type="button" variant="outline" size="sm" disabled={isLoadingMore} onClick={onLoadMore}>
+                {isLoadingMore ? 'Загрузка…' : 'Загрузить ещё'}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </SectionCard>
   )

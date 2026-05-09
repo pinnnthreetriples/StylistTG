@@ -1,6 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+
+from redis import Redis
+from redis.exceptions import RedisError
+from rq import Queue, Worker
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
+from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
 from app.config import Settings, settings
 from app.services.tdlib_runtime import detect_tdlib_runtime
@@ -13,6 +22,7 @@ ACCOUNT_LIFECYCLE_QUEUE_NAME = "account_lifecycle_jobs"
 MAINTENANCE_QUEUE_NAME = "maintenance_jobs"
 SCHEDULER_QUEUE_NAME = "scheduler_jobs"
 WARMUP_QUEUE_NAME = "warmup_jobs"
+WARMUP_DISPATCH_QUEUE_NAME = "warmup_dispatch_jobs"
 
 PRODUCTION_QUEUE_NAMES = (
     AUTH_QUEUE_NAME,
@@ -23,6 +33,7 @@ PRODUCTION_QUEUE_NAMES = (
     MAINTENANCE_QUEUE_NAME,
     SCHEDULER_QUEUE_NAME,
     WARMUP_QUEUE_NAME,
+    WARMUP_DISPATCH_QUEUE_NAME,
 )
 
 
@@ -50,6 +61,11 @@ def queue_descriptors() -> list[QueueDescriptor]:
         QueueDescriptor(MAINTENANCE_QUEUE_NAME, "Dry-run maintenance and safe cleanup reports"),
         QueueDescriptor(SCHEDULER_QUEUE_NAME, "Future scheduled checks and enqueue decisions"),
         QueueDescriptor(WARMUP_QUEUE_NAME, "Dry-run account preparation jobs"),
+        QueueDescriptor(
+            WARMUP_DISPATCH_QUEUE_NAME,
+            "Live warmup micro-session dispatch (network + advanced execution modes)",
+            live_execution_default=True,
+        ),
     ]
 
 
@@ -60,6 +76,7 @@ def worker_diagnostics(config: Settings = settings) -> dict:
     return {
         "queues": [descriptor.to_dict() for descriptor in queue_descriptors()],
         "mode": "redis_rq",
+        "redis": _redis_queue_snapshot(config),
         "scheduler": {
             "enabled": config.scheduler_enabled,
             "mode": "safe_enqueue" if config.scheduler_enabled else "off",
@@ -94,6 +111,79 @@ def worker_diagnostics(config: Settings = settings) -> dict:
             "error_code": runtime.error_code,
         },
     }
+
+
+def _redis_queue_snapshot(config: Settings) -> dict[str, Any]:
+    queue_names = [descriptor.name for descriptor in queue_descriptors()]
+    try:
+        connection = Redis.from_url(
+            config.redis_url,
+            socket_connect_timeout=0.2,
+            socket_timeout=0.2,
+        )
+        connection.ping()
+        workers = Worker.all(connection=connection)
+        return {
+            "status": "ok",
+            "worker_count": len(workers),
+            "queues": [_queue_snapshot(connection, queue_name) for queue_name in queue_names],
+        }
+    except (RedisError, ValueError) as exc:
+        return {
+            "status": "down",
+            "worker_count": 0,
+            "queues": [
+                {
+                    "name": queue_name,
+                    "depth": None,
+                    "failed": None,
+                    "started": None,
+                    "deferred": None,
+                    "oldest_job_age_seconds": None,
+                }
+                for queue_name in queue_names
+            ],
+            "error_class": exc.__class__.__name__,
+        }
+
+
+def _queue_snapshot(connection: Redis, queue_name: str) -> dict[str, Any]:
+    try:
+        queue = Queue(queue_name, connection=connection)
+        return {
+            "name": queue_name,
+            "depth": queue.count,
+            "failed": len(FailedJobRegistry(queue_name, connection=connection)),
+            "started": len(StartedJobRegistry(queue_name, connection=connection)),
+            "deferred": len(DeferredJobRegistry(queue_name, connection=connection)),
+            "oldest_job_age_seconds": _oldest_job_age_seconds(queue, connection),
+        }
+    except RedisError as exc:
+        return {
+            "name": queue_name,
+            "depth": None,
+            "failed": None,
+            "started": None,
+            "deferred": None,
+            "oldest_job_age_seconds": None,
+            "error_class": exc.__class__.__name__,
+        }
+
+
+def _oldest_job_age_seconds(queue: Queue, connection: Redis) -> int | None:
+    job_ids = queue.get_job_ids(offset=0, length=1)
+    if not job_ids:
+        return None
+    try:
+        job = Job.fetch(job_ids[0], connection=connection)
+    except NoSuchJobError:
+        return None
+    if job.enqueued_at is None:
+        return None
+    enqueued_at = job.enqueued_at
+    if enqueued_at.tzinfo is None:
+        enqueued_at = enqueued_at.replace(tzinfo=UTC)
+    return max(0, int((datetime.now(UTC) - enqueued_at).total_seconds()))
 
 
 def assert_queue_allowed(queue_name: str) -> None:

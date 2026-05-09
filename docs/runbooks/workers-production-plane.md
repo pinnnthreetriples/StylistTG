@@ -22,7 +22,7 @@ Existing compatibility worker:
 
 ```powershell
 cd backend
-python -m rq.cli worker profile_jobs auth_jobs --url $env:REDIS_URL --worker-class rq.SimpleWorker
+python -m app.workers.run_worker --queues profile_jobs,auth_jobs
 ```
 
 Queue-specific launcher:

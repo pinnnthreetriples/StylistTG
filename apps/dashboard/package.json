@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
+    "@sentry/react": "^10.52.0",
     "@stylisttg/api-client": "file:../../packages/api-client",
     "@stylisttg/ui": "file:../../packages/ui",
     "@supabase/supabase-js": "^2.105.3",

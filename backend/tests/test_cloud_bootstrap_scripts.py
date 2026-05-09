@@ -32,6 +32,9 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
         "TDLIB_DATABASE_ROOT": "/secure/tdlib-sessions/db",
         "TDLIB_FILES_ROOT": "/secure/tdlib-sessions/files",
         "PROFILE_EXECUTION_ADAPTER": "mock",
+        "ENFORCE_LOCALHOST_ONLY": "false",
+        "CORS_ORIGINS": "https://dashboard.example.com",
+        "STALE_JOB_REAPER_ENABLED": "false",
     }
     env.update(overrides)
     return env
@@ -74,6 +77,26 @@ def test_cloud_config_rejects_local_auth_in_cloud() -> None:
     report = validate_cloud_config(_valid_cloud_env(AUTH_MODE="local"))
 
     assert _statuses(report)["auth_mode"] == "FAIL"
+
+
+def test_cloud_config_rejects_localhost_guard_in_cloud() -> None:
+    report = validate_cloud_config(_valid_cloud_env(ENFORCE_LOCALHOST_ONLY="true"))
+
+    assert _statuses(report)["operator_guard"] == "FAIL"
+
+
+def test_cloud_config_requires_explicit_non_wildcard_cors() -> None:
+    missing = validate_cloud_config(_valid_cloud_env(CORS_ORIGINS=""))
+    wildcard = validate_cloud_config(_valid_cloud_env(CORS_ORIGINS="*"))
+
+    assert _statuses(missing)["cors_origins"] == "FAIL"
+    assert _statuses(wildcard)["cors_origins"] == "FAIL"
+
+
+def test_cloud_config_rejects_api_owned_stale_job_reaper() -> None:
+    report = validate_cloud_config(_valid_cloud_env(STALE_JOB_REAPER_ENABLED="true"))
+
+    assert _statuses(report)["api_stale_job_reaper"] == "FAIL"
 
 
 def test_cloud_config_missing_s3_secret_fails_without_printing_secret() -> None:

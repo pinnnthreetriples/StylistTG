@@ -291,18 +291,41 @@ class WarmupSessionCreateRequest(BaseModel):
     strategy_id: str
 
 
+class WarmupExecutionModeRead(StrEnum):
+    DRY_RUN = "dry_run"
+    SHADOW = "shadow"
+    PASSIVE = "passive"
+    NETWORK = "network"
+    ADVANCED = "advanced"
+
+
+class WarmupPresetKindRead(StrEnum):
+    EXPRESS = "express"
+    STANDARD = "standard"
+    HARDENED = "hardened"
+    CUSTOM = "custom"
+
+
 class WarmupSessionRead(BaseModel):
     id: str
     account_id: str
     strategy_id: str
     strategy_name: str
     status: WarmupStatusRead
+    execution_mode: WarmupExecutionModeRead = WarmupExecutionModeRead.DRY_RUN
+    duration_days: int = 14
     current_day: int
     cadence_hours: int
+    timezone: str | None = None
     next_step_at: datetime | None = None
     last_step_at: datetime | None = None
     next_attempt_at: datetime | None = None
+    next_micro_session_at: datetime | None = None
+    last_micro_session_at: datetime | None = None
     consecutive_failures: int
+    daily_counters: dict[str, Any] = Field(default_factory=dict)
+    trusted_peer_ids: list[str] = Field(default_factory=list)
+    proxy_snapshot: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
     started_at: datetime | None = None
@@ -317,9 +340,12 @@ class WarmupSessionSummaryRead(BaseModel):
     account_label: str | None = None
     strategy_name: str
     status: WarmupStatusRead
+    execution_mode: WarmupExecutionModeRead = WarmupExecutionModeRead.DRY_RUN
+    duration_days: int = 14
     current_day: int
     cadence_hours: int
     next_step_at: datetime | None = None
+    next_micro_session_at: datetime | None = None
     updated_at: datetime
 
 
@@ -360,6 +386,25 @@ class WarmupStrategyRead(BaseModel):
     name: str
     description: str | None = None
     is_preset: bool
+    preset_kind: WarmupPresetKindRead = WarmupPresetKindRead.CUSTOM
+    execution_mode: WarmupExecutionModeRead = WarmupExecutionModeRead.DRY_RUN
+    duration_days: int = 14
+    daily_action_limits: dict[str, Any] = Field(default_factory=dict)
+    session_window_config: dict[str, Any] = Field(default_factory=dict)
+    ui_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+class WarmupIsolationClaimRead(BaseModel):
+    account_id: str
+    workspace_id: str
+    held_by: str
+    reason: str
+    acquired_at: datetime
+
+
+class WarmupIsolationStatusRead(BaseModel):
+    is_isolated: bool
+    claim: WarmupIsolationClaimRead | None = None
 
 
 class WarmupReadinessRead(BaseModel):
@@ -380,6 +425,7 @@ class QueueDescriptorRead(BaseModel):
 class WorkerDiagnosticsRead(BaseModel):
     queues: list[QueueDescriptorRead]
     mode: str
+    redis: dict[str, Any]
     scheduler: dict[str, Any]
     reaper: dict[str, Any]
     rate_limits: dict[str, int]

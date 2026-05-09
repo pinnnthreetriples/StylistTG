@@ -39,7 +39,7 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Worker:
 
 ```bash
-python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker
+python -m app.workers.run_worker --queues profile_jobs,auth_jobs
 ```
 
 Queue-specific worker launcher is available for the production execution-plane foundation:
@@ -90,6 +90,9 @@ STORAGE_S3_SECRET_ACCESS_KEY=<secret>
 STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS=300
 PROFILE_EXECUTION_ADAPTER=mock
 STALE_JOB_REAPER_ENABLED=false
+ENFORCE_LOCALHOST_ONLY=false
+CORS_ORIGINS=https://<dashboard-domain>
+LOG_TO_FILE=false
 TDLIB_SHARED_LIBRARY_PATH=
 TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database
 TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files

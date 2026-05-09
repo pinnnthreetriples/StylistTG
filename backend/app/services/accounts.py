@@ -65,9 +65,14 @@ def get_account(session: Session, account_id: str, workspace_id: str | None = No
     ).scalars().first()
 
 
-def get_account_by_external_ref(session: Session, external_ref: str) -> Account | None:
+def get_account_by_external_ref(
+    session: Session,
+    external_ref: str,
+    *,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+) -> Account | None:
     return session.execute(
-        select(Account).where(Account.external_ref == external_ref)
+        select(Account).where(Account.external_ref == external_ref, Account.workspace_id == workspace_id)
     ).scalars().first()
 
 

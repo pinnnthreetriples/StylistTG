@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Select, SectionCard } from '@stylisttg/ui'
+import { Alert, Badge, Button, Select, SectionCard } from '@stylisttg/ui'
 import { AlertTriangle, CheckCircle2, PlayCircle, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -8,23 +8,21 @@ import { isApiError } from '@/lib/http'
 import { queryKeys } from '@/lib/queries'
 
 import { useCreateWarmupSession, useWarmupStrategies, useWarmupValidate } from '../hooks'
+import {
+  WARMUP_PRESET_LABELS,
+  WARMUP_RISK_LEVEL_LABELS,
+  WARMUP_RISK_TONES,
+} from '../labels'
 import type { WarmupStrategy } from '../types'
 
 const EMPTY_ACCOUNTS: Awaited<ReturnType<typeof fetchAccounts>> = []
 const EMPTY_STRATEGIES: WarmupStrategy[] = []
 
 function describeStrategy(strategy: WarmupStrategy): string {
-  const normalized = strategy.name.toLowerCase()
-  if (normalized.includes('мяг')) {
-    return 'Самый осторожный режим: минимум темпа, больше пауз, подходит для новых или сомнительных аккаунтов.'
-  }
-  if (normalized.includes('строг')) {
-    return 'Самый контролируемый режим: больше ручного внимания и остановок при предупреждениях.'
-  }
-  if (normalized.includes('стандарт')) {
-    return 'Обычный режим: ежедневная подготовка по 14-дневному плану без лишней агрессии.'
-  }
-  return strategy.description ?? 'План определяет темп подготовки, паузы и правила остановки при предупреждениях.'
+  const summaryAudience = strategy.ui_summary.audience_hint?.trim()
+  if (summaryAudience) return summaryAudience
+  if (strategy.description?.trim()) return strategy.description
+  return 'План определяет темп подготовки, паузы и правила остановки при предупреждениях.'
 }
 
 export function WarmupCreateWizard() {
@@ -38,7 +36,10 @@ export function WarmupCreateWizard() {
 
   const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
   const strategies = strategiesQuery.data ?? EMPTY_STRATEGIES
-  const defaultStrategy = strategies.find((strategy) => strategy.name.toLowerCase().includes('стандарт')) ?? strategies[0]
+  const defaultStrategy =
+    strategies.find((strategy) => strategy.preset_kind === 'standard') ??
+    strategies.find((strategy) => strategy.name.toLowerCase().includes('стандарт')) ??
+    strategies[0]
   const selectedAccountId = accountId || accounts[0]?.account_id || ''
   const selectedStrategyId = strategyId || defaultStrategy?.id || ''
   const selectedStrategy = strategies.find((strategy) => strategy.id === selectedStrategyId)
@@ -73,6 +74,7 @@ export function WarmupCreateWizard() {
             onChange={(event) => {
               setAccountId(event.target.value)
               setValidatedFor(null)
+              createMutation.reset()
             }}
           >
             {accounts.length > 0 ? (
@@ -109,12 +111,17 @@ export function WarmupCreateWizard() {
         <div>
           <div className="text-xs font-semibold uppercase text-gray-500">Стратегия подготовки</div>
           <p className="mt-1 text-sm text-gray-600">
-            Стратегия нужна, чтобы выбрать темп 14-дневной подготовки. Она не запускает Telegram-действия сама по себе.
+            Стратегия задаёт длительность плана и темп подготовки. Сама по себе она не запускает действия в Telegram.
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           {strategies.map((strategy) => {
             const selected = strategy.id === selectedStrategyId
+            const presetLabel = WARMUP_PRESET_LABELS[strategy.preset_kind] ?? strategy.preset_kind
+            const riskLevel = strategy.ui_summary.risk_level
+            const riskLabel = riskLevel ? WARMUP_RISK_LEVEL_LABELS[riskLevel] : null
+            const riskTone = riskLevel ? WARMUP_RISK_TONES[riskLevel] : null
+            const speedHint = strategy.ui_summary.speed_hint?.trim()
             return (
               <button
                 className={`rounded-lg border p-3 text-left transition ${
@@ -127,15 +134,24 @@ export function WarmupCreateWizard() {
                 onClick={() => {
                   setStrategyId(strategy.id)
                   setValidatedFor(null)
+                  createMutation.reset()
                 }}
               >
                 <div className="flex items-center gap-2">
                   <ShieldCheck className={`size-4 ${selected ? 'text-navy-500' : 'text-gray-500'}`} />
                   <span className="text-sm font-semibold">{strategy.name}</span>
                 </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <Badge tone={selected ? 'blue' : 'gray'}>{presetLabel}</Badge>
+                  <Badge tone="gray">{strategy.duration_days} дн.</Badge>
+                  {riskLabel && riskTone ? <Badge tone={riskTone}>{riskLabel}</Badge> : null}
+                </div>
                 <p className="mt-2 text-xs leading-5 text-gray-600">
                   {describeStrategy(strategy)}
                 </p>
+                {speedHint ? (
+                  <p className="mt-1 text-xs italic leading-5 text-gray-500">{speedHint}</p>
+                ) : null}
               </button>
             )
           })}
@@ -189,7 +205,7 @@ export function WarmupCreateWizard() {
           </div>
           <p className="mt-1 text-xs text-gray-500">
             {selectedStrategy
-              ? `План: ${selectedStrategy.name}. Создание сессии ставит аккаунт в 14-дневное расписание dry-run.`
+              ? `План: ${selectedStrategy.name}. Создание сессии ставит аккаунт в ${selectedStrategy.duration_days}-дневное расписание dry-run.`
               : 'Выберите понятный план подготовки, затем запустите проверку готовности.'}
           </p>
         </div>
@@ -198,7 +214,19 @@ export function WarmupCreateWizard() {
           disabled={!canCreate || createMutation.isPending}
           type="button"
           variant="outline"
-          onClick={() => createMutation.mutate({ accountId: selectedAccountId, strategyId: selectedStrategyId })}
+          onClick={() =>
+            createMutation.mutate(
+              { accountId: selectedAccountId, strategyId: selectedStrategyId },
+              {
+                onSuccess: () => {
+                  setAccountId('')
+                  setStrategyId('')
+                  setValidatedFor(null)
+                  validateMutation.reset()
+                },
+              },
+            )
+          }
         >
           <PlayCircle className="size-4" />
           Создать сессию

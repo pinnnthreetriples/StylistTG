@@ -7,6 +7,7 @@ function workerDiagnostics(liveEnabled: boolean, executionPlaneReady: boolean): 
   return {
     queues: [],
     mode: 'redis_rq',
+    redis: {},
     scheduler: {},
     reaper: {},
     rate_limits: {},

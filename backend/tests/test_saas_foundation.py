@@ -72,14 +72,57 @@ def test_local_auth_blocked_with_neon_connection_mode() -> None:
     assert "AUTH_MODE=local is not allowed" in message
 
 
+def test_cloud_config_rejects_localhost_guard_and_wildcard_cors() -> None:
+    for kwargs in (
+        {"enforce_localhost_only": True, "cors_origins": "https://dashboard.example.com"},
+        {"enforce_localhost_only": False, "cors_origins": ""},
+        {"enforce_localhost_only": False, "cors_origins": "*"},
+        {
+            "enforce_localhost_only": False,
+            "cors_origins": "https://dashboard.example.com",
+            "stale_job_reaper_enabled": True,
+        },
+    ):
+        try:
+            values = {
+                "app_env": "staging",
+                "auth_mode": "supabase_jwt",
+                "db_connection_mode": "neon",
+                "stale_job_reaper_enabled": False,
+            }
+            values.update(kwargs)
+            Settings(
+                **values,
+            )
+        except ValueError as exc:
+            message = str(exc)
+        else:
+            message = ""
+
+        assert "cloud API requires" in message
+
+
 def test_supabase_auth_allowed_in_production() -> None:
-    config = Settings(app_env="production", auth_mode="supabase_jwt")
+    config = Settings(
+        app_env="production",
+        auth_mode="supabase_jwt",
+        enforce_localhost_only=False,
+        cors_origins="https://dashboard.example.com",
+        stale_job_reaper_enabled=False,
+    )
 
     assert config.auth_mode == "supabase_jwt"
 
 
 def test_local_auth_override_allows_controlled_production_testing() -> None:
-    config = Settings(app_env="production", auth_mode="local", allow_local_auth_in_prod=True)
+    config = Settings(
+        app_env="production",
+        auth_mode="local",
+        allow_local_auth_in_prod=True,
+        enforce_localhost_only=False,
+        cors_origins="https://dashboard.example.com",
+        stale_job_reaper_enabled=False,
+    )
 
     assert config.allow_local_auth_in_prod is True
 
@@ -400,6 +443,18 @@ def test_cannot_create_job_for_foreign_account() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+
+
+def test_same_external_ref_allowed_across_workspaces() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        first = create_account(session, external_ref="+15550101111")
+        second = create_account(session, external_ref="+15550101111", workspace_id=workspace.id)
+
+    assert first.workspace_id == DEFAULT_LOCAL_WORKSPACE_ID
+    assert second.workspace_id == workspace.id
 
 
 def test_cannot_access_foreign_asset() -> None:

@@ -36,10 +36,13 @@ def evaluate_tenant_rate_limit(
     limit = _limit_for(action_type, queue_name=queue_name, config=config)
     key = _key(workspace_id=workspace_id, action_type=action_type, account_id=account_id, queue_name=queue_name)
     try:
-        count = int(redis.incr(key))
-        if count == 1:
-            redis.expire(key, 3600)
-        ttl = int(redis.ttl(key))
+        pipeline = redis.pipeline()
+        pipeline.incr(key)
+        pipeline.expire(key, 3600, nx=True)
+        pipeline.ttl(key)
+        count_raw, _expire_set, ttl_raw = pipeline.execute()
+        count = int(count_raw)
+        ttl = int(ttl_raw)
     except RedisError:
         return RateLimitDecision(allowed=False, reason="rate_limit_store_unavailable", retry_after_seconds=60)
     if count > limit:

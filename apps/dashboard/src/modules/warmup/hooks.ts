@@ -1,25 +1,30 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useState } from 'react'
 
 import {
   createWarmupSession,
   deleteWarmupSession,
   fetchWarmupEvents,
+  fetchWarmupIsolationStatus,
   fetchWarmupReadiness,
+  fetchWarmupSessionDetail,
   fetchWarmupSessions,
   fetchWarmupStrategies,
   pauseWarmupSession,
   resumeWarmupSession,
   validateWarmup,
 } from './api'
-import type { WarmupStatus } from './types'
+import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
 
-const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
+export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
 
 export const warmupQueryKeys = {
   readiness: ['warmup', 'readiness'] as const,
   strategies: ['warmup', 'strategies'] as const,
   sessions: ['warmup', 'sessions'] as const,
+  sessionDetail: (sessionId: string) => ['warmup', 'sessions', sessionId, 'detail'] as const,
   events: (sessionId: string) => ['warmup', 'sessions', sessionId, 'events'] as const,
+  isolation: (accountId: string) => ['warmup', 'isolation', accountId] as const,
 }
 
 export function useWarmupReadiness() {
@@ -38,9 +43,9 @@ export function useWarmupStrategies() {
 }
 
 export function useWarmupSessions() {
-  return useQuery({
+  return useQuery<WarmupSessionPage>({
     queryKey: warmupQueryKeys.sessions,
-    queryFn: fetchWarmupSessions,
+    queryFn: () => fetchWarmupSessions(),
     refetchInterval: (query) => {
       const hasActive = query.state.data?.items.some((session) => ACTIVE_STATUSES.includes(session.status))
       return hasActive ? 10_000 : false
@@ -49,10 +54,62 @@ export function useWarmupSessions() {
 }
 
 export function useWarmupEvents(sessionId: string | null) {
-  return useQuery({
-    queryKey: warmupQueryKeys.events(sessionId ?? 'none'),
-    queryFn: () => fetchWarmupEvents(sessionId ?? ''),
+  return useQuery<WarmupEventPage>({
+    queryKey: warmupQueryKeys.events(sessionId ?? '__disabled__'),
+    queryFn: () => fetchWarmupEvents(sessionId!),
     enabled: Boolean(sessionId),
+    refetchInterval: 15_000,
+  })
+}
+
+const EVENTS_PAGE_SIZE = 50
+
+export function useWarmupEventsPaginated(sessionId: string | null) {
+  const [limit, setLimit] = useState(EVENTS_PAGE_SIZE)
+
+  useEffect(() => {
+    setLimit(EVENTS_PAGE_SIZE)
+  }, [sessionId])
+
+  const query = useQuery<WarmupEventPage>({
+    queryKey: [...warmupQueryKeys.events(sessionId ?? '__disabled__'), limit] as const,
+    queryFn: () => fetchWarmupEvents(sessionId!, { limit }),
+    enabled: Boolean(sessionId),
+    refetchInterval: 15_000,
+    placeholderData: keepPreviousData,
+  })
+
+  const total = query.data?.total ?? 0
+  const events = query.data?.items ?? []
+  const hasMore = events.length < total
+  const isLoadingMore = query.isFetching && query.isPlaceholderData
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore) setLimit((prev: number) => prev + EVENTS_PAGE_SIZE)
+  }, [hasMore, isLoadingMore])
+
+  return { events, total, hasMore, isLoadingMore, loadMore, isLoading: query.isLoading }
+}
+
+export function useWarmupSessionDetail(sessionId: string | null) {
+  return useQuery({
+    queryKey: warmupQueryKeys.sessionDetail(sessionId ?? '__disabled__'),
+    queryFn: () => fetchWarmupSessionDetail(sessionId!),
+    enabled: Boolean(sessionId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status && ACTIVE_STATUSES.includes(status) ? 10_000 : false
+    },
+  })
+}
+
+export function useWarmupIsolationStatus(accountId: string | null | undefined) {
+  return useQuery({
+    queryKey: warmupQueryKeys.isolation(accountId ?? '__disabled__'),
+    queryFn: () => fetchWarmupIsolationStatus(accountId!),
+    enabled: Boolean(accountId),
+    refetchInterval: 30_000,
+    staleTime: 5_000,
   })
 }
 
@@ -78,8 +135,10 @@ export function usePauseWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sessionId, reason }: { sessionId: string; reason: string }) => pauseWarmupSession(sessionId, reason),
-    onSuccess: () => {
+    onSuccess: (_data, { sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.events(sessionId) })
     },
   })
 }
@@ -88,8 +147,10 @@ export function useResumeWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) => resumeWarmupSession(sessionId),
-    onSuccess: () => {
+    onSuccess: (_data, { sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.events(sessionId) })
     },
   })
 }
@@ -98,8 +159,10 @@ export function useDeleteWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) => deleteWarmupSession(sessionId),
-    onSuccess: () => {
+    onSuccess: (_data, { sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
+      void queryClient.removeQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })
+      void queryClient.removeQueries({ queryKey: warmupQueryKeys.events(sessionId) })
     },
   })
 }

@@ -9,7 +9,10 @@ from app.models import (
     AccountRuntimeState,
     AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,
+    WarmupExecutionMode,
     WarmupEvent,
+    WarmupIsolationClaim,
+    WarmupPresetKind,
     WarmupSession,
     WarmupStatus,
     WarmupStrategy,
@@ -267,6 +270,152 @@ def test_delete_warmup_session_endpoint(db_session) -> None:
     app.dependency_overrides.clear()
     assert response.status_code == 204
     assert db_session.query(WarmupSession).count() == 0
+
+
+def test_delete_warmup_session_releases_isolation_claim(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = WarmupStrategy(
+        id=new_id(),
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        name=f"Shadow {new_id()[:6]}",
+        description="Shadow",
+        tier_limits_json={},
+        target_channels_json=[],
+        is_preset=False,
+        execution_mode=WarmupExecutionMode.SHADOW.value,
+        preset_kind=WarmupPresetKind.STANDARD.value,
+        duration_days=7,
+        daily_action_limits_json={"1": {"feed_read": 1}},
+    )
+    db_session.add(strategy)
+    db_session.commit()
+    created = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    assert db_session.get(WarmupIsolationClaim, account.id) is not None
+
+    delete_warmup_session(
+        db_session,
+        session_id=created.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    assert db_session.get(WarmupIsolationClaim, account.id) is None
+
+
+def test_isolation_status_returns_unisolated_for_dry_run_session(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.get(f"/api/warmup/isolation/by-account/{account.id}")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {"is_isolated": False, "claim": None}
+
+
+def test_isolation_status_returns_claim_for_shadow_session(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = WarmupStrategy(
+        id=new_id(),
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        name=f"Shadow {new_id()[:6]}",
+        description="Shadow",
+        tier_limits_json={},
+        target_channels_json=[],
+        is_preset=False,
+        execution_mode=WarmupExecutionMode.SHADOW.value,
+        preset_kind=WarmupPresetKind.STANDARD.value,
+        duration_days=7,
+        daily_action_limits_json={"1": {"feed_read": 1}},
+    )
+    db_session.add(strategy)
+    db_session.commit()
+
+    warmup_session = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.get(f"/api/warmup/isolation/by-account/{account.id}")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_isolated"] is True
+    assert body["claim"] is not None
+    assert body["claim"]["account_id"] == account.id
+    assert body["claim"]["held_by"] == f"warmup:{warmup_session.id}"
+    assert "shadow" in body["claim"]["reason"]
+
+
+def test_isolation_status_returns_404_for_unknown_account(db_session) -> None:
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.get(f"/api/warmup/isolation/by-account/{new_id()}")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "ACCOUNT_NOT_FOUND"
+
+
+def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(db_session, monkeypatch) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = WarmupStrategy(
+        id=new_id(),
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        name=f"Shadow {new_id()[:6]}",
+        description="Shadow",
+        tier_limits_json={},
+        target_channels_json=[],
+        is_preset=False,
+        execution_mode=WarmupExecutionMode.SHADOW.value,
+        preset_kind=WarmupPresetKind.STANDARD.value,
+        duration_days=7,
+        daily_action_limits_json={"1": {"feed_read": 1}},
+    )
+    db_session.add(strategy)
+    db_session.commit()
+    enqueued: list[str] = []
+
+    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True)
+    monkeypatch.setattr("app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True)
+    app.dependency_overrides[get_session] = _override_session(db_session)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/warmup/sessions",
+        json={"account_id": account.id, "strategy_id": strategy.id},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 201
+    assert enqueued == ["dispatch"]
 
 
 def _seed_ready_account(db_session):

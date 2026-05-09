@@ -52,7 +52,10 @@ def test_render_template_keeps_worker_mock_and_secrets_unsynced() -> None:
 
     assert "type: web" in render_yaml
     assert "type: worker" in render_yaml
-    assert "python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker" in render_yaml
+    assert "python -m app.workers.run_worker --queues profile_jobs,auth_jobs" in render_yaml
+    assert "ENFORCE_LOCALHOST_ONLY" in render_yaml
+    assert "CORS_ORIGINS" in render_yaml
+    assert "LOG_TO_FILE" in render_yaml
     assert "PROFILE_EXECUTION_ADAPTER" in render_yaml
     assert "value: mock" in render_yaml
     assert "STORAGE_S3_SECRET_ACCESS_KEY" in render_yaml

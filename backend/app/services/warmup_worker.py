@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import (
     AccountRuntimeState,
+    WarmupExecutionMode,
     WarmupSession,
     WarmupStatus,
     WarmupTaskRun,
@@ -15,6 +16,7 @@ from app.models import (
     new_id,
 )
 from app.services.warmup import write_warmup_event
+from app.services.warmup_isolation import release_claim
 
 DRY_RUN_TASK_TYPE = "dry_run_day"
 
@@ -30,6 +32,7 @@ def process_due_warmup_sessions(
     timestamp = now or datetime.now(UTC)
     query = select(WarmupSession).where(
         WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]),
+        WarmupSession.execution_mode == WarmupExecutionMode.DRY_RUN.value,
         (WarmupSession.next_step_at.is_(None)) | (WarmupSession.next_step_at <= timestamp),
     )
     if workspace_id is not None:
@@ -51,27 +54,47 @@ def handle_warmup_step_failure(
     error: str,
     max_failures: int | None = None,
     now: datetime | None = None,
-) -> None:
-    threshold = max_failures or settings.warmup_max_consecutive_failures
+    target_status: WarmupStatus = WarmupStatus.FAILED,
+) -> bool:
+    """Increment failure counter and trip circuit breaker if threshold reached.
+
+    Returns True when the breaker trips (session status changed to
+    *target_status*), False when the failure was recorded but the
+    threshold is not yet reached.
+
+    *target_status* allows callers to choose the terminal state:
+    - ``WarmupStatus.FAILED`` (default) — hard failure used by dry-run worker.
+    - ``WarmupStatus.PAUSED_RISK`` — soft pause used by live dispatch.
+    """
+    threshold = max_failures if max_failures is not None else settings.warmup_max_consecutive_failures
     timestamp = now or datetime.now(UTC)
     warmup_session.consecutive_failures += 1
     warmup_session.updated_at = timestamp
     if warmup_session.consecutive_failures >= threshold:
-        warmup_session.status = WarmupStatus.FAILED
+        warmup_session.status = target_status
+        if target_status == WarmupStatus.PAUSED_RISK:
+            warmup_session.paused_at = timestamp
         write_warmup_event(
             session,
             warmup_session,
             "circuit_breaker_triggered",
-            {"error": error, "consecutive_failures": warmup_session.consecutive_failures},
+            {
+                "error": error,
+                "consecutive_failures": warmup_session.consecutive_failures,
+                "threshold": threshold,
+                "target_status": target_status.value if hasattr(target_status, "value") else str(target_status),
+            },
         )
-    else:
-        write_warmup_event(
-            session,
-            warmup_session,
-            "task_skipped",
-            {"reason": "worker_failure", "error": error},
-        )
+        session.flush()
+        return True
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_skipped",
+        {"reason": "worker_failure", "error": error},
+    )
     session.flush()
+    return False
 
 
 def claim_account_runtime_lock(
@@ -177,7 +200,7 @@ def _process_one_locked_session(
         )
         return False
 
-    if warmup_session.current_day >= 14:
+    if warmup_session.current_day >= warmup_session.duration_days:
         _complete_session(session, warmup_session, now=now)
         return True
 
@@ -209,10 +232,12 @@ def _process_one_locked_session(
     )
     write_warmup_event(session, warmup_session, "day_advanced", {"day": next_day})
 
-    if next_day >= 14:
+    if next_day >= warmup_session.duration_days:
         _complete_session(session, warmup_session, now=now)
     else:
         warmup_session.status = WarmupStatus.ACTIVE
+        if warmup_session.started_at is None:
+            warmup_session.started_at = now
         warmup_session.next_step_at = now + timedelta(hours=warmup_session.cadence_hours)
     return True
 
@@ -223,3 +248,14 @@ def _complete_session(session: Session, warmup_session: WarmupSession, *, now: d
     warmup_session.next_step_at = None
     warmup_session.updated_at = now
     write_warmup_event(session, warmup_session, "completed", {"day": warmup_session.current_day})
+    if release_claim(
+        session,
+        account_id=warmup_session.account_id,
+        held_by=f"warmup:{warmup_session.id}",
+    ):
+        write_warmup_event(
+            session,
+            warmup_session,
+            "isolation_released",
+            {"reason": "session_completed"},
+        )

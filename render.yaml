@@ -19,6 +19,12 @@ services:
         value: "false"
       - key: STALE_JOB_REAPER_ENABLED
         value: "false"
+      - key: ENFORCE_LOCALHOST_ONLY
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LOG_TO_FILE
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_RUNTIME_URL
@@ -54,7 +60,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     plan: starter
-    dockerCommand: python -m rq.cli worker profile_jobs auth_jobs --url $REDIS_URL --worker-class rq.SimpleWorker
+    dockerCommand: python -m app.workers.run_worker --queues profile_jobs,auth_jobs
     envVars:
       - key: APP_ENV
         value: staging
@@ -67,6 +73,12 @@ services:
       - key: STORIES_TDLIB_LIVE_ENABLED
         value: "false"
       - key: STALE_JOB_REAPER_ENABLED
+        value: "false"
+      - key: ENFORCE_LOCALHOST_ONLY
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LOG_TO_FILE
         value: "false"
       - key: DATABASE_URL
         sync: false

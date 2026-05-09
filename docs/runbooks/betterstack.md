@@ -1,6 +1,59 @@
 # Better Stack Observability
 
-This project can send backend structured logs to Better Stack Telemetry and can expose Better Stack Uptime/Telemetry data to Codex through MCP.
+This project can send backend structured logs to Better Stack Telemetry, send sanitized application errors to Better Stack Errors through Sentry-compatible SDKs, and expose Better Stack Uptime/Telemetry data to Codex through MCP.
+
+## Error Tracking
+
+Better Stack Errors uses Sentry-compatible DSNs. Use the SDKs as clients only; do not configure sentry.io SaaS.
+
+Create or reuse these Better Stack Errors applications:
+
+- `stylisttg-api` - Python / FastAPI backend
+- `stylisttg-worker` - Python / RQ worker
+- `stylisttg-dashboard` - JavaScript browser / React dashboard
+
+The DSN format is:
+
+```text
+https://<APPLICATION_TOKEN>@<INGESTING_HOST>/1
+```
+
+Do not commit real DSNs. Configure them only in the host environment:
+
+```env
+# Northflank API service
+BETTER_STACK_API_DSN=
+SENTRY_ENVIRONMENT=staging
+SENTRY_RELEASE=
+
+# Northflank worker service
+BETTER_STACK_WORKER_DSN=
+SENTRY_ENVIRONMENT=staging
+SENTRY_RELEASE=
+
+# Cloudflare Pages
+VITE_BETTER_STACK_DASHBOARD_DSN=
+VITE_APP_ENV=staging
+VITE_SENTRY_RELEASE=
+```
+
+The SDK configuration keeps performance tracing and session replay disabled. Events are sanitized before sending; request bodies, authorization headers, cookies, tokens, database/Redis URLs, Telegram credentials, proxy credentials, TDLib/session paths, and similar sensitive fields are filtered.
+
+Safe test commands:
+
+```powershell
+cd backend
+python -m app.scripts.raise_api_observability_error
+python -m app.scripts.raise_worker_observability_error
+```
+
+For the dashboard, run the Vite dev server with `VITE_BETTER_STACK_DASHBOARD_DSN` set, open the app locally, and run this in the browser console:
+
+```js
+window.__STYLISTTG_CAPTURE_TEST_ERROR__()
+```
+
+Then check the matching Better Stack Errors application for a `StylistTG ... observability test error` event.
 
 ## Backend Telemetry
 

@@ -3317,7 +3317,20 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "title": "Response Get Asset Signed Url Endpoint Api Assets  Asset Id  Signed Url Get"
+                }
               }
             }
           },
@@ -5893,7 +5906,8 @@
               "$ref": "#/components/schemas/AccountImportItemRead"
             },
             "type": "array",
-            "title": "Items"
+            "title": "Items",
+            "default": []
           }
         },
         "type": "object",
@@ -6398,7 +6412,8 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldowns"
+            "title": "Cooldowns",
+            "default": []
           },
           "can_override": {
             "type": "boolean",
@@ -6893,7 +6908,8 @@
               "$ref": "#/components/schemas/AccountReadinessRiskRead"
             },
             "type": "array",
-            "title": "Items"
+            "title": "Items",
+            "default": []
           },
           "computed_at": {
             "type": "string",
@@ -7161,7 +7177,8 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldown Summary"
+            "title": "Cooldown Summary",
+            "default": []
           },
           "top_reasons": {
             "items": {
@@ -7313,7 +7330,8 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldown Summary"
+            "title": "Cooldown Summary",
+            "default": []
           },
           "top_reasons": {
             "items": {
@@ -7588,7 +7606,8 @@
               "$ref": "#/components/schemas/AccountOperationSafetyRead"
             },
             "type": "array",
-            "title": "Operation Safety"
+            "title": "Operation Safety",
+            "default": []
           }
         },
         "type": "object",

@@ -11,6 +11,8 @@ The production execution plane is a safety foundation for future live Telegram w
 - `account_lifecycle_jobs`: deletion/export/lifecycle jobs.
 - `maintenance_jobs`: safe maintenance/reaper reports.
 - `scheduler_jobs`: future scheduled enqueue/report jobs.
+- `warmup_jobs`: dry-run account preparation jobs.
+- `warmup_dispatch_jobs`: shadow/live warmup micro-session dispatch.
 
 Current staging worker commands remain compatible. New dedicated worker launchers can use:
 
@@ -19,6 +21,8 @@ cd backend
 python -m app.workers.run_worker --queues auth_jobs
 python -m app.workers.run_worker --queues profile_jobs
 python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues warmup_jobs
+python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
 
 The launcher rejects unknown queue names.
@@ -71,6 +75,8 @@ REAPER_MODE=dry_run
 
 `python -m app.scripts.run_scheduler` and `python -m app.scripts.run_reaper --mode dry_run` produce structured reports. They do not delete TDLib sessions, account assets, account rows, or audit logs.
 
+Warmup has a separate enqueue ticker in the API lifespan. It is gated by `WARMUP_SCHEDULER_ENABLED`, `WARMUP_WORKERS_ENABLED`, and `WARMUP_HARD_DISABLE`. It only enqueues fixed-id RQ jobs; workers decide which sessions are due.
+
 ## TDLib Live Safety
 
 Live execution requires all gates:
@@ -94,3 +100,17 @@ PROFILE_EXECUTION_ADAPTER=mock
 Diagnostics expose booleans such as `live_enabled`, `library_configured`, and `session_root_configured`, but never raw filesystem paths.
 
 The auth/import foundation adds `telegram_auth_session`, `account_import_batch`, and `account_import_item` records plus auth/import API endpoints. These remain auth/readiness-only: they do not enqueue profile/story/music execution and they fail safely with `tdlib_live_disabled` when `TDLIB_LIVE_ENABLED=false`.
+
+## Warmup Live Safety
+
+Warmup dry-run sessions remain non-live and use `warmup_jobs`.
+
+`warmup_dispatch_jobs` processes `shadow`, `passive`, `network`, and `advanced` execution modes. `shadow` is simulation-only. Live TDLib-backed warmup requires:
+
+- `WARMUP_LIVE_ENABLED=true`;
+- at least one live level enabled: `WARMUP_PASSIVE_ENABLED`, `WARMUP_NETWORK_ENABLED`, or `WARMUP_ADVANCED_ENABLED`;
+- TDLib runtime configured and loadable;
+- account isolation claim acquired for the warmup session;
+- explicit operator approval before using real Telegram accounts.
+
+Do not describe warmup as anti-ban, shadow-ban protection, behavior imitation, or a guarantee of Telegram account safety.

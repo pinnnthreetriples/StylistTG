@@ -1,0 +1,48 @@
+---
+name: architecture
+description: System flow and high-level component boundaries.
+triggers:
+  - architecture
+  - data flow
+  - source of truth
+edges:
+  - .mex/context/backend.md
+  - .mex/context/frontend.md
+  - .mex/context/workers.md
+  - .mex/context/security.md
+last_updated: 2026-05-10
+---
+
+# Architecture
+
+## System shape
+
+StylistTG is a local-first Telegram account/profile automation platform with a React dashboard, FastAPI backend, PostgreSQL persistence, Redis/RQ execution queues, and TDLib adapters. The dashboard calls FastAPI through `/api` and polls for state.
+
+## Primary flows
+
+- Dashboard requests and mutations go through `packages/api-client` or dashboard API helpers.
+- FastAPI routers in `backend/app/api` validate auth/workspace context and call services in `backend/app/services`.
+- Services write authoritative state to PostgreSQL through SQLAlchemy models in `backend/app/models.py`.
+- RQ workers execute queued auth/profile/warmup jobs and write final truth back to the database.
+- TDLib child/runtime code must not become the final database writer.
+
+## Source-of-truth rules
+
+- `account_profile_state` is the source of truth for current profile state.
+- `warmup_session` is the source of truth for account-preparation state.
+- PostgreSQL is the dedup/persistence source of truth, not Redis.
+- Redis/RQ is execution infrastructure and may be absent in tests unless explicitly required.
+
+## Safety boundaries
+
+- Live Telegram/TDLib behavior is disabled by default and must be explicitly approved.
+- TDLib session storage is backend-only and must never be exposed to frontend diagnostics.
+- Frontend risk/readiness UI is an app-known readiness score, not an anti-ban guarantee.
+
+## Canonical references
+
+- `AGENT_HANDOFF.md`
+- `docs/architecture/production-execution-plane.md`
+- `docs/architecture/frontend-saas-foundation.md`
+- `docs/api/frontend.md`

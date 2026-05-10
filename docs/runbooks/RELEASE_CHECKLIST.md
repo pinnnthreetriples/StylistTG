@@ -60,4 +60,4 @@ docker build -f backend/Dockerfile -t stylisttg-backend:test .
 - [ ] No `FIXME` or `TODO` in security-critical paths
 - [ ] Migration is backwards-compatible or coordinated with deploy
 - [ ] Environment variables documented if new ones were added
-- [ ] AGENT_HANDOFF.md updated if architecture changed
+- [ ] `.mex/` memory and `AGENT_HANDOFF.md` updated if stable architecture or operational knowledge changed

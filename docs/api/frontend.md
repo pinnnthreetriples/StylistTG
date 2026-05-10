@@ -39,14 +39,15 @@ Canonical frontend routes are:
 - `/accounts/$accountId/risk`
 - `/health`
 - `/jobs`
+- `/modules/warmup`
 - `/settings`
+- `/proxy`
 - `/billing`
 
 Compatibility routes:
 
 - `/auth/batch`
 - `/operations`
-- `/accounts/$accountId/profile`
 
 Legacy query URLs are compatibility redirects only.
 
@@ -67,7 +68,7 @@ All structured API errors use this shape:
 
 Fields:
 
-- `error_code`: stable UI-facing code, translated in `src/lib/uiLabels.ts`;
+- `error_code`: stable UI-facing code, translated in `apps/dashboard/src/lib/uiLabels.ts`;
 - `error_class`: broad error bucket;
 - `message`: operator-readable message;
 - `details`: optional structured data;
@@ -321,7 +322,7 @@ Important states:
 
 - Preview never enqueues a job.
 - `can_create_job=false` means UI must not create a job.
-- `blocking_errors` should be translated through `src/lib/uiLabels.ts`.
+- `blocking_errors` should be translated through `apps/dashboard/src/lib/uiLabels.ts`.
 
 ### POST /api/account-update/jobs
 
@@ -520,8 +521,11 @@ Canonical frontend routes:
 - `/accounts/$accountId/music`
 - `/accounts/$accountId/proxy`
 - `/accounts/$accountId/risk`
+- `/accounts/$accountId/debug`
 - `/health`
 - `/jobs`
+- `/modules/warmup`
+- `/proxy`
 - `/billing`
 
 Compatibility routes:
@@ -539,10 +543,11 @@ Route components are code-split at product boundaries through TanStack Router:
 
 - accounts/settings route area
 - batch auth route
+- warmup route
 - account workspace route
 
 Account workspace routes must keep loader-first behavior: frontend should resolve `authState` and
-`dashboardBundle` through `src/lib/queries.ts` before rendering the editor. This prevents warm
+`dashboardBundle` through `apps/dashboard/src/lib/queries.ts` before rendering the editor. This prevents warm
 navigation from briefly showing skeleton/auth fallback screens.
 
 ## Polling Model

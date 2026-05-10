@@ -1,6 +1,7 @@
 # StylistTG Agent Handoff
 
-This is the current project memory for the next engineer or AI agent.
+Structured project memory now lives in `.mex/`. Start with `AGENTS.md`, then `.mex/ROUTER.md`.
+This file is retained as a legacy/full handoff snapshot during the mex migration.
 It intentionally describes the codebase as it works now, not the original MVP scope.
 
 ## Project
@@ -62,7 +63,7 @@ Implemented or actively wired:
   - `npm run check:api` verifies generated OpenAPI artifacts are current and is part of frontend CI;
   - dashboard API calls are routed through `@stylisttg/api-client`; `apps/dashboard/src/lib/api.ts` is a compatibility wrapper for existing imports;
   - auth and auth-batch modules use `@stylisttg/api-client` for network transport while keeping local UI parsing/state helpers;
-  - SaaS shell has Accounts, Health Center, Jobs, Proxy Center, Settings, and future Billing zones;
+  - SaaS shell has Accounts, Health Center, Jobs, Warmup, Proxy Center, Settings, and Billing zones;
   - Health Center shows liveness/readiness, dependency status, backend environment/auth/storage posture, and backend account risk aggregates;
   - `/diagnostics/frontend-summary` exposes safe metadata only and must not return raw DB/Redis/S3/JWT/TDLib session values;
   - Account Risk is a backend deterministic app-known readiness score, not a Telegram anti-ban guarantee;
@@ -73,7 +74,7 @@ Implemented or actively wired:
     - risk-gated action checks with manual override reason/audit;
     - hard deletion disabled by default.
   - Production execution-plane foundation is present:
-    - queue taxonomy: `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`;
+    - queue taxonomy: `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`, `warmup_jobs`, `warmup_dispatch_jobs`;
     - `python -m app.workers.run_worker --queues ...` strict allowlist launcher;
     - Redis owner-token account locks;
     - tenant/account rate limit service;
@@ -89,6 +90,14 @@ Implemented or actively wired:
     - unsupported session formats require manual reauth and are not automatically converted or attached;
     - dashboard `/accounts/add` is the canonical Add Accounts surface; `/auth/batch` remains a compatibility route;
     - `python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check` is the safe runtime smoke.
+  - Account Preparation / Warmup module is present:
+    - backend router: `backend/app/api/warmup.py` under `/api/warmup`;
+    - frontend route: `/modules/warmup` with module code in `apps/dashboard/src/modules/warmup`;
+    - persisted state: `warmup_strategy`, `warmup_session`, `warmup_event`, `warmup_task_run`, trusted-peer and isolation-claim tables;
+    - dry-run sessions use `warmup_jobs`;
+    - shadow/live micro-session dispatch uses `warmup_dispatch_jobs`;
+    - live warmup levels are gated by `WARMUP_LIVE_ENABLED` plus `WARMUP_PASSIVE_ENABLED`, `WARMUP_NETWORK_ENABLED`, or `WARMUP_ADVANCED_ENABLED`;
+    - do not enable live warmup against Telegram without explicit operator approval.
   - Playwright browser QA lives in `apps/dashboard/e2e` and uses mocked API data with screenshots stored in ignored artifacts;
   - TanStack Table/Form/Virtual foundations are present, read-only or preview-only;
   - backend remains at `backend/` to preserve `backend/Dockerfile` staging deploys.
@@ -167,9 +176,11 @@ It is intended to:
 
 - start Memurai Redis from `C:\Tools\Memurai`;
 - run Alembic migrations;
-- start FastAPI backend;
+- start FastAPI backend on `http://localhost:8002`;
 - start separate RQ workers for `profile_jobs` and `auth_jobs`;
 - start Vite frontend at `http://localhost:5173`.
+
+Warmup workers are not part of the default launcher. Start them manually only when testing the warmup module.
 
 Manual frontend:
 
@@ -185,10 +196,12 @@ Manual backend:
 ```powershell
 cd backend
 python -m alembic upgrade head
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --port 8002
 python -m pytest -q
 python -m ruff check .
 ```
+
+Live-validation helper scripts default to backend port `8000`; the dashboard dev proxy expects `8002`.
 
 Manual worker:
 
@@ -196,6 +209,8 @@ Manual worker:
 cd backend
 python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
+python -m app.workers.run_worker --queues warmup_jobs
+python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
 
 Redis note:
@@ -243,6 +258,7 @@ Routers:
 - `backend/app/api/diagnostics.py` - runtime/live diagnostics.
 - `backend/app/api/operation_logs.py` - global operation log journal.
 - `backend/app/api/audit.py` - sanitized sensitive audit event reads.
+- `backend/app/api/warmup.py` - account preparation/warmup readiness, sessions, events, strategies, isolation status.
 - `backend/app/api/workers.py` - worker queue taxonomy, diagnostics, and retry policy metadata.
 
 Core services:
@@ -278,15 +294,25 @@ Core services:
 - `backend/app/services/audit_logs.py`
 - `backend/app/services/limits.py`
 - `backend/app/services/supabase_jwt.py`
+- `backend/app/services/warmup.py`
+- `backend/app/services/warmup_readiness.py`
+- `backend/app/services/warmup_worker.py`
+- `backend/app/services/warmup_dispatch.py`
+- `backend/app/services/warmup_isolation.py`
+- `backend/app/services/warmup_p2p.py`
 
 Adapters/workers:
 
 - `backend/app/adapters/tdlib_auth.py`
 - `backend/app/adapters/tdlib_profile_execution.py`
 - `backend/app/adapters/profile_execution.py` - mock fallback.
+- `backend/app/adapters/warmup_tdlib.py`
+- `backend/app/adapters/warmup_text_provider.py`
 - `backend/app/workers/profile_jobs.py`
 - `backend/app/workers/account_update_jobs.py`
 - `backend/app/workers/auth_batch_jobs.py`
+- `backend/app/workers/warmup_jobs.py`
+- `backend/app/workers/warmup_dispatch_jobs.py`
 - `backend/app/tdlib_job.py`
 
 ## Backend Data Model
@@ -314,6 +340,12 @@ Main SQLAlchemy models live in `backend/app/models.py`:
 - `AccountSafetyOverride`
 - `AccountOperationLog`
 - `AccountProxy`
+- `WarmupStrategy`
+- `WarmupSession`
+- `WarmupEvent`
+- `WarmupTaskRun`
+- `WarmupTrustedPeer`
+- `WarmupIsolationClaim`
 
 Important source-of-truth rule:
 
@@ -325,6 +357,8 @@ Important source-of-truth rule:
 - Parent worker writes final truth to DB; child subprocess should not be the final DB writer.
 - `account_proxy.password_encrypted` must never be returned to the frontend.
 - `account_operation_log.metadata_json` must not contain secrets; use `operation_logs.log_operation()` so sensitive keys are sanitized.
+- `warmup_session` is the source of truth for account preparation state; account API responses expose only a derived warmup object.
+- `warmup_event.payload_json` must be sanitized and must not contain secrets, codes, proxy passwords, raw TDLib paths, or message bodies beyond approved safe summaries.
 
 ## Account Safety, Proxy, and Operation Logs
 
@@ -430,6 +464,8 @@ Use the account-update workflow for new profile/audio/story work unless there is
 
 ## Frontend Layout
 
+Paths in this section are relative to `apps/dashboard/`.
+
 Main orchestrator:
 
 - `src/App.tsx`
@@ -509,6 +545,8 @@ TanStack Router is the canonical frontend routing layer. Canonical route tree:
 - `/settings`
 - `/health`
 - `/jobs`
+- `/modules/warmup`
+- `/proxy`
 - `/billing`
 - `/accounts/$accountId/profile`
 - `/accounts/$accountId/jobs`
@@ -516,6 +554,7 @@ TanStack Router is the canonical frontend routing layer. Canonical route tree:
 - `/accounts/$accountId/music`
 - `/accounts/$accountId/proxy`
 - `/accounts/$accountId/risk`
+- `/accounts/$accountId/debug`
 
 Compatibility routes:
 
@@ -529,6 +568,7 @@ Helper:
 - `src/routes/AccountsRoute.tsx`
 - `src/routes/AuthBatchRoute.tsx`
 - `src/routes/OperationsRoute.tsx`
+- `src/routes/WarmupRoute.tsx`
 - `src/routes/AccountWorkspaceRoute.tsx`
 - `src/routes/pending.tsx`
 - `src/routes/error.tsx`
@@ -761,9 +801,10 @@ Before claiming a fix is done, rerun the relevant subset and preferably the full
 ## Practical First Steps for a New Agent
 
 1. Read `AGENTS.md`.
-2. Activate project in Serena.
-3. Read this `AGENT_HANDOFF.md`.
-4. Check current app state with `npm test`, `npm run build` only if changing frontend.
-5. For backend work, inspect the exact router/service/test around the requested behavior.
-6. For Telegram live behavior, ask before making live TDLib calls.
-7. Keep changes small and localized.
+2. Read `.mex/ROUTER.md` and the routed `.mex/context/` or `.mex/patterns/` files for the task.
+3. Use available project/context tooling as needed.
+4. Read this `AGENT_HANDOFF.md` only for deeper legacy/full context.
+5. Check current app state with `npm test`, `npm run build` only if changing frontend.
+6. For backend work, inspect the exact router/service/test around the requested behavior.
+7. For Telegram live behavior, ask before making live TDLib calls.
+8. Keep changes small and localized.

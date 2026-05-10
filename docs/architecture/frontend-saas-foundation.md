@@ -9,9 +9,10 @@ The dashboard shell is structured for:
 - Accounts
 - Health Center
 - Jobs
+- Warmup
 - Proxy Center
 - Settings
-- future Billing
+- Billing
 
 The existing account list, workspace editor, auth batch flow, operations journal, and settings behavior remain in place. New foundation components are read-only or preview-only.
 

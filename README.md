@@ -40,6 +40,7 @@ Included:
 - Account lifecycle security foundation: deletion preview/request, private export request, sanitized audit history, and risk-gated action checks.
 - Production execution-plane foundation: queue taxonomy, queue-specific worker launcher, Redis account locks, tenant rate limits, cooldown/FLOOD_WAIT handling, retry policies, and dry-run scheduler/reaper reports.
 - TDLib live runtime/auth/import foundation: tdjson detection, isolated TDLib storage paths, auth-session endpoints, reauth session endpoint, preview-first import batches, and TDLib runtime diagnostics. Live profile/story/music execution remains disabled by default.
+- Account Preparation / Warmup module: readiness checks, strategy presets, workspace-scoped sessions/events/task runs, dry-run worker execution, shadow dispatch, and gated live warmup levels.
 
 Still intentionally limited:
 
@@ -93,6 +94,20 @@ OpenAPI drift is enforced with `npm run check:api`. Browser QA uses Playwright,
 local Vite preview, and mocked API responses; screenshots/reports are ignored
 under `test-results/` and `playwright-report/`.
 
+Project memory:
+
+```powershell
+npm run memory:check
+npm run memory:sync:dry-run
+```
+
+- Start from `AGENTS.md`, then read `.mex/ROUTER.md`.
+- `.mex/context/` stores compact architecture, setup, workers, warmup, security, and convention memory.
+- `.mex/patterns/` stores repeatable task workflows.
+- Run `npm run memory:check` after memory/docs/scaffold changes or when commands, paths, ports, routes, queues, feature flags, or architecture change.
+- Do not run `npm run memory:check` after every small code edit, test-only change, typo, local debug step, or purely visual tweak.
+- Prefer `npm run memory:sync:dry-run`; do not run `npm run memory:sync` without explicit approval.
+
 Backend:
 
 ```powershell
@@ -125,21 +140,26 @@ cd backend
 python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues warmup_jobs
+python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
 
-Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes batch-auth work, and `account_lifecycle_jobs`/`maintenance_jobs` are reserved for safe lifecycle/maintenance foundations. Diagnostics report the production queue taxonomy.
+Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes auth and batch-auth work, `account_lifecycle_jobs`/`maintenance_jobs` are reserved for safe lifecycle/maintenance foundations, and warmup workers are only needed when testing the warmup module. Diagnostics report the production queue taxonomy.
 
 Diagnostics:
 
 ```powershell
 cd backend
 python -m app.tools.live_preflight
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/live-preflight
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/runtime
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/diagnostics/frontend-summary
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/ready
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/workers/diagnostics
+$ApiBaseUrl = "http://127.0.0.1:8002"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/diagnostics/live-preflight"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/diagnostics/runtime"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/diagnostics/frontend-summary"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/ready"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/workers/diagnostics"
 ```
+
+`scripts/start-dev.ps1` starts the local dashboard backend on `8002`. Live-validation helper scripts that call `scripts/start_backend.ps1` default to `8000`; use the actual startup output when running those flows.
 
 Readiness semantics:
 
@@ -162,17 +182,19 @@ Account lifecycle and production-plane docs:
 - `docs/runbooks/account-import.md`
 - `docs/security/telegram-session-handling.md`
 - `docs/runbooks/northflank-staging-readiness.md`
+- `docs/runbooks/account-preparation.md`
 
 OTP auth flow:
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/auth/otp/start -ContentType 'application/json' -Body '{"phone_number":"+15550102000"}'
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/auth/otp/confirm -ContentType 'application/json' -Body '{"account_id":"<account-id>","code":"12345"}'
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/auth-state
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/accounts/<account-id>/refresh-runtime
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/runtime-diagnostics
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/risk-summary
-Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/accounts/<account-id>/risk
+$ApiBaseUrl = "http://127.0.0.1:8002"
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/auth/otp/start" -ContentType 'application/json' -Body '{"phone_number":"+15550102000"}'
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/auth/otp/confirm" -ContentType 'application/json' -Body '{"account_id":"<account-id>","code":"12345"}'
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/accounts/<account-id>/auth-state"
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/accounts/<account-id>/refresh-runtime"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/accounts/<account-id>/runtime-diagnostics"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/accounts/risk-summary"
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/accounts/<account-id>/risk"
 ```
 
 TDLib configuration:
@@ -200,8 +222,9 @@ python -m app.scripts.tdlib_runtime_smoke --runtime-check --library-check
 Real auth/import foundation endpoints are explicit and safe-by-default:
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/accounts/auth-sessions -ContentType 'application/json' -Body '{"phone_number":"+15550102000"}'
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/account-import-batches -ContentType 'application/json' -Body '{"source_type":"json-metadata","dry_run":true}'
+$ApiBaseUrl = "http://127.0.0.1:8002"
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/accounts/auth-sessions" -ContentType 'application/json' -Body '{"phone_number":"+15550102000"}'
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/account-import-batches" -ContentType 'application/json' -Body '{"source_type":"json-metadata","dry_run":true}'
 ```
 
 Telegram codes, 2FA passwords, Telegram API hash, TDLib paths, and session material must never be logged, returned in API responses, or committed.

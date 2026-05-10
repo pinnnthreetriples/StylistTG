@@ -19,7 +19,12 @@
     "qa:browser": "npm --workspace @stylisttg/dashboard run qa:browser",
     "qa:screenshots": "npm --workspace @stylisttg/dashboard run qa:screenshots",
     "dashboard:dev": "npm --workspace @stylisttg/dashboard run dev",
-    "dashboard:build": "npm --workspace @stylisttg/dashboard run build"
+    "dashboard:build": "npm --workspace @stylisttg/dashboard run build",
+    "memory:check": "mex check",
+    "memory:check:quiet": "mex check --quiet",
+    "memory:sync": "mex sync",
+    "memory:sync:dry-run": "mex sync --dry-run",
+    "memory:commands": "mex commands"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -32,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "openapi-typescript": "^7.10.1",
+    "promexeus": "^0.3.4",
     "turbo": "^2.6.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.2",

@@ -14,6 +14,8 @@ story_jobs
 account_lifecycle_jobs
 maintenance_jobs
 scheduler_jobs
+warmup_jobs
+warmup_dispatch_jobs
 ```
 
 ## Commands
@@ -32,11 +34,15 @@ cd backend
 python -m app.workers.run_worker --queues auth_jobs
 python -m app.workers.run_worker --queues profile_jobs
 python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues warmup_jobs
+python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
 
 Unknown queues are rejected.
 
 Auth-session jobs use the `auth_jobs` queue. They are allowed only for Telegram authorization/reauthorization state transitions and must not run profile/story/music mutations.
+
+Warmup dry-run sessions use `warmup_jobs`. Shadow/live micro-session dispatch uses `warmup_dispatch_jobs`; live modes require explicit warmup feature gates and operator approval before touching real Telegram accounts.
 
 Future TDLib live auth worker command, after the TDLib runtime image and isolated
 volume mounts are validated:
@@ -59,6 +65,8 @@ Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/workers/diagnostics
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/jobs/policies
 ```
 
+Use the actual API port from the startup script. `scripts/start_backend.ps1` defaults to `8000`; `scripts/start-dev.ps1` starts the dashboard stack with backend `8002`.
+
 Diagnostics are metadata-only and must not expose Redis URL, DB URL, S3 credentials, JWTs, or TDLib session paths.
 
 ## Scheduler and Reaper
@@ -69,6 +77,14 @@ Scheduler/reaper are disabled by default:
 SCHEDULER_ENABLED=false
 REAPER_ENABLED=false
 REAPER_MODE=dry_run
+```
+
+Warmup scheduler defaults are also disabled/safe:
+
+```text
+WARMUP_WORKERS_ENABLED=false
+WARMUP_SCHEDULER_ENABLED=false
+WARMUP_HARD_DISABLE=false
 ```
 
 Safe reports:

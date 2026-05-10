@@ -1,6 +1,6 @@
 ---
 name: StylistTG agent anchor
-description: Root AI-tool entrypoint. Keep in sync with .mex/AGENTS.md.
+description: Canonical mex source anchor. Keep root AGENTS.md in sync.
 last_updated: 2026-05-10
 ---
 
@@ -38,7 +38,7 @@ cd backend; python -m ruff check .
 
 ## Memory
 
-- `.mex/AGENTS.md` is the mex source anchor; this file is the root tool-facing copy.
+- `.mex/AGENTS.md` is the mex source anchor; root `AGENTS.md` is the tool-facing copy.
 - `.mex/ROUTER.md` is the structured memory router and should be read first.
 - `AGENT_HANDOFF.md` is retained as a legacy/full handoff snapshot during migration.
 - Detailed docs remain in `docs/` and specs remain in `specs/`.

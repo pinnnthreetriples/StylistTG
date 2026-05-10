@@ -124,7 +124,7 @@ class AccountSafetySummaryRead(BaseModel):
     validity_status: str
     proxy_status: str = "none"
     capability_summary: dict[str, str]
-    cooldown_summary: list[AccountOperationCooldownRead] = []
+    cooldown_summary: list[AccountOperationCooldownRead] = Field(default_factory=list)
     top_reasons: list[AccountSafetyReasonRead]
     last_checked_at: datetime
     source: str
@@ -155,7 +155,7 @@ class AccountReadinessRiskSummaryRead(BaseModel):
     missing_session: int
     runtime_unhealthy: int
     proxy_problem: int
-    items: list[AccountReadinessRiskRead] = []
+    items: list[AccountReadinessRiskRead] = Field(default_factory=list)
     computed_at: datetime
 
 
@@ -519,7 +519,7 @@ class AccountImportBatchRead(BaseModel):
     failed_at: datetime | None
     failure_code: str | None
     failure_message: str | None
-    items: list[AccountImportItemRead] = []
+    items: list[AccountImportItemRead] = Field(default_factory=list)
 
 
 class RetryPolicyRead(BaseModel):
@@ -536,7 +536,7 @@ class AccountOperationSafetyRead(BaseModel):
     state: str
     warnings: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
-    cooldowns: list[AccountOperationCooldownRead] = []
+    cooldowns: list[AccountOperationCooldownRead] = Field(default_factory=list)
     can_override: bool = False
 
 
@@ -1079,7 +1079,7 @@ class AccountUpdateCreate(BaseModel):
     account_id: str
     profile: AccountUpdateProfileDesiredState | None = None
     profile_audio: AccountUpdateProfileAudioDesiredState | None = None
-    stories: list[AccountUpdateStoryDesiredState] = []
+    stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=list)
 
 
 class DashboardAccountRead(BaseModel):
@@ -1211,7 +1211,7 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(default_factory=dict)
     safety_warnings: list[str] = Field(default_factory=list)
     safety_blockers: list[str] = Field(default_factory=list)
-    operation_safety: list[AccountOperationSafetyRead] = []
+    operation_safety: list[AccountOperationSafetyRead] = Field(default_factory=list)
 
 
 class JobRead(BaseModel):

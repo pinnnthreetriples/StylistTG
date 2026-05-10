@@ -5906,8 +5906,7 @@
               "$ref": "#/components/schemas/AccountImportItemRead"
             },
             "type": "array",
-            "title": "Items",
-            "default": []
+            "title": "Items"
           }
         },
         "type": "object",
@@ -6412,8 +6411,7 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldowns",
-            "default": []
+            "title": "Cooldowns"
           },
           "can_override": {
             "type": "boolean",
@@ -6908,8 +6906,7 @@
               "$ref": "#/components/schemas/AccountReadinessRiskRead"
             },
             "type": "array",
-            "title": "Items",
-            "default": []
+            "title": "Items"
           },
           "computed_at": {
             "type": "string",
@@ -7177,8 +7174,7 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldown Summary",
-            "default": []
+            "title": "Cooldown Summary"
           },
           "top_reasons": {
             "items": {
@@ -7330,8 +7326,7 @@
               "$ref": "#/components/schemas/AccountOperationCooldownRead"
             },
             "type": "array",
-            "title": "Cooldown Summary",
-            "default": []
+            "title": "Cooldown Summary"
           },
           "top_reasons": {
             "items": {
@@ -7394,8 +7389,7 @@
               "$ref": "#/components/schemas/AccountUpdateStoryDesiredState"
             },
             "type": "array",
-            "title": "Stories",
-            "default": []
+            "title": "Stories"
           }
         },
         "type": "object",
@@ -7606,8 +7600,7 @@
               "$ref": "#/components/schemas/AccountOperationSafetyRead"
             },
             "type": "array",
-            "title": "Operation Safety",
-            "default": []
+            "title": "Operation Safety"
           }
         },
         "type": "object",

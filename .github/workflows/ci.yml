@@ -71,6 +71,9 @@ jobs:
       - name: Ruff
         working-directory: backend
         run: python -m ruff check .
+      - name: Pyright
+        working-directory: backend
+        run: python -m pyright app/api app/services app/schemas.py app/config.py app/workers
       - name: Pytest
         working-directory: backend
         run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml

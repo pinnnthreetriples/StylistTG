@@ -1080,9 +1080,15 @@ ALL_RULES: list[Rule] = [
 
 
 class Analyzer:
-    def __init__(self, config: AnalyzerConfig, rules: list[Rule] | None = None) -> None:
+    def __init__(
+        self,
+        config: AnalyzerConfig,
+        rules: list[Rule] | None = None,
+        coverage_data: dict[str, Any] | None = None,
+    ) -> None:
         self.config = config
         self.rules = rules or ALL_RULES
+        self.coverage_data = coverage_data
 
     def analyze_file(self, path: Path, base_dir: Path) -> list[Issue]:
         try:
@@ -1142,7 +1148,35 @@ class Analyzer:
                 if py_file.name.startswith("test_") or py_file.name.endswith("_test.py"):
                     all_issues.extend(self.analyze_file(py_file, base_dir))
 
+        # Coverage-driven warnings for source files with uncovered branches
+        if self.coverage_data:
+            all_issues.extend(self._coverage_branch_warnings())
+
         return all_issues
+
+    def _coverage_branch_warnings(self) -> list[Issue]:
+        issues: list[Issue] = []
+        files = self.coverage_data.get("files", {}) if self.coverage_data else {}
+        for filepath, info in files.items():
+            summary = info.get("summary", {})
+            num_branches = summary.get("num_branches", 0)
+            covered_branches = summary.get("covered_branches", 0)
+            if num_branches > 0 and covered_branches < num_branches:
+                missing = num_branches - covered_branches
+                pct = round(covered_branches / num_branches * 100, 1)
+                issues.append(Issue(
+                    rule_id="TQA040",
+                    rule_type="edge_cases",
+                    severity=Severity.INFO,
+                    file=filepath,
+                    line=1,
+                    message=(
+                        f"{missing} of {num_branches} branches"
+                        f" uncovered ({pct}% branch coverage)"
+                    ),
+                    recommendation="Add tests for uncovered branches",
+                ))
+        return issues
 
 
 # ---------------------------------------------------------------------------
@@ -1331,8 +1365,13 @@ def main(argv: list[str] | None = None) -> int:
     # Base directory for relative paths
     base_dir = target if target.is_dir() else target.parent
 
+    # Load coverage data
+    coverage_data = None
+    if args.coverage:
+        coverage_data = load_coverage_context(Path(args.coverage))
+
     # Run analysis
-    analyzer = Analyzer(config)
+    analyzer = Analyzer(config, coverage_data=coverage_data)
     try:
         issues = analyzer.analyze(target, base_dir)
     except Exception as e:

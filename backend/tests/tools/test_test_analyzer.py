@@ -435,3 +435,53 @@ def test_cli_exit_code_1_critical(tmp_path: Path) -> None:
 def test_cli_exit_code_2_invalid_path() -> None:
     code = main(["--path", "/nonexistent/path/to/tests"])
     assert code == 2
+
+
+# ---------------------------------------------------------------------------
+# Coverage integration
+# ---------------------------------------------------------------------------
+
+
+def test_coverage_data_generates_branch_warnings() -> None:
+    """Analyzer emits TQA040 for source files with uncovered branches."""
+    coverage_data = {
+        "files": {
+            "app/services/auth.py": {
+                "summary": {
+                    "num_branches": 20,
+                    "covered_branches": 14,
+                }
+            },
+            "app/services/jobs.py": {
+                "summary": {
+                    "num_branches": 10,
+                    "covered_branches": 10,
+                }
+            },
+        }
+    }
+    analyzer = Analyzer(AnalyzerConfig(), coverage_data=coverage_data)
+    issues = analyzer._coverage_branch_warnings()
+    assert len(issues) == 1
+    assert issues[0].rule_id == "TQA040"
+    assert issues[0].file == "app/services/auth.py"
+    assert "6 of 20 branches" in issues[0].message
+
+
+def test_cli_coverage_flag_accepted(tmp_path: Path) -> None:
+    """CLI --coverage flag is parsed and does not crash."""
+    test_file = tmp_path / "test_ok.py"
+    test_file.write_text("def test_fine():\n    assert 1 == 1\n")
+    coverage_file = tmp_path / "coverage.json"
+    coverage_file.write_text(json.dumps({
+        "files": {
+            "app/example.py": {
+                "summary": {"num_branches": 4, "covered_branches": 2}
+            }
+        }
+    }))
+    code = main([
+        "--path", str(test_file),
+        "--coverage", str(coverage_file),
+    ])
+    assert code == 0

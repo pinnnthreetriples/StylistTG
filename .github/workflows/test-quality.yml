@@ -1,0 +1,145 @@
+name: Test Quality
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"  # nightly at 03:00 UTC
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # PR / push checks
+  # ---------------------------------------------------------------------------
+  test-quality-pr:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff lint (including PT rules)
+        run: python -m ruff check app tests
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest \
+            --cov=app --cov-branch --cov-context=test \
+            --cov-report=json:reports/coverage.json \
+            --cov-report=term-missing \
+            -q
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+
+      - name: Run test quality analyzer
+        run: |
+          python tools/test_analyzer.py \
+            --path tests \
+            --coverage reports/coverage.json \
+            --format sarif \
+            --output reports/test-quality.sarif \
+            --severity WARNING
+
+      - name: Run test quality analyzer (JSON)
+        run: |
+          python tools/test_analyzer.py \
+            --path tests \
+            --format json \
+            --output reports/test-quality.json \
+            --severity WARNING
+        if: always()
+
+      - name: jscpd duplicate detection
+        run: npx jscpd tests app --reporters json --output reports/jscpd
+        if: always()
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: backend/reports/test-quality.sarif
+          category: test-quality
+        if: always()
+
+      - name: Upload reports artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-quality-reports
+          path: backend/reports/
+        if: always()
+
+  # ---------------------------------------------------------------------------
+  # Nightly deep checks
+  # ---------------------------------------------------------------------------
+  test-quality-nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Randomized test run
+        run: python -m pytest --randomly-seed=auto -q
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+
+      - name: Flaky test detection (rerun failures)
+        run: python -m pytest --reruns 2 --reruns-delay 1 -q
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+
+      - name: Mutation testing (mutmut)
+        run: |
+          python -m mutmut run --paths-to-mutate=app/services \
+            --tests-dir=tests --no-progress || true
+          python -m mutmut results > reports/mutmut-results.txt || true
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+
+      - name: jscpd duplicate detection (with HTML report)
+        run: npx jscpd tests app --reporters json,html --output reports/jscpd
+
+      - name: Upload nightly reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-quality-nightly-reports
+          path: backend/reports/
+        if: always()

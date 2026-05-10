@@ -27,8 +27,11 @@ dev = [
   "pytest>=9.0.3",
   "pytest-cov>=6.0.0",
   "pytest-xdist>=3.6.0",
+  "pytest-randomly>=3.16.0",
+  "pytest-rerunfailures>=14.0",
   "hypothesis>=6.0.0",
   "freezegun>=1.5.0",
+  "mutmut>=2.5.0",
   "pip-audit>=2.9.0",
   "pyright>=1.1.407",
   "ruff>=0.14.0",
@@ -37,6 +40,52 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "B", "SIM", "PL", "ARG", "ERA",
+  "PT",
+]
+ignore = [
+  "B008",   # function-call-in-default-argument — FastAPI Depends() pattern
+  "B009",   # getattr with constant — used for dynamic attribute access in tests
+  "PT011",  # pytest.raises too broad — we use match= where practical
+  "PT018",  # composite assertion — acceptable in integration tests
+  "PLR0911", # too many return statements — acceptable in complex mappers
+  "PLR0912", # too many branches — acceptable in complex mappers
+  "PLR0913", # too many arguments — common in service functions
+  "PLR2004", # magic value comparison — acceptable in tests
+  "PLR1714", # consider merging comparisons — readability trade-off
+  "PLW0108", # lambda may be unnecessary — common pattern for monkeypatch
+  "PLW0603", # global statement — used in module-level singletons
+  "PLW2901", # redefined loop name — acceptable in specific patterns
+  "SIM105", # use contextlib.suppress — explicit try/except clearer in some cases
+  "SIM110", # reimplemented builtin — readability trade-off
+  "SIM114", # combine if branches — readability trade-off
+  "SIM118", # use `in` for dict membership — false positives
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/*" = ["ARG002", "SIM102", "SIM108"]
+"tests/*" = [
+  "ARG001", "ARG002", "ARG004", "ARG005",
+  "B007",
+  "E501",
+  "ERA001",
+  "PLC0415", "PLR0913", "PLR0915", "PLR2004",
+  "PT",
+  "SIM102", "SIM108", "SIM117", "SIM300",
+]
+"app/*" = [
+  "ARG001", "ARG002",
+  "B007", "B904",
+  "E501",
+  "ERA001",
+  "PLC0208", "PLC0415", "PLR0915",
+  "SIM102", "SIM108", "SIM117", "SIM300",
+]
+"migrations/*" = ["E501", "ERA001"]
+"scripts/*" = ["E501"]
 
 [tool.pyright]
 include = [

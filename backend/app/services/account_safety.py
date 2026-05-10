@@ -446,9 +446,9 @@ def _validity_status_from_check(check: dict[str, Any] | None) -> str:
         return "db_snapshot"
     if check.get("status") == "running":
         return "db_snapshot"
-    result = cast(dict[str, Any], check.get("result") or {})
-    if result.get("validity_status"):
-        return str(result["validity_status"])
+    raw_result = check.get("result") or {}
+    if isinstance(raw_result, dict) and raw_result.get("validity_status"):
+        return str(raw_result["validity_status"])
     return str(check["status"])
 
 

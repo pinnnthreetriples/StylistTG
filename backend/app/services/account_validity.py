@@ -81,6 +81,8 @@ def run_account_validity_check(
             "validity_status": _validity_status_from_readonly_result(readonly_result, safety),
         })
         run.details_json = {"source": mode}
+        _rj = run.result_json
+        _validity = _rj.get("validity_status") if isinstance(_rj, dict) else None
         log_operation(
             session,
             account_id=account_id,
@@ -91,7 +93,7 @@ def run_account_validity_check(
             source="account_validity",
             message="Account validity check completed",
             workspace_id=workspace_id,
-            metadata={"validity_status": cast(dict[str, Any], run.result_json).get("validity_status")},
+            metadata={"validity_status": _validity},
         )
         session.commit()
         session.refresh(run)
@@ -204,7 +206,8 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
             runtime.session_present = True
             runtime.authorized_last_confirmed_at = datetime.now(UTC)
         account.telegram_user_id = result.get("telegram_user_id") or account.telegram_user_id
-        profile = cast(dict[str, Any], result.get("profile") or {})
+        raw_profile = result.get("profile")
+        profile = cast(dict[str, Any], raw_profile) if isinstance(raw_profile, dict) else {}
         if profile:
             if account.profile_state is None:
                 account.profile_state = AccountProfileState(account_id=account.id)

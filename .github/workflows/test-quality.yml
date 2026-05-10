@@ -24,7 +24,7 @@ jobs:
   # PR / push checks
   # ---------------------------------------------------------------------------
   test-quality-pr:
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,7 +52,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest \
+          python -m pytest -p no:randomly \
             --cov=app --cov-branch --cov-context=test \
             --cov-report=json:reports/coverage.json \
             --cov-report=term-missing \
@@ -80,7 +80,7 @@ jobs:
         if: always()
 
       - name: jscpd duplicate detection
-        run: npx jscpd tests app --reporters json --output reports/jscpd
+        run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
 
       - name: Upload SARIF
@@ -146,7 +146,7 @@ jobs:
           AUTH_MODE: local
 
       - name: jscpd duplicate detection (with HTML report)
-        run: npx jscpd tests app --reporters json,html --output reports/jscpd
+        run: npx jscpd tests app --threshold 2 --reporters json,html --output reports/jscpd
 
       - name: Upload nightly reports
         uses: actions/upload-artifact@v4

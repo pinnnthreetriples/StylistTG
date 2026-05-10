@@ -58,7 +58,8 @@ class Issue:
     recommendation: str
 
     def fingerprint(self) -> str:
-        content = f"{self.rule_id}:{self.file}:{self.line}:{self.message}"
+        """Line-shift-resilient fingerprint: rule + file + message (no line number)."""
+        content = f"{self.rule_id}:{self.file}:{self.message}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
@@ -1120,11 +1121,18 @@ class Analyzer:
         all_issues: list[Issue] = list(supp_warnings)
 
         for rule in self.rules:
+            # Skip disabled project rules
+            if rule.id in self.config.project_rules_enabled:
+                if not self.config.project_rules_enabled[rule.id]:
+                    continue
             try:
                 issues = rule.check(ctx, self.config)
             except Exception:
                 continue
             for issue in issues:
+                # Apply severity overrides from config
+                if issue.rule_id in self.config.severity_overrides:
+                    issue.severity = self.config.severity_overrides[issue.rule_id]
                 # Apply suppressions
                 if issue.rule_id in file_supprs:
                     continue
@@ -1277,7 +1285,9 @@ class SarifReporter:
                         }
                     }
                 ],
-                "fingerprints": {"primaryLocationLineHash": issue.fingerprint()},
+                "partialFingerprints": {
+                    "primaryLocationLineHash": issue.fingerprint()
+                },
             })
 
         sarif: dict[str, Any] = {
@@ -1292,6 +1302,9 @@ class SarifReporter:
                             "informationUri": "https://github.com/pinnnthreetriples/StylistTG",
                             "rules": list(rules_map.values()),
                         }
+                    },
+                    "automationDetails": {
+                        "id": "test-quality"
                     },
                     "results": results,
                 }

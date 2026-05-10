@@ -1,0 +1,13 @@
+[run]
+branch = true
+context = test
+source = app
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError
+
+[json]
+show_contexts = true

@@ -485,3 +485,112 @@ def test_cli_coverage_flag_accepted(tmp_path: Path) -> None:
         "--coverage", str(coverage_file),
     ])
     assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# Config: severity overrides, thresholds, project rule toggles
+# ---------------------------------------------------------------------------
+
+
+def test_config_max_assertions_per_test_applied() -> None:
+    """max_assertions_per_test config actually changes threshold."""
+    source = textwrap.dedent("""\
+        def test_many():
+            assert 1
+            assert 2
+            assert 3
+            assert 4
+            assert 5
+    """)
+    # Default (12) — should not fire
+    issues_default = _analyze_source(source)
+    tqa004 = [i for i in issues_default if i.rule_id == "TQA004"]
+    assert len(tqa004) == 0
+
+    # Override threshold to 3 — should fire
+    cfg = AnalyzerConfig(max_assertions_per_test=3)
+    issues_strict = _analyze_source(source, config=cfg)
+    tqa004 = [i for i in issues_strict if i.rule_id == "TQA004"]
+    assert len(tqa004) == 1
+
+
+def test_severity_override_changes_issue_severity() -> None:
+    """severity_overrides in config changes reported severity."""
+    source = textwrap.dedent("""\
+        def test_nothing():
+            x = 1
+    """)
+    # Default: TQA001 is CRITICAL
+    issues_default = _analyze_source(source)
+    tqa001 = [i for i in issues_default if i.rule_id == "TQA001"]
+    assert tqa001[0].severity == Severity.CRITICAL
+
+    # Override to WARNING
+    cfg = AnalyzerConfig(severity_overrides={"TQA001": Severity.WARNING})
+    issues_override = _analyze_source(source, config=cfg)
+    tqa001 = [i for i in issues_override if i.rule_id == "TQA001"]
+    assert tqa001[0].severity == Severity.WARNING
+
+
+def test_project_rules_disabled_skips_rule() -> None:
+    """project_rules_enabled=False disables specified rule."""
+    source = textwrap.dedent("""\
+        from fastapi.testclient import TestClient
+        from app.main import app
+
+        def test_overrides():
+            app.dependency_overrides[lambda: None] = lambda: None
+            client = TestClient(app)
+            resp = client.get("/")
+            assert resp.status_code == 200
+    """)
+    # Default: STG001 fires
+    issues_default = _analyze_source(source)
+    stg001 = [i for i in issues_default if i.rule_id == "STG001"]
+    assert len(stg001) >= 1
+
+    # Disable STG001
+    cfg = AnalyzerConfig(project_rules_enabled={"STG001": False})
+    issues_disabled = _analyze_source(source, config=cfg)
+    stg001 = [i for i in issues_disabled if i.rule_id == "STG001"]
+    assert len(stg001) == 0
+
+
+def test_sarif_has_partial_fingerprints_and_automation_details() -> None:
+    """SARIF output includes partialFingerprints and automationDetails."""
+    issues = [
+        Issue(
+            rule_id="TQA001",
+            rule_type="assertions",
+            severity=Severity.CRITICAL,
+            file="test_x.py",
+            line=5,
+            message="zero assertions",
+            recommendation="add assert",
+        )
+    ]
+    output = SarifReporter().report(issues)
+    data = json.loads(output)
+    run = data["runs"][0]
+    assert "automationDetails" in run
+    assert run["automationDetails"]["id"] == "test-quality"
+    result = run["results"][0]
+    assert "partialFingerprints" in result
+    assert "primaryLocationLineHash" in result["partialFingerprints"]
+
+
+def test_fingerprint_stable_across_line_shifts() -> None:
+    """Fingerprint does not change when line number shifts."""
+    issue_a = Issue(
+        rule_id="TQA001", rule_type="assertions",
+        severity=Severity.CRITICAL, file="test.py",
+        line=10, message="zero assertions",
+        recommendation="add assert",
+    )
+    issue_b = Issue(
+        rule_id="TQA001", rule_type="assertions",
+        severity=Severity.CRITICAL, file="test.py",
+        line=15, message="zero assertions",
+        recommendation="add assert",
+    )
+    assert issue_a.fingerprint() == issue_b.fingerprint()

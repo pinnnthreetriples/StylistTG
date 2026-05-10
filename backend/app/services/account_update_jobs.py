@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.logging_utils import log_event
-from app.models import AccountState, AssetKind, AssetStatus, Job, JobState, utc_now
+from app.models import Account, AccountState, AssetKind, AssetStatus, Job, JobState, utc_now
 from app.services.account_update_plan import (
     account_update_profile_payload,
     build_account_update_plan,
@@ -35,9 +36,9 @@ def build_account_update_preview(
     session: Session,
     *,
     account_id: str,
-    desired_state: dict,
+    desired_state: dict[str, Any],
     workspace_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
@@ -104,7 +105,7 @@ def create_account_update_job(
     session: Session,
     *,
     account_id: str,
-    desired_state: dict,
+    desired_state: dict[str, Any],
     execution_adapter: ExecutionUsableAdapter | None = None,
     config: Settings = settings,
     requested_by_user_id: str | None = None,
@@ -204,16 +205,17 @@ def _normalize_with_profile_assets(
     session: Session,
     *,
     account_id: str,
-    desired_state: dict,
+    desired_state: dict[str, Any],
     workspace_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     desired_state = normalize_account_update_desired_state(desired_state)
+    profile = cast(dict[str, Any], desired_state["profile"])
     profile_payload = normalize_profile_payload(
         session,
         account_update_profile_payload(desired_state),
         workspace_id=workspace_id,
     )
-    desired_state["profile"]["photo_asset_path"] = profile_payload.get("photo_asset_path")
+    profile["photo_asset_path"] = profile_payload.get("photo_asset_path")
     _validate_profile_audio_asset(
         session,
         account_id=account_id,
@@ -228,10 +230,10 @@ def _validate_profile_audio_asset(
     session: Session,
     *,
     account_id: str,
-    desired_state: dict,
+    desired_state: dict[str, Any],
     workspace_id: str | None = None,
 ) -> None:
-    profile_audio = desired_state.get("profile_audio") or {}
+    profile_audio = cast(dict[str, Any], desired_state.get("profile_audio") or {})
     if profile_audio.get("action") == "remove":
         account = get_account(session, account_id, workspace_id=workspace_id)
         if account and account.profile_audio_state:
@@ -260,8 +262,10 @@ def _profile_audio_title(filename: str | None) -> str:
     return title[:64]
 
 
-def _validate_story_assets(session: Session, desired_state: dict, *, workspace_id: str | None = None) -> None:
-    for story in desired_state.get("stories") or []:
+def _validate_story_assets(
+    session: Session, desired_state: dict[str, Any], *, workspace_id: str | None = None
+) -> None:
+    for story in cast(list[dict[str, Any]], desired_state.get("stories") or []):
         asset = get_asset(session, story.get("asset_id"), workspace_id=workspace_id)
         if asset is None:
             raise ValueError("story asset not found")
@@ -304,21 +308,22 @@ def _preview_blocking_safety_errors(blockers: list[str]) -> list[str]:
     return [blocker for blocker in blockers if blocker not in capability_only_blockers]
 
 
-def _requested_profile_fields(desired_state: dict) -> set[str]:
+def _requested_profile_fields(desired_state: dict[str, Any]) -> set[str]:
     profile = desired_state.get("profile")
     if not isinstance(profile, dict):
         return set()
-    return set(profile)
+    profile_payload = cast(dict[str, Any], profile)
+    return set(profile_payload)
 
 
 def _changed_profile_step_types(
     session: Session,
     *,
-    account,
-    desired_state: dict,
+    account: Account,
+    desired_state: dict[str, Any],
     requested_profile_fields: set[str],
 ) -> set[str]:
-    profile = desired_state.get("profile") or {}
+    profile = cast(dict[str, Any], desired_state.get("profile") or {})
     profile_state = account.profile_state
     steps: set[str] = set()
 

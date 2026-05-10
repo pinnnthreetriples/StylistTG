@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import suppress
+from typing import Any, cast
 
 from redis import Redis
 from rq import SimpleWorker
@@ -22,7 +23,7 @@ def main() -> None:
         raise SystemExit("at least one queue is required")
     for queue_name in queue_names:
         assert_queue_allowed(queue_name)
-    connection = Redis.from_url(settings.redis_url)
+    connection = cast(Redis, cast(Any, Redis).from_url(settings.redis_url))
     queues = [get_queue(queue_name) for queue_name in queue_names]
     worker = SimpleWorker(queues, connection=connection)
     try:

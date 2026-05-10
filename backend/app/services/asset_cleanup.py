@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,9 +15,9 @@ from app.storage.paths import normalize_storage_key
 @dataclass
 class AssetCleanupReport:
     scanned: int = 0
-    deleted: list[str] = field(default_factory=list)
-    skipped: list[str] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
+    deleted: list[str] = field(default_factory=lambda: [])
+    skipped: list[str] = field(default_factory=lambda: [])
+    errors: list[str] = field(default_factory=lambda: [])
 
 
 def cleanup_orphan_asset_directories(
@@ -35,7 +36,7 @@ def cleanup_orphan_asset_directories(
     if not assets_root.exists():
         return report
 
-    known_asset_ids = set(session.execute(select(Asset.id)).scalars().all())
+    known_asset_ids: set[str] = set(session.execute(select(Asset.id)).scalars().all())
     delete_count = 0
     for child in assets_root.iterdir():
         report.scanned += 1
@@ -61,5 +62,5 @@ def cleanup_orphan_asset_directories(
     return report
 
 
-def storage_key(storage: LocalStorageService, path) -> str:
+def storage_key(storage: LocalStorageService, path: Path) -> str:
     return path.resolve().relative_to(storage.root.resolve()).as_posix()

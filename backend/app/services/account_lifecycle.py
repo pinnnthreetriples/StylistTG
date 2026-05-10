@@ -130,7 +130,7 @@ def request_account_deletion(
 
 def list_deletion_requests(session: Session, *, account_id: str, workspace_id: str) -> list[AccountDeletionRequest]:
     _account_or_raise(session, account_id, workspace_id)
-    return (
+    return list(
         session.execute(
             select(AccountDeletionRequest)
             .where(AccountDeletionRequest.workspace_id == workspace_id)
@@ -167,7 +167,11 @@ def execute_account_deletion_request(
         raise ValueError("deletion request not found")
     account = _account_or_raise(session, request.account_id, request.workspace_id)
     if not config.account_deletion_allow_hard_delete:
-        result = {"executed": False, "mode": "dry_run", "reason": "hard_delete_disabled"}
+        result: dict[str, Any] = {
+            "executed": False,
+            "mode": "dry_run",
+            "reason": "hard_delete_disabled",
+        }
         request.execution_result_json = result
         request.status = "approved"
         session.commit()
@@ -186,7 +190,7 @@ def execute_account_deletion_request(
         account.runtime_state.session_present = False
         account.runtime_state.runtime_health = "deleted"
         account.runtime_state.recovery_marker = "account_deletion_completed"
-    result = {
+    result: dict[str, Any] = {
         "executed": True,
         "account_state": "disabled",
         "asset_objects_deleted": deleted_asset_objects,
@@ -258,7 +262,7 @@ def create_account_export_request(
 
 def list_export_requests(session: Session, *, account_id: str, workspace_id: str) -> list[AccountExportRequest]:
     _account_or_raise(session, account_id, workspace_id)
-    return (
+    return list(
         session.execute(
             select(AccountExportRequest)
             .where(AccountExportRequest.workspace_id == workspace_id)
@@ -374,16 +378,16 @@ def _account_or_raise(session: Session, account_id: str, workspace_id: str) -> A
 
 
 def _account_assets(session: Session, account: Account) -> list[Asset]:
-    asset_ids = {
-        account.profile_state.profile_photo_asset_id if account.profile_state else None,
-        account.profile_audio_state.source_asset_id if account.profile_audio_state else None,
-        *(draft.asset_id for draft in account.story_drafts),
-        *(post.asset_id for post in account.story_posts),
-    }
-    asset_ids.discard(None)
+    asset_ids: set[str] = set()
+    if account.profile_state and account.profile_state.profile_photo_asset_id:
+        asset_ids.add(account.profile_state.profile_photo_asset_id)
+    if account.profile_audio_state and account.profile_audio_state.source_asset_id:
+        asset_ids.add(account.profile_audio_state.source_asset_id)
+    asset_ids.update(draft.asset_id for draft in account.story_drafts)
+    asset_ids.update(post.asset_id for post in account.story_posts if post.asset_id)
     if not asset_ids:
         return []
-    return (
+    return list(
         session.execute(
             select(Asset).where(Asset.workspace_id == account.workspace_id).where(Asset.id.in_(asset_ids))
         )
@@ -430,4 +434,5 @@ def _record_lifecycle_event(
 
 
 def _json_safe(payload: dict[str, Any]) -> dict[str, Any]:
-    return json.loads(json.dumps(payload, default=str))
+    result: dict[str, Any] = json.loads(json.dumps(payload, default=str))
+    return result

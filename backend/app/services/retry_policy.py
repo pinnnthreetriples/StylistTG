@@ -12,7 +12,7 @@ class RetryPolicyDecision:
     result_ttl_seconds: int = 86400
     error_category: str = "unknown_transient"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         return {
             "retry": self.retry,
             "max_attempts": self.max_attempts,

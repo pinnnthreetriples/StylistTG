@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from redis import Redis
 from redis.exceptions import RedisError
@@ -28,11 +28,12 @@ def build_runtime_diagnostics() -> dict[str, Any]:
         diagnostics["database"] = "down"
 
     try:
-        Redis.from_url(
+        redis = cast(Redis, cast(Any, Redis).from_url(
             settings.redis_url,
             socket_connect_timeout=1,
             socket_timeout=1,
-        ).ping()
+        ))
+        cast(Any, redis).ping()
         diagnostics["redis"] = "ok"
     except RedisError:
         diagnostics["redis"] = "down"

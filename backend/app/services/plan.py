@@ -12,7 +12,7 @@ def canonical_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def compute_execution_intent_hash(account_id: str, payload: dict[str, Any]) -> str:
-    material = {
+    material: dict[str, Any] = {
         "account_id": account_id,
         "payload": canonical_payload(payload),
         "job_payload_version": 1,
@@ -26,7 +26,7 @@ def build_profile_plan(payload: dict[str, Any]) -> dict[str, Any]:
     name_parts = name.split(maxsplit=1)
     first_name = name_parts[0] if name_parts else ""
     last_name = name_parts[1] if len(name_parts) > 1 else ""
-    step_payloads = {
+    step_payloads: dict[str, dict[str, Any]] = {
         "set_name": {"name": payload.get("name"), "first_name": first_name, "last_name": last_name},
         "set_bio": {"bio": payload.get("bio")},
         "set_username": {"username": payload.get("username")},

@@ -57,7 +57,7 @@ def recent_failure_cooldowns_by_operation(
     *,
     config: Settings = settings,
 ) -> dict[str, list[dict[str, Any]]]:
-    result = {operation: [] for operation in OPERATION_KEYS}
+    result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     steps = _recent_failed_steps(session, account_id)
     for step in steps:
         cooldown = cooldown_from_failed_step(step, config=config)
@@ -88,7 +88,7 @@ def active_cooldowns_by_operation(session: Session, account_id: str, *, now: dat
         .where(AccountOperationCooldown.retry_after_at > now)
         .order_by(AccountOperationCooldown.retry_after_at.desc())
     ).scalars().all()
-    result = {operation: [] for operation in OPERATION_KEYS}
+    result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for row in rows:
         result.setdefault(row.operation, []).append(cooldown_to_dict(row))
     return result
@@ -142,7 +142,7 @@ def product_cooldowns_by_operation(
     now: datetime | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     now = now or datetime.now(UTC)
-    result = {operation: [] for operation in OPERATION_KEYS}
+    result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for step_type, operation in STEP_OPERATION_MAP.items():
         seconds = product_cooldown_seconds(operation, config=config)
         if seconds <= 0:
@@ -174,7 +174,7 @@ def product_cooldowns_by_operation(
 
 
 def merge_cooldowns(*groups: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
-    result = {operation: [] for operation in OPERATION_KEYS}
+    result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for group in groups:
         for operation, cooldowns in group.items():
             result.setdefault(operation, []).extend(cooldowns)
@@ -248,7 +248,7 @@ def _upsert_cooldown(
         .where(AccountOperationCooldown.source_step_id == step.id)
         .limit(1)
     ).scalars().first()
-    payload = {
+    payload: dict[str, Any] = {
         "operation": cooldown["operation"],
         "level": cooldown["level"],
         "reason_code": cooldown["reason_code"],
@@ -256,7 +256,7 @@ def _upsert_cooldown(
         "retry_after_at": cooldown["retry_after_at"],
         "source": cooldown["source"],
         "source_job_id": step.job_id,
-            "source_step_id": step.id,
+        "source_step_id": step.id,
     }
     if existing is None:
         session.add(AccountOperationCooldown(account_id=account_id, **payload))
@@ -266,15 +266,19 @@ def _upsert_cooldown(
 
 
 def _recent_failed_steps(session: Session, account_id: str) -> list[JobStepResult]:
-    return session.execute(
-        select(JobStepResult)
-        .join(Job, Job.id == JobStepResult.job_id)
-        .where(Job.account_id == account_id)
-        .where(JobStepResult.status == StepStatus.FAILED)
-        .where(JobStepResult.error_code.is_not(None))
-        .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
-        .limit(20)
-    ).scalars().all()
+    return list(
+        session.execute(
+            select(JobStepResult)
+            .join(Job, Job.id == JobStepResult.job_id)
+            .where(Job.account_id == account_id)
+            .where(JobStepResult.status == StepStatus.FAILED)
+            .where(JobStepResult.error_code.is_not(None))
+            .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+            .limit(20)
+        )
+        .scalars()
+        .all()
+    )
 
 
 def _latest_succeeded_step(session: Session, account_id: str, step_type: str) -> JobStepResult | None:

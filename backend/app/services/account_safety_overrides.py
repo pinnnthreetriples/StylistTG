@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -29,7 +30,7 @@ def create_safety_override(
     operation: str,
     reason: str,
     requested_blockers: list[str],
-) -> dict:
+) -> dict[str, Any]:
     if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     if operation not in OPERATION_KEYS:
@@ -71,7 +72,7 @@ def active_overrides_by_operation(
     account_id: str,
     *,
     now: datetime | None = None,
-) -> dict[str, list[dict]]:
+) -> dict[str, list[dict[str, Any]]]:
     now = now or datetime.now(UTC)
     rows = session.execute(
         select(AccountSafetyOverride)
@@ -79,13 +80,13 @@ def active_overrides_by_operation(
         .where(AccountSafetyOverride.allowed_until > now)
         .order_by(AccountSafetyOverride.created_at.desc())
     ).scalars().all()
-    result: dict[str, list[dict]] = {}
+    result: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         result.setdefault(row.operation, []).append(safety_override_to_dict(row))
     return result
 
 
-def safety_override_to_dict(row: AccountSafetyOverride) -> dict:
+def safety_override_to_dict(row: AccountSafetyOverride) -> dict[str, Any]:
     return {
         "id": row.id,
         "account_id": row.account_id,

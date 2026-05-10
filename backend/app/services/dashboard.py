@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy.orm import Session
 
 from app.logging_utils import log_event, log_warn
@@ -11,7 +13,7 @@ from app.services.profile_audio_state import profile_audio_state_payload
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
 from app.services.story_posts import list_story_posts, story_post_payload
 
-def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict:
+def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict[str, Any]:
     account = get_account_dashboard_bundle(session, account_id, workspace_id=workspace_id)
     if account is None:
         log_warn("dashboard_account_not_found", account_id=account_id)
@@ -80,14 +82,15 @@ def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: 
     }
 
 
-def job_summary(job: Job) -> dict:
+def job_summary(job: Job) -> dict[str, Any]:
+    plan_steps = cast(list[dict[str, Any]], job.plan_json_snapshot.get("steps", []))
     return {
         "job_id": job.id,
         "job_state": job.job_state,
         "workflow_type": job.workflow_type,
         "workflow_version": job.workflow_version,
         "execution_intent_hash": job.execution_intent_hash,
-        "plan_summary": [step["step_key"] for step in job.plan_json_snapshot.get("steps", [])],
+        "plan_summary": [step["step_key"] for step in plan_steps],
         "created_at": job.queued_at,
         "dedup_blocked_by_job_id": job.dedup_blocked_by_job_id,
         "message": (

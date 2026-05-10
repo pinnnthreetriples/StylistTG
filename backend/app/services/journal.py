@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +20,7 @@ def mark_job_running(
     return True
 
 
-def record_step_started(session: Session, job: Job, event: dict) -> JobStepResult:
+def record_step_started(session: Session, job: Job, event: dict[str, Any]) -> JobStepResult:
     plan_step = _plan_step(job, event["step_key"])
     step = JobStepResult(
         job_id=job.id,
@@ -46,14 +48,14 @@ def _latest_step(session: Session, job_id: str, step_key: str) -> JobStepResult 
     return session.execute(statement).scalars().first()
 
 
-def _plan_step(job: Job, step_key: str) -> dict | None:
-    for step in job.plan_json_snapshot.get("steps", []):
+def _plan_step(job: Job, step_key: str) -> dict[str, Any] | None:
+    for step in cast(list[dict[str, Any]], job.plan_json_snapshot.get("steps", [])):
         if step.get("step_key") == step_key:
             return step
     return None
 
 
-def record_step_succeeded(session: Session, job: Job, event: dict) -> None:
+def record_step_succeeded(session: Session, job: Job, event: dict[str, Any]) -> None:
     step = _latest_step(session, job.id, event["step_key"])
     if step is None:
         step = record_step_started(session, job, event)
@@ -65,7 +67,7 @@ def record_step_succeeded(session: Session, job: Job, event: dict) -> None:
     session.commit()
 
 
-def record_step_failed(session: Session, job: Job, event: dict) -> None:
+def record_step_failed(session: Session, job: Job, event: dict[str, Any]) -> None:
     step = _latest_step(session, job.id, event["step_key"])
     if step is None:
         step = record_step_started(session, job, event)
@@ -77,7 +79,7 @@ def record_step_failed(session: Session, job: Job, event: dict) -> None:
     session.commit()
 
 
-def record_step_uncertain(session: Session, job: Job, event: dict) -> None:
+def record_step_uncertain(session: Session, job: Job, event: dict[str, Any]) -> None:
     step = _latest_step(session, job.id, event["step_key"])
     if step is None:
         step = record_step_started(session, job, event)

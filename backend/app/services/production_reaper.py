@@ -17,7 +17,7 @@ class ReaperReport:
     deleted_objects: int
     destructive_actions_enabled: bool
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         return {
             "mode": self.mode,
             "expired_export_requests": self.expired_export_requests,

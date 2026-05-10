@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.services.accounts import get_account
 
 
 class ExecutionUsableAdapter(Protocol):
-    def inspect_runtime(self, account_id: str) -> dict: ...
+    def inspect_runtime(self, account_id: str) -> dict[str, Any]: ...
 
 
 @dataclass(frozen=True)
@@ -54,5 +54,5 @@ def ensure_execution_usable(
         account=account,
         runtime_state=runtime,
         ok=bool(inspection["ok"]),
-        error=inspection.get("error"),
+        error=cast(str | None, inspection.get("error")),
     )

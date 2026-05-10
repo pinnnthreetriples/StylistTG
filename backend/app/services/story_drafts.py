@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,7 +10,7 @@ from app.services.accounts import get_account
 from app.services.assets import get_asset
 
 
-def create_story_draft(session: Session, payload: dict, *, workspace_id: str | None = None) -> AccountStoryDraft:
+def create_story_draft(session: Session, payload: dict[str, Any], *, workspace_id: str | None = None) -> AccountStoryDraft:
     account = get_account(session, payload["account_id"], workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
@@ -32,14 +34,14 @@ def create_story_draft(session: Session, payload: dict, *, workspace_id: str | N
 def update_story_draft(
     session: Session,
     draft_id: str,
-    payload: dict,
+    payload: dict[str, Any],
     *,
     workspace_id: str | None = None,
 ) -> AccountStoryDraft:
     draft = _get_story_draft(session, draft_id, workspace_id=workspace_id)
     if draft is None:
         raise ValueError("story draft not found")
-    next_payload = {
+    next_payload: dict[str, Any] = {
         "account_id": draft.account_id,
         "asset_id": draft.asset_id,
         "media_kind": draft.media_kind,
@@ -100,7 +102,7 @@ def list_story_drafts(session: Session, account_id: str, *, workspace_id: str | 
     return list(session.execute(statement).scalars().all())
 
 
-def _validate_payload(session: Session, payload: dict, *, workspace_id: str | None = None) -> None:
+def _validate_payload(session: Session, payload: dict[str, Any], *, workspace_id: str | None = None) -> None:
     media_kind = payload.get("media_kind")
     if media_kind not in {"image", "video"}:
         raise ValueError("unsupported story media_kind")

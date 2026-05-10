@@ -9,7 +9,7 @@ from app.config import settings
 from app.db import get_session
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.schemas import AssetRead
-from app.models import AssetKind
+from app.models import Asset, AssetKind
 from app.services.asset_storage import asset_normalized_storage_key, get_asset_signed_url
 from app.services.assets import (
     get_asset,
@@ -18,7 +18,7 @@ from app.services.assets import (
     save_story_image_asset,
     save_story_video_asset,
 )
-from app.storage import LocalStorageService, build_storage_service
+from app.storage import LocalStorageService, StorageService, build_storage_service
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
 STORAGE_ROOT = Path(settings.storage_root)
@@ -159,7 +159,7 @@ def get_asset_signed_url_endpoint(
     asset_id: str,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
-):
+) -> dict[str, str | int]:
     asset = get_asset(session, asset_id)
     if asset is None or asset.workspace_id != auth.workspace_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset not found")
@@ -197,7 +197,7 @@ async def _read_upload_limited(file: UploadFile, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
-def _asset_upload_error(message: str) -> dict:
+def _asset_upload_error(message: str) -> dict[str, str]:
     if message == "profile audio must be MP3 or M4A":
         return {
             "error_code": "PROFILE_AUDIO_UNSUPPORTED_FORMAT",
@@ -211,11 +211,11 @@ def _asset_upload_error(message: str) -> dict:
     }
 
 
-def _asset_storage():
+def _asset_storage() -> StorageService:
     if settings.storage_backend == "local":
         return LocalStorageService(STORAGE_ROOT, public_base_url=settings.storage_public_base_url)
     return build_storage_service(settings)
 
 
-def _asset_media_type(asset) -> str:
+def _asset_media_type(asset: Asset) -> str:
     return "image/jpeg" if asset.kind == AssetKind.PROFILE_PHOTO else asset.mime

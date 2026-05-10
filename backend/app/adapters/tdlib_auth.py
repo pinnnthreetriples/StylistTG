@@ -8,13 +8,15 @@ import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Any, Callable, Protocol, TypeAlias, cast
 
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 from app.storage.paths import resolve_tdlib_account_dirs
+
+JsonDict: TypeAlias = dict[str, Any]
 
 
 class TdlibAuthStatus(StrEnum):
@@ -48,11 +50,11 @@ class TdlibClient(Protocol):
     @property
     def client_id(self) -> int: ...
 
-    def send(self, query: dict) -> None: ...
+    def send(self, query: JsonDict) -> None: ...
 
-    def receive(self, timeout_seconds: float) -> dict | None: ...
+    def receive(self, timeout_seconds: float) -> JsonDict | None: ...
 
-    def send_query(self, query: dict, timeout_seconds: float) -> dict: ...
+    def send_query(self, query: JsonDict, timeout_seconds: float) -> JsonDict: ...
 
     def close(self) -> None: ...
 
@@ -66,29 +68,32 @@ class RealTdJsonClient:
         self._library = library
         self._client = library.td_json_client_create()
         self._closed = False
-        self._pending_events: list[dict] = []
+        self._pending_events: list[JsonDict] = []
 
     @property
     def client_id(self) -> int:
         return 0
 
-    def send(self, query: dict) -> None:
+    def send(self, query: JsonDict) -> None:
         self._library.td_json_client_send(
             self._client, json.dumps(query).encode("utf-8")
         )
 
-    def receive(self, timeout_seconds: float) -> dict | None:
+    def receive(self, timeout_seconds: float) -> JsonDict | None:
         if self._pending_events:
             return self._pending_events.pop(0)
         return self._receive_raw(timeout_seconds)
 
-    def _receive_raw(self, timeout_seconds: float) -> dict | None:
+    def _receive_raw(self, timeout_seconds: float) -> JsonDict | None:
         raw = self._library.td_json_client_receive(self._client, timeout_seconds)
         if not raw:
             return None
-        return json.loads(ctypes.cast(raw, ctypes.c_char_p).value.decode("utf-8"))
+        raw_value = ctypes.cast(raw, ctypes.c_char_p).value
+        if raw_value is None:
+            return None
+        return cast(JsonDict, json.loads(raw_value.decode("utf-8")))
 
-    def send_query(self, query: dict, timeout_seconds: float) -> dict:
+    def send_query(self, query: JsonDict, timeout_seconds: float) -> JsonDict:
         extra = str(uuid.uuid4())
         self.send({**query, "@extra": extra})
         deadline = time.monotonic() + timeout_seconds
@@ -282,7 +287,7 @@ def normalize_phone_number(phone_number: str) -> str:
     return normalized
 
 
-def map_authorization_state(state: dict) -> TdlibAuthResult:
+def map_authorization_state(state: JsonDict) -> TdlibAuthResult:
     state_type = state.get("@type")
     if state_type == "authorizationStateWaitTdlibParameters":
         return TdlibAuthResult(
@@ -372,7 +377,7 @@ def map_authorization_state(state: dict) -> TdlibAuthResult:
     )
 
 
-def map_tdlib_error(error: dict) -> TdlibAuthResult:
+def map_tdlib_error(error: JsonDict) -> TdlibAuthResult:
     message = str(error.get("message") or "TDLib error")
     upper_message = message.upper()
     if "FROZEN" in upper_message:
@@ -430,11 +435,12 @@ def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
     )
 
 
-def _extract_authorization_state(event: dict | None) -> dict | None:
+def _extract_authorization_state(event: JsonDict | None) -> JsonDict | None:
     if not event:
         return None
     if event.get("@type") == "updateAuthorizationState":
-        return event.get("authorization_state")
+        state = event.get("authorization_state")
+        return cast(JsonDict, state) if isinstance(state, dict) else None
     if event.get("@type", "").startswith("authorizationState"):
         return event
     return None
@@ -442,7 +448,7 @@ def _extract_authorization_state(event: dict | None) -> dict | None:
 
 def _receive_client_event(
     client: TdlibClient, timeout_seconds: float
-) -> dict | None:
+) -> JsonDict | None:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         remaining = max(deadline - time.monotonic(), 0.0)
@@ -455,7 +461,7 @@ def _receive_client_event(
     return None
 
 
-def _tdlib_parameters_query(config: Settings, account_id: str) -> dict:
+def _tdlib_parameters_query(config: Settings, account_id: str) -> JsonDict:
     dirs = resolve_tdlib_account_dirs(config, account_id)
     return {
         "@type": "setTdlibParameters",

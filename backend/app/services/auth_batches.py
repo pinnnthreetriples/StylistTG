@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -43,7 +44,7 @@ class PhoneInput:
 
 
 class EmptyAuthBatchError(ValueError):
-    def __init__(self, validation: dict) -> None:
+    def __init__(self, validation: dict[str, Any]) -> None:
         super().__init__("No new Telegram accounts to add. Check existing accounts, duplicates, and invalid numbers.")
         self.validation = validation
 
@@ -53,12 +54,12 @@ def validate_batch_phones(
     inputs: list[PhoneInput],
     *,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
-) -> dict:
-    valid_items: list[dict] = []
-    invalid_items: list[dict] = []
-    duplicates: list[dict] = []
-    existing_accounts: list[dict] = []
-    active_batch_conflicts: list[dict] = []
+) -> dict[str, Any]:
+    valid_items: list[dict[str, Any]] = []
+    invalid_items: list[dict[str, Any]] = []
+    duplicates: list[dict[str, Any]] = []
+    existing_accounts: list[dict[str, Any]] = []
+    active_batch_conflicts: list[dict[str, Any]] = []
     seen: set[str] = set()
 
     for position, item in enumerate(inputs):
@@ -71,7 +72,7 @@ def validate_batch_phones(
             )
             continue
 
-        row = {"phone_number": normalized, "label": item.label, "position": position}
+        row: dict[str, Any] = {"phone_number": normalized, "label": item.label, "position": position}
         if normalized in seen:
             duplicates.append({**row, "account_id": None, "batch_item_id": None})
             continue
@@ -135,7 +136,7 @@ def create_auth_batch(
         return existing, False
 
     validation = validate_batch_phones(session, inputs, workspace_id=workspace_id)
-    valid_items = validation["valid_items"]
+    valid_items = cast(list[dict[str, Any]], validation["valid_items"])
     if not valid_items:
         raise EmptyAuthBatchError(validation)
     check_workspace_limit(session, workspace_id, "batch_size", requested=len(valid_items))
@@ -317,7 +318,7 @@ def save_idempotency_result(
     key: str,
     operation: str,
     entity_id: str,
-    response_json: dict,
+    response_json: dict[str, Any],
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     ttl_seconds: int = 600,
 ) -> None:
@@ -340,7 +341,7 @@ def get_idempotency_result(
     operation: str,
     entity_id: str | None = None,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
-) -> dict | None:
+) -> dict[str, Any] | None:
     row = session.get(IdempotencyKey, {"workspace_id": workspace_id, "key": key})
     if row is None:
         return None
@@ -352,7 +353,7 @@ def get_idempotency_result(
         raise ValueError("idempotency key belongs to another operation")
     if entity_id is not None and row.entity_id != entity_id:
         raise ValueError("idempotency key belongs to another entity")
-    return row.response_json
+    return cast(dict[str, Any], row.response_json)
 
 
 def _as_aware_utc(value: datetime) -> datetime:

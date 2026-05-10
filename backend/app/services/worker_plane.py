@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from redis import Redis
 from redis.exceptions import RedisError
@@ -43,7 +43,7 @@ class QueueDescriptor:
     purpose: str
     live_execution_default: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "purpose": self.purpose,
@@ -69,7 +69,7 @@ def queue_descriptors() -> list[QueueDescriptor]:
     ]
 
 
-def worker_diagnostics(config: Settings = settings) -> dict:
+def worker_diagnostics(config: Settings = settings) -> dict[str, Any]:
     tdlib_live_enabled = bool(config.tdlib_live_enabled)
     runtime = detect_tdlib_runtime(config)
     session_root_configured = bool(config.tdlib_database_root and config.tdlib_files_root)
@@ -116,13 +116,13 @@ def worker_diagnostics(config: Settings = settings) -> dict:
 def _redis_queue_snapshot(config: Settings) -> dict[str, Any]:
     queue_names = [descriptor.name for descriptor in queue_descriptors()]
     try:
-        connection = Redis.from_url(
+        connection = cast(Redis, cast(Any, Redis).from_url(
             config.redis_url,
             socket_connect_timeout=0.2,
             socket_timeout=0.2,
-        )
-        connection.ping()
-        workers = Worker.all(connection=connection)
+        ))
+        cast(Any, connection).ping()
+        workers = cast(list[Any], cast(Any, Worker).all(connection=connection))
         return {
             "status": "ok",
             "worker_count": len(workers),
@@ -175,7 +175,7 @@ def _oldest_job_age_seconds(queue: Queue, connection: Redis) -> int | None:
     if not job_ids:
         return None
     try:
-        job = Job.fetch(job_ids[0], connection=connection)
+        job = cast(Job, cast(Any, Job).fetch(job_ids[0], connection=connection))
     except NoSuchJobError:
         return None
     if job.enqueued_at is None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from app.config import Settings, settings
 from app.services.tdlib_runtime import detect_tdlib_runtime
@@ -8,10 +9,10 @@ from app.services.worker_plane import PRODUCTION_QUEUE_NAMES
 
 
 def build_frontend_diagnostics_summary(
-    runtime: dict[str, str],
+    runtime: dict[str, Any],
     *,
     config: Settings = settings,
-) -> dict:
+) -> dict[str, Any]:
     storage_backend = config.storage_backend
     bucket_configured = bool(config.storage_s3_bucket) if storage_backend == "s3" else bool(config.storage_root)
     signed_url_enabled = storage_backend == "s3"

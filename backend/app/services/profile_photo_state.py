@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,13 +23,15 @@ def latest_applied_profile_photo_asset_id(session: Session, account_id: str) -> 
     payload = session.execute(statement).scalars().first()
     if not isinstance(payload, dict):
         return None
-    return _extract_photo_asset_id(payload)
+    return _extract_photo_asset_id(cast(dict[str, Any], payload))
 
 
 def _extract_photo_asset_id(payload: dict[str, Any]) -> str | None:
     applied = payload.get("applied")
-    if isinstance(applied, dict) and isinstance(applied.get("photo_asset_id"), str):
-        return applied["photo_asset_id"]
+    if isinstance(applied, dict):
+        applied_payload = cast(dict[str, Any], applied)
+        if isinstance(applied_payload.get("photo_asset_id"), str):
+            return applied_payload["photo_asset_id"]
     if isinstance(payload.get("photo_asset_id"), str):
         return payload["photo_asset_id"]
     return None

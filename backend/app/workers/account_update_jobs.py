@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.models import JobState, StepStatus, TERMINAL_JOB_STATES
+from app.models import Job, JobState, StepStatus, TERMINAL_JOB_STATES
 from app.services.jobs import get_job
 from app.services.operation_logs import log_operation
 from app.services.profile_audio_state import clear_profile_audio_state, upsert_profile_audio_state
@@ -56,7 +58,7 @@ def run_account_update_job(job_id: str) -> int:
     return execute_account_update_job(job_id)
 
 
-def _materialize_profile_audio(session: Session, job) -> None:
+def _materialize_profile_audio(session: Session, job: Job) -> None:
     if job.workflow_type != "account_update":
         return
     if job.job_state not in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED}:
@@ -64,9 +66,10 @@ def _materialize_profile_audio(session: Session, job) -> None:
     for step in job.step_results:
         if step.status != StepStatus.SUCCEEDED:
             continue
-        payload = step.result_payload_json or {}
-        if step.step_type == "add_profile_audio" and isinstance(payload.get("profile_audio"), dict):
-            audio = payload["profile_audio"]
+        payload = cast(dict[str, Any], step.result_payload_json or {})
+        profile_audio = payload.get("profile_audio")
+        if step.step_type == "add_profile_audio" and isinstance(profile_audio, dict):
+            audio = cast(dict[str, Any], profile_audio)
             upsert_profile_audio_state(
                 session,
                 account_id=job.account_id,
@@ -83,7 +86,7 @@ def _materialize_profile_audio(session: Session, job) -> None:
             clear_profile_audio_state(session, account_id=job.account_id)
 
 
-def _materialize_story_posts(session: Session, job) -> None:
+def _materialize_story_posts(session: Session, job: Job) -> None:
     if job.workflow_type != "account_update":
         return
     if job.job_state not in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED}:
@@ -91,16 +94,17 @@ def _materialize_story_posts(session: Session, job) -> None:
     for step in job.step_results:
         if step.status != StepStatus.SUCCEEDED:
             continue
-        payload = step.result_payload_json or {}
+        payload = cast(dict[str, Any], step.result_payload_json or {})
         story = payload.get("story_post")
         if isinstance(story, dict):
+            story_payload = cast(dict[str, Any], story)
             create_story_post_from_result(
                 session,
                 account_id=job.account_id,
                 job_id=job.id,
                 step_key=step.step_key,
-                story=story,
+                story=story_payload,
             )
-            asset_id = story.get("asset_id")
+            asset_id = story_payload.get("asset_id")
             if isinstance(asset_id, str):
                 delete_story_drafts_for_asset(session, account_id=job.account_id, asset_id=asset_id)

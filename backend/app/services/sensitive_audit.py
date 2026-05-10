@@ -69,7 +69,7 @@ def list_sensitive_audit_events(
         .all()
     )
     total = len(session.execute(statement).scalars().all())
-    return rows, total
+    return list(rows), total
 
 
 def audit_event_to_dict(event: SensitiveAuditEvent) -> dict[str, Any]:

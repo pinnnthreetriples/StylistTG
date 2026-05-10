@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+from typing import Any
 
 from app.config import Settings, settings
 
@@ -18,7 +19,7 @@ class TdlibRuntimeStatus:
     readonly_smoke_available: bool
     error_code: str | None = None
 
-    def to_safe_dict(self) -> dict:
+    def to_safe_dict(self) -> dict[str, Any]:
         return {
             "configured": self.configured,
             "library_configured": self.library_configured,

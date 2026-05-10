@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from sqlalchemy import select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -104,7 +106,7 @@ def claim_account_runtime_lock(
     owner: str,
     now: datetime,
 ) -> bool:
-    result = session.execute(
+    result = cast(CursorResult[Any], session.execute(
         update(AccountRuntimeState)
         .where(
             AccountRuntimeState.account_id == account_id,
@@ -117,7 +119,7 @@ def claim_account_runtime_lock(
             updated_at=now,
         )
         .execution_options(synchronize_session=False)
-    )
+    ))
     return bool(result.rowcount)
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ def create_profile_job(
     session: Session,
     *,
     account_id: str,
-    payload: dict,
+    payload: dict[str, Any],
     execution_adapter: ExecutionUsableAdapter | None = None,
     config: Settings = settings,
     requested_by_user_id: str | None = None,
@@ -133,7 +134,9 @@ def delete_job(session: Session, job_id: str) -> None:
     session.commit()
 
 
-def normalize_profile_payload(session: Session, payload: dict, *, workspace_id: str | None = None) -> dict:
+def normalize_profile_payload(
+    session: Session, payload: dict[str, Any], *, workspace_id: str | None = None
+) -> dict[str, Any]:
     normalized_payload = dict(payload)
     _validate_profile_asset(session, normalized_payload, workspace_id=workspace_id)
     return normalized_payload
@@ -166,9 +169,9 @@ def build_profile_job_preview(
     session: Session,
     *,
     account_id: str,
-    payload: dict,
+    payload: dict[str, Any],
     workspace_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
@@ -200,8 +203,8 @@ def build_profile_job_preview(
     }
 
 
-def build_job_detail(job: Job) -> dict:
-    plan_steps = job.plan_json_snapshot.get("steps", [])
+def build_job_detail(job: Job) -> dict[str, Any]:
+    plan_steps = cast(list[dict[str, Any]], job.plan_json_snapshot.get("steps", []))
     counts = {status: 0 for status in ("planned", "started", "succeeded", "failed", "uncertain", "skipped")}
     for step_result in job.step_results:
         counts[step_result.status] += 1
@@ -220,10 +223,10 @@ def build_job_detail(job: Job) -> dict:
     }
 
 
-def build_job_steps(job: Job) -> list[dict]:
+def build_job_steps(job: Job) -> list[dict[str, Any]]:
     step_results_by_key = {step.step_key: step for step in job.step_results}
-    ordered_steps: list[dict] = []
-    for step in job.plan_json_snapshot.get("steps", []):
+    ordered_steps: list[dict[str, Any]] = []
+    for step in cast(list[dict[str, Any]], job.plan_json_snapshot.get("steps", [])):
         result = step_results_by_key.get(step["step_key"])
         if result is None:
             continue
@@ -245,7 +248,9 @@ def build_job_steps(job: Job) -> list[dict]:
     return ordered_steps
 
 
-def _validate_profile_asset(session: Session, payload: dict, *, workspace_id: str | None = None) -> None:
+def _validate_profile_asset(
+    session: Session, payload: dict[str, Any], *, workspace_id: str | None = None
+) -> None:
     asset_id = payload.get("photo_asset_id")
     if not asset_id:
         return

@@ -12,7 +12,14 @@ router = APIRouter(prefix="/api/workers", tags=["workers"])
 
 @router.get("/queues", response_model=list[QueueDescriptorRead])
 def get_worker_queues(_auth: AuthContext = Depends(require_authenticated)):
-    return [QueueDescriptorRead(**descriptor.to_dict()) for descriptor in queue_descriptors()]
+    return [
+        QueueDescriptorRead(
+            name=descriptor.name,
+            purpose=descriptor.purpose,
+            live_execution_default=descriptor.live_execution_default,
+        )
+        for descriptor in queue_descriptors()
+    ]
 
 
 @router.get("/diagnostics", response_model=WorkerDiagnosticsRead)
@@ -23,7 +30,14 @@ def get_worker_diagnostics(_auth: AuthContext = Depends(require_role("admin"))):
 @router.get("/job-policies", response_model=dict[str, RetryPolicyRead])
 def get_job_policies(_auth: AuthContext = Depends(require_authenticated)):
     return {
-        category: RetryPolicyRead(**retry_policy_for(category).to_dict())
+        category: RetryPolicyRead(
+            retry=policy.retry,
+            max_attempts=policy.max_attempts,
+            interval_seconds=policy.interval_seconds,
+            failure_ttl_seconds=policy.failure_ttl_seconds,
+            result_ttl_seconds=policy.result_ttl_seconds,
+            error_category=policy.error_category,
+        )
         for category in (
             "flood_wait",
             "auth_required",
@@ -32,4 +46,5 @@ def get_job_policies(_auth: AuthContext = Depends(require_authenticated)):
             "validation_error",
             "unknown_transient",
         )
+        for policy in (retry_policy_for(category),)
     }

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from redis import Redis
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from typing import Any, cast
 
 from app.config import settings
 from app.db import get_session
@@ -29,6 +30,9 @@ from app.schemas import (
     WarmupSessionRead,
     WarmupSessionStatusRead,
     WarmupSessionSummaryRead,
+    WarmupExecutionModeRead,
+    WarmupPresetKindRead,
+    WarmupStatusRead,
     WarmupStrategyRead,
     WarmupValidateRead,
     WarmupValidateRequest,
@@ -111,8 +115,8 @@ def get_warmup_strategies(
             name=strategy.name,
             description=strategy.description,
             is_preset=strategy.is_preset,
-            preset_kind=strategy.preset_kind,
-            execution_mode=strategy.execution_mode,
+            preset_kind=WarmupPresetKindRead(strategy.preset_kind),
+            execution_mode=WarmupExecutionModeRead(strategy.execution_mode),
             duration_days=strategy.duration_days,
             daily_action_limits=strategy.daily_action_limits_json or {},
             session_window_config=strategy.session_window_config_json or {},
@@ -216,7 +220,7 @@ def get_warmup_session_status(
     except ValueError as exc:
         raise _not_found(exc) from exc
     return WarmupSessionStatusRead(
-        status=warmup_session.status,
+        status=WarmupStatusRead(warmup_session.status),
         current_day=warmup_session.current_day,
         next_step_at=warmup_session.next_step_at,
         next_attempt_at=warmup_session.next_attempt_at,
@@ -363,9 +367,9 @@ def get_warmup_isolation_status(
 
 def _redis_connected() -> bool:
     try:
-        client = Redis.from_url(settings.redis_url, socket_connect_timeout=0.2)
+        client = cast(Redis, cast(Any, Redis).from_url(settings.redis_url, socket_connect_timeout=0.2))
         try:
-            return bool(client.ping())
+            return bool(cast(Any, client).ping())
         finally:
             client.close()
     except Exception:
@@ -378,8 +382,8 @@ def _session_read(warmup_session: WarmupSession) -> WarmupSessionRead:
         account_id=warmup_session.account_id,
         strategy_id=warmup_session.strategy_id,
         strategy_name=warmup_session.strategy.name,
-        status=warmup_session.status,
-        execution_mode=warmup_session.execution_mode,
+        status=WarmupStatusRead(warmup_session.status),
+        execution_mode=WarmupExecutionModeRead(warmup_session.execution_mode),
         duration_days=warmup_session.duration_days,
         current_day=warmup_session.current_day,
         cadence_hours=warmup_session.cadence_hours,
@@ -408,8 +412,8 @@ def _session_summary(warmup_session: WarmupSession) -> WarmupSessionSummaryRead:
         account_id=warmup_session.account_id,
         account_label=warmup_session.account.external_ref,
         strategy_name=warmup_session.strategy.name,
-        status=warmup_session.status,
-        execution_mode=warmup_session.execution_mode,
+        status=WarmupStatusRead(warmup_session.status),
+        execution_mode=WarmupExecutionModeRead(warmup_session.execution_mode),
         duration_days=warmup_session.duration_days,
         current_day=warmup_session.current_day,
         cadence_hours=warmup_session.cadence_hours,

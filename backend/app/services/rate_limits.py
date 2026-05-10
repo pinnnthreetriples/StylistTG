@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 from redis import Redis
 from redis.exceptions import RedisError
@@ -15,7 +16,7 @@ class RateLimitDecision:
     retry_after_seconds: int | None = None
     remaining: int | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         return {
             "allowed": self.allowed,
             "reason": self.reason,
@@ -36,7 +37,7 @@ def evaluate_tenant_rate_limit(
     limit = _limit_for(action_type, queue_name=queue_name, config=config)
     key = _key(workspace_id=workspace_id, action_type=action_type, account_id=account_id, queue_name=queue_name)
     try:
-        pipeline = redis.pipeline()
+        pipeline = cast(Any, redis).pipeline()
         pipeline.incr(key)
         pipeline.expire(key, 3600, nx=True)
         pipeline.ttl(key)

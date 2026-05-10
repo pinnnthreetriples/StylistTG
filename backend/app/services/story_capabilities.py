@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from typing import Any
 
 from app.config import Settings, settings
 from app.services.accounts import get_account
@@ -13,7 +14,7 @@ def build_story_capabilities(
     *,
     workspace_id: str | None = None,
     config: Settings = settings,
-) -> dict:
+) -> dict[str, Any]:
     account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")

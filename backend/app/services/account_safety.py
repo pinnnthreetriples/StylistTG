@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -104,7 +104,7 @@ def safety_preview_fields_with_policy(
     warnings = [reason["code"] for reason in safety["reasons"] if reason["severity"] != "blocked"]
     desired_operations = _desired_operations(desired_state)
 
-    profile_audio = desired_state.get("profile_audio") or {}
+    profile_audio = cast(dict[str, Any], desired_state.get("profile_audio") or {})
     if profile_audio.get("action") in {"add", "remove"} and safety["capabilities"]["profile_music"]["state"] == "unknown":
         _add_by_unknown_capability_policy("music_capability_not_checked", blockers, warnings, config=config)
     if desired_state.get("stories") and safety["capabilities"]["story_post"]["state"] == "blocked":
@@ -138,17 +138,17 @@ def safety_preview_fields_with_policy(
 
 def _desired_operations(desired_state: dict[str, Any]) -> set[str]:
     operations: set[str] = set()
-    profile = desired_state.get("profile") or {}
+    profile = cast(dict[str, Any], desired_state.get("profile") or {})
     if any(profile.get(key) is not None for key in ("name", "bio")):
         operations.add("profile_update")
     if profile.get("username") is not None:
         operations.add("username")
     if desired_state.get("profile_photo"):
         operations.add("profile_photo")
-    profile_audio = desired_state.get("profile_audio") or {}
+    profile_audio = cast(dict[str, Any], desired_state.get("profile_audio") or {})
     if profile_audio.get("action") in {"add", "remove"}:
         operations.add("profile_music")
-    stories = desired_state.get("stories") or []
+    stories = cast(list[dict[str, Any]], desired_state.get("stories") or [])
     if stories:
         operations.add("story_post")
     return operations
@@ -206,7 +206,7 @@ def _apply_active_overrides(
     warnings: list[str],
     operation_safety: list[dict[str, Any]],
 ) -> tuple[list[str], list[str], list[dict[str, Any]]]:
-    overrides_by_operation = safety.get("active_overrides_by_operation") or {}
+    overrides_by_operation = cast(dict[str, list[dict[str, Any]]], safety.get("active_overrides_by_operation") or {})
     if not overrides_by_operation:
         return blockers, warnings, operation_safety
     remaining_blockers = list(blockers)
@@ -222,7 +222,7 @@ def _apply_active_overrides(
         if operation not in desired_operations or not override_codes:
             next_operation_safety.append(item)
             continue
-        item_blockers = []
+        item_blockers: list[str] = []
         item_warnings = list(item["warnings"])
         for code in item["blockers"]:
             if code in override_codes and code not in NON_OVERRIDABLE_BLOCKERS:
@@ -354,8 +354,8 @@ def _validity_status_from_check(check: dict[str, Any] | None) -> str:
         return "db_snapshot"
     if check.get("status") == "running":
         return "db_snapshot"
-    result = check.get("result") or {}
-    if isinstance(result, dict) and result.get("validity_status"):
+    result = cast(dict[str, Any], check.get("result") or {})
+    if result.get("validity_status"):
         return str(result["validity_status"])
     return str(check["status"])
 

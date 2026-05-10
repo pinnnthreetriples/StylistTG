@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from sqlalchemy import create_engine, text
 
@@ -59,7 +59,7 @@ class LivePreflightService:
 
     def _check_database(self) -> bool:
         try:
-            connect_args = {}
+            connect_args: dict[str, Any] = {}
             if self.database_url.startswith("postgresql"):
                 connect_args["connect_timeout"] = 3
             engine = create_engine(self.database_url, future=True, connect_args=connect_args)

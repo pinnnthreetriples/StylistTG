@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.models import (
     AuthBatch,
     AuthBatchEvent,
@@ -72,7 +74,7 @@ def transition_batch(
     new_status: str,
     *,
     actor: str = "system",
-    payload: dict | None = None,
+    payload: dict[str, Any] | None = None,
 ) -> None:
     if new_status == batch.status:
         return
@@ -100,7 +102,7 @@ def transition_item(
     new_status: str,
     *,
     actor: str = "system",
-    payload: dict | None = None,
+    payload: dict[str, Any] | None = None,
 ) -> None:
     if new_status == item.status:
         return

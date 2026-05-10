@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol, TypeAlias
 
 from app.config import Settings, settings
 from app.db import SessionLocal
@@ -9,9 +9,11 @@ from app.models import AccountProxy
 from app.services.operation_logs import log_operation
 from app.services.proxy_accounts import decrypt_proxy_password
 
+JsonDict: TypeAlias = dict[str, Any]
+
 
 class TdlibProxyClient(Protocol):
-    def send_query(self, query: dict, timeout_seconds: float) -> dict: ...
+    def send_query(self, query: JsonDict, timeout_seconds: float) -> JsonDict: ...
 
 
 @dataclass(frozen=True)
@@ -79,7 +81,7 @@ def apply_account_proxy_to_tdlib(
         raise
 
 
-def _add_proxy_query(proxy: TdlibProxySettings) -> dict:
+def _add_proxy_query(proxy: TdlibProxySettings) -> JsonDict:
     return {
         "@type": "addProxy",
         "server": proxy.host,
@@ -89,8 +91,8 @@ def _add_proxy_query(proxy: TdlibProxySettings) -> dict:
     }
 
 
-def _proxy_type_query(proxy: TdlibProxySettings) -> dict:
-    credentials = {
+def _proxy_type_query(proxy: TdlibProxySettings) -> JsonDict:
+    credentials: JsonDict = {
         "username": proxy.username or "",
         "password": proxy.password or "",
     }

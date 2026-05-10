@@ -211,7 +211,7 @@ def _latest_job(session: Session, account_id: str) -> Job | None:
     return session.execute(
         select(Job)
         .where(Job.account_id == account_id)
-        .order_by(Job.created_at.desc() if hasattr(Job, "created_at") else Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
+        .order_by(Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
         .limit(1)
     ).scalars().first()
 

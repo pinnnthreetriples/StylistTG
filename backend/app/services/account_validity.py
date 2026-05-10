@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ SUPPORTED_MODES = {"db_snapshot", "tdlib_readonly", "full_capability"}
 class ReadOnlyAccountValidityAdapter(Protocol):
     def check_account(self, account_id: str) -> dict[str, Any]:
         """Return read-only account validity data without Telegram write actions."""
+        ...
 
 
 def run_account_validity_check(
@@ -66,6 +67,7 @@ def run_account_validity_check(
     try:
         readonly_result: dict[str, Any] | None = None
         if mode != "db_snapshot":
+            assert adapter is not None
             readonly_result = adapter.check_account(account_id)
             _apply_readonly_result(session, account_id, readonly_result)
         ensure_cooldowns_from_recent_failures(session, account_id)
@@ -87,7 +89,7 @@ def run_account_validity_check(
             severity="info",
             source="account_validity",
             message="Account validity check completed",
-            metadata={"validity_status": run.result_json.get("validity_status")},
+            metadata={"validity_status": cast(dict[str, Any], run.result_json).get("validity_status")},
         )
         session.commit()
         session.refresh(run)
@@ -166,7 +168,7 @@ def validity_check_run_to_dict(run: AccountValidityCheckRun) -> dict[str, Any]:
 def _upsert_safety_snapshot(session: Session, safety: dict[str, Any]) -> None:
     snapshot = session.get(AccountSafetySnapshot, safety["account_id"])
     now = datetime.now(UTC)
-    payload = {
+    payload: dict[str, Any] = {
         "health_status": safety["health_status"],
         "overall_risk_level": safety["overall_risk_level"],
         "validity_status": safety["validity_status"],
@@ -199,7 +201,7 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
             runtime.session_present = True
             runtime.authorized_last_confirmed_at = datetime.now(UTC)
         account.telegram_user_id = result.get("telegram_user_id") or account.telegram_user_id
-        profile = result.get("profile") or {}
+        profile = cast(dict[str, Any], result.get("profile") or {})
         if profile:
             if account.profile_state is None:
                 account.profile_state = AccountProfileState(account_id=account.id)
@@ -241,7 +243,9 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, list):
-        return [_json_safe(item) for item in value]
+        items = cast(list[object], value)
+        return [_json_safe(item) for item in items]
     if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
+        items = cast(dict[object, object], value)
+        return {key: _json_safe(item) for key, item in items.items()}
     return value

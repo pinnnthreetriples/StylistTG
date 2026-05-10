@@ -2,7 +2,12 @@ import os
 
 import pytest
 
-from app.adapters.tdlib_auth import TdlibAuthAdapter, build_tdlib_auth_adapter
+from app.adapters.tdlib_auth import (
+    RealTdJsonClientFactory,
+    TdlibAuthAdapter,
+    UnavailableTdlibClientFactory,
+    build_tdlib_auth_adapter,
+)
 from app.adapters.tdlib_profile_execution import (
     TdlibProfileExecutionAdapter,
     classify_job_outcome,
@@ -800,12 +805,15 @@ def test_profile_adapter_create_failure_yields_runtime_failed(tmp_path) -> None:
 
 @pytest.mark.integration
 @pytest.mark.live
-def test_real_tdlib_adapter_can_be_constructed_when_credentials_exist() -> None:
+def test_real_tdlib_adapter_uses_real_client_factory_when_credentials_exist() -> None:
     if not os.getenv("TDLIB_API_ID") or not os.getenv("TDLIB_API_HASH"):
         pytest.skip("Set TDLIB_API_ID and TDLIB_API_HASH to run real TDLib integration tests")
 
     adapter = build_tdlib_auth_adapter()
 
     assert isinstance(adapter, TdlibAuthAdapter)
-    assert adapter._config.tdlib_api_id is not None
-    assert adapter._config.tdlib_api_hash is not None
+    assert isinstance(adapter._client_factory, RealTdJsonClientFactory), (
+        f"expected RealTdJsonClientFactory but got {type(adapter._client_factory).__name__}; "
+        "tdjson shared library may not be loadable"
+    )
+    assert not isinstance(adapter._client_factory, UnavailableTdlibClientFactory)

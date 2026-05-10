@@ -31,7 +31,7 @@ def test_text_provider_generate_bio_is_deterministic() -> None:
     b = provider.generate_bio(seed="account-123")
     assert a == b
     c = provider.generate_bio(seed="account-OTHER")
-    assert c.rendered == c.rendered  # smoke
+    assert c.rendered  # smoke: non-empty for different seed
     # Разные seed -> ожидаем шанс отличия (не гарантия, но 1/5 шаблонов — слишком мало);
     # проверяем, что результат стабилен при одинаковом seed.
 

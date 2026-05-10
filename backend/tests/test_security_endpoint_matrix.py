@@ -14,6 +14,7 @@ Each entry is:
 from __future__ import annotations
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app.db import Base
@@ -63,6 +64,137 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
 
 ROLE_ORDER = {"viewer": 0, "operator": 1, "admin": 2, "owner": 3}
 ALL_ROLES = ["viewer", "operator", "admin", "owner"]
+
+# Routes explicitly exempt from the RBAC matrix.  Auth coverage for these
+# is verified separately in test_security_regressions.py.  When adding a
+# new route, either add an ENDPOINT_MATRIX entry or append here with a
+# comment explaining why RBAC parametrization is not applicable.
+RBAC_EXEMPT: set[tuple[str, str]] = {
+    # Health / infra (no auth required by design)
+    ("GET", "/health"),
+    ("GET", "/ready"),
+    # Object-level endpoints — require real entity IDs, tested in
+    # test_workspace_isolation_matrix / test_tenant_helpers / contract tests
+    ("GET", "/api/accounts/{account_id}"),
+    ("DELETE", "/api/accounts/{account_id}"),
+    ("GET", "/api/accounts/{account_id}/safety"),
+    ("POST", "/api/accounts/{account_id}/safety-overrides"),
+    ("GET", "/api/accounts/{account_id}/cooldowns"),
+    ("GET", "/api/accounts/{account_id}/risk"),
+    ("GET", "/api/accounts/{account_id}/action-gate"),
+    ("GET", "/api/accounts/{account_id}/auth-state"),
+    ("GET", "/api/accounts/{account_id}/runtime-diagnostics"),
+    ("POST", "/api/accounts/{account_id}/refresh-runtime"),
+    ("GET", "/api/accounts/{account_id}/jobs"),
+    ("GET", "/api/accounts/{account_id}/jobs/latest"),
+    ("GET", "/api/accounts/{account_id}/operation-logs"),
+    ("GET", "/api/accounts/{account_id}/audit-events"),
+    ("GET", "/api/accounts/{account_id}/deletion-preview"),
+    ("POST", "/api/accounts/{account_id}/deletion-requests"),
+    ("GET", "/api/accounts/{account_id}/deletion-requests"),
+    ("GET", "/api/accounts/{account_id}/deletion-requests/{request_id}"),
+    ("POST", "/api/accounts/{account_id}/export-requests"),
+    ("GET", "/api/accounts/{account_id}/export-requests"),
+    ("GET", "/api/accounts/{account_id}/export-requests/{request_id}"),
+    ("GET", "/api/accounts/{account_id}/proxy"),
+    ("PUT", "/api/accounts/{account_id}/proxy"),
+    ("DELETE", "/api/accounts/{account_id}/proxy"),
+    ("POST", "/api/accounts/{account_id}/proxy/check"),
+    ("POST", "/api/accounts/{account_id}/validity-check"),
+    ("GET", "/api/accounts/{account_id}/validity-checks"),
+    ("POST", "/api/accounts/{account_id}/reauth-sessions"),
+    # Bulk / collection endpoints without path params
+    ("GET", "/api/accounts/auth-state"),
+    ("GET", "/api/accounts/jobs"),
+    ("GET", "/api/accounts/jobs/latest"),
+    ("GET", "/api/accounts/risk-summary"),
+    ("GET", "/api/accounts/safety-summary"),
+    ("POST", "/api/accounts/safety-batch-preview"),
+    ("GET", "/api/accounts/proxy-summary"),
+    ("GET", "/api/accounts/runtime-diagnostics"),
+    ("POST", "/api/accounts/refresh-runtime"),
+    ("POST", "/api/accounts/auth-sessions"),
+    ("GET", "/api/accounts/auth-sessions"),
+    ("GET", "/api/accounts/auth-sessions/{auth_session_id}"),
+    ("POST", "/api/accounts/auth-sessions/{auth_session_id}/cancel"),
+    ("POST", "/api/accounts/auth-sessions/{auth_session_id}/code"),
+    ("POST", "/api/accounts/auth-sessions/{auth_session_id}/password"),
+    # Account import sub-routes
+    ("GET", "/api/account-import-batches/{batch_id}"),
+    ("POST", "/api/account-import-batches/{batch_id}/validate"),
+    ("POST", "/api/account-import-batches/{batch_id}/confirm"),
+    # Account update
+    ("POST", "/api/account-update/preview"),
+    ("POST", "/api/account-update/jobs"),
+    # Auth batches — sub-routes
+    ("POST", "/api/auth-batches/validate-phones"),
+    ("GET", "/api/auth-batches/{batch_id}"),
+    ("POST", "/api/auth-batches/{batch_id}/start"),
+    ("POST", "/api/auth-batches/{batch_id}/cancel"),
+    ("POST", "/api/auth-batches/{batch_id}/pause"),
+    ("POST", "/api/auth-batches/{batch_id}/resume"),
+    ("GET", "/api/auth-batches/{batch_id}/poll"),
+    ("GET", "/api/auth-batches/{batch_id}/events"),
+    ("POST", "/api/auth-batches/{batch_id}/items/{item_id}/submit-code"),
+    ("POST", "/api/auth-batches/{batch_id}/items/{item_id}/submit-2fa"),
+    ("POST", "/api/auth-batches/{batch_id}/items/{item_id}/cancel"),
+    ("POST", "/api/auth-batches/{batch_id}/items/{item_id}/retry"),
+    ("POST", "/api/auth-batches/{batch_id}/items/{item_id}/request-new-code"),
+    # Auth OTP/password — special auth flows, not role-gated
+    ("POST", "/api/auth/otp/start"),
+    ("POST", "/api/auth/otp/confirm"),
+    ("POST", "/api/auth/password"),
+    # Assets — workspace-scoped, tested in isolation matrix
+    ("POST", "/api/assets/profile-photo"),
+    ("POST", "/api/assets/profile-audio"),
+    ("POST", "/api/assets/story-image"),
+    ("POST", "/api/assets/story-video"),
+    ("GET", "/api/assets/{asset_id}"),
+    ("GET", "/api/assets/{asset_id}/content"),
+    ("GET", "/api/assets/{asset_id}/signed-url"),
+    # Dashboard
+    ("GET", "/api/dashboard/profile"),
+    ("GET", "/api/dashboard/profile/{account_id}"),
+    # Jobs
+    ("POST", "/api/jobs/profile"),
+    ("POST", "/api/jobs/profile/preview"),
+    ("GET", "/api/jobs/policies"),
+    ("GET", "/api/jobs/{job_id}"),
+    ("DELETE", "/api/jobs/{job_id}"),
+    ("POST", "/api/jobs/{job_id}/cancel"),
+    ("GET", "/api/jobs/{job_id}/steps"),
+    # Audit / operation logs
+    ("GET", "/api/audit/events"),
+    ("GET", "/api/operation-logs"),
+    # Story drafts — sub-routes
+    ("GET", "/api/story-drafts"),
+    ("PATCH", "/api/story-drafts/{draft_id}"),
+    ("DELETE", "/api/story-drafts/{draft_id}"),
+    # Story capabilities / posts
+    ("GET", "/api/story-capabilities"),
+    ("GET", "/api/story-capabilities/{account_id}"),
+    ("DELETE", "/api/story-posts/{story_post_id}"),
+    # TDLib runtime
+    ("GET", "/api/tdlib/runtime"),
+    # Warmup
+    ("GET", "/api/warmup/readiness"),
+    ("POST", "/api/warmup/validate"),
+    ("GET", "/api/warmup/strategies"),
+    ("POST", "/api/warmup/sessions"),
+    ("GET", "/api/warmup/sessions"),
+    ("GET", "/api/warmup/sessions/{session_id}"),
+    ("DELETE", "/api/warmup/sessions/{session_id}"),
+    ("GET", "/api/warmup/sessions/{session_id}/events"),
+    ("GET", "/api/warmup/sessions/{session_id}/status"),
+    ("PUT", "/api/warmup/sessions/{session_id}/pause"),
+    ("PUT", "/api/warmup/sessions/{session_id}/resume"),
+    ("GET", "/api/warmup/isolation/by-account/{account_id}"),
+    # Workers — sub-routes
+    ("GET", "/api/workers/job-policies"),
+    ("GET", "/api/workers/queues"),
+    # Diagnostics — sub-routes
+    ("GET", "/diagnostics/frontend-summary"),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -222,3 +354,31 @@ class TestAdminAccess:
             )
         finally:
             app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# RBAC coverage completeness
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.security
+class TestRbacCoverageCompleteness:
+    """Every APIRoute must be in ENDPOINT_MATRIX or RBAC_EXEMPT."""
+
+    def test_all_routes_accounted_for(self):
+        matrix_paths = {(m, p) for m, p, _r, _mut in ENDPOINT_MATRIX}
+        known = matrix_paths | RBAC_EXEMPT
+
+        missing: list[str] = []
+        for route in app.routes:
+            if not isinstance(route, APIRoute):
+                continue
+            for method in sorted(route.methods or []):
+                key = (method, route.path)
+                if key not in known:
+                    missing.append(f"{method} {route.path}")
+
+        assert missing == [], (
+            "Routes not covered by ENDPOINT_MATRIX or RBAC_EXEMPT — "
+            "add each to one of the two lists:\n  " + "\n  ".join(sorted(missing))
+        )

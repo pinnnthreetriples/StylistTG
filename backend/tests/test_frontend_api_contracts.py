@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db import Base
@@ -28,6 +29,13 @@ from conftest import (
 )
 from tests.helpers.app import app_client
 from tests.helpers.factories import make_session
+
+
+@pytest.fixture(autouse=True)
+def _clear_overrides():
+    """Guarantee dependency_overrides are cleaned up after every test."""
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:

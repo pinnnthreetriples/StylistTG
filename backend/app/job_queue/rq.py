@@ -52,6 +52,7 @@ __all__ = [
     "get_auth_queue",
     "get_profile_queue",
     "get_queue",
+    "is_job_in_redis",
     "reenqueue_job_with_delay",
     "remove_job_from_queue",
 ]
@@ -162,12 +163,37 @@ def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action
 def reenqueue_job_with_delay(job_id: str, *, delay_seconds: int, workflow_type: str | None = None) -> bool:
     queue = get_profile_queue()
     func = run_account_update_job if workflow_type == "account_update" else run_profile_job
+    retry_job_id = f"retry-{job_id}"
     try:
-        queue.enqueue_in(timedelta(seconds=delay_seconds), func, job_id)
+        _cancel_existing_job(queue, retry_job_id)
+        queue.enqueue_in(timedelta(seconds=delay_seconds), func, job_id, job_id=retry_job_id)
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False
     return True
+
+
+def is_job_in_redis(job_id: str) -> bool:
+    """Check if a DB job is present in any active Redis state (queued/deferred/started)."""
+    queue = get_profile_queue()
+    active_statuses = {"queued", "deferred", "started", "scheduled"}
+    for check_id in (job_id, f"retry-{job_id}"):
+        try:
+            rq_job = Job.fetch(check_id, connection=queue.connection)
+            status = rq_job.get_status()
+            if status in active_statuses:
+                return True
+        except NoSuchJobError:
+            continue
+    return False
+
+
+def _cancel_existing_job(queue: Queue, rq_job_id: str) -> None:
+    try:
+        existing = Job.fetch(rq_job_id, connection=queue.connection)
+        existing.delete()
+    except NoSuchJobError:
+        pass
 
 
 def _log_enqueue_failure(queue_name: str, job_id: str, error_class: str) -> None:

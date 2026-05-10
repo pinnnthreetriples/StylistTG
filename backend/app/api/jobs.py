@@ -36,7 +36,14 @@ router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 @router.get("/policies", response_model=dict[str, RetryPolicyRead])
 def get_job_policies(_auth: AuthContext = Depends(require_authenticated)):
     return {
-        category: RetryPolicyRead(**retry_policy_for(category).to_dict())
+        category: RetryPolicyRead(
+            retry=policy.retry,
+            max_attempts=policy.max_attempts,
+            interval_seconds=policy.interval_seconds,
+            failure_ttl_seconds=policy.failure_ttl_seconds,
+            result_ttl_seconds=policy.result_ttl_seconds,
+            error_category=policy.error_category,
+        )
         for category in (
             "flood_wait",
             "auth_required",
@@ -45,6 +52,7 @@ def get_job_policies(_auth: AuthContext = Depends(require_authenticated)):
             "validation_error",
             "unknown_transient",
         )
+        for policy in (retry_policy_for(category),)
     }
 
 
@@ -67,7 +75,7 @@ def preview_profile_job(
         message = str(exc)
         error_code = "ACCOUNT_NOT_FOUND" if message == "account not found" else "VALIDATION_ERROR"
         error_class = "not_found" if message == "account not found" else "validation"
-        field_errors = []
+        field_errors: list[dict[str, str]] = []
         if "asset" in message:
             field_errors.append({"field": "photo_asset_id", "message": message})
         raise AppError(
@@ -108,7 +116,7 @@ def post_profile_job(
         message = str(exc)
         error_code = "ACCOUNT_NOT_FOUND" if message == "account not found" else "VALIDATION_ERROR"
         error_class = "not_found" if message == "account not found" else "validation"
-        field_errors = []
+        field_errors: list[dict[str, str]] = []
         if "asset" in message:
             field_errors.append({"field": "photo_asset_id", "message": message})
         if "execution_usable" in message:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from app.services.tdlib_client import TdlibJsonClient, safe_tdlib_error_message
 
@@ -56,7 +56,7 @@ class TdlibAuthStateMachine:
         if update_type == "error":
             return _error_transition(update)
         if update_type == "updateAuthorizationState":
-            state = update.get("authorization_state") or {}
+            state = cast(dict[str, Any], update.get("authorization_state") or {})
             return _auth_state_transition(state)
         if update_type == "user":
             return TdlibAuthTransition(status="ready", me=update)

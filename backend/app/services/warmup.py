@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -330,11 +330,12 @@ def _sanitize_event_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if key.lower() in SENSITIVE_EVENT_KEYS:
             sanitized[key] = "[redacted]"
         elif isinstance(value, dict):
-            sanitized[key] = _sanitize_event_payload(value)
+            sanitized[key] = _sanitize_event_payload(cast(dict[str, Any], value))
         elif isinstance(value, list):
+            items = cast(list[object], value)
             sanitized[key] = [
-                _sanitize_event_payload(item) if isinstance(item, dict) else item
-                for item in value
+                _sanitize_event_payload(cast(dict[str, Any], item)) if isinstance(item, dict) else item
+                for item in items
             ]
         else:
             sanitized[key] = value

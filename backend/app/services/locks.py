@@ -4,10 +4,12 @@ from datetime import timedelta
 from contextlib import contextmanager
 from dataclasses import dataclass
 import uuid
+from typing import Any, cast
 
 from redis import Redis
 from redis.exceptions import RedisError
 from sqlalchemy import or_, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -91,7 +93,7 @@ def account_redis_lock(
 def acquire_account_lock(session: Session, account_id: str, owner: str) -> int | None:
     now = utc_now()
     stale_cutoff = now - timedelta(seconds=settings.lock_stale_seconds)
-    result = session.execute(
+    result = cast(CursorResult[Any], session.execute(
         update(AccountRuntimeState)
         .where(AccountRuntimeState.account_id == account_id)
         .where(
@@ -107,7 +109,7 @@ def acquire_account_lock(session: Session, account_id: str, owner: str) -> int |
             recovery_marker=f"lock_acquired:{owner}",
             updated_at=now,
         )
-    )
+    ))
     if result.rowcount != 1:
         session.rollback()
         return None

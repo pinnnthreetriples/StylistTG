@@ -69,7 +69,7 @@ def build_risk_by_operation(
     for operation, cooldowns in (cooldowns_by_operation or {}).items():
         for cooldown in cooldowns:
             level = "blocked" if cooldown["level"] == "blocked" else "medium"
-            reason = {
+            reason: dict[str, Any] = {
                 "code": cooldown["reason_code"],
                 "severity": level,
                 "source": cooldown["source"],

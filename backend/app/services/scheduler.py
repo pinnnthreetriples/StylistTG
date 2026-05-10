@@ -12,7 +12,7 @@ class SchedulerReport:
     planned_queues: list[str]
     destructive_actions_enabled: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         return {
             "enabled": self.enabled,
             "mode": self.mode,

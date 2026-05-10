@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import socket
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
@@ -17,10 +17,11 @@ from app.services.proxy_accounts import proxy_to_dict
 class ProxyConnectivityChecker(Protocol):
     def check(self, proxy: AccountProxy) -> tuple[bool, str | None, str | None]:
         """Return ok, error_code, error_message for a technical proxy connectivity check."""
+        ...
 
 
 class TdlibProxyChecker(Protocol):
-    def check_account(self, account_id: str) -> dict: ...
+    def check_account(self, account_id: str) -> dict[str, Any]: ...
 
 
 class TcpProxyConnectivityChecker:
@@ -49,7 +50,7 @@ def check_account_proxy(
     tdlib_checker: TdlibProxyChecker | None = None,
     config: Settings = settings,
     workspace_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     proxy = session.get(AccountProxy, account_id)

@@ -92,13 +92,14 @@ def validate_warmup_readiness(
     if account is not None:
         proxy = session.get(AccountProxy, account.id)
         proxy_ok = proxy is None or proxy.status in {"unknown", "tcp_working", "tdlib_working"}
+        proxy_status = proxy.status if proxy is not None else None
         checks.append(
             _check(
                 key="proxy_status",
                 label="Proxy без критичных диагностических ошибок",
                 passed=proxy_ok,
                 severity=WarmupCheckSeverityRead.WARNING,
-                detail=None if proxy_ok else f"Proxy требует внимания: {proxy.status}",
+                detail=None if proxy_ok else f"Proxy требует внимания: {proxy_status}",
             )
         )
 

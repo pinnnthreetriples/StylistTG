@@ -126,7 +126,7 @@ def _account_update_error(exc: ValueError) -> AppError:
     message = str(exc)
     error_code = "ACCOUNT_NOT_FOUND" if message == "account not found" else "VALIDATION_ERROR"
     error_class = "not_found" if message == "account not found" else "validation"
-    field_errors = []
+    field_errors: list[dict[str, str]] = []
     if "story" in message and "asset" in message:
         error_code = "STORY_ASSET_NOT_READY"
         field_errors.append({"field": "stories", "message": message})

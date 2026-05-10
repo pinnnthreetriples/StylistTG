@@ -9,12 +9,13 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import AccountState, JobState, TERMINAL_JOB_STATES, utc_now
+from app.models import Account, AccountState, Job, JobState, TERMINAL_JOB_STATES, utc_now
 from app.adapters.tdlib_profile_execution import classify_job_outcome
 from app.logging_utils import log_event
 from app.services.journal import (
@@ -115,10 +116,11 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             stdout_lines.put(None)
 
         def read_stderr() -> None:
-            if getattr(process, "stderr", None) is None:
+            stderr = process.stderr
+            if stderr is None:
                 stderr_lines.put(None)
                 return
-            for output_line in process.stderr:
+            for output_line in stderr:
                 stderr_lines.put(output_line)
             stderr_lines.put(None)
 
@@ -137,7 +139,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             if line is None:
                 break
             try:
-                event = json.loads(line)
+                event = cast(dict[str, Any], json.loads(line))
             except json.JSONDecodeError:
                 mark_terminal(
                     session,
@@ -338,8 +340,8 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
 
 def _mark_child_process_timeout(
     session: Session,
-    job,
-    process: subprocess.Popen,
+    job: Job,
+    process: subprocess.Popen[str],
     owner: str,
     lock_epoch: int,
     *,
@@ -397,8 +399,8 @@ def run_profile_job(job_id: str) -> int:
     return execute_profile_job(job_id)
 
 
-def _classify_terminal_job_outcome(job) -> JobState:
-    step_results = [
+def _classify_terminal_job_outcome(job: Job) -> JobState:
+    step_results: list[dict[str, Any]] = [
         {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
         for step in job.step_results
     ]
@@ -428,7 +430,7 @@ def _is_tdlib_hard_stop_error(error_code: str | None) -> bool:
     return is_hard_stop_error(error_code)
 
 
-def _mark_account_hard_stopped(session: Session, account, error_code: str) -> None:
+def _mark_account_hard_stopped(session: Session, account: Account, error_code: str) -> None:
     marker = f"tdlib_hard_stop:{error_code.upper()}"
     account.account_state = AccountState.MANUAL_INTERVENTION_NEEDED
     account.runtime_state.runtime_health = "manual_intervention_needed"

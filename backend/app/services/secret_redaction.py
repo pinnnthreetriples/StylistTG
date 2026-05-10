@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 SENSITIVE_FRAGMENTS = (
     "password",
@@ -20,13 +21,15 @@ SENSITIVE_FRAGMENTS = (
 
 
 def redact_metadata(value: Any) -> Any:
-    if isinstance(value, dict):
-        result: dict[str, Any] = {}
-        for key, item in value.items():
+    if isinstance(value, Mapping):
+        mapping = cast(Mapping[object, object], value)
+        result: dict[object, Any] = {}
+        for key, item in mapping.items():
             result[key] = "***" if is_sensitive_key(key) else redact_metadata(item)
         return result
     if isinstance(value, list):
-        return [redact_metadata(item) for item in value]
+        items = cast(list[object], value)
+        return [redact_metadata(item) for item in items]
     if isinstance(value, str):
         return redact_text(value)
     return value

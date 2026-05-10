@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ def create_story_post_from_result(
 
     now = utc_now()
     active_period = int(story.get("active_period_seconds") or 86400)
-    raw_tdlib_json = story.get("raw_tdlib_json") if isinstance(story.get("raw_tdlib_json"), dict) else {}
+    raw_tdlib_json = cast(dict[str, Any], story.get("raw_tdlib_json")) if isinstance(story.get("raw_tdlib_json"), dict) else {}
     post = AccountStoryPost(
         account_id=account_id,
         job_id=job_id,

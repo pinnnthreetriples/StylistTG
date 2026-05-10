@@ -4,7 +4,7 @@ import base64
 import json
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from urllib.request import urlopen
 from urllib.error import URLError
 
@@ -64,7 +64,7 @@ class SupabaseJwtVerifier:
             raise _auth_error("JWT_ISSUER_INVALID", "JWT issuer is invalid")
         if self.audience:
             audience = payload.get("aud")
-            audiences = audience if isinstance(audience, list) else [audience]
+            audiences: list[object] = cast(list[object], audience) if isinstance(audience, list) else [audience]
             if self.audience not in audiences:
                 raise _auth_error("JWT_AUDIENCE_INVALID", "JWT audience is invalid")
         if not payload.get("sub"):

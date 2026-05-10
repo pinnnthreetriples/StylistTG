@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, cast
 
 PROFILE_STEP_TYPES = ("set_name", "set_bio", "set_username", "set_profile_photo")
 WORKFLOW_TYPE = "account_update"
@@ -27,10 +27,10 @@ def profile_payload_to_account_update_desired_state(payload: dict[str, Any]) -> 
 
 
 def normalize_account_update_desired_state(desired_state: dict[str, Any]) -> dict[str, Any]:
-    stories = desired_state.get("stories") or []
+    stories = cast(list[dict[str, Any]], desired_state.get("stories") or [])
 
-    profile = desired_state.get("profile") or {}
-    profile_audio = desired_state.get("profile_audio") or {}
+    profile = cast(dict[str, Any], desired_state.get("profile") or {})
+    profile_audio = cast(dict[str, Any], desired_state.get("profile_audio") or {})
     audio_action = profile_audio.get("action") or "keep"
     if audio_action not in {"keep", "add", "remove"}:
         raise ValueError("unsupported profile_audio action")
@@ -38,7 +38,7 @@ def normalize_account_update_desired_state(desired_state: dict[str, Any]) -> dic
         raise ValueError("profile_audio audio_asset_id is required")
     normalized_stories = [_normalize_story(index, story) for index, story in enumerate(stories)]
 
-    normalized = {
+    normalized: dict[str, Any] = {
         "profile": {
             "name": profile.get("name"),
             "bio": profile.get("bio"),
@@ -77,7 +77,7 @@ def _normalize_story(index: int, story: dict[str, Any]) -> dict[str, Any]:
     active_period_seconds = int(story.get("active_period_seconds") or 86400)
     if active_period_seconds != 86400:
         raise ValueError("only 24h story active period is supported before live capability check")
-    normalized = {
+    normalized: dict[str, Any] = {
         "client_id": story.get("client_id") or f"story-{index + 1}",
         "action": action,
         "asset_id": story.get("asset_id"),
@@ -118,7 +118,7 @@ def canonical_account_update_desired_state(desired_state: dict[str, Any]) -> dic
 
 
 def compute_account_update_intent_hash(account_id: str, desired_state: dict[str, Any]) -> str:
-    material = {
+    material: dict[str, Any] = {
         "account_id": account_id,
         "workflow_type": WORKFLOW_TYPE,
         "workflow_version": WORKFLOW_VERSION,
@@ -135,14 +135,14 @@ def build_account_update_plan(
     profile_step_types: set[str] | None = None,
 ) -> dict[str, Any]:
     normalized = normalize_account_update_desired_state(desired_state)
-    profile = normalized["profile"]
-    profile_audio = normalized["profile_audio"]
+    profile = cast(dict[str, Any], normalized["profile"])
+    profile_audio = cast(dict[str, Any], normalized["profile_audio"])
     selected_profile_step_types = set(PROFILE_STEP_TYPES) if profile_step_types is None else profile_step_types
     name = profile.get("name") or ""
     name_parts = name.split(maxsplit=1)
     first_name = name_parts[0] if name_parts else ""
     last_name = name_parts[1] if len(name_parts) > 1 else ""
-    step_payloads = {
+    step_payloads: dict[str, dict[str, Any]] = {
         "set_name": {"name": profile.get("name"), "first_name": first_name, "last_name": last_name},
         "set_bio": {"bio": profile.get("bio")},
         "set_username": {"username": profile.get("username")},
@@ -163,7 +163,7 @@ def build_account_update_plan(
         "set_username": "manual_only",
         "set_profile_photo": "manual_only",
     }
-    steps = []
+    steps: list[dict[str, Any]] = []
     for step_type in PROFILE_STEP_TYPES:
         if step_type not in selected_profile_step_types:
             continue
@@ -230,9 +230,9 @@ def build_account_update_plan(
             }
         )
 
-    for story_index, story in enumerate(normalized["stories"], start=1):
+    for story_index, story in enumerate(cast(list[dict[str, Any]], normalized["stories"]), start=1):
         prefix = f"story_{story_index}"
-        base_payload = {
+        base_payload: dict[str, Any] = {
             "client_id": story["client_id"],
             "asset_id": story["asset_id"],
             "asset_path": story.get("asset_path"),

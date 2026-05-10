@@ -19,7 +19,7 @@ import hashlib
 import random
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, time, timedelta
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
@@ -142,9 +142,8 @@ def _process_one_dispatch(
     text_provider: WarmupTextProvider,
 ) -> bool:
     if _is_in_quiet_hours(now, warmup_session.timezone):
-        warmup_session.next_micro_session_at = _next_quiet_hours_end(
-            now, warmup_session.timezone
-        )
+        quiet_hours_end = _next_quiet_hours_end(now, warmup_session.timezone)
+        warmup_session.next_micro_session_at = quiet_hours_end
         warmup_session.updated_at = now
         write_warmup_event(
             session,
@@ -152,7 +151,7 @@ def _process_one_dispatch(
             "task_skipped",
             {
                 "reason": "quiet_hours",
-                "reschedule_at": warmup_session.next_micro_session_at.isoformat(),
+                "reschedule_at": quiet_hours_end.isoformat(),
             },
         )
         session.flush()
@@ -442,7 +441,7 @@ class _ActionContextResolution:
 
     context: dict[str, Any]
     skip_reason: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=lambda: {})
 
 
 def _resolve_action_context(
@@ -617,30 +616,32 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
     only for backward compatibility with legacy strategies that may have
     used 0-based keys — it will never match for correctly-seeded data.
     """
-    limits = warmup_session.strategy.daily_action_limits_json or {}
+    limits = cast(dict[str, Any], warmup_session.strategy.daily_action_limits_json or {})
     raw = limits.get(str(warmup_session.current_day + 1)) or limits.get(
         str(warmup_session.current_day)
     )
     if not isinstance(raw, dict):
         return {}
     plan: dict[str, int] = {}
-    for key, value in raw.items():
+    raw_items = cast(dict[object, object], raw)
+    for key, value in raw_items.items():
         try:
-            plan[str(key)] = max(0, int(value))
+            plan[str(key)] = max(0, int(cast(Any, value)))
         except (TypeError, ValueError):
             continue
     return plan
 
 
 def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:
-    counters = warmup_session.daily_counters_json or {}
+    counters = cast(dict[str, Any], warmup_session.daily_counters_json or {})
     raw = counters.get(str(warmup_session.current_day))
     if not isinstance(raw, dict):
         return {}
     out: dict[str, int] = {}
-    for key, value in raw.items():
+    raw_items = cast(dict[object, object], raw)
+    for key, value in raw_items.items():
         try:
-            out[str(key)] = max(0, int(value))
+            out[str(key)] = max(0, int(cast(Any, value)))
         except (TypeError, ValueError):
             continue
     return out

@@ -88,7 +88,7 @@ def record_p2p_contact(
     sender_account_id: str,
     receiver_account_id: str,
     now: datetime | None = None,
-) -> dict[str, int]:
+) -> dict[str, int | None]:
     """Атомарно увеличивает `current_contacts` для receiver и (опц.) sender.
 
     Sender инкрементируется только если он сам числится в trusted pool —

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 
 SENSITIVE_TDLIB_KEYS = {"code", "password", "api_hash", "database_directory", "files_directory"}
@@ -37,7 +37,7 @@ def redact_tdlib_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if key in SENSITIVE_TDLIB_KEYS:
             redacted[key] = "[redacted]"
         elif isinstance(value, dict):
-            redacted[key] = redact_tdlib_payload(value)
+            redacted[key] = redact_tdlib_payload(cast(dict[str, Any], value))
         else:
             redacted[key] = value
     return redacted

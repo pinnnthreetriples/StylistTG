@@ -2068,8 +2068,11 @@ export interface components {
             failure_code: string | null;
             /** Failure Message */
             failure_message: string | null;
-            /** Items */
-            items?: components["schemas"]["AccountImportItemRead"][];
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["AccountImportItemRead"][];
         };
         /** AccountImportBatchValidate */
         AccountImportBatchValidate: {
@@ -2226,8 +2229,11 @@ export interface components {
             warnings?: string[];
             /** Blockers */
             blockers?: string[];
-            /** Cooldowns */
-            cooldowns?: components["schemas"]["AccountOperationCooldownRead"][];
+            /**
+             * Cooldowns
+             * @default []
+             */
+            cooldowns: components["schemas"]["AccountOperationCooldownRead"][];
             /**
              * Can Override
              * @default false
@@ -2390,8 +2396,11 @@ export interface components {
             runtime_unhealthy: number;
             /** Proxy Problem */
             proxy_problem: number;
-            /** Items */
-            items?: components["schemas"]["AccountReadinessRiskRead"][];
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["AccountReadinessRiskRead"][];
             /**
              * Computed At
              * Format: date-time
@@ -2487,8 +2496,11 @@ export interface components {
             capability_summary: {
                 [key: string]: string;
             };
-            /** Cooldown Summary */
-            cooldown_summary?: components["schemas"]["AccountOperationCooldownRead"][];
+            /**
+             * Cooldown Summary
+             * @default []
+             */
+            cooldown_summary: components["schemas"]["AccountOperationCooldownRead"][];
             /** Top Reasons */
             top_reasons: components["schemas"]["AccountSafetyReasonRead"][];
             /**
@@ -2546,8 +2558,11 @@ export interface components {
             capability_summary: {
                 [key: string]: string;
             };
-            /** Cooldown Summary */
-            cooldown_summary?: components["schemas"]["AccountOperationCooldownRead"][];
+            /**
+             * Cooldown Summary
+             * @default []
+             */
+            cooldown_summary: components["schemas"]["AccountOperationCooldownRead"][];
             /** Top Reasons */
             top_reasons: components["schemas"]["AccountSafetyReasonRead"][];
             /**
@@ -2642,8 +2657,11 @@ export interface components {
             safety_warnings?: string[];
             /** Safety Blockers */
             safety_blockers?: string[];
-            /** Operation Safety */
-            operation_safety?: components["schemas"]["AccountOperationSafetyRead"][];
+            /**
+             * Operation Safety
+             * @default []
+             */
+            operation_safety: components["schemas"]["AccountOperationSafetyRead"][];
         };
         /** AccountUpdateProfileAudioDesiredState */
         AccountUpdateProfileAudioDesiredState: {
@@ -6546,7 +6564,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: string | number;
+                    };
                 };
             };
             /** @description Validation Error */

@@ -176,14 +176,15 @@ class Settings(BaseSettings):
         if self.tdlib_storage_backend != "local":
             raise ValueError("TDLIB_STORAGE_BACKEND currently supports only local backend")
         if self.storage_backend == "s3":
+            required_s3_settings: dict[str, object | None] = {
+                "STORAGE_S3_ENDPOINT_URL": self.storage_s3_endpoint_url,
+                "STORAGE_S3_BUCKET": self.storage_s3_bucket,
+                "STORAGE_S3_ACCESS_KEY_ID": self.storage_s3_access_key_id,
+                "STORAGE_S3_SECRET_ACCESS_KEY": self.storage_s3_secret_access_key,
+            }
             missing = [
                 name
-                for name, value in {
-                    "STORAGE_S3_ENDPOINT_URL": self.storage_s3_endpoint_url,
-                    "STORAGE_S3_BUCKET": self.storage_s3_bucket,
-                    "STORAGE_S3_ACCESS_KEY_ID": self.storage_s3_access_key_id,
-                    "STORAGE_S3_SECRET_ACCESS_KEY": self.storage_s3_secret_access_key,
-                }.items()
+                for name, value in required_s3_settings.items()
                 if not value
             ]
             if missing:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import time
-from typing import Callable, Protocol
+from typing import Any, Callable, Protocol, TypeAlias, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,11 +22,14 @@ from app.services.assets import save_profile_audio_asset, save_profile_photo_ass
 from app.services.profile_audio_state import clear_profile_audio_state, upsert_profile_audio_state
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
+JsonDict: TypeAlias = dict[str, Any]
+JsonList: TypeAlias = list[JsonDict]
+
 
 class ProfileSyncAdapter(Protocol):
-    def fetch_profile_snapshot(self, account_id: str) -> dict: ...
-    def fetch_current_profile(self, account_id: str) -> dict: ...
-    def fetch_active_stories(self, account_id: str) -> list[dict]: ...
+    def fetch_profile_snapshot(self, account_id: str) -> JsonDict: ...
+    def fetch_current_profile(self, account_id: str) -> JsonDict: ...
+    def fetch_active_stories(self, account_id: str) -> JsonList: ...
     def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None: ...
     def remove_story_from_profile(
         self, account_id: str, story_poster_chat_id: str | None, story_id: str
@@ -37,13 +40,13 @@ class UnavailableProfileSyncAdapter:
     def __init__(self, reason: str) -> None:
         self._reason = reason
 
-    def fetch_current_profile(self, account_id: str) -> dict:
+    def fetch_current_profile(self, account_id: str) -> JsonDict:
         raise RuntimeError(self._reason)
 
-    def fetch_active_stories(self, account_id: str) -> list[dict]:
+    def fetch_active_stories(self, account_id: str) -> JsonList:
         raise RuntimeError(self._reason)
 
-    def fetch_profile_snapshot(self, account_id: str) -> dict:
+    def fetch_profile_snapshot(self, account_id: str) -> JsonDict:
         raise RuntimeError(self._reason)
 
     def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
@@ -65,15 +68,15 @@ class TdlibProfileSyncAdapter:
         self._config = config
         self._proxy_applier = proxy_applier
 
-    def fetch_current_profile(self, account_id: str) -> dict:
+    def fetch_current_profile(self, account_id: str) -> JsonDict:
         snapshot = self.fetch_profile_snapshot(account_id)
-        return snapshot["profile"]
+        return cast(JsonDict, snapshot["profile"])
 
-    def fetch_active_stories(self, account_id: str) -> list[dict]:
+    def fetch_active_stories(self, account_id: str) -> JsonList:
         snapshot = self.fetch_profile_snapshot(account_id)
-        return snapshot["stories"]
+        return cast(JsonList, snapshot["stories"])
 
-    def fetch_profile_snapshot(self, account_id: str) -> dict:
+    def fetch_profile_snapshot(self, account_id: str) -> JsonDict:
         client = None
         try:
             client = self._client_factory.create(account_id)
@@ -153,7 +156,7 @@ class TdlibProfileSyncAdapter:
         proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
-            event = client.receive(self._config.tdlib_receive_timeout_seconds)
+            event = cast(JsonDict | None, client.receive(self._config.tdlib_receive_timeout_seconds))
             state = _extract_authorization_state(event)
             if state is None:
                 continue
@@ -222,12 +225,14 @@ def sync_account_profile_snapshot(
     *,
     adapter: ProfileSyncAdapter,
     config: Settings = settings,
-) -> dict:
+) -> JsonDict:
     snapshot = adapter.fetch_profile_snapshot(account_id)
+    profile_payload = cast(JsonDict, snapshot.get("profile") or {})
+    live_stories = cast(JsonList, snapshot.get("stories") or [])
     profile_state = _upsert_profile_state(
         session,
         account_id,
-        snapshot.get("profile") or {},
+        profile_payload,
         profile_photo_asset_id=_save_synced_profile_photo(
             session,
             account_id=account_id,
@@ -241,7 +246,7 @@ def sync_account_profile_snapshot(
         audio=snapshot.get("profile_audio"),
         config=config,
     )
-    stories = _sync_story_posts(session, account_id=account_id, live_stories=snapshot.get("stories") or [])
+    stories = _sync_story_posts(session, account_id=account_id, live_stories=live_stories)
     return {
         "profile_state": profile_state,
         "story_posts": stories,
@@ -266,7 +271,7 @@ def sync_account_live_story_posts(
 def _upsert_profile_state(
     session: Session,
     account_id: str,
-    payload: dict,
+    payload: JsonDict,
     *,
     profile_photo_asset_id: str | None,
 ) -> AccountProfileState:
@@ -302,7 +307,7 @@ def _sync_story_posts(
     session: Session,
     *,
     account_id: str,
-    live_stories: list[dict],
+    live_stories: JsonList,
 ) -> list[AccountStoryPost]:
     live_by_id = {
         str(story["telegram_story_id"]): story
@@ -402,7 +407,7 @@ def _prepare_story_action(
     return chat_id
 
 
-def _fetch_profile_page_stories(client: TdlibClient, chat_id: int | None, config: Settings) -> list[dict]:
+def _fetch_profile_page_stories(client: TdlibClient, chat_id: int | None, config: Settings) -> JsonList:
     if chat_id is None:
         return []
     response = _send_query_checked(
@@ -410,10 +415,15 @@ def _fetch_profile_page_stories(client: TdlibClient, chat_id: int | None, config
         {"@type": "getChatPostedToChatPageStories", "chat_id": chat_id, "from_story_id": 0, "limit": 20},
         config.tdlib_auth_timeout_seconds,
     )
-    return [_active_story_payload(story, story_poster_chat_id=chat_id) for story in response.get("stories") or []]
+    response_stories = cast(list[object], response.get("stories") or [])
+    return [
+        _active_story_payload(cast(JsonDict, story), story_poster_chat_id=chat_id)
+        for story in response_stories
+        if isinstance(story, dict)
+    ]
 
 
-def _fetch_active_stories(client: TdlibClient, chat_id: int | None, config: Settings) -> list[dict]:
+def _fetch_active_stories(client: TdlibClient, chat_id: int | None, config: Settings) -> JsonList:
     if chat_id is None:
         return []
     active = _send_query_checked(
@@ -421,8 +431,12 @@ def _fetch_active_stories(client: TdlibClient, chat_id: int | None, config: Sett
         {"@type": "getChatActiveStories", "chat_id": chat_id},
         config.tdlib_auth_timeout_seconds,
     )
-    stories: list[dict] = []
-    for info in active.get("stories") or []:
+    stories: JsonList = []
+    active_stories = cast(list[object], active.get("stories") or [])
+    for info_value in active_stories:
+        if not isinstance(info_value, dict):
+            continue
+        info = cast(JsonDict, info_value)
         story_id = info.get("story_id")
         if story_id is None:
             continue
@@ -440,7 +454,7 @@ def _fetch_active_stories(client: TdlibClient, chat_id: int | None, config: Sett
     return stories
 
 
-def _fetch_profile_photo(client: TdlibClient, user_id: object, full_info: dict, config: Settings) -> dict | None:
+def _fetch_profile_photo(client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings) -> JsonDict | None:
     photos = _send_query_checked(
         client,
         {"@type": "getUserProfilePhotos", "user_id": user_id, "offset": 0, "limit": 1},
@@ -454,7 +468,7 @@ def _fetch_profile_photo(client: TdlibClient, user_id: object, full_info: dict, 
     return {"content": content, "filename": "telegram-profile-photo.jpg", "raw_tdlib_json": source}
 
 
-def _fetch_profile_audio(client: TdlibClient, user_id: object, full_info: dict, config: Settings) -> dict | None:
+def _fetch_profile_audio(client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings) -> JsonDict | None:
     audios = _send_query_checked(
         client,
         {"@type": "getUserProfileAudios", "user_id": user_id, "offset": 0, "limit": 1},
@@ -463,29 +477,34 @@ def _fetch_profile_audio(client: TdlibClient, user_id: object, full_info: dict, 
     audio = (audios.get("audios") or [None])[0] or full_info.get("first_profile_audio")
     if not isinstance(audio, dict):
         return None
-    file = audio.get("audio") if isinstance(audio.get("audio"), dict) else _largest_file(audio)
+    audio_payload = cast(JsonDict, audio)
+    file_value = audio_payload.get("audio")
+    file = cast(JsonDict, file_value) if isinstance(file_value, dict) else _largest_file(audio_payload)
     content = _download_file_bytes(client, file, config)
     return {
-        "telegram_audio_id": str(audio.get("id")) if audio.get("id") is not None else None,
+        "telegram_audio_id": str(audio_payload.get("id")) if audio_payload.get("id") is not None else None,
         "telegram_file_id": str(file.get("id")) if isinstance(file, dict) and file.get("id") is not None else None,
-        "title": audio.get("title") or None,
-        "performer": audio.get("performer") or None,
-        "duration_seconds": audio.get("duration"),
-        "mime": audio.get("mime_type") or "audio/mpeg",
-        "filename": _audio_filename(audio),
+        "title": audio_payload.get("title") or None,
+        "performer": audio_payload.get("performer") or None,
+        "duration_seconds": audio_payload.get("duration"),
+        "mime": audio_payload.get("mime_type") or "audio/mpeg",
+        "filename": _audio_filename(audio_payload),
         "content": content,
-        "raw_tdlib_json": audio,
+        "raw_tdlib_json": audio_payload,
     }
 
 
 def _download_file_bytes(client: TdlibClient, file: object, config: Settings) -> bytes | None:
-    if not isinstance(file, dict) or not isinstance(file.get("id"), int):
+    if not isinstance(file, dict):
+        return None
+    file_payload = cast(JsonDict, file)
+    if not isinstance(file_payload.get("id"), int):
         return None
     downloaded = _send_query_checked(
         client,
         {
             "@type": "downloadFile",
-            "file_id": file["id"],
+            "file_id": file_payload["id"],
             "priority": 16,
             "offset": 0,
             "limit": 0,
@@ -493,7 +512,8 @@ def _download_file_bytes(client: TdlibClient, file: object, config: Settings) ->
         },
         config.tdlib_auth_timeout_seconds,
     )
-    local = downloaded.get("local") if isinstance(downloaded.get("local"), dict) else {}
+    local_value = downloaded.get("local")
+    local = cast(JsonDict, local_value) if isinstance(local_value, dict) else {}
     path = local.get("path")
     if not isinstance(path, str) or not path:
         return None
@@ -503,26 +523,28 @@ def _download_file_bytes(client: TdlibClient, file: object, config: Settings) ->
     return file_path.read_bytes()
 
 
-def _largest_file(value: object) -> dict | None:
-    files: list[dict] = []
+def _largest_file(value: object) -> JsonDict | None:
+    files: JsonList = []
     _collect_files(value, files)
     if not files:
         return None
     return max(files, key=lambda item: int(item.get("expected_size") or item.get("size") or 0))
 
 
-def _collect_files(value: object, files: list[dict]) -> None:
+def _collect_files(value: object, files: JsonList) -> None:
     if isinstance(value, dict):
-        if value.get("@type") == "file" and isinstance(value.get("id"), int):
-            files.append(value)
-        for nested in value.values():
+        payload = cast(JsonDict, value)
+        if payload.get("@type") == "file" and isinstance(payload.get("id"), int):
+            files.append(payload)
+        for nested in payload.values():
             _collect_files(nested, files)
     elif isinstance(value, list):
-        for nested in value:
+        values = cast(list[object], value)
+        for nested in values:
             _collect_files(nested, files)
 
 
-def _audio_filename(audio: dict) -> str:
+def _audio_filename(audio: JsonDict) -> str:
     file_name = audio.get("file_name")
     if isinstance(file_name, str) and file_name:
         return file_name
@@ -539,12 +561,15 @@ def _save_synced_profile_photo(
     photo: object,
     config: Settings,
 ) -> str | None:
-    if not isinstance(photo, dict) or not isinstance(photo.get("content"), bytes):
+    if not isinstance(photo, dict):
+        return None
+    photo_payload = cast(JsonDict, photo)
+    if not isinstance(photo_payload.get("content"), bytes):
         return None
     asset = save_profile_photo_asset(
         session,
-        filename=str(photo.get("filename") or "telegram-profile-photo.jpg"),
-        content=photo["content"],
+        filename=str(photo_payload.get("filename") or "telegram-profile-photo.jpg"),
+        content=photo_payload["content"],
         storage_root=config.storage_root,
     )
     return asset.id
@@ -560,14 +585,15 @@ def _sync_profile_audio_state(
     if not isinstance(audio, dict):
         clear_profile_audio_state(session, account_id=account_id)
         return
+    audio_payload = cast(JsonDict, audio)
 
     source_asset_id = None
-    if isinstance(audio.get("content"), bytes):
+    if isinstance(audio_payload.get("content"), bytes):
         try:
             asset = save_profile_audio_asset(
                 session,
-                filename=str(audio.get("filename") or "telegram-profile-audio.mp3"),
-                content=audio["content"],
+                filename=str(audio_payload.get("filename") or "telegram-profile-audio.mp3"),
+                content=audio_payload["content"],
                 storage_root=config.storage_root,
                 max_bytes=config.profile_audio_max_bytes,
             )
@@ -578,24 +604,27 @@ def _sync_profile_audio_state(
     upsert_profile_audio_state(
         session,
         account_id=account_id,
-        telegram_file_id=audio.get("telegram_file_id"),
+        telegram_file_id=audio_payload.get("telegram_file_id"),
         source_asset_id=source_asset_id,
-        title=audio.get("title"),
-        performer=audio.get("performer"),
-        duration_seconds=audio.get("duration_seconds"),
-        mime=audio.get("mime"),
-        telegram_audio_id=audio.get("telegram_audio_id"),
-        raw_tdlib_json=audio.get("raw_tdlib_json"),
+        title=audio_payload.get("title"),
+        performer=audio_payload.get("performer"),
+        duration_seconds=audio_payload.get("duration_seconds"),
+        mime=audio_payload.get("mime"),
+        telegram_audio_id=audio_payload.get("telegram_audio_id"),
+        raw_tdlib_json=audio_payload.get("raw_tdlib_json"),
     )
 
 
-def _extract_username(me: dict) -> str | None:
-    usernames = me.get("usernames") or {}
+def _extract_username(me: JsonDict) -> str | None:
+    usernames_value = me.get("usernames")
+    usernames = cast(JsonDict, usernames_value) if isinstance(usernames_value, dict) else {}
     editable = usernames.get("editable_username")
-    if editable:
+    if isinstance(editable, str) and editable:
         return editable
-    active = usernames.get("active_usernames") or []
-    return active[0] if active else None
+    active = usernames.get("active_usernames")
+    if isinstance(active, list) and active and isinstance(active[0], str):
+        return active[0]
+    return None
 
 
 def _extract_text(value: object) -> str | None:
@@ -604,20 +633,21 @@ def _extract_text(value: object) -> str | None:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        text = value.get("text")
+        payload = cast(JsonDict, value)
+        text = payload.get("text")
         return text if isinstance(text, str) else None
     return None
 
 
-def _send_query_checked(client: TdlibClient, query: dict, timeout_seconds: float) -> dict:
-    response = client.send_query(query, timeout_seconds)
+def _send_query_checked(client: TdlibClient, query: JsonDict, timeout_seconds: float) -> JsonDict:
+    response = cast(JsonDict, client.send_query(query, timeout_seconds))
     if response.get("@type") == "error":
         message = response.get("message") or "TDLib query failed"
         raise RuntimeError(str(message))
     return response
 
 
-def _active_story_payload(story: dict, *, story_poster_chat_id: int | None = None) -> dict:
+def _active_story_payload(story: JsonDict, *, story_poster_chat_id: int | None = None) -> JsonDict:
     story_id = story.get("id")
     poster_chat_id = story.get("story_poster_chat_id") or story.get("poster_chat_id") or story_poster_chat_id
     posted_at = _datetime_from_unix(story.get("date"))
@@ -636,8 +666,9 @@ def _active_story_payload(story: dict, *, story_poster_chat_id: int | None = Non
     }
 
 
-def _story_media_kind(story: dict) -> str:
-    content = story.get("content") if isinstance(story.get("content"), dict) else {}
+def _story_media_kind(story: JsonDict) -> str:
+    content_value = story.get("content")
+    content = cast(JsonDict, content_value) if isinstance(content_value, dict) else {}
     content_type = content.get("@type")
     return "video" if content_type == "storyContentVideo" else "image"
 
@@ -645,12 +676,13 @@ def _story_media_kind(story: dict) -> str:
 def _story_privacy_preset(privacy: object) -> str:
     if not isinstance(privacy, dict):
         return "unknown"
+    privacy_payload = cast(JsonDict, privacy)
     return {
         "storyPrivacySettingsEveryone": "public",
         "storyPrivacySettingsContacts": "contacts",
         "storyPrivacySettingsCloseFriends": "close_friends",
         "storyPrivacySettingsSelectedUsers": "selected_users",
-    }.get(str(privacy.get("@type")), "unknown")
+    }.get(str(privacy_payload.get("@type")), "unknown")
 
 
 def _datetime_from_unix(value: object) -> datetime | None:

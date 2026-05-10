@@ -17,26 +17,27 @@ def test_otp_api_contract_start_confirm_and_auth_state(monkeypatch) -> None:
     monkeypatch.setattr("app.api.auth.build_tdlib_auth_adapter", lambda: FakeTdlibAuthAdapter())
     client = TestClient(app)
 
-    start_response = client.post("/api/auth/otp/start", json={"phone_number": "+15550102000"})
-    assert start_response.status_code == 201
-    start_payload = start_response.json()
-    assert start_payload["orchestration_state"] == "awaiting_code"
-    assert start_payload["needs_code"] is True
+    try:
+        start_response = client.post("/api/auth/otp/start", json={"phone_number": "+15550102000"})
+        assert start_response.status_code == 201
+        start_payload = start_response.json()
+        assert start_payload["orchestration_state"] == "awaiting_code"
+        assert start_payload["needs_code"] is True
 
-    confirm_response = client.post(
-        "/api/auth/otp/confirm",
-        json={"account_id": start_payload["account_id"], "code": "12345"},
-    )
-    assert confirm_response.status_code == 200
-    confirm_payload = confirm_response.json()
-    assert confirm_payload["orchestration_state"] == "authorized_ready"
-    assert confirm_payload["telegram_user_id"] == "123456"
+        confirm_response = client.post(
+            "/api/auth/otp/confirm",
+            json={"account_id": start_payload["account_id"], "code": "12345"},
+        )
+        assert confirm_response.status_code == 200
+        confirm_payload = confirm_response.json()
+        assert confirm_payload["orchestration_state"] == "authorized_ready"
+        assert confirm_payload["telegram_user_id"] == "123456"
 
-    state_response = client.get(f"/api/accounts/{start_payload['account_id']}/auth-state")
-    assert state_response.status_code == 200
-    assert state_response.json()["runtime_health"] == "ready"
-
-    app.dependency_overrides.clear()
+        state_response = client.get(f"/api/accounts/{start_payload['account_id']}/auth-state")
+        assert state_response.status_code == 200
+        assert state_response.json()["runtime_health"] == "ready"
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:

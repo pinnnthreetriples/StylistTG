@@ -29,22 +29,16 @@ from app.adapters.warmup_tdlib import (
 )
 from app.config import Settings, settings
 from app.models import (
-    AccountProxy,
-    AccountRuntimeState,
-    AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,
-    ProxyCategory,
     WarmupExecutionMode,
-    WarmupPresetKind,
     WarmupSession,
     WarmupStrategy,
     WarmupTrustedPeer,
     new_id,
 )
-from app.services.accounts import create_account
-from app.services.warmup import create_warmup_session
 from app.services.warmup_dispatch import process_due_warmup_dispatches
 from app.services.warmup_p2p import record_p2p_contact, select_eligible_peer
+from tests.helpers.warmup import seed_warmup_account, seed_warmup_session, seed_warmup_strategy
 
 
 # ---------------------------------------------------------------------------
@@ -358,32 +352,7 @@ def test_real_adapter_close_idempotent_and_drops_clients(monkeypatch) -> None:
 
 
 def _seed_account(db_session, *, telegram_user_id: str | None = None):
-    account = create_account(
-        db_session,
-        external_ref=f"+7999{new_id()[:8]}",
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    )
-    account.account_state = AccountState.EXECUTION_USABLE
-    if telegram_user_id is not None:
-        account.telegram_user_id = telegram_user_id
-    account.runtime_state = AccountRuntimeState(
-        account_id=account.id,
-        session_present=True,
-        runtime_health="ready",
-        reauth_required=False,
-    )
-    account.proxy = AccountProxy(
-        account_id=account.id,
-        proxy_type="socks5",
-        proxy_category=ProxyCategory.RESIDENTIAL.value,
-        host="127.0.0.1",
-        port=1080,
-        username="user",
-        password_encrypted=None,
-        status="ok",
-    )
-    db_session.commit()
-    return account
+    return seed_warmup_account(db_session, telegram_user_id=telegram_user_id)
 
 
 def _seed_strategy(
@@ -394,31 +363,19 @@ def _seed_strategy(
     daily_action_limits: dict | None = None,
     duration_days: int = 3,
 ) -> WarmupStrategy:
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"{execution_mode} {new_id()[:6]}",
-        description=execution_mode,
-        tier_limits_json={"cadence_hours": 24},
-        target_channels_json=target_channels or [],
-        is_preset=False,
+    return seed_warmup_strategy(
+        db_session,
         execution_mode=execution_mode,
-        preset_kind=WarmupPresetKind.STANDARD.value,
+        target_channels=target_channels,
+        daily_action_limits=daily_action_limits,
         duration_days=duration_days,
-        daily_action_limits_json=daily_action_limits or {},
     )
-    db_session.add(strategy)
-    db_session.commit()
-    return strategy
 
 
 def _seed_session(db_session, strategy: WarmupStrategy) -> WarmupSession:
-    account = _seed_account(db_session)
-    return create_warmup_session(
+    return seed_warmup_session(
         db_session,
-        account_id=account.id,
-        strategy_id=strategy.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        strategy=strategy,
         now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC),
     )
 

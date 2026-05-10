@@ -25,21 +25,13 @@ from app.adapters.warmup_tdlib import (
 )
 from app.config import settings
 from app.models import (
-    AccountProxy,
-    AccountRuntimeState,
-    AccountState,
-    DEFAULT_LOCAL_WORKSPACE_ID,
-    ProxyCategory,
     WarmupExecutionMode,
-    WarmupPresetKind,
     WarmupSession,
     WarmupStatus,
     WarmupStrategy,
-    new_id,
 )
-from app.services.accounts import create_account
-from app.services.warmup import create_warmup_session
 from app.services.warmup_dispatch import process_due_warmup_dispatches
+from tests.helpers.warmup import seed_warmup_account, seed_warmup_session, seed_warmup_strategy
 
 
 # ---------------------------------------------------------------------------
@@ -102,32 +94,11 @@ def test_factory_returns_unavailable_when_passive_disabled(monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _seed_account(db_session, *, with_proxy: bool = True):
-    account = create_account(
-        db_session,
-        external_ref=f"+7999{new_id()[:8]}",
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    )
-    account.account_state = AccountState.EXECUTION_USABLE
-    account.runtime_state = AccountRuntimeState(
-        account_id=account.id,
-        session_present=True,
-        runtime_health="ready",
-        reauth_required=False,
-    )
-    if with_proxy:
-        account.proxy = AccountProxy(
-            account_id=account.id,
-            proxy_type="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
-            host="127.0.0.1",
-            port=1080,
-            username="user",
-            password_encrypted=None,
-            status="ok",
-        )
-    db_session.commit()
-    return account
+_DEFAULT_PASSIVE_LIMITS = {
+    "1": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
+    "2": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
+    "3": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
+}
 
 
 def _seed_passive_strategy(
@@ -136,37 +107,18 @@ def _seed_passive_strategy(
     duration_days: int = 3,
     daily_action_limits: dict | None = None,
 ) -> WarmupStrategy:
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"Passive {new_id()[:6]}",
-        description="Passive test",
-        tier_limits_json={"cadence_hours": 24, "profile_required": True},
-        target_channels_json=[],
-        is_preset=False,
+    return seed_warmup_strategy(
+        db_session,
         execution_mode=WarmupExecutionMode.PASSIVE.value,
-        preset_kind=WarmupPresetKind.STANDARD.value,
         duration_days=duration_days,
-        daily_action_limits_json=daily_action_limits
-        or {
-            "1": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
-            "2": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
-            "3": {"feed_read": 2, "ping_proxy": 1, "get_me": 1},
-        },
-        ui_summary_json={"audience_hint": "Passive"},
+        daily_action_limits=daily_action_limits or _DEFAULT_PASSIVE_LIMITS,
     )
-    db_session.add(strategy)
-    db_session.commit()
-    return strategy
 
 
 def _seeded_passive_session(db_session, strategy: WarmupStrategy) -> WarmupSession:
-    account = _seed_account(db_session)
-    return create_warmup_session(
+    return seed_warmup_session(
         db_session,
-        account_id=account.id,
-        strategy_id=strategy.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        strategy=strategy,
         now=datetime(2026, 7, 1, 12, 0, tzinfo=UTC),
     )
 
@@ -322,27 +274,16 @@ def test_shadow_dispatch_does_not_call_passive_adapter(db_session) -> None:
     """Phase 2 contract: shadow stays in pure simulation mode."""
     from app.models import WarmupExecutionMode as ExMode
 
-    account = _seed_account(db_session)
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"Shadow-only {new_id()[:6]}",
-        description="Shadow",
-        tier_limits_json={},
-        target_channels_json=[],
-        is_preset=False,
-        execution_mode=ExMode.SHADOW.value,
-        preset_kind=WarmupPresetKind.STANDARD.value,
-        duration_days=3,
-        daily_action_limits_json={"1": {"feed_read": 1}},
-    )
-    db_session.add(strategy)
-    db_session.commit()
-    warmup_session = create_warmup_session(
+    account = seed_warmup_account(db_session)
+    strategy = seed_warmup_strategy(
         db_session,
-        account_id=account.id,
-        strategy_id=strategy.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        execution_mode=ExMode.SHADOW.value,
+        daily_action_limits={"1": {"feed_read": 1}},
+    )
+    warmup_session = seed_warmup_session(
+        db_session,
+        account=account,
+        strategy=strategy,
         now=datetime(2026, 7, 1, 12, 0, tzinfo=UTC),
     )
 

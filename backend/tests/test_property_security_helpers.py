@@ -327,7 +327,7 @@ class TestResolveChildPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             result = resolve_child_path(root, name)
-            assert str(result.resolve()).startswith(str(root.resolve()))
+            assert result.resolve().is_relative_to(root.resolve())
 
     @given(
         depth=st.integers(min_value=1, max_value=5),
@@ -359,7 +359,7 @@ class TestLocalStorageResolvePath:
             storage = LocalStorageService(root=Path(tmpdir))
             key = "/".join(segments)
             result = storage.resolve_path(key)
-            assert str(result.resolve()).startswith(str(Path(tmpdir).resolve()))
+            assert result.resolve().is_relative_to(Path(tmpdir).resolve())
 
     @given(
         prefix=st.text(min_size=0, max_size=5, alphabet=string.ascii_lowercase),

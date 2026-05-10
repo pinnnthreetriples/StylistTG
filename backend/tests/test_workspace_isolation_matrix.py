@@ -232,20 +232,19 @@ class TestCrossWorkspaceReadBlocked:
         r = self._client.get(f"/api/jobs/{self._ids['job']}")
         assert r.status_code == 404
 
-    def test_foreign_story_draft_returns_404(self):
+    def test_foreign_story_drafts_returns_404_without_leaks(self):
         r = self._client.get(f"/api/story-drafts/{self._ids['account']}")
-        assert r.status_code in {200, 404}
-        if r.status_code == 200:
-            body = r.json()
-            assert body == [], f"expected empty list, got {body}"
-            all_ids = [
-                self._ids["story_draft"],
-                self._ids["account"],
-                self._ids["asset"],
-            ]
-            raw = r.text
-            for fid in all_ids:
-                assert fid not in raw, f"foreign ID {fid} leaked in response body"
+        assert r.status_code == 404, (
+            f"expected 404 for foreign account story drafts, got {r.status_code}"
+        )
+        all_ids = [
+            self._ids["story_draft"],
+            self._ids["account"],
+            self._ids["asset"],
+        ]
+        raw = r.text
+        for fid in all_ids:
+            assert fid not in raw, f"foreign ID {fid} leaked in response body"
 
     def test_foreign_auth_batch_returns_404(self):
         r = self._client.get(f"/api/auth-batches/{self._ids['auth_batch']}")
@@ -294,7 +293,10 @@ class TestCrossWorkspaceMutationBlocked:
                 "photo_asset_id": None,
             },
         )
-        assert r.status_code in {404, 422}
+        assert r.status_code == 404, (
+            f"expected 404 for foreign account job, got {r.status_code}: {r.text}"
+        )
+        assert self._ids["account"] not in r.text, "foreign account ID leaked in error response"
 
     def test_cannot_delete_foreign_account(self):
         r = self._client.delete(f"/api/accounts/{self._ids['account']}")

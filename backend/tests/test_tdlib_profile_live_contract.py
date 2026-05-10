@@ -20,6 +20,8 @@ def test_live_tdlib_profile_execution_contract() -> None:
         client_factory=RealTdJsonClientFactory(settings.tdlib_shared_library_path),
         config=settings,
     )
+    original_bio = os.getenv("TDLIB_TEST_ORIGINAL_BIO", "")
+    test_bio = os.getenv("TDLIB_TEST_BIO", "StylistTG live test")
     plan = {
         "plan_version": 1,
         "job_payload_version": 1,
@@ -30,12 +32,29 @@ def test_live_tdlib_profile_execution_contract() -> None:
                 "order": 1,
                 "required": True,
                 "idempotency_class": "profile_field_replace",
-                "payload": {"bio": os.getenv("TDLIB_TEST_BIO", "StylistTG live test")},
+                "payload": {"bio": test_bio},
             }
         ],
     }
 
-    events = list(adapter.execute(account_id, plan, {}))
+    try:
+        events = list(adapter.execute(account_id, plan, {}))
 
-    assert any(event["event"] == "step_started" for event in events)
-    assert any(event["event"] in {"step_succeeded", "step_uncertain"} for event in events)
+        assert any(event["event"] == "step_started" for event in events)
+        assert any(event["event"] in {"step_succeeded", "step_uncertain"} for event in events)
+    finally:
+        restore_plan = {
+            "plan_version": 1,
+            "job_payload_version": 1,
+            "steps": [
+                {
+                    "step_key": "set_bio",
+                    "step_type": "set_bio",
+                    "order": 1,
+                    "required": False,
+                    "idempotency_class": "profile_field_replace",
+                    "payload": {"bio": original_bio},
+                }
+            ],
+        }
+        list(adapter.execute(account_id, restore_plan, {}))

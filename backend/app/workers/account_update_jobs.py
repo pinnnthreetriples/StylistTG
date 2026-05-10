@@ -48,6 +48,7 @@ def _execute_account_update_job(job_id: str, session: Session) -> int:
             source="account_update_worker",
             message="Account update job finished",
             job_id=job.id,
+            workspace_id=job.workspace_id,
             metadata={"job_state": job.job_state, "failure_reason": job.failure_reason},
         )
         session.commit()
@@ -56,6 +57,24 @@ def _execute_account_update_job(job_id: str, session: Session) -> int:
 
 def run_account_update_job(job_id: str) -> int:
     return execute_account_update_job(job_id)
+
+
+def rematerialize_account_update_job(job_id: str, *, session: Session | None = None) -> bool:
+    owns_session = session is None
+    db_session = session or SessionLocal()
+    try:
+        job = get_job(db_session, job_id)
+        if job is None:
+            return False
+        if job.job_state not in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED}:
+            return False
+        _materialize_profile_audio(db_session, job)
+        _materialize_story_posts(db_session, job)
+        db_session.commit()
+        return True
+    finally:
+        if owns_session:
+            db_session.close()
 
 
 def _materialize_profile_audio(session: Session, job: Job) -> None:

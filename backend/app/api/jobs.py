@@ -17,7 +17,7 @@ from app.schemas import (
     RetryPolicyRead,
 )
 from app.services.dashboard import job_summary
-from app.services.accounts import get_account
+from app.api.tenant_helpers import require_account_in_workspace, require_job_in_workspace
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.jobs import (
     build_job_detail,
@@ -26,7 +26,6 @@ from app.services.jobs import (
     cancel_job,
     create_profile_job,
     delete_job,
-    get_job,
 )
 from app.services.retry_policy import retry_policy_for
 
@@ -62,8 +61,7 @@ def preview_profile_job(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, payload.account_id, auth)
     try:
         preview = build_profile_job_preview(
             session,
@@ -96,13 +94,7 @@ def post_profile_job(
 ):
     data = payload.model_dump()
     account_id = data.pop("account_id")
-    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ACCOUNT_NOT_FOUND",
-            error_class="not_found",
-            message="account not found",
-        )
+    require_account_in_workspace(session, account_id, auth)
     try:
         job = create_profile_job(
             session,
@@ -157,14 +149,7 @@ def get_job_endpoint(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    job = get_job(session, job_id)
-    if job is None or job.workspace_id != auth.workspace_id:
-        raise AppError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code="JOB_NOT_FOUND",
-            error_class="not_found",
-            message="job not found",
-        )
+    job = require_job_in_workspace(session, job_id, auth)
     return JobDetailRead(**build_job_detail(job))
 
 
@@ -174,14 +159,7 @@ def get_job_steps_endpoint(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    job = get_job(session, job_id)
-    if job is None or job.workspace_id != auth.workspace_id:
-        raise AppError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code="JOB_NOT_FOUND",
-            error_class="not_found",
-            message="job not found",
-        )
+    job = require_job_in_workspace(session, job_id, auth)
     return [JobStepListItemRead(**step) for step in build_job_steps(job)]
 
 
@@ -191,9 +169,7 @@ def cancel_job_endpoint(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    existing = get_job(session, job_id)
-    if existing is None or existing.workspace_id != auth.workspace_id:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="JOB_NOT_FOUND", error_class="not_found", message="job not found")
+    require_job_in_workspace(session, job_id, auth)
     try:
         job = cancel_job(session, job_id)
     except ValueError as exc:
@@ -208,9 +184,7 @@ def delete_job_endpoint(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    existing = get_job(session, job_id)
-    if existing is None or existing.workspace_id != auth.workspace_id:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="JOB_NOT_FOUND", error_class="not_found", message="job not found")
+    require_job_in_workspace(session, job_id, auth)
     try:
         delete_job(session, job_id)
     except ValueError as exc:

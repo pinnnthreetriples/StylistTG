@@ -52,6 +52,7 @@ __all__ = [
     "get_auth_queue",
     "get_profile_queue",
     "get_queue",
+    "reenqueue_job_with_delay",
     "remove_job_from_queue",
 ]
 
@@ -152,6 +153,17 @@ def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action
             job_id=job_id,
             unique=True,
         )
+    except RedisError:
+        _log_enqueue_failure(queue.name, job_id, "RedisError")
+        return False
+    return True
+
+
+def reenqueue_job_with_delay(job_id: str, *, delay_seconds: int, workflow_type: str | None = None) -> bool:
+    queue = get_profile_queue()
+    func = run_account_update_job if workflow_type == "account_update" else run_profile_job
+    try:
+        queue.enqueue_in(timedelta(seconds=delay_seconds), func, job_id)
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False

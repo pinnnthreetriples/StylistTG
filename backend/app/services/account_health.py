@@ -32,9 +32,21 @@ def collect_account_health_signals(session: Session, account: Account) -> dict[s
     latest_job = _latest_job(session, account.id)
     latest_failed_step = _latest_failed_step(session, account.id)
     reasons: list[dict[str, Any]] = []
-
     runtime = account.runtime_state
     profile = account.profile_state
+    _collect_runtime_reasons(account, runtime, reasons)
+    _collect_profile_reasons(profile, reasons)
+    _collect_job_reasons(latest_job, latest_failed_step, reasons)
+    health_status = _health_status(account, reasons)
+    return {
+        "health_status": health_status,
+        "reasons": reasons,
+        "latest_job": latest_job,
+        "latest_failed_step": latest_failed_step,
+    }
+
+
+def _collect_runtime_reasons(account: Account, runtime: Any, reasons: list[dict[str, Any]]) -> None:
     if runtime is None:
         reasons.append(
             build_reason(
@@ -97,6 +109,8 @@ def collect_account_health_signals(session: Session, account: Account) -> dict[s
             )
         )
 
+
+def _collect_profile_reasons(profile: Any, reasons: list[dict[str, Any]]) -> None:
     if profile is None:
         reasons.append(
             build_reason(
@@ -117,6 +131,12 @@ def collect_account_health_signals(session: Session, account: Account) -> dict[s
             )
         )
 
+
+def _collect_job_reasons(
+    latest_job: Job | None,
+    latest_failed_step: JobStepResult | None,
+    reasons: list[dict[str, Any]],
+) -> None:
     if latest_job and latest_job.job_state == JobState.PARTIALLY_COMPLETED:
         reasons.append(
             build_reason(
@@ -163,14 +183,6 @@ def collect_account_health_signals(session: Session, account: Account) -> dict[s
         elif latest_failed_step.step_type in {"post_story_image", "post_story_video"}:
             reasons.append(_story_failure_reason(code, latest_failed_step))
 
-    health_status = _health_status(account, reasons)
-    return {
-        "health_status": health_status,
-        "reasons": reasons,
-        "latest_job": latest_job,
-        "latest_failed_step": latest_failed_step,
-    }
-
 
 def _story_failure_reason(code: str, step: JobStepResult) -> dict[str, Any]:
     normalized = code.upper()
@@ -205,6 +217,61 @@ def _health_status(account: Account, reasons: list[dict[str, Any]]) -> str:
     if reasons:
         return "attention"
     return "unknown"
+
+
+def collect_account_health_signals_prefetched(
+    account: Account,
+    latest_job: Job | None,
+    latest_failed_step: JobStepResult | None,
+) -> dict[str, Any]:
+    """Same as collect_account_health_signals but with pre-fetched DB data."""
+    reasons: list[dict[str, Any]] = []
+    runtime = account.runtime_state
+    profile = account.profile_state
+    _collect_runtime_reasons(account, runtime, reasons)
+    _collect_profile_reasons(profile, reasons)
+    _collect_job_reasons(latest_job, latest_failed_step, reasons)
+    health_status = _health_status(account, reasons)
+    return {
+        "health_status": health_status,
+        "reasons": reasons,
+        "latest_job": latest_job,
+        "latest_failed_step": latest_failed_step,
+    }
+
+
+def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job | None]:
+    """Fetch latest job per account in one query."""
+    if not account_ids:
+        return {}
+    rows = session.execute(
+        select(Job)
+        .where(Job.account_id.in_(account_ids))
+        .order_by(Job.account_id, Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
+    ).scalars().all()
+    result: dict[str, Job | None] = {}
+    for job in rows:
+        if job.account_id not in result:
+            result[job.account_id] = job
+    return result
+
+
+def batch_latest_failed_steps(session: Session, account_ids: list[str]) -> dict[str, JobStepResult | None]:
+    """Fetch latest failed step per account in one query."""
+    if not account_ids:
+        return {}
+    rows = session.execute(
+        select(Job.account_id, JobStepResult)
+        .join(Job, Job.id == JobStepResult.job_id)
+        .where(Job.account_id.in_(account_ids))
+        .where(JobStepResult.status == "failed")
+        .order_by(Job.account_id, JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+    ).all()
+    result: dict[str, JobStepResult | None] = {}
+    for account_id, step in rows:
+        if account_id not in result:
+            result[account_id] = step
+    return result
 
 
 def _latest_job(session: Session, account_id: str) -> Job | None:

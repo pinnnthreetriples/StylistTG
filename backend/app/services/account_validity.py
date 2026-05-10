@@ -34,6 +34,7 @@ def run_account_validity_check(
     *,
     mode: str = "db_snapshot",
     adapter: ReadOnlyAccountValidityAdapter | None = None,
+    workspace_id: str | None = None,
 ) -> dict[str, Any]:
     if mode not in SUPPORTED_MODES:
         raise ValueError("unsupported validity check mode")
@@ -89,6 +90,7 @@ def run_account_validity_check(
             severity="info",
             source="account_validity",
             message="Account validity check completed",
+            workspace_id=workspace_id,
             metadata={"validity_status": cast(dict[str, Any], run.result_json).get("validity_status")},
         )
         session.commit()
@@ -122,6 +124,7 @@ def run_account_validity_check(
             source="account_validity",
             message="Account validity check failed",
             error_code="VALIDITY_CHECK_FAILED",
+            workspace_id=workspace_id,
             error_class="safety_check",
         )
         session.commit()

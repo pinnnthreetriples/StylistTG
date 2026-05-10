@@ -22,11 +22,11 @@ def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:
 
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_execution_adapter",
+        "app.api.account_runtime_routes.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_sync_adapter",
+        "app.api.account_runtime_routes.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
     monkeypatch.setattr(
@@ -71,11 +71,11 @@ def test_header_account_runtime_endpoints_do_not_require_account_id_in_url(monke
 
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_execution_adapter",
+        "app.api.account_runtime_routes.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_sync_adapter",
+        "app.api.account_runtime_routes.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
     client = TestClient(app)

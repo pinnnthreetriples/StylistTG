@@ -97,6 +97,7 @@ def check_account_proxy(
         message=_proxy_check_message(status),
         error_code=None if ok and status != "tdlib_failed" else (tdlib_error_code if status == "tdlib_failed" else error_code),
         error_class="tdlib_proxy" if status == "tdlib_failed" else (None if ok else "proxy"),
+        workspace_id=workspace_id,
         metadata={
             "proxy_type": proxy.proxy_type,
             "host": proxy.host,

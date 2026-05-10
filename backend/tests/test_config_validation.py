@@ -130,6 +130,10 @@ class TestCloudConfigEdgeCases:
         with pytest.raises(ValueError, match="STALE_JOB_REAPER_ENABLED"):
             Settings(**self._cloud_base(stale_job_reaper_enabled=True))
 
+    def test_cloud_rejects_inline_fallback_enabled(self):
+        with pytest.raises(ValueError, match="QUEUE_INLINE_FALLBACK_ENABLED"):
+            Settings(**self._cloud_base(queue_inline_fallback_enabled=True))
+
     def test_cloud_rejects_empty_cors(self):
         with pytest.raises(ValueError, match="cloud API requires"):
             Settings(**self._cloud_base(cors_origins=""))

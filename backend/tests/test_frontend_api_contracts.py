@@ -91,7 +91,7 @@ def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
 
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_execution_adapter",
+        "app.api.account_runtime_routes.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     client = TestClient(app)
@@ -774,11 +774,11 @@ def test_runtime_refresh_returns_frontend_friendly_shape(monkeypatch) -> None:
 
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_execution_adapter",
+        "app.api.account_runtime_routes.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_sync_adapter",
+        "app.api.account_runtime_routes.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
     client = TestClient(app)
@@ -825,11 +825,11 @@ def test_runtime_refresh_rolls_back_after_profile_sync_failure(monkeypatch) -> N
 
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_execution_adapter",
+        "app.api.account_runtime_routes.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     monkeypatch.setattr(
-        "app.api.accounts.build_profile_sync_adapter",
+        "app.api.account_runtime_routes.build_profile_sync_adapter",
         lambda: BrokenProfileSyncAdapter(),
     )
     client = TestClient(app)

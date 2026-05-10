@@ -6,7 +6,6 @@ from typing import Any, cast
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.logging_utils import log_event
 from app.models import Account, AccountState, AssetKind, AssetStatus, Job, JobState, utc_now
 from app.services.account_update_plan import (
     account_update_profile_payload,
@@ -20,13 +19,14 @@ from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
 from app.services.asset_storage import materialize_asset_to_local_path
 from app.services.account_safety import build_account_safety_for_account, safety_preview_fields, safety_preview_fields_with_policy
-from app.services.audit_logs import log_audit_event
-from app.services.execution_policy import ExecutionUsableAdapter, ensure_execution_usable
-from app.services.limits import check_workspace_limit, increment_usage
+from app.services.execution_policy import ExecutionUsableAdapter
+from app.services.limits import check_workspace_limit
 from app.services.jobs import (
     find_active_duplicate_job,
+    finalize_job_creation,
     is_profile_job_cooldown_active,
     normalize_profile_payload,
+    validate_account_for_job,
 )
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
 from app.services.step_registry import validate_account_update_plan_steps
@@ -113,17 +113,11 @@ def create_account_update_job(
     request_id: str | None = None,
     workspace_id: str | None = None,
 ) -> Job:
-    account = get_account(session, account_id, workspace_id=workspace_id)
-    if account is None:
-        raise ValueError("account not found")
-    if is_account_hard_stopped(account):
-        raise ValueError("account requires manual intervention")
-
-    if execution_adapter is not None:
-        policy = ensure_execution_usable(session, account_id, adapter=execution_adapter)
-        if not policy.ok or policy.account.account_state != AccountState.EXECUTION_USABLE:
-            raise ValueError("account is not execution_usable")
-
+    account = validate_account_for_job(
+        session, account_id,
+        workspace_id=workspace_id,
+        execution_adapter=execution_adapter,
+    )
     requested_profile_fields = _requested_profile_fields(desired_state)
     desired_state = _normalize_with_profile_assets(
         session,
@@ -174,31 +168,12 @@ def create_account_update_job(
         dedup_blocked_by_job_id=duplicate.id if duplicate else None,
         queued_at=utc_now() if not duplicate else None,
     )
-    session.add(job)
-    log_audit_event(
-        session,
-        workspace_id=account.workspace_id,
-        actor_user_id=requested_by_user_id,
-        action="job.created",
-        entity_type="job",
-        entity_id=job.id,
+    return finalize_job_creation(
+        session, job,
+        requested_by_user_id=requested_by_user_id,
         request_id=request_id,
-        metadata={"workflow_type": "account_update", "state": state},
+        log_event_name="account_update_job_created",
     )
-    if state == JobState.QUEUED:
-        increment_usage(session, account.workspace_id, "jobs_per_day")
-    session.commit()
-    session.refresh(job)
-    log_event(
-        "account_update_job_created",
-        job_id=job.id,
-        account_id=account_id,
-        state=job.job_state,
-        intent_hash=intent_hash[:12],
-        steps=len(job.plan_json_snapshot.get("steps", [])),
-        dedup=duplicate.id if duplicate else None,
-    )
-    return job
 
 
 def _normalize_with_profile_assets(

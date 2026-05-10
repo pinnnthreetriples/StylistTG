@@ -22,7 +22,7 @@ from app.services.auth import (
     submit_password,
 )
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission, require_role
-from app.services.accounts import get_account
+from app.api.tenant_helpers import require_account_in_workspace
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -75,8 +75,7 @@ def post_otp_confirm(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, payload.account_id, auth)
     try:
         result = confirm_otp(
             session,
@@ -97,8 +96,7 @@ def post_password(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, payload.account_id, auth)
     try:
         result = submit_password(
             session,
@@ -119,8 +117,7 @@ def get_account_auth_state(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    if get_account(session, account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, account_id, auth)
     try:
         result = get_auth_state(session, account_id)
     except ValueError as exc:

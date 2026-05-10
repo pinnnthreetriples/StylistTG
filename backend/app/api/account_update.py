@@ -9,7 +9,7 @@ from app.logging_utils import log_event
 from app.models import JobState, utc_now
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
 from app.services.account_update_jobs import build_account_update_preview, create_account_update_job
-from app.services.accounts import get_account
+from app.api.tenant_helpers import require_account_in_workspace
 from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
 from app.services.dashboard import job_summary
 from app.services.operation_logs import log_operation
@@ -26,8 +26,7 @@ def preview_account_update(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, payload.account_id, auth)
     try:
         preview = build_account_update_preview(
             session,
@@ -44,6 +43,7 @@ def preview_account_update(
             severity="info",
             source="account_update_api",
             message="Account update preview built",
+            workspace_id=auth.workspace_id,
             metadata={
                 "safety_blockers": preview.get("safety_blockers", []),
                 "safety_warnings": preview.get("safety_warnings", []),
@@ -61,8 +61,7 @@ def post_account_update_job(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    if get_account(session, payload.account_id, workspace_id=auth.workspace_id) is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+    require_account_in_workspace(session, payload.account_id, auth)
     warmup_policy = warmup_operation_policy(
         session,
         account_id=payload.account_id,
@@ -96,6 +95,7 @@ def post_account_update_job(
             source="account_update_api",
             message="Account update job created",
             job_id=job.id,
+            workspace_id=auth.workspace_id,
             metadata={"job_state": job.job_state},
         )
         session.commit()

@@ -11,13 +11,27 @@ from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Account, AccountProxy, Accoun
 from app.services.account_capabilities import build_account_capabilities
 from app.services.account_cooldowns import (
     active_cooldowns_by_operation,
+    batch_active_cooldowns_by_operation,
+    batch_latest_succeeded_steps,
+    batch_recent_failed_steps,
     merge_cooldowns,
     product_cooldowns_by_operation,
+    product_cooldowns_from_steps,
     recent_failure_cooldowns_by_operation,
+    recent_failure_cooldowns_from_steps,
 )
-from app.services.account_health import collect_account_health_signals
+from app.services.account_health import (
+    batch_latest_failed_steps,
+    batch_latest_jobs,
+    collect_account_health_signals,
+    collect_account_health_signals_prefetched,
+)
 from app.services.account_risk import build_risk_by_operation, overall_risk_level
-from app.services.account_safety_overrides import NON_OVERRIDABLE_BLOCKERS, active_overrides_by_operation
+from app.services.account_safety_overrides import (
+    NON_OVERRIDABLE_BLOCKERS,
+    active_overrides_by_operation,
+    batch_active_overrides_by_operation,
+)
 from app.services.accounts import get_account, list_accounts
 
 
@@ -69,10 +83,58 @@ def build_account_safety_summary(
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     config: Settings = settings,
 ) -> list[dict[str, Any]]:
-    return [
-        summarize_account_safety(build_account_safety_for_account(session, account, config=config))
-        for account in list_accounts(session, workspace_id=workspace_id)
-    ]
+    accounts = list_accounts(session, workspace_id=workspace_id)
+    if not accounts:
+        return []
+    account_ids = [a.id for a in accounts]
+    checked_at = datetime.now(UTC)
+
+    latest_jobs_map = batch_latest_jobs(session, account_ids)
+    latest_failed_steps_map = batch_latest_failed_steps(session, account_ids)
+    active_cooldowns_map = batch_active_cooldowns_by_operation(session, account_ids, now=checked_at)
+    recent_failed_map = batch_recent_failed_steps(session, account_ids)
+    succeeded_steps_map = batch_latest_succeeded_steps(session, account_ids)
+    validity_map = _batch_latest_validity_checks(session, account_ids)
+    overrides_map = batch_active_overrides_by_operation(session, account_ids, now=checked_at)
+
+    results: list[dict[str, Any]] = []
+    for account in accounts:
+        health = collect_account_health_signals_prefetched(
+            account,
+            latest_jobs_map.get(account.id),
+            latest_failed_steps_map.get(account.id),
+        )
+        capabilities = build_account_capabilities(account, health["reasons"], config=config, checked_at=checked_at)
+        cooldowns_by_operation = merge_cooldowns(
+            active_cooldowns_map.get(account.id, {}),
+            recent_failure_cooldowns_from_steps(
+                recent_failed_map.get(account.id, []), account.id, config=config,
+            ),
+            product_cooldowns_from_steps(
+                succeeded_steps_map, account.id, config=config, now=checked_at,
+            ),
+        )
+        risk_by_operation = build_risk_by_operation(health["reasons"], capabilities, cooldowns_by_operation)
+        last_validity_check = validity_map.get(account.id)
+        safety: dict[str, Any] = {
+            "account_id": account.id,
+            "health_status": health["health_status"],
+            "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
+            "validity_status": _validity_status_from_check(last_validity_check),
+            "proxy_status": _proxy_status(account.proxy),
+            "capabilities": capabilities,
+            "capability_summary": {key: value["state"] for key, value in capabilities.items()},
+            "risk_by_operation": risk_by_operation,
+            "cooldowns_by_operation": cooldowns_by_operation,
+            "active_overrides_by_operation": overrides_map.get(account.id, {}),
+            "reasons": health["reasons"],
+            "top_reasons": _top_reasons(health["reasons"]),
+            "last_checked_at": checked_at,
+            "source": "db_snapshot",
+            "last_validity_check": last_validity_check,
+        }
+        results.append(summarize_account_safety(safety))
+    return results
 
 
 def summarize_account_safety(safety: dict[str, Any]) -> dict[str, Any]:
@@ -322,6 +384,36 @@ def _unique(values: list[str]) -> list[str]:
             continue
         seen.add(value)
         result.append(value)
+    return result
+
+
+def _batch_latest_validity_checks(
+    session: Session, account_ids: list[str]
+) -> dict[str, dict[str, Any] | None]:
+    """Fetch latest validity check per account in one query."""
+    if not account_ids:
+        return {}
+    rows = session.execute(
+        select(AccountValidityCheckRun)
+        .where(AccountValidityCheckRun.account_id.in_(account_ids))
+        .order_by(AccountValidityCheckRun.account_id, AccountValidityCheckRun.started_at.desc())
+    ).scalars().all()
+    result: dict[str, dict[str, Any] | None] = {}
+    for run in rows:
+        if run.account_id not in result:
+            result[run.account_id] = {
+                "id": run.id,
+                "account_id": run.account_id,
+                "mode": run.mode,
+                "status": run.status,
+                "started_at": run.started_at,
+                "finished_at": run.finished_at,
+                "error_code": run.error_code,
+                "error_class": run.error_class,
+                "details": run.details_json,
+                "result": run.result_json,
+                "created_at": run.created_at,
+            }
     return result
 
 

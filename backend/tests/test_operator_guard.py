@@ -7,6 +7,8 @@ from app.models import User, Workspace, WorkspaceMember, WorkspacePlan
 from app.services.database import create_sqlite_test_session_factory
 
 from conftest import override_app_session
+from tests.helpers.app import app_client
+from tests.helpers.factories import make_session
 
 
 class DummyClient:
@@ -50,13 +52,14 @@ def test_operator_token_required_for_mutating_requests(monkeypatch) -> None:
 
 def test_operator_token_allows_mutating_requests(monkeypatch) -> None:
     monkeypatch.setattr(settings, "operator_api_token", "secret-token")
-    client = TestClient(app)
+    session_factory, _engine = make_session()
 
-    response = client.patch(
-        "/api/auth/runtime-mode",
-        headers={"X-Operator-Token": "secret-token"},
-        json={"tdlib_use_test_dc": False},
-    )
+    with app_client(session_factory, role="admin") as client:
+        response = client.patch(
+            "/api/auth/runtime-mode",
+            headers={"X-Operator-Token": "secret-token"},
+            json={"tdlib_use_test_dc": False},
+        )
 
     assert response.status_code == 200
 

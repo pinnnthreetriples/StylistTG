@@ -36,6 +36,8 @@ from app.services.workspaces import ensure_default_workspace
 
 from conftest import override_app_session
 
+pytestmark = [pytest.mark.security, pytest.mark.api]
+
 
 # ---------------------------------------------------------------------------
 # Factory helpers

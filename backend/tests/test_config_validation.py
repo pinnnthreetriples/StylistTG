@@ -9,6 +9,8 @@ import pytest
 
 from app.config import Settings
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # S3 storage config
@@ -18,41 +20,25 @@ from app.config import Settings
 class TestS3StorageConfig:
     """STORAGE_BACKEND=s3 must require all S3 fields."""
 
-    def test_s3_requires_endpoint_url(self):
-        with pytest.raises(ValueError, match="STORAGE_S3_ENDPOINT_URL"):
-            Settings(
-                storage_backend="s3",
-                storage_s3_bucket="bucket",
-                storage_s3_access_key_id="key",
-                storage_s3_secret_access_key="secret",
-            )
-
-    def test_s3_requires_bucket(self):
-        with pytest.raises(ValueError, match="STORAGE_S3_BUCKET"):
-            Settings(
-                storage_backend="s3",
-                storage_s3_endpoint_url="https://s3.example.com",
-                storage_s3_access_key_id="key",
-                storage_s3_secret_access_key="secret",
-            )
-
-    def test_s3_requires_access_key_id(self):
-        with pytest.raises(ValueError, match="STORAGE_S3_ACCESS_KEY_ID"):
-            Settings(
-                storage_backend="s3",
-                storage_s3_endpoint_url="https://s3.example.com",
-                storage_s3_bucket="bucket",
-                storage_s3_secret_access_key="secret",
-            )
-
-    def test_s3_requires_secret_access_key(self):
-        with pytest.raises(ValueError, match="STORAGE_S3_SECRET_ACCESS_KEY"):
-            Settings(
-                storage_backend="s3",
-                storage_s3_endpoint_url="https://s3.example.com",
-                storage_s3_bucket="bucket",
-                storage_s3_access_key_id="key",
-            )
+    @pytest.mark.parametrize(
+        ("missing_field", "expected_message"),
+        [
+            ("storage_s3_endpoint_url", "STORAGE_S3_ENDPOINT_URL"),
+            ("storage_s3_bucket", "STORAGE_S3_BUCKET"),
+            ("storage_s3_access_key_id", "STORAGE_S3_ACCESS_KEY_ID"),
+            ("storage_s3_secret_access_key", "STORAGE_S3_SECRET_ACCESS_KEY"),
+        ],
+    )
+    def test_s3_requires_required_fields(self, missing_field: str, expected_message: str):
+        config = {
+            "storage_s3_endpoint_url": "https://s3.example.com",
+            "storage_s3_bucket": "bucket",
+            "storage_s3_access_key_id": "key",
+            "storage_s3_secret_access_key": "secret",
+        }
+        config.pop(missing_field)
+        with pytest.raises(ValueError, match=expected_message):
+            Settings(storage_backend="s3", **config)
 
     def test_s3_valid_config_accepted(self):
         config = Settings(

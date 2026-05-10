@@ -26,6 +26,8 @@ from conftest import (
     seed_asset,
     seed_job,
 )
+from tests.helpers.app import app_client
+from tests.helpers.factories import make_session
 
 
 def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
@@ -315,37 +317,39 @@ def test_account_delete_does_not_reap_stale_jobs_in_legacy_endpoint(monkeypatch)
 
 def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) -> None:
     monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
-    client = TestClient(app)
+    session_factory, _engine = make_session()
 
-    response = client.get("/api/settings/execution-policy")
+    with app_client(session_factory, role="admin") as client:
+        response = client.get("/api/settings/execution-policy")
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["profile_job_cooldown_seconds"] == 120
-    assert payload["profile_job_cooldown_enabled"] is True
-    assert payload["allowed_profile_job_cooldown_seconds"] == [30, 60, 120, 300, 600]
-    assert "username_cooldown_seconds" in payload
-    assert "unknown_capability_policy" in payload
-    assert "non_overridable_blockers" in payload
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["profile_job_cooldown_seconds"] == 120
+        assert payload["profile_job_cooldown_enabled"] is True
+        assert payload["allowed_profile_job_cooldown_seconds"] == [30, 60, 120, 300, 600]
+        assert "username_cooldown_seconds" in payload
+        assert "unknown_capability_policy" in payload
+        assert "non_overridable_blockers" in payload
 
-    patch_response = client.patch(
-        "/api/settings/execution-policy",
-        json={"profile_job_cooldown_seconds": 0},
-    )
+        patch_response = client.patch(
+            "/api/settings/execution-policy",
+            json={"profile_job_cooldown_seconds": 0},
+        )
 
-    assert patch_response.status_code == 200
-    assert patch_response.json()["profile_job_cooldown_seconds"] == 0
-    assert patch_response.json()["profile_job_cooldown_enabled"] is False
+        assert patch_response.status_code == 200
+        assert patch_response.json()["profile_job_cooldown_seconds"] == 0
+        assert patch_response.json()["profile_job_cooldown_enabled"] is False
 
 
 def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> None:
     monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
-    client = TestClient(app)
+    session_factory, _engine = make_session()
 
-    response = client.patch(
-        "/api/settings/execution-policy",
-        json={"profile_job_cooldown_seconds": 10},
-    )
+    with app_client(session_factory, role="admin") as client:
+        response = client.patch(
+            "/api/settings/execution-policy",
+            json={"profile_job_cooldown_seconds": 10},
+        )
 
     assert response.status_code == 422
 

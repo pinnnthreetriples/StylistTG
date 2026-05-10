@@ -67,12 +67,13 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-  "unit: pure unit tests — no DB, no HTTP, no external services",
+  "unit: isolated unit-level tests — no HTTP or external services; may use in-memory SQLite",
   "api: FastAPI endpoint tests via TestClient",
   "security: auth, role, workspace isolation and PII tests",
   "postgres: requires real PostgreSQL",
   "redis: requires real Redis",
   "contract: API/OpenAPI/client contract tests",
+  "slow: expensive tests that should normally run only in nightly/full CI",
   "integration: feature-gated integration tests that require real TDLib credentials and library",
   "live: live environment smoke or verification tests that require external services",
 ]

@@ -3,6 +3,7 @@ import json
 import threading
 from pathlib import Path
 
+import pytest
 from rq.utils import import_attribute
 
 from app.models import AccountStoryPost, AssetKind, JobState, StepStatus, TERMINAL_JOB_STATES
@@ -13,6 +14,8 @@ from app.workers.account_update_jobs import execute_account_update_job
 from app.workers import profile_jobs
 
 from conftest import FakeExecutionUsableAdapter, seed_asset, seed_audio_asset, seed_story_asset
+
+pytestmark = pytest.mark.unit
 
 
 class FakeProcess:

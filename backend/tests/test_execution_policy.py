@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
-from app.main import app
+from tests.helpers.app import app_client
+from tests.helpers.factories import make_session
 
 
 def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypatch) -> None:
@@ -12,21 +11,22 @@ def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypa
     monkeypatch.setattr("app.api.settings.settings.fresh_validity_required", "if_stale")
     monkeypatch.setattr("app.api.settings.settings.fresh_validity_max_age_minutes", 30)
     monkeypatch.setattr("app.api.settings.settings.manual_hard_blocker_override_enabled", False)
-    client = TestClient(app)
+    session_factory, _engine = make_session()
 
-    response = client.patch(
-        "/api/settings/execution-policy",
-        json={
-            "profile_job_cooldown_seconds": 60,
-            "username_cooldown_seconds": 1800,
-            "profile_music_cooldown_seconds": 900,
-            "unknown_capability_policy": "block_live_execution",
-            "recent_failure_policy": "cooldown",
-            "fresh_validity_required": "if_stale",
-            "fresh_validity_max_age_minutes": 20,
-            "manual_hard_blocker_override_enabled": True,
-        },
-    )
+    with app_client(session_factory, role="admin") as client:
+        response = client.patch(
+            "/api/settings/execution-policy",
+            json={
+                "profile_job_cooldown_seconds": 60,
+                "username_cooldown_seconds": 1800,
+                "profile_music_cooldown_seconds": 900,
+                "unknown_capability_policy": "block_live_execution",
+                "recent_failure_policy": "cooldown",
+                "fresh_validity_required": "if_stale",
+                "fresh_validity_max_age_minutes": 20,
+                "manual_hard_blocker_override_enabled": True,
+            },
+        )
 
     assert response.status_code == 200
     payload = response.json()
@@ -39,11 +39,12 @@ def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypa
 
 def test_execution_policy_keeps_legacy_profile_job_cooldown_upper_bound(monkeypatch) -> None:
     monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
-    client = TestClient(app)
+    session_factory, _engine = make_session()
 
-    response = client.patch(
-        "/api/settings/execution-policy",
-        json={"profile_job_cooldown_seconds": 86400},
-    )
+    with app_client(session_factory, role="admin") as client:
+        response = client.patch(
+            "/api/settings/execution-policy",
+            json={"profile_job_cooldown_seconds": 86400},
+        )
 
     assert response.status_code == 422

@@ -5,6 +5,8 @@ from app.main import app
 from app.services.database import create_sqlite_test_session_factory
 
 from conftest import FakeTdlibAuthAdapter, override_app_session
+from tests.helpers.app import app_client
+from tests.helpers.factories import make_session
 
 
 def test_otp_api_contract_start_confirm_and_auth_state(monkeypatch) -> None:
@@ -38,26 +40,27 @@ def test_otp_api_contract_start_confirm_and_auth_state(monkeypatch) -> None:
 
 
 def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:
-    client = TestClient(app)
+    session_factory, _engine = make_session()
     original_test_dc = app.dependency_overrides.get("unused")
 
-    get_response = client.get("/api/auth/runtime-mode")
-    assert get_response.status_code == 200
-    before = get_response.json()
+    with app_client(session_factory, role="admin") as client:
+        get_response = client.get("/api/auth/runtime-mode")
+        assert get_response.status_code == 200
+        before = get_response.json()
 
-    enable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": True})
-    assert enable_response.status_code == 200
-    assert enable_response.json() == {
-        "tdlib_use_test_dc": True,
-        "tdlib_production_auth_enabled": False,
-    }
+        enable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": True})
+        assert enable_response.status_code == 200
+        assert enable_response.json() == {
+            "tdlib_use_test_dc": True,
+            "tdlib_production_auth_enabled": False,
+        }
 
-    disable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
-    assert disable_response.status_code == 200
-    assert disable_response.json() == {
-        "tdlib_use_test_dc": False,
-        "tdlib_production_auth_enabled": True,
-    }
+        disable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
+        assert disable_response.status_code == 200
+        assert disable_response.json() == {
+            "tdlib_use_test_dc": False,
+            "tdlib_production_auth_enabled": True,
+        }
 
-    client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": before["tdlib_use_test_dc"]})
+        client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": before["tdlib_use_test_dc"]})
     assert original_test_dc is None

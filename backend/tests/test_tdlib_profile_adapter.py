@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from app.adapters.tdlib_auth import build_tdlib_auth_adapter
+from app.adapters.tdlib_auth import TdlibAuthAdapter, build_tdlib_auth_adapter
 from app.adapters.tdlib_profile_execution import (
     TdlibProfileExecutionAdapter,
     classify_job_outcome,
@@ -806,4 +806,6 @@ def test_real_tdlib_adapter_can_be_constructed_when_credentials_exist() -> None:
 
     adapter = build_tdlib_auth_adapter()
 
-    assert adapter is not None
+    assert isinstance(adapter, TdlibAuthAdapter)
+    assert adapter._config.tdlib_api_id is not None
+    assert adapter._config.tdlib_api_hash is not None

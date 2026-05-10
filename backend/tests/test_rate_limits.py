@@ -6,9 +6,9 @@ from app.services.rate_limits import evaluate_tenant_rate_limit
 
 
 class FakeRedis:
-    def __init__(self) -> None:
+    def __init__(self, *, start_count: int = 0) -> None:
         self.calls: list[tuple] = []
-        self.value = 0
+        self.value = start_count
 
     def pipeline(self):
         return self
@@ -61,3 +61,49 @@ def test_rate_limit_returns_controlled_error_when_pipeline_fails() -> None:
 
     assert decision.allowed is False
     assert decision.reason == "rate_limit_store_unavailable"
+
+
+def test_tenant_rate_limit_exceeded_when_count_exceeds_limit() -> None:
+    redis = FakeRedis(start_count=100)
+
+    decision = evaluate_tenant_rate_limit(
+        redis,
+        workspace_id="workspace-1",
+        action_type="job.enqueue",
+        queue_name="profile_jobs",
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "tenant_rate_limit_exceeded"
+    assert decision.remaining == 0
+    assert decision.retry_after_seconds == 3600
+
+
+def test_account_rate_limit_exceeded_when_count_exceeds_limit() -> None:
+    redis = FakeRedis(start_count=100)
+
+    decision = evaluate_tenant_rate_limit(
+        redis,
+        workspace_id="workspace-1",
+        action_type="job.enqueue",
+        queue_name="profile_jobs",
+        account_id="account-1",
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "account_rate_limit_exceeded"
+    assert decision.remaining == 0
+
+
+def test_rate_limit_remaining_decrements_correctly() -> None:
+    redis = FakeRedis(start_count=98)
+
+    decision = evaluate_tenant_rate_limit(
+        redis,
+        workspace_id="workspace-1",
+        action_type="job.enqueue",
+        queue_name="profile_jobs",
+    )
+
+    assert decision.allowed is True
+    assert decision.remaining == 1

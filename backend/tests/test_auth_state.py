@@ -1,5 +1,7 @@
 from collections import deque
 
+import pytest
+
 from app.adapters.tdlib_auth import (
     TdlibAuthAdapter,
     TdlibAuthStatus,
@@ -17,12 +19,8 @@ def test_phone_number_normalization_accepts_international_format() -> None:
 
 
 def test_phone_number_normalization_rejects_local_format() -> None:
-    try:
+    with pytest.raises(ValueError, match="international format"):
         normalize_phone_number("8 999 111 22 33")
-    except ValueError as exc:
-        assert "international format" in str(exc)
-    else:
-        raise AssertionError("local phone number was accepted")
 
 
 def test_auth_state_mapping_for_supported_tdlib_states() -> None:

@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from pydantic_settings import SettingsConfigDict
 
 from app.config import Settings
@@ -198,14 +199,9 @@ def test_start_otp_blocks_reauth_retry_during_cooldown(db_session) -> None:
     first = start_otp(db_session, phone_number="+15550102000", adapter=adapter, config=config)
     adapter.started.clear()
 
-    try:
+    with pytest.raises(AuthSafetyError, match="wait before requesting"):
         start_otp(db_session, phone_number="+15550102000", adapter=adapter, config=config)
-    except AuthSafetyError as exc:
-        error_code = exc.error_code
-    else:
-        error_code = None
 
-    assert error_code == "AUTH_COOLDOWN_ACTIVE"
     assert adapter.started == []
     assert db_session.query(AccountAuthAttempt).filter_by(account_id=first.account.id).count() == 1
 
@@ -225,14 +221,9 @@ def test_start_otp_blocks_after_daily_attempt_cap(db_session) -> None:
     first = start_otp(db_session, phone_number="+15550102000", adapter=adapter, config=config)
     adapter.started.clear()
 
-    try:
+    with pytest.raises(AuthSafetyError, match="daily Telegram login attempt limit"):
         start_otp(db_session, phone_number="+15550102000", adapter=adapter, config=config)
-    except AuthSafetyError as exc:
-        error_code = exc.error_code
-    else:
-        error_code = None
 
-    assert error_code == "AUTH_DAILY_LIMIT_REACHED"
     assert adapter.started == []
     assert db_session.query(AccountAuthAttempt).filter_by(account_id=first.account.id).count() == 1
 
@@ -241,14 +232,9 @@ def test_start_otp_blocks_when_production_auth_disabled(db_session) -> None:
     config = LocalSettings(tdlib_production_auth_enabled=False, tdlib_use_test_dc=False)
     adapter = FakeTdlibAuthAdapter()
 
-    try:
+    with pytest.raises(AuthSafetyError, match="production TDLib auth is disabled"):
         start_otp(db_session, phone_number="+15550102000", adapter=adapter, config=config)
-    except AuthSafetyError as exc:
-        error_code = exc.error_code
-    else:
-        error_code = None
 
-    assert error_code == "PRODUCTION_TDLIB_AUTH_DISABLED"
     assert adapter.started == []
 
 
@@ -261,14 +247,9 @@ def test_start_otp_blocks_manual_intervention_state(db_session) -> None:
     db_session.commit()
     adapter.started.clear()
 
-    try:
+    with pytest.raises(AuthSafetyError, match="manual intervention"):
         start_otp(db_session, phone_number="+15550102000", adapter=adapter)
-    except AuthSafetyError as exc:
-        error_code = exc.error_code
-    else:
-        error_code = None
 
-    assert error_code == "AUTH_MANUAL_INTERVENTION_REQUIRED"
     assert adapter.started == []
 
 

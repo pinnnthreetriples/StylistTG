@@ -30,7 +30,7 @@ def _s3_storage() -> tuple[S3CompatibleStorageService, Stubber]:
     return storage, stubber
 
 
-def test_s3_storage_save_read_stat_delete_and_signed_url() -> None:
+def test_s3_storage_save_read_stat_delete() -> None:
     storage, stubber = _s3_storage()
     content = b"hello"
     expected_put = {
@@ -92,12 +92,15 @@ def test_s3_storage_save_read_stat_delete_and_signed_url() -> None:
         assert storage.exists(stored.key) is True
         assert storage.delete(stored.key) is True
 
+
+def test_s3_storage_signed_url() -> None:
+    storage, stubber = _s3_storage()
     stubber.add_response(
         "head_object",
         {
-            "ContentLength": len(content),
+            "ContentLength": 5,
             "ContentType": "text/plain",
-            "Metadata": {"sha256": expected_put["Metadata"]["sha256"]},
+            "Metadata": {"sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"},
             "ETag": '"etag"',
         },
         {"Bucket": storage.bucket, "Key": "assets/a/source/file.txt"},

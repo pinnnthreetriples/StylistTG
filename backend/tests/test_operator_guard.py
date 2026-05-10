@@ -110,6 +110,8 @@ def test_worker_diagnostics_admin_response_is_safe_metadata(monkeypatch) -> None
     serialized = str(payload)
     assert "session/db" not in serialized
     assert "session/files" not in serialized
+    assert "C:/real" not in serialized
+    assert "C:\\real" not in serialized
     assert "rediss://" not in serialized
 
 

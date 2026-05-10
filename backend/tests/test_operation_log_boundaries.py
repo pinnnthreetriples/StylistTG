@@ -1,9 +1,22 @@
 """PR 8: Tests for operation log workspace boundaries and export expiry."""
 from __future__ import annotations
 
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID
+import pytest
+
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, AccountState
+from app.services.account_lifecycle import (
+    create_account_export_request,
+    list_deletion_requests,
+    list_export_requests,
+    request_account_deletion,
+)
 from app.services.accounts import create_account
 from app.services.operation_logs import list_account_logs, list_global_logs, log_operation
+
+
+class FakeStorage:
+    def save_bytes(self, key, content, **_):
+        return object()
 
 
 def test_log_operation_with_explicit_workspace_id(db_session) -> None:
@@ -81,7 +94,6 @@ def test_list_account_logs_filters_by_workspace(db_session) -> None:
     own_logs = list_account_logs(db_session, account.id, workspace_id=account.workspace_id)
     assert own_logs["total"] == 2
 
-    import pytest
     with pytest.raises(ValueError, match="account not found"):
         list_account_logs(db_session, account.id, workspace_id="ws-foreign")
 
@@ -100,7 +112,6 @@ def test_wrong_workspace_cannot_list_account_logs(db_session) -> None:
     )
     db_session.commit()
 
-    import pytest
     with pytest.raises(ValueError, match="account not found"):
         list_account_logs(db_session, account_a.id, workspace_id="ws-wrong")
 
@@ -127,12 +138,6 @@ def test_global_logs_scoped_by_workspace(db_session) -> None:
 
 
 def test_export_request_has_expiry(db_session) -> None:
-    from app.services.account_lifecycle import create_account_export_request
-
-    class FakeStorage:
-        def save_bytes(self, key, content, **_):
-            return object()
-
     account = create_account(db_session, external_ref="+15550200007")
     db_session.commit()
 
@@ -150,12 +155,6 @@ def test_export_request_has_expiry(db_session) -> None:
 
 
 def test_export_request_is_workspace_scoped(db_session) -> None:
-    from app.services.account_lifecycle import create_account_export_request, list_export_requests
-
-    class FakeStorage:
-        def save_bytes(self, key, content, **_):
-            return object()
-
     account = create_account(db_session, external_ref="+15550200008")
     db_session.commit()
 
@@ -170,15 +169,11 @@ def test_export_request_is_workspace_scoped(db_session) -> None:
     own = list_export_requests(db_session, account_id=account.id, workspace_id=account.workspace_id)
     assert len(own) == 1
 
-    import pytest
     with pytest.raises(ValueError, match="account not found"):
         list_export_requests(db_session, account_id=account.id, workspace_id="ws-foreign")
 
 
 def test_deletion_request_is_workspace_scoped(db_session) -> None:
-    from app.models import AccountState
-    from app.services.account_lifecycle import list_deletion_requests, request_account_deletion
-
     account = create_account(db_session, external_ref="+15550200009")
     account.account_state = AccountState.EXECUTION_USABLE
     account.runtime_state.session_present = True
@@ -198,6 +193,5 @@ def test_deletion_request_is_workspace_scoped(db_session) -> None:
     own = list_deletion_requests(db_session, account_id=account.id, workspace_id=account.workspace_id)
     assert len(own) == 1
 
-    import pytest
     with pytest.raises(ValueError, match="account not found"):
         list_deletion_requests(db_session, account_id=account.id, workspace_id="ws-foreign")

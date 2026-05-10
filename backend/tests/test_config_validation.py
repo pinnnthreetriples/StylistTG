@@ -143,8 +143,6 @@ class TestCloudConfigEdgeCases:
             Settings(**self._cloud_base(proxy_credentials_encryption_key="not-a-fernet-key"))
 
     def test_cloud_accepts_valid_fernet_key(self):
-        from cryptography.fernet import Fernet
-
-        key = Fernet.generate_key().decode()
+        key = "lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg="
         config = Settings(**self._cloud_base(proxy_credentials_encryption_key=key))
         assert config.proxy_credentials_encryption_key == key

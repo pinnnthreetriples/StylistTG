@@ -32,7 +32,6 @@ from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     WarmupExecutionMode,
     WarmupSession,
-    WarmupStrategy,
     WarmupTrustedPeer,
     new_id,
 )
@@ -351,35 +350,6 @@ def test_real_adapter_close_idempotent_and_drops_clients(monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _seed_account(db_session, *, telegram_user_id: str | None = None):
-    return seed_warmup_account(db_session, telegram_user_id=telegram_user_id)
-
-
-def _seed_strategy(
-    db_session,
-    *,
-    execution_mode: str,
-    target_channels: list | None = None,
-    daily_action_limits: dict | None = None,
-    duration_days: int = 3,
-) -> WarmupStrategy:
-    return seed_warmup_strategy(
-        db_session,
-        execution_mode=execution_mode,
-        target_channels=target_channels,
-        daily_action_limits=daily_action_limits,
-        duration_days=duration_days,
-    )
-
-
-def _seed_session(db_session, strategy: WarmupStrategy) -> WarmupSession:
-    return seed_warmup_session(
-        db_session,
-        strategy=strategy,
-        now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC),
-    )
-
-
 def _drive_until(
     db_session,
     *,
@@ -416,7 +386,7 @@ def _drive_until(
 
 
 def test_network_dispatch_calls_join_chat_with_target_from_strategy(db_session) -> None:
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.NETWORK.value,
         target_channels=[{"username": "cool_news"}, {"username": "memes_daily"}],
@@ -424,7 +394,7 @@ def test_network_dispatch_calls_join_chat_with_target_from_strategy(db_session) 
             "1": {"feed_read": 0, "join_chat": 1, "p2p_send": 0},
         },
     )
-    warmup_session = _seed_session(db_session, strategy)
+    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
     adapter = MockWarmupTdlibAdapter(rng_seed=10)
 
     _drive_until(
@@ -444,13 +414,13 @@ def test_network_dispatch_calls_join_chat_with_target_from_strategy(db_session) 
 
 
 def test_network_dispatch_skips_join_chat_when_strategy_has_no_channels(db_session) -> None:
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.NETWORK.value,
         target_channels=[],
         daily_action_limits={"1": {"join_chat": 1}},
     )
-    warmup_session = _seed_session(db_session, strategy)
+    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
     adapter = MockWarmupTdlibAdapter()
 
     process_due_warmup_dispatches(
@@ -477,15 +447,15 @@ def test_network_dispatch_skips_join_chat_when_strategy_has_no_channels(db_sessi
 def test_advanced_dispatch_p2p_send_uses_eligible_peer_and_records_contact(
     db_session,
 ) -> None:
-    sender_strategy = _seed_strategy(
+    sender_strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.ADVANCED.value,
         target_channels=[{"username": "cool_news"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = _seed_session(db_session, sender_strategy)
+    warmup_session = seed_warmup_session(db_session, strategy=sender_strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
     # seed eligible peer in the same workspace, with telegram_user_id
-    peer_account = _seed_account(db_session, telegram_user_id="555")
+    peer_account = seed_warmup_account(db_session, telegram_user_id="555")
     db_session.add(
         WarmupTrustedPeer(
             id=new_id(),
@@ -533,13 +503,13 @@ def test_advanced_dispatch_p2p_send_uses_eligible_peer_and_records_contact(
 
 
 def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.ADVANCED.value,
         target_channels=[{"username": "cool_news"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = _seed_session(db_session, strategy)
+    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
     adapter = MockWarmupTdlibAdapter()
 
     process_due_warmup_dispatches(
@@ -562,13 +532,13 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
 
 
 def test_dispatch_closes_adapter_after_tick(db_session) -> None:
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.NETWORK.value,
         target_channels=[{"username": "cool"}],
         daily_action_limits={"1": {"join_chat": 1}},
     )
-    _seed_session(db_session, strategy)
+    seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
 
     closed_calls: list[str] = []
 
@@ -590,14 +560,14 @@ def test_dispatch_closes_adapter_after_tick(db_session) -> None:
 def test_write_action_blocked_when_adapter_lacks_capability(db_session) -> None:
     """Если стратегия требует p2p_send, но adapter работает в passive-only,
     dispatch пишет write_action_not_enabled и не вызывает adapter."""
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.ADVANCED.value,
         target_channels=[{"username": "cool"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = _seed_session(db_session, strategy)
-    peer_account = _seed_account(db_session, telegram_user_id="777")
+    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    peer_account = seed_warmup_account(db_session, telegram_user_id="777")
     db_session.add(
         WarmupTrustedPeer(
             id=new_id(),
@@ -638,10 +608,10 @@ def test_write_action_blocked_when_adapter_lacks_capability(db_session) -> None:
 
 
 def test_select_eligible_peer_excludes_sender_and_revoked(db_session) -> None:
-    sender = _seed_account(db_session, telegram_user_id="100")
-    other = _seed_account(db_session, telegram_user_id="200")
-    revoked = _seed_account(db_session, telegram_user_id="300")
-    cap_full = _seed_account(db_session, telegram_user_id="400")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
+    other = seed_warmup_account(db_session, telegram_user_id="200")
+    revoked = seed_warmup_account(db_session, telegram_user_id="300")
+    cap_full = seed_warmup_account(db_session, telegram_user_id="400")
     db_session.add_all(
         [
             WarmupTrustedPeer(
@@ -694,8 +664,8 @@ def test_select_eligible_peer_excludes_sender_and_revoked(db_session) -> None:
 
 
 def test_select_eligible_peer_skips_when_eligible_from_in_future(db_session) -> None:
-    sender = _seed_account(db_session, telegram_user_id="100")
-    future = _seed_account(db_session, telegram_user_id="200")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
+    future = seed_warmup_account(db_session, telegram_user_id="200")
     db_session.add(
         WarmupTrustedPeer(
             id=new_id(),
@@ -718,8 +688,8 @@ def test_select_eligible_peer_skips_when_eligible_from_in_future(db_session) -> 
 
 
 def test_record_p2p_contact_increments_receiver_and_sender_when_in_pool(db_session) -> None:
-    sender = _seed_account(db_session, telegram_user_id="100")
-    receiver = _seed_account(db_session, telegram_user_id="200")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
+    receiver = seed_warmup_account(db_session, telegram_user_id="200")
     db_session.add_all(
         [
             WarmupTrustedPeer(
@@ -755,8 +725,8 @@ def test_record_p2p_contact_increments_receiver_and_sender_when_in_pool(db_sessi
 
 
 def test_record_p2p_contact_raises_if_receiver_not_in_pool(db_session) -> None:
-    sender = _seed_account(db_session, telegram_user_id="100")
-    foreign = _seed_account(db_session, telegram_user_id="200")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
+    foreign = seed_warmup_account(db_session, telegram_user_id="200")
     db_session.add(
         WarmupTrustedPeer(
             id=new_id(),
@@ -786,13 +756,13 @@ def test_text_seed_is_deterministic_across_ticks(db_session) -> None:
     """Один и тот же session+day+action ⇒ один и тот же seed (требование Phase 0a)."""
     from app.services.warmup_dispatch import _derive_text_seed
 
-    strategy = _seed_strategy(
+    strategy = seed_warmup_strategy(
         db_session,
         execution_mode=WarmupExecutionMode.ADVANCED.value,
         target_channels=[{"username": "cool"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    session_obj = _seed_session(db_session, strategy)
+    session_obj = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
     db_session.refresh(session_obj)
 
     seed_1 = _derive_text_seed(session_obj, "p2p_send")
@@ -811,9 +781,9 @@ def test_p2p_select_workspace_isolation(db_session) -> None:
     запрос-фильтр в `select_eligible_peer` обязан строго ограничивать
     выборку рабочей областью вызывающего.
     """
-    sender = _seed_account(db_session, telegram_user_id="100")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
     foreign_workspace_id = new_id()
-    foreign_account = _seed_account(db_session, telegram_user_id="999")
+    foreign_account = seed_warmup_account(db_session, telegram_user_id="999")
     # переписываем workspace_id для имитации чужой области
     foreign_account.workspace_id = foreign_workspace_id
     db_session.add(
@@ -838,9 +808,9 @@ def test_p2p_select_workspace_isolation(db_session) -> None:
 
 
 def test_p2p_select_rejects_peer_row_pointing_to_foreign_account(db_session) -> None:
-    sender = _seed_account(db_session, telegram_user_id="100")
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
     foreign_workspace_id = new_id()
-    foreign_account = _seed_account(db_session, telegram_user_id="999")
+    foreign_account = seed_warmup_account(db_session, telegram_user_id="999")
     foreign_account.workspace_id = foreign_workspace_id
     db_session.add(
         WarmupTrustedPeer(

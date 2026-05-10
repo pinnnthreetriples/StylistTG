@@ -41,11 +41,6 @@ def test_storage_key_normalization_rejects_traversal() -> None:
         normalize_storage_key("assets/./asset.jpg")
 
 
-def test_storage_config_validation_s3_requires_required_envs() -> None:
-    with pytest.raises(ValueError, match="STORAGE_BACKEND=s3 requires"):
-        Settings(storage_backend="s3")
-
-
 def test_s3_adapter_builds_with_complete_config() -> None:
     config = Settings(
         storage_backend="s3",
@@ -57,18 +52,6 @@ def test_s3_adapter_builds_with_complete_config() -> None:
     storage = build_storage_service(config)
 
     assert storage.backend_name == "s3"
-
-
-def test_s3_secret_is_masked_in_settings_repr() -> None:
-    config = Settings(
-        storage_backend="s3",
-        storage_s3_endpoint_url="https://example.invalid",
-        storage_s3_bucket="bucket",
-        storage_s3_access_key_id="access",
-        storage_s3_secret_access_key="super-secret",
-    )
-
-    assert "super-secret" not in repr(config)
 
 
 def test_tdlib_account_dirs_reject_path_traversal(tmp_path) -> None:

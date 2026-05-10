@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  buildAssetContentUrl,
   confirmOtp,
   confirmAccountImportBatch,
   createApiClient,
   createAccountImportBatch,
   createAuthBatch,
   createTelegramAuthSession,
+  fetchAccountRuntimeDiagnostics,
   fetchCurrentUser,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
@@ -292,6 +294,108 @@ describe('@stylisttg/api-client', () => {
       'http://api.test/api/account-import-batches/batch-1/confirm',
     ])
     expect(JSON.stringify(calls)).not.toContain('code_invalid: 12345')
+  })
+
+  test('does not overwrite Authorization header if already set', async () => {
+    const calls: RequestInit[] = []
+    const fetchMock = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(init ?? {})
+      return jsonResponse({ status: 'ok' })
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.test',
+      fetch: fetchMock as typeof fetch,
+      getAccessToken: () => 'auto-token',
+    })
+
+    await client.request('/health', { headers: { Authorization: 'Bearer manual-token' } })
+
+    expect(new Headers(calls[0]?.headers).get('Authorization')).toBe('Bearer manual-token')
+  })
+
+  test('sets Content-Type to application/json for string body', async () => {
+    const calls: RequestInit[] = []
+    const fetchMock = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(init ?? {})
+      return jsonResponse({ ok: true })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await client.request('/api/test', { method: 'POST', body: JSON.stringify({ key: 'value' }) })
+
+    expect(new Headers(calls[0]?.headers).get('Content-Type')).toBe('application/json')
+  })
+
+  test('does not set Content-Type for FormData body', async () => {
+    const calls: RequestInit[] = []
+    const fetchMock = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(init ?? {})
+      return jsonResponse({ id: 'asset-1' })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    const formData = new FormData()
+    formData.append('file', new Blob(['test']), 'test.txt')
+    await client.request('/api/assets/profile-photo', { method: 'POST', body: formData })
+
+    expect(new Headers(calls[0]?.headers).get('Content-Type')).toBeNull()
+  })
+
+  test('normalizeClientError handles null error', () => {
+    const result = normalizeClientError(null, 500)
+    expect(result).toEqual({
+      status: 500,
+      message: 'request failed with status 500',
+    })
+  })
+
+  test('normalizeClientError handles plain Error instance', () => {
+    const result = normalizeClientError(new Error('boom'), 503)
+    expect(result.status).toBe(503)
+    expect(result.message).toBe('boom')
+  })
+
+  test('normalizeClientError handles error without error_code', () => {
+    const result = normalizeClientError({ message: 'something went wrong', details: { field: 'name' } }, 422)
+    expect(result).toEqual({
+      status: 422,
+      code: undefined,
+      message: 'something went wrong',
+      details: { field: 'name' },
+    })
+  })
+
+  test('buildAssetContentUrl encodes special characters in asset ID', () => {
+    const client = createApiClient({ baseUrl: 'http://api.test' })
+
+    const url = buildAssetContentUrl(client, 'asset/with spaces&special=chars')
+
+    expect(url).toBe('http://api.test/api/assets/asset%2Fwith%20spaces%26special%3Dchars/content')
+    expect(url).not.toContain(' ')
+  })
+
+  test('account runtime diagnostics sends X-Account-Id header', async () => {
+    const calls: Array<{ url: string; accountId: string | null }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = input instanceof Request
+        ? input.headers
+        : new Headers(init?.headers)
+      calls.push({
+        url: requestUrl(input),
+        accountId: headers.get('X-Account-Id'),
+      })
+      return jsonResponse({
+        total: 0,
+        accounts: [],
+        generated_at: '2026-05-03T00:00:00Z',
+      })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchAccountRuntimeDiagnostics(client, 'acct-123')
+
+    expect(calls.length).toBe(1)
+    expect(calls[0].accountId).toBe('acct-123')
   })
 })
 

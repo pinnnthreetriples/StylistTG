@@ -168,6 +168,9 @@ class Settings(BaseSettings):
                 raise ValueError("cloud API requires explicit non-wildcard CORS_ORIGINS")
             if self.stale_job_reaper_enabled:
                 raise ValueError("cloud API requires STALE_JOB_REAPER_ENABLED=false")
+            if not self.proxy_credentials_encryption_key:
+                raise ValueError("cloud API requires PROXY_CREDENTIALS_ENCRYPTION_KEY (Fernet key)")
+            self._validate_fernet_key(self.proxy_credentials_encryption_key)
         if self.storage_backend not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be local or s3")
         if self.tdlib_storage_backend != "local":
@@ -186,6 +189,23 @@ class Settings(BaseSettings):
             if missing:
                 raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
         return self
+
+    @staticmethod
+    def _validate_fernet_key(key: str) -> None:
+        import base64
+
+        try:
+            decoded = base64.urlsafe_b64decode(key.encode("utf-8"))
+        except Exception:
+            raise ValueError(
+                "PROXY_CREDENTIALS_ENCRYPTION_KEY is not a valid Fernet key "
+                "(must be 32 url-safe base64-encoded bytes)"
+            )
+        if len(decoded) != 32:
+            raise ValueError(
+                "PROXY_CREDENTIALS_ENCRYPTION_KEY is not a valid Fernet key "
+                f"(decoded to {len(decoded)} bytes, expected 32)"
+            )
 
 
 settings = Settings()

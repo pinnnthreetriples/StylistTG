@@ -6,13 +6,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from typing import Any, cast
 
+from app.api.tenant_helpers import require_account_in_workspace
 from app.config import settings
 from app.db import get_session
 from app.errors import AppError
 from app.job_queue.rq import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.models import (
     ACTIVE_WARMUP_STATUSES,
-    Account,
     WarmupExecutionMode,
     WarmupSession,
     WarmupStatus,
@@ -342,14 +342,7 @@ def get_warmup_isolation_status(
     The endpoint verifies the account belongs to the caller's workspace.
     Returns is_isolated=False with claim=null when no claim exists.
     """
-    account = session.get(Account, account_id)
-    if account is None or account.workspace_id != auth.workspace_id:
-        raise AppError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ACCOUNT_NOT_FOUND",
-            error_class="not_found",
-            message="account not found",
-        )
+    require_account_in_workspace(session, account_id, auth)
     claim = get_claim(session, account_id=account_id)
     if claim is None:
         return WarmupIsolationStatusRead(is_isolated=False, claim=None)

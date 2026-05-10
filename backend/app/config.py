@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     profile_execution_adapter: str = "mock"
     profile_job_timeout_seconds: float = 120.0
     queue_inline_fallback_enabled: bool = False
+    max_lock_wait_seconds: int = 60
+    lock_retry_delay_seconds: int = 5
     stale_job_timeout_seconds: int = 300
     stale_job_reaper_enabled: bool = True
     stale_job_reaper_interval_seconds: int = 60
@@ -168,6 +170,8 @@ class Settings(BaseSettings):
                 raise ValueError("cloud API requires explicit non-wildcard CORS_ORIGINS")
             if self.stale_job_reaper_enabled:
                 raise ValueError("cloud API requires STALE_JOB_REAPER_ENABLED=false")
+            if self.queue_inline_fallback_enabled:
+                raise ValueError("cloud API requires QUEUE_INLINE_FALLBACK_ENABLED=false")
             if not self.proxy_credentials_encryption_key:
                 raise ValueError("cloud API requires PROXY_CREDENTIALS_ENCRYPTION_KEY (Fernet key)")
             self._validate_fernet_key(self.proxy_credentials_encryption_key)

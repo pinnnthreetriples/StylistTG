@@ -83,6 +83,7 @@ def upsert_account_proxy(
         severity="info",
         source="proxy_settings",
         message="Proxy settings saved",
+        workspace_id=workspace_id,
         metadata={"proxy_type": proxy_type, "host": host, "port": port, "has_password": bool(password)},
     )
     session.commit()
@@ -105,6 +106,7 @@ def delete_account_proxy(session: Session, account_id: str, *, workspace_id: str
             severity="info",
             source="proxy_settings",
             message="Proxy removed",
+            workspace_id=workspace_id,
         )
     session.commit()
 

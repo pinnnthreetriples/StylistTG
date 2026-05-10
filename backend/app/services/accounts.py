@@ -1,6 +1,6 @@
 from sqlalchemy import delete, select
 from sqlalchemy import not_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.models import (
@@ -80,6 +80,11 @@ def list_accounts(session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_
     return list(
         session.execute(
             select(Account)
+            .options(
+                joinedload(Account.profile_state),
+                joinedload(Account.runtime_state),
+                joinedload(Account.proxy),
+            )
             .where(Account.workspace_id == workspace_id)
             .where(
                 not_(
@@ -96,6 +101,7 @@ def list_accounts(session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_
             )
             .order_by(Account.updated_at.desc())
         )
+        .unique()
         .scalars()
         .all()
     )

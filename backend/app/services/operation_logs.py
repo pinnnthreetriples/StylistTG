@@ -28,10 +28,16 @@ def log_operation(
     job_id: str | None = None,
     step_id: str | None = None,
     created_at: datetime | None = None,
+    workspace_id: str | None = None,
 ) -> AccountOperationLog:
+    resolved_workspace_id = workspace_id
+    if resolved_workspace_id is None:
+        resolved_workspace_id = getattr(
+            get_account(session, account_id), "workspace_id", DEFAULT_LOCAL_WORKSPACE_ID
+        )
     row = AccountOperationLog(
         id=new_id(),
-        workspace_id=getattr(get_account(session, account_id), "workspace_id", DEFAULT_LOCAL_WORKSPACE_ID),
+        workspace_id=resolved_workspace_id,
         account_id=account_id,
         operation_type=operation_type,
         operation_key=operation_key,

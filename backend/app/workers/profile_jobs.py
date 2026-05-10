@@ -66,10 +66,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     log_event("worker_start", account_id=job.account_id, job_id=job_id, owner=owner)
     lock_epoch = acquire_account_lock(session, job.account_id, owner)
     if lock_epoch is None:
-        job.job_state = JobState.WAITING_LOCK
-        session.commit()
-        log_event("worker_waiting_lock", account_id=job.account_id, job_id=job_id)
-        return 1
+        return _handle_lock_contention(session, job, job_id)
 
     mark_job_running(session, job, owner=owner, lock_epoch=lock_epoch)
     heartbeat_lock(session, job.account_id, owner, lock_epoch)
@@ -397,6 +394,50 @@ def _stderr_summary(stderr_buffer: list[str]) -> str | None:
 
 def run_profile_job(job_id: str) -> int:
     return execute_profile_job(job_id)
+
+
+def _handle_lock_contention(session: Session, job: Job, job_id: str) -> int:
+    from datetime import UTC
+
+    queued_at = job.queued_at
+    if queued_at is not None and queued_at.tzinfo is None:
+        queued_at = queued_at.replace(tzinfo=UTC)
+    elapsed = (utc_now() - queued_at).total_seconds() if queued_at else 0
+    if elapsed > settings.max_lock_wait_seconds:
+        job.job_state = JobState.FAILED
+        job.finished_at = utc_now()
+        job.failure_reason = "lock_wait_timeout"
+        session.commit()
+        log_event(
+            "worker_lock_wait_timeout",
+            account_id=job.account_id,
+            job_id=job_id,
+            elapsed_seconds=elapsed,
+        )
+        return 1
+    job.job_state = JobState.WAITING_LOCK
+    session.commit()
+    _try_reenqueue(job_id, job.workflow_type)
+    log_event(
+        "worker_waiting_lock_retry",
+        account_id=job.account_id,
+        job_id=job_id,
+        elapsed_seconds=elapsed,
+    )
+    return 1
+
+
+def _try_reenqueue(job_id: str, workflow_type: str | None) -> None:
+    try:
+        from app.job_queue.rq import reenqueue_job_with_delay
+
+        reenqueue_job_with_delay(
+            job_id,
+            delay_seconds=settings.lock_retry_delay_seconds,
+            workflow_type=workflow_type,
+        )
+    except Exception:
+        log_event("worker_reenqueue_failed", job_id=job_id)
 
 
 def _classify_terminal_job_outcome(job: Job) -> JobState:

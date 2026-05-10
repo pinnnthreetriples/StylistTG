@@ -60,6 +60,7 @@ def create_safety_override(
         severity="warning",
         source="account_safety",
         message="Manual safety review saved",
+        workspace_id=workspace_id,
         metadata={"requested_blockers": blockers},
     )
     session.commit()
@@ -83,6 +84,29 @@ def active_overrides_by_operation(
     result: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         result.setdefault(row.operation, []).append(safety_override_to_dict(row))
+    return result
+
+
+def batch_active_overrides_by_operation(
+    session: Session,
+    account_ids: list[str],
+    *,
+    now: datetime | None = None,
+) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    """Return {account_id: {operation: [overrides]}} for all accounts in one query."""
+    now = now or datetime.now(UTC)
+    if not account_ids:
+        return {}
+    rows = session.execute(
+        select(AccountSafetyOverride)
+        .where(AccountSafetyOverride.account_id.in_(account_ids))
+        .where(AccountSafetyOverride.allowed_until > now)
+        .order_by(AccountSafetyOverride.created_at.desc())
+    ).scalars().all()
+    result: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for row in rows:
+        per_account = result.setdefault(row.account_id, {})
+        per_account.setdefault(row.operation, []).append(safety_override_to_dict(row))
     return result
 
 

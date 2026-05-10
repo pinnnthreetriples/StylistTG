@@ -324,6 +324,7 @@ class Account(Base):
     __tablename__ = "account"
     __table_args__ = (
         UniqueConstraint("workspace_id", "external_ref", name="uq_account_workspace_external_ref"),
+        Index("ix_account_workspace_updated", "workspace_id", "updated_at"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
@@ -947,6 +948,8 @@ class AccountStoryPost(Base):
     __tablename__ = "account_story_post"
     __table_args__ = (
         UniqueConstraint("job_id", "step_key", name="uq_account_story_post_job_step"),
+        Index("ix_story_post_account_status_created", "account_id", "status", "created_at"),
+        Index("ix_story_post_account_asset", "account_id", "asset_id"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
@@ -976,6 +979,10 @@ class AccountStoryPost(Base):
 
 class AccountStoryDraft(Base):
     __tablename__ = "account_story_draft"
+    __table_args__ = (
+        Index("ix_story_draft_account_updated", "account_id", "updated_at"),
+        Index("ix_story_draft_account_asset", "account_id", "asset_id"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
@@ -1015,6 +1022,9 @@ class AccountSafetySnapshot(Base):
 
 class AccountValidityCheckRun(Base):
     __tablename__ = "account_validity_check_run"
+    __table_args__ = (
+        Index("ix_validity_check_account_started", "account_id", "started_at"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
@@ -1031,6 +1041,9 @@ class AccountValidityCheckRun(Base):
 
 class AccountOperationCooldown(Base):
     __tablename__ = "account_operation_cooldown"
+    __table_args__ = (
+        Index("ix_cooldown_account_op_retry", "account_id", "operation", "retry_after_at"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
@@ -1050,6 +1063,9 @@ class AccountOperationCooldown(Base):
 
 class AccountSafetyOverride(Base):
     __tablename__ = "account_safety_override"
+    __table_args__ = (
+        Index("ix_override_account_op_until", "account_id", "operation", "allowed_until"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
@@ -1065,6 +1081,8 @@ class AccountOperationLog(Base):
     __table_args__ = (
         Index("ix_operation_log_account_created", "account_id", "created_at"),
         Index("ix_operation_log_type_status_created", "operation_type", "status", "created_at"),
+        Index("ix_operation_log_workspace_created", "workspace_id", "created_at"),
+        Index("ix_operation_log_ws_type_status_created", "workspace_id", "operation_type", "status", "created_at"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
@@ -1115,6 +1133,12 @@ class AccountProxy(Base):
 
 class Job(Base):
     __tablename__ = "job"
+    __table_args__ = (
+        Index("ix_job_account_queued", "account_id", "queued_at"),
+        Index("ix_job_workspace_account_queued", "workspace_id", "account_id", "queued_at"),
+        Index("ix_job_account_intent_state", "account_id", "execution_intent_hash", "job_state"),
+        Index("ix_job_account_finished", "account_id", "finished_at"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     workspace_id: Mapped[str] = mapped_column(
@@ -1181,6 +1205,10 @@ class JobExecutionEvent(Base):
 
 class JobStepResult(Base):
     __tablename__ = "job_step_result"
+    __table_args__ = (
+        Index("ix_job_step_result_job_started", "job_id", "started_at"),
+        Index("ix_job_step_result_job_status_finished", "job_id", "status", "finished_at"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     job_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("job.id"), nullable=False)

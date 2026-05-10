@@ -459,6 +459,55 @@ def test_account_update_story_materialization_is_idempotent(db_session) -> None:
     assert db_session.query(AccountStoryPost).filter_by(account_id=account.id).count() == 1
 
 
+def test_account_update_audio_materialization_is_idempotent(db_session) -> None:
+    from app.models import AccountProfileAudioState
+
+    account = create_account(db_session, external_ref="audio-idem")
+    audio = seed_audio_asset(db_session)
+    desired = {
+        "profile": {"name": "Stylist TG"},
+        "profile_audio": {"action": "add", "audio_asset_id": audio.id},
+    }
+    job = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
+
+    assert execute_account_update_job(job.id, session=db_session) == 0
+    assert execute_account_update_job(job.id, session=db_session) == 0
+
+    states = db_session.query(AccountProfileAudioState).filter_by(account_id=account.id).all()
+    assert len(states) == 1
+
+
+def test_rematerialize_repair_is_safe_to_rerun(db_session) -> None:
+    from app.workers.account_update_jobs import rematerialize_account_update_job
+
+    account = create_account(db_session, external_ref="repair-test")
+    story = seed_story_asset(db_session, kind=AssetKind.STORY_IMAGE)
+    desired = {
+        "profile": {"name": "Stylist TG"},
+        "stories": [{"action": "post_image", "asset_id": story.id, "active_period_seconds": 86400}],
+    }
+    job = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
+    execute_account_update_job(job.id, session=db_session)
+
+    assert rematerialize_account_update_job(job.id, session=db_session) is True
+    assert rematerialize_account_update_job(job.id, session=db_session) is True
+
+    from app.models import AccountStoryPost
+    assert db_session.query(AccountStoryPost).filter_by(account_id=account.id).count() == 1
+
+
+def test_rematerialize_rejects_non_terminal_job(db_session) -> None:
+    from app.workers.account_update_jobs import rematerialize_account_update_job
+
+    account = create_account(db_session, external_ref="non-terminal")
+    desired = {"profile": {"name": "Stylist TG"}}
+    job = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
+    job.job_state = JobState.RUNNING
+    db_session.commit()
+
+    assert rematerialize_account_update_job(job.id, session=db_session) is False
+
+
 def test_rq_can_import_account_update_worker_function() -> None:
     func = import_attribute("app.workers.account_update_jobs.run_account_update_job")
 

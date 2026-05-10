@@ -301,6 +301,31 @@ def active_warmup_for_account(
     ).scalars().first()
 
 
+def batch_active_warmups_for_accounts(
+    session: Session,
+    *,
+    account_ids: list[str],
+    workspace_id: str,
+) -> dict[str, WarmupSession]:
+    """Return {account_id: WarmupSession} for all accounts with active warmup."""
+    if not account_ids:
+        return {}
+    rows = session.execute(
+        select(WarmupSession)
+        .where(
+            WarmupSession.workspace_id == workspace_id,
+            WarmupSession.account_id.in_(account_ids),
+            WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+        )
+        .order_by(WarmupSession.updated_at.desc())
+    ).scalars().all()
+    result: dict[str, WarmupSession] = {}
+    for ws in rows:
+        if ws.account_id not in result:
+            result[ws.account_id] = ws
+    return result
+
+
 def warmup_operation_policy(
     session: Session,
     *,

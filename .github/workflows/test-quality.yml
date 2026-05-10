@@ -55,7 +55,9 @@ jobs:
           python -m pytest -p no:randomly \
             --cov=app --cov-branch --cov-context=test \
             --cov-report=json:reports/coverage.json \
+            --cov-report=html:reports/htmlcov \
             --cov-report=term-missing \
+            --cov-fail-under=70 \
             -q
         env:
           APP_ENV: test
@@ -74,6 +76,7 @@ jobs:
         run: |
           python tools/test_analyzer.py \
             --path tests \
+            --coverage reports/coverage.json \
             --format json \
             --output reports/test-quality.json \
             --severity WARNING

@@ -594,3 +594,42 @@ def test_fingerprint_stable_across_line_shifts() -> None:
         recommendation="add assert",
     )
     assert issue_a.fingerprint() == issue_b.fingerprint()
+
+
+# ---------------------------------------------------------------------------
+# --explain and --changed CLI modes
+# ---------------------------------------------------------------------------
+
+
+def test_explain_known_rule(capsys) -> None:
+    """--explain prints rule explanation and exits 0."""
+    code = main(["--explain", "TQA001"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "TQA001" in out
+    assert "zero assertions" in out.lower()
+    assert "Bad:" in out
+    assert "Good:" in out
+
+
+def test_explain_unknown_rule(capsys) -> None:
+    """--explain with unknown rule exits 2."""
+    code = main(["--explain", "ZZZZZ"])
+    assert code == 2
+
+
+def test_explain_rule_without_detailed_explanation(capsys) -> None:
+    """--explain for rule in ALL_RULES but without RULE_EXPLANATIONS still exits 0."""
+    code = main(["--explain", "STG003"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "STG003" in out
+
+
+def test_changed_mode_no_crash(tmp_path: Path) -> None:
+    """--changed mode with a ref doesn't crash (may find 0 files)."""
+    test_file = tmp_path / "test_ok.py"
+    test_file.write_text("def test_fine():\n    assert 1 == 1\n")
+    # Use a non-existent ref — _get_changed_files will return []
+    code = main(["--path", str(tmp_path), "--changed", "HEAD~999"])
+    assert code == 0

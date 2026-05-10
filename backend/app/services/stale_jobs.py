@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
+from app.logging_utils import log_event
 from app.models import AccountRuntimeState, Job, JobState, StepStatus, utc_now
 
 STALE_JOB_STATES = {JobState.QUEUED, JobState.RUNNING, JobState.WAITING_LOCK}
@@ -60,17 +61,43 @@ def reconcile_orphaned_queued_jobs(
     )
     if not jobs:
         return 0
+    check_fn = is_enqueued if is_enqueued is not None else _default_is_enqueued
     reconciled = 0
     for job in jobs:
-        if is_enqueued is not None and is_enqueued(job.id):
+        if check_fn(job.id):
+            log_event(
+                "reconcile_skipped_enqueued",
+                job_id=job.id,
+                account_id=job.account_id,
+            )
             continue
-        if not _try_reenqueue_or_fail(job):
+        if _try_reenqueue_or_fail(job):
+            log_event(
+                "reconcile_reenqueued",
+                job_id=job.id,
+                account_id=job.account_id,
+            )
+        else:
             job.job_state = JobState.FAILED
             job.finished_at = utc_now()
             job.failure_reason = "queue_lost"
+            log_event(
+                "reconcile_queue_lost",
+                job_id=job.id,
+                account_id=job.account_id,
+            )
         reconciled += 1
     session.commit()
     return reconciled
+
+
+def _default_is_enqueued(job_id: str) -> bool:
+    try:
+        from app.job_queue.rq import is_job_in_redis
+
+        return is_job_in_redis(job_id)
+    except Exception:
+        return False
 
 
 def _try_reenqueue_or_fail(job: Job) -> bool:

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from app.models import JobState, utc_now
 from app.services.accounts import create_account
@@ -20,11 +21,12 @@ def test_reconcile_orphaned_queued_job_fails_when_not_enqueued(db_session) -> No
     job.queued_at = utc_now() - timedelta(minutes=5)
     db_session.commit()
 
-    reconciled = reconcile_orphaned_queued_jobs(
-        db_session,
-        min_age_seconds=60,
-        is_enqueued=lambda _: False,
-    )
+    with patch("app.job_queue.rq.reenqueue_job_with_delay", return_value=False):
+        reconciled = reconcile_orphaned_queued_jobs(
+            db_session,
+            min_age_seconds=60,
+            is_enqueued=lambda _: False,
+        )
 
     db_session.refresh(job)
     assert reconciled == 1

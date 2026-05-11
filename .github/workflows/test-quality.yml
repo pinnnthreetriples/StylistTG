@@ -89,12 +89,14 @@ jobs:
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
 
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: backend/reports/test-quality.sarif
-          category: test-quality
-        if: always() && github.event_name != 'pull_request'
+      # SARIF upload disabled — enable code scanning in repo settings first:
+      # https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning-for-a-repository
+      # - name: Upload SARIF
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   with:
+      #     sarif_file: backend/reports/test-quality.sarif
+      #     category: test-quality
+      #   if: always()
 
       - name: Upload reports artifact
         uses: actions/upload-artifact@v4

@@ -1,7 +1,4 @@
-from fastapi.testclient import TestClient
 
-from app.db import get_session
-from app.main import app
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     WarmupStatus,
@@ -45,43 +42,30 @@ def test_warmup_operation_policy_locks_conflicting_actions(db_session) -> None:
     assert "Аккаунт находится в подготовке" in policy["reason"]
 
 
-def test_account_update_job_is_blocked_during_active_warmup(db_session) -> None:
+def test_account_update_job_is_blocked_during_active_warmup(app_client, db_session) -> None:
     account = seed_warmup_account(db_session, with_proxy=False)
     strategy = seed_warmup_strategy(db_session, is_preset=True)
     seed_warmup_session_raw(db_session, account.id, strategy.id, WarmupStatus.ACTIVE)
 
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/jobs",
         json={"account_id": account.id, "profile": {"name": "Blocked"}},
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 409
     assert response.json()["error_code"] == "ACCOUNT_WARMUP_LOCKED"
 
 
-def test_proxy_change_is_blocked_during_active_warmup(db_session) -> None:
+def test_proxy_change_is_blocked_during_active_warmup(app_client, db_session) -> None:
     account = seed_warmup_account(db_session, with_proxy=False)
     strategy = seed_warmup_strategy(db_session, is_preset=True)
     seed_warmup_session_raw(db_session, account.id, strategy.id, WarmupStatus.ACTIVE)
 
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
-    response = client.put(
+    response = app_client.put(
         f"/api/accounts/{account.id}/proxy",
         json={"proxy_type": "socks5", "host": "127.0.0.1", "port": 1080},
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 409
     assert response.json()["error_code"] == "ACCOUNT_WARMUP_LOCKED"
 
-
-
-def _override_session(session):
-    def _override():
-        yield session
-
-    return _override

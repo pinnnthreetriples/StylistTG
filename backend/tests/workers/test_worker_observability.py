@@ -35,4 +35,6 @@ def test_flush_observability_does_not_mask_worker_exception(monkeypatch: pytest.
     )
     monkeypatch.setitem(sys.modules, "sentry_sdk", sentry_sdk)
 
-    run_worker._flush_observability()
+    # Should swallow the flush RuntimeError silently — not propagate.
+    result = run_worker._flush_observability()
+    assert result is None

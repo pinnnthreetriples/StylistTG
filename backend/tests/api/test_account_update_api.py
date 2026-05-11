@@ -1,9 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi.testclient import TestClient
 
-from app.db import get_session
-from app.main import app
 from app.models import AccountOperationCooldown, AccountProfileState, AccountState, AssetKind, AssetStatus, Job, JobState, JobStepResult, StepStatus, utc_now
 from app.config import Settings
 from app.services.account_update_jobs import create_account_update_job
@@ -11,21 +8,12 @@ from app.services.accounts import create_account
 from conftest import seed_asset, seed_audio_asset, seed_story_asset
 
 
-def override_session(session):
-    def _override():
-        yield session
-
-    return _override
-
-
-def test_account_update_preview_builds_unified_plan(db_session) -> None:
+def test_account_update_preview_builds_unified_plan(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -37,7 +25,6 @@ def test_account_update_preview_builds_unified_plan(db_session) -> None:
             },
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
@@ -50,16 +37,14 @@ def test_account_update_preview_builds_unified_plan(db_session) -> None:
     ]
 
 
-def test_account_update_create_queues_unified_job(db_session, monkeypatch) -> None:
+def test_account_update_create_queues_unified_job(app_client, db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.api.account_update.enqueue_account_update_job", lambda job_id: enqueued.append(job_id) or True)
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/jobs",
         json={
             "account_id": account.id,
@@ -71,7 +56,6 @@ def test_account_update_create_queues_unified_job(db_session, monkeypatch) -> No
             },
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 201
     payload = response.json()
@@ -80,28 +64,25 @@ def test_account_update_create_queues_unified_job(db_session, monkeypatch) -> No
     assert enqueued == [payload["job_id"]]
 
 
-def test_account_update_create_returns_503_when_queue_enqueue_fails(db_session, monkeypatch) -> None:
+def test_account_update_create_returns_503_when_queue_enqueue_fails(app_client, db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
 
     monkeypatch.setattr("app.api.account_update.enqueue_account_update_job", lambda job_id: False)
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/jobs",
         json={
             "account_id": account.id,
             "profile": {"name": "Stylist TG"},
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 503
     assert response.json()["error_code"] == "QUEUE_UNAVAILABLE"
 
 
-def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(db_session, monkeypatch) -> None:
+def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(app_client, db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
@@ -118,16 +99,13 @@ def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(db_ses
     monkeypatch.setattr("app.api.account_update.enqueue_account_update_job", lambda job_id: False)
     monkeypatch.setattr("app.api.account_update.execute_account_update_job", run_inline)
     monkeypatch.setattr("app.api.account_update.settings.queue_inline_fallback_enabled", True)
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/jobs",
         json={
             "account_id": account.id,
             "profile": {"name": "Stylist TG"},
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 201
     payload = response.json()
@@ -135,15 +113,13 @@ def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(db_ses
     assert inline_calls == [payload["job_id"]]
 
 
-def test_account_update_preview_accepts_profile_audio_asset(db_session) -> None:
+def test_account_update_preview_accepts_profile_audio_asset(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     audio = seed_audio_asset(db_session)
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -151,7 +127,6 @@ def test_account_update_preview_accepts_profile_audio_asset(db_session) -> None:
             "profile_audio": {"action": "add", "audio_asset_id": audio.id},
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
@@ -162,16 +137,14 @@ def test_account_update_preview_accepts_profile_audio_asset(db_session) -> None:
     assert payload["desired_state_normalized"]["profile_audio"]["audio_asset_id"] == audio.id
 
 
-def test_account_update_preview_rejects_unsupported_profile_audio_asset(db_session) -> None:
+def test_account_update_preview_rejects_unsupported_profile_audio_asset(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     audio = seed_audio_asset(db_session)
     audio.mime = "audio/ogg"
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -179,21 +152,18 @@ def test_account_update_preview_rejects_unsupported_profile_audio_asset(db_sessi
             "profile_audio": {"action": "add", "audio_asset_id": audio.id},
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 400
     assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"
 
 
-def test_account_update_preview_accepts_story_image_asset(db_session) -> None:
+def test_account_update_preview_accepts_story_image_asset(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     story = seed_story_asset(db_session)
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -209,7 +179,6 @@ def test_account_update_preview_accepts_story_image_asset(db_session) -> None:
             ],
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
@@ -220,14 +189,14 @@ def test_account_update_preview_accepts_story_image_asset(db_session) -> None:
     ]
 
 
-def test_account_update_preview_story_only_does_not_repeat_current_profile_photo(db_session) -> None:
+def test_account_update_preview_story_only_does_not_repeat_current_profile_photo(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     account.profile_state = AccountProfileState(
         account_id=account.id,
         first_name="Marina",
         last_name="Manina",
-        bio="Мария, продавец ии агентов",
+        bio="\u041c\u0430\u0440\u0438\u044f, \u043f\u0440\u043e\u0434\u0430\u0432\u0435\u0446 \u0438\u0438 \u0430\u0433\u0435\u043d\u0442\u043e\u0432",
         username="kkk4n44",
     )
     photo = seed_asset(db_session, asset_id="photo-current")
@@ -262,22 +231,19 @@ def test_account_update_preview_story_only_does_not_repeat_current_profile_photo
     )
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
             "profile": {
                 "name": "Marina Manina",
-                "bio": "Мария, продавец ии агентов",
+                "bio": "\u041c\u0430\u0440\u0438\u044f, \u043f\u0440\u043e\u0434\u0430\u0432\u0435\u0446 \u0438\u0438 \u0430\u0433\u0435\u043d\u0442\u043e\u0432",
                 "username": "kkk4n44",
                 "photo_asset_id": photo.id,
             },
             "stories": [{"action": "post_image", "asset_id": story.id}],
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert [step["step_type"] for step in response.json()["steps"]] == [
@@ -287,16 +253,14 @@ def test_account_update_preview_story_only_does_not_repeat_current_profile_photo
     ]
 
 
-def test_account_update_preview_returns_story_asset_error_for_orphaned_story_asset(db_session) -> None:
+def test_account_update_preview_returns_story_asset_error_for_orphaned_story_asset(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     story = seed_story_asset(db_session)
     story.status = AssetStatus.ORPHANED
     db_session.commit()
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -304,7 +268,6 @@ def test_account_update_preview_returns_story_asset_error_for_orphaned_story_ass
             "stories": [{"action": "post_image", "asset_id": story.id}],
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 400
     payload = response.json()
@@ -375,16 +338,14 @@ def test_account_update_create_blocks_operation_specific_safety_cooldown(db_sess
     assert message == "cooldown_active:username"
 
 
-def test_account_update_preview_blocks_stories_when_disabled(db_session, monkeypatch) -> None:
+def test_account_update_preview_blocks_stories_when_disabled(app_client, db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     story = seed_story_asset(db_session)
     db_session.commit()
     monkeypatch.setattr("app.services.account_update_jobs.settings.stories_enabled", False)
 
-    app.dependency_overrides[get_session] = override_session(db_session)
-    client = TestClient(app)
-    response = client.post(
+    response = app_client.post(
         "/api/account-update/preview",
         json={
             "account_id": account.id,
@@ -392,7 +353,6 @@ def test_account_update_preview_blocks_stories_when_disabled(db_session, monkeyp
             "stories": [{"action": "post_image", "asset_id": story.id}],
         },
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()

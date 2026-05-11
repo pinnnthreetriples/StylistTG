@@ -152,8 +152,9 @@ def test_ensure_not_isolated_raises_409_when_claim_held(db_session) -> None:
 
 def test_ensure_not_isolated_is_noop_without_claim(db_session) -> None:
     account_id = _seed_account(db_session)
-    # Should not raise.
-    ensure_not_isolated(db_session, account_id=account_id)
+    # Should not raise — returns None when no claim exists.
+    result = ensure_not_isolated(db_session, account_id=account_id)
+    assert result is None
 
 
 def test_list_claims_for_workspace_returns_snapshots(db_session) -> None:

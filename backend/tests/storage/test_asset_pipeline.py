@@ -1,11 +1,8 @@
 from io import BytesIO
 
 import pytest
-from fastapi.testclient import TestClient
 from PIL import Image
 
-from app.db import get_session
-from app.main import app
 from app.models import AssetKind, AssetStatus
 from app.services.assets import save_profile_audio_asset, save_profile_photo_asset
 
@@ -40,12 +37,9 @@ def test_profile_photo_upload_is_normalized_and_recorded(db_session, storage_dir
 
 
 def test_upload_endpoint_rejects_oversized_profile_audio_before_asset_processing(
-    db_session, monkeypatch
+    app_client, db_session, monkeypatch
 ) -> None:
     from app.api import assets as assets_api
-
-    def override_session():
-        yield db_session
 
     called = False
 
@@ -56,15 +50,12 @@ def test_upload_endpoint_rejects_oversized_profile_audio_before_asset_processing
 
     monkeypatch.setattr(assets_api.settings, "profile_audio_max_bytes", 4)
     monkeypatch.setattr(assets_api, "save_profile_audio_asset", fail_if_processed)
-    app.dependency_overrides[get_session] = override_session
-    client = TestClient(app)
 
-    response = client.post(
+    response = app_client.post(
         "/api/assets/profile-audio",
         files={"file": ("large.mp3", b"12345", "audio/mpeg")},
     )
 
-    app.dependency_overrides.clear()
     assert response.status_code == 413
     assert response.json()["error_code"] == "UPLOAD_TOO_LARGE"
     assert response.json()["message"] == "uploaded file is too large"
@@ -82,17 +73,11 @@ def test_profile_audio_upload_rejects_ogg_voice_note_format(db_session, storage_
         )
 
 
-def test_upload_endpoint_returns_specific_profile_audio_format_error(db_session) -> None:
-    def override_session():
-        yield db_session
-
-    app.dependency_overrides[get_session] = override_session
-    client = TestClient(app)
-    response = client.post(
+def test_upload_endpoint_returns_specific_profile_audio_format_error(app_client, db_session) -> None:
+    response = app_client.post(
         "/api/assets/profile-audio",
         files={"file": ("voice-note.ogg", b"OggS" + b"\x00" * 128, "audio/ogg")},
     )
-    app.dependency_overrides.clear()
 
     assert response.status_code == 400
     assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"

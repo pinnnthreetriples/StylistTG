@@ -16,6 +16,8 @@ os.environ.setdefault("QUEUE_INLINE_FALLBACK_ENABLED", "false")
 os.environ.setdefault("TDLIB_API_ID", "0")
 os.environ.setdefault("TDLIB_API_HASH", "")
 
+from fastapi.testclient import TestClient
+
 from app.adapters.tdlib_auth import TdlibAuthResult, TdlibAuthStatus
 from app.db import Base, get_session
 from app.main import app
@@ -47,6 +49,20 @@ def db_session() -> Iterator[Session]:
     session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
     with session_factory() as session:
         yield session
+
+
+@pytest.fixture()
+def app_client(db_session: Session) -> Iterator[TestClient]:
+    """TestClient with dependency_overrides cleaned up via try/finally."""
+
+    def _override():
+        yield db_session
+
+    app.dependency_overrides[get_session] = _override
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture()

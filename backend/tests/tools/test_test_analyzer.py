@@ -1,4 +1,5 @@
 """Unit tests for tools.test_analyzer package."""
+# test-analyzer: disable-file=STG001 reason="test samples intentionally contain dependency_overrides patterns"
 from __future__ import annotations
 
 import json

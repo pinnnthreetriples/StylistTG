@@ -26,13 +26,12 @@ def execute_account_update_job(job_id: str, *, session: Session | None = None) -
 
 
 def _execute_account_update_job(job_id: str, session: Session) -> int:
-    if session is not None:
-        job = get_job(session, job_id)
-        if job is None:
-            return 1
-        if job.job_state in TERMINAL_JOB_STATES:
-            return 0
-        validate_account_update_plan_steps(job.plan_json_snapshot)
+    job = get_job(session, job_id)
+    if job is None:
+        return 1
+    if job.job_state in TERMINAL_JOB_STATES:
+        return 0
+    validate_account_update_plan_steps(job.plan_json_snapshot)
     exit_code = execute_profile_job(job_id, session=session)
     job = get_job(session, job_id)
     if job is not None:
@@ -87,7 +86,7 @@ def _materialize_profile_audio(session: Session, job: Job) -> None:
     for step in job.step_results:
         if step.status != StepStatus.SUCCEEDED:
             continue
-        payload = cast(dict[str, Any], step.result_payload_json or {})
+        payload = step.result_payload_json or {}
         profile_audio = payload.get("profile_audio")
         if step.step_type == "add_profile_audio" and isinstance(profile_audio, dict):
             audio = cast(dict[str, Any], profile_audio)
@@ -115,7 +114,7 @@ def _materialize_story_posts(session: Session, job: Job) -> None:
     for step in job.step_results:
         if step.status != StepStatus.SUCCEEDED:
             continue
-        payload = cast(dict[str, Any], step.result_payload_json or {})
+        payload = step.result_payload_json or {}
         story = payload.get("story_post")
         if isinstance(story, dict):
             story_payload = cast(dict[str, Any], story)

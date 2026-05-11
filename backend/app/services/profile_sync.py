@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 from app.adapters.tdlib_auth import (
     RealTdJsonClientFactory,
     TdlibClient,
-    _extract_authorization_state,
-    _tdlib_parameters_query,
+    extract_authorization_state,
     map_authorization_state,
+    tdlib_parameters_query,
 )
 from app.config import Settings, settings
 from app.models import AccountProfileState, AccountStoryPost, utc_now
@@ -170,15 +170,13 @@ class TdlibProfileSyncAdapter:
         proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
-            event = cast(
-                JsonDict | None, client.receive(self._config.tdlib_receive_timeout_seconds)
-            )
-            state = _extract_authorization_state(event)
+            event = client.receive(self._config.tdlib_receive_timeout_seconds)
+            state = extract_authorization_state(event)
             if state is None:
                 continue
             mapped = map_authorization_state(state)
             if mapped.status.value == "wait_tdlib_parameters":
-                client.send(_tdlib_parameters_query(self._config, account_id))
+                client.send(tdlib_parameters_query(self._config, account_id))
                 if self._proxy_applier is not None and not proxy_applied:
                     self._proxy_applier(client, account_id)
                     proxy_applied = True
@@ -678,7 +676,7 @@ def _extract_text(value: object) -> str | None:
 
 
 def _send_query_checked(client: TdlibClient, query: JsonDict, timeout_seconds: float) -> JsonDict:
-    response = cast(JsonDict, client.send_query(query, timeout_seconds))
+    response = client.send_query(query, timeout_seconds)
     if response.get("@type") == "error":
         message = response.get("message") or "TDLib query failed"
         raise RuntimeError(str(message))

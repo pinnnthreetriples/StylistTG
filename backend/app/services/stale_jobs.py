@@ -47,7 +47,7 @@ def reap_stale_jobs(session: Session, *, stale_after_seconds: int) -> int:
         job.finished_at = utc_now()
         job.failure_reason = "worker_timeout"
         runtime = session.get(AccountRuntimeState, job.account_id)
-        if runtime and (runtime.updated_at is None or _is_before(runtime.updated_at, cutoff)):
+        if runtime and _is_before(runtime.updated_at, cutoff):
             runtime.lock_owner = None
             runtime.recovery_marker = "stale_job_reaped"
             runtime.updated_at = utc_now()

@@ -21,7 +21,7 @@ os.environ.setdefault("TDLIB_API_HASH", "")
 from fastapi.testclient import TestClient
 
 from app.adapters.tdlib_auth import TdlibAuthResult, TdlibAuthStatus
-from app.db import Base, get_session
+from app.db import Base, engine as app_db_engine, get_session
 from app.main import app
 from app.models import (
     AccountState,
@@ -31,6 +31,7 @@ from app.models import (
     Job,
     JobState,
 )
+from app.services.database import dispose_sqlite_test_engines
 from app.services.plan import build_profile_plan, compute_execution_intent_hash
 
 
@@ -146,8 +147,11 @@ def db_session() -> Iterator[Session]:
     )
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
-    with session_factory() as session:
-        yield session
+    try:
+        with session_factory() as session:
+            yield session
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture()
@@ -159,9 +163,26 @@ def app_client(db_session: Session) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_session] = _override
     try:
-        yield TestClient(app)
+        with TestClient(app) as client:
+            yield client
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_sqlite_test_engines() -> Iterator[None]:
+    try:
+        yield
+    finally:
+        dispose_sqlite_test_engines()
+        app_db_engine.dispose()
+
+
+@pytest.hookimpl(hookwrapper=True, trylast=True)
+def pytest_runtest_teardown(item, nextitem):
+    yield
+    dispose_sqlite_test_engines()
+    app_db_engine.dispose()
 
 
 @pytest.fixture()

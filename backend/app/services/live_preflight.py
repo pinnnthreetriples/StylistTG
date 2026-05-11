@@ -62,6 +62,7 @@ class LivePreflightService:
         }
 
     def _check_database(self) -> bool:
+        engine = None
         try:
             connect_args: dict[str, Any] = {}
             if self.database_url.startswith("postgresql"):
@@ -72,6 +73,9 @@ class LivePreflightService:
             return True
         except Exception:
             return False
+        finally:
+            if engine is not None:
+                engine.dispose()
 
     def _check_redis(self) -> bool:
         try:

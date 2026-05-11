@@ -516,10 +516,7 @@ def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) ->
     targets = warmup_session.strategy.target_channels_json or []
     candidates: list[str] = []
     for entry in targets:
-        if isinstance(entry, dict):
-            value = entry.get("username") or entry.get("chat_username") or entry.get("target")
-        else:
-            value = entry
+        value = entry.get("username") or entry.get("chat_username") or entry.get("target")
         if isinstance(value, str) and value.strip():
             candidates.append(value.strip())
     if not candidates:
@@ -609,7 +606,7 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
     only for backward compatibility with legacy strategies that may have
     used 0-based keys — it will never match for correctly-seeded data.
     """
-    limits = cast(dict[str, Any], warmup_session.strategy.daily_action_limits_json or {})
+    limits = warmup_session.strategy.daily_action_limits_json or {}
     raw = limits.get(str(warmup_session.current_day + 1)) or limits.get(
         str(warmup_session.current_day)
     )
@@ -626,7 +623,7 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
 
 
 def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:
-    counters = cast(dict[str, Any], warmup_session.daily_counters_json or {})
+    counters = warmup_session.daily_counters_json or {}
     raw = counters.get(str(warmup_session.current_day))
     if not isinstance(raw, dict):
         return {}

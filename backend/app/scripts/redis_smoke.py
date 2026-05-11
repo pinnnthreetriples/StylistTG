@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import uuid
+from collections.abc import Callable
+from typing import Any, Protocol, cast
 
 from redis import Redis
 
@@ -16,11 +18,30 @@ from app.scripts.common import (
 )
 
 
+def _redis_from_url(url: str) -> RedisClient:
+    from_url = cast(Callable[[str], object], getattr(cast(Any, Redis), "from_url"))
+    return cast(RedisClient, from_url(url))
+
+
+class RedisClient(Protocol):
+    def ping(self) -> object: ...
+
+    def set(self, name: str, value: str, *, ex: int) -> object: ...
+
+    def get(self, name: str) -> str | bytes | None: ...
+
+    def delete(self, name: str) -> object: ...
+
+
+class RedisClientFactory(Protocol):
+    def __call__(self, url: str) -> RedisClient: ...
+
+
 def run_redis_smoke(
     *,
     allow_production: bool = False,
     env: dict[str, str] | None = None,
-    client_factory=Redis.from_url,
+    client_factory: RedisClientFactory = _redis_from_url,
 ) -> CheckReport:
     report = CheckReport("redis_smoke")
     if not require_not_production(report, allow_production=allow_production, env=env):

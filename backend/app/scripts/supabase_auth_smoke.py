@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable
+from typing import Any, Protocol, cast
 from urllib.request import urlopen
 
 from app.config import Settings
@@ -17,11 +19,22 @@ from app.scripts.common import (
 from app.services.supabase_jwt import SupabaseJwtVerifier, clear_jwks_cache
 
 
+JsonPayload = dict[str, Any]
+JwksFetcher = Callable[[str], JsonPayload]
+
+
+class JwtVerifier(Protocol):
+    def verify(self, token: str) -> JsonPayload: ...
+
+
+VerifierFactory = Callable[[Settings], JwtVerifier]
+
+
 def run_supabase_auth_smoke(
     *,
     env: dict[str, str] | None = None,
-    fetcher=None,
-    verifier_factory=SupabaseJwtVerifier.from_settings,
+    fetcher: JwksFetcher | None = None,
+    verifier_factory: VerifierFactory = SupabaseJwtVerifier.from_settings,
 ) -> CheckReport:
     report = CheckReport("supabase_auth_smoke")
     jwks_url = env_value("SUPABASE_AUTH_JWKS_URL", env)
@@ -65,11 +78,11 @@ def run_supabase_auth_smoke(
     return report
 
 
-def _fetch_jwks(report: CheckReport, jwks_url: str, *, fetcher) -> None:
+def _fetch_jwks(report: CheckReport, jwks_url: str, *, fetcher: JwksFetcher | None) -> None:
     try:
         if fetcher is None:
             with urlopen(jwks_url, timeout=5.0) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                payload = cast(JsonPayload, json.loads(response.read().decode("utf-8")))
         else:
             payload = fetcher(jwks_url)
     except Exception as exc:
@@ -81,18 +94,19 @@ def _fetch_jwks(report: CheckReport, jwks_url: str, *, fetcher) -> None:
             error=type(exc).__name__,
         )
         return
-    keys = payload.get("keys") if isinstance(payload, dict) else None
+    keys = payload.get("keys")
     if not isinstance(keys, list) or not keys:
         report.add(
             "jwks_keys", "FAIL", "JWKS response has no keys array", url=sanitized_url(jwks_url)
         )
     else:
+        typed_keys = cast(list[object], keys)
         report.add(
             "jwks_keys",
             "PASS",
             "JWKS keys available",
             url=sanitized_url(jwks_url),
-            key_count=len(keys),
+            key_count=len(typed_keys),
         )
 
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -65,12 +67,13 @@ def validate_warmup_readiness(
         )
     )
 
+    runtime_state = cast(Any, account.runtime_state) if account is not None else None
     runtime_ready = bool(
         account is not None
-        and account.runtime_state is not None
-        and account.runtime_state.session_present
-        and not account.runtime_state.reauth_required
-        and account.runtime_state.runtime_health == "ready"
+        and runtime_state is not None
+        and runtime_state.session_present
+        and not runtime_state.reauth_required
+        and runtime_state.runtime_health == "ready"
         and account.account_state == AccountState.EXECUTION_USABLE
     )
     checks.append(

@@ -82,7 +82,7 @@ def delete_account_endpoint(
     )
 
 
-def _account_list_item(session: Session, account: Account) -> AccountListItemRead:
+def account_list_item(session: Session, account: Account) -> AccountListItemRead:
     profile = account.profile_state
     first_name = profile.first_name if profile else None
     last_name = profile.last_name if profile else None

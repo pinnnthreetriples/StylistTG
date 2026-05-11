@@ -101,7 +101,7 @@ class LocalStorageService:
             checksum=hashlib.sha256(data).hexdigest() if path.is_file() else None,
             storage_backend=self.backend_name,
             visibility=visibility,
-            created_at=datetime.fromtimestamp(path.stat().st_ctime).astimezone(),
+            created_at=datetime.fromtimestamp(path.stat().st_mtime).astimezone(),
         )
 
     def cleanup_prefix(

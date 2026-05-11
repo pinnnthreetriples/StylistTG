@@ -149,6 +149,9 @@ def _auth_response(result: AuthMaterializationResult) -> AuthStateRead:
     )
 
 
+auth_response = _auth_response
+
+
 def _auth_safety_app_error(exc: AuthSafetyError) -> AppError:
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     if exc.error_code in {

@@ -389,7 +389,7 @@ def get_idempotency_result(
         raise ValueError("idempotency key belongs to another operation")
     if entity_id is not None and row.entity_id != entity_id:
         raise ValueError("idempotency key belongs to another entity")
-    return cast(dict[str, Any], row.response_json)
+    return row.response_json
 
 
 def _as_aware_utc(value: datetime) -> datetime:

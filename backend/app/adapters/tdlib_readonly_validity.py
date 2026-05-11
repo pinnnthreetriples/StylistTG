@@ -9,10 +9,10 @@ from app.adapters.tdlib_auth import (
     TdlibClient,
     TdlibClientFactory,
     UnavailableTdlibClientFactory,
-    _extract_authorization_state,
-    _tdlib_parameters_query,
+    extract_authorization_state,
     map_authorization_state,
     map_tdlib_error,
+    tdlib_parameters_query,
 )
 from app.config import Settings, settings
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
@@ -58,12 +58,12 @@ class TdlibReadOnlyValidityAdapter:
                         "error_class": "tdlib_error",
                         "error": mapped.error,
                     }
-                state = _extract_authorization_state(event)
+                state = extract_authorization_state(event)
                 if state is None:
                     continue
                 mapped = map_authorization_state(state)
                 if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
-                    client.send(_tdlib_parameters_query(self._config, account_id))
+                    client.send(tdlib_parameters_query(self._config, account_id))
                     if self._proxy_applier is not None and not proxy_applied:
                         self._proxy_applier(client, account_id)
                         proxy_applied = True

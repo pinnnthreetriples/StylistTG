@@ -1,18 +1,36 @@
 from __future__ import annotations
 
 import hashlib
+from importlib import import_module
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO
-
-import boto3
-from botocore.client import Config
-from botocore.exceptions import ClientError
+from typing import Any, BinaryIO, Protocol, cast
 
 from app.storage.base import StorageObject
 from app.storage.errors import StorageObjectNotFoundError
 from app.storage.paths import normalize_storage_key
+
+
+boto3 = cast(Any, import_module("boto3"))
+Config = import_module("botocore.client").Config
+ClientError = cast(type[Exception], import_module("botocore.exceptions").ClientError)
+
+
+class S3Client(Protocol):
+    def put_object(self, **kwargs: Any) -> object: ...
+
+    def get_object(self, **kwargs: Any) -> dict[str, Any]: ...
+
+    def delete_object(self, **kwargs: Any) -> object: ...
+
+    def generate_presigned_url(self, *args: Any, **kwargs: Any) -> str: ...
+
+    def copy_object(self, **kwargs: Any) -> object: ...
+
+    def head_object(self, **kwargs: Any) -> dict[str, Any]: ...
+
+    def list_objects_v2(self, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class S3CompatibleStorageService:
@@ -28,7 +46,7 @@ class S3CompatibleStorageService:
         secret_access_key: str,
         force_path_style: bool,
         public_base_url: str | None = None,
-        client=None,
+        client: S3Client | None = None,
     ) -> None:
         self.endpoint_url = endpoint_url
         self.bucket = bucket
@@ -37,13 +55,16 @@ class S3CompatibleStorageService:
         self.secret_access_key = secret_access_key
         self.force_path_style = force_path_style
         self.public_base_url = public_base_url.rstrip("/") if public_base_url else None
-        self.client = client or boto3.client(
-            "s3",
-            endpoint_url=endpoint_url,
-            region_name=self.region,
-            aws_access_key_id=access_key_id,
-            aws_secret_access_key=secret_access_key,
-            config=Config(s3={"addressing_style": "path" if force_path_style else "virtual"}),
+        self.client: S3Client = client or cast(
+            S3Client,
+            boto3.client(
+                "s3",
+                endpoint_url=endpoint_url,
+                region_name=self.region,
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                config=Config(s3={"addressing_style": "path" if force_path_style else "virtual"}),
+            ),
         )
 
     def save_bytes(
@@ -56,7 +77,7 @@ class S3CompatibleStorageService:
     ) -> StorageObject:
         normalized_key = normalize_storage_key(key)
         checksum = hashlib.sha256(content).hexdigest()
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "Bucket": self.bucket,
             "Key": normalized_key,
             "Body": content,
@@ -105,7 +126,7 @@ class S3CompatibleStorageService:
             raise
         body = response["Body"]
         try:
-            return body.read()
+            return cast(bytes, body.read())
         finally:
             close = getattr(body, "close", None)
             if callable(close):
@@ -159,7 +180,7 @@ class S3CompatibleStorageService:
             if _client_error_code(exc) in {"NoSuchKey", "404", "NotFound"}:
                 raise StorageObjectNotFoundError(normalized_key) from exc
             raise
-        metadata = response.get("Metadata") or {}
+        metadata = cast(dict[str, str], response.get("Metadata") or {})
         return StorageObject(
             key=normalized_key,
             path=None,
@@ -181,14 +202,14 @@ class S3CompatibleStorageService:
     ) -> list[str]:
         normalized_prefix = normalize_storage_key(prefix).rstrip("/") + "/"
         deleted: list[str] = []
-        continuation_token = None
+        continuation_token: str | None = None
         while True:
-            kwargs = {"Bucket": self.bucket, "Prefix": normalized_prefix}
+            kwargs: dict[str, Any] = {"Bucket": self.bucket, "Prefix": normalized_prefix}
             if continuation_token:
                 kwargs["ContinuationToken"] = continuation_token
             response = self.client.list_objects_v2(**kwargs)
-            for item in response.get("Contents") or []:
-                key = item["Key"]
+            for item in cast(list[dict[str, Any]], response.get("Contents") or []):
+                key = str(item["Key"])
                 if len(deleted) >= max_delete_count:
                     raise ValueError("cleanup max delete count exceeded")
                 if not dry_run:
@@ -196,12 +217,14 @@ class S3CompatibleStorageService:
                 deleted.append(key)
             if not response.get("IsTruncated"):
                 break
-            continuation_token = response.get("NextContinuationToken")
+            continuation_token = cast(str | None, response.get("NextContinuationToken"))
         return deleted
 
 
-def _client_error_code(exc: ClientError) -> str:
-    return str(exc.response.get("Error", {}).get("Code") or "")
+def _client_error_code(exc: Exception) -> str:
+    response = cast(dict[str, Any], getattr(exc, "response", {}))
+    error = cast(dict[str, Any], response.get("Error", {}))
+    return str(error.get("Code") or "")
 
 
 def _etag_checksum(etag: str | None) -> str | None:

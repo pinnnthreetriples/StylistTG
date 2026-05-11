@@ -30,10 +30,10 @@ from app.adapters.tdlib_auth import (
     TdlibClient,
     TdlibClientFactory,
     UnavailableTdlibClientFactory,
-    _extract_authorization_state,
-    _tdlib_parameters_query,
+    extract_authorization_state,
     map_authorization_state,
     map_tdlib_error,
+    tdlib_parameters_query,
 )
 from app.config import Settings, settings
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
@@ -72,7 +72,7 @@ class WarmupActionResult:
 
     status: str
     action_type: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=lambda: {})
     error_class: str | None = None
     error_code: str | None = None
     retry_after_seconds: int | None = None
@@ -266,7 +266,7 @@ class UnavailableWarmupTdlibAdapter:
 _FLOOD_WAIT_RE = re.compile(r"FLOOD_WAIT_(\d+)", re.IGNORECASE)
 
 
-def _classify_tdlib_error(error: dict, action_type: str) -> WarmupActionResult:
+def _classify_tdlib_error(error: dict[str, Any], action_type: str) -> WarmupActionResult:
     """Перевод TDLib `error` объекта в WarmupActionResult.
 
     Семантика:
@@ -426,12 +426,12 @@ class RealWarmupTdlibAdapter:
                 continue
             if event.get("@type") == "error":
                 raise _AdapterClientError.from_tdlib_error(event)
-            state = _extract_authorization_state(event)
+            state = extract_authorization_state(event)
             if state is None:
                 continue
             mapped = map_authorization_state(state)
             if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
-                client.send(_tdlib_parameters_query(self._config, account_id))
+                client.send(tdlib_parameters_query(self._config, account_id))
                 if not proxy_applied:
                     apply_account_proxy_to_tdlib(client, account_id, config=self._config)
                     proxy_applied = True
@@ -650,7 +650,7 @@ class _AdapterClientError(Exception):
         )
 
     @classmethod
-    def from_tdlib_error(cls, event: dict) -> "_AdapterClientError":
+    def from_tdlib_error(cls, event: dict[str, Any]) -> "_AdapterClientError":
         message = str(event.get("message") or "tdlib error")
         upper = message.upper()
         if "FLOOD" in upper:

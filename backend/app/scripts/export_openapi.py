@@ -3,25 +3,27 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from app.main import app
 
 
 def _normalize_openapi_schema(value: object) -> None:
     if isinstance(value, dict):
+        schema = cast(dict[str, Any], value)
         if (
-            value.get("type") == "object"
-            and "properties" not in value
-            and "additionalProperties" not in value
+            schema.get("type") == "object"
+            and "properties" not in schema
+            and "additionalProperties" not in schema
         ):
-            items = list(value.items())
-            value.clear()
-            value["additionalProperties"] = True
-            value.update(items)
-        for child in value.values():
+            items = list(schema.items())
+            schema.clear()
+            schema["additionalProperties"] = True
+            schema.update(items)
+        for child in schema.values():
             _normalize_openapi_schema(child)
     elif isinstance(value, list):
-        for child in value:
+        for child in cast(list[Any], value):
             _normalize_openapi_schema(child)
 
 

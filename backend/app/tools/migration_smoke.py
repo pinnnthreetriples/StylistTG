@@ -7,7 +7,9 @@ import uuid
 from datetime import UTC, datetime
 
 import psycopg
+from psycopg import sql
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Connection
 
 
 AGGREGATE_TABLES = ["account", "job", "asset", "auth_batch", "account_operation_log"]
@@ -46,8 +48,8 @@ def main() -> None:
 def _create_database(admin_url: str, db_name: str) -> None:
     _assert_safe_db_name(db_name)
     with psycopg.connect(admin_url, autocommit=True) as connection:
-        connection.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
-        connection.execute(f'CREATE DATABASE "{db_name}"')
+        connection.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(db_name)))
+        connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(db_name)))
 
 
 def _drop_database(admin_url: str, db_name: str) -> None:
@@ -57,7 +59,7 @@ def _drop_database(admin_url: str, db_name: str) -> None:
             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s",
             (db_name,),
         )
-        connection.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
+        connection.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(db_name)))
 
 
 def _run_alembic(base_url: str, db_name: str, *args: str) -> str:
@@ -159,7 +161,7 @@ def _inspect_seeded(
     return counts, workspace_ids, asset_storage
 
 
-def _counts(connection, table_names: list[str]) -> dict[str, int]:
+def _counts(connection: Connection, table_names: list[str]) -> dict[str, int]:
     return {
         table_name: connection.execute(text(f"select count(*) from {table_name}")).scalar_one()
         for table_name in table_names

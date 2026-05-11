@@ -467,7 +467,7 @@ def test_coverage_data_generates_branch_warnings() -> None:
         }
     }
     analyzer = Analyzer(AnalyzerConfig(), coverage_data=coverage_data)
-    issues = analyzer._coverage_branch_warnings()
+    issues = analyzer.coverage_branch_warnings()
     assert len(issues) == 1
     assert issues[0].rule_id == "TQA040"
     assert issues[0].file == "app/services/auth.py"

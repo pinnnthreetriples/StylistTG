@@ -209,9 +209,9 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
 def _role_test_client(role: str):
     """Yield a TestClient for the given role and clean dependency_overrides on exit."""
     _setup_test_env(role=role)
-    client = TestClient(app, raise_server_exceptions=False)
     try:
-        yield client
+        with TestClient(app, raise_server_exceptions=False) as client:
+            yield client
     finally:
         app.dependency_overrides.clear()
 
@@ -271,10 +271,10 @@ class TestNoAuth:
     def test_no_auth_returns_401_or_403(self, method, path, min_role, is_mutation, monkeypatch):
         monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
         app.dependency_overrides.clear()
-        client = TestClient(app, raise_server_exceptions=False)
         try:
-            resolved = _resolve_path(path)
-            response = _request(client, method, resolved)
+            with TestClient(app, raise_server_exceptions=False) as client:
+                resolved = _resolve_path(path)
+                response = _request(client, method, resolved)
             # contract: unauthenticated requests must return either 401 (Unauthorized)
             # or 403 (Forbidden) — both are valid auth-failure responses.
             assert response.status_code in {401, 403}, (

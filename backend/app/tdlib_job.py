@@ -29,7 +29,9 @@ def main() -> int:
                 uncertain = True
             print(json.dumps({"job_id": args.job_id, **event}, sort_keys=True), flush=True)
     except SystemExit as exc:
-        return int(exc.code)
+        if isinstance(exc.code, int):
+            return exc.code
+        return 1 if exc.code else 0
     if failed:
         return 1
     if uncertain:

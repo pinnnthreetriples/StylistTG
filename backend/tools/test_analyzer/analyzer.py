@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .models import (
     AnalyzerConfig,
@@ -13,7 +13,7 @@ from .models import (
     Issue,
     Rule,
     Severity,
-    _parse_suppressions,
+    parse_suppressions,
 )
 from .rules import ALL_RULES
 
@@ -43,7 +43,7 @@ class Analyzer:
         lines = source.splitlines()
         relative_path = str(path.relative_to(base_dir)).replace("\\", "/")
 
-        line_supprs, file_supprs, supp_warnings = _parse_suppressions(lines, relative_path)
+        line_supprs, file_supprs, supp_warnings = parse_suppressions(lines, relative_path)
 
         ctx = FileContext(
             path=path,
@@ -97,17 +97,19 @@ class Analyzer:
 
         # Coverage-driven warnings for source files with uncovered branches
         if self.coverage_data:
-            all_issues.extend(self._coverage_branch_warnings())
+            all_issues.extend(self.coverage_branch_warnings())
 
         return all_issues
 
-    def _coverage_branch_warnings(self) -> list[Issue]:
+    def coverage_branch_warnings(self) -> list[Issue]:
         issues: list[Issue] = []
-        files = self.coverage_data.get("files", {}) if self.coverage_data else {}
+        coverage_data = self.coverage_data or {}
+        files = cast(dict[str, Any], coverage_data.get("files", {}))
         for filepath, info in files.items():
-            summary = info.get("summary", {})
-            num_branches = summary.get("num_branches", 0)
-            covered_branches = summary.get("covered_branches", 0)
+            file_info = cast(dict[str, Any], info)
+            summary = cast(dict[str, Any], file_info.get("summary", {}))
+            num_branches = int(summary.get("num_branches", 0) or 0)
+            covered_branches = int(summary.get("covered_branches", 0) or 0)
             if num_branches > 0 and covered_branches < num_branches:
                 missing = num_branches - covered_branches
                 pct = round(covered_branches / num_branches * 100, 1)

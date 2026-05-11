@@ -10,7 +10,7 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _get_test_functions,
+    get_test_functions,
 )
 
 # Words in test names that indicate a negative/boundary/edge-case test.
@@ -65,7 +65,7 @@ class MissingEdgeCase(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        funcs = _get_test_functions(ctx.tree)
+        funcs = get_test_functions(ctx.tree)
         if not funcs:
             return issues
 

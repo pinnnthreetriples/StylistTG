@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any
 
 from app.config import settings
 from app.services.tdlib_runtime import detect_tdlib_runtime
@@ -14,7 +15,7 @@ def _build_payload(
     library_check: bool,
     readonly_auth_check: bool,
     auth_session_id: str | None,
-) -> tuple[dict, bool]:
+) -> tuple[dict[str, Any], bool]:
     status = detect_tdlib_runtime(settings)
     payload = status.to_safe_dict()
     checks: dict[str, str] = {}

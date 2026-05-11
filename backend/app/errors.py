@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -80,24 +80,29 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
 
-    if isinstance(exc.detail, dict) and {"error_code", "error_class", "message"} <= set(
-        exc.detail.keys()
-    ):
+    if isinstance(exc.detail, dict):
+        detail = cast(dict[str, Any], exc.detail)
+        if not {"error_code", "error_class", "message"} <= set(detail.keys()):
+            detail = {}
+    else:
+        detail = {}
+
+    if detail:
         log_warn(
             "http_error",
-            error_code=exc.detail["error_code"],
-            message=exc.detail["message"],
+            error_code=detail["error_code"],
+            message=detail["message"],
             status=exc.status_code,
             path=request.url.path,
             request_id=request_id,
         )
         return error_response(
             status_code=exc.status_code,
-            error_code=exc.detail["error_code"],
-            error_class=exc.detail["error_class"],
-            message=exc.detail["message"],
-            details=exc.detail.get("details"),
-            field_errors=exc.detail.get("field_errors", []),
+            error_code=str(detail["error_code"]),
+            error_class=str(detail["error_class"]),
+            message=str(detail["message"]),
+            details=cast(dict[str, Any] | None, detail.get("details")),
+            field_errors=cast(list[dict[str, str]] | None, detail.get("field_errors", [])),
             request_id=request_id,
         )
 
@@ -124,13 +129,13 @@ async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
-    field_errors = []
+    field_errors: list[dict[str, str]] = []
     for error in exc.errors():
-        location = [str(item) for item in error["loc"] if item != "body"]
+        location = [str(item) for item in cast(tuple[Any, ...], error["loc"]) if item != "body"]
         field_errors.append(
             {
                 "field": ".".join(location) or "body",
-                "message": error["msg"],
+                "message": str(error["msg"]),
             }
         )
 
@@ -167,7 +172,7 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, bytes | bytearray | memoryview):
         return "[redacted]"
     if isinstance(value, tuple | list):
-        return [_json_safe(item) for item in value]
+        return [_json_safe(item) for item in cast(list[Any] | tuple[Any, ...], value)]
     if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
+        return {str(key): _json_safe(item) for key, item in cast(dict[Any, Any], value).items()}
     return str(value)

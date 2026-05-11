@@ -43,7 +43,14 @@ def detect_tdlib_runtime(config: Settings = settings) -> TdlibRuntimeStatus:
     if library_configured:
         try:
             library = ctypes.CDLL(str(config.tdlib_shared_library_path))
-            library_loadable = all(hasattr(library, symbol) for symbol in ("td_json_client_create", "td_json_client_send", "td_json_client_receive"))
+            library_loadable = all(
+                hasattr(library, symbol)
+                for symbol in (
+                    "td_json_client_create",
+                    "td_json_client_send",
+                    "td_json_client_receive",
+                )
+            )
             if not library_loadable:
                 error_code = "tdjson_symbols_missing"
         except OSError:
@@ -51,7 +58,9 @@ def detect_tdlib_runtime(config: Settings = settings) -> TdlibRuntimeStatus:
     elif live_enabled:
         error_code = "tdjson_library_not_configured"
 
-    configured = library_configured and library_loadable and api_id_configured and api_hash_configured
+    configured = (
+        library_configured and library_loadable and api_id_configured and api_hash_configured
+    )
     return TdlibRuntimeStatus(
         configured=configured,
         library_configured=library_configured,
@@ -60,6 +69,8 @@ def detect_tdlib_runtime(config: Settings = settings) -> TdlibRuntimeStatus:
         runtime_mode=config.tdlib_runtime_mode,
         api_id_configured=api_id_configured,
         api_hash_configured=api_hash_configured,
-        readonly_smoke_available=bool(config.tdlib_readonly_smoke_enabled and live_enabled and configured),
+        readonly_smoke_available=bool(
+            config.tdlib_readonly_smoke_enabled and live_enabled and configured
+        ),
         error_code=error_code,
     )

@@ -3,6 +3,7 @@
 Контрактный тест: сторонний модуль, вызывающий `ensure_not_isolated`
 на аккаунте, захваченном warmup-сессией, получает чистый `AppError(409)`.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -125,9 +126,7 @@ def test_release_claim_only_by_owner(db_session) -> None:
     assert released_by_other is False
     assert get_claim(db_session, account_id=account_id) is not None
 
-    released_by_owner = release_claim(
-        db_session, account_id=account_id, held_by="warmup:session-1"
-    )
+    released_by_owner = release_claim(db_session, account_id=account_id, held_by="warmup:session-1")
     assert released_by_owner is True
     assert get_claim(db_session, account_id=account_id) is None
 
@@ -152,8 +151,9 @@ def test_ensure_not_isolated_raises_409_when_claim_held(db_session) -> None:
 
 def test_ensure_not_isolated_is_noop_without_claim(db_session) -> None:
     account_id = _seed_account(db_session)
-    # Should not raise.
-    ensure_not_isolated(db_session, account_id=account_id)
+    # Should not raise — returns None when no claim exists.
+    result = ensure_not_isolated(db_session, account_id=account_id)
+    assert result is None
 
 
 def test_list_claims_for_workspace_returns_snapshots(db_session) -> None:
@@ -174,8 +174,6 @@ def test_list_claims_for_workspace_returns_snapshots(db_session) -> None:
         reason="warmup_in_progress",
     )
 
-    claims = list_claims_for_workspace(
-        db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID
-    )
+    claims = list_claims_for_workspace(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
     owners = {claim.held_by for claim in claims}
     assert {"warmup:a", "warmup:b"}.issubset(owners)

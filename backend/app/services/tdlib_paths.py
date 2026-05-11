@@ -16,7 +16,11 @@ class TdlibStoragePaths:
     files_path: Path
 
     def public_summary(self) -> dict[str, bool | str]:
-        return {"storage_key": self.storage_key, "database_path_configured": True, "files_path_configured": True}
+        return {
+            "storage_key": self.storage_key,
+            "database_path_configured": True,
+            "files_path_configured": True,
+        }
 
 
 def build_account_tdlib_paths(
@@ -34,7 +38,11 @@ def build_auth_session_tdlib_paths(
     auth_session_id: str,
     config: Settings = settings,
 ) -> TdlibStoragePaths:
-    return _build_paths(workspace_id=workspace_id, leaf=f"auth-sessions/{_safe_segment(auth_session_id)}", config=config)
+    return _build_paths(
+        workspace_id=workspace_id,
+        leaf=f"auth-sessions/{_safe_segment(auth_session_id)}",
+        config=config,
+    )
 
 
 def _build_paths(*, workspace_id: str, leaf: str, config: Settings) -> TdlibStoragePaths:
@@ -43,7 +51,9 @@ def _build_paths(*, workspace_id: str, leaf: str, config: Settings) -> TdlibStor
     storage_key = "/".join([workspace, *leaf_parts])
     database_path = _safe_join(config.tdlib_database_root, workspace, *leaf_parts)
     files_path = _safe_join(config.tdlib_files_root, workspace, *leaf_parts)
-    return TdlibStoragePaths(storage_key=storage_key, database_path=database_path, files_path=files_path)
+    return TdlibStoragePaths(
+        storage_key=storage_key, database_path=database_path, files_path=files_path
+    )
 
 
 def _safe_segment(value: str) -> str:

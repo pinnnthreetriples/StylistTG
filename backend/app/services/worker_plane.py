@@ -116,11 +116,14 @@ def worker_diagnostics(config: Settings = settings) -> dict[str, Any]:
 def _redis_queue_snapshot(config: Settings) -> dict[str, Any]:
     queue_names = [descriptor.name for descriptor in queue_descriptors()]
     try:
-        connection = cast(Redis, cast(Any, Redis).from_url(
-            config.redis_url,
-            socket_connect_timeout=0.2,
-            socket_timeout=0.2,
-        ))
+        connection = cast(
+            Redis,
+            cast(Any, Redis).from_url(
+                config.redis_url,
+                socket_connect_timeout=0.2,
+                socket_timeout=0.2,
+            ),
+        )
         cast(Any, connection).ping()
         workers = cast(list[Any], cast(Any, Worker).all(connection=connection))
         return {

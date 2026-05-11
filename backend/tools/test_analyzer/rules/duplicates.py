@@ -1,4 +1,5 @@
 """Duplicate code detection rules (TQA030–TQA031)."""
+
 from __future__ import annotations
 
 import ast
@@ -30,7 +31,7 @@ class DuplicateSetup(Rule):
                 if isinstance(stmt, ast.Assert):
                     break
                 start = (stmt.lineno - 1) if stmt.lineno else 0
-                end = (stmt.end_lineno or stmt.lineno)
+                end = stmt.end_lineno or stmt.lineno
                 setup_lines.extend(ctx.lines[start:end])
             if len(setup_lines) >= config.duplicate_min_lines:
                 normalized = _normalize_ast_block("\n".join(setup_lines))
@@ -39,15 +40,17 @@ class DuplicateSetup(Rule):
         seen: dict[str, int] = {}
         for lineno, block in setups:
             if block in seen:
-                issues.append(Issue(
-                    rule_id=self.id,
-                    rule_type=self.type,
-                    severity=self.default_severity,
-                    file=ctx.relative_path,
-                    line=lineno,
-                    message="Duplicate test setup pattern detected",
-                    recommendation="Extract into shared fixture or helper function",
-                ))
+                issues.append(
+                    Issue(
+                        rule_id=self.id,
+                        rule_type=self.type,
+                        severity=self.default_severity,
+                        file=ctx.relative_path,
+                        line=lineno,
+                        message="Duplicate test setup pattern detected",
+                        recommendation="Extract into shared fixture or helper function",
+                    )
+                )
             else:
                 seen[block] = lineno
         return issues
@@ -77,18 +80,20 @@ class DuplicateAssertionPattern(Rule):
         seen: dict[str, tuple[int, str]] = {}
         for lineno, name, block in patterns:
             if block in seen:
-                issues.append(Issue(
-                    rule_id=self.id,
-                    rule_type=self.type,
-                    severity=self.default_severity,
-                    file=ctx.relative_path,
-                    line=lineno,
-                    message=(
-                        f"Test `{name}` has duplicate assertion pattern"
-                        f" (also at line {seen[block][0]})"
-                    ),
-                    recommendation="Extract assertion helper or parametrize",
-                ))
+                issues.append(
+                    Issue(
+                        rule_id=self.id,
+                        rule_type=self.type,
+                        severity=self.default_severity,
+                        file=ctx.relative_path,
+                        line=lineno,
+                        message=(
+                            f"Test `{name}` has duplicate assertion pattern"
+                            f" (also at line {seen[block][0]})"
+                        ),
+                        recommendation="Extract assertion helper or parametrize",
+                    )
+                )
             else:
                 seen[block] = (lineno, name)
         return issues

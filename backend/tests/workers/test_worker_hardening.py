@@ -103,7 +103,10 @@ def test_child_timeout_marks_job_failed(db_session, monkeypatch) -> None:
         lambda *args, **kwargs: TimeoutProcess(
             stdout_lines=[
                 json.dumps({"event": "runtime_started"}) + "\n",
-                json.dumps({"event": "step_started", "step_key": "set_name", "step_type": "set_name"}) + "\n",
+                json.dumps(
+                    {"event": "step_started", "step_key": "set_name", "step_type": "set_name"}
+                )
+                + "\n",
             ],
             returncode=0,
         ),
@@ -119,14 +122,21 @@ def test_child_timeout_marks_job_failed(db_session, monkeypatch) -> None:
     assert job.step_results[0].uncertain_reason == "child_process_timeout"
 
 
-def test_child_crash_after_step_started_marks_started_step_uncertain(db_session, monkeypatch) -> None:
+def test_child_crash_after_step_started_marks_started_step_uncertain(
+    db_session, monkeypatch
+) -> None:
     account = create_account(db_session, external_ref="+15550102000")
     account.account_state = "execution_usable"
     db_session.commit()
     job = create_profile_job(
         db_session,
         account_id=account.id,
-        payload={"name": "Stylist TG", "bio": "Profile editor", "username": None, "photo_asset_id": None},
+        payload={
+            "name": "Stylist TG",
+            "bio": "Profile editor",
+            "username": None,
+            "photo_asset_id": None,
+        },
         execution_adapter=FakeExecutionUsableAdapter(),
     )
 
@@ -136,7 +146,10 @@ def test_child_crash_after_step_started_marks_started_step_uncertain(db_session,
         lambda *args, **kwargs: FakeProcess(
             stdout_lines=[
                 json.dumps({"event": "runtime_started"}) + "\n",
-                json.dumps({"event": "step_started", "step_key": "set_name", "step_type": "set_name"}) + "\n",
+                json.dumps(
+                    {"event": "step_started", "step_key": "set_name", "step_type": "set_name"}
+                )
+                + "\n",
             ],
             returncode=1,
         ),
@@ -262,7 +275,10 @@ def test_account_update_username_failure_after_success_is_partial(db_session, mo
     db_session.refresh(job)
     assert exit_code == 1
     assert job.job_state == JobState.PARTIALLY_COMPLETED
-    assert _step_statuses(job) == {"set_name": StepStatus.SUCCEEDED, "set_username": StepStatus.FAILED}
+    assert _step_statuses(job) == {
+        "set_name": StepStatus.SUCCEEDED,
+        "set_username": StepStatus.FAILED,
+    }
 
 
 def test_account_update_photo_failure_after_success_is_partial(db_session, monkeypatch) -> None:
@@ -273,7 +289,9 @@ def test_account_update_photo_failure_after_success_is_partial(db_session, monke
     monkeypatch.setattr(
         profile_jobs.subprocess,
         "Popen",
-        lambda *args, **kwargs: _account_update_process_with_failed_step(args[0], "set_profile_photo"),
+        lambda *args, **kwargs: _account_update_process_with_failed_step(
+            args[0], "set_profile_photo"
+        ),
     )
 
     execute_account_update_job(job.id, session=db_session)
@@ -283,7 +301,9 @@ def test_account_update_photo_failure_after_success_is_partial(db_session, monke
     assert _step_statuses(job)["set_profile_photo"] == StepStatus.FAILED
 
 
-def test_account_update_music_failure_after_profile_success_is_partial(db_session, monkeypatch) -> None:
+def test_account_update_music_failure_after_profile_success_is_partial(
+    db_session, monkeypatch
+) -> None:
     account = create_account(db_session, external_ref="+15550102000")
     audio = seed_audio_asset(db_session)
     desired = {
@@ -294,7 +314,9 @@ def test_account_update_music_failure_after_profile_success_is_partial(db_sessio
     monkeypatch.setattr(
         profile_jobs.subprocess,
         "Popen",
-        lambda *args, **kwargs: _account_update_process_with_failed_step(args[0], "upload_profile_audio"),
+        lambda *args, **kwargs: _account_update_process_with_failed_step(
+            args[0], "upload_profile_audio"
+        ),
     )
 
     execute_account_update_job(job.id, session=db_session)
@@ -304,7 +326,9 @@ def test_account_update_music_failure_after_profile_success_is_partial(db_sessio
     assert _step_statuses(job)["upload_profile_audio"] == StepStatus.FAILED
 
 
-def test_account_update_story_failure_after_profile_success_is_partial(db_session, monkeypatch) -> None:
+def test_account_update_story_failure_after_profile_success_is_partial(
+    db_session, monkeypatch
+) -> None:
     account = create_account(db_session, external_ref="+15550102000")
     story = seed_story_asset(db_session, kind=AssetKind.STORY_IMAGE)
     desired = {
@@ -315,7 +339,9 @@ def test_account_update_story_failure_after_profile_success_is_partial(db_sessio
     monkeypatch.setattr(
         profile_jobs.subprocess,
         "Popen",
-        lambda *args, **kwargs: _account_update_process_with_failed_step(args[0], "post_story_image"),
+        lambda *args, **kwargs: _account_update_process_with_failed_step(
+            args[0], "post_story_image"
+        ),
     )
 
     execute_account_update_job(job.id, session=db_session)
@@ -346,7 +372,9 @@ def test_account_update_hard_session_error_is_not_normal_partial(db_session, mon
     assert account.account_state == "manual_intervention_needed"
 
 
-def test_partially_completed_is_backend_terminal_and_does_not_dedup_block(db_session, monkeypatch) -> None:
+def test_partially_completed_is_backend_terminal_and_does_not_dedup_block(
+    db_session, monkeypatch
+) -> None:
     account = create_account(db_session, external_ref="+15550102000")
     desired = {"profile": {"name": "Stylist TG"}}
     first = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
@@ -496,6 +524,7 @@ def test_rematerialize_repair_is_safe_to_rerun(db_session) -> None:
     assert rematerialize_account_update_job(job.id, session=db_session) is True
 
     from app.models import AccountStoryPost
+
     assert db_session.query(AccountStoryPost).filter_by(account_id=account.id).count() == 1
 
 

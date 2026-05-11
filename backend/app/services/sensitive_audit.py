@@ -64,7 +64,9 @@ def list_sensitive_audit_events(
     if account_id is not None:
         statement = statement.where(SensitiveAuditEvent.account_id == account_id)
     rows = (
-        session.execute(statement.order_by(SensitiveAuditEvent.created_at.desc()).offset(offset).limit(limit))
+        session.execute(
+            statement.order_by(SensitiveAuditEvent.created_at.desc()).offset(offset).limit(limit)
+        )
         .scalars()
         .all()
     )

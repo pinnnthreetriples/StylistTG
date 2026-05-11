@@ -45,7 +45,9 @@ class PhoneInput:
 
 class EmptyAuthBatchError(ValueError):
     def __init__(self, validation: dict[str, Any]) -> None:
-        super().__init__("No new Telegram accounts to add. Check existing accounts, duplicates, and invalid numbers.")
+        super().__init__(
+            "No new Telegram accounts to add. Check existing accounts, duplicates, and invalid numbers."
+        )
         self.validation = validation
 
 
@@ -72,19 +74,31 @@ def validate_batch_phones(
             )
             continue
 
-        row: dict[str, Any] = {"phone_number": normalized, "label": item.label, "position": position}
+        row: dict[str, Any] = {
+            "phone_number": normalized,
+            "label": item.label,
+            "position": position,
+        }
         if normalized in seen:
             duplicates.append({**row, "account_id": None, "batch_item_id": None})
             continue
         seen.add(normalized)
 
-        active_item = session.execute(
-            select(AuthBatchItem)
-            .join(AuthBatch, AuthBatch.id == AuthBatchItem.batch_id)
-            .where(AuthBatch.workspace_id == workspace_id)
-            .where(AuthBatchItem.phone_number == normalized)
-            .where(AuthBatchItem.status.not_in([state.value for state in TERMINAL_AUTH_BATCH_ITEM_STATUSES]))
-        ).scalars().first()
+        active_item = (
+            session.execute(
+                select(AuthBatchItem)
+                .join(AuthBatch, AuthBatch.id == AuthBatchItem.batch_id)
+                .where(AuthBatch.workspace_id == workspace_id)
+                .where(AuthBatchItem.phone_number == normalized)
+                .where(
+                    AuthBatchItem.status.not_in(
+                        [state.value for state in TERMINAL_AUTH_BATCH_ITEM_STATUSES]
+                    )
+                )
+            )
+            .scalars()
+            .first()
+        )
         if active_item is not None:
             active_batch_conflicts.append(
                 {
@@ -98,7 +112,9 @@ def validate_batch_phones(
 
         account = get_account_by_external_ref(session, normalized, workspace_id=workspace_id)
         if account is not None and not _can_reuse_stale_batch_account(session, account):
-            existing_accounts.append({**row, "account_id": account.id, "batch_item_id": None, "batch_id": None})
+            existing_accounts.append(
+                {**row, "account_id": account.id, "batch_item_id": None, "batch_id": None}
+            )
             continue
 
         valid_items.append(row)
@@ -126,12 +142,16 @@ def create_auth_batch(
 ) -> tuple[AuthBatch, bool]:
     if workspace_id == DEFAULT_LOCAL_WORKSPACE_ID:
         ensure_default_workspace(session)
-    existing = session.execute(
-        select(AuthBatch).where(
-            AuthBatch.workspace_id == workspace_id,
-            AuthBatch.idempotency_key == idempotency_key,
+    existing = (
+        session.execute(
+            select(AuthBatch).where(
+                AuthBatch.workspace_id == workspace_id,
+                AuthBatch.idempotency_key == idempotency_key,
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if existing is not None:
         return existing, False
 
@@ -154,7 +174,9 @@ def create_auth_batch(
     session.flush()
 
     for item in valid_items:
-        account = get_account_by_external_ref(session, item["phone_number"], workspace_id=workspace_id)
+        account = get_account_by_external_ref(
+            session, item["phone_number"], workspace_id=workspace_id
+        )
         if account is not None and _can_reuse_stale_batch_account(session, account):
             _reset_stale_batch_account(account)
         else:
@@ -182,7 +204,9 @@ def create_auth_batch(
             )
         )
     batch.events.append(
-        AuthBatchEvent(event_type="batch_created", actor="user", payload_json={"total_count": len(valid_items)})
+        AuthBatchEvent(
+            event_type="batch_created", actor="user", payload_json={"total_count": len(valid_items)}
+        )
     )
     log_audit_event(
         session,
@@ -203,12 +227,20 @@ def _can_reuse_stale_batch_account(session: Session, account: Account) -> bool:
         return False
     if account.account_state not in REUSABLE_BATCH_ACCOUNT_STATES:
         return False
-    active_item = session.execute(
-        select(AuthBatchItem.id)
-        .where(AuthBatchItem.account_id == account.id)
-        .where(AuthBatchItem.status.not_in([state.value for state in TERMINAL_AUTH_BATCH_ITEM_STATUSES]))
-        .limit(1)
-    ).scalars().first()
+    active_item = (
+        session.execute(
+            select(AuthBatchItem.id)
+            .where(AuthBatchItem.account_id == account.id)
+            .where(
+                AuthBatchItem.status.not_in(
+                    [state.value for state in TERMINAL_AUTH_BATCH_ITEM_STATUSES]
+                )
+            )
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     return active_item is None
 
 
@@ -233,7 +265,9 @@ def get_batch(session: Session, batch_id: str, workspace_id: str | None = None) 
     return batch
 
 
-def list_batches(session: Session, *, limit: int = 50, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID) -> list[AuthBatch]:
+def list_batches(
+    session: Session, *, limit: int = 50, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID
+) -> list[AuthBatch]:
     return list(
         session.execute(
             select(AuthBatch)
@@ -305,7 +339,9 @@ def retry_item(session: Session, item_id: str) -> AuthBatchItem:
 
 def expire_idempotency_keys(session: Session) -> int:
     now = utc_now()
-    keys = list(session.execute(select(IdempotencyKey).where(IdempotencyKey.expires_at < now)).scalars())
+    keys = list(
+        session.execute(select(IdempotencyKey).where(IdempotencyKey.expires_at < now)).scalars()
+    )
     for key in keys:
         session.delete(key)
     session.commit()
@@ -360,7 +396,9 @@ def _as_aware_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
-def _require_batch(session: Session, batch_id: str, *, workspace_id: str | None = None) -> AuthBatch:
+def _require_batch(
+    session: Session, batch_id: str, *, workspace_id: str | None = None
+) -> AuthBatch:
     batch = get_batch(session, batch_id, workspace_id=workspace_id)
     if batch is None:
         raise ValueError("batch not found")

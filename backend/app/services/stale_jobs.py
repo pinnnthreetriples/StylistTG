@@ -16,12 +16,23 @@ def reap_stale_jobs(session: Session, *, stale_after_seconds: int) -> int:
     cutoff = utc_now() - timedelta(seconds=stale_after_seconds)
     jobs = list(
         session.execute(
-            select(Job)
-            .where(
+            select(Job).where(
                 or_(
-                    and_(Job.job_state == JobState.QUEUED, Job.queued_at.is_not(None), Job.queued_at < cutoff),
-                    and_(Job.job_state == JobState.RUNNING, Job.started_at.is_not(None), Job.started_at < cutoff),
-                    and_(Job.job_state == JobState.WAITING_LOCK, Job.queued_at.is_not(None), Job.queued_at < cutoff),
+                    and_(
+                        Job.job_state == JobState.QUEUED,
+                        Job.queued_at.is_not(None),
+                        Job.queued_at < cutoff,
+                    ),
+                    and_(
+                        Job.job_state == JobState.RUNNING,
+                        Job.started_at.is_not(None),
+                        Job.started_at < cutoff,
+                    ),
+                    and_(
+                        Job.job_state == JobState.WAITING_LOCK,
+                        Job.queued_at.is_not(None),
+                        Job.queued_at < cutoff,
+                    ),
                 )
             )
         ).scalars()

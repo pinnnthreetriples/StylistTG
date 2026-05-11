@@ -63,5 +63,7 @@ def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:
             "tdlib_production_auth_enabled": True,
         }
 
-        client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": before["tdlib_use_test_dc"]})
+        client.patch(
+            "/api/auth/runtime-mode", json={"tdlib_use_test_dc": before["tdlib_use_test_dc"]}
+        )
     assert original_test_dc is None

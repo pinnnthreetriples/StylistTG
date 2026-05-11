@@ -13,17 +13,26 @@ from app.services.operation_logs import log_operation
 SUPPORTED_PROXY_TYPES = {"socks5", "http"}
 
 
-def get_account_proxy(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict[str, Any] | None:
+def get_account_proxy(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> dict[str, Any] | None:
     if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     row = session.get(AccountProxy, account_id)
     return proxy_to_dict(row) if row else None
 
 
-def proxy_summary(session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID) -> list[dict[str, Any]]:
+def proxy_summary(
+    session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID
+) -> list[dict[str, Any]]:
     from app.models import Account
 
-    rows = session.query(AccountProxy).join(Account, Account.id == AccountProxy.account_id).filter(Account.workspace_id == workspace_id).all()
+    rows = (
+        session.query(AccountProxy)
+        .join(Account, Account.id == AccountProxy.account_id)
+        .filter(Account.workspace_id == workspace_id)
+        .all()
+    )
     return [
         {
             "account_id": row.account_id,
@@ -84,14 +93,21 @@ def upsert_account_proxy(
         source="proxy_settings",
         message="Proxy settings saved",
         workspace_id=workspace_id,
-        metadata={"proxy_type": proxy_type, "host": host, "port": port, "has_password": bool(password)},
+        metadata={
+            "proxy_type": proxy_type,
+            "host": host,
+            "port": port,
+            "has_password": bool(password),
+        },
     )
     session.commit()
     session.refresh(row)
     return proxy_to_dict(row)
 
 
-def delete_account_proxy(session: Session, account_id: str, *, workspace_id: str | None = None) -> None:
+def delete_account_proxy(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> None:
     if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     row = session.get(AccountProxy, account_id)
@@ -141,9 +157,11 @@ def decrypt_proxy_password(row: AccountProxy, *, config: Settings = settings) ->
         from cryptography.fernet import Fernet
     except ModuleNotFoundError as exc:
         raise ValueError("proxy_credentials_crypto_unavailable") from exc
-    return Fernet(config.proxy_credentials_encryption_key.encode("utf-8")).decrypt(
-        row.password_encrypted.encode("utf-8")
-    ).decode("utf-8")
+    return (
+        Fernet(config.proxy_credentials_encryption_key.encode("utf-8"))
+        .decrypt(row.password_encrypted.encode("utf-8"))
+        .decode("utf-8")
+    )
 
 
 def _validate_proxy(*, proxy_type: str, host: str, port: int) -> None:
@@ -164,7 +182,9 @@ def _encrypt_password(password: str | None, *, config: Settings = settings) -> s
         from cryptography.fernet import Fernet
     except ModuleNotFoundError as exc:
         raise ValueError("proxy_credentials_crypto_unavailable") from exc
-    token = Fernet(config.proxy_credentials_encryption_key.encode("utf-8")).encrypt(password.encode("utf-8"))
+    token = Fernet(config.proxy_credentials_encryption_key.encode("utf-8")).encrypt(
+        password.encode("utf-8")
+    )
     return token.decode("utf-8")
 
 

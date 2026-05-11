@@ -1,10 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
-from app.db import get_session
-from app.main import app
 from app.models import (
     AccountRuntimeState,
     AccountState,
@@ -102,7 +100,9 @@ def test_list_detail_status_and_events(db_session) -> None:
     db_session.commit()
 
     items, total = list_warmup_sessions(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
-    detail = get_warmup_session(db_session, session_id=created.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+    detail = get_warmup_session(
+        db_session, session_id=created.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     events, event_total = list_warmup_events(
         db_session,
         session_id=created.id,
@@ -138,6 +138,7 @@ def test_delete_warmup_session_removes_session_and_events(db_session) -> None:
     assert db_session.query(WarmupEvent).count() == 0
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_pause_and_resume_warmup_session(db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
@@ -191,67 +192,68 @@ def test_resume_rejects_future_retry(db_session) -> None:
         )
 
 
-def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(db_session, monkeypatch) -> None:
+def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     enqueued: list[str] = []
 
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+    )
 
-    response = client.post(
+    response = app_client.post(
         "/api/warmup/sessions",
         json={"account_id": account.id, "strategy_id": strategy.id},
     )
 
-    app.dependency_overrides.clear()
     assert response.status_code == 201
     assert enqueued == []
 
 
-def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(db_session, monkeypatch) -> None:
+def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+    )
 
-    response = client.post(
+    response = app_client.post(
         "/api/warmup/sessions",
         json={"account_id": account.id, "strategy_id": strategy.id},
     )
 
-    app.dependency_overrides.clear()
     assert response.status_code == 201
     assert enqueued == ["warmup"]
 
 
-def test_create_warmup_session_marks_session_failed_when_enqueue_fails(db_session, monkeypatch) -> None:
+def test_create_warmup_session_marks_session_failed_when_enqueue_fails(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
 
     monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
     monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: False)
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
 
-    response = client.post(
+    response = app_client.post(
         "/api/warmup/sessions",
         json={"account_id": account.id, "strategy_id": strategy.id},
     )
 
-    app.dependency_overrides.clear()
     assert response.status_code == 503
     warmup_session = db_session.query(WarmupSession).one()
     assert warmup_session.status == WarmupStatus.FAILED
     assert db_session.query(WarmupEvent).filter_by(event_type="queue_enqueue_failed").count() == 1
 
 
-def test_delete_warmup_session_endpoint(db_session) -> None:
+def test_delete_warmup_session_endpoint(app_client, db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     created = create_warmup_session(
@@ -262,12 +264,8 @@ def test_delete_warmup_session_endpoint(db_session) -> None:
     )
     db_session.commit()
 
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+    response = app_client.delete(f"/api/warmup/sessions/{created.id}")
 
-    response = client.delete(f"/api/warmup/sessions/{created.id}")
-
-    app.dependency_overrides.clear()
     assert response.status_code == 204
     assert db_session.query(WarmupSession).count() == 0
 
@@ -309,7 +307,7 @@ def test_delete_warmup_session_releases_isolation_claim(db_session) -> None:
     assert db_session.get(WarmupIsolationClaim, account.id) is None
 
 
-def test_isolation_status_returns_unisolated_for_dry_run_session(db_session) -> None:
+def test_isolation_status_returns_unisolated_for_dry_run_session(app_client, db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     create_warmup_session(
@@ -320,18 +318,14 @@ def test_isolation_status_returns_unisolated_for_dry_run_session(db_session) -> 
     )
     db_session.commit()
 
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+    response = app_client.get(f"/api/warmup/isolation/by-account/{account.id}")
 
-    response = client.get(f"/api/warmup/isolation/by-account/{account.id}")
-
-    app.dependency_overrides.clear()
     assert response.status_code == 200
     body = response.json()
     assert body == {"is_isolated": False, "claim": None}
 
 
-def test_isolation_status_returns_claim_for_shadow_session(db_session) -> None:
+def test_isolation_status_returns_claim_for_shadow_session(app_client, db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = WarmupStrategy(
         id=new_id(),
@@ -357,12 +351,8 @@ def test_isolation_status_returns_claim_for_shadow_session(db_session) -> None:
     )
     db_session.commit()
 
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+    response = app_client.get(f"/api/warmup/isolation/by-account/{account.id}")
 
-    response = client.get(f"/api/warmup/isolation/by-account/{account.id}")
-
-    app.dependency_overrides.clear()
     assert response.status_code == 200
     body = response.json()
     assert body["is_isolated"] is True
@@ -372,18 +362,16 @@ def test_isolation_status_returns_claim_for_shadow_session(db_session) -> None:
     assert "shadow" in body["claim"]["reason"]
 
 
-def test_isolation_status_returns_404_for_unknown_account(db_session) -> None:
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
+def test_isolation_status_returns_404_for_unknown_account(app_client, db_session) -> None:
+    response = app_client.get(f"/api/warmup/isolation/by-account/{new_id()}")
 
-    response = client.get(f"/api/warmup/isolation/by-account/{new_id()}")
-
-    app.dependency_overrides.clear()
     assert response.status_code == 404
     assert response.json()["error_code"] == "ACCOUNT_NOT_FOUND"
 
 
-def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(db_session, monkeypatch) -> None:
+def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = WarmupStrategy(
         id=new_id(),
@@ -403,17 +391,17 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(db_
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True)
-    app.dependency_overrides[get_session] = _override_session(db_session)
-    client = TestClient(app)
-
-    response = client.post(
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True
+    )
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True
+    )
+    response = app_client.post(
         "/api/warmup/sessions",
         json={"account_id": account.id, "strategy_id": strategy.id},
     )
 
-    app.dependency_overrides.clear()
     assert response.status_code == 201
     assert enqueued == ["dispatch"]
 
@@ -448,10 +436,3 @@ def _seed_strategy(db_session) -> WarmupStrategy:
     db_session.add(strategy)
     db_session.commit()
     return strategy
-
-
-def _override_session(session):
-    def _override():
-        yield session
-
-    return _override

@@ -157,14 +157,15 @@ def _decrement_batch_counter(batch: AuthBatch, status: str) -> None:
 
 def _finish_batch_if_complete(batch: AuthBatch) -> None:
     terminal_count = (
-        batch.success_count
-        + batch.failed_count
-        + batch.cancelled_count
-        + batch.skipped_count
+        batch.success_count + batch.failed_count + batch.cancelled_count + batch.skipped_count
     )
     if batch.total_count <= 0 or terminal_count < batch.total_count:
         return
-    if batch.status not in {AuthBatchStatus.RUNNING, AuthBatchStatus.PAUSED, AuthBatchStatus.PENDING}:
+    if batch.status not in {
+        AuthBatchStatus.RUNNING,
+        AuthBatchStatus.PAUSED,
+        AuthBatchStatus.PENDING,
+    }:
         return
     if batch.success_count > 0:
         batch.status = AuthBatchStatus.COMPLETED

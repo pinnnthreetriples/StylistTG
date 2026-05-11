@@ -26,9 +26,15 @@ class ReaperReport:
         }
 
 
-def run_reaper_report(session: Session, *, workspace_id: str | None = None, mode: str = "dry_run") -> ReaperReport:
+def run_reaper_report(
+    session: Session, *, workspace_id: str | None = None, mode: str = "dry_run"
+) -> ReaperReport:
     now = datetime.now(UTC)
-    statement = select(AccountExportRequest).where(AccountExportRequest.expires_at.is_not(None)).where(AccountExportRequest.expires_at < now)
+    statement = (
+        select(AccountExportRequest)
+        .where(AccountExportRequest.expires_at.is_not(None))
+        .where(AccountExportRequest.expires_at < now)
+    )
     if workspace_id is not None:
         statement = statement.where(AccountExportRequest.workspace_id == workspace_id)
     expired = session.execute(statement).scalars().all()

@@ -65,7 +65,9 @@ def check_account_proxy(
     tdlib_verified_at = proxy.tdlib_verified_at
     if ok and _should_run_tdlib_proxy_check(config):
         check_scope = "tcp_tdlib"
-        tdlib_result = (tdlib_checker or build_tdlib_readonly_validity_adapter(config)).check_account(account_id)
+        tdlib_result = (
+            tdlib_checker or build_tdlib_readonly_validity_adapter(config)
+        ).check_account(account_id)
         tdlib_status = str(tdlib_result.get("status") or "unknown")
         if tdlib_status == "valid":
             status = "tdlib_working"
@@ -73,11 +75,17 @@ def check_account_proxy(
         elif tdlib_status in {"reauth_required", "awaiting_code", "awaiting_password", "unknown"}:
             status = "tdlib_unverified"
             tdlib_error_code = str(tdlib_result.get("error_code") or tdlib_status)
-            tdlib_error_message = str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status)
+            tdlib_error_message = str(
+                tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status
+            )
         else:
             status = "tdlib_failed"
             tdlib_error_code = str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed")
-            tdlib_error_message = str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or "TDLib proxy check failed")
+            tdlib_error_message = str(
+                tdlib_result.get("error")
+                or tdlib_result.get("runtime_health")
+                or "TDLib proxy check failed"
+            )
     proxy.status = status
     proxy.last_checked_at = now
     proxy.last_check_scope = check_scope
@@ -91,11 +99,15 @@ def check_account_proxy(
         account_id=account_id,
         operation_type="proxy",
         operation_key="check_proxy",
-        status="completed" if status in {"tcp_working", "tdlib_working", "tdlib_unverified"} else "failed",
+        status="completed"
+        if status in {"tcp_working", "tdlib_working", "tdlib_unverified"}
+        else "failed",
         severity="info" if status in {"tcp_working", "tdlib_working"} else "warning",
         source="proxy_check",
         message=_proxy_check_message(status),
-        error_code=None if ok and status != "tdlib_failed" else (tdlib_error_code if status == "tdlib_failed" else error_code),
+        error_code=None
+        if ok and status != "tdlib_failed"
+        else (tdlib_error_code if status == "tdlib_failed" else error_code),
         error_class="tdlib_proxy" if status == "tdlib_failed" else (None if ok else "proxy"),
         workspace_id=workspace_id,
         metadata={
@@ -113,7 +125,11 @@ def check_account_proxy(
 
 
 def _should_run_tdlib_proxy_check(config: Settings) -> bool:
-    return bool(config.profile_execution_adapter == "tdlib" and config.tdlib_api_id and config.tdlib_api_hash)
+    return bool(
+        config.profile_execution_adapter == "tdlib"
+        and config.tdlib_api_id
+        and config.tdlib_api_hash
+    )
 
 
 def _proxy_check_message(status: str) -> str:

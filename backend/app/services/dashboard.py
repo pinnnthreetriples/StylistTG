@@ -13,7 +13,10 @@ from app.services.profile_audio_state import profile_audio_state_payload
 from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
 from app.services.story_posts import list_story_posts, story_post_payload
 
-def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: str | None = None) -> dict[str, Any]:
+
+def build_dashboard_profile(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> dict[str, Any]:
     account = get_account_dashboard_bundle(session, account_id, workspace_id=workspace_id)
     if account is None:
         log_warn("dashboard_account_not_found", account_id=account_id)
@@ -30,7 +33,9 @@ def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: 
         profile_state.last_name if profile_state else None,
     )
     synced_photo_asset_id = profile_state.profile_photo_asset_id if profile_state else None
-    profile_photo_asset_id = synced_photo_asset_id or latest_applied_profile_photo_asset_id(session, account_id)
+    profile_photo_asset_id = synced_photo_asset_id or latest_applied_profile_photo_asset_id(
+        session, account_id
+    )
     latest_job_summary = job_summary(latest_job) if latest_job else None
     story_posts = list_story_posts(session, account_id, workspace_id=workspace_id)
     real_execution_enabled = settings.profile_execution_adapter == "tdlib"
@@ -67,7 +72,10 @@ def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: 
             "latest_job_state": latest_job.job_state if latest_job else None,
             "latest_job_id": latest_job.id if latest_job else None,
             "latest_job_finished_at": latest_job.finished_at if latest_job else None,
-            "has_active_job": bool(latest_job and latest_job.job_state not in {state.value for state in TERMINAL_JOB_STATES}),
+            "has_active_job": bool(
+                latest_job
+                and latest_job.job_state not in {state.value for state in TERMINAL_JOB_STATES}
+            ),
             "unsaved_changes_supported": True,
         },
         "diagnostics": {
@@ -76,7 +84,9 @@ def build_dashboard_profile(session: Session, account_id: str, *, workspace_id: 
             "authorized_last_confirmed_at": runtime["authorized_last_confirmed_at"],
             "real_execution_enabled": real_execution_enabled,
             "stories_live_execution_enabled": (
-                real_execution_enabled and settings.stories_enabled and settings.stories_tdlib_live_enabled
+                real_execution_enabled
+                and settings.stories_enabled
+                and settings.stories_tdlib_live_enabled
             ),
         },
     }

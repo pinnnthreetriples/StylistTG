@@ -48,11 +48,20 @@ def validate_import_source(
     if source_type == "json-metadata":
         return [_validate_json_metadata(content=content, metadata=metadata)]
     if source_type in {"tdlib-directory", "tdata"}:
-        return [_validate_archive_structure(source_type=source_type, content=content, config=config)]
-    return [_unsupported("unsupported_source_requires_manual_reauth", "Session file imports require manual reauthorization.")]
+        return [
+            _validate_archive_structure(source_type=source_type, content=content, config=config)
+        ]
+    return [
+        _unsupported(
+            "unsupported_source_requires_manual_reauth",
+            "Session file imports require manual reauthorization.",
+        )
+    ]
 
 
-def _validate_json_metadata(*, content: bytes | None, metadata: dict[str, Any] | None) -> ImportValidationItem:
+def _validate_json_metadata(
+    *, content: bytes | None, metadata: dict[str, Any] | None
+) -> ImportValidationItem:
     payload = metadata or {}
     if content:
         try:
@@ -68,11 +77,15 @@ def _validate_json_metadata(*, content: bytes | None, metadata: dict[str, Any] |
         risk_level="low",
         phone_hint=phone,
         username_hint=username,
-        source_ref_hash=_hash_source(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")),
+        source_ref_hash=_hash_source(
+            json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+        ),
     )
 
 
-def _validate_archive_structure(*, source_type: str, content: bytes | None, config: Settings) -> ImportValidationItem:
+def _validate_archive_structure(
+    *, source_type: str, content: bytes | None, config: Settings
+) -> ImportValidationItem:
     if not content:
         return _unsupported("archive_missing", "Upload an archive for this source type.")
     try:
@@ -81,13 +94,21 @@ def _validate_archive_structure(*, source_type: str, content: bytes | None, conf
             _validate_archive_infos(infos, config=config)
     except (zipfile.BadZipFile, ValueError) as exc:
         return _unsupported("archive_rejected", str(exc))
-    code = "tdlib_structure_detected" if source_type == "tdlib-directory" else "tdata_structure_detected"
+    code = (
+        "tdlib_structure_detected"
+        if source_type == "tdlib-directory"
+        else "tdata_structure_detected"
+    )
     return ImportValidationItem(
         status="valid" if source_type == "tdlib-directory" else "unsupported",
-        validation_code=code if source_type == "tdlib-directory" else "unsupported_source_requires_manual_reauth",
+        validation_code=code
+        if source_type == "tdlib-directory"
+        else "unsupported_source_requires_manual_reauth",
         validation_message="Archive structure is safe for dry-run validation; manual Telegram verification remains required.",
         risk_level="medium",
-        source_ref_hash=_hash_source("\n".join(sorted(info.filename for info in infos)).encode("utf-8")),
+        source_ref_hash=_hash_source(
+            "\n".join(sorted(info.filename for info in infos)).encode("utf-8")
+        ),
     )
 
 
@@ -114,7 +135,9 @@ def _zip_info_is_symlink(info: zipfile.ZipInfo) -> bool:
 
 
 def _unsupported(code: str, message: str) -> ImportValidationItem:
-    return ImportValidationItem(status="unsupported", validation_code=code, validation_message=message, risk_level="high")
+    return ImportValidationItem(
+        status="unsupported", validation_code=code, validation_message=message, risk_level="high"
+    )
 
 
 def _hash_source(value: bytes) -> str:

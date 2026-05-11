@@ -93,12 +93,26 @@ def _check_endpoint(
     try:
         status_code, payload = fetcher(url, 5.0)
     except Exception as exc:
-        report.add(name, "FAIL", f"{path} endpoint request failed", url=url, error=type(exc).__name__)
+        report.add(
+            name, "FAIL", f"{path} endpoint request failed", url=url, error=type(exc).__name__
+        )
         return
     if status_code != 200:
-        report.add(name, "FAIL", f"{path} endpoint returned non-200 status", url=url, status_code=status_code)
+        report.add(
+            name,
+            "FAIL",
+            f"{path} endpoint returned non-200 status",
+            url=url,
+            status_code=status_code,
+        )
         return
-    report.add(name, "PASS", f"{path} endpoint returned 200", url=url, payload_status=_payload_status(payload))
+    report.add(
+        name,
+        "PASS",
+        f"{path} endpoint returned 200",
+        url=url,
+        payload_status=_payload_status(payload),
+    )
 
 
 def _http_get_json(url: str, timeout: float) -> tuple[int, Any]:
@@ -127,11 +141,23 @@ def _extend(report: CheckReport, child) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Safe staging backend/worker smoke orchestrator.")
-    parser.add_argument("--base-url", help="Staging backend base URL for /health and /ready checks.")
-    parser.add_argument("--env-file", type=Path, help="Ignored local env file to overlay for smoke checks.")
-    parser.add_argument("--include-storage", action="store_true", help="Include object storage dry-run/write check.")
-    parser.add_argument("--allow-write-cloud", action="store_true", help="Allow object storage write/read/delete smoke.")
-    parser.add_argument("--allow-production", action="store_true", help="Allow production-looking smoke targets.")
+    parser.add_argument(
+        "--base-url", help="Staging backend base URL for /health and /ready checks."
+    )
+    parser.add_argument(
+        "--env-file", type=Path, help="Ignored local env file to overlay for smoke checks."
+    )
+    parser.add_argument(
+        "--include-storage", action="store_true", help="Include object storage dry-run/write check."
+    )
+    parser.add_argument(
+        "--allow-write-cloud",
+        action="store_true",
+        help="Allow object storage write/read/delete smoke.",
+    )
+    parser.add_argument(
+        "--allow-production", action="store_true", help="Allow production-looking smoke targets."
+    )
     add_common_json_arg(parser)
     args = parser.parse_args()
     env = load_env_file(args.env_file) if args.env_file else None

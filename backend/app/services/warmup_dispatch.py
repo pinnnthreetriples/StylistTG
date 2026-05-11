@@ -13,6 +13,7 @@ DRY_RUN сессии по-прежнему ведёт `warmup_worker.process_due
 - advanced: network + write `p2p_send` к eligible-peer'у (текст —
   `WarmupTextProvider.compose_p2p_message`).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -84,9 +85,7 @@ def process_due_warmup_dispatches(
     provider = text_provider if text_provider is not None else build_warmup_text_provider()
 
     query = select(WarmupSession).where(
-        WarmupSession.status.in_(
-            [WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]
-        ),
+        WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]),
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
         (WarmupSession.next_micro_session_at.is_(None))
         | (WarmupSession.next_micro_session_at <= timestamp),
@@ -472,9 +471,7 @@ def _resolve_action_context(
             return _ActionContextResolution(
                 context=base, skip_reason="no_target_channels_configured"
             )
-        return _ActionContextResolution(
-            context={**base, "chat_target": chat_target}
-        )
+        return _ActionContextResolution(context={**base, "chat_target": chat_target})
     if action_type == "p2p_send":
         peer = select_eligible_peer(
             session,
@@ -483,9 +480,7 @@ def _resolve_action_context(
             now=now,
         )
         if peer is None:
-            return _ActionContextResolution(
-                context=base, skip_reason="no_eligible_trusted_peers"
-            )
+            return _ActionContextResolution(context=base, skip_reason="no_eligible_trusted_peers")
         text_seed = _derive_text_seed(warmup_session, action_type)
         if not text_provider.is_available():
             return _ActionContextResolution(
@@ -516,9 +511,7 @@ def _resolve_action_context(
     return _ActionContextResolution(context=base)
 
 
-def _select_chat_target(
-    warmup_session: WarmupSession, *, rng: random.Random
-) -> str | None:
+def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) -> str | None:
     """Pick одно публичное channel-username из strategy.target_channels_json."""
     targets = warmup_session.strategy.target_channels_json or []
     candidates: list[str] = []
@@ -748,15 +741,11 @@ def _next_quiet_hours_end(moment: datetime, timezone_name: str | None) -> dateti
     tz = _resolve_timezone(timezone_name)
     local_now = moment.astimezone(tz)
     end_hour = settings.warmup_quiet_hours_local_end
-    candidate_local = local_now.replace(
-        hour=end_hour, minute=0, second=0, microsecond=0
-    )
+    candidate_local = local_now.replace(hour=end_hour, minute=0, second=0, microsecond=0)
     if candidate_local <= local_now:
         candidate_local = candidate_local + timedelta(days=1)
     # Combine with date+end_hour ensures tz dst safety for our purposes
-    candidate_local = datetime.combine(
-        candidate_local.date(), time(hour=end_hour), tzinfo=tz
-    )
+    candidate_local = datetime.combine(candidate_local.date(), time(hour=end_hour), tzinfo=tz)
     if candidate_local <= local_now:
         candidate_local = candidate_local + timedelta(days=1)
     return candidate_local.astimezone(UTC)

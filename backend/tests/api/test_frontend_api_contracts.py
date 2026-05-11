@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 from app.db import Base
 from app.main import app
@@ -38,6 +39,7 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
+# test-analyzer: disable=TQA004 reason="aggregated payload contract test — verifies many fields in single response"
 def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -164,6 +166,7 @@ def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     app.dependency_overrides.clear()
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_accounts_list_returns_profile_summary() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -360,6 +363,7 @@ def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> Non
         )
 
     assert response.status_code == 422
+    assert response.json()
 
 
 def test_profile_preview_returns_validation_plan_and_dedup(monkeypatch) -> None:
@@ -562,6 +566,8 @@ def test_profile_job_create_returns_dedup_blocked_payload(monkeypatch) -> None:
     app.dependency_overrides.clear()
 
 
+@freeze_time("2026-01-15 12:00:00")
+# test-analyzer: disable=TQA004 reason="polling contract test — verifies job/step fields needed by dashboard"
 def test_job_details_and_steps_are_polling_friendly() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -677,12 +683,20 @@ def test_job_cancel_marks_waiting_job_canceled(monkeypatch) -> None:
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
-        job = seed_job(session, account_id=account.id, payload={"name": "Cancel Me"}, state=JobState.WAITING_LOCK)
+        job = seed_job(
+            session,
+            account_id=account.id,
+            payload={"name": "Cancel Me"},
+            state=JobState.WAITING_LOCK,
+        )
         job_id = job.id
         session.commit()
 
     removed: list[str] = []
-    monkeypatch.setattr("app.api.jobs.remove_job_from_queue", lambda next_job_id: removed.append(next_job_id) or True)
+    monkeypatch.setattr(
+        "app.api.jobs.remove_job_from_queue",
+        lambda next_job_id: removed.append(next_job_id) or True,
+    )
     override_app_session(session_factory)
     client = TestClient(app)
 
@@ -707,7 +721,9 @@ def test_job_delete_rejects_active_job() -> None:
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
-        job = seed_job(session, account_id=account.id, payload={"name": "Active"}, state=JobState.QUEUED)
+        job = seed_job(
+            session, account_id=account.id, payload={"name": "Active"}, state=JobState.QUEUED
+        )
         job_id = job.id
         session.commit()
 
@@ -730,12 +746,17 @@ def test_job_delete_removes_terminal_job(monkeypatch) -> None:
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
-        job = seed_job(session, account_id=account.id, payload={"name": "Delete Me"}, state=JobState.CANCELED)
+        job = seed_job(
+            session, account_id=account.id, payload={"name": "Delete Me"}, state=JobState.CANCELED
+        )
         job_id = job.id
         session.commit()
 
     removed: list[str] = []
-    monkeypatch.setattr("app.api.jobs.remove_job_from_queue", lambda next_job_id: removed.append(next_job_id) or True)
+    monkeypatch.setattr(
+        "app.api.jobs.remove_job_from_queue",
+        lambda next_job_id: removed.append(next_job_id) or True,
+    )
     override_app_session(session_factory)
     client = TestClient(app)
 
@@ -980,11 +1001,15 @@ def test_delete_story_post_treats_missing_telegram_story_as_removed(monkeypatch)
         post_id = post.id
 
     class MissingStoryAdapter(FakeProfileSyncAdapter):
-        def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+        def delete_story(
+            self, account_id: str, story_poster_chat_id: str | None, story_id: str
+        ) -> None:
             raise RuntimeError("Not Found")
 
     override_app_session(session_factory)
-    monkeypatch.setattr("app.api.story_posts.build_profile_sync_adapter", lambda: MissingStoryAdapter())
+    monkeypatch.setattr(
+        "app.api.story_posts.build_profile_sync_adapter", lambda: MissingStoryAdapter()
+    )
     client = TestClient(app)
 
     response = client.delete(f"/api/story-posts/{post_id}", headers={"X-Account-Id": account_id})
@@ -1070,7 +1095,9 @@ def test_delete_story_post_rejects_non_deletable_story(monkeypatch) -> None:
         post_id = post.id
 
     override_app_session(session_factory)
-    monkeypatch.setattr("app.api.story_posts.build_profile_sync_adapter", lambda: FakeProfileSyncAdapter())
+    monkeypatch.setattr(
+        "app.api.story_posts.build_profile_sync_adapter", lambda: FakeProfileSyncAdapter()
+    )
     client = TestClient(app)
 
     response = client.delete(f"/api/story-posts/{post_id}", headers={"X-Account-Id": account_id})

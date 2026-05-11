@@ -18,11 +18,18 @@ def require_billing_active(session: Session, workspace_id: str) -> None:
         raise WorkspaceLimitError("billing required")
 
 
-def check_workspace_limit(session: Session, workspace_id: str, metric: str, requested: int = 1) -> None:
+def check_workspace_limit(
+    session: Session, workspace_id: str, metric: str, requested: int = 1
+) -> None:
     require_billing_active(session, workspace_id)
     plan = _plan(session, workspace_id)
     if metric == "accounts":
-        current = session.scalar(select(func.count(Account.id)).where(Account.workspace_id == workspace_id)) or 0
+        current = (
+            session.scalar(
+                select(func.count(Account.id)).where(Account.workspace_id == workspace_id)
+            )
+            or 0
+        )
         limit = plan.max_accounts
     elif metric == "batch_size":
         current = 0
@@ -36,7 +43,9 @@ def check_workspace_limit(session: Session, workspace_id: str, metric: str, requ
         raise WorkspaceLimitError(f"{metric} limit exceeded")
 
 
-def increment_usage(session: Session, workspace_id: str, metric: str, value: int = 1) -> UsageCounter:
+def increment_usage(
+    session: Session, workspace_id: str, metric: str, value: int = 1
+) -> UsageCounter:
     start = datetime.combine(utc_now().date(), time.min, tzinfo=UTC)
     end = datetime.combine(utc_now().date(), time.max, tzinfo=UTC)
     counter = (
@@ -45,7 +54,9 @@ def increment_usage(session: Session, workspace_id: str, metric: str, value: int
         .one_or_none()
     )
     if counter is None:
-        counter = UsageCounter(workspace_id=workspace_id, period_start=start, period_end=end, metric=metric, value=0)
+        counter = UsageCounter(
+            workspace_id=workspace_id, period_start=start, period_end=end, metric=metric, value=0
+        )
         session.add(counter)
     counter.value += value
     session.flush()
@@ -61,6 +72,11 @@ def _plan(session: Session, workspace_id: str) -> WorkspacePlan:
 
 def _jobs_created_today(session: Session, workspace_id: str) -> int:
     start = datetime.combine(utc_now().date(), time.min, tzinfo=UTC)
-    return session.scalar(
-        select(func.count(Job.id)).where(Job.workspace_id == workspace_id, Job.queued_at >= start)
-    ) or 0
+    return (
+        session.scalar(
+            select(func.count(Job.id)).where(
+                Job.workspace_id == workspace_id, Job.queued_at >= start
+            )
+        )
+        or 0
+    )

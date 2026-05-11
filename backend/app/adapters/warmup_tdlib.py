@@ -16,6 +16,7 @@ Lifecycle: `RealWarmupTdlibAdapter` поддерживает кэш TDLib-кли
 dispatch tick. Диспетчер обязан вызвать `adapter.close()` в `finally` —
 поэтому метод присутствует на всех реализациях (no-op для Mock/Unavailable).
 """
+
 from __future__ import annotations
 
 import random
@@ -455,9 +456,7 @@ class RealWarmupTdlibAdapter:
     # -- TDLib actions -------------------------------------------------------
 
     def _action_get_me(self, client: TdlibClient, action_type: str) -> WarmupActionResult:
-        response = client.send_query(
-            {"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds
-        )
+        response = client.send_query({"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds)
         if response.get("@type") == "error":
             return _classify_tdlib_error(response, action_type)
         return WarmupActionResult(
@@ -470,9 +469,7 @@ class RealWarmupTdlibAdapter:
             },
         )
 
-    def _action_ping_proxy(
-        self, action_type: str, context: dict[str, Any]
-    ) -> WarmupActionResult:
+    def _action_ping_proxy(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
         # ensure_ready_client уже подтвердил auth+proxy → факт reachability
         # эквивалентен READY. Не делаем дополнительных TDLib-вызовов.
         return WarmupActionResult(
@@ -697,9 +694,7 @@ def build_warmup_tdlib_adapter(config: Settings = settings) -> WarmupTdlibAdapte
     if not active_modes:
         return UnavailableWarmupTdlibAdapter("warmup_live_levels_all_disabled")
     try:
-        factory: TdlibClientFactory = RealTdJsonClientFactory(
-            config.tdlib_shared_library_path
-        )
+        factory: TdlibClientFactory = RealTdJsonClientFactory(config.tdlib_shared_library_path)
     except OSError as exc:
         return UnavailableWarmupTdlibAdapter(f"tdlib_load_failed: {exc}")
     return RealWarmupTdlibAdapter(

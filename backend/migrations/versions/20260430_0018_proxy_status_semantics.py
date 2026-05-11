@@ -11,9 +11,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("account_proxy", sa.Column("last_check_scope", sa.String(length=32), nullable=True))
-    op.add_column("account_proxy", sa.Column("tdlib_verified_at", sa.DateTime(timezone=True), nullable=True))
-    op.add_column("account_proxy", sa.Column("tdlib_last_error_code", sa.String(length=128), nullable=True))
+    op.add_column(
+        "account_proxy", sa.Column("last_check_scope", sa.String(length=32), nullable=True)
+    )
+    op.add_column(
+        "account_proxy", sa.Column("tdlib_verified_at", sa.DateTime(timezone=True), nullable=True)
+    )
+    op.add_column(
+        "account_proxy", sa.Column("tdlib_last_error_code", sa.String(length=128), nullable=True)
+    )
     op.add_column("account_proxy", sa.Column("tdlib_last_error_message", sa.Text(), nullable=True))
 
 

@@ -18,7 +18,11 @@ from app.services.accounts import get_account
 from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
 from app.services.asset_storage import materialize_asset_to_local_path
-from app.services.account_safety import build_account_safety_for_account, safety_preview_fields, safety_preview_fields_with_policy
+from app.services.account_safety import (
+    build_account_safety_for_account,
+    safety_preview_fields,
+    safety_preview_fields_with_policy,
+)
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.limits import check_workspace_limit
 from app.services.jobs import (
@@ -114,7 +118,8 @@ def create_account_update_job(
     workspace_id: str | None = None,
 ) -> Job:
     account = validate_account_for_job(
-        session, account_id,
+        session,
+        account_id,
         workspace_id=workspace_id,
         execution_adapter=execution_adapter,
     )
@@ -169,7 +174,8 @@ def create_account_update_job(
         queued_at=utc_now() if not duplicate else None,
     )
     return finalize_job_creation(
-        session, job,
+        session,
+        job,
         requested_by_user_id=requested_by_user_id,
         request_id=request_id,
         log_event_name="account_update_job_created",
@@ -244,7 +250,9 @@ def _validate_story_assets(
         asset = get_asset(session, story.get("asset_id"), workspace_id=workspace_id)
         if asset is None:
             raise ValueError("story asset not found")
-        expected_kind = AssetKind.STORY_IMAGE if story.get("action") == "post_image" else AssetKind.STORY_VIDEO
+        expected_kind = (
+            AssetKind.STORY_IMAGE if story.get("action") == "post_image" else AssetKind.STORY_VIDEO
+        )
         if asset.kind != expected_kind:
             raise ValueError(f"asset kind is not {expected_kind}")
         if asset.status != AssetStatus.NORMALIZED:
@@ -276,8 +284,6 @@ def _unique_strings(values: list[str]) -> list[str]:
     return result
 
 
-
-
 def _preview_blocking_safety_errors(blockers: list[str]) -> list[str]:
     capability_only_blockers = {"stories_disabled", "stories_live_disabled", "stories_mock_mode"}
     return [blocker for blocker in blockers if blocker not in capability_only_blockers]
@@ -304,12 +310,18 @@ def _changed_profile_step_types(
 
     if "name" in requested_profile_fields:
         current_name = " ".join(
-            part for part in [profile_state.first_name if profile_state else None, profile_state.last_name if profile_state else None]
+            part
+            for part in [
+                profile_state.first_name if profile_state else None,
+                profile_state.last_name if profile_state else None,
+            ]
             if part
         )
         if (profile.get("name") or "") != current_name:
             steps.add("set_name")
-    if "bio" in requested_profile_fields and (profile.get("bio") or "") != ((profile_state.bio if profile_state else None) or ""):
+    if "bio" in requested_profile_fields and (profile.get("bio") or "") != (
+        (profile_state.bio if profile_state else None) or ""
+    ):
         steps.add("set_bio")
     if "username" in requested_profile_fields and (profile.get("username") or "") != (
         (profile_state.username if profile_state else None) or ""

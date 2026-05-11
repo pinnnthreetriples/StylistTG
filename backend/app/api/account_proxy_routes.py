@@ -9,8 +9,17 @@ from app.schemas import (
     AccountProxySummaryRead,
     AccountProxyUpsert,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
-from app.services.proxy_accounts import delete_account_proxy, get_account_proxy, proxy_summary, upsert_account_proxy
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
+from app.services.proxy_accounts import (
+    delete_account_proxy,
+    get_account_proxy,
+    proxy_summary,
+    upsert_account_proxy,
+)
 from app.services.proxy_checks import check_account_proxy
 from app.services.warmup import warmup_operation_policy
 
@@ -51,7 +60,9 @@ def put_account_proxy(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     require_account_in_workspace(session, account_id, auth)
-    _raise_if_warmup_locked(session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change")
+    _raise_if_warmup_locked(
+        session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change"
+    )
     try:
         return upsert_account_proxy(
             session,
@@ -74,7 +85,9 @@ def delete_account_proxy_endpoint(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     require_account_in_workspace(session, account_id, auth)
-    _raise_if_warmup_locked(session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change")
+    _raise_if_warmup_locked(
+        session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change"
+    )
     try:
         delete_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
@@ -119,7 +132,9 @@ def _proxy_error(exc: ValueError) -> AppError:
     )
 
 
-def _raise_if_warmup_locked(session: Session, *, account_id: str, workspace_id: str, operation: str) -> None:
+def _raise_if_warmup_locked(
+    session: Session, *, account_id: str, workspace_id: str, operation: str
+) -> None:
     policy = warmup_operation_policy(
         session,
         account_id=account_id,

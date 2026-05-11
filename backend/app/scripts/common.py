@@ -102,7 +102,9 @@ def render_report(report: CheckReport, *, json_output: bool) -> str:
         return json.dumps(payload, ensure_ascii=False, indent=2)
     lines = [f"{payload['name']}: {payload['status']} ({payload['duration_seconds']}s)"]
     for item in report.results:
-        details = " ".join(f"{key}={redact_value(key, value)}" for key, value in item.details.items())
+        details = " ".join(
+            f"{key}={redact_value(key, value)}" for key, value in item.details.items()
+        )
         suffix = f" [{details}]" if details else ""
         lines.append(f"{item.status:4} {item.name}: {item.message}{suffix}")
     return "\n".join(lines)
@@ -123,10 +125,14 @@ def is_cloud_env(env: dict[str, str] | None = None) -> bool:
     return app_env in {"staging", "production"} or db_mode == "neon"
 
 
-def require_not_production(report: CheckReport, *, allow_production: bool, env: dict[str, str] | None = None) -> bool:
+def require_not_production(
+    report: CheckReport, *, allow_production: bool, env: dict[str, str] | None = None
+) -> bool:
     app_env = env_value("APP_ENV", env) or "local"
     if app_env == "production" and not allow_production:
-        report.add("production_guard", "FAIL", "Refusing production smoke without --allow-production")
+        report.add(
+            "production_guard", "FAIL", "Refusing production smoke without --allow-production"
+        )
         return False
     return True
 
@@ -153,4 +159,3 @@ def main_guard(fn) -> None:
     except KeyboardInterrupt:
         print("Interrupted", file=sys.stderr)
         raise SystemExit(130) from None
-

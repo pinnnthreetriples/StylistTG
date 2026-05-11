@@ -23,7 +23,9 @@ def upgrade() -> None:
         sa.Column("media_kind", sa.String(length=32), nullable=False),
         sa.Column("asset_id", UUID_STRING, nullable=True),
         sa.Column("caption", sa.Text(), nullable=True),
-        sa.Column("privacy_preset", sa.String(length=64), nullable=False, server_default="contacts"),
+        sa.Column(
+            "privacy_preset", sa.String(length=64), nullable=False, server_default="contacts"
+        ),
         sa.Column("active_period_seconds", sa.Integer(), nullable=False, server_default="86400"),
         sa.Column("protect_content", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("status", sa.String(length=64), nullable=False, server_default="posted"),
@@ -34,7 +36,11 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_account_story_post_account_id_created_at", "account_story_post", ["account_id", "created_at"])
+    op.create_index(
+        "ix_account_story_post_account_id_created_at",
+        "account_story_post",
+        ["account_id", "created_at"],
+    )
 
 
 def downgrade() -> None:

@@ -1,0 +1,69 @@
+# pre-commit hooks for StylistTG.
+#
+# Quick install (one-time per clone):
+#   pip install pre-commit
+#   pre-commit install                   # installs the pre-commit hook
+#   pre-commit install --hook-type pre-push   # installs the pre-push gate
+#
+# The pre-commit stage runs only cheap formatters/validators (ruff + file hygiene).
+# The full quality gate (pytest, coverage, pyright, analyzer, pip-audit) runs on
+# pre-push via `backend/scripts/check.py`. Skip with `git push --no-verify` ONLY for
+# emergencies and document why in the next commit.
+#
+# Run all hooks manually:
+#   pre-commit run --all-files                 # pre-commit hooks only
+#   pre-commit run --all-files --hook-stage pre-push  # full gate
+#
+fail_fast: false
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  # -------------------------------------------------------------------------
+  # Built-in hygiene hooks (cheap, run on every commit).
+  # -------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.svg$
+      - id: end-of-file-fixer
+        exclude: \.svg$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: ^(\.vscode/|.*tsconfig.*\.json$)  # may have //-comments
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: \.(ps1|cmd|bat)$  # PowerShell/cmd scripts must keep CRLF on Windows
+
+  # -------------------------------------------------------------------------
+  # Ruff: fast lint + format check on staged Python files.
+  # -------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  # -------------------------------------------------------------------------
+  # Pre-push: full quality gate (slow, but blocks bad pushes).
+  # -------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: backend-full-gate
+        name: backend full quality gate (pytest+coverage+analyzer+pyright+pip-audit)
+        language: system
+        entry: python backend/scripts/check.py
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+        verbose: true

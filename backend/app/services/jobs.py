@@ -8,7 +8,16 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.logging_utils import log_event
-from app.models import Account, AccountState, AssetKind, AssetStatus, Job, JobState, TERMINAL_JOB_STATES, utc_now
+from app.models import (
+    Account,
+    AccountState,
+    AssetKind,
+    AssetStatus,
+    Job,
+    JobState,
+    TERMINAL_JOB_STATES,
+    utc_now,
+)
 from app.services.audit_logs import log_audit_event
 from app.services.limits import check_workspace_limit, increment_usage
 from app.services.accounts import get_account
@@ -99,7 +108,8 @@ def create_profile_job(
     workspace_id: str | None = None,
 ) -> Job:
     account = validate_account_for_job(
-        session, account_id,
+        session,
+        account_id,
         workspace_id=workspace_id,
         execution_adapter=execution_adapter,
     )
@@ -126,7 +136,8 @@ def create_profile_job(
         queued_at=utc_now() if not duplicate else None,
     )
     return finalize_job_creation(
-        session, job,
+        session,
+        job,
         requested_by_user_id=requested_by_user_id,
         request_id=request_id,
     )
@@ -188,7 +199,9 @@ def list_account_jobs(
     return list(session.execute(statement).scalars().all())
 
 
-def get_latest_account_job(session: Session, account_id: str, *, workspace_id: str | None = None) -> Job | None:
+def get_latest_account_job(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> Job | None:
     jobs = list_account_jobs(session, account_id, limit=1, workspace_id=workspace_id)
     return jobs[0] if jobs else None
 
@@ -206,7 +219,9 @@ def build_profile_job_preview(
 
     blocking_errors: list[str] = []
     warnings: list[str] = []
-    normalized_payload = normalize_profile_payload(session, payload, workspace_id=account.workspace_id)
+    normalized_payload = normalize_profile_payload(
+        session, payload, workspace_id=account.workspace_id
+    )
     intent_hash = compute_execution_intent_hash(account_id, normalized_payload)
     duplicate = find_active_duplicate_job(session, account_id, intent_hash)
     plan = build_profile_plan(normalized_payload)
@@ -233,10 +248,15 @@ def build_profile_job_preview(
 
 def build_job_detail(job: Job) -> dict[str, Any]:
     plan_steps = cast(list[dict[str, Any]], job.plan_json_snapshot.get("steps", []))
-    counts = {status: 0 for status in ("planned", "started", "succeeded", "failed", "uncertain", "skipped")}
+    counts = {
+        status: 0
+        for status in ("planned", "started", "succeeded", "failed", "uncertain", "skipped")
+    }
     for step_result in job.step_results:
         counts[step_result.status] += 1
-    counts["planned"] = max(len(plan_steps) - sum(counts[status] for status in counts if status != "planned"), 0)
+    counts["planned"] = max(
+        len(plan_steps) - sum(counts[status] for status in counts if status != "planned"), 0
+    )
     return {
         "job_id": job.id,
         "job_state": job.job_state,
@@ -301,14 +321,16 @@ def is_profile_job_cooldown_active(
     if config.profile_job_cooldown_seconds <= 0:
         return False
     cooldown_started_at = utc_now() - timedelta(seconds=config.profile_job_cooldown_seconds)
-    recent_success = session.execute(
-        select(Job.id)
-        .where(Job.account_id == account_id)
-        .where(Job.job_state.in_([JobState.COMPLETED, JobState.PARTIALLY_COMPLETED]))
-        .where(Job.finished_at.is_not(None))
-        .where(Job.finished_at >= cooldown_started_at)
-        .order_by(Job.finished_at.desc())
-    ).scalars().first()
+    recent_success = (
+        session.execute(
+            select(Job.id)
+            .where(Job.account_id == account_id)
+            .where(Job.job_state.in_([JobState.COMPLETED, JobState.PARTIALLY_COMPLETED]))
+            .where(Job.finished_at.is_not(None))
+            .where(Job.finished_at >= cooldown_started_at)
+            .order_by(Job.finished_at.desc())
+        )
+        .scalars()
+        .first()
+    )
     return recent_success is not None
-
-

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
+import logging
 import os
 from pathlib import Path
+import re
 
 import pytest
 from sqlalchemy import create_engine
@@ -15,6 +17,8 @@ os.environ.setdefault("STORIES_TDLIB_LIVE_ENABLED", "false")
 os.environ.setdefault("QUEUE_INLINE_FALLBACK_ENABLED", "false")
 os.environ.setdefault("TDLIB_API_ID", "0")
 os.environ.setdefault("TDLIB_API_HASH", "")
+
+from fastapi.testclient import TestClient
 
 from app.adapters.tdlib_auth import TdlibAuthResult, TdlibAuthStatus
 from app.db import Base, get_session
@@ -28,6 +32,103 @@ from app.models import (
     JobState,
 )
 from app.services.plan import build_profile_plan, compute_execution_intent_hash
+
+
+# ---------------------------------------------------------------------------
+# PII / secret leak detection (autouse)
+# ---------------------------------------------------------------------------
+#
+# Any test that emits a high-confidence sensitive value into the log stream
+# fails fast. Opt out for tests that verify redaction by intentionally feeding
+# raw secrets through:
+#
+#     @pytest.mark.allow_pii_in_logs
+#     def test_phone_is_redacted_in_journal(...): ...
+#
+# Patterns are deliberately CONSERVATIVE — only matches that are essentially
+# always a real leak in production. False positives here should be addressed
+# at the source (better redaction), not by widening the allow-list.
+
+_SENSITIVE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    # JWT / signed JWS: three dot-separated base64url segments where the first
+    # two start with "eyJ" (base64 of '{') — the shape is highly specific.
+    (
+        re.compile(
+            r"\beyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+",
+        ),
+        "JWT token",
+    ),
+    # TDLib api_hash dumped via dict/repr/log: 32 hex chars after the field name.
+    # We do NOT use \b at the start because the field is often suffixed onto an
+    # UPPERCASE env-var prefix like TDLIB_API_HASH=... where '_' is a word char
+    # and so no boundary exists. The literal "api[_-]?hash" anchor is enough.
+    (
+        re.compile(
+            r"(?i)api[_-]?hash[\"']?\s*[:=]\s*[\"']?[a-f0-9]{32}",
+        ),
+        "TDLib api_hash",
+    ),
+    # TDLib session string export: long base64-ish payload after the field name.
+    (
+        re.compile(
+            r"(?i)session[_-]?string[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9+/=]{40,}",
+        ),
+        "TDLib session_string",
+    ),
+    # Authorization header with a real bearer token (not '***').
+    (re.compile(r"\bAuthorization:\s*Bearer\s+[A-Za-z0-9_\-\.]{20,}"), "Bearer header"),
+    # Generic password/secret/private_key field with a real-looking value.
+    # Negative lookahead excludes common redaction placeholders.
+    (
+        re.compile(
+            r"(?i)\b(password|secret|private[_-]?key)[\"']?\s*[:=]\s*[\"']?"
+            r"(?!(\*+|\[REDACTED\]|<redacted>|None|null|\"\"|''))[A-Za-z0-9_\-+/=]{8,}",
+        ),
+        "credential field",
+    ),
+)
+
+
+@pytest.fixture(autouse=True)
+def _pii_leak_guard(
+    request: pytest.FixtureRequest,
+    caplog: pytest.LogCaptureFixture,
+) -> Iterator[None]:
+    """Fail tests that leak credentials/PII into the log stream.
+
+    Captures records at DEBUG so any logger.debug(api_hash=...) is caught too.
+    Skip with ``@pytest.mark.allow_pii_in_logs`` for tests that verify
+    redaction by feeding real secrets through the SUT.
+    """
+    if request.node.get_closest_marker("allow_pii_in_logs") is not None:
+        yield
+        return
+
+    with caplog.at_level(logging.DEBUG):
+        yield
+
+    leaks: list[str] = []
+    for record in caplog.records:
+        try:
+            message = record.getMessage()
+        except (TypeError, ValueError):
+            # Malformed log call (positional args don't match format string) —
+            # not our concern here.
+            continue
+        for pattern, label in _SENSITIVE_PATTERNS:
+            if pattern.search(message):
+                # Truncate evidence; never re-print full secret in the error.
+                snippet = message[:80] + ("…" if len(message) > 80 else "")
+                leaks.append(f"[{label}] {record.name}@{record.levelname}: {snippet}")
+                break
+
+    if leaks:
+        pytest.fail(
+            "Sensitive value leaked into log stream "
+            "(add @pytest.mark.allow_pii_in_logs only if testing redaction):\n  - "
+            + "\n  - ".join(leaks),
+            pytrace=False,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +148,20 @@ def db_session() -> Iterator[Session]:
     session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
     with session_factory() as session:
         yield session
+
+
+@pytest.fixture()
+def app_client(db_session: Session) -> Iterator[TestClient]:
+    """TestClient with dependency_overrides cleaned up via try/finally."""
+
+    def _override():
+        yield db_session
+
+    app.dependency_overrides[get_session] = _override
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture()
@@ -125,10 +240,14 @@ class FakeProfileSyncAdapter:
             "diagnostics": {},
         }
 
-    def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def delete_story(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         self.calls.append(f"delete:{account_id}:{story_poster_chat_id}:{story_id}")
 
-    def remove_story_from_profile(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def remove_story_from_profile(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         self.calls.append(f"unpost:{account_id}:{story_poster_chat_id}:{story_id}")
 
 
@@ -217,7 +336,9 @@ def seed_audio_asset(session: Session, *, asset_id: str = "audio-1") -> Asset:
     return asset
 
 
-def seed_story_asset(session: Session, *, asset_id: str = "story-1", kind: AssetKind = AssetKind.STORY_IMAGE) -> Asset:
+def seed_story_asset(
+    session: Session, *, asset_id: str = "story-1", kind: AssetKind = AssetKind.STORY_IMAGE
+) -> Asset:
     asset = Asset(
         id=asset_id,
         kind=kind,

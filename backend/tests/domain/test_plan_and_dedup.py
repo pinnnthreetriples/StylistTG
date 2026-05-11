@@ -68,7 +68,10 @@ def test_duplicate_active_profile_job_is_dedup_blocked(db_session) -> None:
     assert first.job_state == JobState.QUEUED
     assert duplicate.job_state == JobState.DEDUP_BLOCKED
     assert duplicate.dedup_blocked_by_job_id == first.id
-    assert find_active_duplicate_job(db_session, account.id, first.execution_intent_hash).id == first.id
+    assert (
+        find_active_duplicate_job(db_session, account.id, first.execution_intent_hash).id
+        == first.id
+    )
 
 
 def test_repeated_duplicate_profile_jobs_do_not_hit_unique_constraint(db_session) -> None:
@@ -120,7 +123,9 @@ def test_same_profile_intent_can_be_created_after_previous_job_is_terminal(db_se
     assert second.job_state == JobState.QUEUED
 
 
-def test_same_profile_intent_can_be_created_after_previous_job_is_partially_completed(db_session) -> None:
+def test_same_profile_intent_can_be_created_after_previous_job_is_partially_completed(
+    db_session,
+) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     payload = {

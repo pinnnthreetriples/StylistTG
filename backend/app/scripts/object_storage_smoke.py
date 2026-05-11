@@ -32,10 +32,14 @@ def run_object_storage_smoke(
     app_env = env_value("APP_ENV", env) or "local"
     bucket = env_value("STORAGE_S3_BUCKET", env)
     if looks_production(bucket) and app_env != "production":
-        report.add("bucket_guard", "FAIL", "Production-looking bucket outside production", bucket=bucket)
+        report.add(
+            "bucket_guard", "FAIL", "Production-looking bucket outside production", bucket=bucket
+        )
         return report
     if not allow_write_cloud:
-        report.add("dry_run", "PASS", "Dry-run only; no object storage write/read/delete calls were made")
+        report.add(
+            "dry_run", "PASS", "Dry-run only; no object storage write/read/delete calls were made"
+        )
         return report
     try:
         settings = _settings_from_env(env)
@@ -46,7 +50,9 @@ def run_object_storage_smoke(
         stored = storage.save_bytes(key, content, content_type="text/plain")
         stat = storage.stat(key)
         read_back = storage.read_bytes(key)
-        signed_url = storage.get_signed_url(key, expires_seconds=settings.storage_s3_signed_url_expires_seconds)
+        signed_url = storage.get_signed_url(
+            key, expires_seconds=settings.storage_s3_signed_url_expires_seconds
+        )
         deleted = storage.delete(key)
         exists_after_delete = storage.exists(key)
     except ValidationError as exc:
@@ -59,7 +65,9 @@ def run_object_storage_smoke(
         )
         return report
     except Exception as exc:
-        report.add("object_storage_write", "FAIL", "Object storage smoke failed", error=type(exc).__name__)
+        report.add(
+            "object_storage_write", "FAIL", "Object storage smoke failed", error=type(exc).__name__
+        )
         return report
     if read_back != content or not deleted or exists_after_delete:
         report.add("object_storage_write", "FAIL", "Object storage smoke consistency check failed")
@@ -69,7 +77,12 @@ def run_object_storage_smoke(
             details["signed_url"] = signed_url
         else:
             details["signed_url"] = signed_url.split("?", 1)[0]
-        report.add("object_storage_write", "PASS", "Object storage write/read/signed-url/delete smoke passed", **details)
+        report.add(
+            "object_storage_write",
+            "PASS",
+            "Object storage write/read/signed-url/delete smoke passed",
+            **details,
+        )
     return report
 
 
@@ -108,4 +121,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main_guard(main)
-

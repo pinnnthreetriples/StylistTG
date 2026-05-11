@@ -48,6 +48,7 @@ def test_operator_token_required_for_mutating_requests(monkeypatch) -> None:
     response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
 
     assert response.status_code == 401
+    assert "detail" in response.json() or "error" in response.text
 
 
 def test_operator_token_allows_mutating_requests(monkeypatch) -> None:
@@ -77,7 +78,9 @@ def test_operator_guard_blocks_detailed_runtime_diagnostics(monkeypatch) -> None
     frontend_summary = client.get("/diagnostics/frontend-summary")
 
     assert runtime.status_code == 403
+    assert "detail" in runtime.json() or "error" in runtime.text
     assert frontend_summary.status_code == 403
+    assert "detail" in frontend_summary.json() or "error" in frontend_summary.text
 
 
 def test_worker_diagnostics_admin_response_is_safe_metadata(monkeypatch) -> None:
@@ -88,7 +91,10 @@ def test_worker_diagnostics_admin_response_is_safe_metadata(monkeypatch) -> None
     monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
     monkeypatch.setattr(settings, "tdlib_database_root", "C:/real/session/db")
     monkeypatch.setattr(settings, "tdlib_files_root", "C:/real/session/files")
-    monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: _FakeVerifier())
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: _FakeVerifier(),
+    )
     client = TestClient(app)
 
     try:
@@ -123,7 +129,10 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
         _, workspace = _seed_supabase_member(session_factory, role=role)
         override_app_session(session_factory)
         monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
-        monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: _FakeVerifier())
+        monkeypatch.setattr(
+            "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+            lambda settings: _FakeVerifier(),
+        )
         monkeypatch.setattr(
             "app.api.diagnostics.build_runtime_diagnostics",
             lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
@@ -148,12 +157,14 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
             for endpoint in endpoints:
                 response = client.get(endpoint)
                 assert response.status_code == 401
+                assert response.json()
 
                 response = client.get(
                     endpoint,
                     headers={"Authorization": "Bearer role-token", "X-Workspace-Id": workspace.id},
                 )
                 assert response.status_code == (200 if role == "admin" else 403)
+                assert response.json()
         finally:
             app.dependency_overrides.clear()
 
@@ -174,7 +185,12 @@ def _seed_supabase_member(session_factory, *, role: str) -> tuple[User, Workspac
         )
         session.add(user)
         session.flush()
-        workspace = Workspace(name=f"{role} workspace", slug=f"{role}-workspace", owner_user_id=user.id, status="active")
+        workspace = Workspace(
+            name=f"{role} workspace",
+            slug=f"{role}-workspace",
+            owner_user_id=user.id,
+            status="active",
+        )
         session.add(workspace)
         session.flush()
         session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=role))

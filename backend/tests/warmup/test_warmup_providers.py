@@ -1,4 +1,5 @@
 """Tests for pluggable warmup adapters: text provider + fraud score."""
+
 from __future__ import annotations
 
 from app.adapters.warmup_text_provider import (
@@ -59,7 +60,11 @@ def test_compose_spam_bot_reply_returns_neutral_text() -> None:
     request = TextVariationRequest(template="", seed="spam-bot-1")
     result = provider.compose_spam_bot_reply(request)
     assert result.rendered
-    assert "реклам" in result.rendered or "общаюсь" in result.rendered or "пользователь" in result.rendered
+    assert (
+        "реклам" in result.rendered
+        or "общаюсь" in result.rendered
+        or "пользователь" in result.rendered
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -73,50 +78,45 @@ def test_fraud_provider_factory_default_is_mock() -> None:
     assert provider.is_available() is True
 
 
+def _evaluate_proxy(**kwargs):
+    """Run MockFraudScoreProvider.evaluate_proxy with sane defaults for proxy host/port."""
+    defaults = {"host": "1.2.3.4", "port": 1080}
+    defaults.update(kwargs)
+    return MockFraudScoreProvider().evaluate_proxy(ProxyAssessmentInput(**defaults))
+
+
 def test_fraud_mock_ok_when_residential_and_geo_matches() -> None:
-    provider = MockFraudScoreProvider()
-    result = provider.evaluate_proxy(
-        ProxyAssessmentInput(
-            host="1.2.3.4",
-            port=1080,
-            proxy_protocol="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
-            phone_country_code="ru",
-            expected_country_code="RU",
-        )
+    result = _evaluate_proxy(
+        proxy_protocol="socks5",
+        proxy_category=ProxyCategory.RESIDENTIAL.value,
+        phone_country_code="ru",
+        expected_country_code="RU",
     )
+
     assert result.ok is True
     assert result.verdict == "ok"
     assert result.geo_match is True
 
 
 def test_fraud_mock_warns_on_datacenter() -> None:
-    provider = MockFraudScoreProvider()
-    result = provider.evaluate_proxy(
-        ProxyAssessmentInput(
-            host="1.2.3.4",
-            port=1080,
-            proxy_protocol="http",
-            proxy_category=ProxyCategory.DATACENTER.value,
-        )
+    result = _evaluate_proxy(
+        proxy_protocol="http",
+        proxy_category=ProxyCategory.DATACENTER.value,
     )
+
     assert result.verdict == "warn"
     assert result.reason_code == "proxy_datacenter"
     assert result.ok is True  # warn не блокирует, но заметный score
 
 
 def test_fraud_mock_blocks_on_geo_mismatch() -> None:
-    provider = MockFraudScoreProvider()
-    result = provider.evaluate_proxy(
-        ProxyAssessmentInput(
-            host="1.2.3.4",
-            port=1080,
-            proxy_protocol="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
-            phone_country_code="RU",
-            expected_country_code="NL",
-        )
+    result = _evaluate_proxy(
+        proxy_protocol="socks5",
+        proxy_category=ProxyCategory.RESIDENTIAL.value,
+        phone_country_code="RU",
+        expected_country_code="NL",
     )
+
     assert result.ok is False
     assert result.verdict == "block"
     assert result.reason_code == "proxy_geo_mismatch"
@@ -124,14 +124,10 @@ def test_fraud_mock_blocks_on_geo_mismatch() -> None:
 
 
 def test_fraud_mock_unknown_when_no_geo_hints() -> None:
-    provider = MockFraudScoreProvider()
-    result = provider.evaluate_proxy(
-        ProxyAssessmentInput(
-            host="1.2.3.4",
-            port=1080,
-            proxy_protocol="socks5",
-            proxy_category=ProxyCategory.UNKNOWN.value,
-        )
+    result = _evaluate_proxy(
+        proxy_protocol="socks5",
+        proxy_category=ProxyCategory.UNKNOWN.value,
     )
+
     assert result.verdict == "ok"
     assert result.geo_match is None

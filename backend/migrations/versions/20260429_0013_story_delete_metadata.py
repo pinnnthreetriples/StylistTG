@@ -10,9 +10,14 @@ depends_on = None
 
 
 def upgrade() -> None:
-    existing = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("account_story_post")}
+    existing = {
+        column["name"] for column in sa.inspect(op.get_bind()).get_columns("account_story_post")
+    }
     if "story_poster_chat_id" not in existing:
-        op.add_column("account_story_post", sa.Column("story_poster_chat_id", sa.String(length=255), nullable=True))
+        op.add_column(
+            "account_story_post",
+            sa.Column("story_poster_chat_id", sa.String(length=255), nullable=True),
+        )
     if "can_be_deleted" not in existing:
         op.add_column(
             "account_story_post",
@@ -21,7 +26,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    existing = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("account_story_post")}
+    existing = {
+        column["name"] for column in sa.inspect(op.get_bind()).get_columns("account_story_post")
+    }
     if "can_be_deleted" in existing:
         op.drop_column("account_story_post", "can_be_deleted")
     if "story_poster_chat_id" in existing:

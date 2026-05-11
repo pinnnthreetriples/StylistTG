@@ -23,7 +23,10 @@ def test_supabase_auth_context_onboards_personal_workspace_once(db_session, monk
             return {"sub": "supabase-user-1", "email": "new@example.test", "name": "New User"}
 
     monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
-    monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: FakeVerifier())
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: FakeVerifier(),
+    )
 
     first = get_current_auth_context(DummyRequest(), db_session)
     second = get_current_auth_context(DummyRequest(), db_session)
@@ -53,7 +56,10 @@ def test_supabase_auth_context_rejects_foreign_workspace_header(db_session, monk
             return {"sub": "supabase-user-1", "email": "new@example.test"}
 
     monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
-    monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: FakeVerifier())
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: FakeVerifier(),
+    )
 
     try:
         get_current_auth_context(DummyRequest(), db_session)
@@ -79,7 +85,10 @@ def test_get_me_returns_supabase_user_and_workspace(monkeypatch) -> None:
 
     override_app_session(session_factory)
     monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
-    monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: FakeVerifier())
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: FakeVerifier(),
+    )
     try:
         response = TestClient(app).get("/api/me", headers={"Authorization": "Bearer token-1"})
     finally:

@@ -5,6 +5,7 @@
 Пока аккаунт находится в активной сессии прогрева, сторонние модули
 получают `AppError(409)` с error_code=`ACCOUNT_ISOLATED_BY_WARMUP`.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -129,11 +130,13 @@ def ensure_not_isolated(session: Session, *, account_id: str) -> None:
 def list_claims_for_workspace(
     session: Session, *, workspace_id: str
 ) -> list[IsolationClaimSnapshot]:
-    rows = session.execute(
-        select(WarmupIsolationClaim).where(
-            WarmupIsolationClaim.workspace_id == workspace_id
+    rows = (
+        session.execute(
+            select(WarmupIsolationClaim).where(WarmupIsolationClaim.workspace_id == workspace_id)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return [
         IsolationClaimSnapshot(
             account_id=row.account_id,

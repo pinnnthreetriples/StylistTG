@@ -1,4 +1,5 @@
 """Reporter classes for text, JSON, and SARIF output."""
+
 from __future__ import annotations
 
 import json
@@ -57,8 +58,7 @@ class JsonReporter:
 class SarifReporter:
     SARIF_VERSION = "2.1.0"
     SCHEMA_URI = (
-        "https://docs.oasis-open.org/sarif/sarif/v2.1.0"
-        "/errata01/os/schemas/sarif-schema-2.1.0.json"
+        "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json"
     )
 
     def report(self, issues: list[Issue]) -> str:
@@ -70,27 +70,25 @@ class SarifReporter:
                 rules_map[issue.rule_id] = {
                     "id": issue.rule_id,
                     "shortDescription": {"text": f"[{issue.rule_type}] {issue.rule_id}"},
-                    "defaultConfiguration": {
-                        "level": self._severity_to_level(issue.severity)
-                    },
+                    "defaultConfiguration": {"level": self._severity_to_level(issue.severity)},
                 }
 
-            results.append({
-                "ruleId": issue.rule_id,
-                "level": self._severity_to_level(issue.severity),
-                "message": {"text": f"{issue.message} \u2192 {issue.recommendation}"},
-                "locations": [
-                    {
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": issue.file},
-                            "region": {"startLine": issue.line},
+            results.append(
+                {
+                    "ruleId": issue.rule_id,
+                    "level": self._severity_to_level(issue.severity),
+                    "message": {"text": f"{issue.message} \u2192 {issue.recommendation}"},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": issue.file},
+                                "region": {"startLine": issue.line},
+                            }
                         }
-                    }
-                ],
-                "partialFingerprints": {
-                    "primaryLocationLineHash": issue.fingerprint()
-                },
-            })
+                    ],
+                    "partialFingerprints": {"primaryLocationLineHash": issue.fingerprint()},
+                }
+            )
 
         sarif: dict[str, Any] = {
             "$schema": self.SCHEMA_URI,
@@ -101,15 +99,11 @@ class SarifReporter:
                         "driver": {
                             "name": "test-quality-analyzer",
                             "version": "1.0.0",
-                            "informationUri": (
-                                "https://github.com/pinnnthreetriples/StylistTG"
-                            ),
+                            "informationUri": ("https://github.com/pinnnthreetriples/StylistTG"),
                             "rules": list(rules_map.values()),
                         }
                     },
-                    "automationDetails": {
-                        "id": "test-quality"
-                    },
+                    "automationDetails": {"id": "test-quality"},
                     "results": results,
                 }
             ],

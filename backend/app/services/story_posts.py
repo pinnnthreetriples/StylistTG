@@ -18,17 +18,25 @@ def create_story_post_from_result(
     step_key: str,
     story: dict[str, Any],
 ) -> AccountStoryPost:
-    existing = session.execute(
-        select(AccountStoryPost)
-        .where(AccountStoryPost.job_id == job_id)
-        .where(AccountStoryPost.step_key == step_key)
-    ).scalars().first()
+    existing = (
+        session.execute(
+            select(AccountStoryPost)
+            .where(AccountStoryPost.job_id == job_id)
+            .where(AccountStoryPost.step_key == step_key)
+        )
+        .scalars()
+        .first()
+    )
     if existing is not None:
         return existing
 
     now = utc_now()
     active_period = int(story.get("active_period_seconds") or 86400)
-    raw_tdlib_json = cast(dict[str, Any], story.get("raw_tdlib_json")) if isinstance(story.get("raw_tdlib_json"), dict) else {}
+    raw_tdlib_json = (
+        cast(dict[str, Any], story.get("raw_tdlib_json"))
+        if isinstance(story.get("raw_tdlib_json"), dict)
+        else {}
+    )
     post = AccountStoryPost(
         account_id=account_id,
         job_id=job_id,
@@ -48,7 +56,9 @@ def create_story_post_from_result(
         failure_message=story.get("failure_message"),
         raw_tdlib_json=raw_tdlib_json or story.get("raw_tdlib_json"),
         posted_at=now if story.get("status", "posted") == "posted" else None,
-        expires_at=now + timedelta(seconds=active_period) if story.get("status", "posted") == "posted" else None,
+        expires_at=now + timedelta(seconds=active_period)
+        if story.get("status", "posted") == "posted"
+        else None,
     )
     session.add(post)
     session.commit()
@@ -112,7 +122,9 @@ def delete_profile_story(
     if not post.telegram_story_id:
         raise ValueError("story post has no telegram story id")
     raw = post.raw_tdlib_json if isinstance(post.raw_tdlib_json, dict) else {}
-    can_remove_from_profile = bool(raw.get("is_posted_to_chat_page") and raw.get("can_toggle_is_posted_to_chat_page"))
+    can_remove_from_profile = bool(
+        raw.get("is_posted_to_chat_page") and raw.get("can_toggle_is_posted_to_chat_page")
+    )
     if not post.can_be_deleted and not can_remove_from_profile:
         raise ValueError("story post cannot be deleted")
 
@@ -124,7 +136,9 @@ def delete_profile_story(
                 raise
     else:
         try:
-            adapter.remove_story_from_profile(account_id, post.story_poster_chat_id, post.telegram_story_id)
+            adapter.remove_story_from_profile(
+                account_id, post.story_poster_chat_id, post.telegram_story_id
+            )
         except RuntimeError as exc:
             if "not found" not in str(exc).lower():
                 raise

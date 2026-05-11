@@ -27,24 +27,35 @@ def validate_warmup_readiness(
 ) -> WarmupValidateRead:
     checks: list[WarmupCheckItemRead] = []
 
-    account = session.execute(
-        select(Account).where(Account.id == account_id, Account.workspace_id == workspace_id)
-    ).scalars().first()
+    account = (
+        session.execute(
+            select(Account).where(Account.id == account_id, Account.workspace_id == workspace_id)
+        )
+        .scalars()
+        .first()
+    )
     checks.append(
         _check(
             key="account_exists",
             label="Аккаунт найден",
             passed=account is not None,
-            detail=None if account is not None else "Аккаунт не найден в текущем рабочем пространстве",
+            detail=None
+            if account is not None
+            else "Аккаунт не найден в текущем рабочем пространстве",
         )
     )
 
-    strategy = session.execute(
-        select(WarmupStrategy).where(
-            WarmupStrategy.id == strategy_id,
-            (WarmupStrategy.workspace_id == workspace_id) | (WarmupStrategy.workspace_id.is_(None)),
+    strategy = (
+        session.execute(
+            select(WarmupStrategy).where(
+                WarmupStrategy.id == strategy_id,
+                (WarmupStrategy.workspace_id == workspace_id)
+                | (WarmupStrategy.workspace_id.is_(None)),
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     checks.append(
         _check(
             key="strategy_exists",
@@ -67,19 +78,24 @@ def validate_warmup_readiness(
             key="runtime_ready",
             label="Аккаунт готов к выполнению",
             passed=runtime_ready,
-            detail=None if runtime_ready else "Аккаунт не готов: требуется авторизация или проверка runtime",
+            detail=None
+            if runtime_ready
+            else "Аккаунт не готов: требуется авторизация или проверка runtime",
         )
     )
 
     has_active_session = False
     if account is not None:
-        has_active_session = session.execute(
-            select(WarmupSession.id).where(
-                WarmupSession.workspace_id == workspace_id,
-                WarmupSession.account_id == account_id,
-                WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
-            )
-        ).first() is not None
+        has_active_session = (
+            session.execute(
+                select(WarmupSession.id).where(
+                    WarmupSession.workspace_id == workspace_id,
+                    WarmupSession.account_id == account_id,
+                    WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+                )
+            ).first()
+            is not None
+        )
     checks.append(
         _check(
             key="no_active_session",

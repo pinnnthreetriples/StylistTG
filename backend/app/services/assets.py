@@ -54,7 +54,9 @@ def save_profile_photo_asset(
     normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
     normalized_content = normalized_bytes.getvalue()
     normalized_key = asset_normalized_key(asset_id, "profile_photo.jpg")
-    normalized_object = storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    normalized_object = storage.save_bytes(
+        normalized_key, normalized_content, content_type="image/jpeg"
+    )
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
@@ -68,9 +70,13 @@ def save_profile_photo_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
-    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
+    _apply_storage_metadata(
+        asset, storage=storage, source=source_object, normalized=normalized_object
+    )
     session.add(asset)
-    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
+    _log_asset_uploaded(
+        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
+    )
     session.commit()
     session.refresh(asset)
     return asset
@@ -117,9 +123,13 @@ def save_profile_audio_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
-    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
+    _apply_storage_metadata(
+        asset, storage=storage, source=source_object, normalized=normalized_object
+    )
     session.add(asset)
-    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
+    _log_asset_uploaded(
+        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
+    )
     session.commit()
     session.refresh(asset)
     return asset
@@ -144,7 +154,9 @@ def save_story_image_asset(
     asset_id = new_id()
     storage = storage_service or _local_storage(storage_root)
 
-    image = _open_verified_image(content, error_message="uploaded file is not a supported story image")
+    image = _open_verified_image(
+        content, error_message="uploaded file is not a supported story image"
+    )
 
     mime = Image.MIME.get(image.format or "", "application/octet-stream")
     source_key = asset_source_key(asset_id, f"original{Path(filename).suffix or '.upload'}")
@@ -155,7 +167,9 @@ def save_story_image_asset(
     normalized.save(normalized_bytes, format="JPEG", quality=90, optimize=True)
     normalized_content = normalized_bytes.getvalue()
     normalized_key = asset_normalized_key(asset_id, "story_image.jpg")
-    normalized_object = storage.save_bytes(normalized_key, normalized_content, content_type="image/jpeg")
+    normalized_object = storage.save_bytes(
+        normalized_key, normalized_content, content_type="image/jpeg"
+    )
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
     asset = Asset(
@@ -169,9 +183,13 @@ def save_story_image_asset(
         mime="image/jpeg",
         status=AssetStatus.NORMALIZED,
     )
-    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
+    _apply_storage_metadata(
+        asset, storage=storage, source=source_object, normalized=normalized_object
+    )
     session.add(asset)
-    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
+    _log_asset_uploaded(
+        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
+    )
     session.commit()
     session.refresh(asset)
     return asset
@@ -228,7 +246,9 @@ def save_story_video_asset(
     except Exception:
         storage.delete(asset_prefix(asset_id))
         raise
-    content_hash = normalized_object.checksum or hashlib.sha256(normalized_path.read_bytes()).hexdigest()
+    content_hash = (
+        normalized_object.checksum or hashlib.sha256(normalized_path.read_bytes()).hexdigest()
+    )
 
     asset = Asset(
         id=asset_id,
@@ -241,22 +261,32 @@ def save_story_video_asset(
         mime=mime,
         status=AssetStatus.NORMALIZED,
     )
-    _apply_storage_metadata(asset, storage=storage, source=source_object, normalized=normalized_object)
+    _apply_storage_metadata(
+        asset, storage=storage, source=source_object, normalized=normalized_object
+    )
     session.add(asset)
-    _log_asset_uploaded(session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id)
+    _log_asset_uploaded(
+        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
+    )
     session.commit()
     session.refresh(asset)
     return asset
 
 
-def get_asset(session: Session, asset_id: str | None, *, workspace_id: str | None = None) -> Asset | None:
+def get_asset(
+    session: Session, asset_id: str | None, *, workspace_id: str | None = None
+) -> Asset | None:
     if not asset_id:
         return None
     if workspace_id is None:
         return session.get(Asset, asset_id)
-    return session.execute(
-        select(Asset).where(Asset.id == asset_id, Asset.workspace_id == workspace_id)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(Asset).where(Asset.id == asset_id, Asset.workspace_id == workspace_id)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def _log_asset_uploaded(

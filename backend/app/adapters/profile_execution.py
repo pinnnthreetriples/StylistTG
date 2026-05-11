@@ -7,7 +7,9 @@ from app.models import AccountState
 
 
 class ProfileExecutionAdapter(Protocol):
-    def execute(self, account_id: str, plan_json_snapshot: dict, payload_json: dict) -> Iterator[dict]:
+    def execute(
+        self, account_id: str, plan_json_snapshot: dict, payload_json: dict
+    ) -> Iterator[dict]:
         """Yield structured execution events for a profile job."""
 
 
@@ -21,7 +23,9 @@ class MockProfileExecutionAdapter:
             "error": None,
         }
 
-    def execute(self, account_id: str, plan_json_snapshot: dict, payload_json: dict) -> Iterator[dict]:
+    def execute(
+        self, account_id: str, plan_json_snapshot: dict, payload_json: dict
+    ) -> Iterator[dict]:
         yield {"event": "runtime_started"}
         fail_step = payload_json.get("mock_fail_step")
         crash_step = payload_json.get("mock_crash_after_step_started")
@@ -89,7 +93,8 @@ class MockProfileExecutionAdapter:
                     "result_payload": {
                         "profile_audio": {
                             "source_asset_id": audio_asset_id,
-                            "telegram_file_id": uploaded_audio_file_id or f"mock-file-{audio_asset_id}",
+                            "telegram_file_id": uploaded_audio_file_id
+                            or f"mock-file-{audio_asset_id}",
                             "title": None,
                             "performer": None,
                             "duration_seconds": None,

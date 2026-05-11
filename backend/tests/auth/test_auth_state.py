@@ -59,10 +59,12 @@ def test_tdlib_parameters_use_stable_account_storage_and_test_dc_flag(tmp_path) 
 
 
 def test_wait_password_maps_to_awaiting_password() -> None:
-    mapped = map_authorization_state({
-        "@type": "authorizationStateWaitPassword",
-        "password_hint": "my hint",
-    })
+    mapped = map_authorization_state(
+        {
+            "@type": "authorizationStateWaitPassword",
+            "password_hint": "my hint",
+        }
+    )
 
     assert mapped.status == TdlibAuthStatus.WAIT_PASSWORD
     assert mapped.account_state == AccountState.AWAITING_PASSWORD
@@ -70,34 +72,24 @@ def test_wait_password_maps_to_awaiting_password() -> None:
     assert mapped.password_hint == "my hint"
 
 
-def test_frozen_tdlib_error_maps_to_manual_intervention() -> None:
-    mapped = map_tdlib_error(
-        {
-            "@type": "error",
-            "code": 420,
-            "message": "FROZEN_METHOD_INVALID",
-        }
-    )
+@pytest.mark.parametrize(
+    "message,runtime_health,recovery_marker",
+    [
+        ("FROZEN_METHOD_INVALID", "frozen", "tdlib_hard_stop:FROZEN_METHOD_INVALID"),
+        ("PHONE_CODE_FLOOD", "flood", "tdlib_hard_stop:PHONE_CODE_FLOOD"),
+    ],
+)
+def test_hard_stop_tdlib_error_maps_to_manual_intervention(
+    message: str,
+    runtime_health: str,
+    recovery_marker: str,
+) -> None:
+    mapped = map_tdlib_error({"@type": "error", "code": 420, "message": message})
 
     assert mapped.account_state == AccountState.MANUAL_INTERVENTION_NEEDED
-    assert mapped.runtime_health == "frozen"
+    assert mapped.runtime_health == runtime_health
     assert mapped.needs_manual_intervention is True
-    assert mapped.recovery_marker == "tdlib_hard_stop:FROZEN_METHOD_INVALID"
-
-
-def test_flood_tdlib_error_maps_to_manual_intervention() -> None:
-    mapped = map_tdlib_error(
-        {
-            "@type": "error",
-            "code": 420,
-            "message": "PHONE_CODE_FLOOD",
-        }
-    )
-
-    assert mapped.account_state == AccountState.MANUAL_INTERVENTION_NEEDED
-    assert mapped.runtime_health == "flood"
-    assert mapped.needs_manual_intervention is True
-    assert mapped.recovery_marker == "tdlib_hard_stop:PHONE_CODE_FLOOD"
+    assert mapped.recovery_marker == recovery_marker
 
 
 def test_unsupported_auth_branch_is_structured_not_crashing() -> None:

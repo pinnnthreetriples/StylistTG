@@ -50,12 +50,18 @@ def apply_account_proxy_to_tdlib(
     config: Settings = settings,
     proxy_settings: TdlibProxySettings | None = None,
 ) -> bool:
-    proxy = proxy_settings if proxy_settings is not None else resolve_tdlib_proxy_settings(account_id, config=config)
+    proxy = (
+        proxy_settings
+        if proxy_settings is not None
+        else resolve_tdlib_proxy_settings(account_id, config=config)
+    )
     if proxy is None:
         return False
     _log_proxy_apply(account_id, status="started", message="TDLib proxy apply started", proxy=proxy)
     try:
-        response = client.send_query(_add_proxy_query(proxy), config.tdlib_proxy_apply_timeout_seconds)
+        response = client.send_query(
+            _add_proxy_query(proxy), config.tdlib_proxy_apply_timeout_seconds
+        )
         if response.get("@type") == "error":
             raise RuntimeError(str(response.get("message") or "TDLib addProxy failed"))
         proxy_id = response.get("id")
@@ -67,7 +73,9 @@ def apply_account_proxy_to_tdlib(
         )
         if enable_response.get("@type") == "error":
             raise RuntimeError(str(enable_response.get("message") or "TDLib enableProxy failed"))
-        _log_proxy_apply(account_id, status="completed", message="TDLib proxy apply completed", proxy=proxy)
+        _log_proxy_apply(
+            account_id, status="completed", message="TDLib proxy apply completed", proxy=proxy
+        )
         return True
     except Exception as exc:
         _log_proxy_apply(

@@ -6,7 +6,13 @@ from pydantic_settings import SettingsConfigDict
 from app.config import Settings
 from app.adapters.tdlib_auth import RealTdJsonClient, TdlibAuthResult, TdlibAuthStatus
 from app.models import AccountAuthAttempt, AccountState
-from app.services.auth import AuthSafetyError, confirm_otp, get_auth_state, mask_external_ref, start_otp
+from app.services.auth import (
+    AuthSafetyError,
+    confirm_otp,
+    get_auth_state,
+    mask_external_ref,
+    start_otp,
+)
 
 from conftest import FakeProfileSyncAdapter, FakeTdlibAuthAdapter
 
@@ -31,7 +37,9 @@ class FakeTdJsonLibrary:
     def td_json_client_receive(self, client, timeout_seconds: float) -> bytes | None:
         if len(self.sent) == 1 and self.response_extra:
             self.sent.append({"buffered_update_emitted": True})
-            return json.dumps({"@type": "updateStoryPostSucceeded", "old_story_id": 42}).encode("utf-8")
+            return json.dumps({"@type": "updateStoryPostSucceeded", "old_story_id": 42}).encode(
+                "utf-8"
+            )
         if self.response_extra:
             extra = self.response_extra
             self.response_extra = None

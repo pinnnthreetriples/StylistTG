@@ -6,7 +6,14 @@ from urllib.request import urlopen
 
 from app.config import Settings
 from app.errors import AppError
-from app.scripts.common import CheckReport, add_common_json_arg, env_value, main_guard, print_and_exit, sanitized_url
+from app.scripts.common import (
+    CheckReport,
+    add_common_json_arg,
+    env_value,
+    main_guard,
+    print_and_exit,
+    sanitized_url,
+)
 from app.services.supabase_jwt import SupabaseJwtVerifier, clear_jwks_cache
 
 
@@ -46,7 +53,12 @@ def run_supabase_auth_smoke(
             subject = str(payload.get("sub") or "")
             report.add("test_jwt", "PASS", "TEST_SUPABASE_JWT verified", subject_prefix=subject[:8])
         except AppError as exc:
-            report.add("test_jwt", "FAIL", "TEST_SUPABASE_JWT verification failed", error_code=exc.error_code)
+            report.add(
+                "test_jwt",
+                "FAIL",
+                "TEST_SUPABASE_JWT verification failed",
+                error_code=exc.error_code,
+            )
     else:
         report.add("test_jwt", "WARN", "TEST_SUPABASE_JWT not provided; skipped token verification")
     clear_jwks_cache()
@@ -61,13 +73,27 @@ def _fetch_jwks(report: CheckReport, jwks_url: str, *, fetcher) -> None:
         else:
             payload = fetcher(jwks_url)
     except Exception as exc:
-        report.add("jwks_fetch", "FAIL", "JWKS fetch failed", url=sanitized_url(jwks_url), error=type(exc).__name__)
+        report.add(
+            "jwks_fetch",
+            "FAIL",
+            "JWKS fetch failed",
+            url=sanitized_url(jwks_url),
+            error=type(exc).__name__,
+        )
         return
     keys = payload.get("keys") if isinstance(payload, dict) else None
     if not isinstance(keys, list) or not keys:
-        report.add("jwks_keys", "FAIL", "JWKS response has no keys array", url=sanitized_url(jwks_url))
+        report.add(
+            "jwks_keys", "FAIL", "JWKS response has no keys array", url=sanitized_url(jwks_url)
+        )
     else:
-        report.add("jwks_keys", "PASS", "JWKS keys available", url=sanitized_url(jwks_url), key_count=len(keys))
+        report.add(
+            "jwks_keys",
+            "PASS",
+            "JWKS keys available",
+            url=sanitized_url(jwks_url),
+            key_count=len(keys),
+        )
 
 
 def main() -> None:
@@ -79,4 +105,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main_guard(main)
-

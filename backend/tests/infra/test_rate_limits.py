@@ -63,15 +63,18 @@ def test_rate_limit_returns_controlled_error_when_pipeline_fails() -> None:
     assert decision.reason == "rate_limit_store_unavailable"
 
 
-def test_tenant_rate_limit_exceeded_when_count_exceeds_limit() -> None:
-    redis = FakeRedis(start_count=100)
-
-    decision = evaluate_tenant_rate_limit(
+def _evaluate(redis: "FakeRedis", *, account_id: str | None = None):
+    return evaluate_tenant_rate_limit(
         redis,
         workspace_id="workspace-1",
         action_type="job.enqueue",
         queue_name="profile_jobs",
+        **({"account_id": account_id} if account_id is not None else {}),
     )
+
+
+def test_tenant_rate_limit_exceeded_when_count_exceeds_limit() -> None:
+    decision = _evaluate(FakeRedis(start_count=100))
 
     assert decision.allowed is False
     assert decision.reason == "tenant_rate_limit_exceeded"
@@ -80,15 +83,7 @@ def test_tenant_rate_limit_exceeded_when_count_exceeds_limit() -> None:
 
 
 def test_account_rate_limit_exceeded_when_count_exceeds_limit() -> None:
-    redis = FakeRedis(start_count=100)
-
-    decision = evaluate_tenant_rate_limit(
-        redis,
-        workspace_id="workspace-1",
-        action_type="job.enqueue",
-        queue_name="profile_jobs",
-        account_id="account-1",
-    )
+    decision = _evaluate(FakeRedis(start_count=100), account_id="account-1")
 
     assert decision.allowed is False
     assert decision.reason == "account_rate_limit_exceeded"
@@ -96,14 +91,7 @@ def test_account_rate_limit_exceeded_when_count_exceeds_limit() -> None:
 
 
 def test_rate_limit_remaining_decrements_correctly() -> None:
-    redis = FakeRedis(start_count=98)
-
-    decision = evaluate_tenant_rate_limit(
-        redis,
-        workspace_id="workspace-1",
-        action_type="job.enqueue",
-        queue_name="profile_jobs",
-    )
+    decision = _evaluate(FakeRedis(start_count=98))
 
     assert decision.allowed is True
     assert decision.remaining == 1

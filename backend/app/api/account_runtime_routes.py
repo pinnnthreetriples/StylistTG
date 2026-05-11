@@ -15,18 +15,30 @@ from app.schemas import (
     TelegramAuthSessionCreate,
     TelegramAuthSessionRead,
 )
-from app.services.auth_context import AuthContext, require_mutation_permission, require_authenticated
+from app.services.auth_context import (
+    AuthContext,
+    require_mutation_permission,
+    require_authenticated,
+)
 from app.services.execution_policy import ensure_execution_usable
 from app.services.operation_logs import log_operation
 from app.services.profile_sync import build_profile_sync_adapter, sync_account_profile_snapshot
 from app.services.runtime_diagnostics import account_runtime_diagnostics
-from app.services.telegram_auth_sessions import auth_session_to_dict, create_auth_session, process_auth_action
+from app.services.telegram_auth_sessions import (
+    auth_session_to_dict,
+    create_auth_session,
+    process_auth_action,
+)
 from app.job_queue.rq import enqueue_telegram_auth_action
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
 
-@router.post("/{account_id}/reauth-sessions", response_model=TelegramAuthSessionRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{account_id}/reauth-sessions",
+    response_model=TelegramAuthSessionRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_account_reauth_session(
     account_id: str,
     payload: TelegramAuthSessionCreate,
@@ -43,8 +55,12 @@ def post_account_reauth_session(
         source="reauth",
         account_id=account_id,
     )
-    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(row.id, row.workspace_id, "start"):
-        row = process_auth_action(session, auth_session_id=row.id, workspace_id=auth.workspace_id, action="start")
+    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(
+        row.id, row.workspace_id, "start"
+    ):
+        row = process_auth_action(
+            session, auth_session_id=row.id, workspace_id=auth.workspace_id, action="start"
+        )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 

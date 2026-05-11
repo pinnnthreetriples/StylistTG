@@ -2,6 +2,7 @@
 
 Uses Hypothesis with constrained max_examples for CI speed.
 """
+
 from __future__ import annotations
 
 import string
@@ -245,6 +246,7 @@ class TestArchivePathSafety:
     def test_safe_archive_accepted(self):
         infos = [_make_zip_info("data/file.txt"), _make_zip_info("config.json")]
         _validate_archive_infos(infos, config=_ARCHIVE_CONFIG)
+        assert len(infos) == 2  # no exception means validation passed
 
 
 # ---------------------------------------------------------------------------

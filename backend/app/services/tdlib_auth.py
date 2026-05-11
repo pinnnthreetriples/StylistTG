@@ -32,16 +32,22 @@ class TdlibAuthStateMachine:
 
     def start(self, *, phone_number: str) -> TdlibAuthTransition:
         self.client.send({"@type": "setAuthenticationPhoneNumber", "phone_number": phone_number})
-        return self._next_transition(default=TdlibAuthTransition(status="waiting_code", requires_code=True))
+        return self._next_transition(
+            default=TdlibAuthTransition(status="waiting_code", requires_code=True)
+        )
 
     def submit_code(self, *, code: str) -> TdlibAuthTransition:
         self.client.send({"@type": "checkAuthenticationCode", "code": code})
-        return self._next_transition(default=TdlibAuthTransition(status="waiting_password", requires_password=True))
+        return self._next_transition(
+            default=TdlibAuthTransition(status="waiting_password", requires_password=True)
+        )
 
     def submit_password(self, *, password: str) -> TdlibAuthTransition:
         self.client.send({"@type": "checkAuthenticationPassword", "password": password})
         self.client.send({"@type": "getMe"})
-        return self._next_transition(default=TdlibAuthTransition(status="ready", me={"id": "unknown"}))
+        return self._next_transition(
+            default=TdlibAuthTransition(status="ready", me={"id": "unknown"})
+        )
 
     def cancel(self) -> TdlibAuthTransition:
         self.client.send({"@type": "close"})
@@ -71,7 +77,11 @@ def _auth_state_transition(state: dict[str, Any]) -> TdlibAuthTransition:
         return TdlibAuthTransition(status="waiting_password", requires_password=True)
     if state_type == "authorizationStateReady":
         return TdlibAuthTransition(status="ready")
-    if state_type in {"authorizationStateClosed", "authorizationStateClosing", "authorizationStateLoggingOut"}:
+    if state_type in {
+        "authorizationStateClosed",
+        "authorizationStateClosing",
+        "authorizationStateLoggingOut",
+    }:
         return TdlibAuthTransition(status="canceled")
     if state_type == "authorizationStateWaitPhoneNumber":
         return TdlibAuthTransition(status="waiting_phone")
@@ -79,12 +89,16 @@ def _auth_state_transition(state: dict[str, Any]) -> TdlibAuthTransition:
 
 
 def _error_transition(update: dict[str, Any]) -> TdlibAuthTransition:
-    raw_message = safe_tdlib_error_message(update.get("message") or update.get("code") or "tdlib error")
+    raw_message = safe_tdlib_error_message(
+        update.get("message") or update.get("code") or "tdlib error"
+    )
     code = AUTH_ERROR_MAP.get(str(update.get("message")), "tdlib_runtime_error")
     flood_wait = _flood_wait_seconds(raw_message)
     if flood_wait is not None:
         code = "flood_wait"
-    return TdlibAuthTransition(status="failed", error_code=code, error_message=raw_message, flood_wait_seconds=flood_wait)
+    return TdlibAuthTransition(
+        status="failed", error_code=code, error_message=raw_message, flood_wait_seconds=flood_wait
+    )
 
 
 def _flood_wait_seconds(message: str) -> int | None:

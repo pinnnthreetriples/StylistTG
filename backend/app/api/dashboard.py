@@ -29,7 +29,9 @@ def get_dashboard_profile_from_header(
     return _dashboard_profile_response(account_id, session, auth.workspace_id)
 
 
-def _dashboard_profile_response(account_id: str, session: Session, workspace_id: str) -> DashboardProfileRead:
+def _dashboard_profile_response(
+    account_id: str, session: Session, workspace_id: str
+) -> DashboardProfileRead:
     try:
         payload = build_dashboard_profile(session, account_id, workspace_id=workspace_id)
     except ValueError as exc:

@@ -5,7 +5,19 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON, Uuid
 
@@ -57,7 +69,9 @@ class WorkspaceRole(StrEnum):
 class User(Base):
     __tablename__ = "app_user"
     __table_args__ = (
-        UniqueConstraint("external_auth_provider", "external_auth_user_id", name="uq_user_external_auth"),
+        UniqueConstraint(
+            "external_auth_provider", "external_auth_user_id", name="uq_user_external_auth"
+        ),
         Index("ix_user_email", "email"),
     )
 
@@ -68,11 +82,15 @@ class User(Base):
     external_auth_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default=UserStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     owned_workspaces: Mapped[list[Workspace]] = relationship(back_populates="owner")
-    memberships: Mapped[list[WorkspaceMember]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    memberships: Mapped[list[WorkspaceMember]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Workspace(Base):
@@ -82,25 +100,41 @@ class Workspace(Base):
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(128), nullable=False)
-    owner_user_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=False)
+    owner_user_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default=WorkspaceStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
-    owner: Mapped[User] = relationship(back_populates="owned_workspaces", foreign_keys=[owner_user_id])
-    members: Mapped[list[WorkspaceMember]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
+    owner: Mapped[User] = relationship(
+        back_populates="owned_workspaces", foreign_keys=[owner_user_id]
+    )
+    members: Mapped[list[WorkspaceMember]] = relationship(
+        back_populates="workspace", cascade="all, delete-orphan"
+    )
 
 
 class WorkspaceMember(Base):
     __tablename__ = "workspace_member"
-    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_workspace_member_workspace_user"),)
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "user_id", name="uq_workspace_member_workspace_user"),
+    )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    user_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=False, index=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=False, index=True
+    )
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     workspace: Mapped[Workspace] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="memberships")
@@ -111,8 +145,12 @@ class AuditLog(Base):
     __table_args__ = (Index("ix_audit_log_workspace_created", "workspace_id", "created_at"),)
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
@@ -130,8 +168,12 @@ class SensitiveAuditEvent(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     actor_type: Mapped[str] = mapped_column(String(64), nullable=False, default="user")
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -151,7 +193,9 @@ class SensitiveAuditEvent(Base):
 class WorkspacePlan(Base):
     __tablename__ = "workspace_plan"
 
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), primary_key=True
+    )
     plan_code: Mapped[str] = mapped_column(String(64), nullable=False, default="local")
     billing_status: Mapped[str] = mapped_column(String(64), nullable=False, default="active")
     max_accounts: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
@@ -160,17 +204,27 @@ class WorkspacePlan(Base):
     max_storage_mb: Mapped[int] = mapped_column(Integer, nullable=False, default=10240)
     max_team_members: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class UsageCounter(Base):
     __tablename__ = "usage_counter"
     __table_args__ = (
-        UniqueConstraint("workspace_id", "period_start", "period_end", "metric", name="uq_usage_counter_period_metric"),
+        UniqueConstraint(
+            "workspace_id",
+            "period_start",
+            "period_end",
+            "metric",
+            name="uq_usage_counter_period_metric",
+        ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
     period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     metric: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -369,12 +423,8 @@ class Account(Base):
     safety_overrides: Mapped[list[AccountSafetyOverride]] = relationship(
         cascade="all, delete-orphan"
     )
-    operation_logs: Mapped[list[AccountOperationLog]] = relationship(
-        cascade="all, delete-orphan"
-    )
-    proxy: Mapped[AccountProxy | None] = relationship(
-        cascade="all, delete-orphan", uselist=False
-    )
+    operation_logs: Mapped[list[AccountOperationLog]] = relationship(cascade="all, delete-orphan")
+    proxy: Mapped[AccountProxy | None] = relationship(cascade="all, delete-orphan", uselist=False)
     jobs: Mapped[list[Job]] = relationship(back_populates="account")
     auth_attempts: Mapped[list[AccountAuthAttempt]] = relationship(back_populates="account")
     deletion_requests: Mapped[list[AccountDeletionRequest]] = relationship(
@@ -397,10 +447,16 @@ class AccountLifecycleEvent(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    actor_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     request_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -414,9 +470,15 @@ class AccountDeletionRequest(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
-    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
+    requested_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="requested")
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     dry_run_result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -440,9 +502,15 @@ class AccountExportRequest(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
-    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
+    requested_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="requested")
     export_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     export_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
@@ -460,9 +528,7 @@ class AccountExportRequest(Base):
 class AccountRuntimeState(Base):
     __tablename__ = "account_runtime_state"
 
-    account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), primary_key=True
-    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
     session_present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     authorized_last_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -487,8 +553,12 @@ class TelegramAuthSession(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    account_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=True, index=True
+    )
     phone_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="created")
@@ -499,9 +569,13 @@ class TelegramAuthSession(Base):
     cooldown_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    created_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -526,11 +600,15 @@ class WarmupStrategy(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     tier_limits_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
-    target_channels_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    target_channels_json: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
     is_preset: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     execution_mode: Mapped[str] = mapped_column(
         String(32), nullable=False, default=WarmupExecutionMode.DRY_RUN
@@ -547,7 +625,9 @@ class WarmupStrategy(Base):
     )
     ui_summary_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     sessions: Mapped[list[WarmupSession]] = relationship(back_populates="strategy")
 
@@ -578,15 +658,23 @@ class WarmupSession(Base):
             "workspace_id",
             "account_id",
             unique=True,
-            postgresql_where=text("status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"),
-            sqlite_where=text("status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"),
+            postgresql_where=text(
+                "status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"
+            ),
+            sqlite_where=text(
+                "status IN ('validating', 'scheduled', 'active', 'paused_risk', 'paused_manual')"
+            ),
         ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
-    strategy_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_strategy.id"), nullable=False)
+    strategy_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("warmup_strategy.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default=WarmupStatus.DRAFT)
     current_day: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     cadence_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
@@ -610,18 +698,22 @@ class WarmupSession(Base):
     next_micro_session_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    daily_counters_json: Mapped[dict[str, Any]] = mapped_column(
-        JSON, nullable=False, default=dict
-    )
+    daily_counters_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     trusted_peer_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     proxy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     account: Mapped[Account] = relationship(back_populates="warmup_sessions")
     strategy: Mapped[WarmupStrategy] = relationship(back_populates="sessions")
-    events: Mapped[list[WarmupEvent]] = relationship(back_populates="session", cascade="all, delete-orphan")
-    task_runs: Mapped[list[WarmupTaskRun]] = relationship(back_populates="session", cascade="all, delete-orphan")
+    events: Mapped[list[WarmupEvent]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
+    task_runs: Mapped[list[WarmupTaskRun]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
 
 
 class WarmupEvent(Base):
@@ -632,8 +724,12 @@ class WarmupEvent(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
-    session_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_session.id"), nullable=False)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    session_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("warmup_session.id"), nullable=False
+    )
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -649,14 +745,20 @@ class WarmupTaskRun(Base):
             "status IN ('started', 'completed', 'skipped', 'failed')",
             name="ck_warmup_task_run_status",
         ),
-        UniqueConstraint("session_id", "day", "task_type", name="uq_warmup_task_run_session_day_type"),
+        UniqueConstraint(
+            "session_id", "day", "task_type", name="uq_warmup_task_run_session_day_type"
+        ),
         Index("ix_warmup_task_run_workspace_id", "workspace_id"),
         Index("ix_warmup_task_run_session_id", "session_id"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
-    session_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("warmup_session.id"), nullable=False)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    session_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("warmup_session.id"), nullable=False
+    )
     day: Mapped[int] = mapped_column(Integer, nullable=False)
     task_type: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -673,14 +775,20 @@ class WarmupTaskRun(Base):
 class WarmupTrustedPeer(Base):
     __tablename__ = "warmup_trusted_peer"
     __table_args__ = (
-        UniqueConstraint("workspace_id", "account_id", name="uq_warmup_trusted_peer_workspace_account"),
+        UniqueConstraint(
+            "workspace_id", "account_id", name="uq_warmup_trusted_peer_workspace_account"
+        ),
         Index("ix_warmup_trusted_peer_workspace_eligible", "workspace_id", "eligible_from"),
-        CheckConstraint("max_active_contacts >= 0", name="ck_warmup_trusted_peer_max_active_contacts"),
+        CheckConstraint(
+            "max_active_contacts >= 0", name="ck_warmup_trusted_peer_max_active_contacts"
+        ),
         CheckConstraint("current_contacts >= 0", name="ck_warmup_trusted_peer_current_contacts"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
     eligible_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     max_active_contacts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
@@ -697,10 +805,10 @@ class WarmupTrustedPeer(Base):
 class WarmupIsolationClaim(Base):
     __tablename__ = "warmup_isolation_claim"
 
-    account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), primary_key=True
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
     )
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False)
     held_by: Mapped[str] = mapped_column(String(255), nullable=False)
     reason: Mapped[str] = mapped_column(String(255), nullable=False)
     acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -727,7 +835,9 @@ class AccountAuthAttempt(Base):
 class AuthBatch(Base):
     __tablename__ = "auth_batch"
     __table_args__ = (
-        UniqueConstraint("workspace_id", "idempotency_key", name="uq_auth_batch_workspace_idempotency_key"),
+        UniqueConstraint(
+            "workspace_id", "idempotency_key", name="uq_auth_batch_workspace_idempotency_key"
+        ),
         Index("ix_auth_batch_status_created", "status", "created_at"),
     )
 
@@ -774,7 +884,9 @@ class AuthBatchItem(Base):
     phone_number: Mapped[str] = mapped_column(String(255), nullable=False)
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthBatchItemStatus.QUEUED)
+    status: Mapped[str] = mapped_column(
+        String(64), nullable=False, default=AuthBatchItemStatus.QUEUED
+    )
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     resend_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     code_error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -802,15 +914,21 @@ class AuthBatchItem(Base):
 class AuthAttempt(Base):
     __tablename__ = "auth_attempt"
     __table_args__ = (
-        UniqueConstraint("batch_item_id", "attempt_number", "kind", name="uq_auth_attempt_item_number_kind"),
+        UniqueConstraint(
+            "batch_item_id", "attempt_number", "kind", name="uq_auth_attempt_item_number_kind"
+        ),
         Index("ix_auth_attempt_batch_item", "batch_item_id"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    batch_item_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("auth_batch_item.id"), nullable=False)
+    batch_item_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("auth_batch_item.id"), nullable=False
+    )
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
     kind: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(64), nullable=False, default=AuthAttemptStatus.STARTED)
+    status: Mapped[str] = mapped_column(
+        String(64), nullable=False, default=AuthAttemptStatus.STARTED
+    )
     error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -842,9 +960,7 @@ class AuthBatchEvent(Base):
 
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_key"
-    __table_args__ = (
-        Index("ix_idempotency_key_expires", "expires_at"),
-    )
+    __table_args__ = (Index("ix_idempotency_key_expires", "expires_at"),)
 
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), primary_key=True, default=DEFAULT_LOCAL_WORKSPACE_ID
@@ -865,8 +981,12 @@ class AccountImportBatch(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    created_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    created_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     source_type: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="uploaded")
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -880,7 +1000,9 @@ class AccountImportBatch(Base):
     failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     items: Mapped[list[AccountImportItem]] = relationship(
-        back_populates="batch", cascade="all, delete-orphan", order_by="AccountImportItem.created_at"
+        back_populates="batch",
+        cascade="all, delete-orphan",
+        order_by="AccountImportItem.created_at",
     )
 
 
@@ -892,9 +1014,15 @@ class AccountImportItem(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
-    batch_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account_import_batch.id"), nullable=False, index=True)
-    account_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    batch_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account_import_batch.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=True
+    )
     source_ref_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="pending")
     phone_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -903,7 +1031,9 @@ class AccountImportItem(Base):
     validation_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     risk_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     batch: Mapped[AccountImportBatch] = relationship(back_populates="items")
 
@@ -911,9 +1041,7 @@ class AccountImportItem(Base):
 class AccountProfileState(Base):
     __tablename__ = "account_profile_state"
 
-    account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), primary_key=True
-    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
     telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -928,9 +1056,7 @@ class AccountProfileState(Base):
 class AccountProfileAudioState(Base):
     __tablename__ = "account_profile_audio_state"
 
-    account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), primary_key=True
-    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), primary_key=True)
     telegram_audio_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     telegram_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -1022,12 +1148,12 @@ class AccountSafetySnapshot(Base):
 
 class AccountValidityCheckRun(Base):
     __tablename__ = "account_validity_check_run"
-    __table_args__ = (
-        Index("ix_validity_check_account_started", "account_id", "started_at"),
-    )
+    __table_args__ = (Index("ix_validity_check_account_started", "account_id", "started_at"),)
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
     mode: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -1046,7 +1172,9 @@ class AccountOperationCooldown(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
     operation: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     level: Mapped[str] = mapped_column(String(32), nullable=False)
     reason_code: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -1068,7 +1196,9 @@ class AccountSafetyOverride(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
     operation: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     requested_blockers_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
@@ -1082,14 +1212,26 @@ class AccountOperationLog(Base):
         Index("ix_operation_log_account_created", "account_id", "created_at"),
         Index("ix_operation_log_type_status_created", "operation_type", "status", "created_at"),
         Index("ix_operation_log_workspace_created", "workspace_id", "created_at"),
-        Index("ix_operation_log_ws_type_status_created", "workspace_id", "operation_type", "status", "created_at"),
+        Index(
+            "ix_operation_log_ws_type_status_created",
+            "workspace_id",
+            "operation_type",
+            "status",
+            "created_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     workspace_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID, index=True
+        UUIDString,
+        ForeignKey("workspace.id"),
+        nullable=False,
+        default=DEFAULT_LOCAL_WORKSPACE_ID,
+        index=True,
     )
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
     operation_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     operation_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -1122,7 +1264,9 @@ class AccountProxy(Base):
     last_check_scope: Mapped[str | None] = mapped_column(String(32), nullable=True)
     last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    tdlib_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    tdlib_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     tdlib_last_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     tdlib_last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -1145,8 +1289,12 @@ class Job(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, default=DEFAULT_LOCAL_WORKSPACE_ID
     )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
-    requested_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
-    approved_by_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    requested_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
+    approved_by_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     created_from: Mapped[str] = mapped_column(String(64), nullable=False, default="api")
     request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     job_state: Mapped[str] = mapped_column(String(64), nullable=False, default=JobState.QUEUED)
@@ -1183,11 +1331,17 @@ class JobExecutionEvent(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    job_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("job.id"), nullable=True, index=True)
+    job_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("job.id"), nullable=True, index=True
+    )
     job_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    workspace_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("workspace.id"), nullable=False, index=True)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
     account_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True, index=True)
-    actor_user_id: Mapped[str | None] = mapped_column(UUIDString, ForeignKey("app_user.id"), nullable=True)
+    actor_user_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("app_user.id"), nullable=True
+    )
     queue_name: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -1257,5 +1411,7 @@ class Asset(Base):
     normalized_content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     source_checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
     normalized_checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    storage_migrated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    storage_migrated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

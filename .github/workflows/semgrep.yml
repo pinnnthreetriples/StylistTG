@@ -1,0 +1,42 @@
+name: Semgrep
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  semgrep:
+    name: Semgrep CE
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install Semgrep CE
+        run: python -m pip install semgrep
+      - name: Run Semgrep
+        run: |
+          python -m semgrep scan \
+            --config p/ci \
+            --config .semgrep/stylisttg.yml \
+            --error \
+            --sarif \
+            --output semgrep.sarif \
+            backend/app apps packages
+      - name: Upload Semgrep report
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('semgrep.sarif') != ''
+        with:
+          name: semgrep-report
+          path: semgrep.sarif

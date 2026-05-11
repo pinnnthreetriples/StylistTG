@@ -1,0 +1,127 @@
+rules:
+  - id: stylisttg.no-raw-phone-print-python
+    languages:
+      - python
+    severity: ERROR
+    message: Do not print raw phone numbers or phone-number-bearing values; use sanitized logging helpers.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-either:
+          - pattern: print(..., $PHONE, ...)
+          - pattern: pprint(..., $PHONE, ...)
+      - metavariable-regex:
+          metavariable: $PHONE
+          regex: "(?i).*(phone|phone_number|external_ref).*"
+
+  - id: stylisttg.no-raw-phone-logging-python
+    languages:
+      - python
+    severity: ERROR
+    message: Do not log raw phone numbers or external refs; log phone_hint or redacted metadata instead.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-either:
+          - pattern: logging.$LEVEL(..., $PHONE, ...)
+          - pattern: logger.$LEVEL(..., $PHONE, ...)
+          - pattern: log_event(..., $PHONE, ...)
+          - pattern: log_warn(..., $PHONE, ...)
+          - pattern: log_error(..., $PHONE, ...)
+      - metavariable-regex:
+          metavariable: $PHONE
+          regex: "(?i).*(phone|phone_number|external_ref).*"
+
+  - id: stylisttg.no-sensitive-key-in-log-metadata-python
+    languages:
+      - python
+    severity: ERROR
+    message: Do not pass sensitive metadata keys to logging helpers; redact or rename before logging.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-either:
+          - pattern: log_event(..., password=$VALUE, ...)
+          - pattern: log_event(..., token=$VALUE, ...)
+          - pattern: log_event(..., secret=$VALUE, ...)
+          - pattern: log_event(..., api_key=$VALUE, ...)
+          - pattern: log_event(..., auth_code=$VALUE, ...)
+          - pattern: log_event(..., phone_number=$VALUE, ...)
+          - pattern: log_event(..., phone=$VALUE, ...)
+          - pattern: log_event(..., tdlib_path=$VALUE, ...)
+          - pattern: log_event(..., session_path=$VALUE, ...)
+          - pattern: log_warn(..., password=$VALUE, ...)
+          - pattern: log_warn(..., token=$VALUE, ...)
+          - pattern: log_warn(..., secret=$VALUE, ...)
+          - pattern: log_warn(..., api_key=$VALUE, ...)
+          - pattern: log_warn(..., auth_code=$VALUE, ...)
+          - pattern: log_warn(..., phone_number=$VALUE, ...)
+          - pattern: log_warn(..., phone=$VALUE, ...)
+          - pattern: log_warn(..., tdlib_path=$VALUE, ...)
+          - pattern: log_warn(..., session_path=$VALUE, ...)
+          - pattern: log_error(..., password=$VALUE, ...)
+          - pattern: log_error(..., token=$VALUE, ...)
+          - pattern: log_error(..., secret=$VALUE, ...)
+          - pattern: log_error(..., api_key=$VALUE, ...)
+          - pattern: log_error(..., auth_code=$VALUE, ...)
+          - pattern: log_error(..., phone_number=$VALUE, ...)
+          - pattern: log_error(..., phone=$VALUE, ...)
+          - pattern: log_error(..., tdlib_path=$VALUE, ...)
+          - pattern: log_error(..., session_path=$VALUE, ...)
+
+  - id: stylisttg.no-raw-external-ref-log-keyword-python
+    languages:
+      - python
+    severity: ERROR
+    message: Do not log raw external_ref; use mask_external_ref or phone_hint.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-either:
+          - pattern: log_event(..., external_ref=$VALUE, ...)
+          - pattern: log_warn(..., external_ref=$VALUE, ...)
+          - pattern: log_error(..., external_ref=$VALUE, ...)
+      - pattern-not: log_event(..., external_ref=mask_external_ref(...), ...)
+      - pattern-not: log_warn(..., external_ref=mask_external_ref(...), ...)
+      - pattern-not: log_error(..., external_ref=mask_external_ref(...), ...)
+      - pattern-not: log_event(..., external_ref=phone_hint(...), ...)
+      - pattern-not: log_warn(..., external_ref=phone_hint(...), ...)
+      - pattern-not: log_error(..., external_ref=phone_hint(...), ...)
+
+  - id: stylisttg.no-console-sensitive-js
+    languages:
+      - javascript
+      - typescript
+      - jsx
+      - tsx
+    severity: ERROR
+    message: Do not write sensitive account/auth values to console; use sanitized telemetry or UI-safe hints.
+    metadata:
+      category: security
+      technology:
+        - javascript
+        - typescript
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-either:
+          - pattern: console.$METHOD(..., $VALUE, ...)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: "(?i).*(phone|phoneNumber|phone_number|externalRef|external_ref|password|token|secret|apiKey|api_key|authCode|auth_code).*"

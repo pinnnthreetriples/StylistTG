@@ -148,9 +148,15 @@ def _list_logs(
         query = query.where(AccountOperationLog.status == status)
         count_query = count_query.where(AccountOperationLog.status == status)
 
-    rows = session.execute(
-        query.order_by(AccountOperationLog.created_at.desc()).offset(safe_offset).limit(safe_limit)
-    ).scalars().all()
+    rows = (
+        session.execute(
+            query.order_by(AccountOperationLog.created_at.desc())
+            .offset(safe_offset)
+            .limit(safe_limit)
+        )
+        .scalars()
+        .all()
+    )
     total = int(session.execute(count_query).scalar_one())
     return {
         "items": [operation_log_to_dict(row) for row in rows],

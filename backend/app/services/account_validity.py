@@ -76,10 +76,12 @@ def run_account_validity_check(
         _upsert_safety_snapshot(session, safety)
         run.status = "completed"
         run.finished_at = datetime.now(UTC)
-        run.result_json = _json_safe({
-            **summarize_account_safety(safety),
-            "validity_status": _validity_status_from_readonly_result(readonly_result, safety),
-        })
+        run.result_json = _json_safe(
+            {
+                **summarize_account_safety(safety),
+                "validity_status": _validity_status_from_readonly_result(readonly_result, safety),
+            }
+        )
         run.details_json = {"source": mode}
         _rj = run.result_json
         _validity = _rj.get("validity_status") if isinstance(_rj, dict) else None
@@ -134,23 +136,33 @@ def run_account_validity_check(
         return validity_check_run_to_dict(run)
 
 
-def list_account_validity_checks(session: Session, account_id: str, *, limit: int = 10) -> list[dict[str, Any]]:
-    runs = session.execute(
-        select(AccountValidityCheckRun)
-        .where(AccountValidityCheckRun.account_id == account_id)
-        .order_by(AccountValidityCheckRun.started_at.desc())
-        .limit(max(1, min(limit, 50)))
-    ).scalars().all()
+def list_account_validity_checks(
+    session: Session, account_id: str, *, limit: int = 10
+) -> list[dict[str, Any]]:
+    runs = (
+        session.execute(
+            select(AccountValidityCheckRun)
+            .where(AccountValidityCheckRun.account_id == account_id)
+            .order_by(AccountValidityCheckRun.started_at.desc())
+            .limit(max(1, min(limit, 50)))
+        )
+        .scalars()
+        .all()
+    )
     return [validity_check_run_to_dict(run) for run in runs]
 
 
 def latest_account_validity_check(session: Session, account_id: str) -> dict[str, Any] | None:
-    run = session.execute(
-        select(AccountValidityCheckRun)
-        .where(AccountValidityCheckRun.account_id == account_id)
-        .order_by(AccountValidityCheckRun.started_at.desc())
-        .limit(1)
-    ).scalars().first()
+    run = (
+        session.execute(
+            select(AccountValidityCheckRun)
+            .where(AccountValidityCheckRun.account_id == account_id)
+            .order_by(AccountValidityCheckRun.started_at.desc())
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     return validity_check_run_to_dict(run) if run else None
 
 
@@ -186,7 +198,9 @@ def _upsert_safety_snapshot(session: Session, safety: dict[str, Any]) -> None:
         "updated_at": now,
     }
     if snapshot is None:
-        session.add(AccountSafetySnapshot(account_id=safety["account_id"], created_at=now, **payload))
+        session.add(
+            AccountSafetySnapshot(account_id=safety["account_id"], created_at=now, **payload)
+        )
         return
     for key, value in payload.items():
         setattr(snapshot, key, value)
@@ -211,9 +225,15 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
         if profile:
             if account.profile_state is None:
                 account.profile_state = AccountProfileState(account_id=account.id)
-            account.profile_state.telegram_user_id = result.get("telegram_user_id") or account.profile_state.telegram_user_id
-            account.profile_state.first_name = profile.get("first_name", account.profile_state.first_name)
-            account.profile_state.last_name = profile.get("last_name", account.profile_state.last_name)
+            account.profile_state.telegram_user_id = (
+                result.get("telegram_user_id") or account.profile_state.telegram_user_id
+            )
+            account.profile_state.first_name = profile.get(
+                "first_name", account.profile_state.first_name
+            )
+            account.profile_state.last_name = profile.get(
+                "last_name", account.profile_state.last_name
+            )
             account.profile_state.username = profile.get("username", account.profile_state.username)
             account.profile_state.bio = profile.get("bio", account.profile_state.bio)
             account.profile_state.synced_at = datetime.now(UTC)
@@ -239,7 +259,9 @@ def _validity_status(safety: dict[str, Any]) -> str:
     return "unknown"
 
 
-def _validity_status_from_readonly_result(result: dict[str, Any] | None, safety: dict[str, Any]) -> str:
+def _validity_status_from_readonly_result(
+    result: dict[str, Any] | None, safety: dict[str, Any]
+) -> str:
     if result and result.get("status"):
         return str(result["status"])
     return _validity_status(safety)

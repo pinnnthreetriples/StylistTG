@@ -38,7 +38,12 @@ def run_neon_smoke(
     app_env = env_value("APP_ENV", env) or "local"
     for label, url in (("runtime", runtime_url), ("direct", direct_url)):
         if looks_production(url) and app_env != "production":
-            report.add(f"{label}_guard", "FAIL", "Production-looking database URL outside production", url=sanitized_url(url))
+            report.add(
+                f"{label}_guard",
+                "FAIL",
+                "Production-looking database URL outside production",
+                url=sanitized_url(url),
+            )
     if check_runtime or readonly:
         if not runtime_url:
             report.add("runtime_url", "FAIL", "DATABASE_RUNTIME_URL or DATABASE_URL is required")
@@ -49,7 +54,9 @@ def run_neon_smoke(
             report.add("direct_url", "FAIL", "DATABASE_DIRECT_URL is required")
         else:
             _check_db(report, "direct", direct_url, engine_factory=engine_factory)
-            _check_alembic(report, direct_url, upgrade_head=upgrade_head, command_runner=command_runner)
+            _check_alembic(
+                report, direct_url, upgrade_head=upgrade_head, command_runner=command_runner
+            )
     return report
 
 
@@ -59,28 +66,57 @@ def _check_db(report: CheckReport, label: str, url: str, *, engine_factory) -> N
     try:
         with engine.connect() as connection:
             row = connection.execute(text("select current_database(), current_user")).one()
-        report.add(f"{label}_connect", "PASS", "Database connection succeeded", url=sanitized_url(url), database=row[0], user=row[1], duration_seconds=round(time.time() - started, 3))
+        report.add(
+            f"{label}_connect",
+            "PASS",
+            "Database connection succeeded",
+            url=sanitized_url(url),
+            database=row[0],
+            user=row[1],
+            duration_seconds=round(time.time() - started, 3),
+        )
     except Exception as exc:
-        report.add(f"{label}_connect", "FAIL", "Database connection failed", url=sanitized_url(url), error=type(exc).__name__)
+        report.add(
+            f"{label}_connect",
+            "FAIL",
+            "Database connection failed",
+            url=sanitized_url(url),
+            error=type(exc).__name__,
+        )
     finally:
         dispose = getattr(engine, "dispose", None)
         if callable(dispose):
             dispose()
 
 
-def _check_alembic(report: CheckReport, direct_url: str, *, upgrade_head: bool, command_runner) -> None:
-    command = ["python", "-m", "alembic", "upgrade" if upgrade_head else "current", "head" if upgrade_head else ""]
+def _check_alembic(
+    report: CheckReport, direct_url: str, *, upgrade_head: bool, command_runner
+) -> None:
+    command = [
+        "python",
+        "-m",
+        "alembic",
+        "upgrade" if upgrade_head else "current",
+        "head" if upgrade_head else "",
+    ]
     command = [part for part in command if part]
     command_env = os.environ.copy()
     command_env["DATABASE_URL"] = direct_url
     command_env["DATABASE_DIRECT_URL"] = direct_url
     try:
-        result = command_runner(command, env=command_env, text=True, capture_output=True, check=False)
+        result = command_runner(
+            command, env=command_env, text=True, capture_output=True, check=False
+        )
     except Exception as exc:
         report.add("alembic", "FAIL", "Alembic command failed to start", error=type(exc).__name__)
         return
     status = "PASS" if getattr(result, "returncode", 1) == 0 else "FAIL"
-    report.add("alembic", status, "Alembic upgrade head completed" if upgrade_head else "Alembic current completed", returncode=getattr(result, "returncode", None))
+    report.add(
+        "alembic",
+        status,
+        "Alembic upgrade head completed" if upgrade_head else "Alembic current completed",
+        returncode=getattr(result, "returncode", None),
+    )
 
 
 def main() -> None:

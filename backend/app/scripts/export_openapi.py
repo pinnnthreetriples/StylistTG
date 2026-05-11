@@ -33,7 +33,9 @@ def export_openapi(out: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Export the FastAPI OpenAPI schema without starting a server.")
+    parser = argparse.ArgumentParser(
+        description="Export the FastAPI OpenAPI schema without starting a server."
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     export_openapi(args.out)

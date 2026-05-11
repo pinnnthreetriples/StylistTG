@@ -56,23 +56,39 @@ def build_account_capabilities(
         capabilities["story_post"] = _capability("blocked", story_reasons, checked_at=checked_at)
 
     if not account.story_posts:
-        capabilities["story_delete"] = _capability("unknown", ["no_known_story_posts"], checked_at=checked_at)
+        capabilities["story_delete"] = _capability(
+            "unknown", ["no_known_story_posts"], checked_at=checked_at
+        )
     elif not any(post.can_be_deleted for post in account.story_posts):
-        capabilities["story_delete"] = _capability("limited", ["story_delete_not_confirmed"], checked_at=checked_at)
+        capabilities["story_delete"] = _capability(
+            "limited", ["story_delete_not_confirmed"], checked_at=checked_at
+        )
 
     if account.profile_state is None:
-        capabilities["sync"] = _capability("limited", ["profile_sync_unknown"], checked_at=checked_at)
+        capabilities["sync"] = _capability(
+            "limited", ["profile_sync_unknown"], checked_at=checked_at
+        )
 
     reason_codes = _reason_codes(reasons)
     if "username_recently_rejected" in reason_codes:
-        capabilities["username"] = _capability("limited", ["username_recently_rejected"], checked_at=checked_at)
+        capabilities["username"] = _capability(
+            "limited", ["username_recently_rejected"], checked_at=checked_at
+        )
     story_limit_reasons = [
         code
         for code in reason_codes
-        if code in {"story_weekly_limit", "story_active_limit", "story_premium_required", "story_recently_rejected"}
+        if code
+        in {
+            "story_weekly_limit",
+            "story_active_limit",
+            "story_premium_required",
+            "story_recently_rejected",
+        }
     ]
     if story_limit_reasons and capabilities["story_post"]["state"] != "blocked":
-        capabilities["story_post"] = _capability("limited", story_limit_reasons, checked_at=checked_at)
+        capabilities["story_post"] = _capability(
+            "limited", story_limit_reasons, checked_at=checked_at
+        )
 
     return capabilities
 

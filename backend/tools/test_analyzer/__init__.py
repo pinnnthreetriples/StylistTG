@@ -10,6 +10,7 @@ Exit codes:
     1: CRITICAL issues found
     2: CLI/analyzer error
 """
+
 from .analyzer import Analyzer, filter_by_baseline, load_baseline, load_coverage_context
 from .cli import main
 from .models import AnalyzerConfig, FileContext, Issue, Rule, Severity

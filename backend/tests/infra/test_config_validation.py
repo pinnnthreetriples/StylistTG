@@ -3,6 +3,7 @@
 Complements test_saas_foundation.py with additional edge cases:
 S3 storage requirements, Fernet key shape, and TDLIB_STORAGE_BACKEND.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -51,7 +52,10 @@ class TestS3StorageConfig:
         assert config.storage_backend == "s3"
 
     def test_s3_missing_multiple_fields_listed(self):
-        with pytest.raises(ValueError, match="STORAGE_S3_ENDPOINT_URL.*STORAGE_S3_BUCKET|STORAGE_S3_BUCKET.*STORAGE_S3_ENDPOINT_URL"):
+        with pytest.raises(
+            ValueError,
+            match="STORAGE_S3_ENDPOINT_URL.*STORAGE_S3_BUCKET|STORAGE_S3_BUCKET.*STORAGE_S3_ENDPOINT_URL",
+        ):
             Settings(
                 storage_backend="s3",
                 storage_s3_access_key_id="key",

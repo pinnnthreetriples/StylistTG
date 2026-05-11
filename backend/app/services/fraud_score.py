@@ -5,6 +5,7 @@
 только Mock, реальный провайдер (IPQualityScore/Scamalytics/proxycheck.io)
 подключается в Фазе 4e отдельным PR.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -39,11 +40,9 @@ class FraudAssessment:
 class FraudScoreProvider(Protocol):
     provider_name: str
 
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
-    def evaluate_proxy(self, request: ProxyAssessmentInput) -> FraudAssessment:
-        ...
+    def evaluate_proxy(self, request: ProxyAssessmentInput) -> FraudAssessment: ...
 
 
 class MockFraudScoreProvider:

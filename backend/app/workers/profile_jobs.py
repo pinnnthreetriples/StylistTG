@@ -50,7 +50,12 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     if job is None:
         return 1
     if job.job_state in TERMINAL_JOB_STATES:
-        log_event("worker_skip_terminal_job", account_id=job.account_id, job_id=job_id, state=job.job_state)
+        log_event(
+            "worker_skip_terminal_job",
+            account_id=job.account_id,
+            job_id=job_id,
+            state=job.job_state,
+        )
         return 0
     try:
         assert_job_account_workspace_consistency(job)
@@ -59,7 +64,9 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         job.failure_reason = "workspace_account_mismatch"
         job.finished_at = utc_now()
         session.commit()
-        log_event("worker_reject_workspace_account_mismatch", account_id=job.account_id, job_id=job_id)
+        log_event(
+            "worker_reject_workspace_account_mismatch", account_id=job.account_id, job_id=job_id
+        )
         return 1
 
     owner = f"worker:{os.getpid()}:{job_id}"
@@ -127,7 +134,14 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             _drain_stderr(stderr_lines, stderr_buffer)
             remaining_seconds = deadline - time.monotonic()
             if remaining_seconds <= 0:
-                _mark_child_process_timeout(session, job, process, owner, lock_epoch, stderr_summary=_stderr_summary(stderr_buffer))
+                _mark_child_process_timeout(
+                    session,
+                    job,
+                    process,
+                    owner,
+                    lock_epoch,
+                    stderr_summary=_stderr_summary(stderr_buffer),
+                )
                 return 1
             try:
                 line = stdout_lines.get(timeout=min(0.2, remaining_seconds))
@@ -206,7 +220,14 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         try:
             return_code = process.wait(timeout=max(0, deadline - time.monotonic()))
         except subprocess.TimeoutExpired:
-            _mark_child_process_timeout(session, job, process, owner, lock_epoch, stderr_summary=_stderr_summary(stderr_buffer))
+            _mark_child_process_timeout(
+                session,
+                job,
+                process,
+                owner,
+                lock_epoch,
+                stderr_summary=_stderr_summary(stderr_buffer),
+            )
             return 1
         _drain_stderr(stderr_lines, stderr_buffer)
         stderr_summary = _stderr_summary(stderr_buffer)

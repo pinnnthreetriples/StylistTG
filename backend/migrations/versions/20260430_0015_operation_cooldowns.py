@@ -30,14 +30,22 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_account_operation_cooldown_account_id", "account_operation_cooldown", ["account_id"])
-    op.create_index("ix_account_operation_cooldown_operation", "account_operation_cooldown", ["operation"])
+    op.create_index(
+        "ix_account_operation_cooldown_account_id", "account_operation_cooldown", ["account_id"]
+    )
+    op.create_index(
+        "ix_account_operation_cooldown_operation", "account_operation_cooldown", ["operation"]
+    )
 
 
 def downgrade() -> None:
     tables = sa.inspect(op.get_bind()).get_table_names()
     if "account_operation_cooldown" not in tables:
         return
-    op.drop_index("ix_account_operation_cooldown_operation", table_name="account_operation_cooldown")
-    op.drop_index("ix_account_operation_cooldown_account_id", table_name="account_operation_cooldown")
+    op.drop_index(
+        "ix_account_operation_cooldown_operation", table_name="account_operation_cooldown"
+    )
+    op.drop_index(
+        "ix_account_operation_cooldown_account_id", table_name="account_operation_cooldown"
+    )
     op.drop_table("account_operation_cooldown")

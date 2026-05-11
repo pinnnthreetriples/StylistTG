@@ -122,9 +122,7 @@ def upgrade() -> None:
                 server_default=sa.text("'[]'"),
             )
         )
-        batch_op.add_column(
-            sa.Column("proxy_snapshot_json", json_type, nullable=True)
-        )
+        batch_op.add_column(sa.Column("proxy_snapshot_json", json_type, nullable=True))
         batch_op.drop_constraint("ck_warmup_session_current_day", type_="check")
         batch_op.create_check_constraint(
             "ck_warmup_session_current_day",
@@ -238,9 +236,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("warmup_isolation_claim")
-    op.drop_index(
-        "ix_warmup_trusted_peer_workspace_eligible", table_name="warmup_trusted_peer"
-    )
+    op.drop_index("ix_warmup_trusted_peer_workspace_eligible", table_name="warmup_trusted_peer")
     op.drop_table("warmup_trusted_peer")
 
     with op.batch_alter_table("account_proxy") as batch_op:

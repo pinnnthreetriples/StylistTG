@@ -12,7 +12,9 @@ UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgre
 
 
 def upgrade() -> None:
-    op.add_column("account_profile_state", sa.Column("profile_photo_asset_id", UUID_STRING, nullable=True))
+    op.add_column(
+        "account_profile_state", sa.Column("profile_photo_asset_id", UUID_STRING, nullable=True)
+    )
 
 
 def downgrade() -> None:

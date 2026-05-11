@@ -149,7 +149,12 @@ def seed_profile_job(
     finished_at: datetime | None = None,
     failure_reason: str | None = None,
 ) -> Job:
-    payload = payload or {"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None}
+    payload = payload or {
+        "name": "Stylist TG",
+        "bio": None,
+        "username": None,
+        "photo_asset_id": None,
+    }
     job = create_profile_job(
         session,
         account_id=account_id,

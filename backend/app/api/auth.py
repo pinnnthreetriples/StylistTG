@@ -21,7 +21,12 @@ from app.services.auth import (
     start_otp,
     submit_password,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission, require_role
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+    require_role,
+)
 from app.api.tenant_helpers import require_account_in_workspace
 
 router = APIRouter(prefix="/api", tags=["auth"])

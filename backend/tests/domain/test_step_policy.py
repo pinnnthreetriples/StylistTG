@@ -17,7 +17,11 @@ def test_story_step_key_failure_after_success_is_partial_when_type_is_generic() 
     outcome = classify_account_update_job_outcome(
         [
             {"step_key": "set_name", "step_type": "set_name", "status": StepStatus.SUCCEEDED},
-            {"step_key": "story_1_post", "step_type": "post_story_image", "status": StepStatus.FAILED},
+            {
+                "step_key": "story_1_post",
+                "step_type": "post_story_image",
+                "status": StepStatus.FAILED,
+            },
         ]
     )
 

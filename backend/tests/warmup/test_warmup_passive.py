@@ -12,6 +12,7 @@
 - Ошибки adapter поднимают consecutive_failures и пишут task_failed;
   на N подряд → circuit breaker → status=PAUSED_RISK + next_micro_session_at=None.
 """
+
 from __future__ import annotations
 
 import random
@@ -56,9 +57,7 @@ def test_mock_adapter_returns_ok_for_supported_actions() -> None:
 def test_mock_adapter_marks_unsupported_action() -> None:
     adapter = MockWarmupTdlibAdapter()
 
-    result = adapter.execute_action(
-        account_id="acc-1", action_type="send_message", context={}
-    )
+    result = adapter.execute_action(account_id="acc-1", action_type="send_message", context={})
 
     assert not result.is_ok
     assert result.status == "unsupported"
@@ -66,11 +65,11 @@ def test_mock_adapter_marks_unsupported_action() -> None:
 
 
 def test_mock_adapter_can_force_failure() -> None:
-    adapter = MockWarmupTdlibAdapter(failure_action_types=("feed_read",), failure_status="flood_wait")
-
-    result = adapter.execute_action(
-        account_id="acc-1", action_type="feed_read", context={}
+    adapter = MockWarmupTdlibAdapter(
+        failure_action_types=("feed_read",), failure_status="flood_wait"
     )
+
+    result = adapter.execute_action(account_id="acc-1", action_type="feed_read", context={})
 
     assert result.status == "flood_wait"
     assert result.error_code == "mock_forced_failure"
@@ -82,9 +81,7 @@ def test_factory_returns_unavailable_when_passive_disabled(monkeypatch) -> None:
     assert isinstance(adapter, UnavailableWarmupTdlibAdapter)
     assert not adapter.is_available()
     assert (
-        adapter.execute_action(
-            account_id="acc-1", action_type="feed_read", context={}
-        ).status
+        adapter.execute_action(account_id="acc-1", action_type="feed_read", context={}).status
         == "unavailable"
     )
 

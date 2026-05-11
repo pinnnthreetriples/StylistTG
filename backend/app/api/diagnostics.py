@@ -59,9 +59,15 @@ def live_preflight(_auth: AuthContext = Depends(require_role("admin"))):
         redis_reachable=bool(result["redis_reachable"]),
         storage_writable=bool(result["storage_writable"]),
         rq_worker_expected=bool(result["rq_worker_expected"]),
-        rq_worker_status=result["rq_worker_status"] if isinstance(result["rq_worker_status"], str) else None,
-        profile_worker_status=result["profile_worker_status"] if isinstance(result["profile_worker_status"], str) else None,
-        auth_worker_status=result["auth_worker_status"] if isinstance(result["auth_worker_status"], str) else None,
+        rq_worker_status=result["rq_worker_status"]
+        if isinstance(result["rq_worker_status"], str)
+        else None,
+        profile_worker_status=result["profile_worker_status"]
+        if isinstance(result["profile_worker_status"], str)
+        else None,
+        auth_worker_status=result["auth_worker_status"]
+        if isinstance(result["auth_worker_status"], str)
+        else None,
         overall_status=str(result["overall_status"]),
     )
 

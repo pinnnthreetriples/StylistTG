@@ -148,9 +148,7 @@ class TdlibProfileExecutionAdapter:
                         "ok": True,
                         "account_state": AccountState.EXECUTION_USABLE,
                         "runtime_health": "ready",
-                        "telegram_user_id": _get_current_user_id(
-                            client, self._config
-                        ),
+                        "telegram_user_id": _get_current_user_id(client, self._config),
                         "error": None,
                     }
                 return {
@@ -207,7 +205,10 @@ class TdlibProfileExecutionAdapter:
                             "result_payload": {"story_post": story_post},
                         }
                         continue
-                    if step["step_type"] == "add_profile_audio" and uploaded_profile_audio_file_id is not None:
+                    if (
+                        step["step_type"] == "add_profile_audio"
+                        and uploaded_profile_audio_file_id is not None
+                    ):
                         step = {
                             **step,
                             "payload": {
@@ -238,7 +239,9 @@ class TdlibProfileExecutionAdapter:
                         }
                         continue
                     query = map_step_to_tdlib_query(step)
-                    response = _checked_send_query(client, query, self._config.tdlib_auth_timeout_seconds)
+                    response = _checked_send_query(
+                        client, query, self._config.tdlib_auth_timeout_seconds
+                    )
                     if step["step_type"] == "add_profile_audio":
                         log_event(
                             "tdlib_profile_audio_add_response",
@@ -294,8 +297,7 @@ class TdlibProfileExecutionAdapter:
                         continue
                     if step["step_type"] == "set_username":
                         me = _checked_send_query(
-                            client,
-                            {"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds
+                            client, {"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds
                         )
                         verification = verify_username_result(
                             step["payload"].get("username") or "", me
@@ -391,7 +393,9 @@ def build_profile_execution_adapter(config: Settings = settings):
             return TdlibProfileExecutionAdapter(
                 client_factory=RealTdJsonClientFactory(config.tdlib_shared_library_path),
                 config=config,
-                proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
+                proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(
+                    client, account_id, config=config
+                ),
             )
         except OSError as exc:
             return UnavailableProfileExecutionAdapter(str(exc))
@@ -615,11 +619,17 @@ def _wait_for_audio_message_send_succeeded(
         if event is None:
             continue
         event_type = event.get("@type")
-        if event_type == "updateMessageSendSucceeded" and event.get("old_message_id") == old_message_id:
+        if (
+            event_type == "updateMessageSendSucceeded"
+            and event.get("old_message_id") == old_message_id
+        ):
             message = event.get("message")
             if isinstance(message, dict):
                 return message
-        if event_type == "updateMessageSendFailed" and event.get("old_message_id") == old_message_id:
+        if (
+            event_type == "updateMessageSendFailed"
+            and event.get("old_message_id") == old_message_id
+        ):
             log_event(
                 "tdlib_profile_audio_saved_message_failed",
                 account_id=account_id,
@@ -700,7 +710,11 @@ def _post_story(client: TdlibClient, step: dict[str, Any], config: Settings) -> 
             "chat_id": chat_id,
             "content": _story_content(media_kind, payload["asset_path"]),
             "areas": {"@type": "inputStoryAreas", "areas": []},
-            "caption": {"@type": "formattedText", "text": payload.get("caption") or "", "entities": []},
+            "caption": {
+                "@type": "formattedText",
+                "text": payload.get("caption") or "",
+                "entities": [],
+            },
             "privacy_settings": _story_privacy_settings(payload.get("privacy_preset")),
             "album_ids": [],
             "active_period": int(payload.get("active_period_seconds") or 86400),
@@ -744,14 +758,19 @@ def _story_content(media_kind: str, asset_path: str) -> dict[str, Any]:
     }
 
 
-def _wait_for_story_post_confirmation(client: TdlibClient, temporary_story_id: int, config: Settings) -> dict[str, Any]:
+def _wait_for_story_post_confirmation(
+    client: TdlibClient, temporary_story_id: int, config: Settings
+) -> dict[str, Any]:
     deadline = time.monotonic() + min(config.tdlib_auth_timeout_seconds, 30.0)
     while time.monotonic() < deadline:
         event = client.receive(config.tdlib_receive_timeout_seconds)
         if event is None:
             continue
         event_type = event.get("@type")
-        if event_type == "updateStoryPostSucceeded" and event.get("old_story_id") == temporary_story_id:
+        if (
+            event_type == "updateStoryPostSucceeded"
+            and event.get("old_story_id") == temporary_story_id
+        ):
             story = event.get("story")
             if isinstance(story, dict):
                 return story
@@ -782,7 +801,9 @@ def _get_saved_messages_chat_id(client: TdlibClient, config: Settings) -> int:
     me = _checked_send_query(client, {"@type": "getMe"}, config.tdlib_receive_timeout_seconds)
     user_id = me.get("id")
     if user_id is None:
-        raise TdlibProfileQueryError("TDLib getMe did not return user id", error_code="TDLIB_GET_ME_MISSING_ID")
+        raise TdlibProfileQueryError(
+            "TDLib getMe did not return user id", error_code="TDLIB_GET_ME_MISSING_ID"
+        )
     chat = _checked_send_query(
         client,
         {"@type": "createPrivateChat", "user_id": int(user_id), "force": True},

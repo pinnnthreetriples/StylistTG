@@ -37,7 +37,9 @@ def build_account_deletion_preview(
     account = _account_or_raise(session, account_id, workspace_id)
     risk = build_account_readiness_risk(session, account)
     assets = _account_assets(session, account)
-    active_jobs = [job for job in account.jobs if job.job_state in {"queued", "running", "waiting_lock"}]
+    active_jobs = [
+        job for job in account.jobs if job.job_state in {"queued", "running", "waiting_lock"}
+    ]
     blocking_reasons = ["active_jobs"] if active_jobs else []
     return {
         "account_id": account.id,
@@ -47,7 +49,12 @@ def build_account_deletion_preview(
         "blocking_reasons": blocking_reasons,
         "planned_actions": [
             {"type": "db_rows", "resource": "account", "count": 1},
-            {"type": "db_rows", "resource": "jobs", "count": len(account.jobs), "retention_policy": "retain_minimal"},
+            {
+                "type": "db_rows",
+                "resource": "jobs",
+                "count": len(account.jobs),
+                "retention_policy": "retain_minimal",
+            },
             {"type": "asset_objects", "resource": "account_assets", "count": len(assets)},
             {
                 "type": "tdlib_session",
@@ -78,15 +85,21 @@ def request_account_deletion(
     if len(reason.strip()) < 10:
         raise ValueError("reason too short")
     account = _account_or_raise(session, account_id, workspace_id)
-    existing = session.execute(
-        select(AccountDeletionRequest)
-        .where(AccountDeletionRequest.account_id == account_id)
-        .where(AccountDeletionRequest.status.in_(ACTIVE_DELETION_STATUSES))
-        .limit(1)
-    ).scalars().first()
+    existing = (
+        session.execute(
+            select(AccountDeletionRequest)
+            .where(AccountDeletionRequest.account_id == account_id)
+            .where(AccountDeletionRequest.status.in_(ACTIVE_DELETION_STATUSES))
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     if existing is not None:
         raise ValueError("active deletion request exists")
-    preview = build_account_deletion_preview(session, account_id=account_id, workspace_id=workspace_id)
+    preview = build_account_deletion_preview(
+        session, account_id=account_id, workspace_id=workspace_id
+    )
     if not preview["can_delete"]:
         raise ValueError("deletion preview has blockers")
     status = "previewed" if dry_run or config.account_deletion_dry_run_default else "requested"
@@ -128,7 +141,9 @@ def request_account_deletion(
     return request
 
 
-def list_deletion_requests(session: Session, *, account_id: str, workspace_id: str) -> list[AccountDeletionRequest]:
+def list_deletion_requests(
+    session: Session, *, account_id: str, workspace_id: str
+) -> list[AccountDeletionRequest]:
     _account_or_raise(session, account_id, workspace_id)
     return list(
         session.execute(
@@ -146,13 +161,17 @@ def get_deletion_request(
     session: Session, *, account_id: str, request_id: str, workspace_id: str
 ) -> AccountDeletionRequest | None:
     _account_or_raise(session, account_id, workspace_id)
-    return session.execute(
-        select(AccountDeletionRequest)
-        .where(AccountDeletionRequest.workspace_id == workspace_id)
-        .where(AccountDeletionRequest.account_id == account_id)
-        .where(AccountDeletionRequest.id == request_id)
-        .limit(1)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(AccountDeletionRequest)
+            .where(AccountDeletionRequest.workspace_id == workspace_id)
+            .where(AccountDeletionRequest.account_id == account_id)
+            .where(AccountDeletionRequest.id == request_id)
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def execute_account_deletion_request(
@@ -253,14 +272,19 @@ def create_account_export_request(
         entity_type="account_export_request",
         entity_id=request.id,
         account_id=account_id,
-        metadata={"export_size_bytes": len(body), "export_ttl_days": config.account_export_ttl_days},
+        metadata={
+            "export_size_bytes": len(body),
+            "export_ttl_days": config.account_export_ttl_days,
+        },
     )
     session.commit()
     session.refresh(request)
     return request
 
 
-def list_export_requests(session: Session, *, account_id: str, workspace_id: str) -> list[AccountExportRequest]:
+def list_export_requests(
+    session: Session, *, account_id: str, workspace_id: str
+) -> list[AccountExportRequest]:
     _account_or_raise(session, account_id, workspace_id)
     return list(
         session.execute(
@@ -274,15 +298,21 @@ def list_export_requests(session: Session, *, account_id: str, workspace_id: str
     )
 
 
-def get_export_request(session: Session, *, account_id: str, request_id: str, workspace_id: str) -> AccountExportRequest | None:
+def get_export_request(
+    session: Session, *, account_id: str, request_id: str, workspace_id: str
+) -> AccountExportRequest | None:
     _account_or_raise(session, account_id, workspace_id)
-    return session.execute(
-        select(AccountExportRequest)
-        .where(AccountExportRequest.workspace_id == workspace_id)
-        .where(AccountExportRequest.account_id == account_id)
-        .where(AccountExportRequest.id == request_id)
-        .limit(1)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(AccountExportRequest)
+            .where(AccountExportRequest.workspace_id == workspace_id)
+            .where(AccountExportRequest.account_id == account_id)
+            .where(AccountExportRequest.id == request_id)
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def build_account_export_payload(session: Session, *, account: Account) -> dict[str, Any]:
@@ -389,7 +419,9 @@ def _account_assets(session: Session, account: Account) -> list[Asset]:
         return []
     return list(
         session.execute(
-            select(Asset).where(Asset.workspace_id == account.workspace_id).where(Asset.id.in_(asset_ids))
+            select(Asset)
+            .where(Asset.workspace_id == account.workspace_id)
+            .where(Asset.id.in_(asset_ids))
         )
         .scalars()
         .all()

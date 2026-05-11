@@ -8,14 +8,24 @@ from app.config import settings
 from app.services.tdlib_runtime import detect_tdlib_runtime
 
 
-def _build_payload(*, runtime_check: bool, library_check: bool, readonly_auth_check: bool, auth_session_id: str | None) -> tuple[dict, bool]:
+def _build_payload(
+    *,
+    runtime_check: bool,
+    library_check: bool,
+    readonly_auth_check: bool,
+    auth_session_id: str | None,
+) -> tuple[dict, bool]:
     status = detect_tdlib_runtime(settings)
     payload = status.to_safe_dict()
     checks: dict[str, str] = {}
 
-    checks["runtime"] = "PASS" if runtime_check or not (library_check or readonly_auth_check) else "SKIP"
+    checks["runtime"] = (
+        "PASS" if runtime_check or not (library_check or readonly_auth_check) else "SKIP"
+    )
     if library_check:
-        checks["library"] = "PASS" if (not status.library_configured or status.library_loadable) else "FAIL"
+        checks["library"] = (
+            "PASS" if (not status.library_configured or status.library_loadable) else "FAIL"
+        )
     else:
         checks["library"] = "SKIP"
 
@@ -40,10 +50,18 @@ def _build_payload(*, runtime_check: bool, library_check: bool, readonly_auth_ch
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Safe TDLib runtime smoke check")
-    parser.add_argument("--runtime-check", action="store_true", help="check TDLib runtime configuration")
+    parser.add_argument(
+        "--runtime-check", action="store_true", help="check TDLib runtime configuration"
+    )
     parser.add_argument("--library-check", action="store_true", help="check tdjson loadability")
-    parser.add_argument("--readonly-auth-check", action="store_true", help="reserved explicit live readonly auth check")
-    parser.add_argument("--auth-session-id", help="existing auth session id for future read-only auth smoke")
+    parser.add_argument(
+        "--readonly-auth-check",
+        action="store_true",
+        help="reserved explicit live readonly auth check",
+    )
+    parser.add_argument(
+        "--auth-session-id", help="existing auth session id for future read-only auth smoke"
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON output")
     args = parser.parse_args(argv)
 

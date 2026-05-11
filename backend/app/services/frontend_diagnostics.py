@@ -14,9 +14,13 @@ def build_frontend_diagnostics_summary(
     config: Settings = settings,
 ) -> dict[str, Any]:
     storage_backend = config.storage_backend
-    bucket_configured = bool(config.storage_s3_bucket) if storage_backend == "s3" else bool(config.storage_root)
+    bucket_configured = (
+        bool(config.storage_s3_bucket) if storage_backend == "s3" else bool(config.storage_root)
+    )
     signed_url_enabled = storage_backend == "s3"
-    public_base_url_configured = bool(config.storage_public_base_url or config.storage_s3_public_base_url)
+    public_base_url_configured = bool(
+        config.storage_public_base_url or config.storage_s3_public_base_url
+    )
     profile_adapter = config.profile_execution_adapter
     tdlib_runtime = detect_tdlib_runtime(config)
     live_enabled = bool(config.tdlib_live_enabled) and profile_adapter == "tdlib"
@@ -50,7 +54,9 @@ def build_frontend_diagnostics_summary(
             "auth_worker_ready": True,
             "readonly_smoke_available": tdlib_runtime.readonly_smoke_available,
             "session_root_configured": session_root_configured,
-            "execution_plane_ready": live_enabled and tdlib_runtime.configured and session_root_configured,
+            "execution_plane_ready": live_enabled
+            and tdlib_runtime.configured
+            and session_root_configured,
             "error_code": tdlib_runtime.error_code,
         },
         "workers": {

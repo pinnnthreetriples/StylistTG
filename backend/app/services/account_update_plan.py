@@ -137,7 +137,9 @@ def build_account_update_plan(
     normalized = normalize_account_update_desired_state(desired_state)
     profile = cast(dict[str, Any], normalized["profile"])
     profile_audio = cast(dict[str, Any], normalized["profile_audio"])
-    selected_profile_step_types = set(PROFILE_STEP_TYPES) if profile_step_types is None else profile_step_types
+    selected_profile_step_types = (
+        set(PROFILE_STEP_TYPES) if profile_step_types is None else profile_step_types
+    )
     name = profile.get("name") or ""
     name_parts = name.split(maxsplit=1)
     first_name = name_parts[0] if name_parts else ""
@@ -268,7 +270,9 @@ def build_account_update_plan(
                 },
                 {
                     "step_key": f"{prefix}_post",
-                    "step_type": "post_story_image" if story["media_kind"] == "image" else "post_story_video",
+                    "step_type": "post_story_image"
+                    if story["media_kind"] == "image"
+                    else "post_story_video",
                     "order": len(steps) + 3,
                     "required": True,
                     "capability_key": f"stories_{story['media_kind']}",

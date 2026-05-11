@@ -5,6 +5,7 @@
 @SpamBot. Конкретные реализации (OpenAI/Anthropic) подключаются в
 Фазе 4 отдельным PR; в Фазе 0a единственный провайдер — Mock.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -47,20 +48,15 @@ class WarmupTextProvider(Protocol):
 
     provider_name: str
 
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
-    def generate_bio(self, *, seed: str, locale: str = "ru") -> TextVariationResult:
-        ...
+    def generate_bio(self, *, seed: str, locale: str = "ru") -> TextVariationResult: ...
 
-    def rewrite_text(self, request: TextVariationRequest) -> TextVariationResult:
-        ...
+    def rewrite_text(self, request: TextVariationRequest) -> TextVariationResult: ...
 
-    def compose_p2p_message(self, request: TextVariationRequest) -> TextVariationResult:
-        ...
+    def compose_p2p_message(self, request: TextVariationRequest) -> TextVariationResult: ...
 
-    def compose_spam_bot_reply(self, request: TextVariationRequest) -> TextVariationResult:
-        ...
+    def compose_spam_bot_reply(self, request: TextVariationRequest) -> TextVariationResult: ...
 
 
 _BIO_TEMPLATES_RU: Sequence[str] = (

@@ -1,4 +1,5 @@
 """Core Analyzer class, baseline handling, and coverage integration."""
+
 from __future__ import annotations
 
 import ast
@@ -55,7 +56,8 @@ class Analyzer:
             suppression_warnings=supp_warnings,
         )
 
-        all_issues: list[Issue] = list(supp_warnings)
+        # Filter suppression warnings (META001) through file-level suppressions too
+        all_issues: list[Issue] = [w for w in supp_warnings if w.rule_id not in file_supprs]
 
         for rule in self.rules:
             # Skip disabled project rules
@@ -109,18 +111,20 @@ class Analyzer:
             if num_branches > 0 and covered_branches < num_branches:
                 missing = num_branches - covered_branches
                 pct = round(covered_branches / num_branches * 100, 1)
-                issues.append(Issue(
-                    rule_id="TQA040",
-                    rule_type="edge_cases",
-                    severity=Severity.INFO,
-                    file=filepath,
-                    line=1,
-                    message=(
-                        f"{missing} of {num_branches} branches"
-                        f" uncovered ({pct}% branch coverage)"
-                    ),
-                    recommendation="Add tests for uncovered branches",
-                ))
+                issues.append(
+                    Issue(
+                        rule_id="TQA040",
+                        rule_type="edge_cases",
+                        severity=Severity.INFO,
+                        file=filepath,
+                        line=1,
+                        message=(
+                            f"{missing} of {num_branches} branches"
+                            f" uncovered ({pct}% branch coverage)"
+                        ),
+                        recommendation="Add tests for uncovered branches",
+                    )
+                )
         return issues
 
 

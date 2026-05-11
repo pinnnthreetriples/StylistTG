@@ -5,6 +5,7 @@ Verifies that:
 - operator/admin/owner see full phone_number
 - cross-workspace batch is inaccessible
 """
+
 from __future__ import annotations
 
 import pytest
@@ -197,7 +198,11 @@ class TestCrossWorkspaceBatchInaccessible:
             )
             session.add(foreign_workspace)
             session.flush()
-            session.add(WorkspaceMember(workspace_id=foreign_workspace.id, user_id=foreign_user.id, role="owner"))
+            session.add(
+                WorkspaceMember(
+                    workspace_id=foreign_workspace.id, user_id=foreign_user.id, role="owner"
+                )
+            )
             session.add(WorkspacePlan(workspace_id=foreign_workspace.id))
             session.flush()
 

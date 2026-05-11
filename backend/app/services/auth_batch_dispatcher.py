@@ -98,8 +98,12 @@ def claim_next_item(session: Session, batch: AuthBatch) -> AuthBatchItem | None:
         .group_by(AuthBatchItem.status)
     ).all():
         counts[str(status)] = int(count)
-    running = sum(counts.get(str(status), counts.get(status.value, 0)) for status in ACTIVE_COMMAND_STATUSES)
-    waiting = sum(counts.get(str(status), counts.get(status.value, 0)) for status in WAITING_INPUT_STATUSES)
+    running = sum(
+        counts.get(str(status), counts.get(status.value, 0)) for status in ACTIVE_COMMAND_STATUSES
+    )
+    waiting = sum(
+        counts.get(str(status), counts.get(status.value, 0)) for status in WAITING_INPUT_STATUSES
+    )
     if running >= batch.max_running_commands:
         return None
     if waiting >= batch.max_waiting_input:
@@ -120,18 +124,21 @@ def claim_next_item(session: Session, batch: AuthBatch) -> AuthBatchItem | None:
     if item is None:
         return None
 
-    result = cast(CursorResult[Any], session.execute(
-        update(AuthBatchItem)
-        .where(AuthBatchItem.id == item.id)
-        .where(AuthBatchItem.status == AuthBatchItemStatus.QUEUED)
-        .values(
-            status=AuthBatchItemStatus.STARTING,
-            attempt_count=AuthBatchItem.attempt_count + 1,
-            locked_by=f"dispatcher-{uuid.uuid4().hex[:8]}",
-            lock_expires_at=utc_now() + timedelta(minutes=5),
-            updated_at=utc_now(),
-        )
-    ))
+    result = cast(
+        CursorResult[Any],
+        session.execute(
+            update(AuthBatchItem)
+            .where(AuthBatchItem.id == item.id)
+            .where(AuthBatchItem.status == AuthBatchItemStatus.QUEUED)
+            .values(
+                status=AuthBatchItemStatus.STARTING,
+                attempt_count=AuthBatchItem.attempt_count + 1,
+                locked_by=f"dispatcher-{uuid.uuid4().hex[:8]}",
+                lock_expires_at=utc_now() + timedelta(minutes=5),
+                updated_at=utc_now(),
+            )
+        ),
+    )
     if result.rowcount != 1:
         session.rollback()
         return None

@@ -39,7 +39,9 @@ def process_due_warmup_sessions(
     )
     if workspace_id is not None:
         query = query.where(WarmupSession.workspace_id == workspace_id)
-    query = query.order_by(WarmupSession.updated_at.asc()).limit(limit or settings.warmup_batch_limit)
+    query = query.order_by(WarmupSession.updated_at.asc()).limit(
+        limit or settings.warmup_batch_limit
+    )
 
     processed = 0
     for warmup_session in session.execute(query).scalars().all():
@@ -68,7 +70,9 @@ def handle_warmup_step_failure(
     - ``WarmupStatus.FAILED`` (default) — hard failure used by dry-run worker.
     - ``WarmupStatus.PAUSED_RISK`` — soft pause used by live dispatch.
     """
-    threshold = max_failures if max_failures is not None else settings.warmup_max_consecutive_failures
+    threshold = (
+        max_failures if max_failures is not None else settings.warmup_max_consecutive_failures
+    )
     timestamp = now or datetime.now(UTC)
     warmup_session.consecutive_failures += 1
     warmup_session.updated_at = timestamp
@@ -84,7 +88,9 @@ def handle_warmup_step_failure(
                 "error": error,
                 "consecutive_failures": warmup_session.consecutive_failures,
                 "threshold": threshold,
-                "target_status": target_status.value if hasattr(target_status, "value") else str(target_status),
+                "target_status": target_status.value
+                if hasattr(target_status, "value")
+                else str(target_status),
             },
         )
         session.flush()
@@ -106,20 +112,23 @@ def claim_account_runtime_lock(
     owner: str,
     now: datetime,
 ) -> bool:
-    result = cast(CursorResult[Any], session.execute(
-        update(AccountRuntimeState)
-        .where(
-            AccountRuntimeState.account_id == account_id,
-            AccountRuntimeState.lock_owner.is_(None),
-        )
-        .values(
-            lock_owner=owner,
-            lock_epoch=AccountRuntimeState.lock_epoch + 1,
-            recovery_marker=f"warmup_lock_acquired:{owner}",
-            updated_at=now,
-        )
-        .execution_options(synchronize_session=False)
-    ))
+    result = cast(
+        CursorResult[Any],
+        session.execute(
+            update(AccountRuntimeState)
+            .where(
+                AccountRuntimeState.account_id == account_id,
+                AccountRuntimeState.lock_owner.is_(None),
+            )
+            .values(
+                lock_owner=owner,
+                lock_epoch=AccountRuntimeState.lock_epoch + 1,
+                recovery_marker=f"warmup_lock_acquired:{owner}",
+                updated_at=now,
+            )
+            .execution_options(synchronize_session=False)
+        ),
+    )
     return bool(result.rowcount)
 
 
@@ -186,13 +195,17 @@ def _process_one_locked_session(
     now: datetime,
     worker_id: str,
 ) -> bool:
-    existing = session.execute(
-        select(WarmupTaskRun).where(
-            WarmupTaskRun.session_id == warmup_session.id,
-            WarmupTaskRun.day == warmup_session.current_day,
-            WarmupTaskRun.task_type == DRY_RUN_TASK_TYPE,
+    existing = (
+        session.execute(
+            select(WarmupTaskRun).where(
+                WarmupTaskRun.session_id == warmup_session.id,
+                WarmupTaskRun.day == warmup_session.current_day,
+                WarmupTaskRun.task_type == DRY_RUN_TASK_TYPE,
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if existing is not None:
         write_warmup_event(
             session,

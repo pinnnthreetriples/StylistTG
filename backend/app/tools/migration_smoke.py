@@ -24,7 +24,9 @@ def main() -> None:
         _create_database(admin_url, db_name)
     try:
         print("empty_upgrade_head", _run_alembic(base_url, empty_db, "upgrade", "head"))
-        print("empty_downgrade_0018", _run_alembic(base_url, empty_db, "downgrade", "20260430_0018"))
+        print(
+            "empty_downgrade_0018", _run_alembic(base_url, empty_db, "downgrade", "20260430_0018")
+        )
         print("seeded_upgrade_0018", _run_alembic(base_url, seeded_db, "upgrade", "20260430_0018"))
         before = _seed_0018(base_url, seeded_db)
         print("seeded_counts_before", before)
@@ -128,9 +130,17 @@ def _inspect_seeded(
 ) -> tuple[dict[str, int], dict[str, list[str]], dict[str, str | None]]:
     engine = create_engine(f"{base_url}/{db_name}")
     with engine.connect() as connection:
-        counts = _counts(connection, AGGREGATE_TABLES + ["workspace", "app_user", "workspace_member", "workspace_plan"])
+        counts = _counts(
+            connection,
+            AGGREGATE_TABLES + ["workspace", "app_user", "workspace_member", "workspace_plan"],
+        )
         workspace_ids = {
-            table_name: [row[0] for row in connection.execute(text(f"select workspace_id::text from {table_name}")).all()]
+            table_name: [
+                row[0]
+                for row in connection.execute(
+                    text(f"select workspace_id::text from {table_name}")
+                ).all()
+            ]
             for table_name in AGGREGATE_TABLES
         }
         asset_storage_row = connection.execute(
@@ -164,17 +174,27 @@ def _assert_seeded_upgrade(
 ) -> None:
     for table_name in AGGREGATE_TABLES:
         if before[table_name] != 1 or after[table_name] != 1:
-            raise AssertionError(f"{table_name} row count changed: before={before[table_name]} after={after[table_name]}")
+            raise AssertionError(
+                f"{table_name} row count changed: before={before[table_name]} after={after[table_name]}"
+            )
         if workspace_ids[table_name] != [DEFAULT_WORKSPACE_ID]:
-            raise AssertionError(f"{table_name} workspace backfill failed: {workspace_ids[table_name]}")
+            raise AssertionError(
+                f"{table_name} workspace backfill failed: {workspace_ids[table_name]}"
+            )
     for table_name in ("workspace", "app_user", "workspace_member", "workspace_plan"):
         if after[table_name] != 1:
             raise AssertionError(f"{table_name} bootstrap count failed: {after[table_name]}")
     if asset_storage["storage_backend"] != "local":
         raise AssertionError(f"asset storage backend backfill failed: {asset_storage}")
-    if asset_storage["source_key"] != "source.jpg" or asset_storage["normalized_key"] != "normalized.jpg":
+    if (
+        asset_storage["source_key"] != "source.jpg"
+        or asset_storage["normalized_key"] != "normalized.jpg"
+    ):
         raise AssertionError(f"asset storage key backfill failed: {asset_storage}")
-    if asset_storage["source_path"] != "source.jpg" or asset_storage["normalized_path"] != "normalized.jpg":
+    if (
+        asset_storage["source_path"] != "source.jpg"
+        or asset_storage["normalized_path"] != "normalized.jpg"
+    ):
         raise AssertionError(f"asset legacy path preservation failed: {asset_storage}")
 
 

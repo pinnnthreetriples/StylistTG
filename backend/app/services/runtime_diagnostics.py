@@ -28,11 +28,14 @@ def build_runtime_diagnostics() -> dict[str, Any]:
         diagnostics["database"] = "down"
 
     try:
-        redis = cast(Redis, cast(Any, Redis).from_url(
-            settings.redis_url,
-            socket_connect_timeout=1,
-            socket_timeout=1,
-        ))
+        redis = cast(
+            Redis,
+            cast(Any, Redis).from_url(
+                settings.redis_url,
+                socket_connect_timeout=1,
+                socket_timeout=1,
+            ),
+        )
         cast(Any, redis).ping()
         diagnostics["redis"] = "ok"
     except RedisError:
@@ -57,7 +60,8 @@ def account_runtime_diagnostics(session: Session, account_id: str) -> dict[str, 
         "last_error_code": latest_step.error_code if latest_step else None,
         "last_error_class": latest_step.error_class if latest_step else None,
         "tdlib_configured": _tdlib_credentials_present(),
-        "manual_intervention_required": account.runtime_state.runtime_health == "manual_intervention_needed"
+        "manual_intervention_required": account.runtime_state.runtime_health
+        == "manual_intervention_needed"
         or account.account_state == "manual_intervention_needed",
         "recovery_marker": account.runtime_state.recovery_marker,
         "lock_owner": account.runtime_state.lock_owner,

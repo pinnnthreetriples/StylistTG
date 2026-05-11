@@ -44,11 +44,21 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_sensitive_audit_event_workspace_id", "sensitive_audit_event", ["workspace_id"])
+    op.create_index(
+        "ix_sensitive_audit_event_workspace_id", "sensitive_audit_event", ["workspace_id"]
+    )
     op.create_index("ix_sensitive_audit_event_account_id", "sensitive_audit_event", ["account_id"])
-    op.create_index("ix_sensitive_audit_workspace_created", "sensitive_audit_event", ["workspace_id", "created_at"])
-    op.create_index("ix_sensitive_audit_account_created", "sensitive_audit_event", ["account_id", "created_at"])
-    op.create_index("ix_sensitive_audit_action_created", "sensitive_audit_event", ["action", "created_at"])
+    op.create_index(
+        "ix_sensitive_audit_workspace_created",
+        "sensitive_audit_event",
+        ["workspace_id", "created_at"],
+    )
+    op.create_index(
+        "ix_sensitive_audit_account_created", "sensitive_audit_event", ["account_id", "created_at"]
+    )
+    op.create_index(
+        "ix_sensitive_audit_action_created", "sensitive_audit_event", ["action", "created_at"]
+    )
 
     op.create_table(
         "account_lifecycle_event",
@@ -65,10 +75,22 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_account_lifecycle_event_workspace_id", "account_lifecycle_event", ["workspace_id"])
-    op.create_index("ix_account_lifecycle_event_account_id", "account_lifecycle_event", ["account_id"])
-    op.create_index("ix_account_lifecycle_workspace_created", "account_lifecycle_event", ["workspace_id", "created_at"])
-    op.create_index("ix_account_lifecycle_account_created", "account_lifecycle_event", ["account_id", "created_at"])
+    op.create_index(
+        "ix_account_lifecycle_event_workspace_id", "account_lifecycle_event", ["workspace_id"]
+    )
+    op.create_index(
+        "ix_account_lifecycle_event_account_id", "account_lifecycle_event", ["account_id"]
+    )
+    op.create_index(
+        "ix_account_lifecycle_workspace_created",
+        "account_lifecycle_event",
+        ["workspace_id", "created_at"],
+    )
+    op.create_index(
+        "ix_account_lifecycle_account_created",
+        "account_lifecycle_event",
+        ["account_id", "created_at"],
+    )
 
     op.create_table(
         "account_deletion_request",
@@ -92,10 +114,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_account_deletion_request_workspace_id", "account_deletion_request", ["workspace_id"])
-    op.create_index("ix_account_deletion_request_account_id", "account_deletion_request", ["account_id"])
-    op.create_index("ix_account_deletion_workspace_status", "account_deletion_request", ["workspace_id", "status"])
-    op.create_index("ix_account_deletion_account_status", "account_deletion_request", ["account_id", "status"])
+    op.create_index(
+        "ix_account_deletion_request_workspace_id", "account_deletion_request", ["workspace_id"]
+    )
+    op.create_index(
+        "ix_account_deletion_request_account_id", "account_deletion_request", ["account_id"]
+    )
+    op.create_index(
+        "ix_account_deletion_workspace_status",
+        "account_deletion_request",
+        ["workspace_id", "status"],
+    )
+    op.create_index(
+        "ix_account_deletion_account_status", "account_deletion_request", ["account_id", "status"]
+    )
 
     op.create_table(
         "account_export_request",
@@ -118,10 +150,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_account_export_request_workspace_id", "account_export_request", ["workspace_id"])
-    op.create_index("ix_account_export_request_account_id", "account_export_request", ["account_id"])
-    op.create_index("ix_account_export_workspace_status", "account_export_request", ["workspace_id", "status"])
-    op.create_index("ix_account_export_account_created", "account_export_request", ["account_id", "requested_at"])
+    op.create_index(
+        "ix_account_export_request_workspace_id", "account_export_request", ["workspace_id"]
+    )
+    op.create_index(
+        "ix_account_export_request_account_id", "account_export_request", ["account_id"]
+    )
+    op.create_index(
+        "ix_account_export_workspace_status", "account_export_request", ["workspace_id", "status"]
+    )
+    op.create_index(
+        "ix_account_export_account_created",
+        "account_export_request",
+        ["account_id", "requested_at"],
+    )
 
     op.create_table(
         "job_execution_event",
@@ -150,8 +192,12 @@ def upgrade() -> None:
     op.create_index("ix_job_execution_event_job_id", "job_execution_event", ["job_id"])
     op.create_index("ix_job_execution_event_workspace_id", "job_execution_event", ["workspace_id"])
     op.create_index("ix_job_execution_event_account_id", "job_execution_event", ["account_id"])
-    op.create_index("ix_job_execution_workspace_created", "job_execution_event", ["workspace_id", "created_at"])
-    op.create_index("ix_job_execution_account_created", "job_execution_event", ["account_id", "created_at"])
+    op.create_index(
+        "ix_job_execution_workspace_created", "job_execution_event", ["workspace_id", "created_at"]
+    )
+    op.create_index(
+        "ix_job_execution_account_created", "job_execution_event", ["account_id", "created_at"]
+    )
     op.create_index("ix_job_execution_job_created", "job_execution_event", ["job_id", "created_at"])
 
 

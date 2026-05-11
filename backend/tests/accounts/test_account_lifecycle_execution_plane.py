@@ -5,9 +5,16 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models import AccountState, DEFAULT_LOCAL_WORKSPACE_ID
 from app.services.account_cooldowns import create_cooldown_from_error, list_active_account_cooldowns
-from app.services.account_lifecycle import build_account_export_payload, create_account_export_request
+from app.services.account_lifecycle import (
+    build_account_export_payload,
+    create_account_export_request,
+)
 from app.services.accounts import create_account
-from app.services.locks import acquire_redis_account_lock, refresh_redis_account_lock, release_redis_account_lock
+from app.services.locks import (
+    acquire_redis_account_lock,
+    refresh_redis_account_lock,
+    release_redis_account_lock,
+)
 from app.services.rate_limits import evaluate_tenant_rate_limit
 from app.services.retry_policy import classify_error_category, retry_policy_for
 from app.services.risk_gate import evaluate_action_gate
@@ -141,11 +148,19 @@ def test_deletion_request_requires_confirmation_and_audits(db_session) -> None:
     try:
         rejected = client.post(
             f"/api/accounts/{account.id}/deletion-requests",
-            json={"reason": "operator requested deletion", "confirmation": "WRONG", "dry_run": True},
+            json={
+                "reason": "operator requested deletion",
+                "confirmation": "WRONG",
+                "dry_run": True,
+            },
         )
         accepted = client.post(
             f"/api/accounts/{account.id}/deletion-requests",
-            json={"reason": "operator requested deletion", "confirmation": "DELETE", "dry_run": True},
+            json={
+                "reason": "operator requested deletion",
+                "confirmation": "DELETE",
+                "dry_run": True,
+            },
         )
     finally:
         app.dependency_overrides.clear()
@@ -258,9 +273,15 @@ def test_redis_account_lock_owner_and_ttl() -> None:
 def test_rate_limit_blocks_over_limit_and_is_workspace_scoped() -> None:
     redis = FakeRedis()
     for _ in range(20):
-        assert evaluate_tenant_rate_limit(redis, workspace_id="w1", action_type="account.auth", queue_name="auth_jobs").allowed
-    blocked = evaluate_tenant_rate_limit(redis, workspace_id="w1", action_type="account.auth", queue_name="auth_jobs")
-    other_workspace = evaluate_tenant_rate_limit(redis, workspace_id="w2", action_type="account.auth", queue_name="auth_jobs")
+        assert evaluate_tenant_rate_limit(
+            redis, workspace_id="w1", action_type="account.auth", queue_name="auth_jobs"
+        ).allowed
+    blocked = evaluate_tenant_rate_limit(
+        redis, workspace_id="w1", action_type="account.auth", queue_name="auth_jobs"
+    )
+    other_workspace = evaluate_tenant_rate_limit(
+        redis, workspace_id="w2", action_type="account.auth", queue_name="auth_jobs"
+    )
 
     assert blocked.allowed is False
     assert blocked.reason == "tenant_rate_limit_exceeded"

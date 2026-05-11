@@ -57,12 +57,18 @@ def create_account(
     return account
 
 
-def get_account(session: Session, account_id: str, workspace_id: str | None = None) -> Account | None:
+def get_account(
+    session: Session, account_id: str, workspace_id: str | None = None
+) -> Account | None:
     if workspace_id is None:
         return session.get(Account, account_id)
-    return session.execute(
-        select(Account).where(Account.id == account_id, Account.workspace_id == workspace_id)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(Account).where(Account.id == account_id, Account.workspace_id == workspace_id)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def get_account_by_external_ref(
@@ -71,12 +77,20 @@ def get_account_by_external_ref(
     *,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
 ) -> Account | None:
-    return session.execute(
-        select(Account).where(Account.external_ref == external_ref, Account.workspace_id == workspace_id)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(Account).where(
+                Account.external_ref == external_ref, Account.workspace_id == workspace_id
+            )
+        )
+        .scalars()
+        .first()
+    )
 
 
-def list_accounts(session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID) -> list[Account]:
+def list_accounts(
+    session: Session, workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID
+) -> list[Account]:
     return list(
         session.execute(
             select(Account)
@@ -120,16 +134,22 @@ def delete_account(
 
     reap_stale_jobs(session, stale_after_seconds=settings.stale_job_timeout_seconds)
 
-    active_job = session.execute(
-        select(Job.id)
-        .where(Job.account_id == account_id)
-        .where(Job.job_state.not_in([state.value for state in TERMINAL_JOB_STATES]))
-        .limit(1)
-    ).scalars().first()
+    active_job = (
+        session.execute(
+            select(Job.id)
+            .where(Job.account_id == account_id)
+            .where(Job.job_state.not_in([state.value for state in TERMINAL_JOB_STATES]))
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     if active_job is not None:
         raise ValueError("active job cannot be deleted")
 
-    terminal_jobs = list(session.execute(select(Job).where(Job.account_id == account_id)).scalars().all())
+    terminal_jobs = list(
+        session.execute(select(Job).where(Job.account_id == account_id)).scalars().all()
+    )
     for job in terminal_jobs:
         session.delete(job)
 

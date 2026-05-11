@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_session
 from app.errors import AppError
-from app.schemas import AccountImportBatchConfirm, AccountImportBatchCreate, AccountImportBatchRead, AccountImportBatchValidate
+from app.schemas import (
+    AccountImportBatchConfirm,
+    AccountImportBatchCreate,
+    AccountImportBatchRead,
+    AccountImportBatchValidate,
+)
 from app.services.account_imports import (
     confirm_import_batch,
     create_import_batch,
@@ -18,7 +23,11 @@ from app.services.account_imports import (
     list_import_batches,
     validate_batch,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 
 router = APIRouter(prefix="/api/account-import-batches", tags=["account-import-batches"])
 
@@ -46,7 +55,10 @@ def get_import_batches(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return [AccountImportBatchRead(**import_batch_to_dict(row)) for row in list_import_batches(session, workspace_id=auth.workspace_id)]
+    return [
+        AccountImportBatchRead(**import_batch_to_dict(row))
+        for row in list_import_batches(session, workspace_id=auth.workspace_id)
+    ]
 
 
 @router.get("/{batch_id}", response_model=AccountImportBatchRead)
@@ -57,7 +69,12 @@ def get_import_batch_detail(
 ):
     row = get_import_batch(session, batch_id=batch_id, workspace_id=auth.workspace_id)
     if row is None:
-        raise AppError(status_code=404, error_code="IMPORT_BATCH_NOT_FOUND", error_class="not_found", message="import batch not found")
+        raise AppError(
+            status_code=404,
+            error_code="IMPORT_BATCH_NOT_FOUND",
+            error_class="not_found",
+            message="import batch not found",
+        )
     return AccountImportBatchRead(**import_batch_to_dict(row))
 
 
@@ -69,7 +86,13 @@ def post_validate_import_batch(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     content = _decode_optional_base64(payload.content_base64)
-    row = validate_batch(session, batch_id=batch_id, workspace_id=auth.workspace_id, content=content, metadata=payload.metadata)
+    row = validate_batch(
+        session,
+        batch_id=batch_id,
+        workspace_id=auth.workspace_id,
+        content=content,
+        metadata=payload.metadata,
+    )
     return AccountImportBatchRead(**import_batch_to_dict(row))
 
 
@@ -80,7 +103,12 @@ def post_confirm_import_batch(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    row = confirm_import_batch(session, batch_id=batch_id, workspace_id=auth.workspace_id, confirmation=payload.confirmation)
+    row = confirm_import_batch(
+        session,
+        batch_id=batch_id,
+        workspace_id=auth.workspace_id,
+        confirmation=payload.confirmation,
+    )
     return AccountImportBatchRead(**import_batch_to_dict(row))
 
 
@@ -98,7 +126,12 @@ def _decode_optional_base64(value: str | None) -> bytes | None:
     try:
         decoded = base64.b64decode(value, validate=True)
     except binascii.Error as exc:
-        raise AppError(status_code=400, error_code="IMPORT_CONTENT_INVALID", error_class="validation", message="content_base64 is invalid") from exc
+        raise AppError(
+            status_code=400,
+            error_code="IMPORT_CONTENT_INVALID",
+            error_class="validation",
+            message="content_base64 is invalid",
+        ) from exc
     if len(decoded) > settings.account_import_max_upload_bytes:
         raise AppError(
             status_code=413,

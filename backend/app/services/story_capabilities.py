@@ -22,7 +22,9 @@ def build_story_capabilities(
     ffprobe_available = _binary_available(config.ffprobe_path, "ffprobe")
     ffmpeg_available = _binary_available(config.ffmpeg_path, "ffmpeg")
     tdlib_execution_enabled = config.profile_execution_adapter == "tdlib"
-    live_enabled = config.stories_enabled and tdlib_execution_enabled and config.stories_tdlib_live_enabled
+    live_enabled = (
+        config.stories_enabled and tdlib_execution_enabled and config.stories_tdlib_live_enabled
+    )
     return {
         "account_id": account_id,
         "stories_enabled": config.stories_enabled,

@@ -75,10 +75,7 @@ def test_sentry_event_sanitizer_preserves_breadcrumb_data() -> None:
 
 def test_sentry_event_sanitizer_redacts_tdjson_library_paths_in_text() -> None:
     event = {
-        "message": (
-            "failed to load /usr/local/lib/libtdjson.so and "
-            "C:\\Tools\\tdlib\\tdjson.dll"
-        )
+        "message": ("failed to load /usr/local/lib/libtdjson.so and C:\\Tools\\tdlib\\tdjson.dll")
     }
 
     sanitized = sanitize_sentry_event(event)

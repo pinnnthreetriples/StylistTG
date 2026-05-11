@@ -18,7 +18,11 @@ from app.schemas import (
 )
 from app.services.dashboard import job_summary
 from app.api.tenant_helpers import require_account_in_workspace, require_job_in_workspace
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.jobs import (
     build_job_detail,
     build_job_steps,
@@ -77,7 +81,9 @@ def preview_profile_job(
         if "asset" in message:
             field_errors.append({"field": "photo_asset_id", "message": message})
         raise AppError(
-            status_code=status.HTTP_400_BAD_REQUEST if error_class == "validation" else status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_400_BAD_REQUEST
+            if error_class == "validation"
+            else status.HTTP_404_NOT_FOUND,
             error_code=error_code,
             error_class=error_class,
             message=message,
@@ -121,7 +127,9 @@ def post_profile_job(
             error_code = "PROFILE_JOB_COOLDOWN_ACTIVE"
             error_class = "rate_limit"
         raise AppError(
-            status_code=status.HTTP_400_BAD_REQUEST if error_class != "not_found" else status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_400_BAD_REQUEST
+            if error_class != "not_found"
+            else status.HTTP_404_NOT_FOUND,
             error_code=error_code,
             error_class=error_class,
             message=message,

@@ -10,7 +10,11 @@ from app.models import JobState, utc_now
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
 from app.services.account_update_jobs import build_account_update_preview, create_account_update_job
 from app.api.tenant_helpers import require_account_in_workspace
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.dashboard import job_summary
 from app.services.operation_logs import log_operation
 from app.services.warmup import warmup_operation_policy
@@ -55,7 +59,9 @@ def preview_account_update(
     return AccountUpdatePreviewRead(**preview)
 
 
-@router.post("/jobs", response_model=AccountUpdateJobSummaryRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/jobs", response_model=AccountUpdateJobSummaryRead, status_code=status.HTTP_201_CREATED
+)
 def post_account_update_job(
     payload: AccountUpdateCreate,
     session: Session = Depends(get_session),
@@ -105,7 +111,11 @@ def post_account_update_job(
         log_event("account_update_enqueue_requested", account_id=payload.account_id, job_id=job.id)
         if enqueue_account_update_job(job.id) is False:
             if settings.queue_inline_fallback_enabled:
-                log_event("account_update_inline_fallback_requested", account_id=payload.account_id, job_id=job.id)
+                log_event(
+                    "account_update_inline_fallback_requested",
+                    account_id=payload.account_id,
+                    job_id=job.id,
+                )
                 execute_account_update_job(job.id, session=session)
                 session.refresh(job)
                 return AccountUpdateJobSummaryRead(**job_summary(job))
@@ -151,7 +161,9 @@ def _account_update_error(exc: ValueError) -> AppError:
         error_code = "STORIES_TDLIB_LIVE_DISABLED"
         error_class = "capability"
     return AppError(
-        status_code=status.HTTP_400_BAD_REQUEST if error_class != "not_found" else status.HTTP_404_NOT_FOUND,
+        status_code=status.HTTP_400_BAD_REQUEST
+        if error_class != "not_found"
+        else status.HTTP_404_NOT_FOUND,
         error_code=error_code,
         error_class=error_class,
         message=message,

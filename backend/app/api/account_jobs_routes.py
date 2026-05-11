@@ -22,7 +22,9 @@ def list_jobs(
     require_account_in_workspace(session, account_id, auth)
     return [
         JobSummaryRead(**job_summary(job))
-        for job in list_account_jobs(session, account_id, limit=limit, workspace_id=auth.workspace_id)
+        for job in list_account_jobs(
+            session, account_id, limit=limit, workspace_id=auth.workspace_id
+        )
     ]
 
 

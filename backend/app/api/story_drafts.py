@@ -5,7 +5,11 @@ from app.api.account_context import account_id_header
 from app.db import get_session
 from app.errors import AppError
 from app.schemas import StoryDraftCreate, StoryDraftRead, StoryDraftUpdate
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.story_drafts import (
     create_story_draft,
     delete_story_draft,
@@ -85,11 +89,15 @@ def remove_story_draft(
 def _story_draft_error(exc: ValueError) -> AppError:
     message = str(exc)
     error_code = "ACCOUNT_NOT_FOUND" if message == "account not found" else "VALIDATION_ERROR"
-    error_class = "not_found" if message in {"account not found", "story draft not found"} else "validation"
+    error_class = (
+        "not_found" if message in {"account not found", "story draft not found"} else "validation"
+    )
     if message == "story draft not found":
         error_code = "STORY_DRAFT_NOT_FOUND"
     return AppError(
-        status_code=status.HTTP_404_NOT_FOUND if error_class == "not_found" else status.HTTP_400_BAD_REQUEST,
+        status_code=status.HTTP_404_NOT_FOUND
+        if error_class == "not_found"
+        else status.HTTP_400_BAD_REQUEST,
         error_code=error_code,
         error_class=error_class,
         message=message,

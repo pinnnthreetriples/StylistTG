@@ -27,7 +27,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("disabled_at", sa.DateTime(timezone=True), nullable=True),
-        sa.UniqueConstraint("external_auth_provider", "external_auth_user_id", name="uq_user_external_auth"),
+        sa.UniqueConstraint(
+            "external_auth_provider", "external_auth_user_id", name="uq_user_external_auth"
+        ),
     )
     op.create_index("ix_user_email", "app_user", ["email"])
 
@@ -93,7 +95,13 @@ def upgrade() -> None:
         sa.Column("period_end", sa.DateTime(timezone=True), nullable=False),
         sa.Column("metric", sa.String(length=128), nullable=False),
         sa.Column("value", sa.Integer(), nullable=False),
-        sa.UniqueConstraint("workspace_id", "period_start", "period_end", "metric", name="uq_usage_counter_period_metric"),
+        sa.UniqueConstraint(
+            "workspace_id",
+            "period_start",
+            "period_end",
+            "metric",
+            name="uq_usage_counter_period_metric",
+        ),
     )
     op.create_index("ix_usage_counter_workspace_id", "usage_counter", ["workspace_id"])
 
@@ -200,13 +208,27 @@ def upgrade() -> None:
     for table_name in ("account", "auth_batch", "job", "asset", "account_operation_log"):
         op.add_column(
             table_name,
-            sa.Column("workspace_id", UUID_STRING, sa.ForeignKey("workspace.id"), nullable=False, server_default=DEFAULT_WORKSPACE_ID),
+            sa.Column(
+                "workspace_id",
+                UUID_STRING,
+                sa.ForeignKey("workspace.id"),
+                nullable=False,
+                server_default=DEFAULT_WORKSPACE_ID,
+            ),
         )
         op.create_index(f"ix_{table_name}_workspace_id", table_name, ["workspace_id"])
 
-    op.add_column("job", sa.Column("requested_by_user_id", UUID_STRING, sa.ForeignKey("app_user.id"), nullable=True))
-    op.add_column("job", sa.Column("approved_by_user_id", UUID_STRING, sa.ForeignKey("app_user.id"), nullable=True))
-    op.add_column("job", sa.Column("created_from", sa.String(length=64), nullable=False, server_default="api"))
+    op.add_column(
+        "job",
+        sa.Column("requested_by_user_id", UUID_STRING, sa.ForeignKey("app_user.id"), nullable=True),
+    )
+    op.add_column(
+        "job",
+        sa.Column("approved_by_user_id", UUID_STRING, sa.ForeignKey("app_user.id"), nullable=True),
+    )
+    op.add_column(
+        "job", sa.Column("created_from", sa.String(length=64), nullable=False, server_default="api")
+    )
     op.add_column("job", sa.Column("request_id", sa.String(length=128), nullable=True))
 
 

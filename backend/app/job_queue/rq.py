@@ -137,7 +137,9 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
                 job_id=job_id,
             )
         else:
-            queue.enqueue_call(func=run_batch_start_auth, args=(item_id,), job_id=job_id, unique=True)
+            queue.enqueue_call(
+                func=run_batch_start_auth, args=(item_id,), job_id=job_id, unique=True
+            )
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False
@@ -160,7 +162,9 @@ def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action
     return True
 
 
-def reenqueue_job_with_delay(job_id: str, *, delay_seconds: int, workflow_type: str | None = None) -> bool:
+def reenqueue_job_with_delay(
+    job_id: str, *, delay_seconds: int, workflow_type: str | None = None
+) -> bool:
     queue = get_profile_queue()
     func = run_account_update_job if workflow_type == "account_update" else run_profile_job
     retry_job_id = f"retry-{job_id}"

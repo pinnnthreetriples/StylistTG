@@ -25,7 +25,11 @@ class ValidTdlibChecker:
 
 class ReauthTdlibChecker:
     def check_account(self, account_id: str) -> dict:
-        return {"status": "reauth_required", "runtime_health": "awaiting_code", "error_code": "tdlib_wait_code"}
+        return {
+            "status": "reauth_required",
+            "runtime_health": "awaiting_code",
+            "error_code": "tdlib_wait_code",
+        }
 
 
 class FailedTcpChecker:
@@ -51,7 +55,12 @@ def _seed_proxy(db_session) -> str:
 def test_proxy_check_tcp_only_marks_tcp_working(db_session) -> None:
     account_id = _seed_proxy(db_session)
 
-    result = check_account_proxy(db_session, account_id, checker=OkTcpChecker(), config=Settings(profile_execution_adapter="mock"))
+    result = check_account_proxy(
+        db_session,
+        account_id,
+        checker=OkTcpChecker(),
+        config=Settings(profile_execution_adapter="mock"),
+    )
 
     assert result["status"] == "tcp_working"
     assert result["last_check_scope"] == "tcp"

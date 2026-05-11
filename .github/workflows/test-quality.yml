@@ -47,45 +47,78 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p reports
 
-      - name: Ruff lint (including PT rules)
-        run: python -m ruff check app tests
+      # ----- Hard gates (fail the build) --------------------------------------
+      - name: Ruff lint
+        run: python -m ruff check .
 
-      - name: Run tests with coverage
+      - name: Ruff format check
+        run: python -m ruff format --check .
+
+      - name: Run tests with coverage (random order, parallel)
         run: |
-          python -m pytest -p no:randomly \
-            --cov=app --cov-branch --cov-context=test \
+          python -m pytest tests \
+            -n auto --dist=loadscope \
+            --cov=app --cov=tools --cov-branch --cov-context=test \
             --cov-report=json:reports/coverage.json \
             --cov-report=html:reports/htmlcov \
-            --cov-report=term-missing \
-            --cov-fail-under=70 \
+            --cov-report=term-missing:skip-covered \
             -q
         env:
           APP_ENV: test
           AUTH_MODE: local
 
-      - name: Run test quality analyzer
-        continue-on-error: true
+      - name: Per-package coverage gate
+        run: python scripts/coverage_gate.py
+
+      - name: Run test quality analyzer (strict, fails on any issue)
         run: |
           python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format sarif \
             --output reports/test-quality.sarif \
-            --severity WARNING
+            --severity INFO
 
       - name: Run test quality analyzer (JSON)
-        continue-on-error: true
         run: |
           python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format json \
             --output reports/test-quality.json \
-            --severity WARNING
+            --severity INFO
         if: always()
 
-      - name: jscpd duplicate detection
+      # ----- Soft gates (visible but don't block yet) -------------------------
+      # Pyright: strict mode surfaces 549 pre-existing errors. Tracked as a
+      # dedicated fix-up effort; `continue-on-error` is removed once the backlog
+      # is drained. Every PR still sees the current error count.
+      - name: Pyright (strict, soft)
+        run: python -m pyright
         continue-on-error: true
+
+      # pip-audit: scans the installed environment for known CVEs.
+      # --skip-editable: don't try to audit our own editable install.
+      # Plain mode (no --strict) returns exit 1 only on real CVEs.
+      - name: pip-audit
+        run: python -m pip_audit --skip-editable --progress-spinner=off
+
+      # Schemathesis OpenAPI contract fuzz. Currently surfaces a backlog of
+      # schema ↔ handler drift; soft until the backlog is drained. Generated
+      # report is uploaded as a CI artifact for triage.
+      - name: Schemathesis OpenAPI fuzz (soft)
+        run: |
+          python -m pytest tests/contract/ -m contract \
+            -p no:randomly \
+            --tb=short -q \
+            --junit-xml=reports/schemathesis-junit.xml \
+            || true   # backlog tracked separately; do not fail PR builds yet
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+        continue-on-error: true
+
+      - name: jscpd duplicate detection
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
 
@@ -146,9 +179,10 @@ jobs:
 
       - name: Mutation testing (mutmut)
         run: |
-          python -m mutmut run --paths-to-mutate=app/services \
-            --tests-dir=tests --no-progress || true
-          python -m mutmut results > reports/mutmut-results.txt || true
+          python -m mutmut run --max-children 2
+          python -m mutmut export-cicd-stats
+          python scripts/mutation_gate.py --min-score 65
+          python -m mutmut results > reports/mutmut-results.txt
         env:
           APP_ENV: test
           AUTH_MODE: local

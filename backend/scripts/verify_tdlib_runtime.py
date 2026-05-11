@@ -16,7 +16,12 @@ def main() -> int:
         return 1
     missing = [
         symbol
-        for symbol in ("td_json_client_create", "td_json_client_send", "td_json_client_receive", "td_json_client_destroy")
+        for symbol in (
+            "td_json_client_create",
+            "td_json_client_send",
+            "td_json_client_receive",
+            "td_json_client_destroy",
+        )
         if not hasattr(library, symbol)
     ]
     if missing:

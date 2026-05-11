@@ -20,7 +20,11 @@ from app.services.account_lifecycle import (
     list_export_requests,
     request_account_deletion,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -42,13 +46,19 @@ def get_account_deletion_preview(
 ):
     try:
         return AccountDeletionPreviewRead(
-            **build_account_deletion_preview(session, account_id=account_id, workspace_id=auth.workspace_id)
+            **build_account_deletion_preview(
+                session, account_id=account_id, workspace_id=auth.workspace_id
+            )
         )
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc
 
 
-@router.post("/{account_id}/deletion-requests", response_model=AccountDeletionRequestRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{account_id}/deletion-requests",
+    response_model=AccountDeletionRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_account_deletion_request(
     account_id: str,
     payload: AccountDeletionRequestCreate,
@@ -87,13 +97,17 @@ def get_account_deletion_requests(
     try:
         return [
             AccountDeletionRequestRead(**deletion_request_to_dict(request))
-            for request in list_deletion_requests(session, account_id=account_id, workspace_id=auth.workspace_id)
+            for request in list_deletion_requests(
+                session, account_id=account_id, workspace_id=auth.workspace_id
+            )
         ]
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc
 
 
-@router.get("/{account_id}/deletion-requests/{request_id}", response_model=AccountDeletionRequestRead)
+@router.get(
+    "/{account_id}/deletion-requests/{request_id}", response_model=AccountDeletionRequestRead
+)
 def get_account_deletion_request(
     account_id: str,
     request_id: str,
@@ -101,15 +115,26 @@ def get_account_deletion_request(
     auth: AuthContext = Depends(require_authenticated),
 ):
     try:
-        request = get_deletion_request(session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id)
+        request = get_deletion_request(
+            session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id
+        )
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc
     if request is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="DELETION_REQUEST_NOT_FOUND", error_class="not_found", message="deletion request not found")
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="DELETION_REQUEST_NOT_FOUND",
+            error_class="not_found",
+            message="deletion request not found",
+        )
     return AccountDeletionRequestRead(**deletion_request_to_dict(request))
 
 
-@router.post("/{account_id}/export-requests", response_model=AccountExportRequestRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{account_id}/export-requests",
+    response_model=AccountExportRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_account_export_request(
     account_id: str,
     session: Session = Depends(get_session),
@@ -136,7 +161,9 @@ def get_account_export_requests(
     try:
         return [
             AccountExportRequestRead(**export_request_to_dict(request))
-            for request in list_export_requests(session, account_id=account_id, workspace_id=auth.workspace_id)
+            for request in list_export_requests(
+                session, account_id=account_id, workspace_id=auth.workspace_id
+            )
         ]
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc
@@ -150,9 +177,16 @@ def get_account_export_request(
     auth: AuthContext = Depends(require_authenticated),
 ):
     try:
-        request = get_export_request(session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id)
+        request = get_export_request(
+            session, account_id=account_id, request_id=request_id, workspace_id=auth.workspace_id
+        )
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc
     if request is None:
-        raise AppError(status_code=status.HTTP_404_NOT_FOUND, error_code="EXPORT_REQUEST_NOT_FOUND", error_class="not_found", message="export request not found")
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="EXPORT_REQUEST_NOT_FOUND",
+            error_class="not_found",
+            message="export request not found",
+        )
     return AccountExportRequestRead(**export_request_to_dict(request))

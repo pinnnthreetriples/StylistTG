@@ -33,7 +33,12 @@ def create_auth_session(
     account_id: str | None = None,
 ) -> TelegramAuthSession:
     if account_id and get_account(session, account_id, workspace_id=workspace_id) is None:
-        raise AppError(status_code=404, error_code="ACCOUNT_NOT_FOUND", error_class="not_found", message="account not found")
+        raise AppError(
+            status_code=404,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
+        )
     row = TelegramAuthSession(
         id=new_id(),
         workspace_id=workspace_id,
@@ -71,7 +76,9 @@ def create_auth_session(
     return row
 
 
-def list_auth_sessions(session: Session, *, workspace_id: str, limit: int = 50) -> list[TelegramAuthSession]:
+def list_auth_sessions(
+    session: Session, *, workspace_id: str, limit: int = 50
+) -> list[TelegramAuthSession]:
     return list(
         session.execute(
             select(TelegramAuthSession)
@@ -84,13 +91,19 @@ def list_auth_sessions(session: Session, *, workspace_id: str, limit: int = 50) 
     )
 
 
-def get_auth_session(session: Session, *, auth_session_id: str, workspace_id: str) -> TelegramAuthSession | None:
-    return session.execute(
-        select(TelegramAuthSession).where(
-            TelegramAuthSession.id == auth_session_id,
-            TelegramAuthSession.workspace_id == workspace_id,
+def get_auth_session(
+    session: Session, *, auth_session_id: str, workspace_id: str
+) -> TelegramAuthSession | None:
+    return (
+        session.execute(
+            select(TelegramAuthSession).where(
+                TelegramAuthSession.id == auth_session_id,
+                TelegramAuthSession.workspace_id == workspace_id,
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
 
 def process_auth_action(
@@ -154,7 +167,9 @@ def auth_session_to_dict(row: TelegramAuthSession) -> dict[str, Any]:
     }
 
 
-def _apply_transition(session: Session, row: TelegramAuthSession, transition: TdlibAuthTransition, *, config: Settings) -> None:
+def _apply_transition(
+    session: Session, row: TelegramAuthSession, transition: TdlibAuthTransition, *, config: Settings
+) -> None:
     row.status = transition.status
     row.requires_code = transition.requires_code
     row.requires_password = transition.requires_password
@@ -178,8 +193,14 @@ def _apply_transition(session: Session, row: TelegramAuthSession, transition: Td
         row.failed_at = utc_now()
 
 
-def _link_ready_account(session: Session, row: TelegramAuthSession, me: dict[str, Any], *, config: Settings) -> None:
-    account = get_account(session, row.account_id, workspace_id=row.workspace_id) if row.account_id else None
+def _link_ready_account(
+    session: Session, row: TelegramAuthSession, me: dict[str, Any], *, config: Settings
+) -> None:
+    account = (
+        get_account(session, row.account_id, workspace_id=row.workspace_id)
+        if row.account_id
+        else None
+    )
     if account is None:
         external_ref = f"telegram:{me.get('id') or row.id}"
         account = create_account(
@@ -199,10 +220,17 @@ def _link_ready_account(session: Session, row: TelegramAuthSession, me: dict[str
     build_account_tdlib_paths(workspace_id=row.workspace_id, account_id=account.id, config=config)
 
 
-def _require_session(session: Session, auth_session_id: str, workspace_id: str) -> TelegramAuthSession:
+def _require_session(
+    session: Session, auth_session_id: str, workspace_id: str
+) -> TelegramAuthSession:
     row = get_auth_session(session, auth_session_id=auth_session_id, workspace_id=workspace_id)
     if row is None:
-        raise AppError(status_code=404, error_code="AUTH_SESSION_NOT_FOUND", error_class="not_found", message="auth session not found")
+        raise AppError(
+            status_code=404,
+            error_code="AUTH_SESSION_NOT_FOUND",
+            error_class="not_found",
+            message="auth session not found",
+        )
     return row
 
 
@@ -216,7 +244,9 @@ def _fail(row: TelegramAuthSession, code: str, message: str) -> None:
     row.updated_at = utc_now()
 
 
-def _audit_action(session: Session, row: TelegramAuthSession, action: str, metadata: dict[str, Any]) -> None:
+def _audit_action(
+    session: Session, row: TelegramAuthSession, action: str, metadata: dict[str, Any]
+) -> None:
     record_sensitive_audit_event(
         session,
         workspace_id=row.workspace_id,

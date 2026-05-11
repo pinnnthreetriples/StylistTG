@@ -34,14 +34,18 @@ def upgrade() -> None:
     op.drop_table("idempotency_key")
     op.create_table(
         "idempotency_key",
-        sa.Column("workspace_id", UUID_STRING, nullable=False, server_default=DEFAULT_LOCAL_WORKSPACE_ID),
+        sa.Column(
+            "workspace_id", UUID_STRING, nullable=False, server_default=DEFAULT_LOCAL_WORKSPACE_ID
+        ),
         sa.Column("key", sa.String(length=128), nullable=False),
         sa.Column("operation", sa.String(length=128), nullable=False),
         sa.Column("entity_id", UUID_STRING, nullable=False),
         sa.Column("response_json", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"], name="fk_idempotency_key_workspace"),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspace.id"], name="fk_idempotency_key_workspace"
+        ),
         sa.PrimaryKeyConstraint("workspace_id", "key", name="pk_idempotency_key"),
     )
     op.create_index("ix_idempotency_key_expires", "idempotency_key", ["expires_at"])

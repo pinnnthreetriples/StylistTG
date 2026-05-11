@@ -13,9 +13,11 @@
   text_provider_unavailable.
 - Adapter cleanup: close() вызывается после dispatch tick.
 """
+
 from __future__ import annotations
 
 import random
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -48,9 +50,7 @@ from tests.helpers.warmup import seed_warmup_account, seed_warmup_session, seed_
 def test_mock_adapter_join_chat_requires_chat_target() -> None:
     adapter = MockWarmupTdlibAdapter(rng_seed=1)
 
-    missing = adapter.execute_action(
-        account_id="acc-1", action_type="join_chat", context={}
-    )
+    missing = adapter.execute_action(account_id="acc-1", action_type="join_chat", context={})
     assert missing.status == "missing_context"
     assert missing.error_code == "join_chat_missing_target"
 
@@ -89,9 +89,7 @@ def test_mock_adapter_p2p_send_requires_peer_and_text() -> None:
 def test_mock_adapter_supports_action_per_mode() -> None:
     passive_only = MockWarmupTdlibAdapter(supported_modes=("passive",))
     network = MockWarmupTdlibAdapter(supported_modes=("passive", "network"))
-    advanced = MockWarmupTdlibAdapter(
-        supported_modes=("passive", "network", "advanced")
-    )
+    advanced = MockWarmupTdlibAdapter(supported_modes=("passive", "network", "advanced"))
 
     assert passive_only.supports_action("feed_read")
     assert not passive_only.supports_action("join_chat")
@@ -197,6 +195,22 @@ def _ready_event() -> dict[str, Any]:
     }
 
 
+@contextmanager
+def _real_adapter_session(
+    monkeypatch,
+    *,
+    receive_queue: list,
+    responses: list,
+):
+    """Build a RealWarmupTdlibAdapter over a scripted client and close on exit."""
+    client = _ProgrammableTdlibClient(receive_queue=receive_queue, responses=responses)
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        yield client, adapter
+    finally:
+        adapter.close()
+
+
 def _make_real_adapter(client: _ProgrammableTdlibClient, monkeypatch) -> RealWarmupTdlibAdapter:
     """Сборка RealWarmupTdlibAdapter поверх scripted client.
 
@@ -217,9 +231,7 @@ def test_real_adapter_get_me_emits_getMe_query(monkeypatch) -> None:
     )
     adapter = _make_real_adapter(client, monkeypatch)
     try:
-        result = adapter.execute_action(
-            account_id="acc-1", action_type="get_me", context={}
-        )
+        result = adapter.execute_action(account_id="acc-1", action_type="get_me", context={})
     finally:
         adapter.close()
 
@@ -239,9 +251,7 @@ def test_real_adapter_feed_read_uses_getChats_then_viewMessages(monkeypatch) -> 
     )
     adapter = _make_real_adapter(client, monkeypatch)
     try:
-        result = adapter.execute_action(
-            account_id="acc-1", action_type="feed_read", context={}
-        )
+        result = adapter.execute_action(account_id="acc-1", action_type="feed_read", context={})
     finally:
         adapter.close()
 
@@ -307,25 +317,18 @@ def test_real_adapter_p2p_send_uses_createPrivateChat_then_sendMessage(monkeypat
     assert client.queries[0]["user_id"] == 12345
     assert client.queries[1]["@type"] == "sendMessage"
     assert client.queries[1]["chat_id"] == 555
-    assert (
-        client.queries[1]["input_message_content"]["text"]["text"] == "Привет!"
-    )
+    assert client.queries[1]["input_message_content"]["text"]["text"] == "Привет!"
     assert result.metadata["chat_id"] == 555
     assert result.metadata["text_length"] == len("Привет!")
 
 
 def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:
-    client = _ProgrammableTdlibClient(
+    with _real_adapter_session(
+        monkeypatch,
         receive_queue=[_ready_event()],
         responses=[{"@type": "error", "code": 429, "message": "FLOOD_WAIT_30"}],
-    )
-    adapter = _make_real_adapter(client, monkeypatch)
-    try:
-        result = adapter.execute_action(
-            account_id="acc-1", action_type="get_me", context={}
-        )
-    finally:
-        adapter.close()
+    ) as (_client, adapter):
+        result = adapter.execute_action(account_id="acc-1", action_type="get_me", context={})
 
     assert result.status == "flood_wait"
     assert result.retry_after_seconds == 30
@@ -333,9 +336,12 @@ def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:
 
 
 def test_real_adapter_close_idempotent_and_drops_clients(monkeypatch) -> None:
-    client = _ProgrammableTdlibClient(receive_queue=[_ready_event()], responses=[
-        {"@type": "user", "id": 1, "username": "u"},
-    ])
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "user", "id": 1, "username": "u"},
+        ],
+    )
     adapter = _make_real_adapter(client, monkeypatch)
     adapter.execute_action(account_id="acc-1", action_type="get_me", context={})
     assert client.closed is False
@@ -394,7 +400,9 @@ def test_network_dispatch_calls_join_chat_with_target_from_strategy(db_session) 
             "1": {"feed_read": 0, "join_chat": 1, "p2p_send": 0},
         },
     )
-    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    warmup_session = seed_warmup_session(
+        db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     adapter = MockWarmupTdlibAdapter(rng_seed=10)
 
     _drive_until(
@@ -420,7 +428,9 @@ def test_network_dispatch_skips_join_chat_when_strategy_has_no_channels(db_sessi
         target_channels=[],
         daily_action_limits={"1": {"join_chat": 1}},
     )
-    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    warmup_session = seed_warmup_session(
+        db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     adapter = MockWarmupTdlibAdapter()
 
     process_due_warmup_dispatches(
@@ -435,7 +445,8 @@ def test_network_dispatch_skips_join_chat_when_strategy_has_no_channels(db_sessi
     join_calls = [c for c in adapter.calls if c["action_type"] == "join_chat"]
     assert join_calls == []
     skip_events = [
-        e for e in warmup_session.events
+        e
+        for e in warmup_session.events
         if e.event_type == "task_skipped"
         and e.payload_json.get("reason") == "no_target_channels_configured"
     ]
@@ -453,7 +464,9 @@ def test_advanced_dispatch_p2p_send_uses_eligible_peer_and_records_contact(
         target_channels=[{"username": "cool_news"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = seed_warmup_session(db_session, strategy=sender_strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    warmup_session = seed_warmup_session(
+        db_session, strategy=sender_strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     # seed eligible peer in the same workspace, with telegram_user_id
     peer_account = seed_warmup_account(db_session, telegram_user_id="555")
     db_session.add(
@@ -509,7 +522,9 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
         target_channels=[{"username": "cool_news"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    warmup_session = seed_warmup_session(
+        db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     adapter = MockWarmupTdlibAdapter()
 
     process_due_warmup_dispatches(
@@ -524,7 +539,8 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
     p2p_calls = [c for c in adapter.calls if c["action_type"] == "p2p_send"]
     assert p2p_calls == []
     skip_events = [
-        e for e in warmup_session.events
+        e
+        for e in warmup_session.events
         if e.event_type == "task_skipped"
         and e.payload_json.get("reason") == "no_eligible_trusted_peers"
     ]
@@ -566,7 +582,9 @@ def test_write_action_blocked_when_adapter_lacks_capability(db_session) -> None:
         target_channels=[{"username": "cool"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    warmup_session = seed_warmup_session(
+        db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     peer_account = seed_warmup_account(db_session, telegram_user_id="777")
     db_session.add(
         WarmupTrustedPeer(
@@ -595,7 +613,8 @@ def test_write_action_blocked_when_adapter_lacks_capability(db_session) -> None:
     p2p_calls = [c for c in adapter.calls if c["action_type"] == "p2p_send"]
     assert p2p_calls == [], "adapter without p2p capability must not be invoked"
     skip_events = [
-        e for e in warmup_session.events
+        e
+        for e in warmup_session.events
         if e.event_type == "task_skipped"
         and e.payload_json.get("reason") == "write_action_not_enabled"
     ]
@@ -762,7 +781,9 @@ def test_text_seed_is_deterministic_across_ticks(db_session) -> None:
         target_channels=[{"username": "cool"}],
         daily_action_limits={"1": {"p2p_send": 1}},
     )
-    session_obj = seed_warmup_session(db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC))
+    session_obj = seed_warmup_session(
+        db_session, strategy=strategy, now=datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+    )
     db_session.refresh(session_obj)
 
     seed_1 = _derive_text_seed(session_obj, "p2p_send")

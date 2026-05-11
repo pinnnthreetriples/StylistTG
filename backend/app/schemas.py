@@ -1208,7 +1208,9 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     capability_snapshot: dict[str, str]
     account_safety: AccountSafetyRead | None = None
     risk_by_operation: dict[str, AccountRiskRead] = Field(default_factory=dict)
-    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(default_factory=dict)
+    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(
+        default_factory=dict
+    )
     safety_warnings: list[str] = Field(default_factory=list)
     safety_blockers: list[str] = Field(default_factory=list)
     operation_safety: list[AccountOperationSafetyRead] = Field(default_factory=list)

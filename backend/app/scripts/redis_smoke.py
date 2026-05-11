@@ -30,7 +30,12 @@ def run_redis_smoke(
         report.add("redis_url", "FAIL", "REDIS_URL is required")
         return report
     if not redis_url.startswith("rediss://"):
-        report.add("redis_tls", "WARN", "rediss:// is preferred for cloud Redis", url=sanitized_url(redis_url))
+        report.add(
+            "redis_tls",
+            "WARN",
+            "rediss:// is preferred for cloud Redis",
+            url=sanitized_url(redis_url),
+        )
     key = f"smoke:stylisttg:{uuid.uuid4()}"
     try:
         client = client_factory(redis_url)
@@ -40,12 +45,24 @@ def run_redis_smoke(
         client.delete(key)
         deleted_value = client.get(key)
     except Exception as exc:
-        report.add("redis_ping", "FAIL", "Redis smoke failed", url=sanitized_url(redis_url), error=type(exc).__name__)
+        report.add(
+            "redis_ping",
+            "FAIL",
+            "Redis smoke failed",
+            url=sanitized_url(redis_url),
+            error=type(exc).__name__,
+        )
         return report
     if value not in {"ok", b"ok"} or deleted_value is not None:
         report.add("redis_roundtrip", "FAIL", "Redis temporary key roundtrip failed")
     else:
-        report.add("redis_roundtrip", "PASS", "Redis ping/set/get/delete smoke passed", url=sanitized_url(redis_url), key_prefix="smoke:stylisttg")
+        report.add(
+            "redis_roundtrip",
+            "PASS",
+            "Redis ping/set/get/delete smoke passed",
+            url=sanitized_url(redis_url),
+            key_prefix="smoke:stylisttg",
+        )
     return report
 
 
@@ -59,4 +76,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main_guard(main)
-

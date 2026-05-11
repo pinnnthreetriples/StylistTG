@@ -24,6 +24,23 @@ from tests.helpers.query_count import QueryCounter
 
 pytestmark = pytest.mark.api
 
+READ_ENDPOINT_CEILING_CASES = [
+    ("account_detail", "/api/accounts/{account_id}", 5),
+    ("account_risk", "/api/accounts/{account_id}/risk", 10),
+    ("account_safety", "/api/accounts/{account_id}/safety", 30),
+    ("account_cooldowns", "/api/accounts/{account_id}/cooldowns", 5),
+    ("account_runtime_diagnostics", "/api/accounts/{account_id}/runtime-diagnostics", 8),
+    ("account_jobs", "/api/accounts/{account_id}/jobs", 5),
+    ("account_latest_job", "/api/accounts/{account_id}/jobs/latest", 5),
+    ("job_steps", "/api/jobs/{job_id}/steps", 5),
+    ("auth_batches_list", "/api/auth-batches", 5),
+    ("auth_batch_poll", "/api/auth-batches/{batch_id}/poll", 6),
+    ("proxy_summary", "/api/accounts/proxy-summary", 5),
+    ("account_proxy", "/api/accounts/{account_id}/proxy", 6),
+    ("operation_logs", "/api/accounts/{account_id}/operation-logs", 8),
+    ("audit_events", "/api/accounts/{account_id}/audit-events", 6),
+]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -46,6 +63,31 @@ def _setup_accounts(session, n: int) -> list[str]:
     return ids
 
 
+def _setup_endpoint_matrix():
+    sf, engine = _make_session()
+    with sf() as session:
+        account_ids = _setup_accounts(session, 20)
+        batch, _item = seed_auth_batch(
+            session,
+            account_id=account_ids[0],
+            idempotency_key="test-key-matrix",
+        )
+        with freeze_time("2026-01-15 12:00:00"):
+            job = seed_job(
+                session,
+                account_id=account_ids[0],
+                payload={"first_name": "Changed"},
+                state=JobState.COMPLETED,
+                finished_at=datetime.now(UTC),
+            )
+        context = {
+            "account_id": account_ids[0],
+            "batch_id": batch.id,
+            "job_id": job.id,
+        }
+    return sf, engine, context
+
+
 # ---------------------------------------------------------------------------
 # Strict query-count ceilings
 # ---------------------------------------------------------------------------
@@ -62,6 +104,23 @@ RISK_SUMMARY_CEILING = 10
 SAFETY_SUMMARY_PER_ACCOUNT_CEILING = 5
 AUTH_BATCH_DETAIL_CEILING = 10
 JOB_DETAIL_CEILING = 10
+
+
+@pytest.mark.parametrize(
+    ("case_name", "path_template", "ceiling"),
+    READ_ENDPOINT_CEILING_CASES,
+    ids=[case[0] for case in READ_ENDPOINT_CEILING_CASES],
+)
+def test_read_endpoint_query_count_matrix(case_name: str, path_template: str, ceiling: int):
+    sf, engine, context = _setup_endpoint_matrix()
+    path = path_template.format(**context)
+    with app_client(sf) as client:
+        with QueryCounter(engine) as counter:
+            response = client.get(path)
+        assert response.status_code == 200
+        assert counter.count <= ceiling, (
+            f"{case_name} exceeded ceiling: {counter.count} > {ceiling} for {path}"
+        )
 
 
 def test_accounts_list_ceiling():

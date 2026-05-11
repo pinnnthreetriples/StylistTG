@@ -103,6 +103,21 @@ jobs:
       - name: pip-audit
         run: python -m pip_audit --skip-editable --progress-spinner=off
 
+      # Schemathesis OpenAPI contract fuzz. Currently surfaces a backlog of
+      # schema ↔ handler drift; soft until the backlog is drained. Generated
+      # report is uploaded as a CI artifact for triage.
+      - name: Schemathesis OpenAPI fuzz (soft)
+        run: |
+          python -m pytest tests/contract/ -m contract \
+            -p no:randomly \
+            --tb=short -q \
+            --junit-xml=reports/schemathesis-junit.xml \
+            || true   # backlog tracked separately; do not fail PR builds yet
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+        continue-on-error: true
+
       - name: jscpd duplicate detection
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
@@ -164,9 +179,10 @@ jobs:
 
       - name: Mutation testing (mutmut)
         run: |
-          python -m mutmut run --paths-to-mutate=app/services \
-            --tests-dir=tests --no-progress || true
-          python -m mutmut results > reports/mutmut-results.txt || true
+          python -m mutmut run --max-children 2
+          python -m mutmut export-cicd-stats
+          python scripts/mutation_gate.py --min-score 65
+          python -m mutmut results > reports/mutmut-results.txt
         env:
           APP_ENV: test
           AUTH_MODE: local

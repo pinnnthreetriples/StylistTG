@@ -38,6 +38,7 @@ dev = [
   "pygments>=2.20.0",
   "pyright>=1.1.407",
   "ruff>=0.14.0",
+  "schemathesis>=4.18.0",
 ]
 
 [tool.ruff]
@@ -139,6 +140,19 @@ exclude_also = [
 output = "reports/coverage.json"
 show_contexts = false
 
+[tool.mutmut]
+paths_to_mutate = [
+  "app/adapters/tdlib_auth.py",
+  "app/services/plan.py",
+  "app/services/step_registry.py",
+]
+tests_dir = [
+  "tests/properties",
+  "tests/domain/test_plan_and_dedup.py",
+  "tests/accounts/test_account_update_plan.py",
+]
+pytest_add_cli_args = ["-p", "no:randomly"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
@@ -152,6 +166,11 @@ addopts = [
   "--strict-config",
   "--tb=short",
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
+  # Schemathesis contract fuzz lives in tests/contract/ behind the `contract`
+  # marker. It currently surfaces a large backlog of OpenAPI ↔ handler drift;
+  # excluded from the default suite so the hard gate stays usable, and run as
+  # a dedicated soft job (`pytest -m contract`) in CI.
+  "-m", "not contract",
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
 # Anything new = build red until either fixed or explicitly ignored with justification.

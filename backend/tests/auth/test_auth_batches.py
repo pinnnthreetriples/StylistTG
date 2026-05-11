@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 from app.adapters.tdlib_auth import TdlibAuthResult, TdlibAuthStatus
 from app.config import settings
@@ -599,6 +600,7 @@ def test_submit_code_idempotency_key_is_scoped_to_item(monkeypatch) -> None:
     assert adapter.confirmed == [(first.json()["account_id"], "111111")]
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_idempotency_result_allows_expired_key_reuse() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

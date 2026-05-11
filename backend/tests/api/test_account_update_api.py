@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+from freezegun import freeze_time
 
 from app.models import AccountOperationCooldown, AccountProfileState, AccountState, AssetKind, AssetStatus, Job, JobState, JobStepResult, StepStatus, utc_now
 from app.config import Settings
@@ -306,6 +307,7 @@ def test_account_update_create_blocks_story_jobs_for_unvalidated_tdlib_live_path
     assert message == "stories live TDLib execution is not enabled"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_update_create_blocks_operation_specific_safety_cooldown(db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE

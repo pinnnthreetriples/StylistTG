@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 from sqlalchemy import select
 
 from app.db import Base
@@ -202,6 +203,7 @@ def test_account_safety_blocked_by_reauth_required(db_session) -> None:
     assert "reauth_required" in [reason["code"] for reason in safety["reasons"]]
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_safety_attention_for_recent_partial_job(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -240,6 +242,7 @@ def test_account_safety_story_live_disabled_and_music_unknown(db_session) -> Non
     assert safety["risk_by_operation"]["story_post"]["level"] == "blocked"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_safety_high_risk_for_recent_flood_wait(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -402,6 +405,7 @@ def test_account_validity_tdlib_readonly_adapter_create_failure_is_structured() 
     assert result["error"] == "tdjson unavailable"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -435,6 +439,7 @@ def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_ses
     assert persisted == []
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_validity_check_persists_operation_cooldown_from_flood_wait(db_session) -> None:
     from app.services.account_validity import run_account_validity_check
 
@@ -464,6 +469,7 @@ def test_validity_check_persists_operation_cooldown_from_flood_wait(db_session) 
     assert persisted[0].operation == "username"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_expired_operation_cooldown_no_longer_blocks_safety(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -490,6 +496,7 @@ def test_expired_operation_cooldown_no_longer_blocks_safety(db_session) -> None:
     assert safety["risk_by_operation"]["username"]["level"] != "blocked"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_update_preview_blocks_only_affected_cooldown_operation(db_session) -> None:
     from app.services.account_update_jobs import build_account_update_preview
 
@@ -653,6 +660,7 @@ def test_safety_override_service_requires_matching_workspace(db_session) -> None
         raise AssertionError("override should require matching workspace")
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_recent_failure_policy_creates_warning_cooldown_for_soft_failure(db_session) -> None:
     from app.config import Settings
     from app.services.account_safety import build_account_safety
@@ -687,6 +695,7 @@ def test_recent_failure_policy_creates_warning_cooldown_for_soft_failure(db_sess
     assert cooldown["reason_code"] == "recent_failure_cooldown"
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_capabilities_deepen_story_delete_and_username_failure(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -784,6 +793,7 @@ def test_account_batch_safety_preview_blocks_accounts_with_hard_safety_state(db_
     assert blocked.id in preview["blocking_account_ids"]
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_batch_safety_preview_marks_operation_cooldown_as_paused(db_session) -> None:
     from app.services.account_batch_safety import build_account_batch_safety_preview
 

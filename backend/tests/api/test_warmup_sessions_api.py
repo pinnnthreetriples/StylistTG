@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from app.models import (
     AccountRuntimeState,
@@ -135,6 +136,7 @@ def test_delete_warmup_session_removes_session_and_events(db_session) -> None:
     assert db_session.query(WarmupEvent).count() == 0
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_pause_and_resume_warmup_session(db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)

@@ -229,6 +229,8 @@ def _has_marker(func: ast.FunctionDef, marker: str) -> bool:
 
 def _func_source(func: ast.FunctionDef, lines: list[str]) -> str:
     start = func.lineno - 1
+    if func.decorator_list:
+        start = func.decorator_list[0].lineno - 1
     end = func.end_lineno or start + 1
     return "\n".join(lines[start:end])
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from freezegun import freeze_time
 
 from app.models import JobState
 
@@ -123,6 +124,7 @@ def test_auth_batch_detail_ceiling():
         )
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_job_detail_ceiling():
     """GET /api/jobs/{id} must not exceed ceiling."""
     sf, engine = _make_session()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 from app.db import Base
 from app.main import app
@@ -173,6 +174,7 @@ def test_account_risk_summary_is_workspace_scoped() -> None:
     assert hidden_detail.status_code == 404
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_risk_includes_proxy_and_cooldown_reasons() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

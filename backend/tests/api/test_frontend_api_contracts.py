@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 from app.db import Base
 from app.main import app
@@ -164,6 +165,7 @@ def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     app.dependency_overrides.clear()
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_accounts_list_returns_profile_summary() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -563,6 +565,7 @@ def test_profile_job_create_returns_dedup_blocked_payload(monkeypatch) -> None:
     app.dependency_overrides.clear()
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_job_details_and_steps_are_polling_friendly() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

@@ -25,6 +25,7 @@ from app.services.database import create_sqlite_test_session_factory
 from conftest import override_app_session
 
 
+# test-analyzer: disable=TQA004 reason="PII/leak contract test — verifies many fields are absent from safe summary"
 def test_frontend_diagnostics_summary_is_safe(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.api.diagnostics.build_runtime_diagnostics",

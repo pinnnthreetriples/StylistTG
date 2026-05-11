@@ -64,7 +64,6 @@ jobs:
           AUTH_MODE: local
 
       - name: Run test quality analyzer
-        continue-on-error: true
         run: |
           python -m tools.test_analyzer \
             --path tests \
@@ -74,7 +73,6 @@ jobs:
             --severity WARNING
 
       - name: Run test quality analyzer (JSON)
-        continue-on-error: true
         run: |
           python -m tools.test_analyzer \
             --path tests \
@@ -85,7 +83,6 @@ jobs:
         if: always()
 
       - name: jscpd duplicate detection
-        continue-on-error: true
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
 

@@ -7,6 +7,7 @@ from app.models import AssetKind, AssetStatus
 from app.services.assets import save_profile_audio_asset, save_profile_photo_asset
 
 
+# test-analyzer: disable=TQA004 reason="asset pipeline contract — verifies normalization metadata fields"
 def test_profile_photo_upload_is_normalized_and_recorded(db_session, storage_dir) -> None:
     image = Image.new("RGB", (1600, 900), color=(0, 128, 255))
     buffer = BytesIO()

@@ -14,6 +14,7 @@ MIGRATION_PATH = (
 )
 
 
+# test-analyzer: disable=TQA004 reason="migration contract test — verifies all migrated columns/indices"
 def test_warmup_migration_contract() -> None:
     migration = _load_migration()
     engine = sa.create_engine("sqlite+pysqlite:///:memory:", future=True)

@@ -67,7 +67,9 @@ class TestClientWithoutAppClient(Rule):
                             f"Test `{func.name}` uses TestClient(app)"
                             " + DB override without app_client or try/finally"
                         ),
-                        recommendation="Use app_client fixture/context manager or wrap in try/finally",
+                        recommendation=(
+                            "Use app_client fixture/context manager or wrap in try/finally"
+                        ),
                     ))
         return issues
 
@@ -81,7 +83,11 @@ class TestClientWithoutAppClient(Rule):
                     is_autouse = False
                     if isinstance(dec, _ast.Call):
                         for kw in dec.keywords:
-                            if kw.arg == "autouse" and isinstance(kw.value, _ast.Constant) and kw.value.value is True:
+                            if (
+                                kw.arg == "autouse"
+                                and isinstance(kw.value, _ast.Constant)
+                                and kw.value.value is True
+                            ):
                                 is_autouse = True
                     if is_autouse:
                         src = _func_source(node, ctx.lines)
@@ -204,7 +210,9 @@ class RateLimitWithoutExceededCase(Rule):
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
         src = ctx.source
-        if "FakeRedis" in src or "rate_limit" in src.lower():
+        # Only flag files that explicitly test rate limiting — FakeRedis alone
+        # is a generic mock used by many diagnostic/health-check tests.
+        if "rate_limit" in src.lower() or "RateLimit" in src:
             funcs = _get_test_functions(ctx.tree)
             has_exceeded = any(
                 "exceeded" in f.name or "denied" in f.name or "over" in f.name

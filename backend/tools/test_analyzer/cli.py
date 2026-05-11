@@ -253,6 +253,5 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     else:
         print(output)
 
-    # Exit code
-    has_critical = any(i.severity == Severity.CRITICAL for i in issues)
-    return 1 if has_critical else 0
+    # Exit code: strict — any issue at or above the requested severity fails
+    return 1 if issues else 0

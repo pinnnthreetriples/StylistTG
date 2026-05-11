@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import re
 
 from ..models import (
     AnalyzerConfig,
@@ -49,8 +50,12 @@ class PatchStartWithoutStop(Rule):
         issues: list[Issue] = []
         for func in _get_test_functions(ctx.tree):
             src = _func_source(func, ctx.lines)
-            if ".start()" in src and "patch" in src:
-                if ".stop()" not in src and "addCleanup" not in src:
+            # Match actual patch() calls — not pytest's `monkeypatch` fixture
+            # or unrelated `.start()` calls (e.g. threading.Thread.start()).
+            has_patch_call = "patch(" in src or "patch.object(" in src
+            has_patcher_start = re.search(r"\bpatcher\b.*\.start\(\)", src, re.DOTALL) is not None
+            if has_patcher_start or (has_patch_call and ".start()" in src):
+                if ".stop()" not in src and "addCleanup" not in src and "with patch" not in src:
                     issues.append(Issue(
                         rule_id=self.id,
                         rule_type=self.type,
@@ -101,7 +106,10 @@ class MonkeypatchAfterCall(Rule):
                         severity=self.default_severity,
                         file=ctx.relative_path,
                         line=stmt.lineno,
-                        message="monkeypatch.setattr after assert — setup has no effect on tested code",
+                        message=(
+                            "monkeypatch.setattr after assert —"
+                            " setup has no effect on tested code"
+                        ),
                         recommendation="Move monkeypatch setup before the tested call",
                     ))
         return issues

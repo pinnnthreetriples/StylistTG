@@ -55,7 +55,10 @@ class Analyzer:
             suppression_warnings=supp_warnings,
         )
 
-        all_issues: list[Issue] = list(supp_warnings)
+        # Filter suppression warnings (META001) through file-level suppressions too
+        all_issues: list[Issue] = [
+            w for w in supp_warnings if w.rule_id not in file_supprs
+        ]
 
         for rule in self.rules:
             # Skip disabled project rules

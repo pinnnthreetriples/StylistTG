@@ -61,7 +61,7 @@ class AnalyzerConfig:
         default_factory=lambda: ["live", "integration", "redis", "postgres", "slow"]
     )
     max_assertions_per_test: int = 12
-    duplicate_min_lines: int = 7
+    duplicate_min_lines: int = 10
     duplicate_similarity: float = 0.90
     severity_overrides: dict[str, Severity] = field(default_factory=dict)
     project_rules_enabled: dict[str, bool] = field(default_factory=dict)

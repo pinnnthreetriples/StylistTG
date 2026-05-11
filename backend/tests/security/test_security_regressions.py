@@ -46,6 +46,7 @@ def test_story_post_delete_requires_authentication(db_session, monkeypatch) -> N
     monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
     response = TestClient(app).delete("/api/story-posts/story-id", headers={"X-Account-Id": "account-id"})
 
+    # contract: unauthenticated DELETE returns 401 (no token) or 403 (token missing role).
     assert response.status_code in {401, 403}
 
 

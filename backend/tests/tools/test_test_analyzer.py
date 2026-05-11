@@ -4,6 +4,7 @@
 # test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification"
 # test-analyzer: disable-file=STG006 reason="test samples intentionally contain Stubber literal strings for rule verification"
 # test-analyzer: disable-file=META001 reason="test fixture literal contains disable=RULE without reason= to verify META001 rule fires"
+# test-analyzer: disable-file=TQA030 reason="rule-verification tests share textwrap.dedent(...) + _analyze_source(...) pattern by design"
 from __future__ import annotations
 
 import json

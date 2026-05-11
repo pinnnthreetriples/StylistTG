@@ -359,17 +359,8 @@ def test_supabase_jwt_verifier_rejects_invalid_issuer_and_audience(monkeypatch) 
 
 
 def test_supabase_jwt_verifier_rejects_invalid_audience(monkeypatch) -> None:
-    clear_jwks_cache()
-    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", issuer="issuer", audience="aud")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999, "iss": "issuer", "aud": "bad"}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]})
-
-    class FakePublicKey:
-        def verify(self, signature, signing_input, padding, algorithm):
-            return None
-
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
-
+    payload = {"sub": "u", "exp": 9999999999, "iss": "issuer", "aud": "bad"}
+    verifier = _prepare_jwt_verifier_with_fake_pubkey(monkeypatch, payload=payload)
     try:
         verifier.verify("token")
     except Exception as exc:
@@ -604,21 +595,7 @@ def test_cannot_read_foreign_operation_logs() -> None:
 
 
 def test_cannot_read_foreign_account_runtime_diagnostics() -> None:
-    session_factory, engine = create_sqlite_test_session_factory()
-    Base.metadata.create_all(engine)
-    with session_factory() as session:
-        _, workspace = _seed_second_workspace(session)
-        account = create_account(session, external_ref="+15550106111", workspace_id=workspace.id)
-        account_id = account.id
-        session.commit()
-
-    override_app_session(session_factory)
-    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
-        user_id="local-user",
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        role="owner",
-        auth_source="test",
-    )
+    account_id = _setup_foreign_account_scenario(external_ref="+15550106111")
     try:
         response = TestClient(app).get(f"/api/accounts/{account_id}/runtime-diagnostics")
     finally:
@@ -663,21 +640,7 @@ def test_cannot_read_foreign_account_jobs() -> None:
 
 
 def test_cannot_read_foreign_proxy() -> None:
-    session_factory, engine = create_sqlite_test_session_factory()
-    Base.metadata.create_all(engine)
-    with session_factory() as session:
-        _, workspace = _seed_second_workspace(session)
-        account = create_account(session, external_ref="+15550105999", workspace_id=workspace.id)
-        account_id = account.id
-        session.commit()
-
-    override_app_session(session_factory)
-    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
-        user_id="local-user",
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        role="owner",
-        auth_source="test",
-    )
+    account_id = _setup_foreign_account_scenario(external_ref="+15550105999")
     try:
         response = TestClient(app).get(f"/api/accounts/{account_id}/proxy")
     finally:
@@ -1030,6 +993,56 @@ def test_usage_counter_increments(db_session) -> None:
     counter = increment_usage(db_session, DEFAULT_LOCAL_WORKSPACE_ID, "jobs_per_day", value=2)
 
     assert counter.value == 2
+
+
+def _prepare_jwt_verifier_with_fake_pubkey(monkeypatch, *, payload: dict) -> SupabaseJwtVerifier:
+    """Build a JWT verifier with monkeypatched JWKS + fake RSA public key for negative cases."""
+    clear_jwks_cache()
+    verifier = SupabaseJwtVerifier(
+        jwks_url="https://example.test/jwks", issuer="issuer", audience="aud",
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: ({"alg": "RS256", "kid": "k"}, payload, b"sig", b"a.b"),
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks",
+        lambda url, **kwargs: {"keys": [_rsa_jwk("k")]},
+    )
+
+    class FakePublicKey:
+        def verify(self, signature, signing_input, padding, algorithm):
+            return None
+
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk",
+        lambda jwk: FakePublicKey(),
+    )
+    return verifier
+
+
+def _setup_foreign_account_scenario(*, external_ref: str) -> str:
+    """Seed a foreign-workspace account and apply local-workspace auth overrides.
+
+    Returns the foreign account id. Caller is responsible for clearing
+    dependency_overrides via try/finally.
+    """
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        _, workspace = _seed_second_workspace(session)
+        account = create_account(session, external_ref=external_ref, workspace_id=workspace.id)
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id="local-user",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role="owner",
+        auth_source="test",
+    )
+    return account_id
 
 
 def _seed_second_workspace(session):

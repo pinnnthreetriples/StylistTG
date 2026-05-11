@@ -70,7 +70,7 @@ jobs:
             --coverage reports/coverage.json \
             --format sarif \
             --output reports/test-quality.sarif \
-            --severity WARNING
+            --severity INFO
 
       - name: Run test quality analyzer (JSON)
         run: |
@@ -79,7 +79,7 @@ jobs:
             --coverage reports/coverage.json \
             --format json \
             --output reports/test-quality.json \
-            --severity WARNING
+            --severity INFO
         if: always()
 
       - name: jscpd duplicate detection

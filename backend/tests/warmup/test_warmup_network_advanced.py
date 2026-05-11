@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import random
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -197,6 +198,19 @@ def _ready_event() -> dict[str, Any]:
     }
 
 
+@contextmanager
+def _real_adapter_session(
+    monkeypatch, *, receive_queue: list, responses: list,
+):
+    """Build a RealWarmupTdlibAdapter over a scripted client and close on exit."""
+    client = _ProgrammableTdlibClient(receive_queue=receive_queue, responses=responses)
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        yield client, adapter
+    finally:
+        adapter.close()
+
+
 def _make_real_adapter(client: _ProgrammableTdlibClient, monkeypatch) -> RealWarmupTdlibAdapter:
     """Сборка RealWarmupTdlibAdapter поверх scripted client.
 
@@ -315,17 +329,14 @@ def test_real_adapter_p2p_send_uses_createPrivateChat_then_sendMessage(monkeypat
 
 
 def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:
-    client = _ProgrammableTdlibClient(
+    with _real_adapter_session(
+        monkeypatch,
         receive_queue=[_ready_event()],
         responses=[{"@type": "error", "code": 429, "message": "FLOOD_WAIT_30"}],
-    )
-    adapter = _make_real_adapter(client, monkeypatch)
-    try:
+    ) as (_client, adapter):
         result = adapter.execute_action(
             account_id="acc-1", action_type="get_me", context={}
         )
-    finally:
-        adapter.close()
 
     assert result.status == "flood_wait"
     assert result.retry_after_seconds == 30

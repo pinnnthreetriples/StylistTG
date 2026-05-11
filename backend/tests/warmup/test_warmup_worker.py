@@ -19,13 +19,7 @@ from app.services.warmup_worker import claim_account_runtime_lock, handle_warmup
 def test_due_warmup_session_advances_one_day(db_session) -> None:
     session = _seed_session(db_session, current_day=0, next_step_at=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
-    processed = process_due_warmup_sessions(
-        db_session,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
-        worker_id="test-worker",
-    )
-    db_session.refresh(session)
+    processed = _process_due(db_session, session, now=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
     assert processed == 1
     assert session.current_day == 1
@@ -37,13 +31,7 @@ def test_due_warmup_session_advances_one_day(db_session) -> None:
 def test_not_due_warmup_session_is_skipped(db_session) -> None:
     session = _seed_session(db_session, current_day=0, next_step_at=datetime(2026, 5, 6, 12, tzinfo=UTC))
 
-    processed = process_due_warmup_sessions(
-        db_session,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
-        worker_id="test-worker",
-    )
-    db_session.refresh(session)
+    processed = _process_due(db_session, session, now=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
     assert processed == 0
     assert session.current_day == 0
@@ -65,13 +53,7 @@ def test_duplicate_task_run_is_idempotently_skipped(db_session) -> None:
     )
     db_session.commit()
 
-    processed = process_due_warmup_sessions(
-        db_session,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
-        worker_id="test-worker",
-    )
-    db_session.refresh(session)
+    processed = _process_due(db_session, session, now=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
     assert processed == 0
     assert session.current_day == 0
@@ -82,13 +64,7 @@ def test_duplicate_task_run_is_idempotently_skipped(db_session) -> None:
 def test_day_13_step_completes_session_at_day_14(db_session) -> None:
     session = _seed_session(db_session, current_day=13, next_step_at=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
-    processed = process_due_warmup_sessions(
-        db_session,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
-        worker_id="test-worker",
-    )
-    db_session.refresh(session)
+    processed = _process_due(db_session, session, now=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
     assert processed == 1
     assert session.current_day == 14
@@ -171,13 +147,7 @@ def test_session_already_at_or_past_duration_completes_immediately(db_session) -
     session.duration_days = 14
     db_session.commit()
 
-    processed = process_due_warmup_sessions(
-        db_session,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        now=datetime(2026, 5, 5, 12, tzinfo=UTC),
-        worker_id="test-worker",
-    )
-    db_session.refresh(session)
+    processed = _process_due(db_session, session, now=datetime(2026, 5, 5, 12, tzinfo=UTC))
 
     assert processed == 1
     assert session.status == WarmupStatus.COMPLETED
@@ -222,6 +192,18 @@ def _seed_session(db_session, *, current_day: int, next_step_at: datetime) -> Wa
     db_session.add(session)
     db_session.commit()
     return session
+
+
+def _process_due(db_session, session: WarmupSession, *, now: datetime) -> int:
+    """Run process_due_warmup_sessions and refresh the session row."""
+    processed = process_due_warmup_sessions(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        now=now,
+        worker_id="test-worker",
+    )
+    db_session.refresh(session)
+    return processed
 
 
 def _as_utc(value: datetime | None) -> datetime | None:

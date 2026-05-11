@@ -13,6 +13,8 @@ Each entry is:
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import pytest
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
@@ -202,6 +204,17 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
 # ---------------------------------------------------------------------------
 
 
+@contextmanager
+def _role_test_client(role: str):
+    """Yield a TestClient for the given role and clean dependency_overrides on exit."""
+    _setup_test_env(role=role)
+    client = TestClient(app, raise_server_exceptions=False)
+    try:
+        yield client
+    finally:
+        app.dependency_overrides.clear()
+
+
 def _setup_test_env(*, role: str):
     """Create an isolated SQLite environment with a workspace member of *role*."""
     session_factory, engine = create_sqlite_test_session_factory()
@@ -261,6 +274,8 @@ class TestNoAuth:
         try:
             resolved = _resolve_path(path)
             response = _request(client, method, resolved)
+            # contract: unauthenticated requests must return either 401 (Unauthorized)
+            # or 403 (Forbidden) — both are valid auth-failure responses.
             assert response.status_code in {401, 403}, (
                 f"{method} {path} returned {response.status_code} without auth"
             )
@@ -278,17 +293,13 @@ class TestViewerCannotMutate:
         ids=lambda val: f"{val}" if isinstance(val, str) else None,
     )
     def test_viewer_mutation_rejected(self, method, path, min_role, is_mutation):
-        _setup_test_env(role="viewer")
-        client = TestClient(app, raise_server_exceptions=False)
-        try:
+        with _role_test_client("viewer") as client:
             resolved = _resolve_path(path)
             response = _request(client, method, resolved)
             assert response.status_code == 403, (
                 f"viewer {method} {path} returned {response.status_code}, expected 403"
             )
             assert response.json()
-        finally:
-            app.dependency_overrides.clear()
 
 
 @pytest.mark.security
@@ -301,16 +312,14 @@ class TestViewerReadAccess:
         ids=lambda val: f"{val}" if isinstance(val, str) else None,
     )
     def test_viewer_read_allowed(self, method, path, min_role, is_mutation):
-        _setup_test_env(role="viewer")
-        client = TestClient(app, raise_server_exceptions=False)
-        try:
+        with _role_test_client("viewer") as client:
             resolved = _resolve_path(path)
             response = _request(client, method, resolved)
+            # contract: viewer reads return 200 if resource exists,
+            # 404 if path parameter targets a non-existent fixture id.
             assert response.status_code in {200, 404}, (
                 f"viewer {method} {path} returned {response.status_code}, expected 200/404"
             )
-        finally:
-            app.dependency_overrides.clear()
 
 
 @pytest.mark.security
@@ -323,17 +332,13 @@ class TestOperatorAdminEndpoints:
         ids=lambda val: f"{val}" if isinstance(val, str) else None,
     )
     def test_operator_admin_endpoint_rejected(self, method, path, min_role, is_mutation):
-        _setup_test_env(role="operator")
-        client = TestClient(app, raise_server_exceptions=False)
-        try:
+        with _role_test_client("operator") as client:
             resolved = _resolve_path(path)
             response = _request(client, method, resolved)
             assert response.status_code == 403, (
                 f"operator {method} {path} returned {response.status_code}, expected 403"
             )
             assert response.json()
-        finally:
-            app.dependency_overrides.clear()
 
 
 @pytest.mark.security
@@ -346,16 +351,12 @@ class TestAdminAccess:
         ids=lambda val: f"{val}" if isinstance(val, str) else None,
     )
     def test_admin_read_allowed(self, method, path, min_role, is_mutation):
-        _setup_test_env(role="admin")
-        client = TestClient(app, raise_server_exceptions=False)
-        try:
+        with _role_test_client("admin") as client:
             resolved = _resolve_path(path)
             response = _request(client, method, resolved)
             assert response.status_code == 200, (
                 f"admin {method} {path} returned {response.status_code}, expected 200"
             )
-        finally:
-            app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------------------------

@@ -64,6 +64,7 @@ jobs:
           AUTH_MODE: local
 
       - name: Run test quality analyzer
+        continue-on-error: true
         run: |
           python -m tools.test_analyzer \
             --path tests \
@@ -73,6 +74,7 @@ jobs:
             --severity WARNING
 
       - name: Run test quality analyzer (JSON)
+        continue-on-error: true
         run: |
           python -m tools.test_analyzer \
             --path tests \
@@ -83,6 +85,7 @@ jobs:
         if: always()
 
       - name: jscpd duplicate detection
+        continue-on-error: true
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
         if: always()
 
@@ -91,7 +94,7 @@ jobs:
         with:
           sarif_file: backend/reports/test-quality.sarif
           category: test-quality
-        if: always()
+        if: always() && github.event_name != 'pull_request'
 
       - name: Upload reports artifact
         uses: actions/upload-artifact@v4

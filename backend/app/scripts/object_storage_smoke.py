@@ -117,7 +117,9 @@ def _settings_from_env(env: dict[str, str] | None) -> Settings:
     if env is None:
         return Settings()
     allowed = set(Settings.model_fields)
-    values = cast(dict[str, Any], {key.lower(): value for key, value in env.items() if key.lower() in allowed})
+    values = cast(
+        dict[str, Any], {key.lower(): value for key, value in env.items() if key.lower() in allowed}
+    )
     return Settings(**values)
 
 

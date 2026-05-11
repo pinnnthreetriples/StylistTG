@@ -558,7 +558,9 @@ class AccountOperationSafetyRead(BaseModel):
     state: str
     warnings: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
-    cooldowns: list[AccountOperationCooldownRead] = Field(default_factory=_empty_operation_cooldowns)
+    cooldowns: list[AccountOperationCooldownRead] = Field(
+        default_factory=_empty_operation_cooldowns
+    )
     can_override: bool = False
 
 

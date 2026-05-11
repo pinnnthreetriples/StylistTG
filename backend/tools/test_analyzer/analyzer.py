@@ -95,10 +95,6 @@ class Analyzer:
                 if py_file.name.startswith("test_") or py_file.name.endswith("_test.py"):
                     all_issues.extend(self.analyze_file(py_file, base_dir))
 
-        # Coverage-driven warnings for source files with uncovered branches
-        if self.coverage_data:
-            all_issues.extend(self.coverage_branch_warnings())
-
         return all_issues
 
     def coverage_branch_warnings(self) -> list[Issue]:

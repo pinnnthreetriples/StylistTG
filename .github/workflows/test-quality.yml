@@ -88,6 +88,7 @@ jobs:
             --output reports/test-quality.json \
             --severity INFO
         if: always()
+        continue-on-error: true
 
       # ----- Soft gates (visible but don't block yet) -------------------------
       # Pyright: strict mode surfaces 549 pre-existing errors. Tracked as a

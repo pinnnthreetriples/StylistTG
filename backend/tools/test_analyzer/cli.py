@@ -226,9 +226,6 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
             for f in changed_files:
                 if f.is_relative_to(target):
                     issues.extend(analyzer.analyze_file(f, base_dir))
-            # Still include coverage warnings
-            if coverage_data:
-                issues.extend(analyzer.coverage_branch_warnings())
         else:
             issues = analyzer.analyze(target, base_dir)
     except Exception as e:

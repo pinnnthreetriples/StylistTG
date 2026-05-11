@@ -79,7 +79,9 @@ def get_queue(queue_name: str) -> Queue:
 def enqueue_profile_job(job_id: str) -> bool:
     queue = get_profile_queue()
     try:
-        cast(Any, queue).enqueue_call(func=run_profile_job, args=(job_id,), job_id=job_id, unique=True)
+        cast(Any, queue).enqueue_call(
+            func=run_profile_job, args=(job_id,), job_id=job_id, unique=True
+        )
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False

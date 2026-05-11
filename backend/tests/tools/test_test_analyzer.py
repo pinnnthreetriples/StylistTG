@@ -495,6 +495,28 @@ def test_cli_coverage_flag_accepted(tmp_path: Path) -> None:
     assert code == 0
 
 
+def test_cli_coverage_does_not_fail_on_source_branch_hints(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_ok.py"
+    test_file.write_text("def test_fine():\n    assert len([1, 2]) == 2\n")
+    coverage_file = tmp_path / "coverage.json"
+    coverage_file.write_text(
+        json.dumps(
+            {"files": {"app/example.py": {"summary": {"num_branches": 8, "covered_branches": 2}}}}
+        )
+    )
+    code = main(
+        [
+            "--path",
+            str(test_file),
+            "--coverage",
+            str(coverage_file),
+            "--severity",
+            "INFO",
+        ]
+    )
+    assert code == 0
+
+
 # ---------------------------------------------------------------------------
 # Config: severity overrides, thresholds, project rule toggles
 # ---------------------------------------------------------------------------

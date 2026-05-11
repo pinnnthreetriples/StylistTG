@@ -111,9 +111,10 @@ reportOptionalMemberAccess = "warning"
 reportReturnType = "warning"
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "tools*"]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
   "unit: isolated unit-level tests — no HTTP or external services; may use in-memory SQLite",

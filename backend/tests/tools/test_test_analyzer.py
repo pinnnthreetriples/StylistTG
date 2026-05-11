@@ -1,15 +1,12 @@
-"""Unit tests for tools/test_analyzer.py."""
+"""Unit tests for tools.test_analyzer package."""
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
 import textwrap
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-
-from test_analyzer import (  # noqa: E402
+from tools.test_analyzer import (
     Analyzer,
     AnalyzerConfig,
     Issue,

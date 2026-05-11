@@ -65,7 +65,7 @@ jobs:
 
       - name: Run test quality analyzer
         run: |
-          python tools/test_analyzer.py \
+          python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format sarif \
@@ -74,7 +74,7 @@ jobs:
 
       - name: Run test quality analyzer (JSON)
         run: |
-          python tools/test_analyzer.py \
+          python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format json \

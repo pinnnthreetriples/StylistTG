@@ -43,7 +43,13 @@ def build_risk_by_operation(
         elif reason["code"] == "username_recently_rejected":
             risks["username"] = _max_risk(risks["username"], "medium", [reason])
         elif severity in {"medium", "high"}:
-            for operation in ("profile_update", "username", "profile_photo", "profile_music", "story_post"):
+            for operation in (
+                "profile_update",
+                "username",
+                "profile_photo",
+                "profile_music",
+                "story_post",
+            ):
                 risks[operation] = _max_risk(risks[operation], severity, [reason])
 
     capability_to_operation = {
@@ -83,10 +89,14 @@ def build_risk_by_operation(
 
 
 def overall_risk_level(risk_by_operation: dict[str, dict[str, Any]]) -> str:
-    return max((risk["level"] for risk in risk_by_operation.values()), key=lambda level: RISK_ORDER[level])
+    return max(
+        (risk["level"] for risk in risk_by_operation.values()), key=lambda level: RISK_ORDER[level]
+    )
 
 
-def build_account_readiness_risk(session: Session, account: Account, *, computed_at: datetime | None = None) -> dict[str, Any]:
+def build_account_readiness_risk(
+    session: Session, account: Account, *, computed_at: datetime | None = None
+) -> dict[str, Any]:
     computed = computed_at or datetime.now(UTC)
     score = 0
     reasons: list[dict[str, str]] = []
@@ -98,8 +108,15 @@ def build_account_readiness_risk(session: Session, account: Account, *, computed
             reasons.append({"code": code, "severity": severity, "message": message})
         score += points
 
-    if account.account_state == AccountState.REAUTH_REQUIRED or bool(runtime and runtime.reauth_required):
-        add(80, "reauth_required", "critical", "Account requires reauthorization before profile jobs.")
+    if account.account_state == AccountState.REAUTH_REQUIRED or bool(
+        runtime and runtime.reauth_required
+    ):
+        add(
+            80,
+            "reauth_required",
+            "critical",
+            "Account requires reauthorization before profile jobs.",
+        )
     elif account.account_state in {
         AccountState.AWAITING_CODE,
         AccountState.AWAITING_PASSWORD,
@@ -114,11 +131,24 @@ def build_account_readiness_risk(session: Session, account: Account, *, computed
     runtime_health = runtime.runtime_health if runtime else "unknown"
     if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
         severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
-        add(45 if severity == "critical" else 25, "runtime_unhealthy", severity, "Account runtime is not ready.")
+        add(
+            45 if severity == "critical" else 25,
+            "runtime_unhealthy",
+            severity,
+            "Account runtime is not ready.",
+        )
 
-    if account.account_state in {AccountState.RUNTIME_BROKEN, AccountState.DISABLED, AccountState.MANUAL_INTERVENTION_NEEDED}:
+    if account.account_state in {
+        AccountState.RUNTIME_BROKEN,
+        AccountState.DISABLED,
+        AccountState.MANUAL_INTERVENTION_NEEDED,
+    }:
         add(45, "account_locked", "critical", "Account state blocks automated work.")
-    elif account.account_state not in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY, AccountState.REAUTH_REQUIRED}:
+    elif account.account_state not in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+        AccountState.REAUTH_REQUIRED,
+    }:
         add(25, "unknown_state", "warning", "Account state needs operator review.")
 
     proxy = account.proxy
@@ -135,12 +165,21 @@ def build_account_readiness_risk(session: Session, account: Account, *, computed
     if recent_failure_count >= 2:
         add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
 
-    if account.profile_state is None and account.account_state in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY}:
+    if account.profile_state is None and account.account_state in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+    }:
         add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
 
     score = min(max(score, 0), 100)
     if not reasons:
-        reasons.append({"code": "ready", "severity": "info", "message": "Account is ready based on stored app signals."})
+        reasons.append(
+            {
+                "code": "ready",
+                "severity": "info",
+                "message": "Account is ready based on stored app signals.",
+            }
+        )
     level = _readiness_level(score)
     return {
         "account_id": account.id,
@@ -200,9 +239,14 @@ def build_account_readiness_risk_summary(session: Session, *, workspace_id: str)
 def _empty_risk_summary(computed_at: datetime) -> dict[str, Any]:
     return {
         "total": 0,
-        "low": 0, "medium": 0, "high": 0, "critical": 0,
-        "reauth_required": 0, "missing_session": 0,
-        "runtime_unhealthy": 0, "proxy_problem": 0,
+        "low": 0,
+        "medium": 0,
+        "high": 0,
+        "critical": 0,
+        "reauth_required": 0,
+        "missing_session": 0,
+        "runtime_unhealthy": 0,
+        "proxy_problem": 0,
         "items": [],
         "computed_at": computed_at,
     }
@@ -228,8 +272,15 @@ def _build_readiness_risk_prefetched(
             reasons.append({"code": code, "severity": severity, "message": message})
         score += points
 
-    if account.account_state == AccountState.REAUTH_REQUIRED or bool(runtime and runtime.reauth_required):
-        add(80, "reauth_required", "critical", "Account requires reauthorization before profile jobs.")
+    if account.account_state == AccountState.REAUTH_REQUIRED or bool(
+        runtime and runtime.reauth_required
+    ):
+        add(
+            80,
+            "reauth_required",
+            "critical",
+            "Account requires reauthorization before profile jobs.",
+        )
     elif account.account_state in {
         AccountState.AWAITING_CODE,
         AccountState.AWAITING_PASSWORD,
@@ -244,11 +295,24 @@ def _build_readiness_risk_prefetched(
     runtime_health = runtime.runtime_health if runtime else "unknown"
     if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
         severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
-        add(45 if severity == "critical" else 25, "runtime_unhealthy", severity, "Account runtime is not ready.")
+        add(
+            45 if severity == "critical" else 25,
+            "runtime_unhealthy",
+            severity,
+            "Account runtime is not ready.",
+        )
 
-    if account.account_state in {AccountState.RUNTIME_BROKEN, AccountState.DISABLED, AccountState.MANUAL_INTERVENTION_NEEDED}:
+    if account.account_state in {
+        AccountState.RUNTIME_BROKEN,
+        AccountState.DISABLED,
+        AccountState.MANUAL_INTERVENTION_NEEDED,
+    }:
         add(45, "account_locked", "critical", "Account state blocks automated work.")
-    elif account.account_state not in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY, AccountState.REAUTH_REQUIRED}:
+    elif account.account_state not in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+        AccountState.REAUTH_REQUIRED,
+    }:
         add(25, "unknown_state", "warning", "Account state needs operator review.")
 
     proxy = account.proxy
@@ -263,12 +327,21 @@ def _build_readiness_risk_prefetched(
     if failure_count >= 2:
         add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
 
-    if account.profile_state is None and account.account_state in {AccountState.EXECUTION_USABLE, AccountState.AUTHORIZED_READY}:
+    if account.profile_state is None and account.account_state in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+    }:
         add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
 
     score = min(max(score, 0), 100)
     if not reasons:
-        reasons.append({"code": "ready", "severity": "info", "message": "Account is ready based on stored app signals."})
+        reasons.append(
+            {
+                "code": "ready",
+                "severity": "info",
+                "message": "Account is ready based on stored app signals.",
+            }
+        )
     level = _readiness_level(score)
     return {
         "account_id": account.id,
@@ -334,38 +407,41 @@ def _count_recent_job_failures(session: Session, account_id: str) -> int:
         select(func.count())
         .select_from(Job)
         .where(Job.account_id == account_id)
-        .where(
-            Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED])
-        )
+        .where(Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED]))
     ).scalar()
     return result or 0
 
 
 def _batch_has_active_cooldowns(
-    session: Session, account_ids: list[str], now: datetime,
+    session: Session,
+    account_ids: list[str],
+    now: datetime,
 ) -> dict[str, bool]:
     if not account_ids:
         return {}
-    rows = session.execute(
-        select(AccountOperationCooldown.account_id)
-        .where(AccountOperationCooldown.account_id.in_(account_ids))
-        .where(AccountOperationCooldown.retry_after_at > now)
-        .distinct()
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(AccountOperationCooldown.account_id)
+            .where(AccountOperationCooldown.account_id.in_(account_ids))
+            .where(AccountOperationCooldown.retry_after_at > now)
+            .distinct()
+        )
+        .scalars()
+        .all()
+    )
     return {account_id: True for account_id in rows}
 
 
 def _batch_count_recent_job_failures(
-    session: Session, account_ids: list[str],
+    session: Session,
+    account_ids: list[str],
 ) -> dict[str, int]:
     if not account_ids:
         return {}
     rows = session.execute(
         select(Job.account_id, func.count())
         .where(Job.account_id.in_(account_ids))
-        .where(
-            Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED])
-        )
+        .where(Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED]))
         .group_by(Job.account_id)
     ).all()
     return {account_id: count for account_id, count in rows}

@@ -2,6 +2,7 @@
 
 Uses Hypothesis with constrained max_examples for CI speed.
 """
+
 from __future__ import annotations
 
 import string

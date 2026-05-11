@@ -21,11 +21,18 @@ from app.schemas import (
 )
 from app.services.account_batch_safety import build_account_batch_safety_preview
 from app.services.account_cooldowns import list_active_account_cooldowns
-from app.services.account_risk import build_account_readiness_risk, build_account_readiness_risk_summary
+from app.services.account_risk import (
+    build_account_readiness_risk,
+    build_account_readiness_risk_summary,
+)
 from app.services.account_safety import build_account_safety, build_account_safety_summary
 from app.services.account_safety_overrides import create_safety_override
 from app.services.account_validity import list_account_validity_checks, run_account_validity_check
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.risk_gate import evaluate_action_gate
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -95,7 +102,10 @@ def get_account_cooldowns(
     auth: AuthContext = Depends(require_authenticated),
 ):
     require_account_in_workspace(session, account_id, auth)
-    return [AccountOperationCooldownRead(**cooldown) for cooldown in list_active_account_cooldowns(session, account_id)]
+    return [
+        AccountOperationCooldownRead(**cooldown)
+        for cooldown in list_active_account_cooldowns(session, account_id)
+    ]
 
 
 @router.get("/{account_id}/action-gate", response_model=ActionGateRead)
@@ -126,7 +136,12 @@ def get_account_action_gate(
                 error_class="not_found",
                 message=message,
             ) from exc
-        raise AppError(status_code=status.HTTP_400_BAD_REQUEST, error_code="ACTION_GATE_INVALID", error_class="validation", message=message) from exc
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="ACTION_GATE_INVALID",
+            error_class="validation",
+            message=message,
+        ) from exc
 
 
 @router.get("/{account_id}/risk", response_model=AccountReadinessRiskRead)
@@ -139,7 +154,11 @@ def get_account_risk(
     return build_account_readiness_risk(session, account)
 
 
-@router.post("/{account_id}/safety-overrides", response_model=AccountSafetyOverrideRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{account_id}/safety-overrides",
+    response_model=AccountSafetyOverrideRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_account_safety_override(
     account_id: str,
     payload: AccountSafetyOverrideCreate,
@@ -182,8 +201,12 @@ def post_account_validity_check(
 ):
     require_account_in_workspace(session, account_id, auth)
     try:
-        adapter = build_tdlib_readonly_validity_adapter() if payload.mode == "tdlib_readonly" else None
-        return run_account_validity_check(session, account_id, mode=payload.mode, adapter=adapter, workspace_id=auth.workspace_id)
+        adapter = (
+            build_tdlib_readonly_validity_adapter() if payload.mode == "tdlib_readonly" else None
+        )
+        return run_account_validity_check(
+            session, account_id, mode=payload.mode, adapter=adapter, workspace_id=auth.workspace_id
+        )
     except ValueError as exc:
         message = str(exc)
         if message == "account not found":

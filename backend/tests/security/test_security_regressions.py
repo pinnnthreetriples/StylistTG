@@ -13,7 +13,17 @@ from app.api.account_imports import _decode_optional_base64
 from app.errors import AppError
 from app.logging_utils import _JsonFormatter
 from app.main import app
-from app.models import Account, AccountStoryDraft, Asset, AssetKind, AssetStatus, User, Workspace, WorkspaceMember, WorkspacePlan
+from app.models import (
+    Account,
+    AccountStoryDraft,
+    Asset,
+    AssetKind,
+    AssetStatus,
+    User,
+    Workspace,
+    WorkspaceMember,
+    WorkspacePlan,
+)
 from app.services.account_update_jobs import build_account_update_preview
 from app.services.dashboard import build_dashboard_profile
 from app.services.assets import _open_verified_image
@@ -35,7 +45,10 @@ def test_all_non_health_routes_require_auth_dependency() -> None:
             call = getattr(dependency, "call", None)
             dependency_names.append(getattr(call, "__name__", repr(call)))
             dependency_stack.extend(dependency.dependencies)
-        if not any(name in {"require_authenticated", "require_mutation_permission", "dependency"} for name in dependency_names):
+        if not any(
+            name in {"require_authenticated", "require_mutation_permission", "dependency"}
+            for name in dependency_names
+        ):
             methods = ",".join(sorted(route.methods or []))
             missing.append(f"{methods} {route.path}")
 
@@ -44,7 +57,9 @@ def test_all_non_health_routes_require_auth_dependency() -> None:
 
 def test_story_post_delete_requires_authentication(db_session, monkeypatch) -> None:
     monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
-    response = TestClient(app).delete("/api/story-posts/story-id", headers={"X-Account-Id": "account-id"})
+    response = TestClient(app).delete(
+        "/api/story-posts/story-id", headers={"X-Account-Id": "account-id"}
+    )
 
     # contract: unauthenticated DELETE returns 401 (no token) or 403 (token missing role).
     assert response.status_code in {401, 403}
@@ -58,14 +73,20 @@ def test_dashboard_profile_is_workspace_scoped(db_session) -> None:
     db_session.commit()
 
     with pytest.raises(ValueError, match="account not found"):
-        build_dashboard_profile(db_session, foreign_account.id, workspace_id="00000000-0000-4000-8000-000000000002")
+        build_dashboard_profile(
+            db_session, foreign_account.id, workspace_id="00000000-0000-4000-8000-000000000002"
+        )
 
 
 def test_story_draft_rejects_cross_workspace_asset(db_session) -> None:
     ensure_default_workspace(db_session)
-    account = Account(workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000002")
+    account = Account(
+        workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000002"
+    )
     _, foreign_workspace = _seed_workspace(db_session, slug="foreign-story-asset")
-    asset = _seed_asset(db_session, workspace_id=foreign_workspace.id, asset_id="foreign-story-asset")
+    asset = _seed_asset(
+        db_session, workspace_id=foreign_workspace.id, asset_id="foreign-story-asset"
+    )
     db_session.add(account)
     db_session.commit()
 
@@ -85,9 +106,13 @@ def test_story_draft_rejects_cross_workspace_asset(db_session) -> None:
 
 def test_profile_job_preview_rejects_cross_workspace_asset(db_session) -> None:
     ensure_default_workspace(db_session)
-    account = Account(workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000003")
+    account = Account(
+        workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000003"
+    )
     _, foreign_workspace = _seed_workspace(db_session, slug="foreign-profile-asset")
-    asset = _seed_asset(db_session, workspace_id=foreign_workspace.id, asset_id="foreign-profile-asset")
+    asset = _seed_asset(
+        db_session, workspace_id=foreign_workspace.id, asset_id="foreign-profile-asset"
+    )
     db_session.add(account)
     db_session.commit()
 
@@ -102,9 +127,13 @@ def test_profile_job_preview_rejects_cross_workspace_asset(db_session) -> None:
 
 def test_account_update_preview_rejects_cross_workspace_story_asset(db_session) -> None:
     ensure_default_workspace(db_session)
-    account = Account(workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000004")
+    account = Account(
+        workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000004"
+    )
     _, foreign_workspace = _seed_workspace(db_session, slug="foreign-update-asset")
-    asset = _seed_asset(db_session, workspace_id=foreign_workspace.id, asset_id="foreign-update-asset")
+    asset = _seed_asset(
+        db_session, workspace_id=foreign_workspace.id, asset_id="foreign-update-asset"
+    )
     db_session.add(account)
     db_session.commit()
 
@@ -129,12 +158,16 @@ def test_account_update_preview_rejects_cross_workspace_story_asset(db_session) 
 
 def test_story_draft_orphaning_ignores_foreign_workspace_legacy_references(db_session) -> None:
     ensure_default_workspace(db_session)
-    owner_account = Account(workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000005")
+    owner_account = Account(
+        workspace_id="00000000-0000-4000-8000-000000000002", external_ref="+15550000005"
+    )
     _, foreign_workspace = _seed_workspace(db_session, slug="foreign-legacy-draft")
     foreign_account = Account(workspace_id=foreign_workspace.id, external_ref="+15550000006")
     db_session.add_all([owner_account, foreign_account])
     db_session.flush()
-    asset = _seed_asset(db_session, workspace_id=owner_account.workspace_id, asset_id="owned-story-asset")
+    asset = _seed_asset(
+        db_session, workspace_id=owner_account.workspace_id, asset_id="owned-story-asset"
+    )
     owner_draft = create_story_draft(
         db_session,
         {

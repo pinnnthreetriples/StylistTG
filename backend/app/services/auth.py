@@ -14,9 +14,20 @@ from app.adapters.tdlib_auth import (
 )
 from app.config import Settings, settings
 from app.logging_utils import log_event
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Account, AccountAuthAttempt, AccountRuntimeState, AccountState, utc_now
+from app.models import (
+    DEFAULT_LOCAL_WORKSPACE_ID,
+    Account,
+    AccountAuthAttempt,
+    AccountRuntimeState,
+    AccountState,
+    utc_now,
+)
 from app.services.accounts import create_account, get_account, get_account_by_external_ref
-from app.services.profile_sync import ProfileSyncAdapter, build_profile_sync_adapter, sync_account_profile_state
+from app.services.profile_sync import (
+    ProfileSyncAdapter,
+    build_profile_sync_adapter,
+    sync_account_profile_state,
+)
 
 
 @dataclass(frozen=True)
@@ -56,7 +67,9 @@ def start_otp(
 ) -> AuthMaterializationResult:
     normalized_phone = normalize_phone_number(phone_number)
     target_workspace_id = workspace_id or DEFAULT_LOCAL_WORKSPACE_ID
-    account = get_account_by_external_ref(session, normalized_phone, workspace_id=target_workspace_id)
+    account = get_account_by_external_ref(
+        session, normalized_phone, workspace_id=target_workspace_id
+    )
     if account is None:
         account = create_account(
             session,
@@ -223,9 +236,8 @@ def materialize_auth_result(
 
 
 def is_account_hard_stopped(account: Account) -> bool:
-    return (
-        account.account_state == AccountState.MANUAL_INTERVENTION_NEEDED
-        or is_hard_stop_marker(account.runtime_state.recovery_marker)
+    return account.account_state == AccountState.MANUAL_INTERVENTION_NEEDED or is_hard_stop_marker(
+        account.runtime_state.recovery_marker
     )
 
 
@@ -282,14 +294,18 @@ def _ensure_start_otp_not_rate_limited(
     now = utc_now()
     cooldown_started_at = now - timedelta(seconds=max(config.auth_start_cooldown_seconds, 0))
     if config.auth_start_cooldown_seconds > 0:
-        recent = session.execute(
-            select(AccountAuthAttempt)
-            .where(AccountAuthAttempt.account_id == account.id)
-            .where(AccountAuthAttempt.attempt_kind == "start_otp")
-            .where(AccountAuthAttempt.blocked_reason.is_(None))
-            .where(AccountAuthAttempt.created_at >= cooldown_started_at)
-            .order_by(AccountAuthAttempt.created_at.desc())
-        ).scalars().first()
+        recent = (
+            session.execute(
+                select(AccountAuthAttempt)
+                .where(AccountAuthAttempt.account_id == account.id)
+                .where(AccountAuthAttempt.attempt_kind == "start_otp")
+                .where(AccountAuthAttempt.blocked_reason.is_(None))
+                .where(AccountAuthAttempt.created_at >= cooldown_started_at)
+                .order_by(AccountAuthAttempt.created_at.desc())
+            )
+            .scalars()
+            .first()
+        )
         if recent is not None:
             raise AuthSafetyError(
                 error_code="AUTH_COOLDOWN_ACTIVE",
@@ -304,7 +320,9 @@ def _ensure_start_otp_not_rate_limited(
             .where(AccountAuthAttempt.attempt_kind == "start_otp")
             .where(AccountAuthAttempt.blocked_reason.is_(None))
             .where(AccountAuthAttempt.created_at >= day_started_at)
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
     if daily_count >= config.auth_daily_start_limit:
         raise AuthSafetyError(

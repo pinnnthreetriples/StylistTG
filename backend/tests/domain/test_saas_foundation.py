@@ -194,7 +194,9 @@ def test_local_auth_context_does_not_call_jwks(db_session, monkeypatch) -> None:
 
     monkeypatch.setattr(
         "app.services.supabase_jwt.SupabaseJwtVerifier.from_settings",
-        lambda settings: (_ for _ in ()).throw(AssertionError("JWKS should not be used in local auth mode")),
+        lambda settings: (_ for _ in ()).throw(
+            AssertionError("JWKS should not be used in local auth mode")
+        ),
     )
 
     context = get_current_auth_context(DummyRequest(), db_session)
@@ -205,14 +207,26 @@ def test_local_auth_context_does_not_call_jwks(db_session, monkeypatch) -> None:
 def test_supabase_jwt_verifier_accepts_rs256_mocked_valid_claims(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]})
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]}
+    )
 
     class FakePublicKey:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
 
     assert verifier.verify("token")["sub"] == "u"
 
@@ -220,11 +234,21 @@ def test_supabase_jwt_verifier_accepts_rs256_mocked_valid_claims(monkeypatch) ->
 def test_supabase_jwt_verifier_accepts_es256_when_jwks_key_allows_it(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "ES256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"\x00" * 64, b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "ES256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999},
+            b"\x00" * 64,
+            b"a.b",
+        ),
+    )
     monkeypatch.setattr(
         "app.services.supabase_jwt._load_jwks",
         lambda url, **kwargs: {
-            "keys": [{"kid": "k", "kty": "EC", "alg": "ES256", "crv": "P-256", "x": "AQ", "y": "AQ"}]
+            "keys": [
+                {"kid": "k", "kty": "EC", "alg": "ES256", "crv": "P-256", "x": "AQ", "y": "AQ"}
+            ]
         },
     )
 
@@ -232,7 +256,11 @@ def test_supabase_jwt_verifier_accepts_es256_when_jwks_key_allows_it(monkeypatch
         def verify(self, signature, signing_input, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._ec_public_key_from_jwk", lambda jwk: FakePublicKey(), raising=False)
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._ec_public_key_from_jwk",
+        lambda jwk: FakePublicKey(),
+        raising=False,
+    )
 
     assert verifier.verify("token")["sub"] == "u"
 
@@ -240,7 +268,10 @@ def test_supabase_jwt_verifier_accepts_es256_when_jwks_key_allows_it(monkeypatch
 def test_supabase_jwt_verifier_rejects_unsupported_algorithm(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "none", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: ({"alg": "none", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"", b"a.b"),
+    )
     monkeypatch.setattr(
         "app.services.supabase_jwt._load_jwks",
         lambda url, **kwargs: {"keys": [_rsa_jwk("k")]},
@@ -260,7 +291,15 @@ def test_supabase_jwt_verifier_uses_jwks_cache(monkeypatch) -> None:
     clear_jwks_cache()
     calls: list[str] = []
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=600)
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
     monkeypatch.setattr(
         "app.services.supabase_jwt._load_jwks",
         lambda url, **kwargs: calls.append(url) or {"keys": [_rsa_jwk("k")]},
@@ -270,7 +309,9 @@ def test_supabase_jwt_verifier_uses_jwks_cache(monkeypatch) -> None:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
 
     assert verifier.verify("token")["sub"] == "u"
     assert verifier.verify("token")["sub"] == "u"
@@ -283,7 +324,15 @@ def test_supabase_jwt_verifier_refetches_after_ttl(monkeypatch) -> None:
     times = iter([1000.0, 1000.0, 1002.0, 1002.0])
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=1)
     monkeypatch.setattr("app.services.supabase_jwt.time.time", lambda: next(times))
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
     monkeypatch.setattr(
         "app.services.supabase_jwt._load_jwks",
         lambda url, **kwargs: calls.append(url) or {"keys": [_rsa_jwk("k")]},
@@ -293,7 +342,9 @@ def test_supabase_jwt_verifier_refetches_after_ttl(monkeypatch) -> None:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
 
     verifier.verify("token")
     verifier.verify("token")
@@ -303,19 +354,33 @@ def test_supabase_jwt_verifier_refetches_after_ttl(monkeypatch) -> None:
 
 def test_supabase_jwt_verifier_refreshes_on_kid_miss(monkeypatch) -> None:
     clear_jwks_cache()
-    responses = iter([
-        {"keys": [_rsa_jwk("old")]},
-        {"keys": [_rsa_jwk("new")]},
-    ])
+    responses = iter(
+        [
+            {"keys": [_rsa_jwk("old")]},
+            {"keys": [_rsa_jwk("new")]},
+        ]
+    )
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", cache_ttl_seconds=600)
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "new"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: next(responses))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "new"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: next(responses)
+    )
 
     class FakePublicKey:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
 
     assert verifier.verify("token")["sub"] == "u"
 
@@ -323,8 +388,18 @@ def test_supabase_jwt_verifier_refreshes_on_kid_miss(monkeypatch) -> None:
 def test_supabase_jwt_verifier_rejects_unknown_kid_after_refresh(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "missing"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("other")]})
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "missing"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("other")]}
+    )
 
     try:
         verifier.verify("token")
@@ -338,15 +413,29 @@ def test_supabase_jwt_verifier_rejects_unknown_kid_after_refresh(monkeypatch) ->
 
 def test_supabase_jwt_verifier_rejects_invalid_issuer_and_audience(monkeypatch) -> None:
     clear_jwks_cache()
-    verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", issuer="issuer", audience="aud")
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999, "iss": "bad", "aud": "bad"}, b"sig", b"a.b"))
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]})
+    verifier = SupabaseJwtVerifier(
+        jwks_url="https://example.test/jwks", issuer="issuer", audience="aud"
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999, "iss": "bad", "aud": "bad"},
+            b"sig",
+            b"a.b",
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]}
+    )
 
     class FakePublicKey:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
 
     try:
         verifier.verify("token")
@@ -374,14 +463,21 @@ def test_supabase_jwt_verifier_rejects_invalid_audience(monkeypatch) -> None:
 def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
-    monkeypatch.setattr("app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]})
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("k")]}
+    )
 
     class FakePublicKey:
         def verify(self, signature, signing_input, padding, algorithm):
             return None
 
-    monkeypatch.setattr("app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey())
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 1}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
+    )
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 1}, b"sig", b"a.b"),
+    )
     try:
         verifier.verify("expired")
     except Exception as exc:
@@ -389,7 +485,10 @@ def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch
     else:
         expired_code = ""
 
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: ({"alg": "RS256", "kid": "k"}, {"exp": 9999999999}, b"sig", b"a.b"),
+    )
     try:
         verifier.verify("missing-sub")
     except Exception as exc:
@@ -404,14 +503,24 @@ def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch
 def test_supabase_jwt_verifier_rejects_network_failure(monkeypatch) -> None:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks", max_retries=0)
-    monkeypatch.setattr("app.services.supabase_jwt._split_jwt", lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 9999999999}, b"sig", b"a.b"))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt._split_jwt",
+        lambda token: (
+            {"alg": "RS256", "kid": "k"},
+            {"sub": "u", "exp": 9999999999},
+            b"sig",
+            b"a.b",
+        ),
+    )
 
     def fail_fetch(url, **kwargs):
         from urllib.error import URLError
 
         raise URLError("offline")
 
-    monkeypatch.setattr("app.services.supabase_jwt.urlopen", lambda *args, **kwargs: fail_fetch(*args, **kwargs))
+    monkeypatch.setattr(
+        "app.services.supabase_jwt.urlopen", lambda *args, **kwargs: fail_fetch(*args, **kwargs)
+    )
 
     try:
         verifier.verify("token")
@@ -469,7 +578,13 @@ def test_cannot_create_job_for_foreign_account() -> None:
     try:
         response = TestClient(app).post(
             "/api/jobs/profile",
-            json={"account_id": account_id, "name": "Stylist", "bio": None, "username": None, "photo_asset_id": None},
+            json={
+                "account_id": account_id,
+                "name": "Stylist",
+                "bio": None,
+                "username": None,
+                "photo_asset_id": None,
+            },
         )
     finally:
         app.dependency_overrides.clear()
@@ -706,7 +821,10 @@ def test_same_idempotency_key_allowed_across_workspaces() -> None:
     try:
         response = TestClient(app).post(
             "/api/auth-batches",
-            json={"idempotency_key": "shared-cross-workspace-key", "items": [{"phone_number": "+15550106656"}]},
+            json={
+                "idempotency_key": "shared-cross-workspace-key",
+                "items": [{"phone_number": "+15550106656"}],
+            },
         )
     finally:
         app.dependency_overrides.clear()
@@ -999,7 +1117,9 @@ def _prepare_jwt_verifier_with_fake_pubkey(monkeypatch, *, payload: dict) -> Sup
     """Build a JWT verifier with monkeypatched JWKS + fake RSA public key for negative cases."""
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(
-        jwks_url="https://example.test/jwks", issuer="issuer", audience="aud",
+        jwks_url="https://example.test/jwks",
+        issuer="issuer",
+        audience="aud",
     )
     monkeypatch.setattr(
         "app.services.supabase_jwt._split_jwt",

@@ -30,11 +30,20 @@ def patch_execution_policy(
     values = payload.model_dump(exclude_unset=True)
     for key, value in values.items():
         if key == "profile_job_cooldown_seconds" and not _is_valid_profile_job_cooldown(int(value)):
-            raise HTTPException(status_code=422, detail="profile_job_cooldown_seconds must be 0 or between 30 and 600")
-        if key != "profile_job_cooldown_seconds" and key.endswith("_cooldown_seconds") and not _is_valid_cooldown(int(value)):
+            raise HTTPException(
+                status_code=422,
+                detail="profile_job_cooldown_seconds must be 0 or between 30 and 600",
+            )
+        if (
+            key != "profile_job_cooldown_seconds"
+            and key.endswith("_cooldown_seconds")
+            and not _is_valid_cooldown(int(value))
+        ):
             raise HTTPException(status_code=422, detail=f"{key} must be 0 or between 30 and 86400")
         if key == "fresh_validity_max_age_minutes" and not 1 <= int(value) <= 1440:
-            raise HTTPException(status_code=422, detail="fresh_validity_max_age_minutes must be between 1 and 1440")
+            raise HTTPException(
+                status_code=422, detail="fresh_validity_max_age_minutes must be between 1 and 1440"
+            )
         setattr(settings, key, value)
     return _execution_policy_response()
 

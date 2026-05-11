@@ -10,7 +10,9 @@ from app.services.accounts import get_account
 from app.services.assets import get_asset
 
 
-def create_story_draft(session: Session, payload: dict[str, Any], *, workspace_id: str | None = None) -> AccountStoryDraft:
+def create_story_draft(
+    session: Session, payload: dict[str, Any], *, workspace_id: str | None = None
+) -> AccountStoryDraft:
     account = get_account(session, payload["account_id"], workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
@@ -78,7 +80,9 @@ def delete_story_drafts_for_asset(session: Session, *, account_id: str, asset_id
             select(AccountStoryDraft)
             .where(AccountStoryDraft.account_id == account_id)
             .where(AccountStoryDraft.asset_id == asset_id)
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
     if not drafts:
         return
@@ -87,7 +91,9 @@ def delete_story_drafts_for_asset(session: Session, *, account_id: str, asset_id
     session.commit()
 
 
-def list_story_drafts(session: Session, account_id: str, *, workspace_id: str | None = None) -> list[AccountStoryDraft]:
+def list_story_drafts(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> list[AccountStoryDraft]:
     if get_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     statement = (
@@ -102,7 +108,9 @@ def list_story_drafts(session: Session, account_id: str, *, workspace_id: str | 
     return list(session.execute(statement).scalars().all())
 
 
-def _validate_payload(session: Session, payload: dict[str, Any], *, workspace_id: str | None = None) -> None:
+def _validate_payload(
+    session: Session, payload: dict[str, Any], *, workspace_id: str | None = None
+) -> None:
     media_kind = payload.get("media_kind")
     if media_kind not in {"image", "video"}:
         raise ValueError("unsupported story media_kind")
@@ -123,19 +131,25 @@ def _validate_payload(session: Session, payload: dict[str, Any], *, workspace_id
         raise ValueError("asset is not ready for story execution")
 
 
-def _mark_orphan_story_asset(session: Session, asset_id: str, *, workspace_id: str | None = None) -> None:
+def _mark_orphan_story_asset(
+    session: Session, asset_id: str, *, workspace_id: str | None = None
+) -> None:
     asset = get_asset(session, asset_id, workspace_id=workspace_id)
     if asset is None or asset.kind not in {AssetKind.STORY_IMAGE, AssetKind.STORY_VIDEO}:
         return
-    draft_statement = select(AccountStoryDraft.id).where(AccountStoryDraft.asset_id == asset_id).limit(1)
-    post_statement = select(AccountStoryPost.id).where(AccountStoryPost.asset_id == asset_id).limit(1)
+    draft_statement = (
+        select(AccountStoryDraft.id).where(AccountStoryDraft.asset_id == asset_id).limit(1)
+    )
+    post_statement = (
+        select(AccountStoryPost.id).where(AccountStoryPost.asset_id == asset_id).limit(1)
+    )
     if workspace_id is not None:
-        draft_statement = draft_statement.join(Account, Account.id == AccountStoryDraft.account_id).where(
-            Account.workspace_id == workspace_id
-        )
-        post_statement = post_statement.join(Account, Account.id == AccountStoryPost.account_id).where(
-            Account.workspace_id == workspace_id
-        )
+        draft_statement = draft_statement.join(
+            Account, Account.id == AccountStoryDraft.account_id
+        ).where(Account.workspace_id == workspace_id)
+        post_statement = post_statement.join(
+            Account, Account.id == AccountStoryPost.account_id
+        ).where(Account.workspace_id == workspace_id)
     draft_ref = session.execute(draft_statement).scalars().first()
     post_ref = session.execute(post_statement).scalars().first()
     if draft_ref or post_ref:
@@ -144,7 +158,9 @@ def _mark_orphan_story_asset(session: Session, asset_id: str, *, workspace_id: s
     session.commit()
 
 
-def _get_story_draft(session: Session, draft_id: str, *, workspace_id: str | None = None) -> AccountStoryDraft | None:
+def _get_story_draft(
+    session: Session, draft_id: str, *, workspace_id: str | None = None
+) -> AccountStoryDraft | None:
     statement = select(AccountStoryDraft).where(AccountStoryDraft.id == draft_id)
     if workspace_id is not None:
         statement = statement.join(Account, Account.id == AccountStoryDraft.account_id).where(

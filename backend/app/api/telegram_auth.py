@@ -13,7 +13,11 @@ from app.schemas import (
     TelegramAuthSessionCreate,
     TelegramAuthSessionRead,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.telegram_auth_sessions import (
     auth_session_to_dict,
     create_auth_session,
@@ -38,8 +42,12 @@ def post_auth_session(
         phone_number=payload.phone_number,
         label=payload.label,
     )
-    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(row.id, row.workspace_id, "start"):
-        row = process_auth_action(session, auth_session_id=row.id, workspace_id=auth.workspace_id, action="start")
+    if not settings.tdlib_live_enabled or not enqueue_telegram_auth_action(
+        row.id, row.workspace_id, "start"
+    ):
+        row = process_auth_action(
+            session, auth_session_id=row.id, workspace_id=auth.workspace_id, action="start"
+        )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 
@@ -48,7 +56,10 @@ def get_auth_sessions(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return [TelegramAuthSessionRead(**auth_session_to_dict(row)) for row in list_auth_sessions(session, workspace_id=auth.workspace_id)]
+    return [
+        TelegramAuthSessionRead(**auth_session_to_dict(row))
+        for row in list_auth_sessions(session, workspace_id=auth.workspace_id)
+    ]
 
 
 @router.get("/{auth_session_id}", response_model=TelegramAuthSessionRead)
@@ -59,7 +70,12 @@ def get_auth_session_status(
 ):
     row = get_auth_session(session, auth_session_id=auth_session_id, workspace_id=auth.workspace_id)
     if row is None:
-        raise AppError(status_code=404, error_code="AUTH_SESSION_NOT_FOUND", error_class="not_found", message="auth session not found")
+        raise AppError(
+            status_code=404,
+            error_code="AUTH_SESSION_NOT_FOUND",
+            error_class="not_found",
+            message="auth session not found",
+        )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))
 
 
@@ -103,5 +119,7 @@ def post_auth_session_cancel(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    row = process_auth_action(session, auth_session_id=auth_session_id, workspace_id=auth.workspace_id, action="cancel")
+    row = process_auth_action(
+        session, auth_session_id=auth_session_id, workspace_id=auth.workspace_id, action="cancel"
+    )
     return TelegramAuthSessionRead(**auth_session_to_dict(row))

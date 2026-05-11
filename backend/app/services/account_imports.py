@@ -60,7 +60,9 @@ def validate_batch(
     batch = _require_batch(session, batch_id, workspace_id)
     batch.status = "validating"
     session.query(AccountImportItem).filter(AccountImportItem.batch_id == batch.id).delete()
-    items = validate_import_source(source_type=batch.source_type, content=content, metadata=metadata)
+    items = validate_import_source(
+        source_type=batch.source_type, content=content, metadata=metadata
+    )
     for item in items:
         payload = item.to_dict()
         session.add(
@@ -105,7 +107,12 @@ def confirm_import_batch(
 ) -> AccountImportBatch:
     batch = _require_batch(session, batch_id, workspace_id)
     if confirmation != "IMPORT":
-        raise AppError(status_code=400, error_code="IMPORT_CONFIRMATION_REQUIRED", error_class="validation", message="confirmation must be IMPORT")
+        raise AppError(
+            status_code=400,
+            error_code="IMPORT_CONFIRMATION_REQUIRED",
+            error_class="validation",
+            message="confirmation must be IMPORT",
+        )
     batch.status = "ready_for_import" if batch.dry_run else "importing"
     record_sensitive_audit_event(
         session,
@@ -121,7 +128,9 @@ def confirm_import_batch(
     return batch
 
 
-def list_import_batches(session: Session, *, workspace_id: str, limit: int = 50) -> list[AccountImportBatch]:
+def list_import_batches(
+    session: Session, *, workspace_id: str, limit: int = 50
+) -> list[AccountImportBatch]:
     return list(
         session.execute(
             select(AccountImportBatch)
@@ -134,10 +143,18 @@ def list_import_batches(session: Session, *, workspace_id: str, limit: int = 50)
     )
 
 
-def get_import_batch(session: Session, *, batch_id: str, workspace_id: str) -> AccountImportBatch | None:
-    return session.execute(
-        select(AccountImportBatch).where(AccountImportBatch.id == batch_id, AccountImportBatch.workspace_id == workspace_id)
-    ).scalars().first()
+def get_import_batch(
+    session: Session, *, batch_id: str, workspace_id: str
+) -> AccountImportBatch | None:
+    return (
+        session.execute(
+            select(AccountImportBatch).where(
+                AccountImportBatch.id == batch_id, AccountImportBatch.workspace_id == workspace_id
+            )
+        )
+        .scalars()
+        .first()
+    )
 
 
 def import_batch_to_dict(batch: AccountImportBatch) -> dict[str, Any]:
@@ -176,7 +193,12 @@ def import_item_to_dict(item: AccountImportItem) -> dict[str, Any]:
 def _require_batch(session: Session, batch_id: str, workspace_id: str) -> AccountImportBatch:
     batch = get_import_batch(session, batch_id=batch_id, workspace_id=workspace_id)
     if batch is None:
-        raise AppError(status_code=404, error_code="IMPORT_BATCH_NOT_FOUND", error_class="not_found", message="import batch not found")
+        raise AppError(
+            status_code=404,
+            error_code="IMPORT_BATCH_NOT_FOUND",
+            error_class="not_found",
+            message="import batch not found",
+        )
     return batch
 
 

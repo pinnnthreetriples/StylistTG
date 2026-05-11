@@ -14,7 +14,9 @@ from app.storage.paths import normalize_storage_key, resolve_tdlib_account_dirs
 def test_local_storage_save_open_exists_delete(tmp_path) -> None:
     storage = LocalStorageService(tmp_path)
 
-    stored = storage.save_bytes("workspace-1/assets/a/source/file.txt", b"hello", content_type="text/plain")
+    stored = storage.save_bytes(
+        "workspace-1/assets/a/source/file.txt", b"hello", content_type="text/plain"
+    )
 
     assert stored.key == "workspace-1/assets/a/source/file.txt"
     assert stored.size_bytes == 5
@@ -108,6 +110,8 @@ def test_asset_cleanup_max_delete_guard(db_session, tmp_path) -> None:
     storage.save_bytes("assets/one/source/file.jpg", b"1")
     storage.save_bytes("assets/two/source/file.jpg", b"2")
 
-    report = cleanup_orphan_asset_directories(db_session, storage, dry_run=False, max_delete_count=1)
+    report = cleanup_orphan_asset_directories(
+        db_session, storage, dry_run=False, max_delete_count=1
+    )
 
     assert "max delete count exceeded" in report.errors

@@ -30,7 +30,9 @@ class ProfileSyncAdapter(Protocol):
     def fetch_profile_snapshot(self, account_id: str) -> JsonDict: ...
     def fetch_current_profile(self, account_id: str) -> JsonDict: ...
     def fetch_active_stories(self, account_id: str) -> JsonList: ...
-    def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None: ...
+    def delete_story(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None: ...
     def remove_story_from_profile(
         self, account_id: str, story_poster_chat_id: str | None, story_id: str
     ) -> None: ...
@@ -49,10 +51,14 @@ class UnavailableProfileSyncAdapter:
     def fetch_profile_snapshot(self, account_id: str) -> JsonDict:
         raise RuntimeError(self._reason)
 
-    def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def delete_story(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         raise RuntimeError(self._reason)
 
-    def remove_story_from_profile(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def remove_story_from_profile(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         raise RuntimeError(self._reason)
 
 
@@ -117,7 +123,9 @@ class TdlibProfileSyncAdapter:
             if client is not None:
                 client.close()
 
-    def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def delete_story(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         client = None
         try:
             client = self._client_factory.create(account_id)
@@ -125,14 +133,20 @@ class TdlibProfileSyncAdapter:
             chat_id = _prepare_story_action(client, story_poster_chat_id, story_id, self._config)
             _send_query_checked(
                 client,
-                {"@type": "deleteStory", "story_poster_chat_id": chat_id, "story_id": int(story_id)},
+                {
+                    "@type": "deleteStory",
+                    "story_poster_chat_id": chat_id,
+                    "story_id": int(story_id),
+                },
                 self._config.tdlib_auth_timeout_seconds,
             )
         finally:
             if client is not None:
                 client.close()
 
-    def remove_story_from_profile(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def remove_story_from_profile(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         client = None
         try:
             client = self._client_factory.create(account_id)
@@ -156,7 +170,9 @@ class TdlibProfileSyncAdapter:
         proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
-            event = cast(JsonDict | None, client.receive(self._config.tdlib_receive_timeout_seconds))
+            event = cast(
+                JsonDict | None, client.receive(self._config.tdlib_receive_timeout_seconds)
+            )
             state = _extract_authorization_state(event)
             if state is None:
                 continue
@@ -180,7 +196,9 @@ def build_profile_sync_adapter(config: Settings = settings) -> ProfileSyncAdapte
         return TdlibProfileSyncAdapter(
             client_factory=RealTdJsonClientFactory(config.tdlib_shared_library_path),
             config=config,
-            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
+            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(
+                client, account_id, config=config
+            ),
         )
     except OSError as exc:
         return UnavailableProfileSyncAdapter(str(exc))
@@ -315,14 +333,12 @@ def _sync_story_posts(
         if story.get("telegram_story_id") is not None
     }
     posts = list(
-        session.execute(
-            select(AccountStoryPost).where(AccountStoryPost.account_id == account_id)
-        ).scalars().all()
+        session.execute(select(AccountStoryPost).where(AccountStoryPost.account_id == account_id))
+        .scalars()
+        .all()
     )
     posts_by_story_id = {
-        str(post.telegram_story_id): post
-        for post in posts
-        if post.telegram_story_id is not None
+        str(post.telegram_story_id): post for post in posts if post.telegram_story_id is not None
     }
     now = utc_now()
 
@@ -401,18 +417,30 @@ def _prepare_story_action(
         raise RuntimeError("TDLib current user chat is unavailable")
     _send_query_checked(
         client,
-        {"@type": "getStory", "story_poster_chat_id": chat_id, "story_id": int(story_id), "only_local": False},
+        {
+            "@type": "getStory",
+            "story_poster_chat_id": chat_id,
+            "story_id": int(story_id),
+            "only_local": False,
+        },
         config.tdlib_auth_timeout_seconds,
     )
     return chat_id
 
 
-def _fetch_profile_page_stories(client: TdlibClient, chat_id: int | None, config: Settings) -> JsonList:
+def _fetch_profile_page_stories(
+    client: TdlibClient, chat_id: int | None, config: Settings
+) -> JsonList:
     if chat_id is None:
         return []
     response = _send_query_checked(
         client,
-        {"@type": "getChatPostedToChatPageStories", "chat_id": chat_id, "from_story_id": 0, "limit": 20},
+        {
+            "@type": "getChatPostedToChatPageStories",
+            "chat_id": chat_id,
+            "from_story_id": 0,
+            "limit": 20,
+        },
         config.tdlib_auth_timeout_seconds,
     )
     response_stories = cast(list[object], response.get("stories") or [])
@@ -454,7 +482,9 @@ def _fetch_active_stories(client: TdlibClient, chat_id: int | None, config: Sett
     return stories
 
 
-def _fetch_profile_photo(client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings) -> JsonDict | None:
+def _fetch_profile_photo(
+    client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings
+) -> JsonDict | None:
     photos = _send_query_checked(
         client,
         {"@type": "getUserProfilePhotos", "user_id": user_id, "offset": 0, "limit": 1},
@@ -468,7 +498,9 @@ def _fetch_profile_photo(client: TdlibClient, user_id: object, full_info: JsonDi
     return {"content": content, "filename": "telegram-profile-photo.jpg", "raw_tdlib_json": source}
 
 
-def _fetch_profile_audio(client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings) -> JsonDict | None:
+def _fetch_profile_audio(
+    client: TdlibClient, user_id: object, full_info: JsonDict, config: Settings
+) -> JsonDict | None:
     audios = _send_query_checked(
         client,
         {"@type": "getUserProfileAudios", "user_id": user_id, "offset": 0, "limit": 1},
@@ -479,11 +511,17 @@ def _fetch_profile_audio(client: TdlibClient, user_id: object, full_info: JsonDi
         return None
     audio_payload = cast(JsonDict, audio)
     file_value = audio_payload.get("audio")
-    file = cast(JsonDict, file_value) if isinstance(file_value, dict) else _largest_file(audio_payload)
+    file = (
+        cast(JsonDict, file_value) if isinstance(file_value, dict) else _largest_file(audio_payload)
+    )
     content = _download_file_bytes(client, file, config)
     return {
-        "telegram_audio_id": str(audio_payload.get("id")) if audio_payload.get("id") is not None else None,
-        "telegram_file_id": str(file.get("id")) if isinstance(file, dict) and file.get("id") is not None else None,
+        "telegram_audio_id": str(audio_payload.get("id"))
+        if audio_payload.get("id") is not None
+        else None,
+        "telegram_file_id": str(file.get("id"))
+        if isinstance(file, dict) and file.get("id") is not None
+        else None,
         "title": audio_payload.get("title") or None,
         "performer": audio_payload.get("performer") or None,
         "duration_seconds": audio_payload.get("duration"),
@@ -649,7 +687,9 @@ def _send_query_checked(client: TdlibClient, query: JsonDict, timeout_seconds: f
 
 def _active_story_payload(story: JsonDict, *, story_poster_chat_id: int | None = None) -> JsonDict:
     story_id = story.get("id")
-    poster_chat_id = story.get("story_poster_chat_id") or story.get("poster_chat_id") or story_poster_chat_id
+    poster_chat_id = (
+        story.get("story_poster_chat_id") or story.get("poster_chat_id") or story_poster_chat_id
+    )
     posted_at = _datetime_from_unix(story.get("date"))
     active_period = 86400
     return {
@@ -659,7 +699,9 @@ def _active_story_payload(story: JsonDict, *, story_poster_chat_id: int | None =
         "caption": _extract_text(story.get("caption")),
         "privacy_preset": _story_privacy_preset(story.get("privacy_settings")),
         "active_period_seconds": active_period,
-        "can_be_deleted": bool(story.get("can_be_deleted") or story.get("can_toggle_is_posted_to_chat_page")),
+        "can_be_deleted": bool(
+            story.get("can_be_deleted") or story.get("can_toggle_is_posted_to_chat_page")
+        ),
         "posted_at": posted_at,
         "expires_at": posted_at + timedelta(seconds=active_period) if posted_at else None,
         "raw_tdlib_json": story,

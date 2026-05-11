@@ -22,7 +22,9 @@ from conftest import override_app_session
 
 
 def test_tdlib_runtime_disabled_default_is_safe() -> None:
-    status = detect_tdlib_runtime(Settings(tdlib_live_enabled=False, tdlib_shared_library_path=None))
+    status = detect_tdlib_runtime(
+        Settings(tdlib_live_enabled=False, tdlib_shared_library_path=None)
+    )
 
     assert status.live_enabled is False
     assert status.configured is False
@@ -45,7 +47,9 @@ def test_tdlib_runtime_smoke_json_default_is_safe(capsys) -> None:
 
 
 def test_tdlib_runtime_smoke_readonly_auth_requires_explicit_flags(capsys) -> None:
-    exit_code = tdlib_runtime_smoke_main(["--readonly-auth-check", "--auth-session-id", "auth-1", "--json"])
+    exit_code = tdlib_runtime_smoke_main(
+        ["--readonly-auth-check", "--auth-session-id", "auth-1", "--json"]
+    )
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
@@ -83,14 +87,18 @@ def test_worker_diagnostics_are_safe_and_queue_allowlist_rejects_unknown() -> No
 
 def test_tdlib_paths_are_isolated_and_reject_traversal(tmp_path) -> None:
     config = Settings(tdlib_database_root=tmp_path / "db", tdlib_files_root=tmp_path / "files")
-    paths = build_auth_session_tdlib_paths(workspace_id="workspace-1", auth_session_id="auth-1", config=config)
+    paths = build_auth_session_tdlib_paths(
+        workspace_id="workspace-1", auth_session_id="auth-1", config=config
+    )
 
     assert paths.storage_key == "workspace-1/auth-sessions/auth-1"
     assert paths.database_path.is_relative_to((tmp_path / "db").resolve())
     assert paths.files_path.is_relative_to((tmp_path / "files").resolve())
 
     try:
-        build_auth_session_tdlib_paths(workspace_id="workspace-1", auth_session_id="../escape", config=config)
+        build_auth_session_tdlib_paths(
+            workspace_id="workspace-1", auth_session_id="../escape", config=config
+        )
     except ValueError as exc:
         assert "unsafe" in str(exc) or "relative" in str(exc)
     else:
@@ -102,7 +110,9 @@ def test_auth_session_start_is_explicit_audited_and_does_not_persist_code() -> N
     Base.metadata.create_all(engine)
     override_app_session(session_factory)
     try:
-        response = TestClient(app).post("/api/accounts/auth-sessions", json={"phone_number": "+15550104444", "label": "main"})
+        response = TestClient(app).post(
+            "/api/accounts/auth-sessions", json={"phone_number": "+15550104444", "label": "main"}
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -138,7 +148,9 @@ def test_auth_code_submit_does_not_enqueue_secret_job(monkeypatch) -> None:
     monkeypatch.setattr("app.api.telegram_auth.enqueue_telegram_auth_action", fake_enqueue)
     try:
         created = client.post("/api/accounts/auth-sessions", json={"phone_number": "+15550104445"})
-        submitted = client.post(f"/api/accounts/auth-sessions/{created.json()['id']}/code", json={"code": "12345"})
+        submitted = client.post(
+            f"/api/accounts/auth-sessions/{created.json()['id']}/code", json={"code": "12345"}
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -168,14 +180,16 @@ def test_import_validation_rejects_symlink_and_oversized_archive() -> None:
     symlink_archive = BytesIO()
     with zipfile.ZipFile(symlink_archive, "w") as zf:
         info = zipfile.ZipInfo("link")
-        info.external_attr = (0o120777 << 16)
+        info.external_attr = 0o120777 << 16
         zf.writestr(info, "target")
 
     oversized_archive = BytesIO()
     with zipfile.ZipFile(oversized_archive, "w") as zf:
         zf.writestr("large.bin", b"x" * 8)
 
-    symlink_result = validate_import_source(source_type="tdlib-directory", content=symlink_archive.getvalue())
+    symlink_result = validate_import_source(
+        source_type="tdlib-directory", content=symlink_archive.getvalue()
+    )
     oversized_result = validate_import_source(
         source_type="tdlib-directory",
         content=oversized_archive.getvalue(),

@@ -91,7 +91,10 @@ def test_worker_diagnostics_admin_response_is_safe_metadata(monkeypatch) -> None
     monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
     monkeypatch.setattr(settings, "tdlib_database_root", "C:/real/session/db")
     monkeypatch.setattr(settings, "tdlib_files_root", "C:/real/session/files")
-    monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: _FakeVerifier())
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: _FakeVerifier(),
+    )
     client = TestClient(app)
 
     try:
@@ -126,7 +129,10 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
         _, workspace = _seed_supabase_member(session_factory, role=role)
         override_app_session(session_factory)
         monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
-        monkeypatch.setattr("app.services.auth_context.SupabaseJwtVerifier.from_settings", lambda settings: _FakeVerifier())
+        monkeypatch.setattr(
+            "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+            lambda settings: _FakeVerifier(),
+        )
         monkeypatch.setattr(
             "app.api.diagnostics.build_runtime_diagnostics",
             lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
@@ -179,7 +185,12 @@ def _seed_supabase_member(session_factory, *, role: str) -> tuple[User, Workspac
         )
         session.add(user)
         session.flush()
-        workspace = Workspace(name=f"{role} workspace", slug=f"{role}-workspace", owner_user_id=user.id, status="active")
+        workspace = Workspace(
+            name=f"{role} workspace",
+            slug=f"{role}-workspace",
+            owner_user_id=user.id,
+            status="active",
+        )
         session.add(workspace)
         session.flush()
         session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=role))

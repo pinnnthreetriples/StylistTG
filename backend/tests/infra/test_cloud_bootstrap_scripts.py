@@ -126,7 +126,9 @@ def test_cloud_config_rejects_invalid_signed_url_ttl() -> None:
 
 def test_cloud_config_requires_valid_proxy_credentials_key() -> None:
     missing = validate_cloud_config(_valid_cloud_env(PROXY_CREDENTIALS_ENCRYPTION_KEY=""))
-    malformed = validate_cloud_config(_valid_cloud_env(PROXY_CREDENTIALS_ENCRYPTION_KEY="not-a-fernet-key"))
+    malformed = validate_cloud_config(
+        _valid_cloud_env(PROXY_CREDENTIALS_ENCRYPTION_KEY="not-a-fernet-key")
+    )
 
     assert _statuses(missing)["proxy_credentials_encryption_key"] == "FAIL"
     assert _statuses(malformed)["proxy_credentials_encryption_key"] == "FAIL"
@@ -380,7 +382,9 @@ def test_staging_smoke_storage_write_requires_explicit_flag() -> None:
         storage_runner=_storage_runner,
     )
 
-    assert calls == [{"allow_write_cloud": False, "allow_production": False, "env": _valid_cloud_env()}]
+    assert calls == [
+        {"allow_write_cloud": False, "allow_production": False, "env": _valid_cloud_env()}
+    ]
 
 
 def test_staging_smoke_accepts_object_storage_success_with_extra_process_env() -> None:
@@ -463,7 +467,7 @@ def test_load_env_file_reads_simple_values(tmp_path) -> None:
                 "APP_ENV=staging",
                 "DATABASE_URL=${DATABASE_RUNTIME_URL}",
                 "DATABASE_RUNTIME_URL=postgresql://user:secret@example/db",
-                "QUOTED=\"value with spaces\"",
+                'QUOTED="value with spaces"',
             ]
         ),
         encoding="utf-8",

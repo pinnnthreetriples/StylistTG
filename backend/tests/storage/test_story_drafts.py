@@ -1,4 +1,3 @@
-
 from app.models import AccountState
 from app.services.assets import get_asset
 from app.services.accounts import create_account
@@ -26,7 +25,9 @@ def test_story_draft_crud_contract(app_client, db_session) -> None:
     draft = create_response.json()
     assert draft["caption"] == "Draft"
 
-    patch_response = app_client.patch(f"/api/story-drafts/{draft['id']}", json={"caption": "Updated"})
+    patch_response = app_client.patch(
+        f"/api/story-drafts/{draft['id']}", json={"caption": "Updated"}
+    )
     assert patch_response.status_code == 200
     assert patch_response.json()["caption"] == "Updated"
 
@@ -54,4 +55,7 @@ def test_story_draft_rejects_unchecked_premium_active_period(app_client, db_sess
         },
     )
     assert response.status_code == 400
-    assert response.json()["message"] == "only 24h story active period is supported before live capability check"
+    assert (
+        response.json()["message"]
+        == "only 24h story active period is supported before live capability check"
+    )

@@ -5,6 +5,7 @@
 - безопасный `proxy_snapshot_json` из текущего AccountProxy без credentials,
 - что эти поля корректно прокинуты в Pydantic-схему `WarmupSessionRead`.
 """
+
 from __future__ import annotations
 
 from app.models import (

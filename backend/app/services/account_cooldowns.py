@@ -80,28 +80,40 @@ def recent_failure_cooldowns_by_operation(
     return result
 
 
-def active_cooldowns_by_operation(session: Session, account_id: str, *, now: datetime | None = None) -> dict[str, list[dict[str, Any]]]:
+def active_cooldowns_by_operation(
+    session: Session, account_id: str, *, now: datetime | None = None
+) -> dict[str, list[dict[str, Any]]]:
     now = now or datetime.now(UTC)
-    rows = session.execute(
-        select(AccountOperationCooldown)
-        .where(AccountOperationCooldown.account_id == account_id)
-        .where(AccountOperationCooldown.retry_after_at > now)
-        .order_by(AccountOperationCooldown.retry_after_at.desc())
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(AccountOperationCooldown)
+            .where(AccountOperationCooldown.account_id == account_id)
+            .where(AccountOperationCooldown.retry_after_at > now)
+            .order_by(AccountOperationCooldown.retry_after_at.desc())
+        )
+        .scalars()
+        .all()
+    )
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for row in rows:
         result.setdefault(row.operation, []).append(cooldown_to_dict(row))
     return result
 
 
-def list_active_account_cooldowns(session: Session, account_id: str, *, now: datetime | None = None) -> list[dict[str, Any]]:
+def list_active_account_cooldowns(
+    session: Session, account_id: str, *, now: datetime | None = None
+) -> list[dict[str, Any]]:
     now = now or datetime.now(UTC)
-    rows = session.execute(
-        select(AccountOperationCooldown)
-        .where(AccountOperationCooldown.account_id == account_id)
-        .where(AccountOperationCooldown.retry_after_at > now)
-        .order_by(AccountOperationCooldown.retry_after_at.desc())
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(AccountOperationCooldown)
+            .where(AccountOperationCooldown.account_id == account_id)
+            .where(AccountOperationCooldown.retry_after_at > now)
+            .order_by(AccountOperationCooldown.retry_after_at.desc())
+        )
+        .scalars()
+        .all()
+    )
     return [cooldown_to_dict(row) for row in rows]
 
 
@@ -181,7 +193,9 @@ def merge_cooldowns(*groups: dict[str, list[dict[str, Any]]]) -> dict[str, list[
     return result
 
 
-def cooldown_from_failed_step(step: JobStepResult, *, config: Settings = settings) -> dict[str, Any] | None:
+def cooldown_from_failed_step(
+    step: JobStepResult, *, config: Settings = settings
+) -> dict[str, Any] | None:
     error_code = step.error_code or ""
     match = FLOOD_WAIT_RE.search(error_code)
     operation = STEP_OPERATION_MAP.get(step.step_type, "profile_update")
@@ -242,12 +256,16 @@ def _upsert_cooldown(
     step: JobStepResult,
     cooldown: dict[str, Any],
 ) -> None:
-    existing = session.execute(
-        select(AccountOperationCooldown)
-        .where(AccountOperationCooldown.account_id == account_id)
-        .where(AccountOperationCooldown.source_step_id == step.id)
-        .limit(1)
-    ).scalars().first()
+    existing = (
+        session.execute(
+            select(AccountOperationCooldown)
+            .where(AccountOperationCooldown.account_id == account_id)
+            .where(AccountOperationCooldown.source_step_id == step.id)
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     payload: dict[str, Any] = {
         "operation": cooldown["operation"],
         "level": cooldown["level"],
@@ -275,12 +293,16 @@ def batch_active_cooldowns_by_operation(
     now = now or datetime.now(UTC)
     if not account_ids:
         return {}
-    rows = session.execute(
-        select(AccountOperationCooldown)
-        .where(AccountOperationCooldown.account_id.in_(account_ids))
-        .where(AccountOperationCooldown.retry_after_at > now)
-        .order_by(AccountOperationCooldown.retry_after_at.desc())
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(AccountOperationCooldown)
+            .where(AccountOperationCooldown.account_id.in_(account_ids))
+            .where(AccountOperationCooldown.retry_after_at > now)
+            .order_by(AccountOperationCooldown.retry_after_at.desc())
+        )
+        .scalars()
+        .all()
+    )
     result: dict[str, dict[str, list[dict[str, Any]]]] = {}
     for row in rows:
         per_account = result.setdefault(row.account_id, {op: [] for op in OPERATION_KEYS})
@@ -325,7 +347,12 @@ def batch_latest_succeeded_steps(
         .where(Job.account_id.in_(account_ids))
         .where(JobStepResult.step_type.in_(step_types))
         .where(JobStepResult.status == StepStatus.SUCCEEDED)
-        .order_by(Job.account_id, JobStepResult.step_type, JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+        .order_by(
+            Job.account_id,
+            JobStepResult.step_type,
+            JobStepResult.finished_at.desc(),
+            JobStepResult.started_at.desc(),
+        )
     ).all()
     result: dict[tuple[str, str], JobStepResult] = {}
     for account_id, step in rows:
@@ -420,16 +447,22 @@ def _recent_failed_steps(session: Session, account_id: str) -> list[JobStepResul
     )
 
 
-def _latest_succeeded_step(session: Session, account_id: str, step_type: str) -> JobStepResult | None:
-    return session.execute(
-        select(JobStepResult)
-        .join(Job, Job.id == JobStepResult.job_id)
-        .where(Job.account_id == account_id)
-        .where(JobStepResult.step_type == step_type)
-        .where(JobStepResult.status == StepStatus.SUCCEEDED)
-        .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
-        .limit(1)
-    ).scalars().first()
+def _latest_succeeded_step(
+    session: Session, account_id: str, step_type: str
+) -> JobStepResult | None:
+    return (
+        session.execute(
+            select(JobStepResult)
+            .join(Job, Job.id == JobStepResult.job_id)
+            .where(Job.account_id == account_id)
+            .where(JobStepResult.step_type == step_type)
+            .where(JobStepResult.status == StepStatus.SUCCEEDED)
+            .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def _aware(value: datetime) -> datetime:

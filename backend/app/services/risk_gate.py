@@ -40,7 +40,9 @@ def evaluate_action_gate(
     if account is None:
         raise ValueError("account not found")
     risk = build_account_readiness_risk(session, account)
-    decision = _decision_for(account, action_type=action_type, risk=risk, override_reason=override_reason)
+    decision = _decision_for(
+        account, action_type=action_type, risk=risk, override_reason=override_reason
+    )
     if override_reason and len(override_reason.strip()) < 10:
         raise ValueError("override reason too short")
     if override_reason and audit:
@@ -48,7 +50,9 @@ def evaluate_action_gate(
             session,
             workspace_id=workspace_id,
             actor_user_id=actor_user_id,
-            action="job.enqueue.override_used" if action_type == "job.enqueue" else "account.risk.override_requested",
+            action="job.enqueue.override_used"
+            if action_type == "job.enqueue"
+            else "account.risk.override_requested",
             entity_type="account",
             entity_id=account_id,
             account_id=account_id,
@@ -62,13 +66,18 @@ def evaluate_action_gate(
             session,
             workspace_id=workspace_id,
             actor_user_id=actor_user_id,
-            action="job.enqueue.blocked_by_risk" if action_type == "job.enqueue" else f"{action_type}.blocked_by_risk",
+            action="job.enqueue.blocked_by_risk"
+            if action_type == "job.enqueue"
+            else f"{action_type}.blocked_by_risk",
             entity_type="account",
             entity_id=account_id,
             account_id=account_id,
             risk_level=risk["level"],
             risk_score=risk["score"],
-            metadata={"action_type": action_type, "reason_codes": [reason["code"] for reason in risk["reasons"]]},
+            metadata={
+                "action_type": action_type,
+                "reason_codes": [reason["code"] for reason in risk["reasons"]],
+            },
         )
     return decision
 
@@ -81,7 +90,9 @@ def _decision_for(
     override_reason: str | None,
 ) -> dict[str, Any]:
     level = risk["level"]
-    requires_override = level == "high" or (level == "critical" and action_type in OVERRIDE_ALLOWED_CRITICAL_ACTIONS)
+    requires_override = level == "high" or (
+        level == "critical" and action_type in OVERRIDE_ALLOWED_CRITICAL_ACTIONS
+    )
     blocked = level == "critical" and action_type not in OVERRIDE_ALLOWED_CRITICAL_ACTIONS
     allowed = not blocked and (level in {"low", "medium"} or bool(override_reason))
     if action_type == "account.delete":
@@ -91,7 +102,8 @@ def _decision_for(
         "action_type": action_type,
         "allowed": allowed,
         "requires_override": requires_override,
-        "blocked": blocked or (requires_override and not override_reason and action_type != "account.delete"),
+        "blocked": blocked
+        or (requires_override and not override_reason and action_type != "account.delete"),
         "risk_level": level,
         "risk_score": risk["score"],
         "reasons": risk["reasons"],

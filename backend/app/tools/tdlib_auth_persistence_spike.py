@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import argparse
 
-from app.adapters.tdlib_auth import TdlibAuthStatus, build_tdlib_auth_adapter, normalize_phone_number
+from app.adapters.tdlib_auth import (
+    TdlibAuthStatus,
+    build_tdlib_auth_adapter,
+    normalize_phone_number,
+)
 from app.db import SessionLocal
 from app.models import AccountState
 from app.services.accounts import create_account, get_account_by_external_ref
@@ -25,14 +29,20 @@ def main() -> None:
 
         if not args.code:
             result = start_otp(session, phone_number=phone, adapter=build_tdlib_auth_adapter())
-            print(f"step=start_otp status={result.status} state={result.account.account_state} marker={result.runtime_state.recovery_marker}")
+            print(
+                f"step=start_otp status={result.status} state={result.account.account_state} marker={result.runtime_state.recovery_marker}"
+            )
             if result.status != TdlibAuthStatus.WAIT_CODE:
                 raise SystemExit("Gate failed: start_otp did not reach WAIT_CODE")
             print("Now run this command again with --code without deleting TDLib directories.")
             return
 
-        result = confirm_otp(session, account_id=account.id, code=args.code, adapter=build_tdlib_auth_adapter())
-        print(f"step=confirm_otp status={result.status} state={result.account.account_state} marker={result.runtime_state.recovery_marker}")
+        result = confirm_otp(
+            session, account_id=account.id, code=args.code, adapter=build_tdlib_auth_adapter()
+        )
+        print(
+            f"step=confirm_otp status={result.status} state={result.account.account_state} marker={result.runtime_state.recovery_marker}"
+        )
         if result.status == TdlibAuthStatus.WAIT_PASSWORD:
             if not args.password:
                 print("TDLib restored auth state and now requires 2FA. Re-run with --password.")
@@ -43,8 +53,13 @@ def main() -> None:
                 password=args.password,
                 adapter=build_tdlib_auth_adapter(),
             )
-            print(f"step=submit_password status={result.status} state={result.account.account_state}")
-        if result.account.account_state not in {AccountState.AUTHORIZED_READY, AccountState.EXECUTION_USABLE}:
+            print(
+                f"step=submit_password status={result.status} state={result.account.account_state}"
+            )
+        if result.account.account_state not in {
+            AccountState.AUTHORIZED_READY,
+            AccountState.EXECUTION_USABLE,
+        }:
             raise SystemExit("Gate failed: confirm did not reach authorized/usable state")
         print("Gate passed: TDLib auth state survived client close and reopened by account_id.")
 

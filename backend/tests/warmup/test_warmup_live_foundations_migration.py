@@ -52,7 +52,13 @@ def test_warmup_live_foundations_upgrade_and_downgrade() -> None:
         assert "proxy_category" in proxy_columns
 
         isolation_columns = _column_names(inspector, "warmup_isolation_claim")
-        assert {"account_id", "workspace_id", "held_by", "reason", "acquired_at"} == isolation_columns
+        assert {
+            "account_id",
+            "workspace_id",
+            "held_by",
+            "reason",
+            "acquired_at",
+        } == isolation_columns
 
         trusted_uniques = {
             tuple(constraint["column_names"])

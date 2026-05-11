@@ -59,10 +59,12 @@ def test_tdlib_parameters_use_stable_account_storage_and_test_dc_flag(tmp_path) 
 
 
 def test_wait_password_maps_to_awaiting_password() -> None:
-    mapped = map_authorization_state({
-        "@type": "authorizationStateWaitPassword",
-        "password_hint": "my hint",
-    })
+    mapped = map_authorization_state(
+        {
+            "@type": "authorizationStateWaitPassword",
+            "password_hint": "my hint",
+        }
+    )
 
     assert mapped.status == TdlibAuthStatus.WAIT_PASSWORD
     assert mapped.account_state == AccountState.AWAITING_PASSWORD
@@ -78,7 +80,9 @@ def test_wait_password_maps_to_awaiting_password() -> None:
     ],
 )
 def test_hard_stop_tdlib_error_maps_to_manual_intervention(
-    message: str, runtime_health: str, recovery_marker: str,
+    message: str,
+    runtime_health: str,
+    recovery_marker: str,
 ) -> None:
     mapped = map_tdlib_error({"@type": "error", "code": 420, "message": message})
 

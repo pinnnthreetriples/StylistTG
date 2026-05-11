@@ -20,8 +20,13 @@ def test_story_video_upload_rejects_filename_only_mime_spoof(db_session, storage
     assert message == "uploaded file is not a supported story video"
 
 
-def test_story_video_upload_accepts_mp4_signature_when_preparation_succeeds(db_session, storage_dir, monkeypatch) -> None:
-    monkeypatch.setattr("app.services.assets._prepare_story_video", lambda source_path, normalized_dir, config: source_path)
+def test_story_video_upload_accepts_mp4_signature_when_preparation_succeeds(
+    db_session, storage_dir, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "app.services.assets._prepare_story_video",
+        lambda source_path, normalized_dir, config: source_path,
+    )
     asset = save_story_video_asset(
         db_session,
         filename="story.mp4",
@@ -44,7 +49,9 @@ def test_story_video_upload_rejects_when_media_tools_are_missing(db_session, sto
             content=content,
             storage_root=storage_dir,
             max_bytes=1024,
-            config=Settings(ffprobe_path="missing-ffprobe-for-test", ffmpeg_path="missing-ffmpeg-for-test"),
+            config=Settings(
+                ffprobe_path="missing-ffprobe-for-test", ffmpeg_path="missing-ffmpeg-for-test"
+            ),
         )
     except ValueError as exc:
         message = str(exc)
@@ -56,7 +63,9 @@ def test_story_video_upload_rejects_when_media_tools_are_missing(db_session, sto
     assert db_session.query(Asset).count() == 0
 
 
-def test_story_video_upload_cleans_new_asset_dir_when_preparation_fails(db_session, storage_dir, monkeypatch) -> None:
+def test_story_video_upload_cleans_new_asset_dir_when_preparation_fails(
+    db_session, storage_dir, monkeypatch
+) -> None:
     def fail_prepare(source_path, normalized_dir, config):
         raise ValueError("ffmpeg failed")
 

@@ -87,7 +87,10 @@ def _collect_runtime_reasons(account: Account, runtime: Any, reasons: list[dict[
                     last_seen_at=runtime.updated_at,
                 )
             )
-        if account.account_state == "execution_usable" and runtime.runtime_health not in {"ready", "unknown"}:
+        if account.account_state == "execution_usable" and runtime.runtime_health not in {
+            "ready",
+            "unknown",
+        }:
             reasons.append(
                 build_reason(
                     "runtime_health_attention",
@@ -102,7 +105,10 @@ def _collect_runtime_reasons(account: Account, runtime: Any, reasons: list[dict[
         reasons.append(
             build_reason(
                 "account_not_execution_usable",
-                severity="blocked" if account.account_state in {"reauth_required", "runtime_broken", "manual_intervention_needed", "disabled"} else "medium",
+                severity="blocked"
+                if account.account_state
+                in {"reauth_required", "runtime_broken", "manual_intervention_needed", "disabled"}
+                else "medium",
                 source="account_state",
                 message="Аккаунт сейчас не готов к выполнению задач",
                 last_seen_at=account.updated_at,
@@ -120,7 +126,10 @@ def _collect_profile_reasons(profile: Any, reasons: list[dict[str, Any]]) -> Non
                 message="Профиль ещё не синхронизирован",
             )
         )
-    elif profile.synced_at and _aware(profile.synced_at) < datetime.now(UTC) - PROFILE_SYNC_STALE_AFTER:
+    elif (
+        profile.synced_at
+        and _aware(profile.synced_at) < datetime.now(UTC) - PROFILE_SYNC_STALE_AFTER
+    ):
         reasons.append(
             build_reason(
                 "stale_profile_sync",
@@ -144,7 +153,9 @@ def _collect_job_reasons(
                 severity="medium",
                 source="job",
                 message="Недавно задача завершилась частично",
-                last_seen_at=latest_job.finished_at or latest_job.started_at or latest_job.queued_at,
+                last_seen_at=latest_job.finished_at
+                or latest_job.started_at
+                or latest_job.queued_at,
             )
         )
     elif latest_job and latest_job.job_state == JobState.FAILED:
@@ -154,7 +165,9 @@ def _collect_job_reasons(
                 severity="medium",
                 source="job",
                 message="Недавно задача завершилась ошибкой",
-                last_seen_at=latest_job.finished_at or latest_job.started_at or latest_job.queued_at,
+                last_seen_at=latest_job.finished_at
+                or latest_job.started_at
+                or latest_job.queued_at,
             )
         )
 
@@ -200,7 +213,9 @@ def _story_failure_reason(code: str, step: JobStepResult) -> dict[str, Any]:
         message = "Недавно Telegram отклонил публикацию истории"
     return build_reason(
         reason_code,
-        severity="high" if reason_code in {"story_weekly_limit", "story_active_limit"} else "medium",
+        severity="high"
+        if reason_code in {"story_weekly_limit", "story_active_limit"}
+        else "medium",
         source="job_step_result",
         message=message,
         last_seen_at=step.finished_at or step.started_at,
@@ -210,7 +225,11 @@ def _story_failure_reason(code: str, step: JobStepResult) -> dict[str, Any]:
 def _health_status(account: Account, reasons: list[dict[str, Any]]) -> str:
     if any(reason["severity"] == "blocked" for reason in reasons):
         return "blocked"
-    if account.account_state == "execution_usable" and account.runtime_state and account.runtime_state.runtime_health == "ready":
+    if (
+        account.account_state == "execution_usable"
+        and account.runtime_state
+        and account.runtime_state.runtime_health == "ready"
+    ):
         if any(reason["severity"] in {"medium", "high"} for reason in reasons):
             return "attention"
         return "ready"
@@ -244,11 +263,17 @@ def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job
     """Fetch latest job per account in one query."""
     if not account_ids:
         return {}
-    rows = session.execute(
-        select(Job)
-        .where(Job.account_id.in_(account_ids))
-        .order_by(Job.account_id, Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(Job)
+            .where(Job.account_id.in_(account_ids))
+            .order_by(
+                Job.account_id, Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc()
+            )
+        )
+        .scalars()
+        .all()
+    )
     result: dict[str, Job | None] = {}
     for job in rows:
         if job.account_id not in result:
@@ -256,7 +281,9 @@ def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job
     return result
 
 
-def batch_latest_failed_steps(session: Session, account_ids: list[str]) -> dict[str, JobStepResult | None]:
+def batch_latest_failed_steps(
+    session: Session, account_ids: list[str]
+) -> dict[str, JobStepResult | None]:
     """Fetch latest failed step per account in one query."""
     if not account_ids:
         return {}
@@ -275,12 +302,16 @@ def batch_latest_failed_steps(session: Session, account_ids: list[str]) -> dict[
 
 
 def _latest_job(session: Session, account_id: str) -> Job | None:
-    return session.execute(
-        select(Job)
-        .where(Job.account_id == account_id)
-        .order_by(Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
-        .limit(1)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(Job)
+            .where(Job.account_id == account_id)
+            .order_by(Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
 
 
 def _aware(value: datetime) -> datetime:
@@ -290,11 +321,15 @@ def _aware(value: datetime) -> datetime:
 
 
 def _latest_failed_step(session: Session, account_id: str) -> JobStepResult | None:
-    return session.execute(
-        select(JobStepResult)
-        .join(Job, Job.id == JobStepResult.job_id)
-        .where(Job.account_id == account_id)
-        .where(JobStepResult.status == "failed")
-        .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
-        .limit(1)
-    ).scalars().first()
+    return (
+        session.execute(
+            select(JobStepResult)
+            .join(Job, Job.id == JobStepResult.job_id)
+            .where(Job.account_id == account_id)
+            .where(JobStepResult.status == "failed")
+            .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )

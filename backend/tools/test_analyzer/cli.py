@@ -1,4 +1,5 @@
 """CLI entry point for the test quality analyzer."""
+
 from __future__ import annotations
 
 import argparse
@@ -114,7 +115,9 @@ def _get_changed_files(ref: str) -> list[Path]:
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACMR", ref],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         files = []
         for line in result.stdout.strip().splitlines():
@@ -134,7 +137,9 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     )
     parser.add_argument("--path", help="Path to test file or directory")
     parser.add_argument(
-        "--format", choices=["text", "json", "sarif"], default="text",
+        "--format",
+        choices=["text", "json", "sarif"],
+        default="text",
         help="Output format",
     )
     parser.add_argument("--output", help="Output file path (stdout if omitted)")
@@ -148,11 +153,13 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     parser.add_argument("--config", help="Path to test-quality.toml config")
     parser.add_argument("--coverage", help="Path to coverage JSON report")
     parser.add_argument(
-        "--explain", metavar="RULE_ID",
+        "--explain",
+        metavar="RULE_ID",
         help="Show explanation for a rule and exit",
     )
     parser.add_argument(
-        "--changed", metavar="REF",
+        "--changed",
+        metavar="REF",
         help="Only analyze test files changed vs REF (e.g. origin/main)",
     )
 

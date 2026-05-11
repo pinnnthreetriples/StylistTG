@@ -44,7 +44,9 @@ def _execute_account_update_job(job_id: str, session: Session) -> int:
             operation_type="account_update",
             operation_key="job_terminal",
             status=str(job.job_state),
-            severity="info" if job.job_state in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED} else "warning",
+            severity="info"
+            if job.job_state in {JobState.COMPLETED, JobState.PARTIALLY_COMPLETED}
+            else "warning",
             source="account_update_worker",
             message="Account update job finished",
             job_id=job.id,

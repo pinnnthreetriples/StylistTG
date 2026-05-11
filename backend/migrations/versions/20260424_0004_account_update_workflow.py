@@ -10,15 +10,29 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("job", sa.Column("workflow_type", sa.String(length=64), nullable=False, server_default="profile_update"))
-    op.add_column("job", sa.Column("workflow_version", sa.Integer(), nullable=False, server_default="1"))
+    op.add_column(
+        "job",
+        sa.Column(
+            "workflow_type", sa.String(length=64), nullable=False, server_default="profile_update"
+        ),
+    )
+    op.add_column(
+        "job", sa.Column("workflow_version", sa.Integer(), nullable=False, server_default="1")
+    )
     op.add_column("job", sa.Column("desired_state_json", sa.JSON(), nullable=True))
     op.add_column("job", sa.Column("capability_snapshot_json", sa.JSON(), nullable=True))
     op.add_column("job", sa.Column("compensation_state", sa.String(length=64), nullable=True))
     op.add_column("job_step_result", sa.Column("step_order", sa.Integer(), nullable=True))
-    op.add_column("job_step_result", sa.Column("capability_key", sa.String(length=128), nullable=True))
-    op.add_column("job_step_result", sa.Column("retry_count", sa.Integer(), nullable=False, server_default="0"))
-    op.add_column("job_step_result", sa.Column("compensation_status", sa.String(length=64), nullable=True))
+    op.add_column(
+        "job_step_result", sa.Column("capability_key", sa.String(length=128), nullable=True)
+    )
+    op.add_column(
+        "job_step_result",
+        sa.Column("retry_count", sa.Integer(), nullable=False, server_default="0"),
+    )
+    op.add_column(
+        "job_step_result", sa.Column("compensation_status", sa.String(length=64), nullable=True)
+    )
 
 
 def downgrade() -> None:

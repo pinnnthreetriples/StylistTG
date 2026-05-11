@@ -8,7 +8,9 @@ import pytest
 from app.workers import run_worker
 
 
-def test_worker_observability_initializes_before_queue_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_worker_observability_initializes_before_queue_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[str] = []
 
     def fail_queue_validation(_queue_name: str) -> None:
@@ -29,7 +31,9 @@ def test_worker_observability_initializes_before_queue_validation(monkeypatch: p
     assert calls == ["init", "validate"]
 
 
-def test_flush_observability_does_not_mask_worker_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_flush_observability_does_not_mask_worker_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     sentry_sdk = SimpleNamespace(
         flush=lambda timeout: (_ for _ in ()).throw(RuntimeError("flush failed"))
     )

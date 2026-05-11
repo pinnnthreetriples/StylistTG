@@ -100,7 +100,9 @@ def test_list_detail_status_and_events(db_session) -> None:
     db_session.commit()
 
     items, total = list_warmup_sessions(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
-    detail = get_warmup_session(db_session, session_id=created.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+    detail = get_warmup_session(
+        db_session, session_id=created.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID
+    )
     events, event_total = list_warmup_events(
         db_session,
         session_id=created.id,
@@ -190,12 +192,16 @@ def test_resume_rejects_future_retry(db_session) -> None:
         )
 
 
-def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(app_client, db_session, monkeypatch) -> None:
+def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     enqueued: list[str] = []
 
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+    )
 
     response = app_client.post(
         "/api/warmup/sessions",
@@ -206,13 +212,17 @@ def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(app_
     assert enqueued == []
 
 
-def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(app_client, db_session, monkeypatch) -> None:
+def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True)
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+    )
 
     response = app_client.post(
         "/api/warmup/sessions",
@@ -223,7 +233,9 @@ def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(app_cli
     assert enqueued == ["warmup"]
 
 
-def test_create_warmup_session_marks_session_failed_when_enqueue_fails(app_client, db_session, monkeypatch) -> None:
+def test_create_warmup_session_marks_session_failed_when_enqueue_fails(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
 
@@ -357,7 +369,9 @@ def test_isolation_status_returns_404_for_unknown_account(app_client, db_session
     assert response.json()["error_code"] == "ACCOUNT_NOT_FOUND"
 
 
-def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(app_client, db_session, monkeypatch) -> None:
+def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
+    app_client, db_session, monkeypatch
+) -> None:
     account = _seed_ready_account(db_session)
     strategy = WarmupStrategy(
         id=new_id(),
@@ -377,8 +391,12 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(app
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True)
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True
+    )
+    monkeypatch.setattr(
+        "app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True
+    )
     response = app_client.post(
         "/api/warmup/sessions",
         json={"account_id": account.id, "strategy_id": strategy.id},

@@ -75,9 +75,7 @@ class RealTdJsonClient:
         return 0
 
     def send(self, query: JsonDict) -> None:
-        self._library.td_json_client_send(
-            self._client, json.dumps(query).encode("utf-8")
-        )
+        self._library.td_json_client_send(self._client, json.dumps(query).encode("utf-8"))
 
     def receive(self, timeout_seconds: float) -> JsonDict | None:
         if self._pending_events:
@@ -200,13 +198,15 @@ class TdlibAuthAdapter:
             log_event(
                 "tdlib_session_reused",
                 account_id=account_id,
-                database_directory=str(resolve_tdlib_account_dirs(self._config, account_id).database_directory),
-                files_directory=str(resolve_tdlib_account_dirs(self._config, account_id).files_directory),
+                database_directory=str(
+                    resolve_tdlib_account_dirs(self._config, account_id).database_directory
+                ),
+                files_directory=str(
+                    resolve_tdlib_account_dirs(self._config, account_id).files_directory
+                ),
             )
             while time.monotonic() < deadline:
-                event = _receive_client_event(
-                    client, self._config.tdlib_receive_timeout_seconds
-                )
+                event = _receive_client_event(client, self._config.tdlib_receive_timeout_seconds)
                 if event and event.get("@type") == "error":
                     return map_tdlib_error(event)
                 auth_state = _extract_authorization_state(event)
@@ -420,7 +420,9 @@ def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
         return TdlibAuthAdapter(
             client_factory=UnavailableTdlibClientFactory("TDLib credentials are not configured"),
             config=config,
-            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
+            proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(
+                client, account_id, config=config
+            ),
         )
     try:
         client_factory: TdlibClientFactory = RealTdJsonClientFactory(
@@ -431,7 +433,9 @@ def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
     return TdlibAuthAdapter(
         client_factory=client_factory,
         config=config,
-        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
+        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(
+            client, account_id, config=config
+        ),
     )
 
 
@@ -446,9 +450,7 @@ def _extract_authorization_state(event: JsonDict | None) -> JsonDict | None:
     return None
 
 
-def _receive_client_event(
-    client: TdlibClient, timeout_seconds: float
-) -> JsonDict | None:
+def _receive_client_event(client: TdlibClient, timeout_seconds: float) -> JsonDict | None:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         remaining = max(deadline - time.monotonic(), 0.0)

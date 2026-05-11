@@ -61,7 +61,9 @@ def test_lock_contention_sets_waiting_lock_and_retries(db_session, monkeypatch) 
     job = _make_lock_contended_job(db_session)
     reenqueue_calls: list[tuple[str, int, str | None]] = []
 
-    def fake_reenqueue(job_id: str, *, delay_seconds: int, workflow_type: str | None = None) -> bool:
+    def fake_reenqueue(
+        job_id: str, *, delay_seconds: int, workflow_type: str | None = None
+    ) -> bool:
         reenqueue_calls.append((job_id, delay_seconds, workflow_type))
         return True
 
@@ -90,7 +92,9 @@ def test_lock_contention_timeout_fails_job(db_session, monkeypatch) -> None:
 def test_lock_contention_reenqueue_failure_does_not_crash(db_session, monkeypatch) -> None:
     job = _make_lock_contended_job(db_session)
 
-    def failing_reenqueue(job_id: str, *, delay_seconds: int, workflow_type: str | None = None) -> bool:
+    def failing_reenqueue(
+        job_id: str, *, delay_seconds: int, workflow_type: str | None = None
+    ) -> bool:
         raise RuntimeError("Redis down")
 
     monkeypatch.setattr("app.job_queue.rq.reenqueue_job_with_delay", failing_reenqueue)
@@ -258,9 +262,10 @@ def test_reenqueue_job_with_delay_account_update_selects_account_update_worker(m
     monkeypatch.setattr(rq_queue, "get_profile_queue", lambda: queue)
     monkeypatch.setattr(rq_queue, "_cancel_existing_job", lambda *_: None)
 
-    assert rq_queue.reenqueue_job_with_delay(
-        "job-1", delay_seconds=1, workflow_type="account_update"
-    ) is True
+    assert (
+        rq_queue.reenqueue_job_with_delay("job-1", delay_seconds=1, workflow_type="account_update")
+        is True
+    )
 
     assert queue.enqueue_calls[0][1] is rq_queue.run_account_update_job
 

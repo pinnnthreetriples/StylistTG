@@ -1,4 +1,3 @@
-
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     WarmupStatus,
@@ -11,7 +10,9 @@ from tests.helpers.warmup import seed_warmup_account, seed_warmup_session_raw, s
 def test_account_exposes_derived_active_warmup_state(db_session) -> None:
     account = seed_warmup_account(db_session, with_proxy=False)
     strategy = seed_warmup_strategy(db_session, is_preset=True)
-    warmup_session = seed_warmup_session_raw(db_session, account.id, strategy.id, WarmupStatus.ACTIVE)
+    warmup_session = seed_warmup_session_raw(
+        db_session, account.id, strategy.id, WarmupStatus.ACTIVE
+    )
 
     account_from_list = list_accounts(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)[0]
     warmup = active_warmup_for_account(
@@ -68,4 +69,3 @@ def test_proxy_change_is_blocked_during_active_warmup(app_client, db_session) ->
 
     assert response.status_code == 409
     assert response.json()["error_code"] == "ACCOUNT_WARMUP_LOCKED"
-

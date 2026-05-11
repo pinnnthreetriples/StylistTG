@@ -8,7 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.errors import AppError
-from app.models import AuthBatch, AuthBatchEvent, AuthBatchItem, AuthBatchItemStatus, AuthBatchStatus, TERMINAL_AUTH_BATCH_ITEM_STATUSES, utc_now
+from app.models import (
+    AuthBatch,
+    AuthBatchEvent,
+    AuthBatchItem,
+    AuthBatchItemStatus,
+    AuthBatchStatus,
+    TERMINAL_AUTH_BATCH_ITEM_STATUSES,
+    utc_now,
+)
 from app.schemas import (
     AuthBatchCreate,
     AuthBatchEventRead,
@@ -23,9 +31,17 @@ from app.schemas import (
     AuthBatchValidateRequest,
 )
 from app.services.auth_batch_dispatcher import dispatch_once
-from app.services.auth_batch_state import InvalidAuthBatchTransition, transition_batch, transition_item
+from app.services.auth_batch_state import (
+    InvalidAuthBatchTransition,
+    transition_batch,
+    transition_item,
+)
 from app.services.auth_batch_tdlib import request_new_code, submit_batch_code, submit_batch_password
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.auth_batches import (
     EmptyAuthBatchError,
     PhoneInput,
@@ -53,7 +69,9 @@ def validate_phones(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return validate_batch_phones(session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id)
+    return validate_batch_phones(
+        session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id
+    )
 
 
 @router.post("", response_model=AuthBatchSnapshotRead, status_code=status.HTTP_201_CREATED)
@@ -96,7 +114,10 @@ def get_batches(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return [_batch_read(batch) for batch in list_batches(session, limit=limit, workspace_id=auth.workspace_id)]
+    return [
+        _batch_read(batch)
+        for batch in list_batches(session, limit=limit, workspace_id=auth.workspace_id)
+    ]
 
 
 @router.get("/{batch_id}", response_model=AuthBatchSnapshotRead)
@@ -105,7 +126,10 @@ def get_batch_snapshot(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return _snapshot(_require_batch(session, batch_id, auth.workspace_id), include_phone_number=_can_view_full_phone(auth))
+    return _snapshot(
+        _require_batch(session, batch_id, auth.workspace_id),
+        include_phone_number=_can_view_full_phone(auth),
+    )
 
 
 @router.get("/{batch_id}/poll", response_model=AuthBatchPollRead)
@@ -151,7 +175,10 @@ def post_pause_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(pause_batch(session, batch_id, workspace_id=auth.workspace_id), include_phone_number=True)
+        return _snapshot(
+            pause_batch(session, batch_id, workspace_id=auth.workspace_id),
+            include_phone_number=True,
+        )
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -179,7 +206,10 @@ def post_cancel_batch(
 ):
     try:
         _require_batch(session, batch_id, auth.workspace_id)
-        return _snapshot(cancel_batch(session, batch_id, workspace_id=auth.workspace_id), include_phone_number=True)
+        return _snapshot(
+            cancel_batch(session, batch_id, workspace_id=auth.workspace_id),
+            include_phone_number=True,
+        )
     except InvalidAuthBatchTransition as exc:
         raise _conflict(str(exc)) from exc
 
@@ -194,7 +224,13 @@ def post_submit_code(
 ):
     _require_item_in_batch(session, batch_id, item_id, auth.workspace_id)
     try:
-        existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_code", entity_id=item_id, workspace_id=auth.workspace_id)
+        existing = get_idempotency_result(
+            session,
+            key=payload.idempotency_key,
+            operation="submit_code",
+            entity_id=item_id,
+            workspace_id=auth.workspace_id,
+        )
         if existing is not None:
             return existing
         item = submit_batch_code(session, item_id, payload.code)
@@ -225,7 +261,13 @@ def post_submit_2fa(
 ):
     _require_item_in_batch(session, batch_id, item_id, auth.workspace_id)
     try:
-        existing = get_idempotency_result(session, key=payload.idempotency_key, operation="submit_2fa", entity_id=item_id, workspace_id=auth.workspace_id)
+        existing = get_idempotency_result(
+            session,
+            key=payload.idempotency_key,
+            operation="submit_2fa",
+            entity_id=item_id,
+            workspace_id=auth.workspace_id,
+        )
         if existing is not None:
             return existing
         item = submit_batch_password(session, item_id, payload.password)
@@ -302,7 +344,9 @@ def get_batch_events(
 ):
     _require_batch(session, batch_id, auth.workspace_id)
     events = session.execute(
-        select(AuthBatchEvent).where(AuthBatchEvent.batch_id == batch_id).order_by(AuthBatchEvent.created_at)
+        select(AuthBatchEvent)
+        .where(AuthBatchEvent.batch_id == batch_id)
+        .order_by(AuthBatchEvent.created_at)
     ).scalars()
     return [
         AuthBatchEventRead(
@@ -380,15 +424,27 @@ def _can_view_full_phone(auth: AuthContext) -> bool:
 def _require_batch(session: Session, batch_id: str, workspace_id: str | None = None) -> AuthBatch:
     batch = get_batch(session, batch_id, workspace_id=workspace_id)
     if batch is None:
-        raise AppError(status_code=404, error_code="AUTH_BATCH_NOT_FOUND", error_class="not_found", message="auth batch not found")
+        raise AppError(
+            status_code=404,
+            error_code="AUTH_BATCH_NOT_FOUND",
+            error_class="not_found",
+            message="auth batch not found",
+        )
     return batch
 
 
-def _require_item_in_batch(session: Session, batch_id: str, item_id: str, workspace_id: str) -> AuthBatchItem:
+def _require_item_in_batch(
+    session: Session, batch_id: str, item_id: str, workspace_id: str
+) -> AuthBatchItem:
     _require_batch(session, batch_id, workspace_id)
     item = session.get(AuthBatchItem, item_id)
     if item is None or item.batch_id != batch_id:
-        raise AppError(status_code=404, error_code="AUTH_BATCH_ITEM_NOT_FOUND", error_class="not_found", message="auth batch item not found")
+        raise AppError(
+            status_code=404,
+            error_code="AUTH_BATCH_ITEM_NOT_FOUND",
+            error_class="not_found",
+            message="auth batch item not found",
+        )
     return item
 
 
@@ -450,4 +506,9 @@ def _looks_like_queue_enqueue_failure(batch: AuthBatch) -> bool:
 
 
 def _conflict(message: str) -> AppError:
-    return AppError(status_code=409, error_code="AUTH_BATCH_STATE_CONFLICT", error_class="state", message=message)
+    return AppError(
+        status_code=409,
+        error_code="AUTH_BATCH_STATE_CONFLICT",
+        error_class="state",
+        message=message,
+    )

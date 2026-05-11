@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_session
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.schemas import AssetRead
 from app.models import Asset, AssetKind
 from app.services.asset_storage import asset_normalized_storage_key, get_asset_signed_url
@@ -145,7 +149,9 @@ def get_asset_content(
                 media_type=media_type,
             )
         except FileNotFoundError as exc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found") from exc
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found"
+            ) from exc
     path = storage.resolve_path(asset_normalized_storage_key(asset))
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found")
@@ -170,9 +176,13 @@ def get_asset_signed_url_endpoint(
             "expires_seconds": settings.storage_s3_signed_url_expires_seconds,
         }
     except NotImplementedError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="signed URLs are not available") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="signed URLs are not available"
+        ) from exc
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="asset content not found"
+        ) from exc
 
 
 async def _read_upload_limited(file: UploadFile, max_bytes: int) -> bytes:

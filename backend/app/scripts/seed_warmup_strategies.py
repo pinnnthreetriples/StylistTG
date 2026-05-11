@@ -174,12 +174,16 @@ def seed_warmup_strategies(
     """
     created = 0
     for preset in PRESET_STRATEGIES:
-        existing = session.execute(
-            select(WarmupStrategy).where(
-                WarmupStrategy.workspace_id == workspace_id,
-                WarmupStrategy.name == preset["name"],
+        existing = (
+            session.execute(
+                select(WarmupStrategy).where(
+                    WarmupStrategy.workspace_id == workspace_id,
+                    WarmupStrategy.name == preset["name"],
+                )
             )
-        ).scalars().first()
+            .scalars()
+            .first()
+        )
         if existing is None:
             session.add(
                 WarmupStrategy(

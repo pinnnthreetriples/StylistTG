@@ -64,7 +64,9 @@ class SupabaseJwtVerifier:
             raise _auth_error("JWT_ISSUER_INVALID", "JWT issuer is invalid")
         if self.audience:
             audience = payload.get("aud")
-            audiences: list[object] = cast(list[object], audience) if isinstance(audience, list) else [audience]
+            audiences: list[object] = (
+                cast(list[object], audience) if isinstance(audience, list) else [audience]
+            )
             if self.audience not in audiences:
                 raise _auth_error("JWT_AUDIENCE_INVALID", "JWT audience is invalid")
         if not payload.get("sub"):
@@ -152,7 +154,9 @@ def _ec_public_key_from_jwk(jwk: dict[str, Any]):
     return ec.EllipticCurvePublicNumbers(x=x, y=y, curve=ec.SECP256R1()).public_key()
 
 
-def _verify_signature(alg: str, jwk: dict[str, Any], signature: bytes, signing_input: bytes) -> None:
+def _verify_signature(
+    alg: str, jwk: dict[str, Any], signature: bytes, signing_input: bytes
+) -> None:
     jwk_alg = jwk.get("alg")
     if jwk_alg and jwk_alg != alg:
         raise _auth_error("JWT_ALG_UNSUPPORTED", "unsupported JWT algorithm")
@@ -166,7 +170,9 @@ def _verify_signature(alg: str, jwk: dict[str, Any], signature: bytes, signing_i
         if jwk.get("kty") != "EC" or jwk.get("crv") != "P-256":
             raise ValueError("ES256 requires an EC P-256 JWK")
         public_key = _ec_public_key_from_jwk(jwk)
-        public_key.verify(_es256_signature_to_der(signature), signing_input, ec.ECDSA(hashes.SHA256()))
+        public_key.verify(
+            _es256_signature_to_der(signature), signing_input, ec.ECDSA(hashes.SHA256())
+        )
     except AppError:
         raise
     except Exception as exc:

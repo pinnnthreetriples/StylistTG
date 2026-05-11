@@ -1,4 +1,5 @@
 """Mock/patch quality rules (TQA020–TQA022)."""
+
 from __future__ import annotations
 
 import ast
@@ -25,19 +26,28 @@ class MockWithoutAssert(Rule):
         for func in _get_test_functions(ctx.tree):
             src = _func_source(func, ctx.lines)
             if "MagicMock(" in src or "Mock(" in src:
-                if not any(kw in src for kw in [
-                    "assert_called", "assert_not_called", "call_args",
-                    "call_count", "called", "assert_any_call",
-                ]):
-                    issues.append(Issue(
-                        rule_id=self.id,
-                        rule_type=self.type,
-                        severity=self.default_severity,
-                        file=ctx.relative_path,
-                        line=func.lineno,
-                        message=f"Test `{func.name}` creates Mock without verifying calls",
-                        recommendation="Add assert_called* or check call_args",
-                    ))
+                if not any(
+                    kw in src
+                    for kw in [
+                        "assert_called",
+                        "assert_not_called",
+                        "call_args",
+                        "call_count",
+                        "called",
+                        "assert_any_call",
+                    ]
+                ):
+                    issues.append(
+                        Issue(
+                            rule_id=self.id,
+                            rule_type=self.type,
+                            severity=self.default_severity,
+                            file=ctx.relative_path,
+                            line=func.lineno,
+                            message=f"Test `{func.name}` creates Mock without verifying calls",
+                            recommendation="Add assert_called* or check call_args",
+                        )
+                    )
         return issues
 
 
@@ -56,15 +66,17 @@ class PatchStartWithoutStop(Rule):
             has_patcher_start = re.search(r"\bpatcher\b.*\.start\(\)", src, re.DOTALL) is not None
             if has_patcher_start or (has_patch_call and ".start()" in src):
                 if ".stop()" not in src and "addCleanup" not in src and "with patch" not in src:
-                    issues.append(Issue(
-                        rule_id=self.id,
-                        rule_type=self.type,
-                        severity=self.default_severity,
-                        file=ctx.relative_path,
-                        line=func.lineno,
-                        message=f"Test `{func.name}` calls patcher.start() without stop()",
-                        recommendation="Use context manager or call stop()/addCleanup",
-                    ))
+                    issues.append(
+                        Issue(
+                            rule_id=self.id,
+                            rule_type=self.type,
+                            severity=self.default_severity,
+                            file=ctx.relative_path,
+                            line=func.lineno,
+                            message=f"Test `{func.name}` calls patcher.start() without stop()",
+                            recommendation="Use context manager or call stop()/addCleanup",
+                        )
+                    )
         return issues
 
 
@@ -73,9 +85,16 @@ class MonkeypatchAfterCall(Rule):
     type = "mocks"
     default_severity = Severity.WARNING
 
-    _MONKEYPATCH_METHODS = frozenset({
-        "setattr", "delattr", "setitem", "delitem", "setenv", "delenv",
-    })
+    _MONKEYPATCH_METHODS = frozenset(
+        {
+            "setattr",
+            "delattr",
+            "setitem",
+            "delitem",
+            "setenv",
+            "delenv",
+        }
+    )
 
     @classmethod
     def _is_monkeypatch_call(cls, call: ast.Call) -> bool:
@@ -100,16 +119,18 @@ class MonkeypatchAfterCall(Rule):
                     and isinstance(stmt.value, ast.Call)
                     and self._is_monkeypatch_call(stmt.value)
                 ):
-                    issues.append(Issue(
-                        rule_id=self.id,
-                        rule_type=self.type,
-                        severity=self.default_severity,
-                        file=ctx.relative_path,
-                        line=stmt.lineno,
-                        message=(
-                            "monkeypatch.setattr after assert —"
-                            " setup has no effect on tested code"
-                        ),
-                        recommendation="Move monkeypatch setup before the tested call",
-                    ))
+                    issues.append(
+                        Issue(
+                            rule_id=self.id,
+                            rule_type=self.type,
+                            severity=self.default_severity,
+                            file=ctx.relative_path,
+                            line=stmt.lineno,
+                            message=(
+                                "monkeypatch.setattr after assert —"
+                                " setup has no effect on tested code"
+                            ),
+                            recommendation="Move monkeypatch setup before the tested call",
+                        )
+                    )
         return issues

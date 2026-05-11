@@ -117,9 +117,7 @@ def create_warmup_session(
             now=timestamp,
         )
         if not claim_acquired:
-            raise ValueError(
-                "account is already isolated by another warmup session"
-            )
+            raise ValueError("account is already isolated by another warmup session")
         write_warmup_event(
             session,
             warmup_session,
@@ -153,17 +151,21 @@ def _build_proxy_snapshot(session: Session, *, account_id: str) -> dict[str, Any
 
 
 def get_warmup_session(session: Session, *, session_id: str, workspace_id: str) -> WarmupSession:
-    warmup_session = session.execute(
-        select(WarmupSession)
-        .where(
-            WarmupSession.id == session_id,
-            WarmupSession.workspace_id == workspace_id,
+    warmup_session = (
+        session.execute(
+            select(WarmupSession)
+            .where(
+                WarmupSession.id == session_id,
+                WarmupSession.workspace_id == workspace_id,
+            )
+            .options(
+                joinedload(WarmupSession.account),
+                joinedload(WarmupSession.strategy),
+            )
         )
-        .options(
-            joinedload(WarmupSession.account),
-            joinedload(WarmupSession.strategy),
-        )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if warmup_session is None:
         raise ValueError("session not found")
     return warmup_session
@@ -185,7 +187,11 @@ def list_warmup_sessions(
             joinedload(WarmupSession.strategy),
         )
     )
-    count_query = select(func.count()).select_from(WarmupSession).where(WarmupSession.workspace_id == workspace_id)
+    count_query = (
+        select(func.count())
+        .select_from(WarmupSession)
+        .where(WarmupSession.workspace_id == workspace_id)
+    )
     if statuses:
         query = query.where(WarmupSession.status.in_(statuses))
         count_query = count_query.where(WarmupSession.status.in_(statuses))
@@ -289,16 +295,20 @@ def active_warmup_for_account(
     account_id: str,
     workspace_id: str,
 ) -> WarmupSession | None:
-    return session.execute(
-        select(WarmupSession)
-        .where(
-            WarmupSession.workspace_id == workspace_id,
-            WarmupSession.account_id == account_id,
-            WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+    return (
+        session.execute(
+            select(WarmupSession)
+            .where(
+                WarmupSession.workspace_id == workspace_id,
+                WarmupSession.account_id == account_id,
+                WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+            )
+            .order_by(WarmupSession.updated_at.desc())
+            .limit(1)
         )
-        .order_by(WarmupSession.updated_at.desc())
-        .limit(1)
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
 
 def batch_active_warmups_for_accounts(
@@ -310,15 +320,19 @@ def batch_active_warmups_for_accounts(
     """Return {account_id: WarmupSession} for all accounts with active warmup."""
     if not account_ids:
         return {}
-    rows = session.execute(
-        select(WarmupSession)
-        .where(
-            WarmupSession.workspace_id == workspace_id,
-            WarmupSession.account_id.in_(account_ids),
-            WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+    rows = (
+        session.execute(
+            select(WarmupSession)
+            .where(
+                WarmupSession.workspace_id == workspace_id,
+                WarmupSession.account_id.in_(account_ids),
+                WarmupSession.status.in_([s.value for s in ACTIVE_WARMUP_STATUSES]),
+            )
+            .order_by(WarmupSession.updated_at.desc())
         )
-        .order_by(WarmupSession.updated_at.desc())
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     result: dict[str, WarmupSession] = {}
     for ws in rows:
         if ws.account_id not in result:
@@ -359,7 +373,9 @@ def _sanitize_event_payload(payload: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(value, list):
             items = cast(list[object], value)
             sanitized[key] = [
-                _sanitize_event_payload(cast(dict[str, Any], item)) if isinstance(item, dict) else item
+                _sanitize_event_payload(cast(dict[str, Any], item))
+                if isinstance(item, dict)
+                else item
                 for item in items
             ]
         else:

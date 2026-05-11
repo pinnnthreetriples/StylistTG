@@ -18,14 +18,22 @@ def apply_auth_error(item: AuthBatchItem, message: str | None) -> str:
     if "PHONE_CODE_INVALID" in upper:
         item.code_error_count += 1
         item.error_code = "PHONE_CODE_INVALID"
-        return AuthBatchItemStatus.FAILED if item.code_error_count >= 3 else AuthBatchItemStatus.WAITING_CODE
+        return (
+            AuthBatchItemStatus.FAILED
+            if item.code_error_count >= 3
+            else AuthBatchItemStatus.WAITING_CODE
+        )
     if "PHONE_CODE_EXPIRED" in upper:
         item.error_code = "PHONE_CODE_EXPIRED"
         return AuthBatchItemStatus.TIMED_OUT
     if "PASSWORD_HASH_INVALID" in upper:
         item.password_error_count += 1
         item.error_code = "PASSWORD_HASH_INVALID"
-        return AuthBatchItemStatus.FAILED if item.password_error_count >= 5 else AuthBatchItemStatus.WAITING_2FA
+        return (
+            AuthBatchItemStatus.FAILED
+            if item.password_error_count >= 5
+            else AuthBatchItemStatus.WAITING_2FA
+        )
     if "PHONE_NUMBER_BANNED" in upper:
         item.error_code = "PHONE_NUMBER_BANNED"
         return AuthBatchItemStatus.FAILED

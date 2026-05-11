@@ -45,14 +45,18 @@ def upgrade() -> None:
             sa.Column("result_json", sa.JSON(), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         )
-        op.create_index("ix_account_validity_check_run_account_id", "account_validity_check_run", ["account_id"])
+        op.create_index(
+            "ix_account_validity_check_run_account_id", "account_validity_check_run", ["account_id"]
+        )
 
 
 def downgrade() -> None:
     bind = op.get_bind()
     tables = sa.inspect(bind).get_table_names()
     if "account_validity_check_run" in tables:
-        op.drop_index("ix_account_validity_check_run_account_id", table_name="account_validity_check_run")
+        op.drop_index(
+            "ix_account_validity_check_run_account_id", table_name="account_validity_check_run"
+        )
         op.drop_table("account_validity_check_run")
     if "account_safety_snapshot" in tables:
         op.drop_table("account_safety_snapshot")

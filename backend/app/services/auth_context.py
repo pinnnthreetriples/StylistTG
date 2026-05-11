@@ -82,7 +82,9 @@ def get_current_auth_context(
     )
 
 
-def require_authenticated(context: Annotated[AuthContext, Depends(get_current_auth_context)]) -> AuthContext:
+def require_authenticated(
+    context: Annotated[AuthContext, Depends(get_current_auth_context)],
+) -> AuthContext:
     return context
 
 
@@ -102,7 +104,9 @@ def require_role(*roles: str):
     return dependency
 
 
-def require_mutation_permission(context: Annotated[AuthContext, Depends(require_role("operator"))]) -> AuthContext:
+def require_mutation_permission(
+    context: Annotated[AuthContext, Depends(require_role("operator"))],
+) -> AuthContext:
     return context
 
 

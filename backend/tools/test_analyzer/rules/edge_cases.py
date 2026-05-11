@@ -1,4 +1,5 @@
 """Edge case detection rules (TQA040)."""
+
 from __future__ import annotations
 
 import re
@@ -14,11 +15,38 @@ from ..models import (
 
 # Words in test names that indicate a negative/boundary/edge-case test.
 _NEGATIVE_NAME_KEYWORDS = (
-    "error", "fail", "reject", "invalid", "exceed", "deny",
-    "block", "redact", "sanitize", "scoped", "requires", "missing",
-    "without", "unauthorized", "forbidden", "expired", "conflict",
-    "not_", "cannot", "absent", "empty", "limit", "cooldown",
-    "uncertain", "timeout", "blocked", "denied", "404", "401", "403", "409", "422",
+    "error",
+    "fail",
+    "reject",
+    "invalid",
+    "exceed",
+    "deny",
+    "block",
+    "redact",
+    "sanitize",
+    "scoped",
+    "requires",
+    "missing",
+    "without",
+    "unauthorized",
+    "forbidden",
+    "expired",
+    "conflict",
+    "not_",
+    "cannot",
+    "absent",
+    "empty",
+    "limit",
+    "cooldown",
+    "uncertain",
+    "timeout",
+    "blocked",
+    "denied",
+    "404",
+    "401",
+    "403",
+    "409",
+    "422",
 )
 
 # Source-level patterns indicating boundary/error checks.
@@ -41,19 +69,19 @@ class MissingEdgeCase(Rule):
         if not funcs:
             return issues
 
-        has_error_name = any(
-            any(kw in f.name for kw in _NEGATIVE_NAME_KEYWORDS) for f in funcs
-        )
+        has_error_name = any(any(kw in f.name for kw in _NEGATIVE_NAME_KEYWORDS) for f in funcs)
         has_source_signal = bool(_NEGATIVE_SOURCE_RE.search(ctx.source))
 
         if not has_error_name and not has_source_signal and len(funcs) >= 3:
-            issues.append(Issue(
-                rule_id=self.id,
-                rule_type=self.type,
-                severity=self.default_severity,
-                file=ctx.relative_path,
-                line=1,
-                message="Test file has no error/boundary/deny tests",
-                recommendation="Add tests for error paths, edge cases, or invalid input",
-            ))
+            issues.append(
+                Issue(
+                    rule_id=self.id,
+                    rule_type=self.type,
+                    severity=self.default_severity,
+                    file=ctx.relative_path,
+                    line=1,
+                    message="Test file has no error/boundary/deny tests",
+                    recommendation="Add tests for error paths, edge cases, or invalid input",
+                )
+            )
         return issues

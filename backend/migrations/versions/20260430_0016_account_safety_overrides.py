@@ -32,8 +32,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["account_id"], ["account.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_account_safety_override_account_id", "account_safety_override", ["account_id"])
-    op.create_index("ix_account_safety_override_operation", "account_safety_override", ["operation"])
+    op.create_index(
+        "ix_account_safety_override_account_id", "account_safety_override", ["account_id"]
+    )
+    op.create_index(
+        "ix_account_safety_override_operation", "account_safety_override", ["operation"]
+    )
 
 
 def downgrade() -> None:

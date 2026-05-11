@@ -16,6 +16,7 @@ Note: SQLite не сохраняет tz, поэтому все сравнени�
 - create_warmup_session для shadow/passive/network/advanced берёт claim,
   для dry_run — не берёт.
 """
+
 from __future__ import annotations
 
 import random
@@ -161,9 +162,7 @@ def test_dispatch_simulates_actions_and_increments_counters(db_session) -> None:
     rng = random.Random(0)
     when = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 
-    processed = process_due_warmup_dispatches(
-        db_session, worker_id="worker-1", now=when, rng=rng
-    )
+    processed = process_due_warmup_dispatches(db_session, worker_id="worker-1", now=when, rng=rng)
 
     assert processed == 1
     db_session.refresh(warmup_session)
@@ -241,9 +240,7 @@ def test_dispatch_advances_day_when_daily_caps_exhausted(db_session) -> None:
     rng = random.Random(1)
     when = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 
-    process_due_warmup_dispatches(
-        db_session, worker_id="worker-1", now=when, rng=rng
-    )
+    process_due_warmup_dispatches(db_session, worker_id="worker-1", now=when, rng=rng)
 
     db_session.refresh(warmup_session)
     assert warmup_session.current_day == 1, "day advanced when daily cap hit"
@@ -268,9 +265,7 @@ def test_dispatch_completes_session_at_duration_end(db_session) -> None:
     # so day completion may take more than one tick per day. Loop until the
     # session is COMPLETED or we hit a generous safety bound.
     for _ in range(30):
-        process_due_warmup_dispatches(
-            db_session, worker_id="worker-1", now=when, rng=rng
-        )
+        process_due_warmup_dispatches(db_session, worker_id="worker-1", now=when, rng=rng)
         db_session.refresh(warmup_session)
         if warmup_session.status == WarmupStatus.COMPLETED.value:
             break
@@ -306,8 +301,7 @@ def test_dispatch_respects_quiet_hours(db_session, monkeypatch) -> None:
     skipped_events = [
         event
         for event in warmup_session.events
-        if event.event_type == "task_skipped"
-        and event.payload_json.get("reason") == "quiet_hours"
+        if event.event_type == "task_skipped" and event.payload_json.get("reason") == "quiet_hours"
     ]
     assert skipped_events, "dispatch should record a quiet_hours skip event"
 
@@ -318,9 +312,7 @@ def test_dispatch_reschedules_into_future(db_session) -> None:
     when = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
     rng = random.Random(3)
 
-    process_due_warmup_dispatches(
-        db_session, worker_id="worker-1", now=when, rng=rng
-    )
+    process_due_warmup_dispatches(db_session, worker_id="worker-1", now=when, rng=rng)
 
     db_session.refresh(warmup_session)
     assert warmup_session.next_micro_session_at is not None
@@ -384,6 +376,8 @@ def test_dispatch_skips_live_session_when_adapter_unavailable(db_session, monkey
         if event.event_type == "task_skipped"
         and event.payload_json.get("reason") == "passive_disabled"
     ]
-    assert skipped_events, "should write task_skipped(passive_disabled) for unavailable live adapter"
+    assert skipped_events, (
+        "should write task_skipped(passive_disabled) for unavailable live adapter"
+    )
     # daily counters must be untouched
     assert warmup_session.daily_counters_json == {}

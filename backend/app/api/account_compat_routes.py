@@ -10,7 +10,11 @@ from app.schemas import (
     JobSummaryRead,
     RuntimeRefreshRead,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 

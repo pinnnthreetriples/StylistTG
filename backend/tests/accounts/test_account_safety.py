@@ -101,7 +101,10 @@ def test_proxy_password_requires_encryption_key(db_session) -> None:
             config=config,
         )
     except ValueError as exc:
-        assert str(exc) in {"proxy_credentials_key_required", "proxy_credentials_crypto_unavailable"}
+        assert str(exc) in {
+            "proxy_credentials_key_required",
+            "proxy_credentials_crypto_unavailable",
+        }
     else:
         raise AssertionError("proxy password must not be stored without encryption")
 
@@ -114,13 +117,19 @@ def test_proxy_check_updates_status_and_writes_operation_log(db_session) -> None
             return False, "proxy_timeout", "timeout"
 
     account = create_account(db_session, external_ref="+15550103002")
-    db_session.add(AccountProxy(account_id=account.id, proxy_type="http", host="127.0.0.1", port=8080))
+    db_session.add(
+        AccountProxy(account_id=account.id, proxy_type="http", host="127.0.0.1", port=8080)
+    )
     db_session.commit()
 
     result = check_account_proxy(db_session, account.id, checker=FakeChecker())
-    log = db_session.execute(
-        select(AccountOperationLog).where(AccountOperationLog.account_id == account.id)
-    ).scalars().first()
+    log = (
+        db_session.execute(
+            select(AccountOperationLog).where(AccountOperationLog.account_id == account.id)
+        )
+        .scalars()
+        .first()
+    )
 
     assert result["status"] == "failed"
     assert result["last_error_code"] == "proxy_timeout"
@@ -316,7 +325,9 @@ def test_account_validity_check_db_snapshot_persists_run_and_snapshot() -> None:
     override_app_session(session_factory)
     client = TestClient(app)
 
-    response = client.post(f"/api/accounts/{account_id}/validity-check", json={"mode": "db_snapshot"})
+    response = client.post(
+        f"/api/accounts/{account_id}/validity-check", json={"mode": "db_snapshot"}
+    )
     checks = client.get(f"/api/accounts/{account_id}/validity-checks")
     safety = client.get(f"/api/accounts/{account_id}/safety")
 
@@ -342,19 +353,27 @@ def test_account_validity_check_tdlib_mode_is_safe_unsupported_without_live_acti
     override_app_session(session_factory)
     client = TestClient(app)
 
-    response = client.post(f"/api/accounts/{account_id}/validity-check", json={"mode": "tdlib_readonly"})
+    response = client.post(
+        f"/api/accounts/{account_id}/validity-check", json={"mode": "tdlib_readonly"}
+    )
 
     app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert response.json()["status"] in {"completed", "unsupported"}
     if response.json()["status"] == "completed":
-        assert response.json()["result"]["validity_status"] in {"runtime_broken", "reauth_required", "unknown"}
+        assert response.json()["result"]["validity_status"] in {
+            "runtime_broken",
+            "reauth_required",
+            "unknown",
+        }
     else:
         assert response.json()["error_code"] == "TDLIB_READONLY_CHECK_NOT_ENABLED"
 
 
-def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_write(db_session) -> None:
+def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_write(
+    db_session,
+) -> None:
     from app.services.account_validity import run_account_validity_check
 
     class FakeReadonlyAdapter:
@@ -375,7 +394,9 @@ def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_writ
     account = create_account(db_session, external_ref="+15550102010")
     adapter = FakeReadonlyAdapter()
 
-    result = run_account_validity_check(db_session, account.id, mode="tdlib_readonly", adapter=adapter)
+    result = run_account_validity_check(
+        db_session, account.id, mode="tdlib_readonly", adapter=adapter
+    )
 
     assert result["status"] == "completed"
     assert result["result"]["validity_status"] == "valid"
@@ -414,7 +435,13 @@ def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_ses
     account.runtime_state.runtime_health = "ready"
     account.profile_state = AccountProfileState(account_id=account.id, first_name="Stylist")
     finished_at = datetime.now(UTC)
-    job = seed_job(db_session, account_id=account.id, payload={"username": "name"}, state=JobState.FAILED, finished_at=finished_at)
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"username": "name"},
+        state=JobState.FAILED,
+        finished_at=finished_at,
+    )
     db_session.add(
         JobStepResult(
             job_id=job.id,
@@ -435,7 +462,15 @@ def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_ses
     assert cooldown["reason_code"] == "recent_flood_wait"
     assert cooldown["retry_after_at"] > datetime.now(UTC)
     assert safety["risk_by_operation"]["username"]["level"] == "blocked"
-    persisted = db_session.execute(select(AccountOperationCooldown).where(AccountOperationCooldown.account_id == account.id)).scalars().all()
+    persisted = (
+        db_session.execute(
+            select(AccountOperationCooldown).where(
+                AccountOperationCooldown.account_id == account.id
+            )
+        )
+        .scalars()
+        .all()
+    )
     assert persisted == []
 
 
@@ -448,7 +483,13 @@ def test_validity_check_persists_operation_cooldown_from_flood_wait(db_session) 
     account.runtime_state.runtime_health = "ready"
     account.profile_state = AccountProfileState(account_id=account.id, first_name="Stylist")
     finished_at = datetime.now(UTC)
-    job = seed_job(db_session, account_id=account.id, payload={"username": "name"}, state=JobState.FAILED, finished_at=finished_at)
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"username": "name"},
+        state=JobState.FAILED,
+        finished_at=finished_at,
+    )
     db_session.add(
         JobStepResult(
             job_id=job.id,
@@ -464,7 +505,15 @@ def test_validity_check_persists_operation_cooldown_from_flood_wait(db_session) 
 
     run_account_validity_check(db_session, account.id)
 
-    persisted = db_session.execute(select(AccountOperationCooldown).where(AccountOperationCooldown.account_id == account.id)).scalars().all()
+    persisted = (
+        db_session.execute(
+            select(AccountOperationCooldown).where(
+                AccountOperationCooldown.account_id == account.id
+            )
+        )
+        .scalars()
+        .all()
+    )
     assert len(persisted) == 1
     assert persisted[0].operation == "username"
 
@@ -543,7 +592,9 @@ def test_safety_preview_respects_unknown_capability_policy(db_session) -> None:
     account.runtime_state.runtime_health = "ready"
     db_session.commit()
 
-    safety = build_account_safety(db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution"))
+    safety = build_account_safety(
+        db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution")
+    )
     fields = safety_preview_fields_with_policy(
         safety,
         {"profile_audio": {"action": "add", "audio_asset_id": "asset-1"}},
@@ -562,7 +613,9 @@ def test_safety_preview_requires_fresh_validity_for_live_policy(db_session) -> N
     account.runtime_state.runtime_health = "ready"
     db_session.commit()
 
-    safety = build_account_safety(db_session, account.id, config=Settings(fresh_validity_required="always_for_live"))
+    safety = build_account_safety(
+        db_session, account.id, config=Settings(fresh_validity_required="always_for_live")
+    )
     fields = safety_preview_fields_with_policy(
         safety,
         {"profile": {"bio": "updated"}},
@@ -592,7 +645,9 @@ def test_safety_override_with_reason_allows_overridable_preview_blocker(db_sessi
         requested_blockers=["music_capability_not_checked"],
     )
 
-    safety = build_account_safety(db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution"))
+    safety = build_account_safety(
+        db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution")
+    )
     fields = safety_preview_fields_with_policy(
         safety,
         {"profile_audio": {"action": "add", "audio_asset_id": "asset-1"}},
@@ -638,7 +693,9 @@ def test_safety_override_service_requires_matching_workspace(db_session) -> None
     )
     db_session.add(user)
     db_session.flush()
-    workspace = Workspace(name="foreign override", slug="foreign-override", owner_user_id=user.id, status="active")
+    workspace = Workspace(
+        name="foreign override", slug="foreign-override", owner_user_id=user.id, status="active"
+    )
     db_session.add(workspace)
     db_session.flush()
     db_session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="owner"))
@@ -670,7 +727,13 @@ def test_recent_failure_policy_creates_warning_cooldown_for_soft_failure(db_sess
     account.runtime_state.runtime_health = "ready"
     account.profile_state = AccountProfileState(account_id=account.id, first_name="Stylist")
     finished_at = datetime.now(UTC)
-    job = seed_job(db_session, account_id=account.id, payload={"username": "taken"}, state=JobState.FAILED, finished_at=finished_at)
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"username": "taken"},
+        state=JobState.FAILED,
+        finished_at=finished_at,
+    )
     db_session.add(
         JobStepResult(
             job_id=job.id,

@@ -8,7 +8,9 @@ from app.storage.s3_compatible import S3CompatibleStorageService
 
 def build_storage_service(config: Settings = settings) -> StorageService:
     if config.storage_backend == "local":
-        return LocalStorageService(config.storage_root, public_base_url=config.storage_public_base_url)
+        return LocalStorageService(
+            config.storage_root, public_base_url=config.storage_public_base_url
+        )
     if config.storage_backend == "s3":
         return S3CompatibleStorageService(
             endpoint_url=config.storage_s3_endpoint_url or "",

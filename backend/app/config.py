@@ -153,7 +153,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
-        cloud_or_prod = self.app_env not in {"local", "development", "test"} or self.db_connection_mode == "neon"
+        cloud_or_prod = (
+            self.app_env not in {"local", "development", "test"}
+            or self.db_connection_mode == "neon"
+        )
         if cloud_or_prod and self.auth_mode == "local" and not self.allow_local_auth_in_prod:
             raise ValueError(
                 "AUTH_MODE=local is not allowed in production/cloud mode. "
@@ -161,7 +164,9 @@ class Settings(BaseSettings):
                 "ALLOW_LOCAL_AUTH_IN_PROD=true for controlled non-production testing."
             )
         if cloud_or_prod:
-            configured_cors = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+            configured_cors = [
+                origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
+            ]
             if self.enforce_localhost_only:
                 raise ValueError("cloud API requires ENFORCE_LOCALHOST_ONLY=false")
             if not self.operator_api_token:
@@ -186,11 +191,7 @@ class Settings(BaseSettings):
                 "STORAGE_S3_ACCESS_KEY_ID": self.storage_s3_access_key_id,
                 "STORAGE_S3_SECRET_ACCESS_KEY": self.storage_s3_secret_access_key,
             }
-            missing = [
-                name
-                for name, value in required_s3_settings.items()
-                if not value
-            ]
+            missing = [name for name, value in required_s3_settings.items() if not value]
             if missing:
                 raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
         return self

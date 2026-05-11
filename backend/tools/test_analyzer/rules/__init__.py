@@ -1,4 +1,5 @@
 """Rule registry — aggregates all rules into ALL_RULES."""
+
 from __future__ import annotations
 
 from ..models import Rule

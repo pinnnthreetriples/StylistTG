@@ -1,4 +1,5 @@
 """PR 8: Tests for operation log workspace boundaries and export expiry."""
+
 from __future__ import annotations
 
 import pytest
@@ -190,7 +191,9 @@ def test_deletion_request_is_workspace_scoped(db_session) -> None:
         dry_run=True,
     )
 
-    own = list_deletion_requests(db_session, account_id=account.id, workspace_id=account.workspace_id)
+    own = list_deletion_requests(
+        db_session, account_id=account.id, workspace_id=account.workspace_id
+    )
     assert len(own) == 1
 
     with pytest.raises(ValueError, match="account not found"):

@@ -1,4 +1,5 @@
 """Unit tests for tools.test_analyzer package."""
+
 # test-analyzer: disable-file=STG001 reason="test samples intentionally contain dependency_overrides patterns"
 # test-analyzer: disable-file=STG002 reason="test samples intentionally contain TestClient(app) + dependency_overrides patterns"
 # test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification"
@@ -478,17 +479,19 @@ def test_cli_coverage_flag_accepted(tmp_path: Path) -> None:
     test_file = tmp_path / "test_ok.py"
     test_file.write_text("def test_fine():\n    assert len([1, 2]) == 2\n")
     coverage_file = tmp_path / "coverage.json"
-    coverage_file.write_text(json.dumps({
-        "files": {
-            "app/example.py": {
-                "summary": {"num_branches": 4, "covered_branches": 4}
-            }
-        }
-    }))
-    code = main([
-        "--path", str(test_file),
-        "--coverage", str(coverage_file),
-    ])
+    coverage_file.write_text(
+        json.dumps(
+            {"files": {"app/example.py": {"summary": {"num_branches": 4, "covered_branches": 4}}}}
+        )
+    )
+    code = main(
+        [
+            "--path",
+            str(test_file),
+            "--coverage",
+            str(coverage_file),
+        ]
+    )
     assert code == 0
 
 
@@ -587,15 +590,21 @@ def test_sarif_has_partial_fingerprints_and_automation_details() -> None:
 def test_fingerprint_stable_across_line_shifts() -> None:
     """Fingerprint does not change when line number shifts."""
     issue_a = Issue(
-        rule_id="TQA001", rule_type="assertions",
-        severity=Severity.CRITICAL, file="test.py",
-        line=10, message="zero assertions",
+        rule_id="TQA001",
+        rule_type="assertions",
+        severity=Severity.CRITICAL,
+        file="test.py",
+        line=10,
+        message="zero assertions",
         recommendation="add assert",
     )
     issue_b = Issue(
-        rule_id="TQA001", rule_type="assertions",
-        severity=Severity.CRITICAL, file="test.py",
-        line=15, message="zero assertions",
+        rule_id="TQA001",
+        rule_type="assertions",
+        severity=Severity.CRITICAL,
+        file="test.py",
+        line=15,
+        message="zero assertions",
         recommendation="add assert",
     )
     assert issue_a.fingerprint() == issue_b.fingerprint()
@@ -640,7 +649,9 @@ def test_changed_mode_no_crash(tmp_path: Path) -> None:
     assert code == 0
 
 
-def test_changed_mode_analyzes_changed_test_file(tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+def test_changed_mode_analyzes_changed_test_file(
+    tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+) -> None:
     """--changed mode finds and analyzes changed test files (positive case)."""
     test_file = tmp_path / "test_bad.py"
     test_file.write_text("def test_nothing():\n    x = 1\n")

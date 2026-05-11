@@ -31,15 +31,41 @@ def test_frontend_diagnostics_summary_is_safe(monkeypatch) -> None:
         "app.api.diagnostics.build_runtime_diagnostics",
         lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
     )
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.app_env", "staging", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.auth_mode", "supabase_jwt", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.db_connection_mode", "neon", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.redis_url", "rediss://:secret@example.test/0", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.storage_backend", "s3", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.storage_s3_bucket", "bucket", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.storage_s3_access_key_id", "key-id", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.storage_s3_secret_access_key", "secret-key", raising=False)
-    monkeypatch.setattr("app.services.frontend_diagnostics.settings.tdlib_database_root", "C:/real/session/db", raising=False)
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.app_env", "staging", raising=False
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.auth_mode", "supabase_jwt", raising=False
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.db_connection_mode", "neon", raising=False
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.redis_url",
+        "rediss://:secret@example.test/0",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.storage_backend", "s3", raising=False
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.storage_s3_bucket", "bucket", raising=False
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.storage_s3_access_key_id",
+        "key-id",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.storage_s3_secret_access_key",
+        "secret-key",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "app.services.frontend_diagnostics.settings.tdlib_database_root",
+        "C:/real/session/db",
+        raising=False,
+    )
     app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
         user_id="local-user",
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
@@ -63,7 +89,9 @@ def test_frontend_diagnostics_summary_is_safe(monkeypatch) -> None:
     assert payload["tdlib"]["status"] == "not_configured"
     assert payload["tdlib"]["profile_execution_adapter"] == "mock"
     assert payload["tdlib"]["live_enabled"] is False
-    assert {"profile_jobs", "auth_jobs", "account_lifecycle_jobs"}.issubset(set(payload["workers"]["queues"]))
+    assert {"profile_jobs", "auth_jobs", "account_lifecycle_jobs"}.issubset(
+        set(payload["workers"]["queues"])
+    )
 
     serialized = str(payload)
     assert "secret" not in serialized.lower()
@@ -145,7 +173,9 @@ def test_account_risk_summary_is_workspace_scoped() -> None:
         visible.runtime_state.runtime_health = "ready"
 
         hidden_workspace = _seed_second_workspace(session)
-        hidden = create_account(session, external_ref="+15550102004", workspace_id=hidden_workspace.id)
+        hidden = create_account(
+            session, external_ref="+15550102004", workspace_id=hidden_workspace.id
+        )
         hidden.account_state = AccountState.REAUTH_REQUIRED
         hidden.runtime_state.reauth_required = True
         hidden.runtime_state.runtime_health = "closed"

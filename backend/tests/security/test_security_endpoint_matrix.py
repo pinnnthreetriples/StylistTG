@@ -11,6 +11,7 @@ Each entry is:
     "operator" → operator, admin, owner
     "admin"    → admin, owner
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -289,7 +290,11 @@ class TestViewerCannotMutate:
 
     @pytest.mark.parametrize(
         "method,path,min_role,is_mutation",
-        [(m, p, r, mut) for m, p, r, mut in ENDPOINT_MATRIX if mut and ROLE_ORDER[r] > ROLE_ORDER["viewer"]],
+        [
+            (m, p, r, mut)
+            for m, p, r, mut in ENDPOINT_MATRIX
+            if mut and ROLE_ORDER[r] > ROLE_ORDER["viewer"]
+        ],
         ids=lambda val: f"{val}" if isinstance(val, str) else None,
     )
     def test_viewer_mutation_rejected(self, method, path, min_role, is_mutation):

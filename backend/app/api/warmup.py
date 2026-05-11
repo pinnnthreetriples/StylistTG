@@ -37,7 +37,11 @@ from app.schemas import (
     WarmupValidateRead,
     WarmupValidateRequest,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.services.warmup import (
     create_warmup_session,
     delete_warmup_session,
@@ -106,7 +110,10 @@ def get_warmup_strategies(
 ) -> list[WarmupStrategyRead]:
     strategies = session.execute(
         select(WarmupStrategy)
-        .where((WarmupStrategy.workspace_id == auth.workspace_id) | (WarmupStrategy.workspace_id.is_(None)))
+        .where(
+            (WarmupStrategy.workspace_id == auth.workspace_id)
+            | (WarmupStrategy.workspace_id.is_(None))
+        )
         .order_by(WarmupStrategy.is_preset.desc(), WarmupStrategy.name.asc())
     ).scalars()
     return [
@@ -204,7 +211,9 @@ def get_warmup_session_detail(
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupSessionRead:
     try:
-        return _session_read(get_warmup_session(session, session_id=session_id, workspace_id=auth.workspace_id))
+        return _session_read(
+            get_warmup_session(session, session_id=session_id, workspace_id=auth.workspace_id)
+        )
     except ValueError as exc:
         raise _not_found(exc) from exc
 
@@ -216,7 +225,9 @@ def get_warmup_session_status(
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupSessionStatusRead:
     try:
-        warmup_session = get_warmup_session(session, session_id=session_id, workspace_id=auth.workspace_id)
+        warmup_session = get_warmup_session(
+            session, session_id=session_id, workspace_id=auth.workspace_id
+        )
     except ValueError as exc:
         raise _not_found(exc) from exc
     return WarmupSessionStatusRead(
@@ -360,7 +371,9 @@ def get_warmup_isolation_status(
 
 def _redis_connected() -> bool:
     try:
-        client = cast(Redis, cast(Any, Redis).from_url(settings.redis_url, socket_connect_timeout=0.2))
+        client = cast(
+            Redis, cast(Any, Redis).from_url(settings.redis_url, socket_connect_timeout=0.2)
+        )
         try:
             return bool(cast(Any, client).ping())
         finally:

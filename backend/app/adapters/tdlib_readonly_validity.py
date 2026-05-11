@@ -50,7 +50,9 @@ class TdlibReadOnlyValidityAdapter:
                 if event and event.get("@type") == "error":
                     mapped = map_tdlib_error(event)
                     return {
-                        "status": "runtime_broken" if mapped.runtime_health == "tdlib_error" else "reauth_required",
+                        "status": "runtime_broken"
+                        if mapped.runtime_health == "tdlib_error"
+                        else "reauth_required",
                         "runtime_health": mapped.runtime_health,
                         "error_code": mapped.recovery_marker,
                         "error_class": "tdlib_error",
@@ -67,7 +69,9 @@ class TdlibReadOnlyValidityAdapter:
                         proxy_applied = True
                     continue
                 if mapped.status == TdlibAuthStatus.READY:
-                    me = client.send_query({"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds)
+                    me = client.send_query(
+                        {"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds
+                    )
                     return {
                         "status": "valid",
                         "runtime_health": "ready",
@@ -78,7 +82,11 @@ class TdlibReadOnlyValidityAdapter:
                             "username": me.get("username"),
                         },
                     }
-                if mapped.status in {TdlibAuthStatus.WAIT_PHONE_NUMBER, TdlibAuthStatus.WAIT_CODE, TdlibAuthStatus.WAIT_PASSWORD}:
+                if mapped.status in {
+                    TdlibAuthStatus.WAIT_PHONE_NUMBER,
+                    TdlibAuthStatus.WAIT_CODE,
+                    TdlibAuthStatus.WAIT_PASSWORD,
+                }:
                     return {
                         "status": "reauth_required",
                         "runtime_health": mapped.runtime_health,
@@ -118,7 +126,9 @@ class TdlibReadOnlyValidityAdapter:
                 client.close()
 
 
-def build_tdlib_readonly_validity_adapter(config: Settings = settings) -> TdlibReadOnlyValidityAdapter:
+def build_tdlib_readonly_validity_adapter(
+    config: Settings = settings,
+) -> TdlibReadOnlyValidityAdapter:
     try:
         factory: TdlibClientFactory = RealTdJsonClientFactory(config.tdlib_shared_library_path)
     except OSError as exc:
@@ -126,5 +136,7 @@ def build_tdlib_readonly_validity_adapter(config: Settings = settings) -> TdlibR
     return TdlibReadOnlyValidityAdapter(
         client_factory=factory,
         config=config,
-        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(client, account_id, config=config),
+        proxy_applier=lambda client, account_id: apply_account_proxy_to_tdlib(
+            client, account_id, config=config
+        ),
     )

@@ -70,7 +70,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_auth_batch_item_batch_status", "auth_batch_item", ["batch_id", "status"])
     op.create_index("ix_auth_batch_item_lock_expires", "auth_batch_item", ["lock_expires_at"])
-    op.create_index("ix_auth_batch_item_phone_status", "auth_batch_item", ["phone_number", "status"])
+    op.create_index(
+        "ix_auth_batch_item_phone_status", "auth_batch_item", ["phone_number", "status"]
+    )
 
     op.create_table(
         "auth_attempt",
@@ -85,7 +87,9 @@ def upgrade() -> None:
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["batch_item_id"], ["auth_batch_item.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("batch_item_id", "attempt_number", "kind", name="uq_auth_attempt_item_number_kind"),
+        sa.UniqueConstraint(
+            "batch_item_id", "attempt_number", "kind", name="uq_auth_attempt_item_number_kind"
+        ),
     )
     op.create_index("ix_auth_attempt_batch_item", "auth_attempt", ["batch_item_id"])
 
@@ -102,8 +106,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["batch_item_id"], ["auth_batch_item.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_auth_batch_event_batch_created", "auth_batch_event", ["batch_id", "created_at"])
-    op.create_index("ix_auth_batch_event_item_created", "auth_batch_event", ["batch_item_id", "created_at"])
+    op.create_index(
+        "ix_auth_batch_event_batch_created", "auth_batch_event", ["batch_id", "created_at"]
+    )
+    op.create_index(
+        "ix_auth_batch_event_item_created", "auth_batch_event", ["batch_item_id", "created_at"]
+    )
 
     op.create_table(
         "idempotency_key",

@@ -35,6 +35,7 @@ def _seed_account(session, *, external_ref: str = "+15551000001") -> str:
 
 def _seed_job(session, account_id: str) -> str:
     from app.models import JobState
+
     job = seed_job(
         session,
         account_id=account_id,

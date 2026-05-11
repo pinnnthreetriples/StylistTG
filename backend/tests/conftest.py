@@ -141,10 +141,14 @@ class FakeProfileSyncAdapter:
             "diagnostics": {},
         }
 
-    def delete_story(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def delete_story(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         self.calls.append(f"delete:{account_id}:{story_poster_chat_id}:{story_id}")
 
-    def remove_story_from_profile(self, account_id: str, story_poster_chat_id: str | None, story_id: str) -> None:
+    def remove_story_from_profile(
+        self, account_id: str, story_poster_chat_id: str | None, story_id: str
+    ) -> None:
         self.calls.append(f"unpost:{account_id}:{story_poster_chat_id}:{story_id}")
 
 
@@ -233,7 +237,9 @@ def seed_audio_asset(session: Session, *, asset_id: str = "audio-1") -> Asset:
     return asset
 
 
-def seed_story_asset(session: Session, *, asset_id: str = "story-1", kind: AssetKind = AssetKind.STORY_IMAGE) -> Asset:
+def seed_story_asset(
+    session: Session, *, asset_id: str = "story-1", kind: AssetKind = AssetKind.STORY_IMAGE
+) -> Asset:
     asset = Asset(
         id=asset_id,
         kind=kind,

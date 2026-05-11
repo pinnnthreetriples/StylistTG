@@ -47,16 +47,22 @@ def build_account_safety(
     return build_account_safety_for_account(session, account, config=config)
 
 
-def build_account_safety_for_account(session: Session, account: Account, *, config: Settings = settings) -> dict[str, Any]:
+def build_account_safety_for_account(
+    session: Session, account: Account, *, config: Settings = settings
+) -> dict[str, Any]:
     checked_at = datetime.now(UTC)
     health = collect_account_health_signals(session, account)
-    capabilities = build_account_capabilities(account, health["reasons"], config=config, checked_at=checked_at)
+    capabilities = build_account_capabilities(
+        account, health["reasons"], config=config, checked_at=checked_at
+    )
     cooldowns_by_operation = merge_cooldowns(
         active_cooldowns_by_operation(session, account.id, now=checked_at),
         recent_failure_cooldowns_by_operation(session, account.id, config=config),
         product_cooldowns_by_operation(session, account.id, config=config, now=checked_at),
     )
-    risk_by_operation = build_risk_by_operation(health["reasons"], capabilities, cooldowns_by_operation)
+    risk_by_operation = build_risk_by_operation(
+        health["reasons"], capabilities, cooldowns_by_operation
+    )
     last_validity_check = _latest_validity_check(session, account.id)
     return {
         "account_id": account.id,
@@ -68,7 +74,9 @@ def build_account_safety_for_account(session: Session, account: Account, *, conf
         "capability_summary": {key: value["state"] for key, value in capabilities.items()},
         "risk_by_operation": risk_by_operation,
         "cooldowns_by_operation": cooldowns_by_operation,
-        "active_overrides_by_operation": active_overrides_by_operation(session, account.id, now=checked_at),
+        "active_overrides_by_operation": active_overrides_by_operation(
+            session, account.id, now=checked_at
+        ),
         "reasons": health["reasons"],
         "top_reasons": _top_reasons(health["reasons"]),
         "last_checked_at": checked_at,
@@ -104,17 +112,26 @@ def build_account_safety_summary(
             latest_jobs_map.get(account.id),
             latest_failed_steps_map.get(account.id),
         )
-        capabilities = build_account_capabilities(account, health["reasons"], config=config, checked_at=checked_at)
+        capabilities = build_account_capabilities(
+            account, health["reasons"], config=config, checked_at=checked_at
+        )
         cooldowns_by_operation = merge_cooldowns(
             active_cooldowns_map.get(account.id, {}),
             recent_failure_cooldowns_from_steps(
-                recent_failed_map.get(account.id, []), account.id, config=config,
+                recent_failed_map.get(account.id, []),
+                account.id,
+                config=config,
             ),
             product_cooldowns_from_steps(
-                succeeded_steps_map, account.id, config=config, now=checked_at,
+                succeeded_steps_map,
+                account.id,
+                config=config,
+                now=checked_at,
             ),
         )
-        risk_by_operation = build_risk_by_operation(health["reasons"], capabilities, cooldowns_by_operation)
+        risk_by_operation = build_risk_by_operation(
+            health["reasons"], capabilities, cooldowns_by_operation
+        )
         last_validity_check = validity_map.get(account.id)
         safety: dict[str, Any] = {
             "account_id": account.id,
@@ -167,8 +184,13 @@ def safety_preview_fields_with_policy(
     desired_operations = _desired_operations(desired_state)
 
     profile_audio = cast(dict[str, Any], desired_state.get("profile_audio") or {})
-    if profile_audio.get("action") in {"add", "remove"} and safety["capabilities"]["profile_music"]["state"] == "unknown":
-        _add_by_unknown_capability_policy("music_capability_not_checked", blockers, warnings, config=config)
+    if (
+        profile_audio.get("action") in {"add", "remove"}
+        and safety["capabilities"]["profile_music"]["state"] == "unknown"
+    ):
+        _add_by_unknown_capability_policy(
+            "music_capability_not_checked", blockers, warnings, config=config
+        )
     if desired_state.get("stories") and safety["capabilities"]["story_post"]["state"] == "blocked":
         blockers.extend(safety["capabilities"]["story_post"]["reason_codes"])
     _add_fresh_validity_policy(safety, blockers, warnings, config=config)
@@ -235,7 +257,8 @@ def _operation_safety(
                 "warnings": _unique(op_warnings),
                 "blockers": _unique(op_blockers),
                 "cooldowns": cooldowns,
-                "can_override": bool(op_blockers) and all(code not in NON_OVERRIDABLE_BLOCKERS for code in op_blockers),
+                "can_override": bool(op_blockers)
+                and all(code not in NON_OVERRIDABLE_BLOCKERS for code in op_blockers),
             }
         )
     return result
@@ -252,7 +275,11 @@ def _operation_codes(operation: str, codes: list[str]) -> list[str]:
     }
     result: list[str] = []
     for code in codes:
-        if code in global_codes or code.endswith(f":{operation}") or code == f"product_cooldown:{operation}":
+        if (
+            code in global_codes
+            or code.endswith(f":{operation}")
+            or code == f"product_cooldown:{operation}"
+        ):
             result.append(code)
         elif operation == "profile_music" and code == "music_capability_not_checked":
             result.append(code)
@@ -268,7 +295,9 @@ def _apply_active_overrides(
     warnings: list[str],
     operation_safety: list[dict[str, Any]],
 ) -> tuple[list[str], list[str], list[dict[str, Any]]]:
-    overrides_by_operation = cast(dict[str, list[dict[str, Any]]], safety.get("active_overrides_by_operation") or {})
+    overrides_by_operation = cast(
+        dict[str, list[dict[str, Any]]], safety.get("active_overrides_by_operation") or {}
+    )
     if not overrides_by_operation:
         return blockers, warnings, operation_safety
     remaining_blockers = list(blockers)
@@ -299,7 +328,8 @@ def _apply_active_overrides(
                 "state": "blocked" if item_blockers else "warning" if item_warnings else "ready",
                 "blockers": _unique(item_blockers),
                 "warnings": _unique(item_warnings),
-                "can_override": bool(item_blockers) and all(code not in NON_OVERRIDABLE_BLOCKERS for code in item_blockers),
+                "can_override": bool(item_blockers)
+                and all(code not in NON_OVERRIDABLE_BLOCKERS for code in item_blockers),
             }
         )
         if f"override_applied:{operation}" in item_warnings:
@@ -351,15 +381,21 @@ def _validity_is_stale(safety: dict[str, Any], *, max_age_minutes: int) -> bool:
 
 def _top_reasons(reasons: list[dict[str, Any]]) -> list[dict[str, Any]]:
     severity_order = {"blocked": 3, "high": 2, "medium": 1, "low": 0}
-    return sorted(reasons, key=lambda reason: severity_order.get(str(reason["severity"]), 0), reverse=True)[:2]
+    return sorted(
+        reasons, key=lambda reason: severity_order.get(str(reason["severity"]), 0), reverse=True
+    )[:2]
 
 
-def _cooldown_summary(cooldowns_by_operation: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+def _cooldown_summary(
+    cooldowns_by_operation: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
     cooldowns = [item for items in cooldowns_by_operation.values() for item in items]
     return sorted(cooldowns, key=lambda item: item["retry_after_at"], reverse=True)[:2]
 
 
-def _overall_account_risk(reasons: list[dict[str, Any]], risk_by_operation: dict[str, dict[str, Any]]) -> str:
+def _overall_account_risk(
+    reasons: list[dict[str, Any]], risk_by_operation: dict[str, dict[str, Any]]
+) -> str:
     if any(reason["severity"] == "blocked" for reason in reasons):
         return "blocked"
     if any(reason["severity"] == "high" for reason in reasons):
@@ -393,11 +429,15 @@ def _batch_latest_validity_checks(
     """Fetch latest validity check per account in one query."""
     if not account_ids:
         return {}
-    rows = session.execute(
-        select(AccountValidityCheckRun)
-        .where(AccountValidityCheckRun.account_id.in_(account_ids))
-        .order_by(AccountValidityCheckRun.account_id, AccountValidityCheckRun.started_at.desc())
-    ).scalars().all()
+    rows = (
+        session.execute(
+            select(AccountValidityCheckRun)
+            .where(AccountValidityCheckRun.account_id.in_(account_ids))
+            .order_by(AccountValidityCheckRun.account_id, AccountValidityCheckRun.started_at.desc())
+        )
+        .scalars()
+        .all()
+    )
     result: dict[str, dict[str, Any] | None] = {}
     for run in rows:
         if run.account_id not in result:
@@ -418,12 +458,16 @@ def _batch_latest_validity_checks(
 
 
 def _latest_validity_check(session: Session, account_id: str) -> dict[str, Any] | None:
-    run = session.execute(
-        select(AccountValidityCheckRun)
-        .where(AccountValidityCheckRun.account_id == account_id)
-        .order_by(AccountValidityCheckRun.started_at.desc())
-        .limit(1)
-    ).scalars().first()
+    run = (
+        session.execute(
+            select(AccountValidityCheckRun)
+            .where(AccountValidityCheckRun.account_id == account_id)
+            .order_by(AccountValidityCheckRun.started_at.desc())
+            .limit(1)
+        )
+        .scalars()
+        .first()
+    )
     if run is None:
         return None
     return {

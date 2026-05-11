@@ -1,4 +1,5 @@
 """Core types and helpers for the test quality analyzer."""
+
 from __future__ import annotations
 
 import ast
@@ -114,16 +115,15 @@ class Rule:
 # Helpers
 # ---------------------------------------------------------------------------
 
-_SUPPRESSION_RE = re.compile(
-    r"#\s*test-analyzer:\s*disable=(\w+)(?:\s+reason=\"([^\"]*)\")?"
-)
+_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable=(\w+)(?:\s+reason=\"([^\"]*)\")?")
 _FILE_SUPPRESSION_RE = re.compile(
     r"#\s*test-analyzer:\s*disable-file=(\w+)(?:\s+reason=\"([^\"]*)\")?"
 )
 
 
 def _parse_suppressions(
-    lines: list[str], relative_path: str,
+    lines: list[str],
+    relative_path: str,
 ) -> tuple[dict[str, set[str]], set[str], list[Issue]]:
     """Parse inline and file-level suppressions, return (line_supprs, file_supprs, warnings)."""
     line_suppressions: dict[str, set[str]] = {}
@@ -137,15 +137,17 @@ def _parse_suppressions(
             reason = m.group(2)
             file_suppressions.add(rule_id)
             if not reason:
-                warnings.append(Issue(
-                    rule_id="META001",
-                    rule_type="meta",
-                    severity=Severity.WARNING,
-                    file=relative_path,
-                    line=i,
-                    message=f"Suppression for {rule_id} without reason=",
-                    recommendation="Add reason=\"...\" to suppression comment",
-                ))
+                warnings.append(
+                    Issue(
+                        rule_id="META001",
+                        rule_type="meta",
+                        severity=Severity.WARNING,
+                        file=relative_path,
+                        line=i,
+                        message=f"Suppression for {rule_id} without reason=",
+                        recommendation='Add reason="..." to suppression comment',
+                    )
+                )
             continue
         m = _SUPPRESSION_RE.search(line)
         if m:
@@ -154,15 +156,17 @@ def _parse_suppressions(
             key = str(i + 1)  # suppression applies to next line
             line_suppressions.setdefault(key, set()).add(rule_id)
             if not reason:
-                warnings.append(Issue(
-                    rule_id="META001",
-                    rule_type="meta",
-                    severity=Severity.WARNING,
-                    file=relative_path,
-                    line=i,
-                    message=f"Suppression for {rule_id} without reason=",
-                    recommendation="Add reason=\"...\" to suppression comment",
-                ))
+                warnings.append(
+                    Issue(
+                        rule_id="META001",
+                        rule_type="meta",
+                        severity=Severity.WARNING,
+                        file=relative_path,
+                        line=i,
+                        message=f"Suppression for {rule_id} without reason=",
+                        recommendation='Add reason="..." to suppression comment',
+                    )
+                )
     return line_suppressions, file_suppressions, warnings
 
 
@@ -186,9 +190,8 @@ def _count_asserts(node: ast.AST) -> int:
             count += 1
         elif isinstance(child, ast.Call):
             func = child.func
-            if (
-                (isinstance(func, ast.Attribute) and func.attr.startswith("assert"))
-                or (isinstance(func, ast.Name) and func.id.startswith("assert"))
+            if (isinstance(func, ast.Attribute) and func.attr.startswith("assert")) or (
+                isinstance(func, ast.Name) and func.id.startswith("assert")
             ):
                 count += 1
     return count

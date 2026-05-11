@@ -37,11 +37,19 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=128), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("tier_limits_json", json_type, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("target_channels_json", json_type, nullable=False, server_default=sa.text("'[]'")),
+        sa.Column(
+            "target_channels_json", json_type, nullable=False, server_default=sa.text("'[]'")
+        ),
         sa.Column("is_preset", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"], name="fk_warmup_strategy_workspace_id"),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspace.id"], name="fk_warmup_strategy_workspace_id"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_warmup_strategy"),
         sa.UniqueConstraint("workspace_id", "name", name="uq_warmup_strategy_workspace_name"),
     )
@@ -66,8 +74,12 @@ def upgrade() -> None:
         sa.Column("flood_wait_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("consecutive_failures", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("worker_id", sa.String(length=64), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.CheckConstraint(
             f"status IN ({', '.join(SESSION_STATUSES)})",
             name="ck_warmup_session_status",
@@ -79,9 +91,15 @@ def upgrade() -> None:
             "consecutive_failures >= 0",
             name="ck_warmup_session_consecutive_failures",
         ),
-        sa.ForeignKeyConstraint(["account_id"], ["account.id"], name="fk_warmup_session_account_id"),
-        sa.ForeignKeyConstraint(["strategy_id"], ["warmup_strategy.id"], name="fk_warmup_session_strategy_id"),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"], name="fk_warmup_session_workspace_id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"], ["account.id"], name="fk_warmup_session_account_id"
+        ),
+        sa.ForeignKeyConstraint(
+            ["strategy_id"], ["warmup_strategy.id"], name="fk_warmup_session_strategy_id"
+        ),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspace.id"], name="fk_warmup_session_workspace_id"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_warmup_session"),
     )
     op.create_index("ix_warmup_session_workspace_id", "warmup_session", ["workspace_id"])
@@ -114,9 +132,15 @@ def upgrade() -> None:
         sa.Column("session_id", uuid_string, nullable=False),
         sa.Column("event_type", sa.String(length=64), nullable=False),
         sa.Column("payload_json", json_type, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["session_id"], ["warmup_session.id"], name="fk_warmup_event_session_id"),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"], name="fk_warmup_event_workspace_id"),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.ForeignKeyConstraint(
+            ["session_id"], ["warmup_session.id"], name="fk_warmup_event_session_id"
+        ),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspace.id"], name="fk_warmup_event_workspace_id"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_warmup_event"),
     )
     op.create_index("ix_warmup_event_workspace_id", "warmup_event", ["workspace_id"])
@@ -134,17 +158,25 @@ def upgrade() -> None:
         sa.Column("error_code", sa.String(length=128), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("metadata_json", json_type, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "started_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint("day BETWEEN 0 AND 14", name="ck_warmup_task_run_day"),
         sa.CheckConstraint(
             f"status IN ({', '.join(TASK_RUN_STATUSES)})",
             name="ck_warmup_task_run_status",
         ),
-        sa.ForeignKeyConstraint(["session_id"], ["warmup_session.id"], name="fk_warmup_task_run_session_id"),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"], name="fk_warmup_task_run_workspace_id"),
+        sa.ForeignKeyConstraint(
+            ["session_id"], ["warmup_session.id"], name="fk_warmup_task_run_session_id"
+        ),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspace.id"], name="fk_warmup_task_run_workspace_id"
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_warmup_task_run"),
-        sa.UniqueConstraint("session_id", "day", "task_type", name="uq_warmup_task_run_session_day_type"),
+        sa.UniqueConstraint(
+            "session_id", "day", "task_type", name="uq_warmup_task_run_session_day_type"
+        ),
     )
     op.create_index("ix_warmup_task_run_workspace_id", "warmup_task_run", ["workspace_id"])
     op.create_index("ix_warmup_task_run_session_id", "warmup_task_run", ["session_id"])

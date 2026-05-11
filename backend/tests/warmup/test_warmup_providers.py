@@ -1,4 +1,5 @@
 """Tests for pluggable warmup adapters: text provider + fraud score."""
+
 from __future__ import annotations
 
 from app.adapters.warmup_text_provider import (
@@ -59,7 +60,11 @@ def test_compose_spam_bot_reply_returns_neutral_text() -> None:
     request = TextVariationRequest(template="", seed="spam-bot-1")
     result = provider.compose_spam_bot_reply(request)
     assert result.rendered
-    assert "реклам" in result.rendered or "общаюсь" in result.rendered or "пользователь" in result.rendered
+    assert (
+        "реклам" in result.rendered
+        or "общаюсь" in result.rendered
+        or "пользователь" in result.rendered
+    )
 
 
 # ---------------------------------------------------------------------------

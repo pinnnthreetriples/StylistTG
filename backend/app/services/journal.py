@@ -9,9 +9,7 @@ from app.models import Job, JobState, JobStepResult, StepStatus, utc_now
 from app.services.locks import fenced_write_allowed
 
 
-def mark_job_running(
-    session: Session, job: Job, *, owner: str, lock_epoch: int
-) -> bool:
+def mark_job_running(session: Session, job: Job, *, owner: str, lock_epoch: int) -> bool:
     if not fenced_write_allowed(session, job.account_id, owner, lock_epoch):
         return False
     job.job_state = JobState.RUNNING

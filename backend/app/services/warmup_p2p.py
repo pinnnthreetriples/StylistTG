@@ -17,6 +17,7 @@ Eligibility-правила:
 Pairing — детерминированный по `created_at` ASC, чтобы тесты были
 воспроизводимы и в проде между тиками peer'ы выбирались равномерно.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

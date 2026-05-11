@@ -1,4 +1,5 @@
 """RQ entrypoint for warmup dispatch tick (Phase 1 shadow execution)."""
+
 from __future__ import annotations
 
 import os

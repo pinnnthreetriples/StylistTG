@@ -12,8 +12,15 @@ from app.schemas import (
     AccountWarmupInfoRead,
 )
 from app.services.accounts import create_account, list_accounts as list_accounts_service
-from app.services.auth_context import AuthContext, require_authenticated, require_mutation_permission
-from app.services.profile_photo_state import batch_latest_profile_photo_asset_ids, latest_applied_profile_photo_asset_id
+from app.services.auth_context import (
+    AuthContext,
+    require_authenticated,
+    require_mutation_permission,
+)
+from app.services.profile_photo_state import (
+    batch_latest_profile_photo_asset_ids,
+    latest_applied_profile_photo_asset_id,
+)
 from app.services.warmup import batch_active_warmups_for_accounts, warmup_operation_policy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -42,14 +49,12 @@ def get_accounts(
     accounts = list_accounts_service(session, workspace_id=auth.workspace_id)
     account_ids = [a.id for a in accounts]
     warmup_map = batch_active_warmups_for_accounts(
-        session, account_ids=account_ids, workspace_id=auth.workspace_id,
+        session,
+        account_ids=account_ids,
+        workspace_id=auth.workspace_id,
     )
     photo_map = batch_latest_profile_photo_asset_ids(session, account_ids)
-    return [
-        _account_list_item_batched(account, warmup_map, photo_map)
-        for account in accounts
-    ]
-
+    return [_account_list_item_batched(account, warmup_map, photo_map) for account in accounts]
 
 
 @router.get("/{account_id}", response_model=AccountRead)

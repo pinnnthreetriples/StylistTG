@@ -37,7 +37,9 @@ def materialize_asset_to_local_path(
     local_path = local_cache.resolve_path(cache_key)
     if not local_path.exists():
         content = storage_service.read_bytes(key)
-        local_cache.save_bytes(cache_key, content, content_type=asset.normalized_content_type or asset.mime)
+        local_cache.save_bytes(
+            cache_key, content, content_type=asset.normalized_content_type or asset.mime
+        )
     return local_path
 
 

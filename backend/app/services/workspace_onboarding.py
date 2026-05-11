@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models import User, Workspace, WorkspaceMember, WorkspacePlan, WorkspaceRole, WorkspaceStatus, utc_now
+from app.models import (
+    User,
+    Workspace,
+    WorkspaceMember,
+    WorkspacePlan,
+    WorkspaceRole,
+    WorkspaceStatus,
+    utc_now,
+)
 
 
 def resolve_workspace_membership(

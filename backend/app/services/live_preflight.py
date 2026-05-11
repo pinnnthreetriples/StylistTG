@@ -27,8 +27,12 @@ class LivePreflightService:
         postgres_reachable = self._check_database()
         redis_reachable = self._check_redis()
         storage_writable = self._check_storage()
-        profile_worker_status = self._check_worker(redis_reachable, self.profile_worker_status or self.worker_status)
-        auth_worker_status = self._check_worker(redis_reachable, self.auth_worker_status or self.worker_status)
+        profile_worker_status = self._check_worker(
+            redis_reachable, self.profile_worker_status or self.worker_status
+        )
+        auth_worker_status = self._check_worker(
+            redis_reachable, self.auth_worker_status or self.worker_status
+        )
         rq_worker_status = _combined_worker_status(profile_worker_status, auth_worker_status)
         overall_status = (
             "ok"
@@ -86,7 +90,9 @@ class LivePreflightService:
         except Exception:
             return False
 
-    def _check_worker(self, redis_reachable: bool, worker_status: Callable[[], str] | None) -> str | None:
+    def _check_worker(
+        self, redis_reachable: bool, worker_status: Callable[[], str] | None
+    ) -> str | None:
         if not self.worker_expected:
             return None
         if not redis_reachable or not worker_status:

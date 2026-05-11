@@ -93,23 +93,26 @@ def account_redis_lock(
 def acquire_account_lock(session: Session, account_id: str, owner: str) -> int | None:
     now = utc_now()
     stale_cutoff = now - timedelta(seconds=settings.lock_stale_seconds)
-    result = cast(CursorResult[Any], session.execute(
-        update(AccountRuntimeState)
-        .where(AccountRuntimeState.account_id == account_id)
-        .where(
-            or_(
-                AccountRuntimeState.lock_owner.is_(None),
-                AccountRuntimeState.updated_at.is_(None),
-                AccountRuntimeState.updated_at < stale_cutoff,
+    result = cast(
+        CursorResult[Any],
+        session.execute(
+            update(AccountRuntimeState)
+            .where(AccountRuntimeState.account_id == account_id)
+            .where(
+                or_(
+                    AccountRuntimeState.lock_owner.is_(None),
+                    AccountRuntimeState.updated_at.is_(None),
+                    AccountRuntimeState.updated_at < stale_cutoff,
+                )
             )
-        )
-        .values(
-            lock_owner=owner,
-            lock_epoch=AccountRuntimeState.lock_epoch + 1,
-            recovery_marker=f"lock_acquired:{owner}",
-            updated_at=now,
-        )
-    ))
+            .values(
+                lock_owner=owner,
+                lock_epoch=AccountRuntimeState.lock_epoch + 1,
+                recovery_marker=f"lock_acquired:{owner}",
+                updated_at=now,
+            )
+        ),
+    )
     if result.rowcount != 1:
         session.rollback()
         return None
@@ -143,9 +146,7 @@ def release_account_lock(session: Session, account_id: str, owner: str, lock_epo
     return True
 
 
-def fenced_write_allowed(
-    session: Session, account_id: str, owner: str, lock_epoch: int
-) -> bool:
+def fenced_write_allowed(session: Session, account_id: str, owner: str, lock_epoch: int) -> bool:
     runtime = session.get(AccountRuntimeState, account_id)
     return bool(runtime and runtime.lock_owner == owner and runtime.lock_epoch == lock_epoch)
 

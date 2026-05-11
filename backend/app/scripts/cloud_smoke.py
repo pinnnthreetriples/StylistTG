@@ -3,7 +3,13 @@ from __future__ import annotations
 import argparse
 
 from app.scripts.cloud_config_check import validate_cloud_config
-from app.scripts.common import CheckReport, add_common_json_arg, env_value, main_guard, print_and_exit
+from app.scripts.common import (
+    CheckReport,
+    add_common_json_arg,
+    env_value,
+    main_guard,
+    print_and_exit,
+)
 from app.scripts.neon_smoke import run_neon_smoke
 from app.scripts.object_storage_smoke import run_object_storage_smoke
 from app.scripts.redis_smoke import run_redis_smoke
@@ -21,7 +27,12 @@ def run_cloud_smoke(
     report = CheckReport("cloud_smoke")
     for child in (
         validate_cloud_config(),
-        run_neon_smoke(readonly=True, check_migrations=allow_migrations, upgrade_head=False, allow_production=allow_production),
+        run_neon_smoke(
+            readonly=True,
+            check_migrations=allow_migrations,
+            upgrade_head=False,
+            allow_production=allow_production,
+        ),
         run_supabase_auth_smoke(),
     ):
         _extend(report, child)
@@ -47,7 +58,9 @@ def _extend(report: CheckReport, child: CheckReport) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Combined safe cloud smoke orchestrator.")
-    parser.add_argument("--safe-default", action="store_true", help="Run the default read-only/dry-run smoke set.")
+    parser.add_argument(
+        "--safe-default", action="store_true", help="Run the default read-only/dry-run smoke set."
+    )
     parser.add_argument("--include-redis", action="store_true")
     parser.add_argument("--include-storage", action="store_true")
     parser.add_argument("--allow-write-cloud", action="store_true")
@@ -69,4 +82,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main_guard(main)
-

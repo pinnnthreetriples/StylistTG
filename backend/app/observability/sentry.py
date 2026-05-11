@@ -56,7 +56,9 @@ SENSITIVE_EVENT_KEYS = {
 
 
 def init_api_observability() -> bool:
-    dsn = settings.better_stack_api_dsn.get_secret_value() if settings.better_stack_api_dsn else None
+    dsn = (
+        settings.better_stack_api_dsn.get_secret_value() if settings.better_stack_api_dsn else None
+    )
     return _init_sentry(dsn=dsn, integrations=("fastapi",))
 
 
@@ -155,7 +157,9 @@ def _sanitize_sensitive_container(key: str, value: Any, *, parent_key: str | Non
         return "***"
     if normalized == "headers" and isinstance(value, dict):
         return {
-            header: "***" if str(header).lower() in SENSITIVE_HEADER_NAMES else _sanitize_value(item)
+            header: "***"
+            if str(header).lower() in SENSITIVE_HEADER_NAMES
+            else _sanitize_value(item)
             for header, item in value.items()
         }
     if normalized in {"cookies", "query_string"}:
@@ -212,11 +216,7 @@ def _redact_observability_text(value: str) -> str:
 
 def _key_words(key: str) -> list[str]:
     with_word_boundaries = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key)
-    return [
-        word
-        for word in re.split(r"[^a-z0-9]+", with_word_boundaries.lower())
-        if word
-    ]
+    return [word for word in re.split(r"[^a-z0-9]+", with_word_boundaries.lower()) if word]
 
 
 def _contains_word_sequence(words: list[str], sequence: tuple[str, ...]) -> bool:

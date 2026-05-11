@@ -18,10 +18,14 @@ def upgrade() -> None:
     op.add_column("asset", sa.Column("source_size_bytes", sa.Integer(), nullable=True))
     op.add_column("asset", sa.Column("normalized_size_bytes", sa.Integer(), nullable=True))
     op.add_column("asset", sa.Column("source_content_type", sa.String(length=128), nullable=True))
-    op.add_column("asset", sa.Column("normalized_content_type", sa.String(length=128), nullable=True))
+    op.add_column(
+        "asset", sa.Column("normalized_content_type", sa.String(length=128), nullable=True)
+    )
     op.add_column("asset", sa.Column("source_checksum", sa.String(length=128), nullable=True))
     op.add_column("asset", sa.Column("normalized_checksum", sa.String(length=128), nullable=True))
-    op.add_column("asset", sa.Column("storage_migrated_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "asset", sa.Column("storage_migrated_at", sa.DateTime(timezone=True), nullable=True)
+    )
     op.create_index("ix_asset_workspace_storage", "asset", ["workspace_id", "storage_backend"])
 
     bind = op.get_bind()

@@ -37,9 +37,13 @@ def test_betterstack_handler_uses_env_without_exposing_token(monkeypatch):
 
 
 def test_betterstack_host_normalization():
-    assert _normalize_betterstack_host("in.logs.betterstack.com/") == "https://in.logs.betterstack.com"
+    assert (
+        _normalize_betterstack_host("in.logs.betterstack.com/") == "https://in.logs.betterstack.com"
+    )
     assert _normalize_betterstack_host("https://example.com/") == "https://example.com"
 
 
 def test_redact_metadata_redacts_secrets_inside_plain_string():
-    assert redact_metadata({"message": "password=abc token=xyz"}) == {"message": "password=*** token=***"}
+    assert redact_metadata({"message": "password=abc token=xyz"}) == {
+        "message": "password=*** token=***"
+    }

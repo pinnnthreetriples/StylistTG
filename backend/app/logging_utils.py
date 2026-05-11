@@ -69,6 +69,7 @@ def configure_logging(
 
 # ── Public helpers ───────────────────────────────────────────────────────────
 
+
 def log_event(event: str, **fields: Any) -> None:
     """Emit a structured log entry at INFO level."""
     logger.info("", extra={"event": redact_text(event), "fields": redact_metadata(fields)})
@@ -120,10 +121,10 @@ def generate_request_id() -> str:
 # ── Formatters ───────────────────────────────────────────────────────────────
 
 _COLORS = {
-    "DEBUG": "\033[36m",     # cyan
-    "INFO": "\033[32m",      # green
-    "WARNING": "\033[33m",   # yellow
-    "ERROR": "\033[31m",     # red
+    "DEBUG": "\033[36m",  # cyan
+    "INFO": "\033[32m",  # green
+    "WARNING": "\033[33m",  # yellow
+    "ERROR": "\033[31m",  # red
     "CRITICAL": "\033[35m",  # magenta
 }
 _RESET = "\033[0m"

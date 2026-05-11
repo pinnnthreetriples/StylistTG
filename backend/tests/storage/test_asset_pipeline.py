@@ -74,7 +74,9 @@ def test_profile_audio_upload_rejects_ogg_voice_note_format(db_session, storage_
         )
 
 
-def test_upload_endpoint_returns_specific_profile_audio_format_error(app_client, db_session) -> None:
+def test_upload_endpoint_returns_specific_profile_audio_format_error(
+    app_client, db_session
+) -> None:
     response = app_client.post(
         "/api/assets/profile-audio",
         files={"file": ("voice-note.ogg", b"OggS" + b"\x00" * 128, "audio/ogg")},

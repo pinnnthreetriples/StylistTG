@@ -30,16 +30,15 @@ def build_account_batch_safety_preview(
         if item["batch_status"] in {"needs_login", "blocked", "paused"}
     ]
     warning_account_ids = [
-        item["account_id"]
-        for item in items
-        if item["batch_status"] in {"limited", "unknown"}
+        item["account_id"] for item in items if item["batch_status"] in {"limited", "unknown"}
     ]
     counts = {status: 0 for status in BATCH_STATUSES}
     for item in items:
         counts[item["batch_status"]] += 1
     return {
         "operation": operation,
-        "can_start": not blocking_account_ids and (allow_warning_overrides or not warning_account_ids),
+        "can_start": not blocking_account_ids
+        and (allow_warning_overrides or not warning_account_ids),
         "counts": counts,
         "blocking_account_ids": blocking_account_ids,
         "warning_account_ids": warning_account_ids,
@@ -48,7 +47,9 @@ def build_account_batch_safety_preview(
 
 
 def _build_item(safety: dict[str, Any], operation: str) -> dict[str, Any]:
-    risk = safety["risk_by_operation"].get(operation, {"level": safety["overall_risk_level"], "reasons": []})
+    risk = safety["risk_by_operation"].get(
+        operation, {"level": safety["overall_risk_level"], "reasons": []}
+    )
     cooldowns = safety["cooldowns_by_operation"].get(operation, [])
     status = _batch_status(safety, risk["level"], cooldowns)
     return {

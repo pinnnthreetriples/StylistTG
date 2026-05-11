@@ -100,7 +100,9 @@ def test_s3_storage_signed_url() -> None:
         {
             "ContentLength": 5,
             "ContentType": "text/plain",
-            "Metadata": {"sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"},
+            "Metadata": {
+                "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+            },
             "ETag": '"etag"',
         },
         {"Bucket": storage.bucket, "Key": "assets/a/source/file.txt"},

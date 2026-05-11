@@ -80,7 +80,9 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
 
-    if isinstance(exc.detail, dict) and {"error_code", "error_class", "message"} <= set(exc.detail.keys()):
+    if isinstance(exc.detail, dict) and {"error_code", "error_class", "message"} <= set(
+        exc.detail.keys()
+    ):
         log_warn(
             "http_error",
             error_code=exc.detail["error_code"],
@@ -118,7 +120,9 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     )
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
     field_errors = []
     for error in exc.errors():

@@ -118,7 +118,9 @@ def _apply_result_to_item(
         item.updated_at = utc_now()
     else:
         if new_status == AuthBatchItemStatus.QUEUED:
-            item.next_retry_at = utc_now() + timedelta(seconds=parse_flood_wait_seconds(result.error))
+            item.next_retry_at = utc_now() + timedelta(
+                seconds=parse_flood_wait_seconds(result.error)
+            )
             if item.attempt_count >= MAX_ATTEMPTS:
                 new_status = AuthBatchItemStatus.FAILED
         transition_item(item, new_status, actor=actor)
@@ -143,7 +145,10 @@ def _materialize_account(item: AuthBatchItem, result: TdlibAuthResult) -> None:
     runtime.updated_at = utc_now()
     if result.telegram_user_id:
         runtime.authorized_last_confirmed_at = utc_now()
-    if result.status == TdlibAuthStatus.READY and account.account_state == AccountState.AUTHORIZED_READY:
+    if (
+        result.status == TdlibAuthStatus.READY
+        and account.account_state == AccountState.AUTHORIZED_READY
+    ):
         runtime.runtime_health = "ready"
 
 

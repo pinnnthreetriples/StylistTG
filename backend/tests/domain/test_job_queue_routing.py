@@ -21,7 +21,11 @@ class FakeQueue:
 def test_account_update_and_profile_jobs_use_profile_queue(monkeypatch) -> None:
     queues: list[FakeQueue] = []
     monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(rq, "Queue", lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1])
+    monkeypatch.setattr(
+        rq,
+        "Queue",
+        lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1],
+    )
 
     assert rq.enqueue_profile_job("job-1") is True
     assert rq.enqueue_account_update_job("job-2") is True
@@ -32,7 +36,11 @@ def test_account_update_and_profile_jobs_use_profile_queue(monkeypatch) -> None:
 def test_auth_batch_start_uses_auth_queue(monkeypatch) -> None:
     queues: list[FakeQueue] = []
     monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(rq, "Queue", lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1])
+    monkeypatch.setattr(
+        rq,
+        "Queue",
+        lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1],
+    )
 
     assert rq.enqueue_batch_start_auth("item-1", 1) is True
 
@@ -56,7 +64,11 @@ def test_remove_job_from_queue_checks_profile_and_auth_queues(monkeypatch) -> No
             raise rq.NoSuchJobError
 
     monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(rq, "Queue", lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1])
+    monkeypatch.setattr(
+        rq,
+        "Queue",
+        lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1],
+    )
     monkeypatch.setattr(rq, "DeferredJobRegistry", FakeRegistry)
     monkeypatch.setattr(rq, "FailedJobRegistry", FakeRegistry)
     monkeypatch.setattr(rq, "StartedJobRegistry", FakeRegistry)
@@ -94,13 +106,18 @@ def test_enqueue_failure_logs_queue_and_job_without_secret_url(monkeypatch) -> N
 
 def test_warmup_dispatch_tick_uses_dispatch_queue(monkeypatch) -> None:
     """enqueue_warmup_dispatch_tick must route to WARMUP_DISPATCH_QUEUE_NAME, not warmup_jobs."""
+
     class FlexQueue(FakeQueue):
         def enqueue_call(self, *, func, args=(), job_id=None, unique=False):
             self.calls.append(("call", func, args, job_id))
 
     queues: list[FlexQueue] = []
     monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(rq, "Queue", lambda name, connection: queues.append(FlexQueue(name, connection)) or queues[-1])
+    monkeypatch.setattr(
+        rq,
+        "Queue",
+        lambda name, connection: queues.append(FlexQueue(name, connection)) or queues[-1],
+    )
 
     assert rq.enqueue_warmup_dispatch_tick() is True
 

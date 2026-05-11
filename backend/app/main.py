@@ -36,7 +36,12 @@ from app.api.warmup import router as warmup_router
 from app.api.workers import router as workers_router
 from app.config import settings
 from app.db import SessionLocal
-from app.errors import app_error_handler, http_exception_handler, validation_exception_handler, AppError
+from app.errors import (
+    app_error_handler,
+    http_exception_handler,
+    validation_exception_handler,
+    AppError,
+)
 from app.logging_utils import configure_logging, generate_request_id, log_event, log_request
 from app.observability import init_api_observability
 from app.schemas import ReadinessRead
@@ -234,7 +239,9 @@ def _is_local_client(request: Request) -> bool:
     host = request.client.host if request.client else ""
     if host.startswith("::ffff:"):
         host = host.removeprefix("::ffff:")
-    allowed = {item.strip() for item in settings.operator_allowed_client_hosts.split(",") if item.strip()}
+    allowed = {
+        item.strip() for item in settings.operator_allowed_client_hosts.split(",") if item.strip()
+    }
     return host in allowed
 
 

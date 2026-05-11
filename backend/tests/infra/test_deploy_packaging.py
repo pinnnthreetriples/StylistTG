@@ -45,7 +45,9 @@ def test_tdlib_dockerfile_bakes_library_but_keeps_live_disabled() -> None:
     assert "PROFILE_EXECUTION_ADAPTER=mock" in dockerfile
     assert "TDLIB_READONLY_SMOKE_ENABLED=false" in dockerfile
     assert "app.scripts.tdlib_runtime_smoke --runtime-check --library-check --json" in dockerfile
-    assert "app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs" in dockerfile
+    assert (
+        "app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs" in dockerfile
+    )
 
 
 def test_render_template_keeps_worker_mock_and_secrets_unsynced() -> None:

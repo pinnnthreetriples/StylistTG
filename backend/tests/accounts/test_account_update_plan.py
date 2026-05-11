@@ -120,9 +120,9 @@ def test_account_update_intent_hash_is_stable_for_key_order() -> None:
         }
     )
 
-    assert compute_account_update_intent_hash("account-1", desired_a) == compute_account_update_intent_hash(
-        "account-1", desired_b
-    )
+    assert compute_account_update_intent_hash(
+        "account-1", desired_a
+    ) == compute_account_update_intent_hash("account-1", desired_b)
 
 
 def test_stories_are_rejected_until_feature_is_enabled() -> None:

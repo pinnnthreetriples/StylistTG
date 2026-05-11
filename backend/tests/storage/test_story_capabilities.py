@@ -1,4 +1,3 @@
-
 from app.config import Settings
 from app.services.story_capabilities import build_story_capabilities
 from app.services.accounts import create_account
@@ -53,10 +52,15 @@ def test_story_capabilities_reports_disabled_stories(db_session) -> None:
     assert "stories are disabled" in payload["warnings"]
 
 
-def test_story_capabilities_enable_photo_and_video_for_tdlib_live_phase(db_session, monkeypatch) -> None:
+def test_story_capabilities_enable_photo_and_video_for_tdlib_live_phase(
+    db_session, monkeypatch
+) -> None:
     account = create_account(db_session, external_ref="primary")
     db_session.commit()
-    monkeypatch.setattr("app.services.story_capabilities._binary_available", lambda configured_path, fallback_name: True)
+    monkeypatch.setattr(
+        "app.services.story_capabilities._binary_available",
+        lambda configured_path, fallback_name: True,
+    )
 
     payload = build_story_capabilities(
         db_session,
@@ -86,4 +90,7 @@ def test_story_capabilities_block_video_preparation_when_media_tools_missing(db_
     )
 
     assert payload["can_prepare_video"] is False
-    assert "story video preparation is limited until ffprobe and ffmpeg are available" in payload["warnings"]
+    assert (
+        "story video preparation is limited until ffprobe and ffmpeg are available"
+        in payload["warnings"]
+    )

@@ -3,6 +3,7 @@
 Verifies that a user from workspace A gets 404 (never payload, never
 existence leak) when trying to access objects belonging to workspace B.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -76,7 +77,11 @@ def _setup_two_workspaces():
         )
         session.add(foreign_workspace)
         session.flush()
-        session.add(WorkspaceMember(workspace_id=foreign_workspace.id, user_id=foreign_user.id, role="owner"))
+        session.add(
+            WorkspaceMember(
+                workspace_id=foreign_workspace.id, user_id=foreign_user.id, role="owner"
+            )
+        )
         session.add(WorkspacePlan(workspace_id=foreign_workspace.id))
         session.flush()
 

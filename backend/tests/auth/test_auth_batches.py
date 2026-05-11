@@ -99,7 +99,9 @@ def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid() ->
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["valid_items"] == [{"phone_number": "+15550102001", "label": "new", "position": 3}]
+    assert payload["valid_items"] == [
+        {"phone_number": "+15550102001", "label": "new", "position": 3}
+    ]
     assert payload["duplicates"][0]["phone_number"] == "+15550102000"
     assert payload["existing_accounts"][0]["phone_number"] == "+15550102000"
     assert payload["invalid_items"][0]["input"] == "bad-phone"
@@ -148,7 +150,10 @@ def test_auth_batch_create_rejects_existing_only_batch_with_clear_details() -> N
 
     response = client.post(
         "/api/auth-batches",
-        json={"idempotency_key": "batch-existing-only", "items": [{"phone_number": "+15550102000"}]},
+        json={
+            "idempotency_key": "batch-existing-only",
+            "items": [{"phone_number": "+15550102000"}],
+        },
     )
 
     assert response.status_code == 400
@@ -177,7 +182,9 @@ def test_auth_batch_validation_allows_stale_terminal_batch_account() -> None:
         )
         session.add(account)
         session.flush()
-        batch = AuthBatch(idempotency_key="old-batch", status="completed", total_count=1, failed_count=1)
+        batch = AuthBatch(
+            idempotency_key="old-batch", status="completed", total_count=1, failed_count=1
+        )
         session.add(batch)
         session.flush()
         session.add(
@@ -235,7 +242,9 @@ def test_auth_batch_validation_reports_active_batch_conflict_before_existing_acc
     assert result["active_batch_conflicts"][0]["batch_item_id"] == item.id
 
 
-def test_auth_batch_create_reuses_and_resets_stale_terminal_batch_account(tmp_path, monkeypatch) -> None:
+def test_auth_batch_create_reuses_and_resets_stale_terminal_batch_account(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setattr(settings, "tdlib_database_root", tmp_path / "database")
     monkeypatch.setattr(settings, "tdlib_files_root", tmp_path / "files")
     session_factory, engine = create_sqlite_test_session_factory()
@@ -256,7 +265,9 @@ def test_auth_batch_create_reuses_and_resets_stale_terminal_batch_account(tmp_pa
         (settings.tdlib_database_root / account.id).mkdir(parents=True)
         (settings.tdlib_database_root / account.id / "db.sqlite").write_text("stale")
         (settings.tdlib_files_root / account.id).mkdir(parents=True)
-        batch = AuthBatch(idempotency_key="old-batch-reset", status="completed", total_count=1, failed_count=1)
+        batch = AuthBatch(
+            idempotency_key="old-batch-reset", status="completed", total_count=1, failed_count=1
+        )
         session.add(batch)
         session.flush()
         session.add(
@@ -298,7 +309,10 @@ def test_auth_batch_start_dispatches_item_and_worker_moves_to_waiting_code(monke
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
     enqueued: list[str] = []
-    monkeypatch.setattr("app.services.auth_batch_dispatcher.enqueue_batch_start_auth", lambda item_id, attempt_count, delay_seconds=0: enqueued.append(item_id) or True)
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
+        lambda item_id, attempt_count, delay_seconds=0: enqueued.append(item_id) or True,
+    )
     adapter = BatchFakeAuthAdapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
@@ -329,7 +343,10 @@ def test_auth_batch_start_dispatches_item_and_worker_moves_to_waiting_code(monke
 def test_auth_batch_start_returns_503_when_queue_enqueue_fails(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    monkeypatch.setattr("app.services.auth_batch_dispatcher.enqueue_batch_start_auth", lambda item_id, attempt_count, delay_seconds=0: False)
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
+        lambda item_id, attempt_count, delay_seconds=0: False,
+    )
 
     override_app_session(session_factory)
     client = TestClient(app)
@@ -367,7 +384,9 @@ def test_auth_batch_partial_enqueue_failure_does_not_fail_launched_item(monkeypa
         calls += 1
         return calls == 1
 
-    monkeypatch.setattr("app.services.auth_batch_dispatcher.enqueue_batch_start_auth", flaky_enqueue)
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth", flaky_enqueue
+    )
 
     override_app_session(session_factory)
     client = TestClient(app)
@@ -384,7 +403,12 @@ def test_auth_batch_partial_enqueue_failure_does_not_fail_launched_item(monkeypa
 
     assert response.status_code == 200
     with session_factory() as session:
-        items = session.query(AuthBatchItem).filter(AuthBatchItem.batch_id == batch_id).order_by(AuthBatchItem.position).all()
+        items = (
+            session.query(AuthBatchItem)
+            .filter(AuthBatchItem.batch_id == batch_id)
+            .order_by(AuthBatchItem.position)
+            .all()
+        )
         assert [item.status for item in items] == ["starting", "failed"]
         assert items[0].error_code is None
         assert items[1].error_code == "QUEUE_UNAVAILABLE"
@@ -398,7 +422,12 @@ def test_auth_batch_retry_rejects_terminal_batch_item() -> None:
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
-        batch = AuthBatch(idempotency_key="batch-key-terminal-retry", status="failed", total_count=1, failed_count=1)
+        batch = AuthBatch(
+            idempotency_key="batch-key-terminal-retry",
+            status="failed",
+            total_count=1,
+            failed_count=1,
+        )
         session.add(batch)
         session.flush()
         item = AuthBatchItem(
@@ -435,7 +464,12 @@ def test_auth_batch_retry_clears_terminal_item_counter(monkeypatch) -> None:
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102002")
-        batch = AuthBatch(idempotency_key="batch-key-retry-counter", status="running", total_count=1, failed_count=1)
+        batch = AuthBatch(
+            idempotency_key="batch-key-retry-counter",
+            status="running",
+            total_count=1,
+            failed_count=1,
+        )
         session.add(batch)
         session.flush()
         item = AuthBatchItem(
@@ -508,7 +542,9 @@ def test_auth_batch_submit_code_updates_item_without_persisting_code(monkeypatch
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
-        batch = AuthBatch(idempotency_key="batch-key-3", label="Codes", status="running", total_count=1)
+        batch = AuthBatch(
+            idempotency_key="batch-key-3", label="Codes", status="running", total_count=1
+        )
         session.add(batch)
         session.flush()
         item = AuthBatchItem(
@@ -554,7 +590,12 @@ def test_submit_code_idempotency_key_is_scoped_to_item(monkeypatch) -> None:
     with session_factory() as session:
         account_one = create_account(session, external_ref="+15550102010")
         account_two = create_account(session, external_ref="+15550102011")
-        batch = AuthBatch(idempotency_key="batch-key-idempotency-scope", label="Codes", status="running", total_count=2)
+        batch = AuthBatch(
+            idempotency_key="batch-key-idempotency-scope",
+            label="Codes",
+            status="running",
+            total_count=2,
+        )
         session.add(batch)
         session.flush()
         item_one = AuthBatchItem(
@@ -682,7 +723,9 @@ def test_submit_code_expired_idempotency_key_allows_new_submission(monkeypatch) 
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102020")
-        batch = AuthBatch(idempotency_key="batch-key-expired-http", label="Codes", status="running", total_count=1)
+        batch = AuthBatch(
+            idempotency_key="batch-key-expired-http", label="Codes", status="running", total_count=1
+        )
         session.add(batch)
         session.flush()
         item = AuthBatchItem(
@@ -732,7 +775,9 @@ def test_submit_2fa_idempotency_key_scoped_to_item(monkeypatch) -> None:
     with session_factory() as session:
         account_one = create_account(session, external_ref="+15550102030")
         account_two = create_account(session, external_ref="+15550102031")
-        batch = AuthBatch(idempotency_key="batch-key-2fa-scope", label="2FA", status="running", total_count=2)
+        batch = AuthBatch(
+            idempotency_key="batch-key-2fa-scope", label="2FA", status="running", total_count=2
+        )
         session.add(batch)
         session.flush()
         item_one = AuthBatchItem(
@@ -784,7 +829,9 @@ def test_submit_code_operation_mismatch_returns_generic_409(monkeypatch) -> None
 
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102040")
-        batch = AuthBatch(idempotency_key="batch-key-op-mismatch", label="Codes", status="running", total_count=1)
+        batch = AuthBatch(
+            idempotency_key="batch-key-op-mismatch", label="Codes", status="running", total_count=1
+        )
         session.add(batch)
         session.flush()
         item = AuthBatchItem(

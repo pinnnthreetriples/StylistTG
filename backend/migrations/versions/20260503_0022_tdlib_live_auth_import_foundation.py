@@ -46,10 +46,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_telegram_auth_session_workspace_id", "telegram_auth_session", ["workspace_id"])
+    op.create_index(
+        "ix_telegram_auth_session_workspace_id", "telegram_auth_session", ["workspace_id"]
+    )
     op.create_index("ix_telegram_auth_session_account_id", "telegram_auth_session", ["account_id"])
-    op.create_index("ix_telegram_auth_session_workspace_status", "telegram_auth_session", ["workspace_id", "status"])
-    op.create_index("ix_telegram_auth_session_account_created", "telegram_auth_session", ["account_id", "created_at"])
+    op.create_index(
+        "ix_telegram_auth_session_workspace_status",
+        "telegram_auth_session",
+        ["workspace_id", "status"],
+    )
+    op.create_index(
+        "ix_telegram_auth_session_account_created",
+        "telegram_auth_session",
+        ["account_id", "created_at"],
+    )
 
     op.create_table(
         "account_import_batch",
@@ -71,9 +81,17 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["workspace_id"], ["workspace.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_account_import_batch_workspace_id", "account_import_batch", ["workspace_id"])
-    op.create_index("ix_account_import_batch_workspace_status", "account_import_batch", ["workspace_id", "status"])
-    op.create_index("ix_account_import_batch_created", "account_import_batch", ["workspace_id", "created_at"])
+    op.create_index(
+        "ix_account_import_batch_workspace_id", "account_import_batch", ["workspace_id"]
+    )
+    op.create_index(
+        "ix_account_import_batch_workspace_status",
+        "account_import_batch",
+        ["workspace_id", "status"],
+    )
+    op.create_index(
+        "ix_account_import_batch_created", "account_import_batch", ["workspace_id", "created_at"]
+    )
 
     op.create_table(
         "account_import_item",
@@ -97,8 +115,12 @@ def upgrade() -> None:
     )
     op.create_index("ix_account_import_item_workspace_id", "account_import_item", ["workspace_id"])
     op.create_index("ix_account_import_item_batch_id", "account_import_item", ["batch_id"])
-    op.create_index("ix_account_import_item_batch_status", "account_import_item", ["batch_id", "status"])
-    op.create_index("ix_account_import_item_workspace_status", "account_import_item", ["workspace_id", "status"])
+    op.create_index(
+        "ix_account_import_item_batch_status", "account_import_item", ["batch_id", "status"]
+    )
+    op.create_index(
+        "ix_account_import_item_workspace_status", "account_import_item", ["workspace_id", "status"]
+    )
 
 
 def downgrade() -> None:

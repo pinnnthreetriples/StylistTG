@@ -71,7 +71,9 @@ def _is_account_update_step(result: dict[str, Any]) -> bool:
 def _is_dynamic_story_step(value: Any) -> bool:
     if not isinstance(value, str):
         return False
-    return re.fullmatch(r"story_[^_]+_(validate_capabilities|prepare_media|post)", value) is not None
+    return (
+        re.fullmatch(r"story_[^_]+_(validate_capabilities|prepare_media|post)", value) is not None
+    )
 
 
 def _normalize_policy_token(value: str) -> str:

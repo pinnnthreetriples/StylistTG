@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import uuid
+from collections.abc import Callable
+from typing import Any, Protocol, cast
 
 from pydantic import ValidationError
 
@@ -16,6 +18,31 @@ from app.scripts.common import (
     require_not_production,
 )
 from app.storage import build_storage_service
+from app.storage.base import StorageObject
+
+
+class ObjectStorageService(Protocol):
+    def save_bytes(
+        self,
+        key: str,
+        content: bytes,
+        *,
+        content_type: str | None = None,
+        visibility: str = "private",
+    ) -> StorageObject: ...
+
+    def stat(self, key: str) -> StorageObject: ...
+
+    def read_bytes(self, key: str) -> bytes: ...
+
+    def get_signed_url(self, key: str, *, expires_seconds: int = 300) -> str: ...
+
+    def delete(self, key: str) -> bool: ...
+
+    def exists(self, key: str) -> bool: ...
+
+
+StorageFactory = Callable[[Settings], ObjectStorageService]
 
 
 def run_object_storage_smoke(
@@ -24,7 +51,7 @@ def run_object_storage_smoke(
     show_signed_url: bool = False,
     allow_production: bool = False,
     env: dict[str, str] | None = None,
-    storage_factory=build_storage_service,
+    storage_factory: StorageFactory = build_storage_service,
 ) -> CheckReport:
     report = CheckReport("object_storage_smoke")
     if not require_not_production(report, allow_production=allow_production, env=env):
@@ -72,7 +99,7 @@ def run_object_storage_smoke(
     if read_back != content or not deleted or exists_after_delete:
         report.add("object_storage_write", "FAIL", "Object storage smoke consistency check failed")
     else:
-        details = {"key": stored.key, "size_bytes": stat.size_bytes}
+        details: dict[str, object] = {"key": stored.key, "size_bytes": stat.size_bytes}
         if show_signed_url:
             details["signed_url"] = signed_url
         else:
@@ -90,11 +117,12 @@ def _settings_from_env(env: dict[str, str] | None) -> Settings:
     if env is None:
         return Settings()
     allowed = set(Settings.model_fields)
-    return Settings(**{key.lower(): value for key, value in env.items() if key.lower() in allowed})
+    values = cast(dict[str, Any], {key.lower(): value for key, value in env.items() if key.lower() in allowed})
+    return Settings(**values)
 
 
 def _validation_error_fields(exc: ValidationError) -> list[str]:
-    fields = []
+    fields: list[str] = []
     for error in exc.errors():
         location = error.get("loc") or ()
         if location:

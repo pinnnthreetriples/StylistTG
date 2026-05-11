@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
@@ -17,6 +17,11 @@ from app.scripts.redis_smoke import run_redis_smoke
 from app.scripts.supabase_auth_smoke import run_supabase_auth_smoke
 
 HttpFetcher = Callable[[str, float], tuple[int, Any]]
+CloudConfigRunner = Callable[[dict[str, str]], CheckReport]
+NeonRunner = Callable[..., CheckReport]
+SupabaseRunner = Callable[..., CheckReport]
+RedisRunner = Callable[..., CheckReport]
+StorageRunner = Callable[..., CheckReport]
 
 
 def run_staging_smoke(
@@ -27,11 +32,11 @@ def run_staging_smoke(
     allow_write_cloud: bool = False,
     allow_production: bool = False,
     http_fetcher: HttpFetcher | None = None,
-    cloud_config_runner=validate_cloud_config,
-    neon_runner=run_neon_smoke,
-    supabase_runner=run_supabase_auth_smoke,
-    redis_runner=run_redis_smoke,
-    storage_runner=run_object_storage_smoke,
+    cloud_config_runner: CloudConfigRunner = validate_cloud_config,
+    neon_runner: NeonRunner = run_neon_smoke,
+    supabase_runner: SupabaseRunner = run_supabase_auth_smoke,
+    redis_runner: RedisRunner = run_redis_smoke,
+    storage_runner: StorageRunner = run_object_storage_smoke,
 ) -> CheckReport:
     effective_env = dict(env) if env is not None else os.environ.copy()
     report = CheckReport("staging_smoke")
@@ -129,12 +134,13 @@ def _http_get_json(url: str, timeout: float) -> tuple[int, Any]:
 
 def _payload_status(payload: Any) -> str | None:
     if isinstance(payload, dict):
-        value = payload.get("status")
+        typed_payload = cast(dict[str, Any], payload)
+        value = typed_payload.get("status")
         return str(value) if value is not None else None
     return None
 
 
-def _extend(report: CheckReport, child) -> None:
+def _extend(report: CheckReport, child: CheckReport) -> None:
     for result in child.results:
         report.results.append(result)
 

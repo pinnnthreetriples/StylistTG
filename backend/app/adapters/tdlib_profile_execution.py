@@ -2,22 +2,26 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 import time
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from app.adapters.tdlib_auth import (
     RealTdJsonClientFactory,
     TdlibClient,
     TdlibClientFactory,
-    _extract_authorization_state,
-    _get_current_user_id,
-    _tdlib_parameters_query,
+    extract_authorization_state,
+    get_current_user_id,
     map_authorization_state,
     map_tdlib_error,
+    tdlib_parameters_query,
 )
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState, JobState, StepStatus
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
+
+
+def _dict_or_empty(value: Any) -> dict[str, Any]:
+    return cast(dict[str, Any], value) if isinstance(value, dict) else {}
 
 
 def split_name(full_name: str | None) -> tuple[str, str]:
@@ -71,8 +75,9 @@ def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
 
 
 def verify_username_result(desired_username: str, me_response: dict[str, Any]) -> dict[str, Any]:
-    usernames = me_response.get("usernames") or {}
-    active = usernames.get("active_usernames") or []
+    usernames = _dict_or_empty(me_response.get("usernames"))
+    active_value = usernames.get("active_usernames")
+    active = cast(list[Any], active_value) if isinstance(active_value, list) else []
     editable = usernames.get("editable_username")
     matched = desired_username == editable or desired_username in active
     if matched:
@@ -133,12 +138,12 @@ class TdlibProfileExecutionAdapter:
             deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
             while time.monotonic() < deadline:
                 event = client.receive(self._config.tdlib_receive_timeout_seconds)
-                state = _extract_authorization_state(event)
+                state = extract_authorization_state(event)
                 if state is None:
                     continue
                 mapped = map_authorization_state(state)
                 if mapped.status.value == "wait_tdlib_parameters":
-                    client.send(_tdlib_parameters_query(self._config, account_id))
+                    client.send(tdlib_parameters_query(self._config, account_id))
                     if self._proxy_applier is not None and not proxy_applied:
                         self._proxy_applier(client, account_id)
                         proxy_applied = True
@@ -148,7 +153,7 @@ class TdlibProfileExecutionAdapter:
                         "ok": True,
                         "account_state": AccountState.EXECUTION_USABLE,
                         "runtime_health": "ready",
-                        "telegram_user_id": _get_current_user_id(client, self._config),
+                        "telegram_user_id": get_current_user_id(client, self._config),
                         "error": None,
                     }
                 return {
@@ -188,7 +193,7 @@ class TdlibProfileExecutionAdapter:
             uploaded_profile_audio_file_id: int | None = None
             uploaded_profile_audio_temp_message: dict[str, Any] | None = None
             uploaded_profile_audio_title: str | None = None
-            for step in plan_json_snapshot["steps"]:
+            for step in cast(list[dict[str, Any]], plan_json_snapshot["steps"]):
                 event = {"step_key": step["step_key"], "step_type": step["step_type"]}
                 yield {"event": "step_started", **event}
                 try:
@@ -225,7 +230,8 @@ class TdlibProfileExecutionAdapter:
                         )
                         uploaded_profile_audio_file_id = int(uploaded_file["audio_file_id"])
                         uploaded_profile_audio_temp_message = uploaded_file
-                        uploaded_profile_audio_title = step["payload"].get("title") or None
+                        title = step["payload"].get("title")
+                        uploaded_profile_audio_title = str(title) if title else None
                         yield {
                             "event": "step_succeeded",
                             **event,
@@ -257,7 +263,7 @@ class TdlibProfileExecutionAdapter:
                                 uploaded_profile_audio_temp_message,
                                 self._config,
                                 account_id=account_id,
-                                step_key=step["step_key"],
+                                step_key=str(step["step_key"]),
                             )
                     if step["step_type"] == "add_profile_audio":
                         yield {
@@ -300,7 +306,7 @@ class TdlibProfileExecutionAdapter:
                             client, {"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds
                         )
                         verification = verify_username_result(
-                            step["payload"].get("username") or "", me
+                            str(step["payload"].get("username") or ""), me
                         )
                         if verification["status"] == StepStatus.UNCERTAIN:
                             yield {
@@ -371,12 +377,12 @@ class TdlibProfileExecutionAdapter:
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         while time.monotonic() < deadline:
             event = client.receive(self._config.tdlib_receive_timeout_seconds)
-            state = _extract_authorization_state(event)
+            state = extract_authorization_state(event)
             if state is None:
                 continue
             mapped = map_authorization_state(state)
             if mapped.status.value == "wait_tdlib_parameters":
-                client.send(_tdlib_parameters_query(self._config, account_id))
+                client.send(tdlib_parameters_query(self._config, account_id))
                 if self._proxy_applier is not None and not proxy_applied:
                     self._proxy_applier(client, account_id)
                     proxy_applied = True
@@ -448,7 +454,9 @@ class TdlibStoryPostUncertain(RuntimeError):
         self.result_payload = result_payload
 
 
-def _checked_send_query(client: TdlibClient, query: dict, timeout_seconds: float) -> dict:
+def _checked_send_query(
+    client: TdlibClient, query: dict[str, Any], timeout_seconds: float
+) -> dict[str, Any]:
     response = client.send_query(query, timeout_seconds)
     if response.get("@type") != "error":
         return response
@@ -457,7 +465,7 @@ def _checked_send_query(client: TdlibClient, query: dict, timeout_seconds: float
     raise TdlibProfileQueryError(mapped.error or "TDLib query failed", error_code=error_code)
 
 
-def _profile_tdlib_error_code(response: dict, recovery_marker: str | None) -> str:
+def _profile_tdlib_error_code(response: dict[str, Any], recovery_marker: str | None) -> str:
     message = str(response.get("message") or "").strip().upper()
     if message.startswith(("USERNAME_", "FLOOD_", "FROZEN_")):
         return message
@@ -465,8 +473,8 @@ def _profile_tdlib_error_code(response: dict, recovery_marker: str | None) -> st
 
 
 def _tdlib_file_upload_completed(response: dict[str, Any]) -> bool:
-    remote = response.get("remote")
-    if not isinstance(remote, dict):
+    remote = _dict_or_empty(response.get("remote"))
+    if not remote:
         return False
     return remote.get("is_uploading_completed") is True
 
@@ -474,8 +482,8 @@ def _tdlib_file_upload_completed(response: dict[str, Any]) -> bool:
 def _tdlib_file_upload_ready_for_profile_audio(response: dict[str, Any]) -> bool:
     if _tdlib_file_upload_completed(response):
         return True
-    remote = response.get("remote")
-    if not isinstance(remote, dict) or remote.get("is_uploading_active") is not False:
+    remote = _dict_or_empty(response.get("remote"))
+    if not remote or remote.get("is_uploading_active") is not False:
         return False
     uploaded_size = remote.get("uploaded_size")
     expected_size = response.get("expected_size") or response.get("size")
@@ -487,14 +495,14 @@ def _tdlib_file_upload_ready_for_profile_audio(response: dict[str, Any]) -> bool
 def _tdlib_file_debug_payload(file_obj: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(file_obj, dict):
         return {}
-    remote = file_obj.get("remote")
-    local = file_obj.get("local")
+    remote = _dict_or_empty(file_obj.get("remote"))
+    local = _dict_or_empty(file_obj.get("local"))
     payload: dict[str, Any] = {
         "id": file_obj.get("id"),
         "size": file_obj.get("size"),
         "expected_size": file_obj.get("expected_size"),
     }
-    if isinstance(remote, dict):
+    if remote:
         payload["remote"] = {
             "is_uploading_active": remote.get("is_uploading_active"),
             "is_uploading_completed": remote.get("is_uploading_completed"),
@@ -502,7 +510,7 @@ def _tdlib_file_debug_payload(file_obj: dict[str, Any] | None) -> dict[str, Any]
             "has_id": bool(remote.get("id")),
             "has_unique_id": bool(remote.get("unique_id")),
         }
-    if isinstance(local, dict):
+    if local:
         payload["local"] = {
             "is_downloading_completed": local.get("is_downloading_completed"),
             "downloaded_prefix_size": local.get("downloaded_prefix_size"),
@@ -510,7 +518,7 @@ def _tdlib_file_debug_payload(file_obj: dict[str, Any] | None) -> dict[str, Any]
     return payload
 
 
-def _wait_for_tdlib_file_upload_completed(
+def wait_for_tdlib_file_upload_completed(
     client: TdlibClient,
     file_response: dict[str, Any],
     timeout_seconds: float,
@@ -530,8 +538,8 @@ def _wait_for_tdlib_file_upload_completed(
             continue
         if event.get("@type") != "updateFile":
             continue
-        updated_file = event.get("file")
-        if not isinstance(updated_file, dict) or updated_file.get("id") != file_id:
+        updated_file = _dict_or_empty(event.get("file"))
+        if not updated_file or updated_file.get("id") != file_id:
             continue
         log_event(
             "tdlib_profile_audio_update_file",
@@ -623,8 +631,8 @@ def _wait_for_audio_message_send_succeeded(
             event_type == "updateMessageSendSucceeded"
             and event.get("old_message_id") == old_message_id
         ):
-            message = event.get("message")
-            if isinstance(message, dict):
+            message = _dict_or_empty(event.get("message"))
+            if message:
                 return message
         if (
             event_type == "updateMessageSendFailed"
@@ -651,14 +659,14 @@ def _wait_for_audio_message_send_succeeded(
 
 
 def _extract_message_audio_file(message: dict[str, Any]) -> dict[str, Any]:
-    content = message.get("content")
-    if not isinstance(content, dict) or content.get("@type") != "messageAudio":
+    content = _dict_or_empty(message.get("content"))
+    if content.get("@type") != "messageAudio":
         return {}
-    audio = content.get("audio")
-    if not isinstance(audio, dict):
+    audio = _dict_or_empty(content.get("audio"))
+    if not audio:
         return {}
-    audio_file = audio.get("audio")
-    if not isinstance(audio_file, dict):
+    audio_file = _dict_or_empty(audio.get("audio"))
+    if not audio_file:
         return {}
     return audio_file
 
@@ -725,6 +733,11 @@ def _post_story(client: TdlibClient, step: dict[str, Any], config: Settings) -> 
         config.tdlib_auth_timeout_seconds,
     )
     temporary_story_id = temporary_story.get("id")
+    if temporary_story_id is None:
+        raise TdlibProfileQueryError(
+            "TDLib postStory did not return temporary story id",
+            error_code="STORY_POST_TEMPORARY_ID_MISSING",
+        )
     final_story = _wait_for_story_post_confirmation(client, int(temporary_story_id), config)
     story_id = str(final_story.get("id") or "")
     return {
@@ -771,16 +784,16 @@ def _wait_for_story_post_confirmation(
             event_type == "updateStoryPostSucceeded"
             and event.get("old_story_id") == temporary_story_id
         ):
-            story = event.get("story")
-            if isinstance(story, dict):
+            story = _dict_or_empty(event.get("story"))
+            if story:
                 return story
         if event_type == "updateStoryPostFailed":
-            story = event.get("story") or {}
-            if isinstance(story, dict) and story.get("id") == temporary_story_id:
-                error = event.get("error") or {}
+            story = _dict_or_empty(event.get("story"))
+            if story.get("id") == temporary_story_id:
+                error = _dict_or_empty(event.get("error"))
                 raise TdlibProfileQueryError(
-                    error.get("message") or "TDLib story post failed",
-                    error_code=error.get("message") or "STORY_POST_FAILED",
+                    str(error.get("message") or "TDLib story post failed"),
+                    error_code=str(error.get("message") or "STORY_POST_FAILED"),
                 )
     temporary_payload = {
         "story_post": {

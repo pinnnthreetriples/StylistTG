@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from app.config import settings
 from app.services.secret_redaction import is_sensitive_key, redact_metadata, redact_text
@@ -87,7 +87,7 @@ def capture_observability_test_exception(message: str) -> bool:
 
 def sanitize_sentry_event(event: dict[str, Any], _hint: Any = None) -> dict[str, Any] | None:
     sanitized = _sanitize_value(event)
-    return sanitized if isinstance(sanitized, dict) else None
+    return cast(dict[str, Any], sanitized) if isinstance(sanitized, dict) else None
 
 
 def _init_sentry(*, dsn: str | None, integrations: tuple[str, ...]) -> bool:
@@ -103,7 +103,7 @@ def _init_sentry(*, dsn: str | None, integrations: tuple[str, ...]) -> bool:
         return False
 
     try:
-        sentry_integrations = []
+        sentry_integrations: list[Any] = []
         if "fastapi" in integrations:
             from sentry_sdk.integrations.fastapi import FastApiIntegration
 
@@ -120,7 +120,7 @@ def _init_sentry(*, dsn: str | None, integrations: tuple[str, ...]) -> bool:
             send_default_pii=False,
             traces_sample_rate=0.0,
             integrations=sentry_integrations,
-            before_send=sanitize_sentry_event,
+            before_send=cast(Any, sanitize_sentry_event),
         )
     except Exception as exc:
         _log_observability_init_error(exc)
@@ -135,12 +135,13 @@ def _sanitize_value(value: Any, *, key: str | None = None, parent_key: str | Non
     if key and key.lower() in SENSITIVE_EVENT_KEYS:
         return _sanitize_sensitive_container(key, value, parent_key=parent_key)
     if isinstance(value, dict):
+        typed_value = cast(dict[Any, Any], value)
         return {
             item_key: _sanitize_value(item_value, key=str(item_key), parent_key=key)
-            for item_key, item_value in value.items()
+            for item_key, item_value in typed_value.items()
         }
     if isinstance(value, list):
-        return [_sanitize_value(item, parent_key=key) for item in value]
+        return [_sanitize_value(item, parent_key=key) for item in cast(list[Any], value)]
     if isinstance(value, str):
         return _redact_observability_text(value)
     return value
@@ -149,18 +150,20 @@ def _sanitize_value(value: Any, *, key: str | None = None, parent_key: str | Non
 def _sanitize_sensitive_container(key: str, value: Any, *, parent_key: str | None = None) -> Any:
     normalized = key.lower()
     if normalized == "request" and isinstance(value, dict):
+        typed_value = cast(dict[Any, Any], value)
         return {
             item_key: _sanitize_value(item_value, key=str(item_key), parent_key=normalized)
-            for item_key, item_value in value.items()
+            for item_key, item_value in typed_value.items()
         }
     if normalized in {"data", "body", "raw_body", "form", "json"} and parent_key == "request":
         return "***"
     if normalized == "headers" and isinstance(value, dict):
+        typed_value = cast(dict[Any, Any], value)
         return {
             header: "***"
             if str(header).lower() in SENSITIVE_HEADER_NAMES
             else _sanitize_value(item)
-            for header, item in value.items()
+            for header, item in typed_value.items()
         }
     if normalized in {"cookies", "query_string"}:
         return "***"

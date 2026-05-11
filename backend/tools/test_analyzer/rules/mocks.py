@@ -11,8 +11,8 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _func_source,
-    _get_test_functions,
+    func_source,
+    get_test_functions,
 )
 
 
@@ -23,8 +23,8 @@ class MockWithoutAssert(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "MagicMock(" in src or "Mock(" in src:
                 if not any(
                     kw in src
@@ -58,8 +58,8 @@ class PatchStartWithoutStop(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             # Match actual patch() calls — not pytest's `monkeypatch` fixture
             # or unrelated `.start()` calls (e.g. threading.Thread.start()).
             has_patch_call = "patch(" in src or "patch.object(" in src
@@ -108,7 +108,7 @@ class MonkeypatchAfterCall(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             found_assert = False
             for stmt in func.body:
                 if isinstance(stmt, ast.Assert):

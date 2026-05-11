@@ -106,6 +106,8 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
     )
     runtime_failed = False
     hard_stop_error_code: str | None = None
+    stdout_thread: threading.Thread | None = None
+    stderr_thread: threading.Thread | None = None
     try:
         assert process.stdout is not None
         deadline = time.monotonic() + settings.profile_job_timeout_seconds
@@ -128,8 +130,10 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
                 stderr_lines.put(output_line)
             stderr_lines.put(None)
 
-        threading.Thread(target=read_stdout, daemon=True).start()
-        threading.Thread(target=read_stderr, daemon=True).start()
+        stdout_thread = threading.Thread(target=read_stdout, daemon=True)
+        stderr_thread = threading.Thread(target=read_stderr, daemon=True)
+        stdout_thread.start()
+        stderr_thread.start()
         while True:
             _drain_stderr(stderr_lines, stderr_buffer)
             remaining_seconds = deadline - time.monotonic()
@@ -352,6 +356,14 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             )
         return return_code
     finally:
+        for stream in (process.stdout, process.stderr):
+            close = getattr(stream, "close", None)
+            if callable(close):
+                close()
+        if stdout_thread is not None:
+            stdout_thread.join(timeout=0.05)
+        if stderr_thread is not None:
+            stderr_thread.join(timeout=0.05)
         release_account_lock(session, job.account_id, owner, lock_epoch)
         Path(plan_path).unlink(missing_ok=True)
 

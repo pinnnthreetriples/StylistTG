@@ -1,20 +1,25 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from app.models import AccountState
+
+ProfileEvent = dict[str, Any]
+ProfilePayload = dict[str, Any]
+ProfileStep = dict[str, Any]
 
 
 class ProfileExecutionAdapter(Protocol):
     def execute(
-        self, account_id: str, plan_json_snapshot: dict, payload_json: dict
-    ) -> Iterator[dict]:
+        self, account_id: str, plan_json_snapshot: ProfilePayload, payload_json: ProfilePayload
+    ) -> Iterator[ProfileEvent]:
         """Yield structured execution events for a profile job."""
+        raise NotImplementedError
 
 
 class MockProfileExecutionAdapter:
-    def inspect_runtime(self, account_id: str) -> dict:
+    def inspect_runtime(self, account_id: str) -> ProfilePayload:
         return {
             "ok": True,
             "account_state": AccountState.EXECUTION_USABLE,
@@ -24,25 +29,27 @@ class MockProfileExecutionAdapter:
         }
 
     def execute(
-        self, account_id: str, plan_json_snapshot: dict, payload_json: dict
-    ) -> Iterator[dict]:
+        self, account_id: str, plan_json_snapshot: ProfilePayload, payload_json: ProfilePayload
+    ) -> Iterator[ProfileEvent]:
         yield {"event": "runtime_started"}
         fail_step = payload_json.get("mock_fail_step")
         crash_step = payload_json.get("mock_crash_after_step_started")
         username_verify = payload_json.get("mock_username_verify")
         uploaded_audio_file_id: str | None = None
 
-        for step in plan_json_snapshot["steps"]:
-            event = {
+        for step in cast(list[ProfileStep], plan_json_snapshot["steps"]):
+            payload = cast(ProfilePayload, step["payload"])
+            step_type = str(step["step_type"])
+            event: ProfileEvent = {
                 "step_key": step["step_key"],
-                "step_type": step["step_type"],
+                "step_type": step_type,
             }
             yield {"event": "step_started", **event}
 
-            if crash_step == step["step_type"]:
+            if crash_step == step_type:
                 raise SystemExit(2)
 
-            if fail_step == step["step_type"]:
+            if fail_step == step_type:
                 yield {
                     "event": "step_failed",
                     **event,
@@ -53,7 +60,7 @@ class MockProfileExecutionAdapter:
                 yield {"event": "runtime_failed", "error_class": "MockExecutionError"}
                 return
 
-            if step["step_type"] == "set_username" and username_verify == "mismatch":
+            if step_type == "set_username" and username_verify == "mismatch":
                 yield {
                     "event": "step_uncertain",
                     **event,
@@ -63,13 +70,13 @@ class MockProfileExecutionAdapter:
                         "active_usernames": ["other-user"],
                     },
                     "uncertain_reason": "username_verify_mismatch",
-                    "result_payload": {"desired_username": step["payload"].get("username")},
+                    "result_payload": {"desired_username": payload.get("username")},
                 }
                 yield {"event": "runtime_closed"}
                 return
 
-            if step["step_type"] == "upload_profile_audio":
-                audio_asset_id = step["payload"].get("audio_asset_id")
+            if step_type == "upload_profile_audio":
+                audio_asset_id = payload.get("audio_asset_id")
                 uploaded_audio_file_id = f"mock-file-{audio_asset_id}"
                 yield {
                     "event": "step_succeeded",
@@ -83,8 +90,8 @@ class MockProfileExecutionAdapter:
                 }
                 continue
 
-            if step["step_type"] == "add_profile_audio":
-                audio_asset_id = step["payload"].get("audio_asset_id")
+            if step_type == "add_profile_audio":
+                audio_asset_id = payload.get("audio_asset_id")
                 yield {
                     "event": "step_succeeded",
                     **event,
@@ -104,7 +111,7 @@ class MockProfileExecutionAdapter:
                 }
                 continue
 
-            if step["step_type"] == "remove_profile_audio":
+            if step_type == "remove_profile_audio":
                 yield {
                     "event": "step_succeeded",
                     **event,
@@ -114,19 +121,19 @@ class MockProfileExecutionAdapter:
                 }
                 continue
 
-            if step["step_type"] in {"validate_story_capabilities", "prepare_story_media"}:
+            if step_type in {"validate_story_capabilities", "prepare_story_media"}:
                 yield {
                     "event": "step_succeeded",
                     **event,
                     "verification_attempted": False,
                     "verification_result": None,
-                    "result_payload": {"mock": True, "applied": step["payload"]},
+                    "result_payload": {"mock": True, "applied": payload},
                 }
                 continue
 
-            if step["step_type"] in {"post_story_image", "post_story_video"}:
-                media_kind = "image" if step["step_type"] == "post_story_image" else "video"
-                story_id = f"mock-story-{step['payload'].get('client_id')}"
+            if step_type in {"post_story_image", "post_story_video"}:
+                media_kind = "image" if step_type == "post_story_image" else "video"
+                story_id = f"mock-story-{payload.get('client_id')}"
                 yield {
                     "event": "step_succeeded",
                     **event,
@@ -138,11 +145,11 @@ class MockProfileExecutionAdapter:
                             "telegram_story_id": story_id,
                             "temporary_story_id": story_id,
                             "media_kind": media_kind,
-                            "asset_id": step["payload"].get("asset_id"),
-                            "caption": step["payload"].get("caption"),
-                            "privacy_preset": step["payload"].get("privacy_preset"),
-                            "active_period_seconds": step["payload"].get("active_period_seconds"),
-                            "protect_content": step["payload"].get("protect_content"),
+                            "asset_id": payload.get("asset_id"),
+                            "caption": payload.get("caption"),
+                            "privacy_preset": payload.get("privacy_preset"),
+                            "active_period_seconds": payload.get("active_period_seconds"),
+                            "protect_content": payload.get("protect_content"),
                         }
                     },
                 }
@@ -153,7 +160,7 @@ class MockProfileExecutionAdapter:
                 **event,
                 "verification_attempted": False,
                 "verification_result": None,
-                "result_payload": {"mock": True, "applied": step["payload"]},
+                "result_payload": {"mock": True, "applied": payload},
             }
 
         yield {"event": "runtime_closed"}

@@ -7,6 +7,7 @@ import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import PurePosixPath
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
@@ -14,18 +15,26 @@ from urllib.parse import urlparse, urlunparse
 SECRET_FRAGMENTS = ("password", "secret", "token", "key", "jwt")
 
 
+def _empty_details() -> dict[str, Any]:
+    return {}
+
+
+def _empty_results() -> list[CheckResult]:
+    return []
+
+
 @dataclass
 class CheckResult:
     name: str
     status: str
     message: str
-    details: dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=_empty_details)
 
 
 @dataclass
 class CheckReport:
     name: str
-    results: list[CheckResult] = field(default_factory=list)
+    results: list[CheckResult] = field(default_factory=_empty_results)
     started_at: float = field(default_factory=time.time)
 
     def add(self, name: str, status: str, message: str, **details: Any) -> None:
@@ -153,7 +162,7 @@ def safe_smoke_prefix(prefix: str) -> str:
     return "/".join(parts) + "/"
 
 
-def main_guard(fn) -> None:
+def main_guard(fn: Callable[[], None]) -> None:
     try:
         fn()
     except KeyboardInterrupt:

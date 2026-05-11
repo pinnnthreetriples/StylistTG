@@ -223,6 +223,7 @@ class TestCrossWorkspaceReadBlocked:
         self._client = TestClient(app, raise_server_exceptions=False)
 
     def teardown_method(self):
+        self._client.close()
         app.dependency_overrides.clear()
 
     def test_foreign_account_returns_404(self):
@@ -294,6 +295,7 @@ class TestCrossWorkspaceMutationBlocked:
         self._client = TestClient(app, raise_server_exceptions=False)
 
     def teardown_method(self):
+        self._client.close()
         app.dependency_overrides.clear()
 
     def test_cannot_create_job_for_foreign_account(self):
@@ -337,6 +339,7 @@ class TestCrossWorkspaceNoExistenceLeak:
         self._client = TestClient(app, raise_server_exceptions=False)
 
     def teardown_method(self):
+        self._client.close()
         app.dependency_overrides.clear()
 
     def test_foreign_account_error_matches_nonexistent(self):

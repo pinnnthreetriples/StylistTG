@@ -9,11 +9,15 @@ import tomllib
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
+from typing import TypeAlias
 
 
 # ---------------------------------------------------------------------------
 # Core types
 # ---------------------------------------------------------------------------
+
+
+FunctionNode: TypeAlias = ast.FunctionDef | ast.AsyncFunctionDef
 
 
 class Severity(IntEnum):
@@ -64,8 +68,8 @@ class AnalyzerConfig:
     max_assertions_per_test: int = 12
     duplicate_min_lines: int = 10
     duplicate_similarity: float = 0.90
-    severity_overrides: dict[str, Severity] = field(default_factory=dict)
-    project_rules_enabled: dict[str, bool] = field(default_factory=dict)
+    severity_overrides: dict[str, Severity] = field(default_factory=lambda: {})
+    project_rules_enabled: dict[str, bool] = field(default_factory=lambda: {})
 
     @classmethod
     def from_toml(cls, path: Path) -> "AnalyzerConfig":
@@ -121,7 +125,7 @@ _FILE_SUPPRESSION_RE = re.compile(
 )
 
 
-def _parse_suppressions(
+def parse_suppressions(
     lines: list[str],
     relative_path: str,
 ) -> tuple[dict[str, set[str]], set[str], list[Issue]]:
@@ -170,12 +174,12 @@ def _parse_suppressions(
     return line_suppressions, file_suppressions, warnings
 
 
-def _is_test_function(node: ast.FunctionDef) -> bool:
+def _is_test_function(node: FunctionNode) -> bool:
     return node.name.startswith("test_")
 
 
-def _get_test_functions(tree: ast.AST) -> list[ast.FunctionDef]:
-    funcs: list[ast.FunctionDef] = []
+def get_test_functions(tree: ast.AST) -> list[FunctionNode]:
+    funcs: list[FunctionNode] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if _is_test_function(node):
@@ -183,7 +187,7 @@ def _get_test_functions(tree: ast.AST) -> list[ast.FunctionDef]:
     return funcs
 
 
-def _count_asserts(node: ast.AST) -> int:
+def count_asserts(node: ast.AST) -> int:
     count = 0
     for child in ast.walk(node):
         if isinstance(child, ast.Assert):
@@ -197,7 +201,7 @@ def _count_asserts(node: ast.AST) -> int:
     return count
 
 
-def _has_decorator(func: ast.FunctionDef, name: str) -> bool:
+def has_decorator(func: FunctionNode, name: str) -> bool:
     for dec in func.decorator_list:
         if isinstance(dec, ast.Name) and dec.id == name:
             return True
@@ -211,7 +215,7 @@ def _has_decorator(func: ast.FunctionDef, name: str) -> bool:
     return False
 
 
-def _has_marker(func: ast.FunctionDef, marker: str) -> bool:
+def has_marker(func: FunctionNode, marker: str) -> bool:
     for dec in func.decorator_list:
         if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
             if dec.func.attr == marker:
@@ -230,7 +234,7 @@ def _has_marker(func: ast.FunctionDef, marker: str) -> bool:
     return False
 
 
-def _func_source(func: ast.FunctionDef, lines: list[str]) -> str:
+def func_source(func: FunctionNode, lines: list[str]) -> str:
     start = func.lineno - 1
     if func.decorator_list:
         start = func.decorator_list[0].lineno - 1
@@ -238,7 +242,7 @@ def _func_source(func: ast.FunctionDef, lines: list[str]) -> str:
     return "\n".join(lines[start:end])
 
 
-def _normalize_ast_block(source: str) -> str:
+def normalize_ast_block(source: str) -> str:
     """Normalize variable names and literals for duplicate detection."""
     normalized = re.sub(r'"[^"]*"', '"STR"', source)
     normalized = re.sub(r"'[^']*'", "'STR'", normalized)

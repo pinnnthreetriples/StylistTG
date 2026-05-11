@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any, cast
 from datetime import timedelta
 
 from redis import Redis
@@ -59,26 +60,26 @@ __all__ = [
 
 
 def get_profile_queue() -> Queue:
-    connection = Redis.from_url(settings.redis_url)
+    connection = cast(Any, Redis).from_url(settings.redis_url)
     return Queue(PROFILE_QUEUE_NAME, connection=connection)
 
 
 def get_auth_queue() -> Queue:
-    connection = Redis.from_url(settings.redis_url)
+    connection = cast(Any, Redis).from_url(settings.redis_url)
     return Queue(AUTH_QUEUE_NAME, connection=connection)
 
 
 def get_queue(queue_name: str) -> Queue:
     if queue_name not in PRODUCTION_QUEUE_NAMES:
         raise ValueError(f"unsupported queue: {queue_name}")
-    connection = Redis.from_url(settings.redis_url)
+    connection = cast(Any, Redis).from_url(settings.redis_url)
     return Queue(queue_name, connection=connection)
 
 
 def enqueue_profile_job(job_id: str) -> bool:
     queue = get_profile_queue()
     try:
-        queue.enqueue_call(func=run_profile_job, args=(job_id,), job_id=job_id, unique=True)
+        cast(Any, queue).enqueue_call(func=run_profile_job, args=(job_id,), job_id=job_id, unique=True)
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False
@@ -88,7 +89,9 @@ def enqueue_profile_job(job_id: str) -> bool:
 def enqueue_account_update_job(job_id: str) -> bool:
     queue = get_profile_queue()
     try:
-        queue.enqueue_call(func=run_account_update_job, args=(job_id,), job_id=job_id, unique=True)
+        cast(Any, queue).enqueue_call(
+            func=run_account_update_job, args=(job_id,), job_id=job_id, unique=True
+        )
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False
@@ -98,7 +101,9 @@ def enqueue_account_update_job(job_id: str) -> bool:
 def enqueue_warmup_due_sessions() -> bool:
     queue = get_queue(WARMUP_QUEUE_NAME)
     try:
-        queue.enqueue_call(func=run_warmup_due_sessions, job_id="warmup-due-sessions", unique=True)
+        cast(Any, queue).enqueue_call(
+            func=run_warmup_due_sessions, job_id="warmup-due-sessions", unique=True
+        )
     except RedisError:
         _log_enqueue_failure(queue.name, "warmup-due-sessions", "RedisError")
         return False
@@ -114,7 +119,7 @@ def enqueue_warmup_dispatch_tick() -> bool:
     """
     queue = get_queue(WARMUP_DISPATCH_QUEUE_NAME)
     try:
-        queue.enqueue_call(
+        cast(Any, queue).enqueue_call(
             func=run_warmup_dispatch_tick,
             job_id="warmup-dispatch-tick",
             unique=True,
@@ -130,14 +135,14 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
     job_id = f"auth-start-{item_id}-attempt-{attempt_count}"
     try:
         if delay_seconds > 0:
-            queue.enqueue_in(
+            cast(Any, queue).enqueue_in(
                 timedelta(seconds=delay_seconds),
                 run_batch_start_auth,
                 args=(item_id,),
                 job_id=job_id,
             )
         else:
-            queue.enqueue_call(
+            cast(Any, queue).enqueue_call(
                 func=run_batch_start_auth, args=(item_id,), job_id=job_id, unique=True
             )
     except RedisError:
@@ -150,7 +155,7 @@ def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action
     queue = get_auth_queue()
     job_id = f"telegram-auth-{auth_session_id}-{action}"
     try:
-        queue.enqueue_call(
+        cast(Any, queue).enqueue_call(
             func=run_telegram_auth_job,
             args=(auth_session_id, workspace_id, action),
             job_id=job_id,
@@ -170,7 +175,9 @@ def reenqueue_job_with_delay(
     retry_job_id = f"retry-{job_id}"
     try:
         _cancel_existing_job(queue, retry_job_id)
-        queue.enqueue_in(timedelta(seconds=delay_seconds), func, job_id, job_id=retry_job_id)
+        cast(Any, queue).enqueue_in(
+            timedelta(seconds=delay_seconds), func, job_id, job_id=retry_job_id
+        )
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")
         return False
@@ -183,7 +190,7 @@ def is_job_in_redis(job_id: str) -> bool:
     active_statuses = {"queued", "deferred", "started", "scheduled"}
     for check_id in (job_id, f"retry-{job_id}"):
         try:
-            rq_job = Job.fetch(check_id, connection=queue.connection)
+            rq_job = cast(Any, Job).fetch(check_id, connection=queue.connection)
             status = rq_job.get_status()
             if status in active_statuses:
                 return True
@@ -194,7 +201,7 @@ def is_job_in_redis(job_id: str) -> bool:
 
 def _cancel_existing_job(queue: Queue, rq_job_id: str) -> None:
     try:
-        existing = Job.fetch(rq_job_id, connection=queue.connection)
+        existing = cast(Any, Job).fetch(rq_job_id, connection=queue.connection)
         existing.delete()
     except NoSuchJobError:
         pass
@@ -218,7 +225,7 @@ def remove_job_from_queue(job_id: str) -> bool:
                 if job_id in registry.get_job_ids():
                     registry.remove(job_id, delete_job=True)
             try:
-                Job.fetch(job_id, connection=queue.connection).delete()
+                cast(Any, Job).fetch(job_id, connection=queue.connection).delete()
             except NoSuchJobError:
                 pass
     except RedisError:

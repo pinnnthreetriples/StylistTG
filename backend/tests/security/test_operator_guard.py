@@ -43,9 +43,9 @@ def test_operator_guard_uses_configurable_allowed_hosts(monkeypatch) -> None:
 
 def test_operator_token_required_for_mutating_requests(monkeypatch) -> None:
     monkeypatch.setattr(settings, "operator_api_token", "secret-token")
-    client = TestClient(app)
 
-    response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
+    with TestClient(app) as client:
+        response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
 
     assert response.status_code == 401
     assert "detail" in response.json() or "error" in response.text
@@ -72,10 +72,10 @@ def test_operator_guard_blocks_detailed_runtime_diagnostics(monkeypatch) -> None
         "app.api.diagnostics.build_runtime_diagnostics",
         lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
     )
-    client = TestClient(app)
 
-    runtime = client.get("/diagnostics/runtime")
-    frontend_summary = client.get("/diagnostics/frontend-summary")
+    with TestClient(app) as client:
+        runtime = client.get("/diagnostics/runtime")
+        frontend_summary = client.get("/diagnostics/frontend-summary")
 
     assert runtime.status_code == 403
     assert "detail" in runtime.json() or "error" in runtime.text
@@ -95,13 +95,12 @@ def test_worker_diagnostics_admin_response_is_safe_metadata(monkeypatch) -> None
         "app.services.auth_context.SupabaseJwtVerifier.from_settings",
         lambda settings: _FakeVerifier(),
     )
-    client = TestClient(app)
-
     try:
-        response = client.get(
-            "/api/workers/diagnostics",
-            headers={"Authorization": "Bearer admin-token", "X-Workspace-Id": workspace.id},
-        )
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/workers/diagnostics",
+                headers={"Authorization": "Bearer admin-token", "X-Workspace-Id": workspace.id},
+            )
     finally:
         app.dependency_overrides.clear()
 
@@ -152,19 +151,22 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
                 "overall_status": "ready",
             },
         )
-        client = TestClient(app)
         try:
-            for endpoint in endpoints:
-                response = client.get(endpoint)
-                assert response.status_code == 401
-                assert response.json()
+            with TestClient(app) as client:
+                for endpoint in endpoints:
+                    response = client.get(endpoint)
+                    assert response.status_code == 401
+                    assert response.json()
 
-                response = client.get(
-                    endpoint,
-                    headers={"Authorization": "Bearer role-token", "X-Workspace-Id": workspace.id},
-                )
-                assert response.status_code == (200 if role == "admin" else 403)
-                assert response.json()
+                    response = client.get(
+                        endpoint,
+                        headers={
+                            "Authorization": "Bearer role-token",
+                            "X-Workspace-Id": workspace.id,
+                        },
+                    )
+                    assert response.status_code == (200 if role == "admin" else 403)
+                    assert response.json()
         finally:
             app.dependency_overrides.clear()
 

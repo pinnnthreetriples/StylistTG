@@ -4,8 +4,11 @@ import argparse
 import os
 import subprocess
 import time
+from collections.abc import Sequence
+from typing import Protocol
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
 
 from app.scripts.common import (
     CheckReport,
@@ -19,6 +22,22 @@ from app.scripts.common import (
 )
 
 
+class EngineFactory(Protocol):
+    def __call__(self, url: str) -> Engine: ...
+
+
+class CommandRunner(Protocol):
+    def __call__(
+        self,
+        args: Sequence[str],
+        *,
+        env: dict[str, str],
+        text: bool,
+        capture_output: bool,
+        check: bool,
+    ) -> subprocess.CompletedProcess[str]: ...
+
+
 def run_neon_smoke(
     *,
     check_runtime: bool = False,
@@ -27,8 +46,8 @@ def run_neon_smoke(
     readonly: bool = False,
     allow_production: bool = False,
     env: dict[str, str] | None = None,
-    engine_factory=create_engine,
-    command_runner=subprocess.run,
+    engine_factory: EngineFactory = create_engine,
+    command_runner: CommandRunner = subprocess.run,
 ) -> CheckReport:
     report = CheckReport("neon_smoke")
     if not require_not_production(report, allow_production=allow_production, env=env):
@@ -60,7 +79,7 @@ def run_neon_smoke(
     return report
 
 
-def _check_db(report: CheckReport, label: str, url: str, *, engine_factory) -> None:
+def _check_db(report: CheckReport, label: str, url: str, *, engine_factory: EngineFactory) -> None:
     started = time.time()
     engine = engine_factory(url)
     try:
@@ -90,7 +109,7 @@ def _check_db(report: CheckReport, label: str, url: str, *, engine_factory) -> N
 
 
 def _check_alembic(
-    report: CheckReport, direct_url: str, *, upgrade_head: bool, command_runner
+    report: CheckReport, direct_url: str, *, upgrade_head: bool, command_runner: CommandRunner
 ) -> None:
     command = [
         "python",
@@ -110,12 +129,12 @@ def _check_alembic(
     except Exception as exc:
         report.add("alembic", "FAIL", "Alembic command failed to start", error=type(exc).__name__)
         return
-    status = "PASS" if getattr(result, "returncode", 1) == 0 else "FAIL"
+    status = "PASS" if result.returncode == 0 else "FAIL"
     report.add(
         "alembic",
         status,
         "Alembic upgrade head completed" if upgrade_head else "Alembic current completed",
-        returncode=getattr(result, "returncode", None),
+        returncode=result.returncode,
     )
 
 

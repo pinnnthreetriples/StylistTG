@@ -26,10 +26,10 @@ def get_account_auth_state_from_header(
     auth: AuthContext = Depends(require_authenticated),
 ):
     require_account_in_workspace(session, account_id, auth)
-    from app.api.auth import _auth_response
+    from app.api.auth import auth_response
     from app.services.auth import get_auth_state
 
-    return _auth_response(get_auth_state(session, account_id))
+    return auth_response(get_auth_state(session, account_id))
 
 
 @router.post("/refresh-runtime", response_model=RuntimeRefreshRead)

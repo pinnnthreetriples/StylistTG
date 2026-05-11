@@ -1,11 +1,14 @@
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
+from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import ExceptionHandler
 
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
@@ -162,9 +165,11 @@ if _configured_cors_origins():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-app.add_exception_handler(AppError, app_error_handler)
-app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(AppError, cast(ExceptionHandler, app_error_handler))
+app.add_exception_handler(HTTPException, cast(ExceptionHandler, http_exception_handler))
+app.add_exception_handler(
+    RequestValidationError, cast(ExceptionHandler, validation_exception_handler)
+)
 app.include_router(account_update_router)
 app.include_router(account_imports_router)
 app.include_router(auth_router)
@@ -195,7 +200,9 @@ app.include_router(workers_router)
 
 
 @app.middleware("http")
-async def operator_guard_middleware(request: Request, call_next):
+async def operator_guard_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     if request.url.path in {"/health", "/ready"}:
         return await call_next(request)
     if settings.enforce_localhost_only and not _is_local_client(request):
@@ -213,12 +220,14 @@ async def operator_guard_middleware(request: Request, call_next):
 
 
 @app.middleware("http")
-async def request_logging_middleware(request: Request, call_next):
+async def request_logging_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     request_id = generate_request_id()
     request.state.request_id = request_id
     start = time.perf_counter()
 
-    response: Response = await call_next(request)
+    response = await call_next(request)
 
     duration_ms = (time.perf_counter() - start) * 1000
     # Skip noisy health/ready polls
@@ -226,7 +235,7 @@ async def request_logging_middleware(request: Request, call_next):
         log_request(
             method=request.method,
             path=request.url.path,
-            status_code=response.status_code,
+            status_code=cast(Any, response.status_code),
             duration_ms=duration_ms,
             request_id=request_id,
         )

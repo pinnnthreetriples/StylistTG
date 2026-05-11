@@ -210,7 +210,7 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
     account = get_account(session, account_id)
     if account is None:
         raise ValueError("account not found")
-    runtime = account.runtime_state
+    runtime = cast(Any, account.runtime_state)
     status = result.get("status")
     if status == "valid":
         account.account_state = AccountState.EXECUTION_USABLE

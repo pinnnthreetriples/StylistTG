@@ -10,9 +10,9 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _func_source,
-    _get_test_functions,
-    _has_marker,
+    func_source,
+    get_test_functions,
+    has_marker,
 )
 
 
@@ -23,8 +23,8 @@ class DependencyOverridesWithoutFinally(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "dependency_overrides" in src and "dependency_overrides[" in src:
                 if "finally" not in src and "app_client" not in src:
                     issues.append(
@@ -52,8 +52,8 @@ class TestClientWithoutAppClient(Rule):
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         has_autouse_cleanup = self._has_autouse_cleanup(ctx)
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "TestClient(app)" in src and "dependency_overrides" in src:
                 if "app_client" not in src and "finally" not in src and not has_autouse_cleanup:
                     issues.append(
@@ -92,7 +92,7 @@ class TestClientWithoutAppClient(Rule):
                             ):
                                 is_autouse = True
                     if is_autouse:
-                        src = _func_source(node, ctx.lines)
+                        src = func_source(node, ctx.lines)
                         if "dependency_overrides" in src and "clear" in src:
                             return True
         return False
@@ -105,8 +105,8 @@ class API4xxWithoutErrorCode(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             four_xx = re.findall(r"status_code\s*==\s*(4\d{2})", src)
             if four_xx:
                 if "error_code" not in src and ".json()" not in src and ".text" not in src:
@@ -131,8 +131,8 @@ class AmbiguousStatusCode(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if re.search(r"status_code\s+in\s+\{", src) or re.search(r"status_code\s+in\s+\[", src):
                 if "# contract:" not in src and "# expected:" not in src:
                     issues.append(
@@ -159,10 +159,10 @@ class LiveTestWithoutEnvGuard(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            is_live = _has_marker(func, "live") or _has_marker(func, "integration")
+        for func in get_test_functions(ctx.tree):
+            is_live = has_marker(func, "live") or has_marker(func, "integration")
             if is_live:
-                src = _func_source(func, ctx.lines)
+                src = func_source(func, ctx.lines)
                 has_skip = "pytest.skip" in src or "skipIf" in src or "skipUnless" in src
                 has_env_check = "os.getenv" in src or "os.environ" in src
                 if not has_skip and not has_env_check:
@@ -189,8 +189,8 @@ class S3StubberWithoutContext(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "Stubber(" in src or "stubber" in src:
                 if "with stubber" not in src.lower() and "with Stubber" not in src:
                     if "with stubber:" not in src:
@@ -221,12 +221,12 @@ class RateLimitWithoutExceededCase(Rule):
         # Only flag files that explicitly test rate limiting — FakeRedis alone
         # is a generic mock used by many diagnostic/health-check tests.
         if "rate_limit" in src.lower() or "RateLimit" in src:
-            funcs = _get_test_functions(ctx.tree)
+            funcs = get_test_functions(ctx.tree)
             has_exceeded = any(
                 "exceeded" in f.name
                 or "denied" in f.name
                 or "over" in f.name
-                or "exceeded" in _func_source(f, ctx.lines).lower()
+                or "exceeded" in func_source(f, ctx.lines).lower()
                 for f in funcs
             )
             if not has_exceeded and funcs:
@@ -262,8 +262,8 @@ class RuntimeRandomSecret(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "Fernet.generate_key()" in src:
                 issues.append(
                     Issue(
@@ -286,9 +286,9 @@ class LiveMarkerWithoutEnvSkip(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            if _has_marker(func, "live"):
-                src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            if has_marker(func, "live"):
+                src = func_source(func, ctx.lines)
                 has_skip = "pytest.skip" in src or "skipIf" in src
                 has_env = "os.getenv" in src or "os.environ" in src
                 if not has_skip and not has_env:

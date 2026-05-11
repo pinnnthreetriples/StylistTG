@@ -119,7 +119,7 @@ def _get_changed_files(ref: str) -> list[Path]:
             text=True,
             check=True,
         )
-        files = []
+        files: list[Path] = []
         for line in result.stdout.strip().splitlines():
             p = Path(line)
             if p.name.startswith("test_") or p.name.endswith("_test.py"):
@@ -228,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
                     issues.extend(analyzer.analyze_file(f, base_dir))
             # Still include coverage warnings
             if coverage_data:
-                issues.extend(analyzer._coverage_branch_warnings())
+                issues.extend(analyzer.coverage_branch_warnings())
         else:
             issues = analyzer.analyze(target, base_dir)
     except Exception as e:

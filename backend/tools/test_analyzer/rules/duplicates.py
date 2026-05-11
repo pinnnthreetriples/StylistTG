@@ -10,8 +10,8 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _get_test_functions,
-    _normalize_ast_block,
+    get_test_functions,
+    normalize_ast_block,
 )
 
 
@@ -22,7 +22,7 @@ class DuplicateSetup(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        funcs = _get_test_functions(ctx.tree)
+        funcs = get_test_functions(ctx.tree)
         setups: list[tuple[int, str]] = []
 
         for func in funcs:
@@ -34,7 +34,7 @@ class DuplicateSetup(Rule):
                 end = stmt.end_lineno or stmt.lineno
                 setup_lines.extend(ctx.lines[start:end])
             if len(setup_lines) >= config.duplicate_min_lines:
-                normalized = _normalize_ast_block("\n".join(setup_lines))
+                normalized = normalize_ast_block("\n".join(setup_lines))
                 setups.append((func.lineno, normalized))
 
         seen: dict[str, int] = {}
@@ -63,7 +63,7 @@ class DuplicateAssertionPattern(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        funcs = _get_test_functions(ctx.tree)
+        funcs = get_test_functions(ctx.tree)
         patterns: list[tuple[int, str, str]] = []
 
         for func in funcs:
@@ -74,7 +74,7 @@ class DuplicateAssertionPattern(Rule):
                     end = node.end_lineno or node.lineno
                     asserts.extend(ctx.lines[start:end])
             if len(asserts) >= config.duplicate_min_lines:
-                normalized = _normalize_ast_block("\n".join(asserts))
+                normalized = normalize_ast_block("\n".join(asserts))
                 patterns.append((func.lineno, func.name, normalized))
 
         seen: dict[str, tuple[int, str]] = {}

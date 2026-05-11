@@ -23,7 +23,7 @@ def latest_applied_profile_photo_asset_id(session: Session, account_id: str) -> 
     payload = session.execute(statement).scalars().first()
     if not isinstance(payload, dict):
         return None
-    return _extract_photo_asset_id(cast(dict[str, Any], payload))
+    return _extract_photo_asset_id(payload)
 
 
 def batch_latest_profile_photo_asset_ids(

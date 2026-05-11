@@ -7,6 +7,26 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+def _empty_operation_cooldowns() -> list[AccountOperationCooldownRead]:
+    return []
+
+
+def _empty_readiness_risk_items() -> list[AccountReadinessRiskRead]:
+    return []
+
+
+def _empty_import_items() -> list[AccountImportItemRead]:
+    return []
+
+
+def _empty_update_stories() -> list[AccountUpdateStoryDesiredState]:
+    return []
+
+
+def _empty_operation_safety_items() -> list[AccountOperationSafetyRead]:
+    return []
+
+
 class AccountCreate(BaseModel):
     external_ref: str
     telegram_user_id: str | None = None
@@ -124,7 +144,9 @@ class AccountSafetySummaryRead(BaseModel):
     validity_status: str
     proxy_status: str = "none"
     capability_summary: dict[str, str]
-    cooldown_summary: list[AccountOperationCooldownRead] = Field(default_factory=list)
+    cooldown_summary: list[AccountOperationCooldownRead] = Field(
+        default_factory=_empty_operation_cooldowns
+    )
     top_reasons: list[AccountSafetyReasonRead]
     last_checked_at: datetime
     source: str
@@ -155,7 +177,7 @@ class AccountReadinessRiskSummaryRead(BaseModel):
     missing_session: int
     runtime_unhealthy: int
     proxy_problem: int
-    items: list[AccountReadinessRiskRead] = Field(default_factory=list)
+    items: list[AccountReadinessRiskRead] = Field(default_factory=_empty_readiness_risk_items)
     computed_at: datetime
 
 
@@ -519,7 +541,7 @@ class AccountImportBatchRead(BaseModel):
     failed_at: datetime | None
     failure_code: str | None
     failure_message: str | None
-    items: list[AccountImportItemRead] = Field(default_factory=list)
+    items: list[AccountImportItemRead] = Field(default_factory=_empty_import_items)
 
 
 class RetryPolicyRead(BaseModel):
@@ -536,7 +558,7 @@ class AccountOperationSafetyRead(BaseModel):
     state: str
     warnings: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
-    cooldowns: list[AccountOperationCooldownRead] = Field(default_factory=list)
+    cooldowns: list[AccountOperationCooldownRead] = Field(default_factory=_empty_operation_cooldowns)
     can_override: bool = False
 
 
@@ -1079,7 +1101,7 @@ class AccountUpdateCreate(BaseModel):
     account_id: str
     profile: AccountUpdateProfileDesiredState | None = None
     profile_audio: AccountUpdateProfileAudioDesiredState | None = None
-    stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=list)
+    stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=_empty_update_stories)
 
 
 class DashboardAccountRead(BaseModel):
@@ -1213,7 +1235,9 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     )
     safety_warnings: list[str] = Field(default_factory=list)
     safety_blockers: list[str] = Field(default_factory=list)
-    operation_safety: list[AccountOperationSafetyRead] = Field(default_factory=list)
+    operation_safety: list[AccountOperationSafetyRead] = Field(
+        default_factory=_empty_operation_safety_items
+    )
 
 
 class JobRead(BaseModel):

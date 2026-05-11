@@ -493,5 +493,10 @@ def _get_current_user_id(client: TdlibClient, config: Settings) -> str | None:
     return str(user_id) if user_id is not None else None
 
 
+extract_authorization_state = _extract_authorization_state
+tdlib_parameters_query = _tdlib_parameters_query
+get_current_user_id = _get_current_user_id
+
+
 def _default_tdjson_library_name() -> str:
     return "tdjson.dll"

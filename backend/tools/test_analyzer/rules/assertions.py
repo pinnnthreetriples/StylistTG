@@ -10,9 +10,9 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _count_asserts,
-    _func_source,
-    _get_test_functions,
+    count_asserts,
+    func_source,
+    get_test_functions,
 )
 
 
@@ -23,9 +23,9 @@ class ZeroAssertions(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            if _count_asserts(func) == 0:
-                src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            if count_asserts(func) == 0:
+                src = func_source(func, ctx.lines)
                 if "pytest.raises" not in src and "assertRaises" not in src:
                     issues.append(
                         Issue(
@@ -48,7 +48,7 @@ class AssertTrue(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Assert):
                     if isinstance(node.test, ast.Constant) and node.test.value is True:
@@ -73,7 +73,7 @@ class AssertSelfEquality(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Assert) and isinstance(node.test, ast.Compare):
                     if (
@@ -106,8 +106,8 @@ class TooManyAssertions(Rule):
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
         limit = config.max_assertions_per_test
-        for func in _get_test_functions(ctx.tree):
-            count = _count_asserts(func)
+        for func in get_test_functions(ctx.tree):
+            count = count_asserts(func)
             if count > limit:
                 issues.append(
                     Issue(
@@ -130,7 +130,7 @@ class UnittestAssertTrue(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                     if node.func.attr == "assertEqual" and len(node.args) >= 2:
@@ -160,7 +160,7 @@ class ManualExceptionCatch(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Try):
                     for _handler in node.handlers:

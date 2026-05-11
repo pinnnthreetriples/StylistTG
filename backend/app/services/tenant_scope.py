@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -82,5 +84,6 @@ def assert_account_workspace(session: Session, account_id: str, workspace_id: st
 
 
 def assert_job_account_workspace_consistency(job: Job) -> None:
-    if job.account is None or job.account.workspace_id != job.workspace_id:
+    account = cast(Any, job.account)
+    if account is None or account.workspace_id != job.workspace_id:
         raise ValueError("workspace_account_mismatch")

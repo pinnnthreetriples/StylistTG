@@ -14,67 +14,71 @@ WARMUP_0025 = VERSIONS / "20260508_0025_warmup_live_foundations.py"
 
 def test_warmup_live_foundations_upgrade_and_downgrade() -> None:
     engine = sa.create_engine("sqlite+pysqlite:///:memory:", future=True)
-    with engine.begin() as connection:
-        _seed_base_tables(connection)
-        _seed_account_proxy(connection)
+    try:
+        with engine.begin() as connection:
+            _seed_base_tables(connection)
+            _seed_account_proxy(connection)
 
-        _run_migration(WARMUP_0023, connection, "upgrade")
-        # 0024 touches account which is unrelated to warmup; we skip it for isolation.
-        _run_migration(WARMUP_0025, connection, "upgrade")
+            _run_migration(WARMUP_0023, connection, "upgrade")
+            # 0024 touches account which is unrelated to warmup; we skip it for isolation.
+            _run_migration(WARMUP_0025, connection, "upgrade")
 
-        inspector = sa.inspect(connection)
-        tables = set(inspector.get_table_names())
-        assert {"warmup_trusted_peer", "warmup_isolation_claim"}.issubset(tables)
+            inspector = sa.inspect(connection)
+            tables = set(inspector.get_table_names())
+            assert {"warmup_trusted_peer", "warmup_isolation_claim"}.issubset(tables)
 
-        strategy_columns = _column_names(inspector, "warmup_strategy")
-        assert {
-            "execution_mode",
-            "preset_kind",
-            "duration_days",
-            "daily_action_limits_json",
-            "session_window_config_json",
-            "ui_summary_json",
-        }.issubset(strategy_columns)
+            strategy_columns = _column_names(inspector, "warmup_strategy")
+            assert {
+                "execution_mode",
+                "preset_kind",
+                "duration_days",
+                "daily_action_limits_json",
+                "session_window_config_json",
+                "ui_summary_json",
+            }.issubset(strategy_columns)
 
-        session_columns = _column_names(inspector, "warmup_session")
-        assert {
-            "execution_mode",
-            "duration_days",
-            "timezone",
-            "last_micro_session_at",
-            "next_micro_session_at",
-            "daily_counters_json",
-            "trusted_peer_ids_json",
-            "proxy_snapshot_json",
-        }.issubset(session_columns)
+            session_columns = _column_names(inspector, "warmup_session")
+            assert {
+                "execution_mode",
+                "duration_days",
+                "timezone",
+                "last_micro_session_at",
+                "next_micro_session_at",
+                "daily_counters_json",
+                "trusted_peer_ids_json",
+                "proxy_snapshot_json",
+            }.issubset(session_columns)
 
-        proxy_columns = _column_names(inspector, "account_proxy")
-        assert "proxy_category" in proxy_columns
+            proxy_columns = _column_names(inspector, "account_proxy")
+            assert "proxy_category" in proxy_columns
 
-        isolation_columns = _column_names(inspector, "warmup_isolation_claim")
-        assert {
-            "account_id",
-            "workspace_id",
-            "held_by",
-            "reason",
-            "acquired_at",
-        } == isolation_columns
+            isolation_columns = _column_names(inspector, "warmup_isolation_claim")
+            assert {
+                "account_id",
+                "workspace_id",
+                "held_by",
+                "reason",
+                "acquired_at",
+            } == isolation_columns
 
-        trusted_uniques = {
-            tuple(constraint["column_names"])
-            for constraint in inspector.get_unique_constraints("warmup_trusted_peer")
-        }
-        assert ("workspace_id", "account_id") in trusted_uniques
+            trusted_uniques = {
+                tuple(constraint["column_names"])
+                for constraint in inspector.get_unique_constraints("warmup_trusted_peer")
+            }
+            assert ("workspace_id", "account_id") in trusted_uniques
 
-        _run_migration(WARMUP_0025, connection, "downgrade")
+            _run_migration(WARMUP_0025, connection, "downgrade")
 
-        rolled_back = sa.inspect(connection)
-        remaining = set(rolled_back.get_table_names())
-        assert "warmup_trusted_peer" not in remaining
-        assert "warmup_isolation_claim" not in remaining
-        assert "proxy_category" not in _column_names(rolled_back, "account_proxy")
-        assert "duration_days" not in _column_names(rolled_back, "warmup_strategy")
-        assert "duration_days" not in _column_names(rolled_back, "warmup_session")
+            rolled_back = sa.inspect(connection)
+            remaining = set(rolled_back.get_table_names())
+            assert "warmup_trusted_peer" not in remaining
+            assert "warmup_isolation_claim" not in remaining
+            assert "proxy_category" not in _column_names(rolled_back, "account_proxy")
+            assert "duration_days" not in _column_names(rolled_back, "warmup_strategy")
+            assert "duration_days" not in _column_names(rolled_back, "warmup_session")
+
+    finally:
+        engine.dispose()
 
 
 def _run_migration(path: Path, connection: sa.Connection, direction: str) -> None:

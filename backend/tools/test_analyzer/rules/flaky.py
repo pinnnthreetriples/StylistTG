@@ -10,9 +10,9 @@ from ..models import (
     Issue,
     Rule,
     Severity,
-    _func_source,
-    _get_test_functions,
-    _has_marker,
+    func_source,
+    get_test_functions,
+    has_marker,
 )
 
 
@@ -23,7 +23,7 @@ class TimeSleep(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                     if node.func.attr == "sleep" and isinstance(node.func.value, ast.Name):
@@ -49,8 +49,8 @@ class RandomWithoutSeed(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "random." in src and "seed" not in src:
                 issues.append(
                     Issue(
@@ -73,11 +73,11 @@ class DatetimeNow(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
+        for func in get_test_functions(ctx.tree):
             for node in ast.walk(func):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                     if node.func.attr in ("now", "utcnow"):
-                        src = _func_source(func, ctx.lines)
+                        src = func_source(func, ctx.lines)
                         if (
                             "freeze_time" not in src
                             and "monkeypatch" not in src
@@ -111,12 +111,12 @@ class ExternalHTTPWithoutMarker(Rule):
             "httpx.post",
             "urllib.request",
         ]
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             has_http = any(p in src for p in http_patterns)
             if has_http:
-                has_marker = any(_has_marker(func, m) for m in config.external_markers)
-                if not has_marker and "mock" not in src.lower() and "patch" not in src.lower():
+                marked_external = any(has_marker(func, m) for m in config.external_markers)
+                if not marked_external and "mock" not in src.lower() and "patch" not in src.lower():
                     issues.append(
                         Issue(
                             rule_id=self.id,
@@ -141,8 +141,8 @@ class FilesystemWriteOutsideTmp(Rule):
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
-        for func in _get_test_functions(ctx.tree):
-            src = _func_source(func, ctx.lines)
+        for func in get_test_functions(ctx.tree):
+            src = func_source(func, ctx.lines)
             if "open(" in src and ("'w'" in src or '"w"' in src):
                 if "tmp_path" not in src and "tmpdir" not in src and "tmp" not in src.lower():
                     issues.append(

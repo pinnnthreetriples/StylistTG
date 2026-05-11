@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db import SessionLocal
@@ -11,7 +9,7 @@ from app.services.auth_batch_tdlib import run_batch_start_auth as run_batch_star
 def run_batch_start_auth(
     item_id: str, *, session_factory: sessionmaker[Session] | None = None
 ) -> None:
-    factory = cast(sessionmaker[Session], session_factory or SessionLocal)
+    factory = session_factory or SessionLocal
     with factory() as session:
         item = run_batch_start_auth_service(session, item_id)
         if item.batch.status == "running":

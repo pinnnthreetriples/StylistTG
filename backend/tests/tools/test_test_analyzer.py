@@ -6,6 +6,8 @@ import tempfile
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from tools.test_analyzer import (
     Analyzer,
     AnalyzerConfig,
@@ -630,3 +632,17 @@ def test_changed_mode_no_crash(tmp_path: Path) -> None:
     # Use a non-existent ref — _get_changed_files will return []
     code = main(["--path", str(tmp_path), "--changed", "HEAD~999"])
     assert code == 0
+
+
+def test_changed_mode_analyzes_changed_test_file(tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    """--changed mode finds and analyzes changed test files (positive case)."""
+    test_file = tmp_path / "test_bad.py"
+    test_file.write_text("def test_nothing():\n    x = 1\n")
+
+    monkeypatch.setattr(
+        "tools.test_analyzer.cli._get_changed_files",
+        lambda ref: [test_file],
+    )
+
+    code = main(["--path", str(tmp_path), "--changed", "origin/main"])
+    assert code == 1  # TQA001 (zero assertions) is CRITICAL

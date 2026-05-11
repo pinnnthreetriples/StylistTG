@@ -68,28 +68,40 @@ class MonkeypatchAfterCall(Rule):
     type = "mocks"
     default_severity = Severity.WARNING
 
+    _MONKEYPATCH_METHODS = frozenset({
+        "setattr", "delattr", "setitem", "delitem", "setenv", "delenv",
+    })
+
+    @classmethod
+    def _is_monkeypatch_call(cls, call: ast.Call) -> bool:
+        """Return True if *call* is monkeypatch.<method>(...)."""
+        return (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr in cls._MONKEYPATCH_METHODS
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "monkeypatch"
+        )
+
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
         issues: list[Issue] = []
         for func in _get_test_functions(ctx.tree):
-            stmts = func.body
-            found_call = False
-            for stmt in stmts:
-                if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
-                    found_call = True
-                if found_call and isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
-                    call = stmt.value
-                    if isinstance(call.func, ast.Attribute) and call.func.attr == "setattr":
-                        if (
-                            isinstance(call.func.value, ast.Name)
-                            and call.func.value.id == "monkeypatch"
-                        ):
-                            issues.append(Issue(
-                                rule_id=self.id,
-                                rule_type=self.type,
-                                severity=self.default_severity,
-                                file=ctx.relative_path,
-                                line=stmt.lineno,
-                                message="monkeypatch.setattr after tested call may have no effect",
-                                recommendation="Move monkeypatch setup before the tested call",
-                            ))
+            found_assert = False
+            for stmt in func.body:
+                if isinstance(stmt, ast.Assert):
+                    found_assert = True
+                if (
+                    found_assert
+                    and isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Call)
+                    and self._is_monkeypatch_call(stmt.value)
+                ):
+                    issues.append(Issue(
+                        rule_id=self.id,
+                        rule_type=self.type,
+                        severity=self.default_severity,
+                        file=ctx.relative_path,
+                        line=stmt.lineno,
+                        message="monkeypatch.setattr after assert — setup has no effect on tested code",
+                        recommendation="Move monkeypatch setup before the tested call",
+                    ))
         return issues

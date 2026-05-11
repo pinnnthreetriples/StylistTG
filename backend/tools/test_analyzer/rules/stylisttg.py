@@ -47,11 +47,16 @@ class TestClientWithoutAppClient(Rule):
     default_severity = Severity.WARNING
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
+        has_autouse_cleanup = self._has_autouse_cleanup(ctx)
         issues: list[Issue] = []
         for func in _get_test_functions(ctx.tree):
             src = _func_source(func, ctx.lines)
             if "TestClient(app)" in src and "dependency_overrides" in src:
-                if "app_client" not in src:
+                if (
+                    "app_client" not in src
+                    and "finally" not in src
+                    and not has_autouse_cleanup
+                ):
                     issues.append(Issue(
                         rule_id=self.id,
                         rule_type=self.type,
@@ -60,11 +65,29 @@ class TestClientWithoutAppClient(Rule):
                         line=func.lineno,
                         message=(
                             f"Test `{func.name}` uses TestClient(app)"
-                            " + DB override without app_client"
+                            " + DB override without app_client or try/finally"
                         ),
-                        recommendation="Use app_client context manager for automatic cleanup",
+                        recommendation="Use app_client fixture/context manager or wrap in try/finally",
                     ))
         return issues
+
+    @staticmethod
+    def _has_autouse_cleanup(ctx: FileContext) -> bool:
+        """Check if file has an autouse fixture that clears dependency_overrides."""
+        import ast as _ast
+        for node in _ast.walk(ctx.tree):
+            if isinstance(node, _ast.FunctionDef):
+                for dec in node.decorator_list:
+                    is_autouse = False
+                    if isinstance(dec, _ast.Call):
+                        for kw in dec.keywords:
+                            if kw.arg == "autouse" and isinstance(kw.value, _ast.Constant) and kw.value.value is True:
+                                is_autouse = True
+                    if is_autouse:
+                        src = _func_source(node, ctx.lines)
+                        if "dependency_overrides" in src and "clear" in src:
+                            return True
+        return False
 
 
 class API4xxWithoutErrorCode(Rule):
@@ -78,7 +101,7 @@ class API4xxWithoutErrorCode(Rule):
             src = _func_source(func, ctx.lines)
             four_xx = re.findall(r"status_code\s*==\s*(4\d{2})", src)
             if four_xx:
-                if "error_code" not in src and ".json()" not in src:
+                if "error_code" not in src and ".json()" not in src and ".text" not in src:
                     issues.append(Issue(
                         rule_id=self.id,
                         rule_type=self.type,

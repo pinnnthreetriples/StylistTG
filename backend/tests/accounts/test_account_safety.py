@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -20,7 +21,15 @@ from app.models import (
 )
 from app.services.accounts import create_account
 from app.services.database import create_sqlite_test_session_factory
+
 from conftest import override_app_session, seed_audio_asset, seed_job, seed_story_asset
+
+
+@pytest.fixture(autouse=True)
+def _clear_overrides():
+    """Guarantee dependency_overrides are cleaned up after every test."""
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_account_safety_ready_for_execution_usable_account(db_session) -> None:

@@ -32,6 +32,13 @@ from app.services.phone_hints import phone_hint, required_phone_hint
 from conftest import override_app_session
 
 
+@pytest.fixture(autouse=True)
+def _clear_overrides():
+    """Guarantee dependency_overrides are cleaned up after every test."""
+    yield
+    app.dependency_overrides.clear()
+
+
 class BatchFakeAuthAdapter:
     def __init__(self) -> None:
         self.started: list[tuple[str, str]] = []

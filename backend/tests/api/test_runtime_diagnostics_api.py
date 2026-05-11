@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db import Base
@@ -8,6 +9,13 @@ from app.services.accounts import create_account
 from app.services.database import create_sqlite_test_session_factory
 
 from conftest import FakeExecutionUsableAdapter, FakeProfileSyncAdapter, override_app_session
+
+
+@pytest.fixture(autouse=True)
+def _clear_overrides():
+    """Guarantee dependency_overrides are cleaned up after every test."""
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:

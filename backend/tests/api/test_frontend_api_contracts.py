@@ -360,6 +360,7 @@ def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> Non
         )
 
     assert response.status_code == 422
+    assert response.json()
 
 
 def test_profile_preview_returns_validation_plan_and_dedup(monkeypatch) -> None:

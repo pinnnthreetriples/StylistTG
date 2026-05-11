@@ -454,6 +454,7 @@ def test_account_endpoint_blocks_foreign_workspace_account() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_cannot_create_job_for_foreign_account() -> None:
@@ -483,6 +484,7 @@ def test_cannot_create_job_for_foreign_account() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_same_external_ref_allowed_across_workspaces() -> None:
@@ -528,6 +530,7 @@ def test_cannot_access_foreign_asset() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert asset_id not in response.text
 
 
 def test_cannot_update_foreign_proxy() -> None:
@@ -555,6 +558,7 @@ def test_cannot_update_foreign_proxy() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_cannot_read_foreign_operation_logs() -> None:
@@ -621,6 +625,7 @@ def test_cannot_read_foreign_account_runtime_diagnostics() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_cannot_read_foreign_account_jobs() -> None:
@@ -654,6 +659,7 @@ def test_cannot_read_foreign_account_jobs() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_cannot_read_foreign_proxy() -> None:
@@ -678,6 +684,7 @@ def test_cannot_read_foreign_proxy() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert account_id not in response.text
 
 
 def test_cannot_poll_foreign_auth_batch() -> None:
@@ -708,6 +715,7 @@ def test_cannot_poll_foreign_auth_batch() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert batch_id not in response.text
 
 
 def test_same_idempotency_key_allowed_across_workspaces() -> None:
@@ -947,6 +955,7 @@ def test_cannot_submit_code_for_foreign_auth_batch_item() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
+    assert batch_id not in response.text
 
 
 def test_job_creation_sets_workspace_and_actor(db_session) -> None:

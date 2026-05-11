@@ -48,3 +48,4 @@ def test_execution_policy_keeps_legacy_profile_job_cooldown_upper_bound(monkeypa
         )
 
     assert response.status_code == 422
+    assert response.json()

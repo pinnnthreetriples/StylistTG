@@ -223,14 +223,17 @@ class TestCrossWorkspaceReadBlocked:
     def test_foreign_account_returns_404(self):
         r = self._client.get(f"/api/accounts/{self._ids['account']}")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
     def test_foreign_asset_returns_404(self):
         r = self._client.get(f"/api/assets/{self._ids['asset']}/content")
         assert r.status_code == 404
+        assert self._ids["asset"] not in r.text
 
     def test_foreign_job_returns_404(self):
         r = self._client.get(f"/api/jobs/{self._ids['job']}")
         assert r.status_code == 404
+        assert self._ids["job"] not in r.text
 
     def test_foreign_story_drafts_returns_404_without_leaks(self):
         r = self._client.get(f"/api/story-drafts/{self._ids['account']}")
@@ -249,26 +252,32 @@ class TestCrossWorkspaceReadBlocked:
     def test_foreign_auth_batch_returns_404(self):
         r = self._client.get(f"/api/auth-batches/{self._ids['auth_batch']}")
         assert r.status_code == 404
+        assert self._ids["auth_batch"] not in r.text
 
     def test_foreign_import_batch_returns_404(self):
         r = self._client.get(f"/api/account-import-batches/{self._ids['import_batch']}")
         assert r.status_code == 404
+        assert self._ids["import_batch"] not in r.text
 
     def test_foreign_account_operation_logs_empty(self):
         r = self._client.get(f"/api/accounts/{self._ids['account']}/operation-logs")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
     def test_foreign_account_audit_events_empty(self):
         r = self._client.get(f"/api/accounts/{self._ids['account']}/audit-events")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
     def test_foreign_account_export_request_404(self):
         r = self._client.get(f"/api/accounts/{self._ids['account']}/export-requests")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
     def test_foreign_account_deletion_request_404(self):
         r = self._client.get(f"/api/accounts/{self._ids['account']}/deletion-requests")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
 
 @pytest.mark.security
@@ -301,14 +310,17 @@ class TestCrossWorkspaceMutationBlocked:
     def test_cannot_delete_foreign_account(self):
         r = self._client.delete(f"/api/accounts/{self._ids['account']}")
         assert r.status_code == 404
+        assert self._ids["account"] not in r.text
 
     def test_cannot_start_foreign_auth_batch(self):
         r = self._client.post(f"/api/auth-batches/{self._ids['auth_batch']}/start")
         assert r.status_code == 404
+        assert self._ids["auth_batch"] not in r.text
 
     def test_cannot_cancel_foreign_auth_batch(self):
         r = self._client.post(f"/api/auth-batches/{self._ids['auth_batch']}/cancel")
         assert r.status_code == 404
+        assert self._ids["auth_batch"] not in r.text
 
 
 @pytest.mark.security

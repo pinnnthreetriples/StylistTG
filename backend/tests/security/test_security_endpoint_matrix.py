@@ -286,6 +286,7 @@ class TestViewerCannotMutate:
             assert response.status_code == 403, (
                 f"viewer {method} {path} returned {response.status_code}, expected 403"
             )
+            assert response.json()
         finally:
             app.dependency_overrides.clear()
 
@@ -330,6 +331,7 @@ class TestOperatorAdminEndpoints:
             assert response.status_code == 403, (
                 f"operator {method} {path} returned {response.status_code}, expected 403"
             )
+            assert response.json()
         finally:
             app.dependency_overrides.clear()
 

@@ -97,11 +97,11 @@ jobs:
         run: python -m pyright
         continue-on-error: true
 
-      # pip-audit: currently flags 2 CVEs in transitive deps (pygments, uv).
-      # Soft until those are upgraded; then tighten.
-      - name: pip-audit (soft)
-        run: python -m pip_audit --strict --progress-spinner=off
-        continue-on-error: true
+      # pip-audit: scans the installed environment for known CVEs.
+      # --skip-editable: don't try to audit our own editable install.
+      # Plain mode (no --strict) returns exit 1 only on real CVEs.
+      - name: pip-audit
+        run: python -m pip_audit --skip-editable --progress-spinner=off
 
       - name: jscpd duplicate detection
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd

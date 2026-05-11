@@ -73,7 +73,10 @@ CHECKS: list[Check] = [
     ),
     Check(
         "pip-audit",
-        ["python", "-m", "pip_audit", "--strict", "--progress-spinner=off"],
+        # --skip-editable: don't try to audit our own editable install.
+        # Plain mode (no --strict) returns exit 1 only on real CVEs, which is
+        # exactly the failure condition we want.
+        ["python", "-m", "pip_audit", "--skip-editable", "--progress-spinner=off"],
         REPO_ROOT,
         soft=True,
     ),

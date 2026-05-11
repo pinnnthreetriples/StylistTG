@@ -34,6 +34,8 @@ dev = [
   "mutmut>=2.5.0",
   "pip-audit>=2.9.0",
   "pre-commit>=4.0.0",
+  # pygments<2.20.0 has CVE-2026-4539; pinned via pytest/rich transitive deps.
+  "pygments>=2.20.0",
   "pyright>=1.1.407",
   "ruff>=0.14.0",
 ]
@@ -172,4 +174,5 @@ markers = [
   "slow: expensive tests that should normally run only in nightly/full CI",
   "integration: feature-gated integration tests that require real TDLib credentials and library",
   "live: live environment smoke or verification tests that require external services",
+  "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
 ]

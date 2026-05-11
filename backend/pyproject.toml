@@ -33,6 +33,7 @@ dev = [
   "freezegun>=1.5.0",
   "mutmut>=2.5.0",
   "pip-audit>=2.9.0",
+  "pre-commit>=4.0.0",
   "pyright>=1.1.407",
   "ruff>=0.14.0",
 ]
@@ -89,33 +90,78 @@ ignore = [
 
 [tool.pyright]
 include = [
-  "app/api",
-  "app/services",
-  "app/schemas.py",
-  "app/config.py",
-  "app/workers",
+  "app",
+  "tools",
+]
+exclude = [
+  "**/__pycache__",
+  "**/.pytest_cache",
+  "build",
+  "dist",
+  "migrations/versions",
 ]
 pythonVersion = "3.12"
-typeCheckingMode = "basic"
-reportMissingTypeStubs = "warning"
-reportUnknownMemberType = "warning"
-reportUnknownVariableType = "warning"
-reportUnknownArgumentType = "warning"
-reportUnknownParameterType = "warning"
-reportUnknownLambdaType = "warning"
-reportArgumentType = "warning"
-reportAttributeAccessIssue = "warning"
-reportCallIssue = "warning"
-reportOptionalIterable = "warning"
-reportOptionalMemberAccess = "warning"
-reportReturnType = "warning"
+typeCheckingMode = "strict"
 
 [tool.setuptools.packages.find]
 include = ["app*", "tools*"]
 
+[tool.coverage.run]
+branch = true
+source = ["app", "tools"]
+omit = [
+  "app/scripts/*",          # CLI smoke utilities, not production runtime
+  "app/tdlib_job.py",       # legacy worker entry, deprecated
+  "tools/test_analyzer/__main__.py",
+  "*/__pycache__/*",
+  "*/migrations/versions/*",
+]
+parallel = false
+
+[tool.coverage.report]
+precision = 1
+show_missing = true
+skip_empty = true
+fail_under = 75            # overall floor; per-package thresholds enforced by scripts/coverage_gate.py
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "raise AssertionError",
+  "pragma: no cover",
+  "^\\s*\\.\\.\\.\\s*$",
+  "@overload",
+  "@abstractmethod",
+]
+
+[tool.coverage.json]
+output = "reports/coverage.json"
+show_contexts = false
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+# Strict mode: typo'd markers, unknown config keys, and xfail-that-pass become errors.
+strict_config = true
+strict_markers = true
+xfail_strict = true
+addopts = [
+  "-ra",                          # show summary for all (incl. skipped/xfailed)
+  "--strict-markers",
+  "--strict-config",
+  "--tb=short",
+  "--showlocals",                 # locals in tracebacks help debug AI-written tests
+]
+# Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
+# Anything new = build red until either fixed or explicitly ignored with justification.
+filterwarnings = [
+  "error",
+  # ResourceWarning fires asynchronously from GC of unclosed SQLite connections in
+  # in-memory test factories. Ignored project-wide; fixing the leaks is tracked
+  # separately (per-fixture engine.dispose()). Real DeprecationWarnings still error.
+  "ignore::ResourceWarning",
+  # Pytest informational warnings are not actionable for us.
+  "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 markers = [
   "unit: isolated unit-level tests — no HTTP or external services; may use in-memory SQLite",
   "api: FastAPI endpoint tests via TestClient",

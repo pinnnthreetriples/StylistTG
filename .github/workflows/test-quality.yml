@@ -47,23 +47,30 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p reports
 
-      - name: Ruff lint (including PT rules)
-        run: python -m ruff check app tests
+      # ----- Hard gates (fail the build) --------------------------------------
+      - name: Ruff lint
+        run: python -m ruff check .
 
-      - name: Run tests with coverage
+      - name: Ruff format check
+        run: python -m ruff format --check .
+
+      - name: Run tests with coverage (random order, parallel)
         run: |
-          python -m pytest -p no:randomly \
-            --cov=app --cov-branch --cov-context=test \
+          python -m pytest tests \
+            -n auto --dist=loadscope \
+            --cov=app --cov=tools --cov-branch --cov-context=test \
             --cov-report=json:reports/coverage.json \
             --cov-report=html:reports/htmlcov \
-            --cov-report=term-missing \
-            --cov-fail-under=70 \
+            --cov-report=term-missing:skip-covered \
             -q
         env:
           APP_ENV: test
           AUTH_MODE: local
 
-      - name: Run test quality analyzer
+      - name: Per-package coverage gate
+        run: python scripts/coverage_gate.py
+
+      - name: Run test quality analyzer (strict, fails on any issue)
         run: |
           python -m tools.test_analyzer \
             --path tests \
@@ -81,6 +88,20 @@ jobs:
             --output reports/test-quality.json \
             --severity INFO
         if: always()
+
+      # ----- Soft gates (visible but don't block yet) -------------------------
+      # Pyright: strict mode surfaces 549 pre-existing errors. Tracked as a
+      # dedicated fix-up effort; `continue-on-error` is removed once the backlog
+      # is drained. Every PR still sees the current error count.
+      - name: Pyright (strict, soft)
+        run: python -m pyright
+        continue-on-error: true
+
+      # pip-audit: currently flags 2 CVEs in transitive deps (pygments, uv).
+      # Soft until those are upgraded; then tighten.
+      - name: pip-audit (soft)
+        run: python -m pip_audit --strict --progress-spinner=off
+        continue-on-error: true
 
       - name: jscpd duplicate detection
         run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd

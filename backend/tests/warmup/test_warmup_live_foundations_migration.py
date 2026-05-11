@@ -6,7 +6,7 @@ from alembic.operations import Operations
 import sqlalchemy as sa
 
 
-VERSIONS = Path(__file__).resolve().parents[1] / "migrations" / "versions"
+VERSIONS = Path(__file__).resolve().parents[2] / "migrations" / "versions"
 WARMUP_0023 = VERSIONS / "20260505_0023_account_preparation_warmup.py"
 ACCOUNT_0024 = VERSIONS / "20260508_0024_account_external_ref_workspace_unique.py"
 WARMUP_0025 = VERSIONS / "20260508_0025_warmup_live_foundations.py"

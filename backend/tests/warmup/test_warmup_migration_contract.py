@@ -7,7 +7,7 @@ import sqlalchemy as sa
 
 
 MIGRATION_PATH = (
-    Path(__file__).resolve().parents[1]
+    Path(__file__).resolve().parents[2]
     / "migrations"
     / "versions"
     / "20260505_0023_account_preparation_warmup.py"

@@ -18,16 +18,15 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
-def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:
+def _setup_account_with_session(monkeypatch, *, patch_diagnostics: bool = False):
+    """Create a session factory + account and apply standard monkeypatches."""
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-
     with session_factory() as session:
         account = create_account(session, external_ref="+15550102000")
         account.account_state = AccountState.AUTHORIZED_READY
         session.commit()
         account_id = account.id
-
     override_app_session(session_factory)
     monkeypatch.setattr(
         "app.api.account_runtime_routes.build_profile_execution_adapter",
@@ -37,14 +36,20 @@ def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:
         "app.api.account_runtime_routes.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
-    )
-    monkeypatch.setattr(
-        "app.services.runtime_diagnostics._tdlib_credentials_present",
-        lambda: False,
-    )
+    if patch_diagnostics:
+        monkeypatch.setattr(
+            "app.main.build_runtime_diagnostics",
+            lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
+        )
+        monkeypatch.setattr(
+            "app.services.runtime_diagnostics._tdlib_credentials_present",
+            lambda: False,
+        )
+    return account_id
+
+
+def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:
+    account_id = _setup_account_with_session(monkeypatch, patch_diagnostics=True)
     client = TestClient(app)
 
     refresh = client.post(f"/api/accounts/{account_id}/refresh-runtime")
@@ -68,24 +73,7 @@ def test_runtime_diagnostics_and_refresh_endpoint(monkeypatch) -> None:
 
 
 def test_header_account_runtime_endpoints_do_not_require_account_id_in_url(monkeypatch) -> None:
-    session_factory, engine = create_sqlite_test_session_factory()
-    Base.metadata.create_all(engine)
-
-    with session_factory() as session:
-        account = create_account(session, external_ref="+15550102000")
-        account.account_state = AccountState.AUTHORIZED_READY
-        session.commit()
-        account_id = account.id
-
-    override_app_session(session_factory)
-    monkeypatch.setattr(
-        "app.api.account_runtime_routes.build_profile_execution_adapter",
-        lambda: FakeExecutionUsableAdapter(ok=True),
-    )
-    monkeypatch.setattr(
-        "app.api.account_runtime_routes.build_profile_sync_adapter",
-        lambda: FakeProfileSyncAdapter(),
-    )
+    account_id = _setup_account_with_session(monkeypatch)
     client = TestClient(app)
     headers = {"X-Account-Id": account_id}
 
@@ -97,63 +85,38 @@ def test_header_account_runtime_endpoints_do_not_require_account_id_in_url(monke
     app.dependency_overrides.clear()
 
 
-def test_ready_endpoint_returns_minimal_status(monkeypatch) -> None:
+def _patch_diagnostics(monkeypatch, *, database: str = "ok", redis: str = "ok"):
+    """Monkeypatch build_runtime_diagnostics with the given component states."""
     monkeypatch.setattr(
         "app.main.build_runtime_diagnostics",
-        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
+        lambda: {"database": database, "redis": redis, "tdlib": "not_configured"},
     )
+
+
+@pytest.mark.parametrize(
+    "endpoint,db,redis_state,expected_status,expected_body",
+    [
+        ("/ready", "ok", "ok", 200, {"status": "ok"}),
+        ("/health", "down", "down", 200, {"status": "ok"}),
+        ("/ready", "ok", "down", 503, {"status": "unavailable"}),
+        ("/ready", "down", "ok", 503, {"status": "unavailable"}),
+    ],
+    ids=["ready-ok", "health-liveness", "ready-redis-down", "ready-db-down"],
+)
+def test_ready_health_endpoints(
+    monkeypatch, endpoint, db, redis_state, expected_status, expected_body
+) -> None:
+    _patch_diagnostics(monkeypatch, database=db, redis=redis_state)
     client = TestClient(app)
 
-    response = client.get("/ready")
+    response = client.get(endpoint)
 
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-
-
-def test_health_endpoint_is_liveness_only(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "down", "redis": "down", "tdlib": "not_configured"},
-    )
-    client = TestClient(app)
-
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.status_code == expected_status
+    assert response.json() == expected_body
 
 
-def test_ready_endpoint_returns_503_when_redis_is_down(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "ok", "redis": "down", "tdlib": "not_configured"},
-    )
-    client = TestClient(app)
-
-    response = client.get("/ready")
-
-    assert response.status_code == 503
-    assert response.json() == {"status": "unavailable"}
-
-
-def test_ready_endpoint_returns_503_when_database_is_down(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "down", "redis": "ok", "tdlib": "not_configured"},
-    )
-    client = TestClient(app)
-
-    response = client.get("/ready")
-
-    assert response.status_code == 503
-    assert response.json() == {"status": "unavailable"}
-
-
-def test_ready_endpoint_does_not_fail_on_tdlib_not_configured_in_mock(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
-    )
+def test_ready_endpoint_does_not_expose_internal_component_keys(monkeypatch) -> None:
+    _patch_diagnostics(monkeypatch)
     client = TestClient(app)
 
     response = client.get("/ready")

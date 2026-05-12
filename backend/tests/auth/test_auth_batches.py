@@ -30,7 +30,7 @@ from app.services.auth_batches import (
 from app.services.database import create_sqlite_test_session_factory
 from app.services.phone_hints import phone_hint, required_phone_hint
 
-from conftest import override_app_session
+from conftest import FakeTdlibAuthAdapter, override_app_session
 
 
 @pytest.fixture(autouse=True)
@@ -40,40 +40,19 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
-class BatchFakeAuthAdapter:
-    def __init__(self) -> None:
-        self.started: list[tuple[str, str]] = []
-        self.confirmed: list[tuple[str, str]] = []
-        self.passwords: list[tuple[str, str]] = []
-        self.start_result = TdlibAuthResult(
-            status=TdlibAuthStatus.WAIT_CODE,
-            account_state=AccountState.AWAITING_CODE,
-            runtime_health="awaiting_code",
-            needs_code=True,
-            session_present=True,
-            recovery_marker="tdlib_wait_code",
-        )
-        self.confirm_result = TdlibAuthResult(
-            status=TdlibAuthStatus.READY,
-            account_state=AccountState.AUTHORIZED_READY,
-            runtime_health="ready",
-            needs_code=False,
-            session_present=True,
-            telegram_user_id="777000",
-            recovery_marker="tdlib_ready",
-        )
-
-    def start_otp(self, account_id: str, phone_number: str) -> TdlibAuthResult:
-        self.started.append((account_id, phone_number))
-        return self.start_result
-
-    def confirm_otp(self, account_id: str, code: str) -> TdlibAuthResult:
-        self.confirmed.append((account_id, code))
-        return self.confirm_result
-
-    def submit_password(self, account_id: str, password: str) -> TdlibAuthResult:
-        self.passwords.append((account_id, password))
-        return self.confirm_result
+def _batch_adapter() -> FakeTdlibAuthAdapter:
+    """Create a FakeTdlibAuthAdapter with batch-specific telegram_user_id."""
+    adapter = FakeTdlibAuthAdapter()
+    adapter.confirm_result = TdlibAuthResult(
+        status=TdlibAuthStatus.READY,
+        account_state=AccountState.AUTHORIZED_READY,
+        runtime_health="ready",
+        needs_code=False,
+        session_present=True,
+        telegram_user_id="777000",
+        recovery_marker="tdlib_ready",
+    )
+    return adapter
 
 
 def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid() -> None:
@@ -313,7 +292,7 @@ def test_auth_batch_start_dispatches_item_and_worker_moves_to_waiting_code(monke
         "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
         lambda item_id, attempt_count, delay_seconds=0: enqueued.append(item_id) or True,
     )
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     override_app_session(session_factory)
@@ -537,7 +516,7 @@ def test_auth_batch_dispatches_multiple_items_without_scheduler_delay(monkeypatc
 def test_auth_batch_submit_code_updates_item_without_persisting_code(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     with session_factory() as session:
@@ -584,7 +563,7 @@ def test_auth_batch_submit_code_updates_item_without_persisting_code(monkeypatch
 def test_submit_code_idempotency_key_is_scoped_to_item(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     with session_factory() as session:
@@ -718,7 +697,7 @@ def test_idempotency_result_rejects_operation_and_entity_mismatch() -> None:
 def test_submit_code_expired_idempotency_key_allows_new_submission(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     with session_factory() as session:
@@ -769,7 +748,7 @@ def test_submit_code_expired_idempotency_key_allows_new_submission(monkeypatch) 
 def test_submit_2fa_idempotency_key_scoped_to_item(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     with session_factory() as session:
@@ -824,7 +803,7 @@ def test_submit_2fa_idempotency_key_scoped_to_item(monkeypatch) -> None:
 def test_submit_code_operation_mismatch_returns_generic_409(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
-    adapter = BatchFakeAuthAdapter()
+    adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 
     with session_factory() as session:

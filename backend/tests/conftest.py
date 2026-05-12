@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime
 import logging
 import os
 from pathlib import Path
@@ -28,12 +27,9 @@ from app.models import (
     Asset,
     AssetKind,
     AssetStatus,
-    Job,
-    JobState,
 )
 from app.services.database import dispose_sqlite_test_engines
-from app.services.plan import build_profile_plan, compute_execution_intent_hash
-
+from tests.helpers.factories import seed_job as seed_job  # noqa: F401, PLC0414  # re-export
 
 # ---------------------------------------------------------------------------
 # PII / secret leak detection (autouse)
@@ -281,6 +277,7 @@ class FakeTdlibAuthAdapter:
     def __init__(self) -> None:
         self.started: list[tuple[str, str]] = []
         self.confirmed: list[tuple[str, str]] = []
+        self.passwords: list[tuple[str, str]] = []
         self.start_result = TdlibAuthResult(
             status=TdlibAuthStatus.WAIT_CODE,
             account_state=AccountState.AWAITING_CODE,
@@ -305,6 +302,10 @@ class FakeTdlibAuthAdapter:
 
     def confirm_otp(self, account_id: str, code: str) -> TdlibAuthResult:
         self.confirmed.append((account_id, code))
+        return self.confirm_result
+
+    def submit_password(self, account_id: str, password: str) -> TdlibAuthResult:
+        self.passwords.append((account_id, password))
         return self.confirm_result
 
 
@@ -373,33 +374,3 @@ def seed_story_asset(
     session.commit()
     session.refresh(asset)
     return asset
-
-
-def seed_job(
-    session: Session,
-    *,
-    account_id: str,
-    payload: dict,
-    state: JobState = JobState.QUEUED,
-    job_id: str = "job-1",
-    finished_at: datetime | None = None,
-    failure_reason: str | None = None,
-) -> Job:
-    """Create a job row for testing."""
-    job = Job(
-        id=job_id,
-        account_id=account_id,
-        job_state=state,
-        execution_intent_hash=compute_execution_intent_hash(account_id, payload),
-        job_payload_version=1,
-        payload_json=payload,
-        plan_json_snapshot=build_profile_plan(payload),
-        queued_at=datetime.now(UTC),
-        started_at=datetime.now(UTC),
-        finished_at=finished_at,
-        failure_reason=failure_reason,
-    )
-    session.add(job)
-    session.commit()
-    session.refresh(job)
-    return job

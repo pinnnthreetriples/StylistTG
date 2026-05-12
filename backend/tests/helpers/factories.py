@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from app.db import Base
+
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     Account,
+    AccountOperationCooldown,
     AccountProfileState,
     AccountState,
     Asset,
@@ -17,6 +19,8 @@ from app.models import (
     AuthBatchStatus,
     Job,
     JobState,
+    JobStepResult,
+    StepStatus,
     User,
     Workspace,
     WorkspaceMember,
@@ -196,6 +200,54 @@ def seed_job(
     session.commit()
     session.refresh(job)
     return job
+
+
+def seed_operation_cooldown(
+    session,
+    *,
+    account_id: str,
+    operation: str = "username",
+    level: str = "blocked",
+    reason_code: str = "recent_flood_wait",
+    retry_minutes: int = 5,
+    source: str = "job_step_result",
+) -> AccountOperationCooldown:
+    cooldown = AccountOperationCooldown(
+        account_id=account_id,
+        operation=operation,
+        level=level,
+        reason_code=reason_code,
+        started_at=datetime.now(UTC),
+        retry_after_at=datetime.now(UTC) + timedelta(minutes=retry_minutes),
+        source=source,
+    )
+    session.add(cooldown)
+    session.commit()
+    return cooldown
+
+
+def seed_failed_step(
+    session,
+    *,
+    job_id: str,
+    step_key: str = "set_username",
+    step_type: str = "set_username",
+    error_code: str = "FLOOD_WAIT_60",
+    error_class: str = "tdlib_error",
+    finished_at: datetime | None = None,
+) -> JobStepResult:
+    step = JobStepResult(
+        job_id=job_id,
+        step_key=step_key,
+        step_type=step_type,
+        status=StepStatus.FAILED,
+        error_code=error_code,
+        error_class=error_class,
+        finished_at=finished_at or datetime.now(UTC),
+    )
+    session.add(step)
+    session.commit()
+    return step
 
 
 def seed_asset(

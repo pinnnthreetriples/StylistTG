@@ -767,7 +767,10 @@ def test_auth_batch_item_read_uses_phone_hint(session_factory, client) -> None:
         role="viewer",
         auth_source="test",
     )
-    response = client.get(f"/api/auth-batches/{batch_id}")
+    try:
+        response = client.get(f"/api/auth-batches/{batch_id}")
+    finally:
+        del app.dependency_overrides[get_current_auth_context]
 
     assert response.status_code == 200
     item = response.json()["items"][0]

@@ -23,7 +23,9 @@ from app.adapters.warmup_text_provider import (
 
 def test_pick_deterministic():
     items = ("a", "b", "c", "d", "e")
-    assert _pick(items, "seed1") == _pick(items, "seed1")
+    a = _pick(items, "seed1")
+    b = _pick(items, "seed1")
+    assert a == b
 
 
 def test_pick_different_seeds_may_differ():

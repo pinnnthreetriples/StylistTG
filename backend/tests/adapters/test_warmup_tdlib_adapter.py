@@ -184,6 +184,9 @@ def test_mock_adapter_forced_failure():
 def test_mock_adapter_close_is_noop():
     adapter = MockWarmupTdlibAdapter()
     adapter.close()  # should not raise
+    # Verify adapter remains usable after close
+    result = adapter.execute_action(account_id="a1", action_type="get_me", context={})
+    assert result.status == "ok"
 
 
 def test_mock_adapter_deterministic_with_seed():
@@ -221,6 +224,8 @@ def test_unavailable_adapter_execute():
 def test_unavailable_adapter_close():
     adapter = UnavailableWarmupTdlibAdapter("off")
     adapter.close()  # should not raise
+    # Verify adapter still reports unavailable after close
+    assert adapter.is_available() is False
 
 
 # ---------------------------------------------------------------------------

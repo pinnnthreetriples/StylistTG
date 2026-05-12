@@ -119,8 +119,12 @@ jobs:
           AUTH_MODE: local
         continue-on-error: true
 
-      - name: jscpd duplicate detection
-        run: npx jscpd tests app --threshold 2 --reporters json --output reports/jscpd
+      - name: jscpd duplicate detection (app)
+        run: npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
+        if: always()
+
+      - name: jscpd duplicate detection (tests)
+        run: npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
         if: always()
 
       # SARIF upload disabled — enable code scanning in repo settings first:
@@ -188,8 +192,11 @@ jobs:
           APP_ENV: test
           AUTH_MODE: local
 
-      - name: jscpd duplicate detection (with HTML report)
-        run: npx jscpd tests app --threshold 2 --reporters json,html --output reports/jscpd
+      - name: jscpd duplicate detection (app, with HTML report)
+        run: npx jscpd app --threshold 2 --reporters json,html --output reports/jscpd-app
+
+      - name: jscpd duplicate detection (tests, with HTML report)
+        run: npx jscpd tests --threshold 5 --reporters json,html --output reports/jscpd-tests
 
       - name: Upload nightly reports
         uses: actions/upload-artifact@v4

@@ -19,10 +19,10 @@ from app.services.auth import is_account_hard_stopped
 from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
 from app.services.asset_storage import materialize_asset_to_local_path
 from app.services.account_safety import (
-    _unique,
     build_account_safety_for_account,
     safety_preview_fields,
     safety_preview_fields_with_policy,
+    unique_preserve_order,
 )
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.limits import check_workspace_limit
@@ -84,8 +84,8 @@ def build_account_update_preview(
         blocking_errors.append("stories live TDLib execution is not enabled")
     blocking_errors.extend(_preview_blocking_safety_errors(safety_fields["safety_blockers"]))
     warnings.extend(safety_fields["safety_warnings"])
-    blocking_errors = _unique(blocking_errors)
-    warnings = _unique(warnings)
+    blocking_errors = unique_preserve_order(blocking_errors)
+    warnings = unique_preserve_order(warnings)
 
     return {
         "can_create_job": not blocking_errors,

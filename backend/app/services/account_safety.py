@@ -199,8 +199,8 @@ def safety_preview_fields_with_policy(
         "account_safety": safety,
         "risk_by_operation": safety["risk_by_operation"],
         "cooldowns_by_operation": safety["cooldowns_by_operation"],
-        "safety_warnings": _unique(warnings),
-        "safety_blockers": _unique(blockers),
+        "safety_warnings": unique_preserve_order(warnings),
+        "safety_blockers": unique_preserve_order(blockers),
         "operation_safety": operation_safety,
     }
 
@@ -239,8 +239,8 @@ def _operation_safety(
             {
                 "operation": operation,
                 "state": state,
-                "warnings": _unique(op_warnings),
-                "blockers": _unique(op_blockers),
+                "warnings": unique_preserve_order(op_warnings),
+                "blockers": unique_preserve_order(op_blockers),
                 "cooldowns": cooldowns,
                 "can_override": bool(op_blockers)
                 and all(code not in NON_OVERRIDABLE_BLOCKERS for code in op_blockers),
@@ -311,8 +311,8 @@ def _apply_active_overrides(
             {
                 **item,
                 "state": "blocked" if item_blockers else "warning" if item_warnings else "ready",
-                "blockers": _unique(item_blockers),
-                "warnings": _unique(item_warnings),
+                "blockers": unique_preserve_order(item_blockers),
+                "warnings": unique_preserve_order(item_warnings),
                 "can_override": bool(item_blockers)
                 and all(code not in NON_OVERRIDABLE_BLOCKERS for code in item_blockers),
             }
@@ -397,7 +397,7 @@ def _overall_account_risk(
     return overall_risk_level(profile_risks) if profile_risks else "unknown"
 
 
-def _unique(values: list[str]) -> list[str]:
+def unique_preserve_order(values: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
     for value in values:

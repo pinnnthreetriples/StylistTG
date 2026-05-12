@@ -11,6 +11,13 @@ import pytest
 from app.adapters.profile_execution import MockProfileExecutionAdapter
 
 
+def _execute_step(step_type: str, payload: dict, context: dict | None = None):
+    """Execute a single-step plan and return the event list."""
+    adapter = MockProfileExecutionAdapter()
+    plan = {"steps": [{"step_key": "s1", "step_type": step_type, "payload": payload}]}
+    return list(adapter.execute("acc-1", plan, context or {}))
+
+
 def test_mock_adapter_basic_set_name():
     adapter = MockProfileExecutionAdapter()
     plan = {
@@ -120,17 +127,9 @@ def test_mock_adapter_remove_profile_audio():
 
 
 def test_mock_adapter_post_story_image():
-    adapter = MockProfileExecutionAdapter()
-    plan = {
-        "steps": [
-            {
-                "step_key": "s1",
-                "step_type": "post_story_image",
-                "payload": {"asset_path": "/tmp/story.jpg", "asset_id": "story-1"},
-            }
-        ]
-    }
-    events = list(adapter.execute("acc-1", plan, {}))
+    events = _execute_step(
+        "post_story_image", {"asset_path": "/tmp/story.jpg", "asset_id": "story-1"}
+    )
     succeeded = [e for e in events if e["event"] == "step_succeeded"]
     assert len(succeeded) == 1
     rp = succeeded[0].get("result_payload", {})

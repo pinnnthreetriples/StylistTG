@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, ShieldCheck, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, ShieldCheck, UserPlus, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@stylisttg/ui'
@@ -276,8 +276,14 @@ export function BulkAuthScreen({
             <Button className="min-w-28" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button" variant="secondary">
               Проверить
             </Button>
-            <Button className="flex-1" disabled={!canCreate} onClick={handleCreateAndStart} type="button">
-              {isBusy ? <Loader2 className="mx-auto size-4 animate-spin" /> : primaryActionLabel}
+            <Button
+              className="min-w-0 flex-1"
+              disabled={!canCreate}
+              icon={isBusy ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
+              onClick={handleCreateAndStart}
+              type="button"
+            >
+              {isBusy ? 'Добавляем...' : primaryActionLabel}
             </Button>
           </div>
         </section>

@@ -7,6 +7,24 @@ from app.services.story_drafts import create_story_draft, list_story_drafts
 from app.workers.account_update_jobs import execute_account_update_job
 from conftest import seed_audio_asset, seed_story_asset
 
+_STORY_PAYLOAD_DEFAULTS = {
+    "caption": "New story",
+    "privacy_preset": "contacts",
+    "active_period_seconds": 86400,
+}
+
+
+def _story_desired(story_id: str, *, client_id: str | None = None) -> dict:
+    """Build a desired-state dict with a single story post."""
+    story_entry: dict = {"action": "post_image", "asset_id": story_id, **_STORY_PAYLOAD_DEFAULTS}
+    if client_id is not None:
+        story_entry["client_id"] = client_id
+    return {
+        "profile": {"name": "Stylist TG"},
+        "profile_audio": {"action": "keep"},
+        "stories": [story_entry],
+    }
+
 
 def test_account_update_worker_executes_current_profile_steps(db_session) -> None:
     account = create_account(db_session, external_ref="primary")
@@ -62,19 +80,7 @@ def test_account_update_worker_materializes_profile_audio_state(db_session) -> N
 def test_account_update_worker_materializes_story_post(db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     story = seed_story_asset(db_session)
-    desired = {
-        "profile": {"name": "Stylist TG"},
-        "profile_audio": {"action": "keep"},
-        "stories": [
-            {
-                "action": "post_image",
-                "asset_id": story.id,
-                "caption": "New story",
-                "privacy_preset": "contacts",
-                "active_period_seconds": 86400,
-            }
-        ],
-    }
+    desired = _story_desired(story.id)
     job = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
 
     exit_code = execute_account_update_job(job.id, session=db_session)
@@ -101,20 +107,7 @@ def test_account_update_worker_clears_applied_story_draft(db_session) -> None:
             "protect_content": False,
         },
     )
-    desired = {
-        "profile": {"name": "Stylist TG"},
-        "profile_audio": {"action": "keep"},
-        "stories": [
-            {
-                "client_id": draft.id,
-                "action": "post_image",
-                "asset_id": story.id,
-                "caption": "New story",
-                "privacy_preset": "contacts",
-                "active_period_seconds": 86400,
-            }
-        ],
-    }
+    desired = _story_desired(story.id, client_id=draft.id)
     job = create_account_update_job(db_session, account_id=account.id, desired_state=desired)
 
     exit_code = execute_account_update_job(job.id, session=db_session)

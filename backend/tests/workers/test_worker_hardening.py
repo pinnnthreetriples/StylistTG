@@ -17,6 +17,22 @@ from conftest import FakeExecutionUsableAdapter, seed_asset, seed_audio_asset, s
 
 pytestmark = pytest.mark.unit
 
+_DEFAULT_PAYLOAD = {"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None}
+
+
+def _seed_profile_job(db_session, *, payload=None):
+    """Create an execution-usable account and a profile job with the given payload."""
+    account = create_account(db_session, external_ref="+15550102000")
+    account.account_state = "execution_usable"
+    db_session.commit()
+    job = create_profile_job(
+        db_session,
+        account_id=account.id,
+        payload=payload or _DEFAULT_PAYLOAD,
+        execution_adapter=FakeExecutionUsableAdapter(),
+    )
+    return account, job
+
 
 class FakeProcess:
     def __init__(self, stdout_lines: list[str], stderr: str = "", returncode: int = 0) -> None:
@@ -38,15 +54,7 @@ class FakeProcess:
 
 
 def test_malformed_child_event_marks_job_failed(db_session, monkeypatch) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
-        db_session,
-        account_id=account.id,
-        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-        execution_adapter=FakeExecutionUsableAdapter(),
-    )
+    _account, job = _seed_profile_job(db_session)
 
     monkeypatch.setattr(
         profile_jobs.subprocess,
@@ -83,15 +91,7 @@ def test_child_stderr_summary_is_bounded_and_sanitized() -> None:
 
 
 def test_child_timeout_marks_job_failed(db_session, monkeypatch) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
-        db_session,
-        account_id=account.id,
-        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-        execution_adapter=FakeExecutionUsableAdapter(),
-    )
+    _account, job = _seed_profile_job(db_session)
 
     class TimeoutProcess(FakeProcess):
         def wait(self, timeout=None):
@@ -125,19 +125,14 @@ def test_child_timeout_marks_job_failed(db_session, monkeypatch) -> None:
 def test_child_crash_after_step_started_marks_started_step_uncertain(
     db_session, monkeypatch
 ) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
+    _account, job = _seed_profile_job(
         db_session,
-        account_id=account.id,
         payload={
             "name": "Stylist TG",
             "bio": "Profile editor",
             "username": None,
             "photo_asset_id": None,
         },
-        execution_adapter=FakeExecutionUsableAdapter(),
     )
 
     monkeypatch.setattr(
@@ -166,15 +161,7 @@ def test_child_crash_after_step_started_marks_started_step_uncertain(
 
 
 def test_child_timeout_applies_while_stdout_is_still_open(db_session, monkeypatch) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
-        db_session,
-        account_id=account.id,
-        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-        execution_adapter=FakeExecutionUsableAdapter(),
-    )
+    _account, job = _seed_profile_job(db_session)
 
     class HangingStdout:
         def __init__(self) -> None:
@@ -220,15 +207,7 @@ def test_child_timeout_applies_while_stdout_is_still_open(db_session, monkeypatc
 
 
 def test_child_frozen_error_hard_stops_account(db_session, monkeypatch) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
-        db_session,
-        account_id=account.id,
-        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-        execution_adapter=FakeExecutionUsableAdapter(),
-    )
+    account, job = _seed_profile_job(db_session)
 
     monkeypatch.setattr(
         profile_jobs.subprocess,
@@ -396,15 +375,7 @@ def test_partially_completed_is_backend_terminal_and_does_not_dedup_block(
 
 
 def test_terminal_profile_job_is_not_executed_again(db_session, monkeypatch) -> None:
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-    job = create_profile_job(
-        db_session,
-        account_id=account.id,
-        payload={"name": "Stylist TG", "bio": None, "username": None, "photo_asset_id": None},
-        execution_adapter=FakeExecutionUsableAdapter(),
-    )
+    _account, job = _seed_profile_job(db_session)
     job.job_state = JobState.COMPLETED
     db_session.commit()
     launched = False

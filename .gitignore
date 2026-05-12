@@ -27,6 +27,7 @@ venv/
 
 # local runtime data
 tdlib/
+!backend/tests/tdlib/
 tdlib_database/
 tdlib_files/
 /storage/

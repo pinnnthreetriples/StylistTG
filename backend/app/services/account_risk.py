@@ -94,174 +94,14 @@ def overall_risk_level(risk_by_operation: dict[str, dict[str, Any]]) -> str:
     )
 
 
-def build_account_readiness_risk(
-    session: Session, account: Account, *, computed_at: datetime | None = None
-) -> dict[str, Any]:
-    computed = computed_at or datetime.now(UTC)
-    score = 0
-    reasons: list[dict[str, str]] = []
-    runtime = account.runtime_state
-
-    def add(points: int, code: str, severity: str, message: str) -> None:
-        nonlocal score
-        if code not in {reason["code"] for reason in reasons}:
-            reasons.append({"code": code, "severity": severity, "message": message})
-        score += points
-
-    if account.account_state == AccountState.REAUTH_REQUIRED or bool(
-        runtime and runtime.reauth_required
-    ):
-        add(
-            80,
-            "reauth_required",
-            "critical",
-            "Account requires reauthorization before profile jobs.",
-        )
-    elif account.account_state in {
-        AccountState.AWAITING_CODE,
-        AccountState.AWAITING_PASSWORD,
-        AccountState.AUTH_PENDING,
-        AccountState.REGISTERED,
-    }:
-        add(45, "auth_incomplete", "warning", "Account authorization is not complete.")
-
-    if not runtime or not runtime.session_present:
-        add(65, "missing_session", "critical", "Account has no usable TDLib session snapshot.")
-
-    runtime_health = runtime.runtime_health if runtime else "unknown"
-    if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
-        severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
-        add(
-            45 if severity == "critical" else 25,
-            "runtime_unhealthy",
-            severity,
-            "Account runtime is not ready.",
-        )
-
-    if account.account_state in {
-        AccountState.RUNTIME_BROKEN,
-        AccountState.DISABLED,
-        AccountState.MANUAL_INTERVENTION_NEEDED,
-    }:
-        add(45, "account_locked", "critical", "Account state blocks automated work.")
-    elif account.account_state not in {
-        AccountState.EXECUTION_USABLE,
-        AccountState.AUTHORIZED_READY,
-        AccountState.REAUTH_REQUIRED,
-    }:
-        add(25, "unknown_state", "warning", "Account state needs operator review.")
-
-    proxy = account.proxy
-    if proxy and proxy.status in {"failed", "error"}:
-        add(25, "proxy_problem", "warning", "Proxy health check failed.")
-    if proxy and proxy.tdlib_last_error_code:
-        add(25, "proxy_problem", "warning", "TDLib proxy verification failed.")
-
-    has_active_cooldown = _has_active_cooldowns(session, account.id, computed)
-    if has_active_cooldown:
-        add(35, "cooldown_active", "warning", "Account has active operation cooldowns.")
-
-    recent_failure_count = _count_recent_job_failures(session, account.id)
-    if recent_failure_count >= 2:
-        add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
-
-    if account.profile_state is None and account.account_state in {
-        AccountState.EXECUTION_USABLE,
-        AccountState.AUTHORIZED_READY,
-    }:
-        add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
-
-    score = min(max(score, 0), 100)
-    if not reasons:
-        reasons.append(
-            {
-                "code": "ready",
-                "severity": "info",
-                "message": "Account is ready based on stored app signals.",
-            }
-        )
-    level = _readiness_level(score)
-    return {
-        "account_id": account.id,
-        "score": score,
-        "level": level,
-        "reasons": reasons,
-        "recommended_action": _recommended_action(level, reasons),
-        "computed_at": computed,
-    }
-
-
-def build_account_readiness_risk_summary(session: Session, *, workspace_id: str) -> dict[str, Any]:
-    computed_at = datetime.now(UTC)
-    accounts = list_accounts(session, workspace_id=workspace_id)
-    if not accounts:
-        return _empty_risk_summary(computed_at)
-    account_ids = [a.id for a in accounts]
-    cooldown_flags = _batch_has_active_cooldowns(session, account_ids, computed_at)
-    failure_counts = _batch_count_recent_job_failures(session, account_ids)
-    items = [
-        _build_readiness_risk_prefetched(
-            session,
-            account,
-            computed_at=computed_at,
-            has_cooldown=cooldown_flags.get(account.id, False),
-            failure_count=failure_counts.get(account.id, 0),
-        )
-        for account in accounts
-    ]
-    counts = {level: 0 for level in READINESS_LEVELS}
-    reauth_required = 0
-    missing_session = 0
-    runtime_unhealthy = 0
-    proxy_problem = 0
-    for item in items:
-        counts[item["level"]] += 1
-        codes = {reason["code"] for reason in item["reasons"]}
-        reauth_required += int("reauth_required" in codes)
-        missing_session += int("missing_session" in codes)
-        runtime_unhealthy += int("runtime_unhealthy" in codes)
-        proxy_problem += int("proxy_problem" in codes)
-    return {
-        "total": len(items),
-        "low": counts["low"],
-        "medium": counts["medium"],
-        "high": counts["high"],
-        "critical": counts["critical"],
-        "reauth_required": reauth_required,
-        "missing_session": missing_session,
-        "runtime_unhealthy": runtime_unhealthy,
-        "proxy_problem": proxy_problem,
-        "items": items,
-        "computed_at": computed_at,
-    }
-
-
-def _empty_risk_summary(computed_at: datetime) -> dict[str, Any]:
-    return {
-        "total": 0,
-        "low": 0,
-        "medium": 0,
-        "high": 0,
-        "critical": 0,
-        "reauth_required": 0,
-        "missing_session": 0,
-        "runtime_unhealthy": 0,
-        "proxy_problem": 0,
-        "items": [],
-        "computed_at": computed_at,
-    }
-
-
-def _build_readiness_risk_prefetched(
-    session: Session,
+def _score_readiness_risk(
     account: Account,
     *,
-    computed_at: datetime,
+    computed: datetime,
     has_cooldown: bool,
     failure_count: int,
 ) -> dict[str, Any]:
-    """Same logic as build_account_readiness_risk but with pre-fetched cooldown/failure data."""
-    computed = computed_at
+    """Core readiness scoring shared by single-account and batch paths."""
     score = 0
     reasons: list[dict[str, str]] = []
     runtime = account.runtime_state
@@ -351,6 +191,96 @@ def _build_readiness_risk_prefetched(
         "recommended_action": _recommended_action(level, reasons),
         "computed_at": computed,
     }
+
+
+def build_account_readiness_risk(
+    session: Session, account: Account, *, computed_at: datetime | None = None
+) -> dict[str, Any]:
+    computed = computed_at or datetime.now(UTC)
+    return _score_readiness_risk(
+        account,
+        computed=computed,
+        has_cooldown=_has_active_cooldowns(session, account.id, computed),
+        failure_count=_count_recent_job_failures(session, account.id),
+    )
+
+
+def build_account_readiness_risk_summary(session: Session, *, workspace_id: str) -> dict[str, Any]:
+    computed_at = datetime.now(UTC)
+    accounts = list_accounts(session, workspace_id=workspace_id)
+    if not accounts:
+        return _empty_risk_summary(computed_at)
+    account_ids = [a.id for a in accounts]
+    cooldown_flags = _batch_has_active_cooldowns(session, account_ids, computed_at)
+    failure_counts = _batch_count_recent_job_failures(session, account_ids)
+    items = [
+        _build_readiness_risk_prefetched(
+            session,
+            account,
+            computed_at=computed_at,
+            has_cooldown=cooldown_flags.get(account.id, False),
+            failure_count=failure_counts.get(account.id, 0),
+        )
+        for account in accounts
+    ]
+    counts = {level: 0 for level in READINESS_LEVELS}
+    reauth_required = 0
+    missing_session = 0
+    runtime_unhealthy = 0
+    proxy_problem = 0
+    for item in items:
+        counts[item["level"]] += 1
+        codes = {reason["code"] for reason in item["reasons"]}
+        reauth_required += int("reauth_required" in codes)
+        missing_session += int("missing_session" in codes)
+        runtime_unhealthy += int("runtime_unhealthy" in codes)
+        proxy_problem += int("proxy_problem" in codes)
+    return {
+        "total": len(items),
+        "low": counts["low"],
+        "medium": counts["medium"],
+        "high": counts["high"],
+        "critical": counts["critical"],
+        "reauth_required": reauth_required,
+        "missing_session": missing_session,
+        "runtime_unhealthy": runtime_unhealthy,
+        "proxy_problem": proxy_problem,
+        "items": items,
+        "computed_at": computed_at,
+    }
+
+
+def _empty_risk_summary(computed_at: datetime) -> dict[str, Any]:
+    return {
+        "total": 0,
+        "low": 0,
+        "medium": 0,
+        "high": 0,
+        "critical": 0,
+        "reauth_required": 0,
+        "missing_session": 0,
+        "runtime_unhealthy": 0,
+        "proxy_problem": 0,
+        "items": [],
+        "computed_at": computed_at,
+    }
+
+
+def _build_readiness_risk_prefetched(
+    session: Session,
+    account: Account,
+    *,
+    computed_at: datetime,
+    has_cooldown: bool,
+    failure_count: int,
+) -> dict[str, Any]:
+    """Same logic as build_account_readiness_risk but with pre-fetched cooldown/failure data."""
+    return _score_readiness_risk(
+        account,
+        computed=computed_at,
+        has_cooldown=has_cooldown,
+        failure_count=failure_count,
+    )
 
 
 def _readiness_level(score: int) -> str:

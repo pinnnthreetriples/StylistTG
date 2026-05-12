@@ -1,9 +1,7 @@
-from datetime import UTC, datetime, timedelta
-
+import pytest
 from freezegun import freeze_time
 
 from app.models import (
-    AccountOperationCooldown,
     AccountProfileState,
     AccountState,
     AssetKind,
@@ -18,6 +16,7 @@ from app.config import Settings
 from app.services.account_update_jobs import create_account_update_job
 from app.services.accounts import create_account
 from conftest import seed_asset, seed_audio_asset, seed_story_asset
+from tests.helpers.factories import seed_operation_cooldown
 
 
 def test_account_update_preview_builds_unified_plan(app_client, db_session) -> None:
@@ -132,20 +131,38 @@ def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(
     assert inline_calls == [payload["job_id"]]
 
 
+def _story_preview(app_client, account_id: str, story_id: str, **extra_story_fields):
+    """Post a story preview request and return the response."""
+    story_entry = {"action": "post_image", "asset_id": story_id, **extra_story_fields}
+    return app_client.post(
+        "/api/account-update/preview",
+        json={
+            "account_id": account_id,
+            "profile": {"name": "Stylist TG"},
+            "stories": [story_entry],
+        },
+    )
+
+
+def _audio_preview(app_client, account_id: str, audio_id: str):
+    """Post an audio preview request and return the response."""
+    return app_client.post(
+        "/api/account-update/preview",
+        json={
+            "account_id": account_id,
+            "profile": {"name": "Stylist TG"},
+            "profile_audio": {"action": "add", "audio_asset_id": audio_id},
+        },
+    )
+
+
 def test_account_update_preview_accepts_profile_audio_asset(app_client, db_session) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     audio = seed_audio_asset(db_session)
     db_session.commit()
 
-    response = app_client.post(
-        "/api/account-update/preview",
-        json={
-            "account_id": account.id,
-            "profile": {"name": "Stylist TG"},
-            "profile_audio": {"action": "add", "audio_asset_id": audio.id},
-        },
-    )
+    response = _audio_preview(app_client, account.id, audio.id)
 
     assert response.status_code == 200
     payload = response.json()
@@ -165,14 +182,7 @@ def test_account_update_preview_rejects_unsupported_profile_audio_asset(
     audio.mime = "audio/ogg"
     db_session.commit()
 
-    response = app_client.post(
-        "/api/account-update/preview",
-        json={
-            "account_id": account.id,
-            "profile": {"name": "Stylist TG"},
-            "profile_audio": {"action": "add", "audio_asset_id": audio.id},
-        },
-    )
+    response = _audio_preview(app_client, account.id, audio.id)
 
     assert response.status_code == 400
     assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"
@@ -184,21 +194,13 @@ def test_account_update_preview_accepts_story_image_asset(app_client, db_session
     story = seed_story_asset(db_session)
     db_session.commit()
 
-    response = app_client.post(
-        "/api/account-update/preview",
-        json={
-            "account_id": account.id,
-            "profile": {"name": "Stylist TG"},
-            "stories": [
-                {
-                    "action": "post_image",
-                    "asset_id": story.id,
-                    "caption": "New story",
-                    "privacy_preset": "contacts",
-                    "active_period_seconds": 86400,
-                }
-            ],
-        },
+    response = _story_preview(
+        app_client,
+        account.id,
+        story.id,
+        caption="New story",
+        privacy_preset="contacts",
+        active_period_seconds=86400,
     )
 
     assert response.status_code == 200
@@ -287,14 +289,7 @@ def test_account_update_preview_returns_story_asset_error_for_orphaned_story_ass
     story.status = AssetStatus.ORPHANED
     db_session.commit()
 
-    response = app_client.post(
-        "/api/account-update/preview",
-        json={
-            "account_id": account.id,
-            "profile": {"name": "Stylist TG"},
-            "stories": [{"action": "post_image", "asset_id": story.id}],
-        },
-    )
+    response = _story_preview(app_client, account.id, story.id)
 
     assert response.status_code == 400
     payload = response.json()
@@ -340,18 +335,7 @@ def test_account_update_create_blocks_operation_specific_safety_cooldown(db_sess
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     account.runtime_state.runtime_health = "ready"
-    db_session.add(
-        AccountOperationCooldown(
-            account_id=account.id,
-            operation="username",
-            level="blocked",
-            reason_code="recent_flood_wait",
-            started_at=datetime.now(UTC),
-            retry_after_at=datetime.now(UTC) + timedelta(minutes=5),
-            source="job_step_result",
-        )
-    )
-    db_session.commit()
+    seed_operation_cooldown(db_session, account_id=account.id)
 
     try:
         create_account_update_job(
@@ -377,14 +361,7 @@ def test_account_update_preview_blocks_stories_when_disabled(
     db_session.commit()
     monkeypatch.setattr("app.services.account_update_jobs.settings.stories_enabled", False)
 
-    response = app_client.post(
-        "/api/account-update/preview",
-        json={
-            "account_id": account.id,
-            "profile": {"name": "Stylist TG"},
-            "stories": [{"action": "post_image", "asset_id": story.id}],
-        },
-    )
+    response = _story_preview(app_client, account.id, story.id)
 
     assert response.status_code == 200
     payload = response.json()
@@ -392,10 +369,17 @@ def test_account_update_preview_blocks_stories_when_disabled(
     assert payload["blocking_errors"] == ["stories are disabled"]
 
 
-def test_account_update_create_allows_story_image_when_tdlib_live_enabled(db_session) -> None:
+@pytest.mark.parametrize(
+    "media_kind,asset_kind",
+    [("image", AssetKind.STORY_IMAGE), ("video", AssetKind.STORY_VIDEO)],
+    ids=["image", "video"],
+)
+def test_account_update_create_allows_story_when_tdlib_live_enabled(
+    db_session, media_kind, asset_kind
+) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
-    story = seed_story_asset(db_session)
+    story = seed_story_asset(db_session, kind=asset_kind)
     db_session.commit()
     config = Settings(
         profile_execution_adapter="tdlib",
@@ -408,7 +392,7 @@ def test_account_update_create_allows_story_image_when_tdlib_live_enabled(db_ses
         account_id=account.id,
         desired_state={
             "profile": {"name": "Stylist TG"},
-            "stories": [{"action": "post_image", "asset_id": story.id}],
+            "stories": [{"action": f"post_{media_kind}", "asset_id": story.id}],
         },
         config=config,
     )
@@ -417,34 +401,5 @@ def test_account_update_create_allows_story_image_when_tdlib_live_enabled(db_ses
     assert [step["step_type"] for step in job.plan_json_snapshot["steps"]][-3:] == [
         "validate_story_capabilities",
         "prepare_story_media",
-        "post_story_image",
-    ]
-
-
-def test_account_update_create_allows_story_video_when_tdlib_live_enabled(db_session) -> None:
-    account = create_account(db_session, external_ref="primary")
-    account.account_state = AccountState.EXECUTION_USABLE
-    story = seed_story_asset(db_session, kind=AssetKind.STORY_VIDEO)
-    db_session.commit()
-    config = Settings(
-        profile_execution_adapter="tdlib",
-        stories_tdlib_live_enabled=True,
-        profile_job_cooldown_seconds=0,
-    )
-
-    job = create_account_update_job(
-        db_session,
-        account_id=account.id,
-        desired_state={
-            "profile": {"name": "Stylist TG"},
-            "stories": [{"action": "post_video", "asset_id": story.id}],
-        },
-        config=config,
-    )
-
-    assert job.job_state == JobState.QUEUED
-    assert [step["step_type"] for step in job.plan_json_snapshot["steps"]][-3:] == [
-        "validate_story_capabilities",
-        "prepare_story_media",
-        "post_story_video",
+        f"post_story_{media_kind}",
     ]

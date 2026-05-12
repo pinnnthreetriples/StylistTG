@@ -8,16 +8,25 @@ from app.workers.profile_jobs import execute_profile_job
 from conftest import FakeExecutionUsableAdapter, FakeProfileSyncAdapter
 
 
-def test_ambiguous_username_path_becomes_uncertain_and_manual_intervention(
-    db_session, storage_dir
-) -> None:
+def _seed_profile_job(db_session, *, payload):
+    """Create an execution-usable account and a profile job."""
     account = create_account(db_session, external_ref="+15550102000")
     account.account_state = "execution_usable"
     db_session.commit()
-
     job = create_profile_job(
         db_session,
         account_id=account.id,
+        payload=payload,
+        execution_adapter=FakeExecutionUsableAdapter(),
+    )
+    return account, job
+
+
+def test_ambiguous_username_path_becomes_uncertain_and_manual_intervention(
+    db_session, storage_dir
+) -> None:
+    _account, job = _seed_profile_job(
+        db_session,
         payload={
             "name": "Stylist TG",
             "bio": "Profile editor",
@@ -25,7 +34,6 @@ def test_ambiguous_username_path_becomes_uncertain_and_manual_intervention(
             "photo_asset_id": None,
             "mock_username_verify": "mismatch",
         },
-        execution_adapter=FakeExecutionUsableAdapter(),
     )
 
     exit_code = execute_profile_job(job.id, session=db_session)
@@ -43,20 +51,14 @@ def test_completed_profile_job_syncs_materialized_profile_state(db_session, monk
         "app.workers.profile_jobs.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
-    account = create_account(db_session, external_ref="+15550102000")
-    account.account_state = "execution_usable"
-    db_session.commit()
-
-    job = create_profile_job(
+    account, job = _seed_profile_job(
         db_session,
-        account_id=account.id,
         payload={
             "name": "Stylist TG",
             "bio": "Profile editor",
             "username": None,
             "photo_asset_id": None,
         },
-        execution_adapter=FakeExecutionUsableAdapter(),
     )
 
     exit_code = execute_profile_job(job.id, session=db_session)

@@ -108,8 +108,6 @@ rules:
     languages:
       - javascript
       - typescript
-      - jsx
-      - tsx
     severity: ERROR
     message: Do not write sensitive account/auth values to console; use sanitized telemetry or UI-safe hints.
     metadata:

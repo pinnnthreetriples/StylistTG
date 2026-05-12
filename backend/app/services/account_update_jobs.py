@@ -22,6 +22,7 @@ from app.services.account_safety import (
     build_account_safety_for_account,
     safety_preview_fields,
     safety_preview_fields_with_policy,
+    unique_preserve_order,
 )
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.limits import check_workspace_limit
@@ -83,8 +84,8 @@ def build_account_update_preview(
         blocking_errors.append("stories live TDLib execution is not enabled")
     blocking_errors.extend(_preview_blocking_safety_errors(safety_fields["safety_blockers"]))
     warnings.extend(safety_fields["safety_warnings"])
-    blocking_errors = _unique_strings(blocking_errors)
-    warnings = _unique_strings(warnings)
+    blocking_errors = unique_preserve_order(blocking_errors)
+    warnings = unique_preserve_order(warnings)
 
     return {
         "can_create_job": not blocking_errors,
@@ -271,17 +272,6 @@ def _create_job_safety_blockers(blockers: list[str]) -> list[str]:
         "stories_disabled",
     }
     return [blocker for blocker in blockers if blocker not in preview_only_capability_blockers]
-
-
-def _unique_strings(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        result.append(value)
-    return result
 
 
 def _preview_blocking_safety_errors(blockers: list[str]) -> list[str]:

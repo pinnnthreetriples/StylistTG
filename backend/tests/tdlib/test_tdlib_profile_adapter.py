@@ -357,19 +357,26 @@ class StoryPostClientFactory:
         return self.client
 
 
+def _make_adapter(tmp_path, client_factory, **extra_settings):
+    """Build a TdlibProfileExecutionAdapter with common test settings."""
+    defaults = dict(
+        tdlib_api_id=1,
+        tdlib_api_hash="hash",
+        tdlib_database_root=tmp_path / "database",
+        tdlib_files_root=tmp_path / "files",
+        tdlib_receive_timeout_seconds=0.01,
+        tdlib_auth_timeout_seconds=0.01,
+    )
+    defaults.update(extra_settings)
+    return TdlibProfileExecutionAdapter(client_factory=client_factory, config=Settings(**defaults))
+
+
 def test_profile_adapter_posts_photo_story_with_tdlib_contract(tmp_path) -> None:
     client = StoryPostClient()
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=StoryPostClientFactory(client),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-            profile_audio_upload_timeout_seconds=0.01,
-        ),
+    adapter = _make_adapter(
+        tmp_path,
+        StoryPostClientFactory(client),
+        profile_audio_upload_timeout_seconds=0.01,
     )
 
     events = list(
@@ -433,17 +440,10 @@ def test_profile_adapter_posts_photo_story_with_tdlib_contract(tmp_path) -> None
 
 def test_profile_adapter_blocks_photo_story_when_tdlib_can_post_story_rejects(tmp_path) -> None:
     client = StoryPostClient(can_post_response={"@type": "canPostStoryResultPremiumNeeded"})
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=StoryPostClientFactory(client),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-            profile_audio_upload_timeout_seconds=0.01,
-        ),
+    adapter = _make_adapter(
+        tmp_path,
+        StoryPostClientFactory(client),
+        profile_audio_upload_timeout_seconds=0.01,
     )
 
     events = list(
@@ -476,17 +476,7 @@ def test_profile_adapter_blocks_photo_story_when_tdlib_can_post_story_rejects(tm
 
 def test_profile_adapter_posts_video_story_with_tdlib_contract(tmp_path) -> None:
     client = StoryPostClient()
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=StoryPostClientFactory(client),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, StoryPostClientFactory(client))
 
     events = list(
         adapter.execute(
@@ -552,16 +542,8 @@ def test_profile_adapter_posts_video_story_with_tdlib_contract(tmp_path) -> None
 
 def test_profile_adapter_marks_story_uncertain_without_tdlib_success_update(tmp_path) -> None:
     client = StoryPostClient(story_post_succeeds=False)
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=StoryPostClientFactory(client),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.02,
-        ),
+    adapter = _make_adapter(
+        tmp_path, StoryPostClientFactory(client), tdlib_auth_timeout_seconds=0.02
     )
 
     events = list(
@@ -594,17 +576,7 @@ def test_profile_adapter_marks_story_uncertain_without_tdlib_success_update(tmp_
 
 
 def test_profile_adapter_emits_hard_stop_error_code_for_frozen_tdlib_error(tmp_path) -> None:
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=ErrorQueryClientFactory(),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, ErrorQueryClientFactory())
 
     events = list(
         adapter.execute(
@@ -625,17 +597,7 @@ def test_profile_adapter_emits_hard_stop_error_code_for_frozen_tdlib_error(tmp_p
 
 
 def test_profile_adapter_preserves_username_purchase_error_code(tmp_path) -> None:
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=UsernamePurchaseErrorClientFactory(),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, UsernamePurchaseErrorClientFactory())
 
     events = list(
         adapter.execute(
@@ -662,18 +624,7 @@ def test_profile_adapter_preserves_username_purchase_error_code(tmp_path) -> Non
 def test_profile_adapter_sends_profile_audio_to_saved_messages_before_add(tmp_path) -> None:
     client = SavedMessageAudioClient()
     factory = SavedMessageAudioClientFactory(client)
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=factory,
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-            profile_audio_upload_timeout_seconds=0.01,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, factory, profile_audio_upload_timeout_seconds=0.01)
 
     events = list(
         adapter.execute(
@@ -716,18 +667,7 @@ def test_profile_adapter_sends_profile_audio_to_saved_messages_before_add(tmp_pa
 def test_profile_adapter_fails_when_saved_audio_message_is_not_confirmed(tmp_path) -> None:
     client = SavedMessageAudioClient(send_succeeds=False)
     factory = SavedMessageAudioClientFactory(client)
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=factory,
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.01,
-            profile_audio_upload_timeout_seconds=0.01,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, factory, profile_audio_upload_timeout_seconds=0.01)
 
     events = list(
         adapter.execute(
@@ -783,17 +723,7 @@ def test_profile_adapter_inspect_runtime_times_out_when_tdlib_is_silent(tmp_path
         def create(self, account_id):
             return SilentClient()
 
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=SilentFactory(),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.02,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, SilentFactory(), tdlib_auth_timeout_seconds=0.02)
 
     result = adapter.inspect_runtime("account-1")
 
@@ -806,17 +736,7 @@ def test_profile_adapter_create_failure_yields_runtime_failed(tmp_path) -> None:
         def create(self, account_id):
             raise OSError("tdjson unavailable")
 
-    adapter = TdlibProfileExecutionAdapter(
-        client_factory=RaisingFactory(),
-        config=Settings(
-            tdlib_api_id=1,
-            tdlib_api_hash="hash",
-            tdlib_database_root=tmp_path / "database",
-            tdlib_files_root=tmp_path / "files",
-            tdlib_receive_timeout_seconds=0.01,
-            tdlib_auth_timeout_seconds=0.02,
-        ),
-    )
+    adapter = _make_adapter(tmp_path, RaisingFactory(), tdlib_auth_timeout_seconds=0.02)
 
     events = list(adapter.execute("account-1", {"steps": []}, {}))
 

@@ -51,14 +51,14 @@ def ensure_cooldowns_from_recent_failures(
     session.flush()
 
 
-def recent_failure_cooldowns_by_operation(
-    session: Session,
+def _build_failure_cooldown_map(
+    steps: list[JobStepResult],
     account_id: str,
     *,
     config: Settings = settings,
 ) -> dict[str, list[dict[str, Any]]]:
+    """Shared loop for building failure cooldown dicts from step results."""
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
-    steps = _recent_failed_steps(session, account_id)
     for step in steps:
         cooldown = cooldown_from_failed_step(step, config=config)
         if cooldown is None:
@@ -80,11 +80,21 @@ def recent_failure_cooldowns_by_operation(
     return result
 
 
-def active_cooldowns_by_operation(
-    session: Session, account_id: str, *, now: datetime | None = None
+def recent_failure_cooldowns_by_operation(
+    session: Session,
+    account_id: str,
+    *,
+    config: Settings = settings,
 ) -> dict[str, list[dict[str, Any]]]:
-    now = now or datetime.now(UTC)
-    rows = (
+    return _build_failure_cooldown_map(
+        _recent_failed_steps(session, account_id), account_id, config=config
+    )
+
+
+def _active_cooldown_rows(
+    session: Session, account_id: str, now: datetime
+) -> list[AccountOperationCooldown]:
+    return list(
         session.execute(
             select(AccountOperationCooldown)
             .where(AccountOperationCooldown.account_id == account_id)
@@ -94,6 +104,13 @@ def active_cooldowns_by_operation(
         .scalars()
         .all()
     )
+
+
+def active_cooldowns_by_operation(
+    session: Session, account_id: str, *, now: datetime | None = None
+) -> dict[str, list[dict[str, Any]]]:
+    now = now or datetime.now(UTC)
+    rows = _active_cooldown_rows(session, account_id, now)
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for row in rows:
         result.setdefault(row.operation, []).append(cooldown_to_dict(row))
@@ -104,17 +121,7 @@ def list_active_account_cooldowns(
     session: Session, account_id: str, *, now: datetime | None = None
 ) -> list[dict[str, Any]]:
     now = now or datetime.now(UTC)
-    rows = (
-        session.execute(
-            select(AccountOperationCooldown)
-            .where(AccountOperationCooldown.account_id == account_id)
-            .where(AccountOperationCooldown.retry_after_at > now)
-            .order_by(AccountOperationCooldown.retry_after_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-    return [cooldown_to_dict(row) for row in rows]
+    return [cooldown_to_dict(row) for row in _active_cooldown_rows(session, account_id, now)]
 
 
 def create_cooldown_from_error(
@@ -369,26 +376,7 @@ def recent_failure_cooldowns_from_steps(
     config: Settings = settings,
 ) -> dict[str, list[dict[str, Any]]]:
     """Compute recent failure cooldowns from pre-fetched steps (no DB calls)."""
-    result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
-    for step in steps:
-        cooldown = cooldown_from_failed_step(step, config=config)
-        if cooldown is None:
-            continue
-        result.setdefault(cooldown["operation"], []).append(
-            {
-                "id": f"recent:{step.id}",
-                "account_id": account_id,
-                "operation": cooldown["operation"],
-                "level": cooldown["level"],
-                "reason_code": cooldown["reason_code"],
-                "started_at": cooldown["started_at"],
-                "retry_after_at": cooldown["retry_after_at"],
-                "source": cooldown["source"],
-                "source_job_id": step.job_id,
-                "source_step_id": step.id,
-            }
-        )
-    return result
+    return _build_failure_cooldown_map(steps, account_id, config=config)
 
 
 def product_cooldowns_from_steps(

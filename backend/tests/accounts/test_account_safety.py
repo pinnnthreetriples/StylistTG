@@ -516,39 +516,40 @@ def test_account_update_preview_blocks_only_affected_cooldown_operation(db_sessi
     assert "cooldown_active:username" in username_preview["safety_blockers"]
 
 
-def test_safety_preview_respects_unknown_capability_policy(db_session) -> None:
+def _safety_and_preview(db_session, account_id, desired_state, **settings_kwargs):
+    """Build safety + preview fields with a single Settings instance."""
     from app.config import Settings
     from app.services.account_safety import build_account_safety, safety_preview_fields_with_policy
 
+    config = Settings(**settings_kwargs)
+    safety = build_account_safety(db_session, account_id, config=config)
+    fields = safety_preview_fields_with_policy(safety, desired_state, config=config)
+    return safety, fields
+
+
+def test_safety_preview_respects_unknown_capability_policy(db_session) -> None:
     account = _ready_account(db_session, "+15550102014")
     db_session.commit()
 
-    safety = build_account_safety(
-        db_session, account.id, config=Settings(unknown_capability_policy="block_live_execution")
-    )
-    fields = safety_preview_fields_with_policy(
-        safety,
+    _safety, fields = _safety_and_preview(
+        db_session,
+        account.id,
         {"profile_audio": {"action": "add", "audio_asset_id": "asset-1"}},
-        config=Settings(unknown_capability_policy="block_live_execution"),
+        unknown_capability_policy="block_live_execution",
     )
 
     assert "music_capability_not_checked" in fields["safety_blockers"]
 
 
 def test_safety_preview_requires_fresh_validity_for_live_policy(db_session) -> None:
-    from app.config import Settings
-    from app.services.account_safety import build_account_safety, safety_preview_fields_with_policy
-
     account = _ready_account(db_session, "+15550102015")
     db_session.commit()
 
-    safety = build_account_safety(
-        db_session, account.id, config=Settings(fresh_validity_required="always_for_live")
-    )
-    fields = safety_preview_fields_with_policy(
-        safety,
+    _safety, fields = _safety_and_preview(
+        db_session,
+        account.id,
         {"profile": {"bio": "updated"}},
-        config=Settings(fresh_validity_required="always_for_live"),
+        fresh_validity_required="always_for_live",
     )
 
     assert "fresh_validity_required" in fields["safety_blockers"]

@@ -38,8 +38,7 @@ def save_profile_photo_asset(
     actor_user_id: str | None = None,
     storage_service: StorageService | None = None,
 ) -> Asset:
-    asset_id = new_id()
-    storage = storage_service or _local_storage(storage_root)
+    asset_id, storage = _init_asset_storage(storage_root, storage_service)
 
     image = _open_verified_image(content, error_message="uploaded file is not a supported image")
 
@@ -59,27 +58,21 @@ def save_profile_photo_asset(
     )
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
-    asset = Asset(
-        id=asset_id,
+    return _finalize_asset(
+        session,
+        asset_id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.PROFILE_PHOTO,
-        source_path=source_key,
-        normalized_path=normalized_key,
-        original_filename=filename,
+        source_key=source_key,
+        normalized_key=normalized_key,
+        filename=filename,
         content_hash=content_hash,
         mime=mime,
-        status=AssetStatus.NORMALIZED,
+        storage=storage,
+        source_object=source_object,
+        normalized_object=normalized_object,
+        actor_user_id=actor_user_id,
     )
-    _apply_storage_metadata(
-        asset, storage=storage, source=source_object, normalized=normalized_object
-    )
-    session.add(asset)
-    _log_asset_uploaded(
-        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
-    )
-    session.commit()
-    session.refresh(asset)
-    return asset
 
 
 def save_profile_audio_asset(
@@ -93,17 +86,14 @@ def save_profile_audio_asset(
     actor_user_id: str | None = None,
     storage_service: StorageService | None = None,
 ) -> Asset:
-    if not content:
-        raise ValueError("uploaded file is empty")
-    if len(content) > max_bytes:
-        raise ValueError("uploaded audio is too large")
+    _validate_content_not_empty(content, label="audio")
+    _validate_content_size(content, max_bytes, label="audio")
 
     mime = _guess_audio_mime(filename, content)
     if mime not in PROFILE_AUDIO_EXECUTION_MIMES:
         raise ValueError("profile audio must be MP3 or M4A")
 
-    asset_id = new_id()
-    storage = storage_service or _local_storage(storage_root)
+    asset_id, storage = _init_asset_storage(storage_root, storage_service)
 
     extension = Path(filename).suffix or _audio_extension_for_mime(mime)
     source_key = asset_source_key(asset_id, f"original{extension}")
@@ -112,27 +102,21 @@ def save_profile_audio_asset(
     normalized_object = storage.save_bytes(normalized_key, content, content_type=mime)
     content_hash = hashlib.sha256(content).hexdigest()
 
-    asset = Asset(
-        id=asset_id,
+    return _finalize_asset(
+        session,
+        asset_id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.PROFILE_AUDIO,
-        source_path=source_key,
-        normalized_path=normalized_key,
-        original_filename=filename,
+        source_key=source_key,
+        normalized_key=normalized_key,
+        filename=filename,
         content_hash=content_hash,
         mime=mime,
-        status=AssetStatus.NORMALIZED,
+        storage=storage,
+        source_object=source_object,
+        normalized_object=normalized_object,
+        actor_user_id=actor_user_id,
     )
-    _apply_storage_metadata(
-        asset, storage=storage, source=source_object, normalized=normalized_object
-    )
-    session.add(asset)
-    _log_asset_uploaded(
-        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
-    )
-    session.commit()
-    session.refresh(asset)
-    return asset
 
 
 def save_story_image_asset(
@@ -146,13 +130,10 @@ def save_story_image_asset(
     actor_user_id: str | None = None,
     storage_service: StorageService | None = None,
 ) -> Asset:
-    if not content:
-        raise ValueError("uploaded file is empty")
-    if len(content) > max_bytes:
-        raise ValueError("uploaded story image is too large")
+    _validate_content_not_empty(content, label="story image")
+    _validate_content_size(content, max_bytes, label="story image")
 
-    asset_id = new_id()
-    storage = storage_service or _local_storage(storage_root)
+    asset_id, storage = _init_asset_storage(storage_root, storage_service)
 
     image = _open_verified_image(
         content, error_message="uploaded file is not a supported story image"
@@ -172,27 +153,21 @@ def save_story_image_asset(
     )
     content_hash = hashlib.sha256(normalized_content).hexdigest()
 
-    asset = Asset(
-        id=asset_id,
+    return _finalize_asset(
+        session,
+        asset_id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.STORY_IMAGE,
-        source_path=source_key,
-        normalized_path=normalized_key,
-        original_filename=filename,
+        source_key=source_key,
+        normalized_key=normalized_key,
+        filename=filename,
         content_hash=content_hash,
         mime="image/jpeg",
-        status=AssetStatus.NORMALIZED,
+        storage=storage,
+        source_object=source_object,
+        normalized_object=normalized_object,
+        actor_user_id=actor_user_id,
     )
-    _apply_storage_metadata(
-        asset, storage=storage, source=source_object, normalized=normalized_object
-    )
-    session.add(asset)
-    _log_asset_uploaded(
-        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
-    )
-    session.commit()
-    session.refresh(asset)
-    return asset
 
 
 def save_story_video_asset(
@@ -207,10 +182,8 @@ def save_story_video_asset(
     actor_user_id: str | None = None,
     storage_service: StorageService | None = None,
 ) -> Asset:
-    if not content:
-        raise ValueError("uploaded file is empty")
-    if len(content) > max_bytes:
-        raise ValueError("uploaded story video is too large")
+    _validate_content_not_empty(content, label="story video")
+    _validate_content_size(content, max_bytes, label="story video")
     mime = _guess_story_video_mime(filename, content)
     if mime not in STORY_VIDEO_ALLOWED_MIMES:
         raise ValueError("uploaded file is not a supported story video")
@@ -250,27 +223,21 @@ def save_story_video_asset(
         normalized_object.checksum or hashlib.sha256(normalized_path.read_bytes()).hexdigest()
     )
 
-    asset = Asset(
-        id=asset_id,
+    return _finalize_asset(
+        session,
+        asset_id=asset_id,
         workspace_id=workspace_id,
         kind=AssetKind.STORY_VIDEO,
-        source_path=source_key,
-        normalized_path=normalized_key,
-        original_filename=filename,
+        source_key=source_key,
+        normalized_key=normalized_key,
+        filename=filename,
         content_hash=content_hash,
         mime=mime,
-        status=AssetStatus.NORMALIZED,
+        storage=storage,
+        source_object=source_object,
+        normalized_object=normalized_object,
+        actor_user_id=actor_user_id,
     )
-    _apply_storage_metadata(
-        asset, storage=storage, source=source_object, normalized=normalized_object
-    )
-    session.add(asset)
-    _log_asset_uploaded(
-        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
-    )
-    session.commit()
-    session.refresh(asset)
-    return asset
 
 
 def get_asset(
@@ -449,6 +416,61 @@ def _validate_story_video_file_with_ffprobe(path: Path, ffprobe: str) -> None:
     )
     if result.returncode != 0 or "video" not in result.stdout:
         raise ValueError("uploaded file is not a valid story video")
+
+
+def _validate_content_not_empty(content: bytes, *, label: str) -> None:
+    if not content:
+        raise ValueError("uploaded file is empty")
+
+
+def _validate_content_size(content: bytes, max_bytes: int, *, label: str) -> None:
+    if len(content) > max_bytes:
+        raise ValueError(f"uploaded {label} is too large")
+
+
+def _init_asset_storage(
+    storage_root: Path, storage_service: StorageService | None = None
+) -> tuple[str, StorageService]:
+    return new_id(), storage_service or _local_storage(storage_root)
+
+
+def _finalize_asset(
+    session: Session,
+    *,
+    asset_id: str,
+    workspace_id: str,
+    kind: AssetKind,
+    source_key: str,
+    normalized_key: str,
+    filename: str,
+    content_hash: str,
+    mime: str,
+    storage: StorageService,
+    source_object: StorageObject,
+    normalized_object: StorageObject,
+    actor_user_id: str | None = None,
+) -> Asset:
+    asset = Asset(
+        id=asset_id,
+        workspace_id=workspace_id,
+        kind=kind,
+        source_path=source_key,
+        normalized_path=normalized_key,
+        original_filename=filename,
+        content_hash=content_hash,
+        mime=mime,
+        status=AssetStatus.NORMALIZED,
+    )
+    _apply_storage_metadata(
+        asset, storage=storage, source=source_object, normalized=normalized_object
+    )
+    session.add(asset)
+    _log_asset_uploaded(
+        session, asset=asset, workspace_id=workspace_id, actor_user_id=actor_user_id
+    )
+    session.commit()
+    session.refresh(asset)
+    return asset
 
 
 def _command_available(command: str) -> bool:

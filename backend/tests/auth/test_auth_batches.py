@@ -136,7 +136,9 @@ def _seed_batch_item(
     return batch, item
 
 
-def _create_batch_via_api(client, *, idempotency_key: str, phones: list[str], label: str | None = None):
+def _create_batch_via_api(
+    client, *, idempotency_key: str, phones: list[str], label: str | None = None
+):
     """POST /api/auth-batches and return the parsed JSON response."""
     body: dict = {
         "idempotency_key": idempotency_key,
@@ -147,7 +149,9 @@ def _create_batch_via_api(client, *, idempotency_key: str, phones: list[str], la
     return client.post("/api/auth-batches", json=body)
 
 
-def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid(session_factory, client) -> None:
+def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid(
+    session_factory, client
+) -> None:
     with session_factory() as session:
         create_account(session, external_ref="+15550102000")
 
@@ -173,7 +177,9 @@ def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid(sess
     assert payload["invalid_items"][0]["input"] == "bad-phone"
 
 
-def test_auth_batch_create_is_idempotent_and_creates_pending_accounts(session_factory, client) -> None:
+def test_auth_batch_create_is_idempotent_and_creates_pending_accounts(
+    session_factory, client
+) -> None:
     body = {
         "idempotency_key": "batch-key-1",
         "label": "April",
@@ -197,7 +203,9 @@ def test_auth_batch_create_is_idempotent_and_creates_pending_accounts(session_fa
         assert account.account_state == AccountState.REGISTERED
 
 
-def test_auth_batch_create_rejects_existing_only_batch_with_clear_details(session_factory, client) -> None:
+def test_auth_batch_create_rejects_existing_only_batch_with_clear_details(
+    session_factory, client
+) -> None:
     with session_factory() as session:
         create_account(session, external_ref="+15550102000")
 
@@ -232,7 +240,9 @@ def test_auth_batch_validation_allows_stale_terminal_batch_account(session_facto
     assert result["existing_accounts"] == []
 
 
-def test_auth_batch_validation_reports_active_batch_conflict_before_existing_account(session_factory) -> None:
+def test_auth_batch_validation_reports_active_batch_conflict_before_existing_account(
+    session_factory,
+) -> None:
     with session_factory() as session:
         account = _awaiting_code_account(session)
         batch, item = _seed_batch_item(
@@ -404,7 +414,9 @@ def test_auth_batch_retry_rejects_terminal_batch_item(session_factory, client) -
         assert item.status == "failed"
 
 
-def test_auth_batch_retry_clears_terminal_item_counter(session_factory, client, monkeypatch) -> None:
+def test_auth_batch_retry_clears_terminal_item_counter(
+    session_factory, client, monkeypatch
+) -> None:
     monkeypatch.setattr("app.api.auth_batches.dispatch_once", lambda session, batch_id: 0)
 
     with session_factory() as session:
@@ -506,9 +518,7 @@ def _seed_two_item_batch(
     """Create two accounts + a batch with two items. Returns (batch_id, item1_id, item2_id)."""
     acct_one = create_account(session, external_ref=phones[0])
     acct_two = create_account(session, external_ref=phones[1])
-    batch = AuthBatch(
-        idempotency_key=idempotency_key, label=label, status="running", total_count=2
-    )
+    batch = AuthBatch(idempotency_key=idempotency_key, label=label, status="running", total_count=2)
     session.add(batch)
     session.flush()
     item_one = AuthBatchItem(
@@ -532,7 +542,9 @@ def _seed_two_item_batch(
     return batch.id, item_one.id, item_two.id
 
 
-def test_submit_code_idempotency_key_is_scoped_to_item(session_factory, client, monkeypatch) -> None:
+def test_submit_code_idempotency_key_is_scoped_to_item(
+    session_factory, client, monkeypatch
+) -> None:
     adapter = _batch_adapter()
     monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
 

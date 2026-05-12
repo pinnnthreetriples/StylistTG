@@ -64,25 +64,17 @@ def build_account_safety_for_account(
         health["reasons"], capabilities, cooldowns_by_operation
     )
     last_validity_check = _latest_validity_check(session, account.id)
-    return {
-        "account_id": account.id,
-        "health_status": health["health_status"],
-        "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
-        "validity_status": _validity_status_from_check(last_validity_check),
-        "proxy_status": _proxy_status(account.proxy),
-        "capabilities": capabilities,
-        "capability_summary": {key: value["state"] for key, value in capabilities.items()},
-        "risk_by_operation": risk_by_operation,
-        "cooldowns_by_operation": cooldowns_by_operation,
-        "active_overrides_by_operation": active_overrides_by_operation(
-            session, account.id, now=checked_at
-        ),
-        "reasons": health["reasons"],
-        "top_reasons": _top_reasons(health["reasons"]),
-        "last_checked_at": checked_at,
-        "source": "db_snapshot",
-        "last_validity_check": last_validity_check,
-    }
+    overrides = active_overrides_by_operation(session, account.id, now=checked_at)
+    return _build_safety_result(
+        account,
+        health=health,
+        capabilities=capabilities,
+        cooldowns_by_operation=cooldowns_by_operation,
+        risk_by_operation=risk_by_operation,
+        overrides_by_operation=overrides,
+        last_validity_check=last_validity_check,
+        checked_at=checked_at,
+    )
 
 
 def build_account_safety_summary(
@@ -133,23 +125,16 @@ def build_account_safety_summary(
             health["reasons"], capabilities, cooldowns_by_operation
         )
         last_validity_check = validity_map.get(account.id)
-        safety: dict[str, Any] = {
-            "account_id": account.id,
-            "health_status": health["health_status"],
-            "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
-            "validity_status": _validity_status_from_check(last_validity_check),
-            "proxy_status": _proxy_status(account.proxy),
-            "capabilities": capabilities,
-            "capability_summary": {key: value["state"] for key, value in capabilities.items()},
-            "risk_by_operation": risk_by_operation,
-            "cooldowns_by_operation": cooldowns_by_operation,
-            "active_overrides_by_operation": overrides_map.get(account.id, {}),
-            "reasons": health["reasons"],
-            "top_reasons": _top_reasons(health["reasons"]),
-            "last_checked_at": checked_at,
-            "source": "db_snapshot",
-            "last_validity_check": last_validity_check,
-        }
+        safety = _build_safety_result(
+            account,
+            health=health,
+            capabilities=capabilities,
+            cooldowns_by_operation=cooldowns_by_operation,
+            risk_by_operation=risk_by_operation,
+            overrides_by_operation=overrides_map.get(account.id, {}),
+            last_validity_check=last_validity_check,
+            checked_at=checked_at,
+        )
         results.append(summarize_account_safety(safety))
     return results
 
@@ -495,6 +480,36 @@ def _validity_status_from_check(check: dict[str, Any] | None) -> str:
     if result.get("validity_status"):
         return str(result["validity_status"])
     return str(check["status"])
+
+
+def _build_safety_result(
+    account: Account,
+    *,
+    health: dict[str, Any],
+    capabilities: dict[str, Any],
+    cooldowns_by_operation: dict[str, list[dict[str, Any]]],
+    risk_by_operation: dict[str, dict[str, Any]],
+    overrides_by_operation: dict[str, list[dict[str, Any]]],
+    last_validity_check: dict[str, Any] | None,
+    checked_at: datetime,
+) -> dict[str, Any]:
+    return {
+        "account_id": account.id,
+        "health_status": health["health_status"],
+        "overall_risk_level": _overall_account_risk(health["reasons"], risk_by_operation),
+        "validity_status": _validity_status_from_check(last_validity_check),
+        "proxy_status": _proxy_status(account.proxy),
+        "capabilities": capabilities,
+        "capability_summary": {key: value["state"] for key, value in capabilities.items()},
+        "risk_by_operation": risk_by_operation,
+        "cooldowns_by_operation": cooldowns_by_operation,
+        "active_overrides_by_operation": overrides_by_operation,
+        "reasons": health["reasons"],
+        "top_reasons": _top_reasons(health["reasons"]),
+        "last_checked_at": checked_at,
+        "source": "db_snapshot",
+        "last_validity_check": last_validity_check,
+    }
 
 
 def _proxy_status(proxy: AccountProxy | None) -> str:

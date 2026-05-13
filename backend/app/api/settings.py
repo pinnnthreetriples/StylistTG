@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.schemas import ExecutionPolicyRead, ExecutionPolicyUpdate
 from app.services.auth_context import AuthContext, require_authenticated, require_role
-from app.services.runtime_settings import get_execution_policy, update_execution_policy
+from app.services.runtime_settings import (
+    ExecutionPolicyValues,
+    get_execution_policy,
+    update_execution_policy,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -53,7 +57,7 @@ def patch_execution_policy(
     return _execution_policy_response(update_execution_policy(session, values))
 
 
-def _execution_policy_response(policy: dict[str, object]) -> ExecutionPolicyRead:
+def _execution_policy_response(policy: ExecutionPolicyValues) -> ExecutionPolicyRead:
     return ExecutionPolicyRead(
         profile_job_cooldown_seconds=int(policy["profile_job_cooldown_seconds"]),
         profile_job_cooldown_enabled=int(policy["profile_job_cooldown_seconds"]) > 0,
@@ -68,9 +72,7 @@ def _execution_policy_response(policy: dict[str, object]) -> ExecutionPolicyRead
         recent_failure_policy=str(policy["recent_failure_policy"]),
         fresh_validity_required=str(policy["fresh_validity_required"]),
         fresh_validity_max_age_minutes=int(policy["fresh_validity_max_age_minutes"]),
-        manual_hard_blocker_override_enabled=bool(
-            policy["manual_hard_blocker_override_enabled"]
-        ),
+        manual_hard_blocker_override_enabled=bool(policy["manual_hard_blocker_override_enabled"]),
         non_overridable_blockers=NON_OVERRIDABLE_BLOCKERS,
     )
 

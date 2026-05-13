@@ -53,3 +53,4 @@ Warmup workers are manual and only needed for warmup testing.
 - `.env.example` uses `VITE_API_BASE_URL=http://localhost:8002` for dashboard dev.
 - `scripts/start_backend.ps1` and live-validation helper scripts default to `8000`.
 - Do not blindly replace every `8000` reference; check whether it is live-validation specific.
+- Cloudflare Pages production deploy should track `main` only; PR/preview deployments are disabled in Cloudflare project settings or restricted through branch controls.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 from sqlalchemy.orm import Session
 
@@ -26,14 +26,25 @@ EXECUTION_POLICY_FIELDS = (
 )
 
 
-def get_auth_runtime_mode(
-    session: Session, *, config: Settings = settings
-) -> dict[str, bool]:
+class ExecutionPolicyValues(TypedDict):
+    profile_job_cooldown_seconds: int
+    profile_update_cooldown_seconds: int
+    username_cooldown_seconds: int
+    profile_photo_cooldown_seconds: int
+    profile_music_cooldown_seconds: int
+    story_post_cooldown_seconds: int
+    story_delete_cooldown_seconds: int
+    unknown_capability_policy: str
+    recent_failure_policy: str
+    fresh_validity_required: str
+    fresh_validity_max_age_minutes: int
+    manual_hard_blocker_override_enabled: bool
+
+
+def get_auth_runtime_mode(session: Session, *, config: Settings = settings) -> dict[str, bool]:
     values = _get_values(session, AUTH_RUNTIME_MODE_KEY)
     return {
-        "tdlib_use_test_dc": bool(
-            values.get("tdlib_use_test_dc", config.tdlib_use_test_dc)
-        ),
+        "tdlib_use_test_dc": bool(values.get("tdlib_use_test_dc", config.tdlib_use_test_dc)),
         "tdlib_production_auth_enabled": bool(
             values.get(
                 "tdlib_production_auth_enabled",
@@ -43,9 +54,7 @@ def get_auth_runtime_mode(
     }
 
 
-def update_auth_runtime_mode(
-    session: Session, *, tdlib_use_test_dc: bool
-) -> dict[str, bool]:
+def update_auth_runtime_mode(session: Session, *, tdlib_use_test_dc: bool) -> dict[str, bool]:
     values = {
         "tdlib_use_test_dc": tdlib_use_test_dc,
         "tdlib_production_auth_enabled": not tdlib_use_test_dc,
@@ -59,14 +68,54 @@ def auth_runtime_settings(session: Session, *, config: Settings = settings) -> S
     return config.model_copy(update=values)
 
 
-def get_execution_policy(session: Session, *, config: Settings = settings) -> dict[str, Any]:
+def get_execution_policy(session: Session, *, config: Settings = settings) -> ExecutionPolicyValues:
     values = _get_values(session, EXECUTION_POLICY_KEY)
-    return {field: values.get(field, getattr(config, field)) for field in EXECUTION_POLICY_FIELDS}
+    return {
+        "profile_job_cooldown_seconds": int(
+            values.get("profile_job_cooldown_seconds", config.profile_job_cooldown_seconds)
+        ),
+        "profile_update_cooldown_seconds": int(
+            values.get("profile_update_cooldown_seconds", config.profile_update_cooldown_seconds)
+        ),
+        "username_cooldown_seconds": int(
+            values.get("username_cooldown_seconds", config.username_cooldown_seconds)
+        ),
+        "profile_photo_cooldown_seconds": int(
+            values.get("profile_photo_cooldown_seconds", config.profile_photo_cooldown_seconds)
+        ),
+        "profile_music_cooldown_seconds": int(
+            values.get("profile_music_cooldown_seconds", config.profile_music_cooldown_seconds)
+        ),
+        "story_post_cooldown_seconds": int(
+            values.get("story_post_cooldown_seconds", config.story_post_cooldown_seconds)
+        ),
+        "story_delete_cooldown_seconds": int(
+            values.get("story_delete_cooldown_seconds", config.story_delete_cooldown_seconds)
+        ),
+        "unknown_capability_policy": str(
+            values.get("unknown_capability_policy", config.unknown_capability_policy)
+        ),
+        "recent_failure_policy": str(
+            values.get("recent_failure_policy", config.recent_failure_policy)
+        ),
+        "fresh_validity_required": str(
+            values.get("fresh_validity_required", config.fresh_validity_required)
+        ),
+        "fresh_validity_max_age_minutes": int(
+            values.get("fresh_validity_max_age_minutes", config.fresh_validity_max_age_minutes)
+        ),
+        "manual_hard_blocker_override_enabled": bool(
+            values.get(
+                "manual_hard_blocker_override_enabled",
+                config.manual_hard_blocker_override_enabled,
+            )
+        ),
+    }
 
 
 def update_execution_policy(
     session: Session, values: dict[str, Any], *, config: Settings = settings
-) -> dict[str, Any]:
+) -> ExecutionPolicyValues:
     current = _get_values(session, EXECUTION_POLICY_KEY)
     current.update(values)
     _set_values(session, EXECUTION_POLICY_KEY, current)

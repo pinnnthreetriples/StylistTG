@@ -104,7 +104,9 @@ async def post_story_video(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     with tempfile.TemporaryDirectory(prefix="stylisttg-story-video-upload-") as temp_dir:
-        source_path = Path(temp_dir) / f"original{Path(file.filename or 'story-video').suffix or '.mp4'}"
+        source_path = (
+            Path(temp_dir) / f"original{Path(file.filename or 'story-video').suffix or '.mp4'}"
+        )
         await _read_upload_to_path_limited(file, source_path, settings.story_video_max_bytes)
         try:
             return save_story_video_asset_from_path(

@@ -337,12 +337,7 @@ def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) 
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["profile_job_cooldown_seconds"] == 120
-        assert payload["profile_job_cooldown_enabled"] is True
-        assert payload["allowed_profile_job_cooldown_seconds"] == [30, 60, 120, 300, 600]
-        assert "username_cooldown_seconds" in payload
-        assert "unknown_capability_policy" in payload
-        assert "non_overridable_blockers" in payload
+        _assert_default_execution_policy_payload(payload)
 
         patch_response = client.patch(
             "/api/settings/execution-policy",
@@ -358,6 +353,15 @@ def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) 
         assert repeat_get_response.json()["profile_job_cooldown_seconds"] == 0
 
     assert api_settings.profile_job_cooldown_seconds == 120
+
+
+def _assert_default_execution_policy_payload(payload: dict) -> None:
+    assert payload["profile_job_cooldown_seconds"] == 120
+    assert payload["profile_job_cooldown_enabled"] is True
+    assert payload["allowed_profile_job_cooldown_seconds"] == [30, 60, 120, 300, 600]
+    assert "username_cooldown_seconds" in payload
+    assert "unknown_capability_policy" in payload
+    assert "non_overridable_blockers" in payload
 
 
 def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> None:

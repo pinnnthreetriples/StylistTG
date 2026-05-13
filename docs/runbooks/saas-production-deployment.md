@@ -2,6 +2,23 @@
 
 This runbook is for the FastAPI backend. The frontend must not connect to the database directly.
 
+## Frontend Cloudflare Pages
+
+The dashboard production deployment should track only the production branch
+(`main`). Pull request preview deployments are useful for review environments,
+but this project treats PRs as CI-only until merge.
+
+In Cloudflare Pages, configure the `stylisttg-dashboard-git` project so that:
+
+- the production branch is `main`;
+- automatic production branch deployments remain enabled;
+- preview deployments for pull requests and non-production branches are disabled,
+  or branch controls only allow an explicitly approved preview branch.
+
+After changing Cloudflare settings, verify a new PR commit does not create a
+Pages preview deployment, then verify a push/merge to `main` still creates the
+production deployment.
+
 ## Required Environment
 
 Database:

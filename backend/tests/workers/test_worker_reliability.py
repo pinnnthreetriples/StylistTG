@@ -257,17 +257,36 @@ def test_reenqueue_job_with_delay_cancels_existing_retry_before_enqueue(monkeypa
     assert queue.enqueue_calls[0][3] == "retry-job-1"
 
 
-def test_reenqueue_job_with_delay_account_update_selects_account_update_worker(monkeypatch) -> None:
+def test_reenqueue_job_with_delay_account_update_uses_workflow_registry(monkeypatch) -> None:
     queue = FakeQueue()
-    monkeypatch.setattr(rq_queue, "get_profile_queue", lambda: queue)
+    queue_names: list[str] = []
+    handler_paths: list[str] = []
+
+    def workflow_handler(job_id: str) -> None:
+        return None
+
+    def get_queue(queue_name: str) -> FakeQueue:
+        queue_names.append(queue_name)
+        return queue
+
+    def resolve_handler(handler_path: str):
+        handler_paths.append(handler_path)
+        return workflow_handler
+
+    monkeypatch.setattr(rq_queue, "get_queue", get_queue)
+    monkeypatch.setattr("app.job_queue.workflows.resolve_handler", resolve_handler)
     monkeypatch.setattr(rq_queue, "_cancel_existing_job", lambda *_: None)
 
     assert (
-        rq_queue.reenqueue_job_with_delay("job-1", delay_seconds=1, workflow_type="account_update")
+        rq_queue.reenqueue_job_with_delay("job-1", delay_seconds=30, workflow_type="account_update")
         is True
     )
 
-    assert queue.enqueue_calls[0][1] is rq_queue.run_account_update_job
+    assert queue_names == [rq_queue.PROFILE_QUEUE_NAME]
+    assert handler_paths == ["app.modules.account_editing.jobs:run_account_update_job"]
+    assert queue.enqueue_calls == [
+        (timedelta(seconds=30), workflow_handler, ("job-1",), "retry-job-1")
+    ]
 
 
 def test_reenqueue_job_with_delay_normal_workflow_selects_profile_worker(monkeypatch) -> None:

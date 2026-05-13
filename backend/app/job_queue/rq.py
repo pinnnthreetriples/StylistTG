@@ -14,7 +14,6 @@ from app.config import settings
 from app.logging_utils import log_warn
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
-from app.workers.account_update_jobs import run_account_update_job
 from app.workers.warmup_jobs import run_warmup_due_sessions
 from app.workers.warmup_dispatch_jobs import run_warmup_dispatch_tick
 from app.workers.profile_jobs import run_profile_job
@@ -166,8 +165,16 @@ def enqueue_telegram_auth_action(auth_session_id: str, workspace_id: str, action
 def reenqueue_job_with_delay(
     job_id: str, *, delay_seconds: int, workflow_type: str | None = None
 ) -> bool:
-    queue = get_profile_queue()
-    func = run_account_update_job if workflow_type == "account_update" else run_profile_job
+    if workflow_type == "account_update":
+        from app.job_queue.workflows import resolve_handler
+        from app.modules.registry import get_workflow_spec
+
+        spec = get_workflow_spec("account_update")
+        queue = get_queue(spec.queue_name)
+        func = resolve_handler(spec.handler_path)
+    else:
+        queue = get_profile_queue()
+        func = run_profile_job
     retry_job_id = f"retry-{job_id}"
     try:
         _cancel_existing_job(queue, retry_job_id)

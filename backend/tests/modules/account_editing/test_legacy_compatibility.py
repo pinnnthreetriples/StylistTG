@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from app.modules.account_editing import executor, planner, service
 
 
@@ -64,3 +66,23 @@ def test_old_worker_import_path_still_reexports_module_executor() -> None:
 
 def test_module_service_is_canonical_for_legacy_create_alias() -> None:
     assert service.create_job_legacy is service.create_account_update_job
+
+
+def test_old_service_wrapper_preserves_missing_account_error(monkeypatch) -> None:
+    from app.services import account_update_jobs
+
+    def fake_preview(session: object, **kwargs: object) -> dict[str, object]:
+        raise ValueError("account not found")
+
+    monkeypatch.setattr(
+        account_update_jobs.account_editing_service,
+        "build_account_update_preview",
+        fake_preview,
+    )
+
+    with pytest.raises(ValueError, match="^account not found$"):
+        account_update_jobs.build_account_update_preview(
+            object(),
+            account_id="missing-account",
+            desired_state={},
+        )

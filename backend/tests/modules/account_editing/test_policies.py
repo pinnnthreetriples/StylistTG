@@ -67,9 +67,7 @@ def test_changed_profile_step_types_detects_username_change(db_session) -> None:
     assert steps == {"set_username"}
 
 
-def test_changed_profile_step_types_detects_photo_only_when_asset_differs(
-    db_session, monkeypatch
-) -> None:
+def test_changed_profile_step_types_skips_photo_when_asset_matches(db_session, monkeypatch) -> None:
     account = seed_account_with_profile(db_session)
     desired_state = _normalized_profile(photo_asset_id="asset-new")
     policy = _policy(db_session)
@@ -85,6 +83,14 @@ def test_changed_profile_step_types_detects_photo_only_when_asset_differs(
         )
         == set()
     )
+
+
+def test_changed_profile_step_types_detects_photo_when_asset_differs(
+    db_session, monkeypatch
+) -> None:
+    account = seed_account_with_profile(db_session)
+    desired_state = _normalized_profile(photo_asset_id="asset-new")
+    policy = _policy(db_session)
 
     monkeypatch.setattr(
         policy._repo, "latest_applied_profile_photo_asset_id", lambda _: "asset-old"

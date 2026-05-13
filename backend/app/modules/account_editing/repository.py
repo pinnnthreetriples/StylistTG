@@ -22,14 +22,10 @@ class AccountEditingRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_account(
-        self, *, account_id: str, workspace_id: str | None = None
-    ) -> Account | None:
+    def get_account(self, *, account_id: str, workspace_id: str | None = None) -> Account | None:
         return get_account(self._session, account_id, workspace_id=workspace_id)
 
-    def require_account(
-        self, *, account_id: str, workspace_id: str | None = None
-    ) -> Account:
+    def require_account(self, *, account_id: str, workspace_id: str | None = None) -> Account:
         account = self.get_account(account_id=account_id, workspace_id=workspace_id)
         if account is None:
             raise ValueError("account not found")

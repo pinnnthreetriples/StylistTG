@@ -72,7 +72,9 @@ class AccountEditingPolicy:
             blocking_errors.append("stories are disabled")
         if desired_state.get("stories") and self._stories_live_execution_blocked(config):
             blocking_errors.append("stories live TDLib execution is not enabled")
-        blocking_errors.extend(self._preview_blocking_safety_errors(safety_fields["safety_blockers"]))
+        blocking_errors.extend(
+            self._preview_blocking_safety_errors(safety_fields["safety_blockers"])
+        )
         warnings.extend(safety_fields["safety_warnings"])
         return (
             unique_preserve_order(blocking_errors),
@@ -171,7 +173,9 @@ class AccountEditingPolicy:
             raise ValueError("asset is not ready for profile audio execution")
         if asset.mime not in PROFILE_AUDIO_EXECUTION_MIMES:
             raise ValueError("profile audio must be MP3 or M4A")
-        profile_audio["audio_asset_path"] = str(materialize_asset_to_local_path(asset, config=settings))
+        profile_audio["audio_asset_path"] = str(
+            materialize_asset_to_local_path(asset, config=settings)
+        )
         profile_audio["title"] = self._profile_audio_title(asset.original_filename)
 
     def _validate_story_assets(
@@ -204,7 +208,11 @@ class AccountEditingPolicy:
         return [blocker for blocker in blockers if blocker not in preview_only_capability_blockers]
 
     def _preview_blocking_safety_errors(self, blockers: list[str]) -> list[str]:
-        capability_only_blockers = {"stories_disabled", "stories_live_disabled", "stories_mock_mode"}
+        capability_only_blockers = {
+            "stories_disabled",
+            "stories_live_disabled",
+            "stories_mock_mode",
+        }
         return [blocker for blocker in blockers if blocker not in capability_only_blockers]
 
     def _profile_audio_title(self, filename: str | None) -> str:

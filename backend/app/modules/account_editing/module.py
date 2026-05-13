@@ -1,0 +1,18 @@
+from __future__ import annotations
+
+from app.modules.contracts import FeatureModule, WorkflowArgsMode, WorkflowSpec
+from app.services.worker_plane import PROFILE_QUEUE_NAME
+
+
+module = FeatureModule(
+    name="account_editing",
+    workflows=(
+        WorkflowSpec(
+            workflow_type="account_update",
+            queue_name=PROFILE_QUEUE_NAME,
+            handler_path="app.modules.account_editing.jobs:run_account_update_job",
+            args_mode=WorkflowArgsMode.JOB_ID,
+            description="Manual Telegram account update workflow.",
+        ),
+    ),
+)

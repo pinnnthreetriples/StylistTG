@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 from app.job_queue.workflows import resolve_handler
 from app.modules.account_editing import service
 from app.modules.registry import get_workflow_spec, iter_workflows
@@ -10,6 +12,13 @@ def test_account_editing_service_exports_use_case_facade() -> None:
     assert callable(service.create_job)
     assert callable(service.enqueue_job)
     assert callable(service.execute_inline_fallback)
+
+
+def test_account_editing_service_uses_policy_and_repository_layers() -> None:
+    source = inspect.getsource(service)
+
+    assert "AccountEditingPolicy" in source
+    assert "AccountEditingRepository" in source
 
 
 def test_account_editing_planner_exports_legacy_planner_symbols() -> None:
@@ -114,3 +123,23 @@ def test_no_account_editing_workflow_type_exists() -> None:
     workflow_types = {workflow.workflow_type for workflow in iter_workflows()}
 
     assert "account_editing" not in workflow_types
+
+
+def test_account_editing_module_does_not_import_legacy_account_update_paths() -> None:
+    from app.modules.account_editing import executor, jobs, planner
+
+    module_sources = [
+        inspect.getsource(service),
+        inspect.getsource(executor),
+        inspect.getsource(jobs),
+        inspect.getsource(planner),
+    ]
+    legacy_paths = (
+        "app.services.account_update_jobs",
+        "app.services.account_update_plan",
+        "app.workers.account_update_jobs",
+    )
+
+    for source in module_sources:
+        for legacy_path in legacy_paths:
+            assert legacy_path not in source

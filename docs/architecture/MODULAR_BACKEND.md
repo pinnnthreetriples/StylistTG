@@ -48,6 +48,10 @@ Canonical account update ownership now lives in:
 
 - `app.modules.account_editing.service` for preview, job creation, enqueue, and
   inline fallback use cases.
+- `app.modules.account_editing.policies` for business preconditions, safety
+  checks, asset validation, and profile step selection.
+- `app.modules.account_editing.repository` for account/job/asset DB helper
+  delegation.
 - `app.modules.account_editing.planner` for account update planning and intent
   hashing.
 - `app.modules.account_editing.executor` for account update execution and
@@ -61,6 +65,22 @@ Legacy paths remain available as compatibility wrappers:
 - `app.workers.account_update_jobs`
 
 These wrappers should not regain ownership of new account update behavior.
+
+## Phase 3B: Account Editing Internal Split
+
+`account_editing` is now split into stable internal layers:
+
+- `service.py` remains the use-case facade used by the API and compatibility
+  wrappers.
+- `policies.py` owns account update preconditions, safety blockers, cooldown
+  checks, asset validation, and exact legacy error messages.
+- `repository.py` owns DB/helper delegation for accounts, assets, duplicate jobs,
+  and job finalization.
+- `planner.py` still owns plan construction and execution intent hashing.
+- `executor.py` still owns job execution and result materialization.
+
+Warmup remains metadata/wrapper-only and has not been split into equivalent
+module-owned internals yet.
 
 ## Warmup Module
 
@@ -106,8 +126,8 @@ and worker implementations have not been migrated into module-owned internals.
 
 Possible future phases should stay narrow:
 
-- Split account update module internals into policies/repository only with behavior-matching tests.
-- Add module-owned policies only after matching existing behavior with tests.
+- Continue splitting account editing internals only when behavior-matching tests
+  exist first.
 - Introduce router registry only after duplicate-route risks are handled.
 - Move warmup internals only as separate dry-run/shadow/live-safe slices.
 - Retire legacy compatibility functions only after call-site audits show no users.

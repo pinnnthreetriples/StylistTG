@@ -72,3 +72,21 @@ def test_legacy_account_update_paths_are_compatibility_wrappers() -> None:
 
     assert account_update_plan.build_account_update_plan is planner.build_account_update_plan
     assert account_update_jobs.execute_account_update_job is executor.execute_account_update_job
+
+
+def test_account_editing_has_internal_policy_and_repository_layers() -> None:
+    from app.modules.account_editing.policies import AccountEditingPolicy
+    from app.modules.account_editing.repository import AccountEditingRepository
+
+    assert AccountEditingPolicy.__name__ == "AccountEditingPolicy"
+    assert AccountEditingRepository.__name__ == "AccountEditingRepository"
+
+
+def test_account_editing_service_does_not_import_legacy_implementation_paths() -> None:
+    from app.modules.account_editing import service
+
+    source = inspect.getsource(service)
+
+    assert "app.services.account_update_jobs" not in source
+    assert "app.services.account_update_plan" not in source
+    assert "app.workers.account_update_jobs" not in source

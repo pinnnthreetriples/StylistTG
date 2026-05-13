@@ -10,15 +10,16 @@ The current goal is a safe foundation, not a large rewrite. Existing public API
 paths, job models, job states, workflow identifiers, and worker behavior remain
 the compatibility contract.
 
-## Current Phase: Wrap-First, Not Rewrite
+## Current Phase: Account Update Ownership
 
-The current phase is wrap-first. Modules provide metadata and thin facades over
-existing services/workers. They do not own all business logic yet.
+The current phase is still compatibility-first, but `account_update` ownership has
+flipped into `app.modules.account_editing`. This is a mechanical ownership move,
+not a behavior rewrite.
 
 - `FeatureModule` intentionally has no `router` field in this phase.
 - Router registry is not enabled in `main.py`.
 - Existing API routers remain the public entrypoints.
-- Existing service and worker modules remain the source of implemented behavior.
+- Account update legacy service and worker modules remain as compatibility wrappers.
 - Module names may differ from workflow types.
 
 ## Module Rules
@@ -43,10 +44,43 @@ Important compatibility rules:
 - Queue: `profile_jobs`.
 - Handler path: `app.modules.account_editing.jobs:run_account_update_job`.
 
-The module facade currently delegates preview and job creation to
-`app.services.account_update_jobs`. Enqueue and delayed retry now use workflow
-metadata for `account_update`, while the existing worker implementation remains in
-`app.workers.account_update_jobs`.
+Canonical account update ownership now lives in:
+
+- `app.modules.account_editing.service` for preview, job creation, enqueue, and
+  inline fallback use cases.
+- `app.modules.account_editing.policies` for business preconditions, safety
+  checks, asset validation, and profile step selection.
+- `app.modules.account_editing.repository` for account/job/asset DB helper
+  delegation.
+- `app.modules.account_editing.planner` for account update planning and intent
+  hashing.
+- `app.modules.account_editing.executor` for account update execution and
+  materialization.
+- `app.modules.account_editing.jobs` for the RQ-compatible handler wrapper.
+
+Legacy paths remain available as compatibility wrappers:
+
+- `app.services.account_update_jobs`
+- `app.services.account_update_plan`
+- `app.workers.account_update_jobs`
+
+These wrappers should not regain ownership of new account update behavior.
+
+## Phase 3B: Account Editing Internal Split
+
+`account_editing` is now split into stable internal layers:
+
+- `service.py` remains the use-case facade used by the API and compatibility
+  wrappers.
+- `policies.py` owns account update preconditions, safety blockers, cooldown
+  checks, asset validation, and exact legacy error messages.
+- `repository.py` owns DB/helper delegation for accounts, assets, duplicate jobs,
+  and job finalization.
+- `planner.py` still owns plan construction and execution intent hashing.
+- `executor.py` still owns job execution and result materialization.
+
+Warmup remains metadata/wrapper-only and has not been split into equivalent
+module-owned internals yet.
 
 ## Warmup Module
 
@@ -71,8 +105,9 @@ and worker implementations have not been migrated into module-owned internals.
 | `account_editing.module` workflow metadata | `backend/app/modules/account_editing/module.py` | Workflow metadata | Keep | Declares stable `account_update` workflow metadata. |
 | `account_editing.service` facade | `backend/app/modules/account_editing/service.py` | Workflow metadata | Keep | First runtime path through the module facade. |
 | `account_editing.jobs` wrapper | `backend/app/modules/account_editing/jobs.py` | Workflow metadata | Keep | Lazy workflow handler path targets this wrapper. |
-| `execute_account_update_job` and `run_account_update_job` | `backend/app/workers/account_update_jobs.py` | Worker implementation | Keep | Actual worker behavior still lives here. |
-| `account_update` planning/job creation | `backend/app/services/account_update_plan.py`, `backend/app/services/account_update_jobs.py` | Worker implementation | Keep | Business behavior and dedup are not being rewritten in this phase. |
+| `execute_account_update_job` and `run_account_update_job` | `backend/app/modules/account_editing/executor.py` | Worker implementation | Keep | Module-owned executor preserves the previous worker behavior. |
+| `account_update` planning/job creation | `backend/app/modules/account_editing/planner.py`, `backend/app/modules/account_editing/service.py` | Worker implementation | Keep | Module-owned code preserves planning, dedup, and creation behavior. |
+| Legacy account update services/workers | `backend/app/services/account_update_plan.py`, `backend/app/services/account_update_jobs.py`, `backend/app/workers/account_update_jobs.py` | Public API compatibility | Keep as wrappers | Existing import paths remain stable while canonical ownership moves to the module. |
 | `account_update` handling in profile worker | `backend/app/workers/profile_jobs.py` | Worker implementation | Keep | Shared profile execution engine still classifies account update outcomes. |
 | Account update tests | `backend/tests/**` | Test-only | Keep | Tests cover legacy behavior, module metadata, enqueue compatibility, and worker behavior. |
 
@@ -91,8 +126,8 @@ and worker implementations have not been migrated into module-owned internals.
 
 Possible future phases should stay narrow:
 
-- Move more account update service calls behind the module facade.
-- Add module-owned policies only after matching existing behavior with tests.
+- Continue splitting account editing internals only when behavior-matching tests
+  exist first.
 - Introduce router registry only after duplicate-route risks are handled.
 - Move warmup internals only as separate dry-run/shadow/live-safe slices.
 - Retire legacy compatibility functions only after call-site audits show no users.

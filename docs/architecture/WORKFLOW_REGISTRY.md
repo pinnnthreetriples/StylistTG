@@ -55,6 +55,17 @@ For `/api/account-update/jobs`, the API calls
 The old `app.job_queue.rq.enqueue_account_update_job()` remains as a compatibility
 function and delegates to the workflow registry.
 
+Account update implementation ownership now lives under `app.modules.account_editing`:
+
+- Planning and intent hashing: `app.modules.account_editing.planner`
+- Preview and job creation use cases: `app.modules.account_editing.service`
+- Execution and materialization: `app.modules.account_editing.executor`
+- RQ handler path: `app.modules.account_editing.jobs:run_account_update_job`
+
+Legacy paths under `app.services.account_update_*` and
+`app.workers.account_update_jobs` remain compatibility wrappers. They should be
+kept until call-site audits show they can be removed safely.
+
 ## How Account Update Delayed Retry Works
 
 `reenqueue_job_with_delay(..., workflow_type="account_update")` resolves the
@@ -66,6 +77,9 @@ retry-{job_id}
 ```
 
 Default/profile delayed retry still uses the existing profile worker handler.
+
+Warmup remains metadata/wrapper-only. Its API, services, dispatcher, scheduler,
+and worker internals have not moved into module-owned implementation code yet.
 
 ## How To Add A New Workflow
 

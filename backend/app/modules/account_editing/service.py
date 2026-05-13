@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.config import Settings, settings
 from app.job_queue.workflows import enqueue_workflow
-from app.models import Job, JobState, utc_now
+from app.models import Account, Job, JobState, utc_now
 from app.modules.account_editing.executor import execute_account_update_job
 from app.modules.account_editing.planner import (
     account_update_profile_payload,
@@ -94,13 +94,11 @@ def build_account_update_preview(
     )
     intent_hash = compute_account_update_intent_hash(account_id, desired_state)
     duplicate = repo.find_active_duplicate_job(account_id=account_id, intent_hash=intent_hash)
-    plan = build_account_update_plan(
-        desired_state,
-        profile_step_types=policy.changed_profile_step_types(
-            account=account,
-            desired_state=desired_state,
-            requested_profile_fields=requested_profile_fields,
-        ),
+    plan = _build_plan_for_desired_state(
+        policy=policy,
+        account=account,
+        desired_state=desired_state,
+        requested_profile_fields=requested_profile_fields,
     )
     validate_account_update_plan_steps(plan)
 
@@ -161,13 +159,11 @@ def create_account_update_job(
         desired_state=desired_state,
         config=config,
     )
-    plan = build_account_update_plan(
-        desired_state,
-        profile_step_types=policy.changed_profile_step_types(
-            account=account,
-            desired_state=desired_state,
-            requested_profile_fields=requested_profile_fields,
-        ),
+    plan = _build_plan_for_desired_state(
+        policy=policy,
+        account=account,
+        desired_state=desired_state,
+        requested_profile_fields=requested_profile_fields,
     )
     validate_account_update_plan_steps(plan)
     intent_hash = compute_account_update_intent_hash(account_id, desired_state)
@@ -200,3 +196,20 @@ def create_account_update_job(
 
 
 create_job_legacy = create_account_update_job
+
+
+def _build_plan_for_desired_state(
+    *,
+    policy: AccountEditingPolicy,
+    account: Account,
+    desired_state: dict[str, Any],
+    requested_profile_fields: set[str],
+) -> dict[str, Any]:
+    return build_account_update_plan(
+        desired_state,
+        profile_step_types=policy.changed_profile_step_types(
+            account=account,
+            desired_state=desired_state,
+            requested_profile_fields=requested_profile_fields,
+        ),
+    )

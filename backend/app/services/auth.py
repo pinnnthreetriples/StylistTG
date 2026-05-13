@@ -113,8 +113,9 @@ def confirm_otp(
     code: str,
     adapter: TdlibAuthAdapter | None = None,
     profile_sync_adapter: ProfileSyncAdapter | None = None,
+    workspace_id: str | None = None,
 ) -> AuthMaterializationResult:
-    account = get_account(session, account_id)
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     if is_account_hard_stopped(account):
@@ -134,8 +135,10 @@ def confirm_otp(
     )
 
 
-def get_auth_state(session: Session, account_id: str) -> AuthMaterializationResult:
-    account = get_account(session, account_id)
+def get_auth_state(
+    session: Session, account_id: str, *, workspace_id: str | None = None
+) -> AuthMaterializationResult:
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     return auth_result_from_account(account)
@@ -158,8 +161,9 @@ def submit_password(
     password: str,
     adapter: TdlibAuthAdapter | None = None,
     profile_sync_adapter: ProfileSyncAdapter | None = None,
+    workspace_id: str | None = None,
 ) -> AuthMaterializationResult:
-    account = get_account(session, account_id)
+    account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     if is_account_hard_stopped(account):

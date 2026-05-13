@@ -12,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TDLIB_READONLY_SMOKE_ENABLED=false \
     TDLIB_SHARED_LIBRARY_PATH=/usr/local/lib/libtdjson.so \
     TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database \
-    TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
+    TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -35,13 +36,14 @@ RUN apt-get update && \
 COPY --from=tdlib-runtime /usr/local/lib/libtdjson.so* /usr/local/lib/
 RUN ldconfig
 
-COPY backend/pyproject.toml backend/alembic.ini ./
+COPY backend/pyproject.toml backend/uv.lock backend/alembic.ini ./
 COPY backend/app ./app
 COPY backend/migrations ./migrations
 COPY backend/scripts ./scripts
 
 RUN python -m pip install --upgrade pip && \
-    python -m pip install .
+    python -m pip install uv==0.10.9 && \
+    uv sync --locked --no-dev
 
 USER stylisttg
 

@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - docs/architecture/production-execution-plane.md
-last_updated: 2026-05-10
+last_updated: 2026-05-13
 ---
 
 # Workers and Queues
@@ -40,6 +40,7 @@ cd backend; python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ## Rules
 
 - Queue execution depends on external Redis and RQ worker processes.
+- API embedded stale-job reaper is disabled by default; production scheduler/reaper work should run outside API replicas.
 - `scripts/start-dev.ps1` starts profile/auth workers, not warmup workers.
 - Warmup workers are started manually only when testing the warmup module.
 - Worker diagnostics must report the production queue taxonomy.

@@ -1,8 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.db import get_session
 from app.schemas import ExecutionPolicyRead, ExecutionPolicyUpdate
 from app.services.auth_context import AuthContext, require_authenticated, require_role
+from app.services.runtime_settings import (
+    ExecutionPolicyValues,
+    get_execution_policy,
+    update_execution_policy,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -18,13 +24,17 @@ NON_OVERRIDABLE_BLOCKERS = [
 
 
 @router.get("/execution-policy", response_model=ExecutionPolicyRead)
-def get_execution_policy(_auth: AuthContext = Depends(require_authenticated)):
-    return _execution_policy_response()
+def get_execution_policy_endpoint(
+    session: Session = Depends(get_session),
+    _auth: AuthContext = Depends(require_authenticated),
+):
+    return _execution_policy_response(get_execution_policy(session))
 
 
 @router.patch("/execution-policy", response_model=ExecutionPolicyRead)
 def patch_execution_policy(
     payload: ExecutionPolicyUpdate,
+    session: Session = Depends(get_session),
     _auth: AuthContext = Depends(require_role("admin")),
 ):
     values = payload.model_dump(exclude_unset=True)
@@ -44,26 +54,25 @@ def patch_execution_policy(
             raise HTTPException(
                 status_code=422, detail="fresh_validity_max_age_minutes must be between 1 and 1440"
             )
-        setattr(settings, key, value)
-    return _execution_policy_response()
+    return _execution_policy_response(update_execution_policy(session, values))
 
 
-def _execution_policy_response() -> ExecutionPolicyRead:
+def _execution_policy_response(policy: ExecutionPolicyValues) -> ExecutionPolicyRead:
     return ExecutionPolicyRead(
-        profile_job_cooldown_seconds=settings.profile_job_cooldown_seconds,
-        profile_job_cooldown_enabled=settings.profile_job_cooldown_seconds > 0,
+        profile_job_cooldown_seconds=int(policy["profile_job_cooldown_seconds"]),
+        profile_job_cooldown_enabled=int(policy["profile_job_cooldown_seconds"]) > 0,
         allowed_profile_job_cooldown_seconds=ALLOWED_PROFILE_JOB_COOLDOWNS_SECONDS,
-        profile_update_cooldown_seconds=settings.profile_update_cooldown_seconds,
-        username_cooldown_seconds=settings.username_cooldown_seconds,
-        profile_photo_cooldown_seconds=settings.profile_photo_cooldown_seconds,
-        profile_music_cooldown_seconds=settings.profile_music_cooldown_seconds,
-        story_post_cooldown_seconds=settings.story_post_cooldown_seconds,
-        story_delete_cooldown_seconds=settings.story_delete_cooldown_seconds,
-        unknown_capability_policy=settings.unknown_capability_policy,
-        recent_failure_policy=settings.recent_failure_policy,
-        fresh_validity_required=settings.fresh_validity_required,
-        fresh_validity_max_age_minutes=settings.fresh_validity_max_age_minutes,
-        manual_hard_blocker_override_enabled=settings.manual_hard_blocker_override_enabled,
+        profile_update_cooldown_seconds=int(policy["profile_update_cooldown_seconds"]),
+        username_cooldown_seconds=int(policy["username_cooldown_seconds"]),
+        profile_photo_cooldown_seconds=int(policy["profile_photo_cooldown_seconds"]),
+        profile_music_cooldown_seconds=int(policy["profile_music_cooldown_seconds"]),
+        story_post_cooldown_seconds=int(policy["story_post_cooldown_seconds"]),
+        story_delete_cooldown_seconds=int(policy["story_delete_cooldown_seconds"]),
+        unknown_capability_policy=str(policy["unknown_capability_policy"]),
+        recent_failure_policy=str(policy["recent_failure_policy"]),
+        fresh_validity_required=str(policy["fresh_validity_required"]),
+        fresh_validity_max_age_minutes=int(policy["fresh_validity_max_age_minutes"]),
+        manual_hard_blocker_override_enabled=bool(policy["manual_hard_blocker_override_enabled"]),
         non_overridable_blockers=NON_OVERRIDABLE_BLOCKERS,
     )
 

@@ -212,6 +212,7 @@ def build_profile_job_preview(
     account_id: str,
     payload: dict[str, Any],
     workspace_id: str | None = None,
+    config: Settings = settings,
 ) -> dict[str, Any]:
     account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
@@ -229,7 +230,7 @@ def build_profile_job_preview(
         blocking_errors.append("account requires manual intervention")
     if account.account_state != AccountState.EXECUTION_USABLE:
         blocking_errors.append("account is not execution_usable")
-    if is_profile_job_cooldown_active(session, account_id):
+    if is_profile_job_cooldown_active(session, account_id, config=config):
         blocking_errors.append("profile job cooldown active")
 
     return {

@@ -3894,8 +3894,8 @@
         "tags": [
           "settings"
         ],
-        "summary": "Get Execution Policy",
-        "operationId": "get_execution_policy_api_settings_execution_policy_get",
+        "summary": "Get Execution Policy Endpoint",
+        "operationId": "get_execution_policy_endpoint_api_settings_execution_policy_get",
         "responses": {
           "200": {
             "description": "Successful Response",

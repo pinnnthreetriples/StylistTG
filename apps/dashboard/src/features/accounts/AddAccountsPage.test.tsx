@@ -29,7 +29,7 @@ describe('AddAccountsPage', () => {
   test('renders one connected account-add page without mode tabs', () => {
     const html = renderPage()
 
-    expect(html).toContain('Введите один номер для ручной авторизации или несколько номеров для пачки.')
+    expect(html).toContain('Введите один или несколько номеров для запуска авторизации.')
     expect(html).toContain('Номера')
     expect(html).toContain('Live-режим включён')
     expect(html).not.toContain('Один аккаунт')

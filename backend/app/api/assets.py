@@ -1,4 +1,5 @@
 from pathlib import Path
+import tempfile
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -20,7 +21,7 @@ from app.services.assets import (
     save_profile_audio_asset,
     save_profile_photo_asset,
     save_story_image_asset,
-    save_story_video_asset,
+    save_story_video_asset_from_path,
 )
 from app.storage import LocalStorageService, StorageService, build_storage_service
 
@@ -102,20 +103,24 @@ async def post_story_video(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    content = await _read_upload_limited(file, settings.story_video_max_bytes)
-    try:
-        return save_story_video_asset(
-            session,
-            filename=file.filename or "story-video",
-            content=content,
-            storage_root=STORAGE_ROOT,
-            storage_service=_asset_storage(),
-            max_bytes=settings.story_video_max_bytes,
-            workspace_id=auth.workspace_id,
-            actor_user_id=auth.user_id,
+    with tempfile.TemporaryDirectory(prefix="stylisttg-story-video-upload-") as temp_dir:
+        source_path = (
+            Path(temp_dir) / f"original{Path(file.filename or 'story-video').suffix or '.mp4'}"
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        await _read_upload_to_path_limited(file, source_path, settings.story_video_max_bytes)
+        try:
+            return save_story_video_asset_from_path(
+                session,
+                filename=file.filename or "story-video",
+                source_path=source_path,
+                storage_root=STORAGE_ROOT,
+                storage_service=_asset_storage(),
+                max_bytes=settings.story_video_max_bytes,
+                workspace_id=auth.workspace_id,
+                actor_user_id=auth.user_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.get("/{asset_id}", response_model=AssetRead)
@@ -205,6 +210,28 @@ async def _read_upload_limited(file: UploadFile, max_bytes: int) -> bytes:
             )
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+async def _read_upload_to_path_limited(file: UploadFile, path: Path, max_bytes: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    total = 0
+    with path.open("wb") as handle:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail={
+                        "error_code": "UPLOAD_TOO_LARGE",
+                        "error_class": "validation",
+                        "message": "uploaded file is too large",
+                        "details": {"max_bytes": max_bytes},
+                    },
+                )
+            handle.write(chunk)
 
 
 def _asset_upload_error(message: str) -> dict[str, str]:

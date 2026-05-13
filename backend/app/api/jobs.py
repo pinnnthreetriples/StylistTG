@@ -31,6 +31,7 @@ from app.services.jobs import (
     create_profile_job,
     delete_job,
 )
+from app.services.runtime_settings import execution_policy_settings
 from app.services.retry_policy import retry_policy_for
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -72,6 +73,7 @@ def preview_profile_job(
             account_id=payload.account_id,
             payload=payload.model_dump(exclude={"account_id"}, exclude_none=True),
             workspace_id=auth.workspace_id,
+            config=execution_policy_settings(session),
         )
     except ValueError as exc:
         message = str(exc)
@@ -109,6 +111,7 @@ def post_profile_job(
             execution_adapter=build_profile_execution_adapter(),
             requested_by_user_id=auth.user_id,
             workspace_id=auth.workspace_id,
+            config=execution_policy_settings(session),
         )
     except ValueError as exc:
         message = str(exc)

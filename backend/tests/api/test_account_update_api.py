@@ -80,6 +80,39 @@ def test_account_update_create_queues_unified_job(app_client, db_session, monkey
     assert enqueued == [("account_update", payload["job_id"])]
 
 
+def test_account_update_create_does_not_depend_on_old_rq_enqueue(
+    app_client, db_session, monkeypatch
+) -> None:
+    account = create_account(db_session, external_ref="primary")
+    account.account_state = AccountState.EXECUTION_USABLE
+    db_session.commit()
+    enqueued: list[str] = []
+
+    def old_enqueue_should_not_run(job_id: str) -> bool:
+        raise AssertionError("old rq enqueue path should not be called")
+
+    monkeypatch.setattr(
+        "app.job_queue.rq.enqueue_account_update_job",
+        old_enqueue_should_not_run,
+    )
+    monkeypatch.setattr(
+        account_editing_service,
+        "enqueue_job",
+        lambda job_id: enqueued.append(job_id) or True,
+    )
+
+    response = app_client.post(
+        "/api/account-update/jobs",
+        json={
+            "account_id": account.id,
+            "profile": {"name": "Stylist TG"},
+        },
+    )
+
+    assert response.status_code == 201
+    assert enqueued == [response.json()["job_id"]]
+
+
 def test_account_update_create_returns_503_when_queue_enqueue_fails(
     app_client, db_session, monkeypatch
 ) -> None:

@@ -89,15 +89,9 @@ def enqueue_profile_job(job_id: str) -> bool:
 
 
 def enqueue_account_update_job(job_id: str) -> bool:
-    queue = get_profile_queue()
-    try:
-        cast(Any, queue).enqueue_call(
-            func=run_account_update_job, args=(job_id,), job_id=job_id, unique=True
-        )
-    except RedisError:
-        _log_enqueue_failure(queue.name, job_id, "RedisError")
-        return False
-    return True
+    from app.job_queue.workflows import enqueue_workflow
+
+    return enqueue_workflow(workflow_type="account_update", job_id=job_id)
 
 
 def enqueue_warmup_due_sessions() -> bool:

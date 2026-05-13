@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+import dataclasses
+import inspect
+
+from app.modules import registry
+from app.modules.contracts import FeatureModule, WorkflowArgsMode
+from app.modules.registry import get_workflow_spec, iter_modules, iter_workflows
+
+
+def test_feature_module_does_not_expose_router_yet() -> None:
+    field_names = {field.name for field in dataclasses.fields(FeatureModule)}
+
+    assert "router" not in field_names
+    assert field_names == {"name", "workflows"}
+
+
+def test_modules_registry_does_not_import_api_or_fastapi_routers() -> None:
+    source = inspect.getsource(registry)
+
+    assert "app.api" not in source
+    assert "APIRouter" not in source
+    assert "include_router" not in source
+
+
+def test_account_editing_workflow_type_remains_account_update() -> None:
+    workflow = get_workflow_spec("account_update")
+
+    assert workflow.workflow_type == "account_update"
+    assert workflow.handler_path.startswith("app.modules.account_editing.")
+
+
+def test_no_account_editing_workflow_type_exists() -> None:
+    workflow_types = {workflow.workflow_type for workflow in iter_workflows()}
+
+    assert "account_editing" not in workflow_types
+
+
+def test_warmup_workflows_remain_no_arg_handlers() -> None:
+    assert get_workflow_spec("warmup_due_sessions").args_mode == WorkflowArgsMode.NONE
+    assert get_workflow_spec("warmup_dispatch_tick").args_mode == WorkflowArgsMode.NONE
+
+
+def test_workflow_handler_paths_are_lazy_strings() -> None:
+    for workflow in iter_workflows():
+        assert isinstance(workflow.handler_path, str)
+        assert ":" in workflow.handler_path
+
+
+def test_workflow_types_are_unique() -> None:
+    workflow_types = [workflow.workflow_type for workflow in iter_workflows()]
+
+    assert len(workflow_types) == len(set(workflow_types))
+
+
+def test_module_names_are_unique() -> None:
+    module_names = [module.name for module in iter_modules()]
+
+    assert len(module_names) == len(set(module_names))

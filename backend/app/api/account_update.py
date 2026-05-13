@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.db import get_session
 from app.errors import AppError
-from app.job_queue.rq import enqueue_account_update_job
 from app.logging_utils import log_event
 from app.models import JobState, utc_now
+from app.modules.account_editing import service as account_editing_service
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
-from app.services.account_update_jobs import build_account_update_preview, create_account_update_job
 from app.api.tenant_helpers import require_account_in_workspace
 from app.services.auth_context import (
     AuthContext,
@@ -20,7 +18,6 @@ from app.services.operation_logs import log_operation
 from app.services.warmup import warmup_operation_policy
 from app.config import settings
 from app.services.runtime_settings import execution_policy_settings
-from app.workers.account_update_jobs import execute_account_update_job
 
 router = APIRouter(prefix="/api/account-update", tags=["account-update"])
 
@@ -33,7 +30,7 @@ def preview_account_update(
 ):
     require_account_in_workspace(session, payload.account_id, auth)
     try:
-        preview = build_account_update_preview(
+        preview = account_editing_service.build_preview(
             session,
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
@@ -84,11 +81,10 @@ def post_account_update_job(
             message=warmup_policy["reason"],
         )
     try:
-        job = create_account_update_job(
+        job = account_editing_service.create_job(
             session,
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
-            execution_adapter=build_profile_execution_adapter(),
             requested_by_user_id=auth.user_id,
             request_id=None,
             workspace_id=auth.workspace_id,
@@ -112,14 +108,14 @@ def post_account_update_job(
         raise _account_update_error(exc) from exc
     if job.job_state == JobState.QUEUED:
         log_event("account_update_enqueue_requested", account_id=payload.account_id, job_id=job.id)
-        if enqueue_account_update_job(job.id) is False:
+        if account_editing_service.enqueue_job(job.id) is False:
             if settings.queue_inline_fallback_enabled:
                 log_event(
                     "account_update_inline_fallback_requested",
                     account_id=payload.account_id,
                     job_id=job.id,
                 )
-                execute_account_update_job(job.id, session=session)
+                account_editing_service.execute_inline_fallback(job.id, session=session)
                 session.refresh(job)
                 return AccountUpdateJobSummaryRead(**job_summary(job))
             job.job_state = JobState.FAILED

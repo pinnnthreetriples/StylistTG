@@ -18,7 +18,7 @@ class FakeQueue:
         self.calls.append(("remove", None, (), job_id))
 
 
-def test_account_update_and_profile_jobs_use_profile_queue(monkeypatch) -> None:
+def test_profile_jobs_use_profile_queue(monkeypatch) -> None:
     queues: list[FakeQueue] = []
     monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
     monkeypatch.setattr(
@@ -28,9 +28,21 @@ def test_account_update_and_profile_jobs_use_profile_queue(monkeypatch) -> None:
     )
 
     assert rq.enqueue_profile_job("job-1") is True
-    assert rq.enqueue_account_update_job("job-2") is True
 
-    assert [queue.name for queue in queues] == [rq.PROFILE_QUEUE_NAME, rq.PROFILE_QUEUE_NAME]
+    assert [queue.name for queue in queues] == [rq.PROFILE_QUEUE_NAME]
+
+
+def test_account_update_enqueue_delegates_to_workflow_registry(monkeypatch) -> None:
+    enqueued: list[tuple[str, str]] = []
+
+    def enqueue_workflow(*, workflow_type: str, job_id: str) -> bool:
+        enqueued.append((workflow_type, job_id))
+        return True
+
+    monkeypatch.setattr("app.job_queue.workflows.enqueue_workflow", enqueue_workflow)
+
+    assert rq.enqueue_account_update_job("job-1") is True
+    assert enqueued == [("account_update", "job-1")]
 
 
 def test_auth_batch_start_uses_auth_queue(monkeypatch) -> None:

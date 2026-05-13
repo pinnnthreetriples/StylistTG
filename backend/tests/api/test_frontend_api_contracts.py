@@ -327,7 +327,9 @@ def test_account_delete_does_not_reap_stale_jobs_in_legacy_endpoint(monkeypatch)
 
 
 def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) -> None:
-    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
+    from app.config import settings as api_settings
+
+    monkeypatch.setattr(api_settings, "profile_job_cooldown_seconds", 120)
     session_factory, _engine = make_session()
 
     with app_client(session_factory, role="admin") as client:
@@ -351,9 +353,17 @@ def test_execution_policy_settings_can_update_profile_job_cooldown(monkeypatch) 
         assert patch_response.json()["profile_job_cooldown_seconds"] == 0
         assert patch_response.json()["profile_job_cooldown_enabled"] is False
 
+        repeat_get_response = client.get("/api/settings/execution-policy")
+        assert repeat_get_response.status_code == 200
+        assert repeat_get_response.json()["profile_job_cooldown_seconds"] == 0
+
+    assert api_settings.profile_job_cooldown_seconds == 120
+
 
 def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> None:
-    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
+    from app.config import settings as api_settings
+
+    monkeypatch.setattr(api_settings, "profile_job_cooldown_seconds", 120)
     session_factory, _engine = make_session()
 
     with app_client(session_factory, role="admin") as client:

@@ -10,7 +10,7 @@ edges:
   - .mex/context/stack.md
   - .mex/context/workers.md
   - README.md
-last_updated: 2026-05-10
+last_updated: 2026-05-13
 ---
 
 # Setup
@@ -50,5 +50,6 @@ Warmup workers are manual and only needed for warmup testing.
 ## Port rule
 
 - Dashboard local dev expects backend `8002`.
+- `.env.example` uses `VITE_API_BASE_URL=http://localhost:8002` for dashboard dev.
 - `scripts/start_backend.ps1` and live-validation helper scripts default to `8000`.
 - Do not blindly replace every `8000` reference; check whether it is live-validation specific.

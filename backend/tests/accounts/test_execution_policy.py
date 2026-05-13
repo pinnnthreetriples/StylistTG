@@ -3,14 +3,16 @@ from tests.helpers.factories import make_session
 
 
 def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypatch) -> None:
-    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
-    monkeypatch.setattr("app.api.settings.settings.username_cooldown_seconds", 1800)
-    monkeypatch.setattr("app.api.settings.settings.profile_music_cooldown_seconds", 900)
-    monkeypatch.setattr("app.api.settings.settings.unknown_capability_policy", "warning_only")
-    monkeypatch.setattr("app.api.settings.settings.recent_failure_policy", "warning_only")
-    monkeypatch.setattr("app.api.settings.settings.fresh_validity_required", "if_stale")
-    monkeypatch.setattr("app.api.settings.settings.fresh_validity_max_age_minutes", 30)
-    monkeypatch.setattr("app.api.settings.settings.manual_hard_blocker_override_enabled", False)
+    from app.config import settings as api_settings
+
+    monkeypatch.setattr(api_settings, "profile_job_cooldown_seconds", 120)
+    monkeypatch.setattr(api_settings, "username_cooldown_seconds", 1800)
+    monkeypatch.setattr(api_settings, "profile_music_cooldown_seconds", 900)
+    monkeypatch.setattr(api_settings, "unknown_capability_policy", "warning_only")
+    monkeypatch.setattr(api_settings, "recent_failure_policy", "warning_only")
+    monkeypatch.setattr(api_settings, "fresh_validity_required", "if_stale")
+    monkeypatch.setattr(api_settings, "fresh_validity_max_age_minutes", 30)
+    monkeypatch.setattr(api_settings, "manual_hard_blocker_override_enabled", False)
     session_factory, _engine = make_session()
 
     with app_client(session_factory, role="admin") as client:
@@ -38,7 +40,9 @@ def test_execution_policy_accepts_product_cooldowns_and_advanced_policy(monkeypa
 
 
 def test_execution_policy_keeps_legacy_profile_job_cooldown_upper_bound(monkeypatch) -> None:
-    monkeypatch.setattr("app.api.settings.settings.profile_job_cooldown_seconds", 120)
+    from app.config import settings as api_settings
+
+    monkeypatch.setattr(api_settings, "profile_job_cooldown_seconds", 120)
     session_factory, _engine = make_session()
 
     with app_client(session_factory, role="admin") as client:

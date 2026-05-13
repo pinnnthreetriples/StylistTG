@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - .mex/patterns/live-tdlib-safety.md
-last_updated: 2026-05-10
+last_updated: 2026-05-13
 ---
 
 # Security and Live Safety
@@ -25,6 +25,7 @@ last_updated: 2026-05-10
 ## Application boundaries
 
 - Workspace scoping is mandatory for user-owned resources.
+- User-facing runtime policy changes must persist in PostgreSQL instead of mutating process-local settings.
 - Backend diagnostics must expose safe metadata only.
 - Audit/operation metadata must be sanitized.
 - `account_proxy.password_encrypted` must never be returned to the frontend.

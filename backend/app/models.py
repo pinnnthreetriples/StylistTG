@@ -209,6 +209,16 @@ class WorkspacePlan(Base):
     )
 
 
+class RuntimeSetting(Base):
+    __tablename__ = "runtime_setting"
+
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    value_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class UsageCounter(Base):
     __tablename__ = "usage_counter"
     __table_args__ = (

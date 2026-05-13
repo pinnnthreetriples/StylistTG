@@ -26,7 +26,7 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     db_mode = env_value("DB_CONNECTION_MODE", env) or "local"
     allow_local = bool_env("ALLOW_LOCAL_AUTH_IN_PROD", env)
     enforce_localhost = bool_env("ENFORCE_LOCALHOST_ONLY", env, default=True)
-    api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=True)
+    api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=False)
     cors_origins = [
         origin.strip()
         for origin in (env_value("CORS_ORIGINS", env) or "").split(",")

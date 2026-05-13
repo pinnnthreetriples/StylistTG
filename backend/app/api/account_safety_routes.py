@@ -34,6 +34,7 @@ from app.services.auth_context import (
     require_mutation_permission,
 )
 from app.services.risk_gate import evaluate_action_gate
+from app.services.runtime_settings import execution_policy_settings
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -43,7 +44,9 @@ def get_accounts_safety_summary(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return build_account_safety_summary(session, workspace_id=auth.workspace_id)
+    return build_account_safety_summary(
+        session, workspace_id=auth.workspace_id, config=execution_policy_settings(session)
+    )
 
 
 @router.get("/risk-summary", response_model=AccountReadinessRiskSummaryRead)
@@ -67,6 +70,7 @@ def post_accounts_safety_batch_preview(
             operation=payload.operation,
             allow_warning_overrides=payload.allow_warning_overrides,
             workspace_id=auth.workspace_id,
+            config=execution_policy_settings(session),
         )
     except ValueError as exc:
         raise AppError(
@@ -85,7 +89,7 @@ def get_account_safety(
 ):
     require_account_in_workspace(session, account_id, auth)
     try:
-        return build_account_safety(session, account_id)
+        return build_account_safety(session, account_id, config=execution_policy_settings(session))
     except ValueError as exc:
         raise AppError(
             status_code=status.HTTP_404_NOT_FOUND,

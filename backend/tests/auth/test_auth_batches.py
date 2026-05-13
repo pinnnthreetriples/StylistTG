@@ -330,6 +330,37 @@ def test_auth_batch_start_dispatches_item_and_worker_moves_to_waiting_code(
         assert item.code_expires_at is not None
 
 
+def test_auth_batch_start_single_phone_marks_item_starting_and_enqueues_once(
+    session_factory, client, monkeypatch
+) -> None:
+    enqueued: list[tuple[str, int, int]] = []
+
+    def enqueue(item_id: str, attempt_count: int, delay_seconds: int = 0) -> bool:
+        enqueued.append((item_id, attempt_count, delay_seconds))
+        return True
+
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
+        enqueue,
+    )
+
+    create_response = _create_batch_via_api(
+        client, idempotency_key="batch-key-single-start", phones=["+15550102000"]
+    )
+    assert create_response.status_code == 201
+    batch_id = create_response.json()["batch"]["id"]
+
+    response = client.post(f"/api/auth-batches/{batch_id}/start")
+
+    assert response.status_code == 200
+    assert len(enqueued) == 1
+    with session_factory() as session:
+        item = session.get(AuthBatchItem, enqueued[0][0])
+        assert item is not None
+        assert item.status == "starting"
+        assert item.batch_id == batch_id
+
+
 def test_auth_batch_start_returns_503_when_queue_enqueue_fails(
     session_factory, client, monkeypatch
 ) -> None:

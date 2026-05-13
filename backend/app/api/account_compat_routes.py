@@ -29,7 +29,7 @@ def get_account_auth_state_from_header(
     from app.api.auth import auth_response
     from app.services.auth import get_auth_state
 
-    return auth_response(get_auth_state(session, account_id))
+    return auth_response(get_auth_state(session, account_id, workspace_id=auth.workspace_id))
 
 
 @router.post("/refresh-runtime", response_model=RuntimeRefreshRead)

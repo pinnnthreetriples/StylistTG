@@ -20,7 +20,6 @@ from app.services.assets import PROFILE_AUDIO_EXECUTION_MIMES, get_asset
 from app.services.asset_storage import materialize_asset_to_local_path
 from app.services.account_safety import (
     build_account_safety_for_account,
-    safety_preview_fields,
     safety_preview_fields_with_policy,
     unique_preserve_order,
 )
@@ -43,6 +42,7 @@ def build_account_update_preview(
     account_id: str,
     desired_state: dict[str, Any],
     workspace_id: str | None = None,
+    config: Settings = settings,
 ) -> dict[str, Any]:
     account = get_account(session, account_id, workspace_id=workspace_id)
     if account is None:
@@ -70,17 +70,17 @@ def build_account_update_preview(
 
     blocking_errors: list[str] = []
     warnings: list[str] = []
-    safety = build_account_safety_for_account(session, account)
-    safety_fields = safety_preview_fields(safety, desired_state)
+    safety = build_account_safety_for_account(session, account, config=config)
+    safety_fields = safety_preview_fields_with_policy(safety, desired_state, config=config)
     if is_account_hard_stopped(account):
         blocking_errors.append("account requires manual intervention")
     if account.account_state != AccountState.EXECUTION_USABLE:
         blocking_errors.append("account is not execution_usable")
-    if is_profile_job_cooldown_active(session, account_id):
+    if is_profile_job_cooldown_active(session, account_id, config=config):
         blocking_errors.append("profile job cooldown active")
-    if desired_state.get("stories") and not settings.stories_enabled:
+    if desired_state.get("stories") and not config.stories_enabled:
         blocking_errors.append("stories are disabled")
-    if desired_state.get("stories") and _stories_live_execution_blocked(settings):
+    if desired_state.get("stories") and _stories_live_execution_blocked(config):
         blocking_errors.append("stories live TDLib execution is not enabled")
     blocking_errors.extend(_preview_blocking_safety_errors(safety_fields["safety_blockers"]))
     warnings.extend(safety_fields["safety_warnings"])

@@ -40,14 +40,16 @@ def test_otp_api_contract_start_confirm_and_auth_state(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
 
-def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:
+def test_auth_runtime_mode_toggle_persists_without_mutating_backend_settings() -> None:
     session_factory, _engine = make_session()
-    original_test_dc = app.dependency_overrides.get("unused")
+    from app.config import settings as auth_settings
+
+    original_test_dc = auth_settings.tdlib_use_test_dc
+    original_production_auth = auth_settings.tdlib_production_auth_enabled
 
     with app_client(session_factory, role="admin") as client:
         get_response = client.get("/api/auth/runtime-mode")
         assert get_response.status_code == 200
-        before = get_response.json()
 
         enable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": True})
         assert enable_response.status_code == 200
@@ -55,6 +57,8 @@ def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:
             "tdlib_use_test_dc": True,
             "tdlib_production_auth_enabled": False,
         }
+        assert auth_settings.tdlib_use_test_dc is original_test_dc
+        assert auth_settings.tdlib_production_auth_enabled is original_production_auth
 
         disable_response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
         assert disable_response.status_code == 200
@@ -63,7 +67,9 @@ def test_auth_runtime_mode_toggle_updates_backend_settings() -> None:
             "tdlib_production_auth_enabled": True,
         }
 
-        client.patch(
-            "/api/auth/runtime-mode", json={"tdlib_use_test_dc": before["tdlib_use_test_dc"]}
-        )
-    assert original_test_dc is None
+        repeat_get_response = client.get("/api/auth/runtime-mode")
+        assert repeat_get_response.status_code == 200
+        assert repeat_get_response.json() == disable_response.json()
+
+    assert auth_settings.tdlib_use_test_dc is original_test_dc
+    assert auth_settings.tdlib_production_auth_enabled is original_production_auth

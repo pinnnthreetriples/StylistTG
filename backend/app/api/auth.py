@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.adapters.tdlib_auth import build_tdlib_auth_adapter
-from app.config import settings
 from app.db import get_session
 from app.errors import AppError
 from app.schemas import (
@@ -28,28 +27,31 @@ from app.services.auth_context import (
     require_role,
 )
 from app.api.tenant_helpers import require_account_in_workspace
+from app.services.runtime_settings import (
+    auth_runtime_settings,
+    get_auth_runtime_mode as get_auth_runtime_mode_values,
+    update_auth_runtime_mode,
+)
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
 
 @router.get("/auth/runtime-mode", response_model=AuthRuntimeModeRead)
-def get_auth_runtime_mode(_auth: AuthContext = Depends(require_authenticated)):
-    return AuthRuntimeModeRead(
-        tdlib_use_test_dc=settings.tdlib_use_test_dc,
-        tdlib_production_auth_enabled=settings.tdlib_production_auth_enabled,
-    )
+def get_auth_runtime_mode(
+    session: Session = Depends(get_session),
+    _auth: AuthContext = Depends(require_authenticated),
+):
+    return AuthRuntimeModeRead(**get_auth_runtime_mode_values(session))
 
 
 @router.patch("/auth/runtime-mode", response_model=AuthRuntimeModeRead)
 def patch_auth_runtime_mode(
     payload: AuthRuntimeModeUpdate,
+    session: Session = Depends(get_session),
     _auth: AuthContext = Depends(require_role("admin")),
 ):
-    settings.tdlib_use_test_dc = payload.tdlib_use_test_dc
-    settings.tdlib_production_auth_enabled = not payload.tdlib_use_test_dc
     return AuthRuntimeModeRead(
-        tdlib_use_test_dc=settings.tdlib_use_test_dc,
-        tdlib_production_auth_enabled=settings.tdlib_production_auth_enabled,
+        **update_auth_runtime_mode(session, tdlib_use_test_dc=payload.tdlib_use_test_dc)
     )
 
 
@@ -64,6 +66,7 @@ def post_otp_start(
             session,
             phone_number=payload.phone_number,
             adapter=build_tdlib_auth_adapter(),
+            config=auth_runtime_settings(session),
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
         )
@@ -87,6 +90,7 @@ def post_otp_confirm(
             account_id=payload.account_id,
             code=payload.code,
             adapter=build_tdlib_auth_adapter(),
+            workspace_id=auth.workspace_id,
         )
     except AuthSafetyError as exc:
         raise _auth_safety_app_error(exc) from exc
@@ -108,6 +112,7 @@ def post_password(
             account_id=payload.account_id,
             password=payload.password,
             adapter=build_tdlib_auth_adapter(),
+            workspace_id=auth.workspace_id,
         )
     except AuthSafetyError as exc:
         raise _auth_safety_app_error(exc) from exc
@@ -124,7 +129,7 @@ def get_account_auth_state(
 ):
     require_account_in_workspace(session, account_id, auth)
     try:
-        result = get_auth_state(session, account_id)
+        result = get_auth_state(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return _auth_response(result)

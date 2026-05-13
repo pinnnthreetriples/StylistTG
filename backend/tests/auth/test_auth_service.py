@@ -12,9 +12,11 @@ from app.services.auth import (
     get_auth_state,
     mask_external_ref,
     start_otp,
+    submit_password,
 )
 
 from conftest import FakeProfileSyncAdapter, FakeTdlibAuthAdapter
+from helpers.factories import seed_two_workspaces
 
 
 class LocalSettings(Settings):
@@ -137,6 +139,51 @@ def test_confirm_otp_materializes_authorized_ready(db_session) -> None:
     assert result.account.profile_state.last_name == "Blackburn"
     assert result.account.profile_state.username == "kingblackburn"
     assert result.account.profile_state.bio == "Live from Telegram"
+
+
+def test_confirm_otp_rejects_account_outside_workspace(db_session) -> None:
+    default_workspace_id, foreign_workspace_id = seed_two_workspaces(db_session)
+    adapter = FakeTdlibAuthAdapter()
+    started = start_otp(
+        db_session,
+        phone_number="+15550102000",
+        adapter=adapter,
+        workspace_id=default_workspace_id,
+    )
+    adapter.confirmed.clear()
+
+    with pytest.raises(ValueError, match="account not found"):
+        confirm_otp(
+            db_session,
+            account_id=started.account.id,
+            code="12345",
+            adapter=adapter,
+            workspace_id=foreign_workspace_id,
+        )
+
+    assert adapter.confirmed == []
+
+
+def test_submit_password_rejects_account_outside_workspace(db_session) -> None:
+    default_workspace_id, foreign_workspace_id = seed_two_workspaces(db_session)
+    adapter = FakeTdlibAuthAdapter()
+    started = start_otp(
+        db_session,
+        phone_number="+15550102000",
+        adapter=adapter,
+        workspace_id=default_workspace_id,
+    )
+
+    with pytest.raises(ValueError, match="account not found"):
+        submit_password(
+            db_session,
+            account_id=started.account.id,
+            password="secret",
+            adapter=adapter,
+            workspace_id=foreign_workspace_id,
+        )
+
+    assert adapter.passwords == []
 
 
 def test_closed_state_materializes_reauth_required(db_session) -> None:
@@ -310,3 +357,17 @@ def test_get_auth_state_returns_materialized_runtime(db_session) -> None:
 
     assert state.account.id == started.account.id
     assert state.runtime_state.runtime_health == "awaiting_code"
+
+
+def test_get_auth_state_rejects_account_outside_workspace(db_session) -> None:
+    default_workspace_id, foreign_workspace_id = seed_two_workspaces(db_session)
+    adapter = FakeTdlibAuthAdapter()
+    started = start_otp(
+        db_session,
+        phone_number="+15550102000",
+        adapter=adapter,
+        workspace_id=default_workspace_id,
+    )
+
+    with pytest.raises(ValueError, match="account not found"):
+        get_auth_state(db_session, started.account.id, workspace_id=foreign_workspace_id)

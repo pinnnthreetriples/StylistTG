@@ -7,6 +7,15 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.models import Account, AccountState, AssetKind, AssetStatus
+from app.modules.account_editing.errors import (
+    AccountAssetKindInvalidError,
+    AccountAssetNotFoundError,
+    AccountAssetNotReadyError,
+    ProfileAudioUnsupportedFormatError,
+    ProfileJobCooldownActiveError,
+    StoriesDisabledError,
+    StoriesTdlibLiveDisabledError,
+)
 from app.modules.account_editing.planner import (
     account_update_profile_payload,
     normalize_account_update_desired_state,
@@ -91,12 +100,12 @@ class AccountEditingPolicy:
         config: Settings,
     ) -> None:
         if is_profile_job_cooldown_active(self._session, account_id, config=config):
-            raise ValueError("profile job cooldown active")
+            raise ProfileJobCooldownActiveError()
         self._repo.check_workspace_job_limit(account.workspace_id)
         if desired_state.get("stories") and not config.stories_enabled:
-            raise ValueError("stories are disabled")
+            raise StoriesDisabledError()
         if desired_state.get("stories") and self._stories_live_execution_blocked(config):
-            raise ValueError("stories live TDLib execution is not enabled")
+            raise StoriesTdlibLiveDisabledError()
         safety = build_account_safety_for_account(self._session, account, config=config)
         safety_fields = safety_preview_fields_with_policy(safety, desired_state, config=config)
         create_blockers = self._create_job_safety_blockers(safety_fields["safety_blockers"])
@@ -166,13 +175,22 @@ class AccountEditingPolicy:
         asset_id = profile_audio.get("audio_asset_id")
         asset = self._repo.get_asset(asset_id=asset_id, workspace_id=workspace_id)
         if asset is None:
-            raise ValueError("audio asset not found")
+            raise AccountAssetNotFoundError(
+                field="profile_audio",
+                legacy_message="audio asset not found",
+            )
         if asset.kind != AssetKind.PROFILE_AUDIO:
-            raise ValueError("asset kind is not profile_audio")
+            raise AccountAssetKindInvalidError(
+                field="profile_audio",
+                legacy_message="asset kind is not profile_audio",
+            )
         if asset.status != AssetStatus.NORMALIZED:
-            raise ValueError("asset is not ready for profile audio execution")
+            raise AccountAssetNotReadyError(
+                field="profile_audio",
+                legacy_message="asset is not ready for profile audio execution",
+            )
         if asset.mime not in PROFILE_AUDIO_EXECUTION_MIMES:
-            raise ValueError("profile audio must be MP3 or M4A")
+            raise ProfileAudioUnsupportedFormatError()
         profile_audio["audio_asset_path"] = str(
             materialize_asset_to_local_path(asset, config=settings)
         )
@@ -184,16 +202,25 @@ class AccountEditingPolicy:
         for story in cast(list[dict[str, Any]], desired_state.get("stories") or []):
             asset = self._repo.get_asset(asset_id=story.get("asset_id"), workspace_id=workspace_id)
             if asset is None:
-                raise ValueError("story asset not found")
+                raise AccountAssetNotFoundError(
+                    field="stories",
+                    legacy_message="story asset not found",
+                )
             expected_kind = (
                 AssetKind.STORY_IMAGE
                 if story.get("action") == "post_image"
                 else AssetKind.STORY_VIDEO
             )
             if asset.kind != expected_kind:
-                raise ValueError(f"asset kind is not {expected_kind}")
+                raise AccountAssetKindInvalidError(
+                    field="photo_asset_id",
+                    legacy_message=f"asset kind is not {expected_kind}",
+                )
             if asset.status != AssetStatus.NORMALIZED:
-                raise ValueError("asset is not ready for story execution")
+                raise AccountAssetNotReadyError(
+                    field="stories",
+                    legacy_message="asset is not ready for story execution",
+                )
             story["asset_path"] = str(materialize_asset_to_local_path(asset, config=settings))
 
     def _stories_live_execution_blocked(self, config: Settings) -> bool:

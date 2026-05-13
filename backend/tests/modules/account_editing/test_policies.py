@@ -3,7 +3,13 @@ from __future__ import annotations
 import pytest
 
 from app.config import Settings
-from app.models import AccountState
+from app.models import AccountState, AssetKind
+from app.modules.account_editing.errors import (
+    AccountAssetKindInvalidError,
+    AccountAssetNotFoundError,
+    ProfileAudioUnsupportedFormatError,
+    StoriesDisabledError,
+)
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.planner import normalize_account_update_desired_state
 from app.services.accounts import create_account
@@ -124,7 +130,7 @@ def test_validate_job_creation_blocks_stories_when_stories_disabled(db_session) 
         {"stories": [{"action": "post_image", "asset_id": "story-missing"}]}
     )
 
-    with pytest.raises(ValueError, match="^stories are disabled$"):
+    with pytest.raises(StoriesDisabledError, match="^stories are disabled$"):
         _policy(db_session).validate_job_creation(
             account=account,
             account_id=account.id,
@@ -148,14 +154,47 @@ def test_profile_audio_title_is_trimmed_to_max_length(db_session) -> None:
     assert desired_state["profile_audio"]["title"] == "a" * 64
 
 
+def test_profile_audio_validation_rejects_unsupported_format(db_session) -> None:
+    account = seed_account_with_profile(db_session)
+    audio = seed_audio_asset(db_session)
+    audio.mime = "audio/ogg"
+    db_session.commit()
+
+    with pytest.raises(
+        ProfileAudioUnsupportedFormatError,
+        match="^profile audio must be MP3 or M4A$",
+    ):
+        _policy(db_session).normalize_desired_state_with_assets(
+            account_id=account.id,
+            desired_state={"profile_audio": {"action": "add", "audio_asset_id": audio.id}},
+            workspace_id=account.workspace_id,
+        )
+
+
 def test_story_asset_validation_rejects_missing_asset(db_session) -> None:
     account = seed_account_with_profile(db_session)
 
-    with pytest.raises(ValueError, match="^story asset not found$"):
+    with pytest.raises(AccountAssetNotFoundError, match="^story asset not found$"):
         _policy(db_session).normalize_desired_state_with_assets(
             account_id=account.id,
             desired_state={
                 "stories": [{"action": "post_image", "asset_id": "missing-story"}],
+            },
+            workspace_id=account.workspace_id,
+        )
+
+
+def test_story_asset_validation_rejects_wrong_asset_kind(db_session) -> None:
+    account = seed_account_with_profile(db_session)
+    audio = seed_audio_asset(db_session)
+    audio.kind = AssetKind.PROFILE_AUDIO
+    db_session.commit()
+
+    with pytest.raises(AccountAssetKindInvalidError, match="^asset kind is not story_image$"):
+        _policy(db_session).normalize_desired_state_with_assets(
+            account_id=account.id,
+            desired_state={
+                "stories": [{"action": "post_image", "asset_id": audio.id}],
             },
             workspace_id=account.workspace_id,
         )

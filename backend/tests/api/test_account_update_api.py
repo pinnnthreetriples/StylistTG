@@ -13,6 +13,12 @@ from app.models import (
     utc_now,
 )
 from app.config import Settings
+from app.api.account_update import _account_update_error
+from app.modules.account_editing.errors import (
+    AccountRuntimeUnusableError,
+    ProfileAudioUnsupportedFormatError,
+    StoriesDisabledError,
+)
 from app.modules.account_editing import service as account_editing_service
 from app.services.account_update_jobs import create_account_update_job
 from app.services.accounts import create_account
@@ -222,7 +228,35 @@ def test_account_update_preview_rejects_unsupported_profile_audio_asset(
     response = _audio_preview(app_client, account.id, audio.id)
 
     assert response.status_code == 400
-    assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"
+    payload = response.json()
+    assert payload["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"
+    assert payload["field_errors"] == [
+        {"field": "profile_audio", "message": "profile audio must be MP3 or M4A"}
+    ]
+
+
+@pytest.mark.parametrize(
+    ("exc", "status_code", "error_code", "error_class"),
+    [
+        (AccountRuntimeUnusableError(), 400, "RUNTIME_UNUSABLE", "runtime"),
+        (StoriesDisabledError(), 400, "STORIES_DISABLED", "capability"),
+        (
+            ProfileAudioUnsupportedFormatError(),
+            400,
+            "PROFILE_AUDIO_UNSUPPORTED_FORMAT",
+            "validation",
+        ),
+    ],
+)
+def test_account_update_error_accepts_typed_account_editing_errors(
+    exc, status_code, error_code, error_class
+) -> None:
+    app_error = _account_update_error(exc)
+
+    assert app_error.status_code == status_code
+    assert app_error.error_code == error_code
+    assert app_error.error_class == error_class
+    assert app_error.message == str(exc)
 
 
 def test_account_update_preview_accepts_story_image_asset(app_client, db_session) -> None:

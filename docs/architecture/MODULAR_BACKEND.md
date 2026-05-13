@@ -82,6 +82,26 @@ These wrappers should not regain ownership of new account update behavior.
 Warmup remains metadata/wrapper-only and has not been split into equivalent
 module-owned internals yet.
 
+## Phase 3D: Account Editing Typed Errors
+
+`account_editing` now owns typed domain errors in
+`app.modules.account_editing.errors`.
+
+- Module internals raise `AccountEditingError` subclasses for stable account
+  update failures such as missing accounts, runtime unusable accounts, manual
+  intervention blockers, profile cooldowns, asset validation failures, and story
+  capability blockers.
+- Public API behavior remains compatible: `/api/account-update` maps typed
+  errors to the same status codes, `error_code`, `error_class`, messages, and
+  field errors that legacy string-based `ValueError` handling exposed.
+- Legacy `ValueError` messages remain stable for old import paths. The
+  compatibility wrappers in `app.services.account_update_jobs` convert typed
+  module errors back into `ValueError` for callers that still depend on that
+  surface.
+- String-based API mapping remains as a fallback for shared or legacy validation
+  paths that have not been converted to typed account editing errors.
+- This was not a global backend error refactor.
+
 ## Warmup Module
 
 `app.modules.warmup` is metadata/wrapper-only in the current phase.

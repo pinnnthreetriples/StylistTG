@@ -13,6 +13,7 @@ from app.models import (
     utc_now,
 )
 from app.config import Settings
+from app.modules.account_editing import service as account_editing_service
 from app.services.account_update_jobs import create_account_update_job
 from app.services.accounts import create_account
 from conftest import seed_asset, seed_audio_asset, seed_story_asset
@@ -52,12 +53,13 @@ def test_account_update_create_queues_unified_job(app_client, db_session, monkey
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
-    enqueued: list[str] = []
+    enqueued: list[tuple[str, str]] = []
 
-    monkeypatch.setattr(
-        "app.api.account_update.enqueue_account_update_job",
-        lambda job_id: enqueued.append(job_id) or True,
-    )
+    def enqueue_workflow(*, workflow_type: str, job_id: str) -> bool:
+        enqueued.append((workflow_type, job_id))
+        return True
+
+    monkeypatch.setattr(account_editing_service, "enqueue_workflow", enqueue_workflow)
     response = app_client.post(
         "/api/account-update/jobs",
         json={
@@ -75,7 +77,7 @@ def test_account_update_create_queues_unified_job(app_client, db_session, monkey
     payload = response.json()
     assert payload["job_state"] == JobState.QUEUED
     assert payload["workflow_type"] == "account_update"
-    assert enqueued == [payload["job_id"]]
+    assert enqueued == [("account_update", payload["job_id"])]
 
 
 def test_account_update_create_returns_503_when_queue_enqueue_fails(
@@ -85,7 +87,7 @@ def test_account_update_create_returns_503_when_queue_enqueue_fails(
     account.account_state = AccountState.EXECUTION_USABLE
     db_session.commit()
 
-    monkeypatch.setattr("app.api.account_update.enqueue_account_update_job", lambda job_id: False)
+    monkeypatch.setattr(account_editing_service, "enqueue_job", lambda job_id: False)
     response = app_client.post(
         "/api/account-update/jobs",
         json={
@@ -96,6 +98,9 @@ def test_account_update_create_returns_503_when_queue_enqueue_fails(
 
     assert response.status_code == 503
     assert response.json()["error_code"] == "QUEUE_UNAVAILABLE"
+    job = db_session.query(Job).one()
+    assert job.job_state == JobState.FAILED
+    assert job.failure_reason == "enqueue_failed"
 
 
 def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(
@@ -106,16 +111,15 @@ def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(
     db_session.commit()
     inline_calls: list[str] = []
 
-    def run_inline(job_id: str, *, session) -> int:
+    def run_inline(job_id: str, *, session) -> None:
         inline_calls.append(job_id)
         job = session.get(Job, job_id)
         job.job_state = JobState.COMPLETED
         job.finished_at = utc_now()
         session.commit()
-        return 0
 
-    monkeypatch.setattr("app.api.account_update.enqueue_account_update_job", lambda job_id: False)
-    monkeypatch.setattr("app.api.account_update.execute_account_update_job", run_inline)
+    monkeypatch.setattr(account_editing_service, "enqueue_job", lambda job_id: False)
+    monkeypatch.setattr(account_editing_service, "execute_inline_fallback", run_inline)
     monkeypatch.setattr("app.api.account_update.settings.queue_inline_fallback_enabled", True)
     response = app_client.post(
         "/api/account-update/jobs",

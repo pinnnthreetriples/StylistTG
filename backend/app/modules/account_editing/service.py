@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
+from app.config import Settings, settings
 from app.job_queue.workflows import enqueue_workflow
 from app.models import Job
 from app.services.account_update_jobs import (
@@ -23,12 +24,14 @@ def build_preview(
     account_id: str,
     desired_state: dict[str, Any],
     workspace_id: str,
+    config: Settings = settings,
 ) -> dict[str, Any]:
     return build_account_update_preview(
         session,
         account_id=account_id,
         desired_state=desired_state,
         workspace_id=workspace_id,
+        config=config,
     )
 
 
@@ -40,12 +43,14 @@ def create_job(
     requested_by_user_id: str | None,
     request_id: str | None,
     workspace_id: str,
+    config: Settings = settings,
 ) -> Job:
     return create_account_update_job(
         session,
         account_id=account_id,
         desired_state=desired_state,
         execution_adapter=build_profile_execution_adapter(),
+        config=config,
         requested_by_user_id=requested_by_user_id,
         request_id=request_id,
         workspace_id=workspace_id,

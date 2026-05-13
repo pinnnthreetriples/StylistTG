@@ -65,6 +65,32 @@ def test_operator_token_allows_mutating_requests(monkeypatch) -> None:
     assert response.status_code == 200
 
 
+def test_operator_token_does_not_block_supabase_dashboard_mutations(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "auth_mode", "supabase_jwt")
+    monkeypatch.setattr(settings, "operator_api_token", "secret-token")
+    monkeypatch.setattr(settings, "tdlib_live_enabled", False)
+    monkeypatch.setattr(
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
+        lambda settings: _FakeVerifier(),
+    )
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    _, workspace = _seed_supabase_member(session_factory, role="operator")
+    override_app_session(session_factory)
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/accounts/auth-sessions",
+                headers={"Authorization": "Bearer role-token", "X-Workspace-Id": workspace.id},
+                json={"phone_number": "+15550104444", "label": "main"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+        engine.dispose()
+
+    assert response.status_code == 201
+
+
 def test_operator_guard_blocks_detailed_runtime_diagnostics(monkeypatch) -> None:
     monkeypatch.setattr(settings, "enforce_localhost_only", True)
     monkeypatch.setattr(settings, "operator_allowed_client_hosts", "127.0.0.1")

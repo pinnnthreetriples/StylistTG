@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import Settings, settings
 from app.services.account_safety import build_account_safety
 
 BATCH_STATUSES = ("ready", "needs_login", "paused", "limited", "blocked", "unknown")
@@ -16,9 +17,10 @@ def build_account_batch_safety_preview(
     operation: str,
     allow_warning_overrides: bool = False,
     workspace_id: str | None = None,
+    config: Settings = settings,
 ) -> dict[str, Any]:
     items = [
-        _build_item(build_account_safety(session, account_id), operation)
+        _build_item(build_account_safety(session, account_id, config=config), operation)
         for account_id in account_ids
         if workspace_id is None or _account_in_workspace(session, account_id, workspace_id)
     ]

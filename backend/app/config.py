@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     max_lock_wait_seconds: int = 60
     lock_retry_delay_seconds: int = 5
     stale_job_timeout_seconds: int = 300
-    stale_job_reaper_enabled: bool = True
+    stale_job_reaper_enabled: bool = False
     stale_job_reaper_interval_seconds: int = 60
     profile_job_cooldown_seconds: int = 120
     profile_update_cooldown_seconds: int = 300

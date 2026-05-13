@@ -182,9 +182,37 @@ def save_story_video_asset(
     actor_user_id: str | None = None,
     storage_service: StorageService | None = None,
 ) -> Asset:
-    _validate_content_not_empty(content, label="story video")
-    _validate_content_size(content, max_bytes, label="story video")
-    mime = _guess_story_video_mime(filename, content)
+    with tempfile.TemporaryDirectory(prefix="stylisttg-story-video-upload-") as temp_dir:
+        source_path = Path(temp_dir) / f"original{Path(filename).suffix or '.mp4'}"
+        source_path.write_bytes(content)
+        return save_story_video_asset_from_path(
+            session,
+            filename=filename,
+            source_path=source_path,
+            storage_root=storage_root,
+            max_bytes=max_bytes,
+            config=config,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            storage_service=storage_service,
+        )
+
+
+def save_story_video_asset_from_path(
+    session: Session,
+    *,
+    filename: str,
+    source_path: Path,
+    storage_root: Path,
+    max_bytes: int,
+    config: Settings = settings,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    actor_user_id: str | None = None,
+    storage_service: StorageService | None = None,
+) -> Asset:
+    _validate_file_not_empty(source_path, label="story video")
+    _validate_file_size(source_path, max_bytes, label="story video")
+    mime = _guess_story_video_mime(filename, _read_file_prefix(source_path))
     if mime not in STORY_VIDEO_ALLOWED_MIMES:
         raise ValueError("uploaded file is not a supported story video")
 
@@ -195,22 +223,22 @@ def save_story_video_asset(
     normalized_key = asset_normalized_key(asset_id, "story_video.mp4")
     try:
         if isinstance(storage, LocalStorageService):
-            source_object = storage.save_bytes(source_key, content, content_type=mime)
-            source_path = storage.resolve_path(source_key)
+            source_object = storage.save_file(source_key, source_path, content_type=mime)
+            stored_source_path = storage.resolve_path(source_key)
             normalized_dir = storage.resolve_path(asset_normalized_key(asset_id, ".keep")).parent
             normalized_dir.mkdir(parents=True, exist_ok=True)
-            normalized_path = _prepare_story_video(source_path, normalized_dir, config)
+            normalized_path = _prepare_story_video(stored_source_path, normalized_dir, config)
             normalized_key = normalized_path.relative_to(storage.root.resolve()).as_posix()
             normalized_object = storage.stat(normalized_key, content_type="video/mp4")
         else:
             with tempfile.TemporaryDirectory(prefix="stylisttg-story-video-") as temp_dir:
                 temp_root = Path(temp_dir)
-                source_path = temp_root / f"original{extension}"
-                source_path.write_bytes(content)
+                temp_source_path = temp_root / f"original{extension}"
+                temp_source_path.write_bytes(source_path.read_bytes())
                 normalized_dir = temp_root / "normalized"
                 normalized_dir.mkdir(parents=True, exist_ok=True)
-                normalized_path = _prepare_story_video(source_path, normalized_dir, config)
-                source_object = storage.save_bytes(source_key, content, content_type=mime)
+                normalized_path = _prepare_story_video(temp_source_path, normalized_dir, config)
+                source_object = storage.save_file(source_key, source_path, content_type=mime)
                 normalized_object = storage.save_file(
                     normalized_key,
                     normalized_path,
@@ -423,9 +451,24 @@ def _validate_content_not_empty(content: bytes, *, label: str) -> None:
         raise ValueError("uploaded file is empty")
 
 
+def _validate_file_not_empty(path: Path, *, label: str) -> None:
+    if path.stat().st_size <= 0:
+        raise ValueError("uploaded file is empty")
+
+
 def _validate_content_size(content: bytes, max_bytes: int, *, label: str) -> None:
     if len(content) > max_bytes:
         raise ValueError(f"uploaded {label} is too large")
+
+
+def _validate_file_size(path: Path, max_bytes: int, *, label: str) -> None:
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"uploaded {label} is too large")
+
+
+def _read_file_prefix(path: Path, size: int = 32) -> bytes:
+    with path.open("rb") as handle:
+        return handle.read(size)
 
 
 def _init_asset_storage(

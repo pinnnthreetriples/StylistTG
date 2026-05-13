@@ -17,6 +17,7 @@ from app.services.dashboard import job_summary
 from app.services.operation_logs import log_operation
 from app.services.warmup import warmup_operation_policy
 from app.config import settings
+from app.services.runtime_settings import execution_policy_settings
 
 router = APIRouter(prefix="/api/account-update", tags=["account-update"])
 
@@ -34,6 +35,7 @@ def preview_account_update(
             account_id=payload.account_id,
             desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
             workspace_id=auth.workspace_id,
+            config=execution_policy_settings(session),
         )
         log_operation(
             session,
@@ -86,6 +88,7 @@ def post_account_update_job(
             requested_by_user_id=auth.user_id,
             request_id=None,
             workspace_id=auth.workspace_id,
+            config=execution_policy_settings(session),
         )
         log_operation(
             session,

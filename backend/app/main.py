@@ -210,7 +210,11 @@ async def operator_guard_middleware(
             status_code=status.HTTP_403_FORBIDDEN,
             content={"detail": "operator API is available only from localhost"},
         )
-    if settings.operator_api_token and request.method not in {"GET", "HEAD", "OPTIONS"}:
+    if (
+        settings.auth_mode == "local"
+        and settings.operator_api_token
+        and request.method not in {"GET", "HEAD", "OPTIONS"}
+    ):
         if request.headers.get("X-Operator-Token") != settings.operator_api_token:
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,

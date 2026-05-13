@@ -1347,8 +1347,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Execution Policy */
-        get: operations["get_execution_policy_api_settings_execution_policy_get"];
+        /** Get Execution Policy Endpoint */
+        get: operations["get_execution_policy_endpoint_api_settings_execution_policy_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6946,7 +6946,7 @@ export interface operations {
             };
         };
     };
-    get_execution_policy_api_settings_execution_policy_get: {
+    get_execution_policy_endpoint_api_settings_execution_policy_get: {
         parameters: {
             query?: never;
             header?: never;

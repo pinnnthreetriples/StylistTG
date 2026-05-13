@@ -120,6 +120,9 @@ class TestCloudConfigEdgeCases:
         with pytest.raises(ValueError, match="STALE_JOB_REAPER_ENABLED"):
             Settings(**self._cloud_base(stale_job_reaper_enabled=True))
 
+    def test_api_background_reaper_is_disabled_by_default(self):
+        assert Settings().stale_job_reaper_enabled is False
+
     def test_cloud_rejects_inline_fallback_enabled(self):
         with pytest.raises(ValueError, match="QUEUE_INLINE_FALLBACK_ENABLED"):
             Settings(**self._cloud_base(queue_inline_fallback_enabled=True))

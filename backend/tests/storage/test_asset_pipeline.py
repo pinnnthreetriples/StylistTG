@@ -1,4 +1,5 @@
 from io import BytesIO
+from datetime import UTC, datetime
 
 import pytest
 from PIL import Image
@@ -84,3 +85,38 @@ def test_upload_endpoint_returns_specific_profile_audio_format_error(
 
     assert response.status_code == 400
     assert response.json()["error_code"] == "PROFILE_AUDIO_UNSUPPORTED_FORMAT"
+
+
+def test_story_video_upload_endpoint_streams_to_temp_file(app_client, monkeypatch) -> None:
+    from app.api import assets as assets_api
+
+    captured: dict[str, bytes] = {}
+
+    def fake_save_story_video_asset_from_path(*args, source_path, **kwargs):
+        captured["content"] = source_path.read_bytes()
+        return {
+            "id": "asset-video-1",
+            "kind": "story_video",
+            "source_path": "assets/asset-video-1/source/original.mp4",
+            "normalized_path": "assets/asset-video-1/normalized/story_video.mp4",
+            "storage_backend": "local",
+            "content_hash": "a" * 64,
+            "mime": "video/mp4",
+            "status": "normalized",
+            "created_at": datetime.now(UTC),
+        }
+
+    monkeypatch.setattr(
+        assets_api,
+        "save_story_video_asset_from_path",
+        fake_save_story_video_asset_from_path,
+        raising=False,
+    )
+
+    response = app_client.post(
+        "/api/assets/story-video",
+        files={"file": ("story.mp4", b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 16, "video/mp4")},
+    )
+
+    assert response.status_code == 201
+    assert captured["content"].startswith(b"\x00\x00\x00\x18ftyp")

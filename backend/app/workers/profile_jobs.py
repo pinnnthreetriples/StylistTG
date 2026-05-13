@@ -91,11 +91,19 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         )
         plan_path = handle.name
 
+    backend_root = str(Path(__file__).resolve().parents[2])
+    child_env = os.environ.copy()
+    existing_pythonpath = child_env.get("PYTHONPATH")
+    child_env["PYTHONPATH"] = (
+        f"{backend_root}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else backend_root
+    )
+
     process = subprocess.Popen(
         [sys.executable, str(script_path), job_id, "--plan-file", plan_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        env=child_env,
     )
     log_event(
         "subprocess_launch",

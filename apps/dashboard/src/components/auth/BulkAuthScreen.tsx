@@ -1,18 +1,8 @@
-import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, ShieldCheck, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, UserPlus, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@stylisttg/ui'
-import { AuthSessionStatusCard } from '@/features/auth/AuthSessionStatusCard'
-import { SubmitCodeForm } from '@/features/auth/SubmitCodeForm'
-import { SubmitPasswordForm } from '@/features/auth/SubmitPasswordForm'
-import { redactAuthUiError } from '@/features/auth/authUiSecurity'
-import {
-  cancelTelegramAuthSession,
-  createTelegramAuthSession,
-  submitTelegramAuthCode,
-  submitTelegramAuthPassword,
-  type TelegramAuthSession,
-} from '@/lib/api'
+import { createAndStartAuthBatchFromValidation } from '@/components/auth/BulkAuthScreen.logic'
 import {
   buildAuthBatchPrimaryActionLabel,
   buildAuthBatchValidationMessage,
@@ -62,7 +52,6 @@ export function BulkAuthScreen({
   const [label, setLabel] = useState(draft.label)
   const [validation, setValidation] = useState<AuthBatchValidation | null>(null)
   const [snapshot, setSnapshot] = useState<AuthBatchSnapshot | null>(null)
-  const [session, setSession] = useState<TelegramAuthSession | null>(null)
   const [isBusy, setIsBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastPollRef = useRef<string | null>(null)
@@ -78,7 +67,6 @@ export function BulkAuthScreen({
     (validation === null || validation.valid_items.length > 0)
   const primaryActionLabel = buildAuthBatchPrimaryActionLabel(parsedItems.length)
   const waitingItems = snapshot?.items.filter((item) => item.status === 'waiting_code' || item.status === 'waiting_2fa') ?? []
-  const selectedSessionId = session?.id
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -144,26 +132,16 @@ export function BulkAuthScreen({
         setError(validationMessage)
         return
       }
-      if (currentValidation.valid_items.length === 1) {
-        const item = currentValidation.valid_items[0]
-        const createdSession = await createTelegramAuthSession({
-          phone_number: item.phone_number,
-          label: item.label ?? (label || undefined),
-        })
-        setSession(createdSession)
-        setSnapshot(null)
-        return
-      }
-      const created = await createAuthBatch({
-        idempotency_key: crypto.randomUUID(),
-        label: label || null,
-        items: currentValidation.valid_items.map((item) => ({ phone_number: item.phone_number, label: item.label })),
-        max_running_commands: 2,
-        max_waiting_input: 5,
-        max_total_active: 6,
+      const started = await createAndStartAuthBatchFromValidation({
+        createBatch: createAuthBatch,
+        currentValidation,
+        idempotencyKey: crypto.randomUUID(),
+        label,
+        onCreatedBatch: (batchId) => {
+          createdBatchId = batchId
+        },
+        startBatch: startAuthBatch,
       })
-      createdBatchId = created.batch.id
-      const started = await startAuthBatch(created.batch.id)
       lastPollRef.current = started.server_time
       rememberBatch(started.batch.id)
       setSnapshot(started)
@@ -252,7 +230,6 @@ export function BulkAuthScreen({
             onChange={(e) => {
               setRawInput(sanitizeBulkPhoneInput(e.target.value))
               setValidation(null)
-              setSession(null)
             }}
             placeholder="+79990000001&#10;79990000002, Марина"
             value={rawInput}
@@ -276,24 +253,20 @@ export function BulkAuthScreen({
             <Button className="min-w-28" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button" variant="secondary">
               Проверить
             </Button>
-            <Button className="flex-1" disabled={!canCreate} onClick={handleCreateAndStart} type="button">
-              {isBusy ? <Loader2 className="mx-auto size-4 animate-spin" /> : primaryActionLabel}
+            <Button
+              className="min-w-0 flex-1"
+              disabled={!canCreate}
+              icon={isBusy ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
+              onClick={handleCreateAndStart}
+              type="button"
+            >
+              {isBusy ? 'Добавляем...' : primaryActionLabel}
             </Button>
           </div>
         </section>
 
         <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
-          {session ? (
-            <SingleAuthDashboard
-              error={error}
-              pending={isBusy}
-              selectedSessionId={selectedSessionId}
-              session={session}
-              setError={setError}
-              setIsBusy={setIsBusy}
-              setSession={setSession}
-            />
-          ) : snapshot ? (
+          {snapshot ? (
             <BatchDashboard
               isBusy={isBusy}
               onCancel={() => void updateSnapshot(() => cancelAuthBatch(snapshot.batch.id))}
@@ -545,67 +518,6 @@ function readDraft(): { label: string; rawInput: string } {
   } catch {
     return { label: '', rawInput: '' }
   }
-}
-
-function SingleAuthDashboard({
-  error,
-  pending,
-  selectedSessionId,
-  session,
-  setError,
-  setIsBusy,
-  setSession,
-}: {
-  error: string | null
-  pending: boolean
-  selectedSessionId?: string
-  session: TelegramAuthSession
-  setError: (error: string | null) => void
-  setIsBusy: (pending: boolean) => void
-  setSession: (session: TelegramAuthSession) => void
-}) {
-  async function run(action: () => Promise<TelegramAuthSession>) {
-    setIsBusy(true)
-    setError(null)
-    try {
-      setSession(await action())
-    } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : 'Действие авторизации не выполнено безопасно.')
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
-  return (
-    <div className="grid gap-4">
-      <AuthSessionStatusCard session={session} />
-      {session.requires_code && selectedSessionId ? (
-        <SubmitCodeForm disabled={pending} onSubmitCode={(code) => run(() => submitTelegramAuthCode(selectedSessionId, { code }))} />
-      ) : null}
-      {session.requires_password && selectedSessionId ? (
-        <SubmitPasswordForm
-          disabled={pending}
-          onSubmitPassword={(password) => run(() => submitTelegramAuthPassword(selectedSessionId, { password }))}
-        />
-      ) : null}
-      {selectedSessionId && session.status !== 'canceled' ? (
-        <div>
-          <Button disabled={pending} onClick={() => void run(() => cancelTelegramAuthSession(selectedSessionId))} type="button" variant="secondary">
-            Отменить вход
-          </Button>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
-          {redactAuthUiError(error)}
-        </div>
-      ) : null}
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        <ShieldCheck className="size-4" />
-        Коды и пароли не сохраняются в браузере.
-      </div>
-    </div>
-  )
 }
 
 function newLinesOnly(validation: AuthBatchValidation | null, lines: ReturnType<typeof parseBulkPhoneLines>): string[] {

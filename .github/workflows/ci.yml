@@ -9,9 +9,33 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      browser-qa: ${{ steps.filter.outputs.browser-qa }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dorny/paths-filter@6852f92c20ea7fd3b0c25de3b5112db3a98da050 # v3
+        id: filter
+        with:
+          filters: |
+            browser-qa:
+              - 'apps/dashboard/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/ci.yml'
+              - 'playwright.config.*'
+              - '**/playwright.config.*'
+              - '**/e2e/**'
+
   backend:
-    name: Backend
+    name: Backend (Python 3.12)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -51,35 +75,41 @@ jobs:
       TDLIB_API_ID: "0"
       TDLIB_API_HASH: ""
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.13"
-          cache: pip
+          python-version: "3.12"
       - name: Install backend dependencies
         working-directory: backend
-        run: python -m pip install -e ".[dev]"
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
       - name: Alembic heads
         working-directory: backend
-        run: python -m alembic heads
+        run: uv run alembic heads
       - name: Alembic upgrade
         working-directory: backend
-        run: python -m alembic upgrade head
+        run: uv run alembic upgrade head
       - name: Migration smoke
         working-directory: backend
-        run: python -m app.tools.migration_smoke
+        run: uv run python -m app.tools.migration_smoke
       - name: Ruff
         working-directory: backend
-        run: python -m ruff check .
+        run: uv run ruff check .
+      - name: pip-audit
+        working-directory: backend
+        run: |
+          uv export --locked --extra dev --format requirements-txt --output-file requirements.audit.txt >/dev/null
+          uv run --extra dev python -m pip_audit -r requirements.audit.txt --progress-spinner=off
       - name: Pyright
         working-directory: backend
-        run: python -m pyright app/api app/services app/schemas.py app/config.py app/workers
+        run: uv run pyright app/api app/services app/schemas.py app/config.py app/workers
       - name: Pytest
         working-directory: backend
-        run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml
+        run: uv run pytest --cov=app --cov-report=term-missing --cov-report=xml
       - name: Compileall
         working-directory: backend
-        run: python -m compileall app
+        run: uv run python -m compileall app
       - name: Build backend Docker image
         run: docker build -f backend/Dockerfile -t stylisttg-backend:test .
 
@@ -87,20 +117,24 @@ jobs:
     name: Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.13"
-          cache: pip
+          python-version: "3.12"
       - name: Install frontend dependencies
         run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
       - name: Install backend dependencies for OpenAPI export
         working-directory: backend
-        run: python -m pip install -e ".[dev]"
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: OpenAPI drift check
         run: npm run check:api
       - name: Lint
@@ -113,15 +147,17 @@ jobs:
   browser-qa:
     name: Browser QA
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.browser-qa == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
       - name: Install frontend dependencies
         run: npm ci
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --only-shell chromium
       - name: Browser QA
         run: npm run qa:browser

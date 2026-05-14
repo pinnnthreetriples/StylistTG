@@ -3,24 +3,11 @@
 ## Goal
 
 `app.modules.warmup` is the canonical module boundary for Account Preparation /
-Warmup workflow metadata and job entrypoints.
+Warmup workflow metadata, API contracts, use cases, and job entrypoints.
 
-Phase 4 is an ownership migration, not a warmup redesign. Public API behavior,
-execution modes, queues, deterministic job ids, and legacy import paths remain
-stable.
-
-## Current Phase 6 Scope
-
-Phase 6 hardens warmup ownership after the Phase 4 wrapper-first migration:
-
-- Workflow metadata already lives in `app.modules.warmup.module`.
-- RQ handler paths point at `app.modules.warmup.jobs`.
-- Existing enqueue helpers delegate through the workflow registry.
-- Warmup service, events, worker, dispatcher, isolation, readiness, and p2p
-  implementation bodies now live under `app.modules.warmup`.
-- Legacy `app.services.warmup*` files remain import-compatible wrappers.
-
-The phase intentionally avoids repository, policies, and typed-error extraction.
+This is an ownership migration, not a warmup redesign. Public API behavior,
+execution modes, workflow types, queues, deterministic job ids, no-arg handlers,
+TDLib/live gates, and legacy import paths remain stable.
 
 ## Canonical Module Path
 
@@ -28,40 +15,65 @@ The canonical warmup module boundary is:
 
 ```text
 backend/app/modules/warmup/
+  __init__.py
   module.py
-  jobs.py
+  contracts.py
+  repository.py
+  policies.py
+  errors.py
+  read_models.py
+  queries.py
+  commands.py
   service.py
-  isolation.py
-  readiness.py
-  p2p.py
+  router.py
+  jobs.py
   worker.py
   dispatcher.py
   events.py
-  router.py
+  isolation.py
+  readiness.py
+  p2p.py
 ```
 
-`jobs.py` is the canonical no-arg RQ handler entrypoint. It creates the worker id,
-opens `SessionLocal`, and delegates processing through the module worker and
-dispatcher facades.
+Ownership:
+
+- `contracts.py` owns warmup Pydantic API DTOs and must not import ORM/runtime
+  dependencies.
+- `repository.py` owns ORM query helpers and must not import FastAPI or API
+  helpers.
+- `policies.py` owns warmup business rules and status-transition decisions.
+- `errors.py` owns module-scoped typed warmup errors.
+- `read_models.py` owns DTO assembly from warmup runtime state.
+- `queries.py` owns read-only warmup use cases.
+- `commands.py` owns mutating warmup use cases and queue-failure transitions.
+- `service.py` is the compatibility/use-case facade and re-exports query and
+  command functions under stable public names.
+- `router.py` is the FastAPI presentation boundary.
+- `jobs.py` is the canonical no-arg RQ handler entrypoint. It creates the worker
+  id, opens `SessionLocal`, and delegates processing through the module worker
+  and dispatcher facades.
 
 ## Legacy Compatibility Paths
 
-These paths remain import-compatible:
+These paths remain import-compatible wrappers:
 
 ```text
 app.services.warmup
 app.services.warmup_worker
 app.services.warmup_dispatch
+app.services.warmup_isolation
+app.services.warmup_readiness
+app.services.warmup_p2p
 app.workers.warmup_jobs
 app.workers.warmup_dispatch_jobs
 ```
 
-These files now delegate to `app.modules.warmup`. `app.modules.warmup` must not
+These files delegate to `app.modules.warmup`. `app.modules.warmup` must not
 import `app.services.warmup*` or `app.workers.warmup*`.
 
 ## Workflow Registry Integration
 
-Warmup enqueue helpers in `app.job_queue.rq` now delegate to `enqueue_workflow()`
+Warmup enqueue helpers in `app.job_queue.rq` delegate to `enqueue_workflow()`
 with existing deterministic job ids:
 
 | Workflow type | Queue | Job id | Args mode |
@@ -85,7 +97,7 @@ The workflow registry uses `WorkflowArgsMode.NONE`, so enqueueing produces
 
 ## Execution Modes Preserved
 
-Phase 4 does not change execution mode semantics:
+Warmup module splitting does not change execution mode semantics:
 
 - dry-run remains dry-run;
 - shadow remains simulation-only;
@@ -97,17 +109,6 @@ Phase 4 does not change execution mode semantics:
 
 Live TDLib behavior remains gated and must not be enabled without explicit
 operator approval.
-
-## Deferred Work
-
-Later phases may split warmup internals further:
-
-- split DB helpers into `repository.py`;
-- split business checks into `policies.py`;
-- add typed warmup errors in `errors.py`;
-- remove legacy wrappers after call-site audits show no users.
-
-Those phases need behavior-matching tests before any implementation move.
 
 ## What Must Not Change Casually
 

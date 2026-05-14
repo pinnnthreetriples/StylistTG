@@ -10,11 +10,14 @@ The current goal is a safe foundation, not a large rewrite. Existing public API
 paths, job models, job states, workflow identifiers, and worker behavior remain
 the compatibility contract.
 
-## Current Phase: Module-Owned Runtime Boundaries
+## Current Phase: Stabilized Module Boundaries
 
 The current backend has module-owned runtime boundaries for `account_update` and
-warmup. This is still compatibility-first: public routes, workflow identifiers,
-models, queues, and worker behavior remain the compatibility contract.
+warmup. Warmup is now split into canonical contracts, repository, policies,
+errors, query/read-model, command, router, worker, and dispatcher modules. This
+is still compatibility-first: public routes, workflow identifiers, models,
+queues, deterministic job ids, no-arg handlers, and worker behavior remain the
+compatibility contract.
 
 - `FeatureModule` stores lazy `router_path` strings, not `APIRouter` objects.
 - `main.py` registers module routers through `app.modules.registry.iter_routers()`.
@@ -82,8 +85,8 @@ These wrappers should not regain ownership of new account update behavior.
 - `planner.py` still owns plan construction and execution intent hashing.
 - `executor.py` still owns job execution and result materialization.
 
-Warmup remains metadata/wrapper-only and has not been split into equivalent
-module-owned internals yet.
+Warmup has since been split into equivalent module-owned internals; see the
+Warmup Module section below.
 
 ## Phase 3D: Account Editing Typed Errors
 
@@ -107,9 +110,10 @@ module-owned internals yet.
 
 ## Warmup Module
 
-`app.modules.warmup` is the canonical module boundary for warmup. Phase 6 moved
-the warmup implementation bodies into module-owned files without changing
-behavior.
+`app.modules.warmup` is the canonical module boundary for warmup. The warmup
+split is behavior-preserving and does not change public API paths, workflow
+types, queue names, deterministic job ids, no-arg handlers, model behavior, or
+TDLib/live execution gates.
 
 Current workflows:
 
@@ -122,12 +126,21 @@ deterministic job ids.
 Current ownership rules:
 
 - Public warmup API paths remain unchanged.
+- `app.modules.warmup.contracts` owns warmup Pydantic API DTOs.
+- `app.modules.warmup.repository` owns warmup ORM query helpers.
+- `app.modules.warmup.policies` owns warmup business/state-transition rules.
+- `app.modules.warmup.errors` owns typed module-scoped warmup errors.
+- `app.modules.warmup.read_models` owns DTO assembly from warmup runtime state.
+- `app.modules.warmup.queries` owns read-only use cases.
+- `app.modules.warmup.commands` owns mutating use cases.
+- `app.modules.warmup.router` is the FastAPI presentation boundary.
+- `app.modules.warmup.service` remains the stable facade and re-exports query
+  and command functions for router and legacy wrapper compatibility.
 - `app.modules.warmup.jobs` is the canonical no-arg RQ handler entrypoint.
 - Legacy worker entrypoints delegate to module jobs.
 - Existing `app.services.warmup*` files are compatibility wrappers.
-- Warmup isolation, readiness, p2p, event, worker, dispatcher, and service
+- Warmup isolation, readiness, p2p, event, worker, and dispatcher
   implementations live under `app.modules.warmup`.
-- Repository/policies/errors split is deferred.
 
 See `docs/architecture/WARMUP_MODULE.md` for the warmup-specific boundary.
 
@@ -179,7 +192,7 @@ Possible future phases should stay narrow:
 
 - Continue splitting account editing internals only when behavior-matching tests
   exist first.
-- Move remaining warmup internals into repository/policies/errors only as
-  separate dry-run/shadow/live-safe slices.
+- Continue warmup cleanup only as behavior-preserving slices guarded by
+  architecture and runtime tests.
 - Retire legacy compatibility functions only after call-site audits show no users.
 - Extend architecture contracts when new modules need new public interfaces.

@@ -30,6 +30,8 @@ not a behavior rewrite.
 - A module must not introduce a new workflow type for an existing persisted workflow.
 - Cross-cutting runtime behavior should remain in existing shared services until a
   separate migration has tests for the full behavior.
+- Module boundary rules are enforced by tests in `backend/tests/architecture/`.
+  See `docs/architecture/boundary-enforcement.md`.
 
 ## Account Editing Module
 
@@ -165,3 +167,4 @@ Possible future phases should stay narrow:
 - Introduce router registry only after duplicate-route risks are handled.
 - Move warmup internals only as separate dry-run/shadow/live-safe slices.
 - Retire legacy compatibility functions only after call-site audits show no users.
+- Extend architecture contracts when new modules need new public interfaces.

@@ -1,3 +1,9 @@
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.warmup.readiness
+Do not add new behavior here.
+"""
+
 from __future__ import annotations
 
 from app.modules.warmup import readiness as _readiness

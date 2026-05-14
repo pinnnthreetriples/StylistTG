@@ -1,3 +1,9 @@
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.warmup.router
+Do not add new behavior here.
+"""
+
 from __future__ import annotations
 
 import sys

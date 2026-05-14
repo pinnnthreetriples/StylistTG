@@ -13,7 +13,7 @@ from app.models import (
     WarmupSession,
     WarmupStrategy,
 )
-from app.schemas import (
+from app.modules.warmup.contracts import (
     WarmupCheckItemRead,
     WarmupCheckSeverityRead,
     WarmupValidateRead,

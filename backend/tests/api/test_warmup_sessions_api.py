@@ -16,6 +16,7 @@ from app.models import (
     WarmupStrategy,
     new_id,
 )
+from app.modules.warmup.errors import WarmupIsolationConflictError
 from app.services.accounts import create_account
 from app.services.warmup import (
     create_warmup_session,
@@ -26,6 +27,7 @@ from app.services.warmup import (
     pause_warmup_session,
     resume_warmup_session,
 )
+from app.services.warmup_isolation import acquire_claim
 
 
 def test_create_warmup_session_schedules_session_and_writes_event(db_session) -> None:
@@ -86,6 +88,30 @@ def test_create_warmup_session_rejects_duplicate_active_session(db_session) -> N
             strategy_id=first.strategy_id,
             workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         )
+
+
+def test_create_live_warmup_session_raises_typed_isolation_conflict(db_session) -> None:
+    account = _seed_ready_account(db_session)
+    strategy = _seed_strategy(db_session)
+    strategy.execution_mode = WarmupExecutionMode.SHADOW.value
+    acquire_claim(
+        db_session,
+        account_id=account.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        held_by="warmup:other-session",
+        reason="existing warmup",
+    )
+    db_session.commit()
+
+    with pytest.raises(WarmupIsolationConflictError) as excinfo:
+        create_warmup_session(
+            db_session,
+            account_id=account.id,
+            strategy_id=strategy.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+
+    assert excinfo.value.legacy_message == "account is already isolated by another warmup session"
 
 
 def test_list_detail_status_and_events(db_session) -> None:
@@ -200,7 +226,8 @@ def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(
     enqueued: list[str] = []
 
     monkeypatch.setattr(
-        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        lambda: enqueued.append("warmup") or True,
     )
 
     response = app_client.post(
@@ -219,9 +246,10 @@ def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(
     strategy = _seed_strategy(db_session)
     enqueued: list[str] = []
 
-    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
     monkeypatch.setattr(
-        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("warmup") or True
+        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        lambda: enqueued.append("warmup") or True,
     )
 
     response = app_client.post(
@@ -239,8 +267,8 @@ def test_create_warmup_session_marks_session_failed_when_enqueue_fails(
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
 
-    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.api.warmup.enqueue_warmup_due_sessions", lambda: False)
+    monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.modules.warmup.service.enqueue_warmup_due_sessions", lambda: False)
 
     response = app_client.post(
         "/api/warmup/sessions",
@@ -390,12 +418,14 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
     db_session.commit()
     enqueued: list[str] = []
 
-    monkeypatch.setattr("app.api.warmup.settings.warmup_workers_enabled", True)
+    monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
     monkeypatch.setattr(
-        "app.api.warmup.enqueue_warmup_due_sessions", lambda: enqueued.append("dry") or True
+        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        lambda: enqueued.append("dry") or True,
     )
     monkeypatch.setattr(
-        "app.api.warmup.enqueue_warmup_dispatch_tick", lambda: enqueued.append("dispatch") or True
+        "app.modules.warmup.service.enqueue_warmup_dispatch_tick",
+        lambda: enqueued.append("dispatch") or True,
     )
     response = app_client.post(
         "/api/warmup/sessions",

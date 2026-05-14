@@ -18,7 +18,7 @@ last_updated: 2026-05-13
 
 ## Secrets and runtime data
 
-- Do not read, copy, commit, or summarize `.env*`, `backend/.env`, `apps/dashboard/.env.local`, or cloud/local secret files unless the user explicitly approves the exact file/action.
+- Do not read, copy, commit, or summarize environment files, dashboard local env files, backend local env files, or cloud/local secret files unless the user explicitly approves the exact file/action.
 - Do not read or delete `backend/tdlib/` without explicit approval.
 - Logs, artifacts, TDLib sessions, proxy credentials, raw TDLib paths, auth codes, and message bodies must not enter memory files.
 

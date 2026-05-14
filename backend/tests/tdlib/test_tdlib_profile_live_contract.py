@@ -9,18 +9,19 @@ from app.config import settings
 
 @pytest.mark.integration
 @pytest.mark.live
+@pytest.mark.skipif(
+    not os.getenv("TDLIB_TEST_ACCOUNT_ID")
+    or not os.getenv("TDLIB_API_ID")
+    or not os.getenv("TDLIB_API_HASH")
+    or os.getenv("TDLIB_TEST_ORIGINAL_BIO") is None,
+    reason=(
+        "requires live TDLib account credentials and TDLIB_TEST_ORIGINAL_BIO "
+        "so the test can restore the profile"
+    ),
+)
 def test_live_tdlib_profile_execution_contract() -> None:
-    account_id = os.getenv("TDLIB_TEST_ACCOUNT_ID")
-    original_bio = os.getenv("TDLIB_TEST_ORIGINAL_BIO")
-    if not account_id or not os.getenv("TDLIB_API_ID") or not os.getenv("TDLIB_API_HASH"):
-        pytest.skip(
-            "Set TDLIB_TEST_ACCOUNT_ID, TDLIB_API_ID and TDLIB_API_HASH to run live profile tests"
-        )
-    if original_bio is None:
-        pytest.skip(
-            "Set TDLIB_TEST_ORIGINAL_BIO to the current bio of the test account "
-            "(may be empty string) so the test can restore it after execution"
-        )
+    account_id = os.environ["TDLIB_TEST_ACCOUNT_ID"]
+    original_bio = os.environ["TDLIB_TEST_ORIGINAL_BIO"]
 
     adapter = TdlibProfileExecutionAdapter(
         client_factory=RealTdJsonClientFactory(settings.tdlib_shared_library_path),

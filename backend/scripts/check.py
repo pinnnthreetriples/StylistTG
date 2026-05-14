@@ -1,4 +1,4 @@
-"""Local quality gate — runs all checks that CI runs.
+"""Local backend quality gate aligned with CI/Test Quality checks.
 
 Usage:
     python scripts/check.py            # run everything (recommended before push)
@@ -6,7 +6,7 @@ Usage:
     python scripts/check.py --skip pyright pip-audit
     python scripts/check.py --only ruff analyzer
 
-This is the source of truth for what passes CI. Run before every push.
+Run before every push.
 Exit code reflects worst single check (0 = all pass, 1 = any fail, 2 = setup error).
 """
 
@@ -34,13 +34,27 @@ class Check:
 
 
 CHECKS: list[Check] = [
-    Check("ruff-lint", ["python", "-m", "ruff", "check", "."], REPO_ROOT),
-    Check("ruff-format", ["python", "-m", "ruff", "format", "--check", "."], REPO_ROOT),
-    Check("pyright", ["python", "-m", "pyright"], REPO_ROOT, soft=True),
+    Check("ruff-lint", [sys.executable, "-m", "ruff", "check", "."], REPO_ROOT),
+    Check("ruff-format", [sys.executable, "-m", "ruff", "format", "--check", "."], REPO_ROOT),
+    Check(
+        "pyright-ci",
+        [
+            sys.executable,
+            "-m",
+            "pyright",
+            "app/api",
+            "app/services",
+            "app/schemas.py",
+            "app/config.py",
+            "app/workers",
+        ],
+        REPO_ROOT,
+    ),
+    Check("pyright-strict", [sys.executable, "-m", "pyright"], REPO_ROOT, soft=True),
     Check(
         "pytest+coverage",
         [
-            "python",
+            sys.executable,
             "-m",
             "pytest",
             "tests",
@@ -52,20 +66,23 @@ CHECKS: list[Check] = [
             "--cov=app",
             "--cov=tools",
             "--cov-branch",
+            "--cov-context=test",
             "--cov-report=json:reports/coverage.json",
             "--cov-report=term-missing:skip-covered",
         ],
         REPO_ROOT,
     ),
-    Check("coverage-gate", ["python", "scripts/coverage_gate.py"], REPO_ROOT),
+    Check("coverage-gate", [sys.executable, "scripts/coverage_gate.py"], REPO_ROOT),
     Check(
         "test-analyzer",
         [
-            "python",
+            sys.executable,
             "-m",
             "tools.test_analyzer",
             "--path",
             "tests",
+            "--coverage",
+            "reports/coverage.json",
             "--severity",
             "INFO",
         ],
@@ -76,9 +93,8 @@ CHECKS: list[Check] = [
         # --skip-editable: don't try to audit our own editable install.
         # Plain mode (no --strict) returns exit 1 only on real CVEs, which is
         # exactly the failure condition we want.
-        ["python", "-m", "pip_audit", "--skip-editable", "--progress-spinner=off"],
+        [sys.executable, "-m", "pip_audit", "--skip-editable", "--progress-spinner=off"],
         REPO_ROOT,
-        soft=True,
     ),
 ]
 
@@ -101,7 +117,7 @@ def _run(check: Check, verbose: bool) -> tuple[bool, float]:
 
     elapsed = time.monotonic() - start
     if result.returncode == 0:
-        print(f"  ✓ {check.name} ({elapsed:.1f}s)")
+        print(f"  PASS {check.name} ({elapsed:.1f}s)")
         return True, elapsed
 
     if not verbose and result.stdout:
@@ -110,7 +126,7 @@ def _run(check: Check, verbose: bool) -> tuple[bool, float]:
         sys.stdout.write("\n")
 
     severity = "SOFT-FAIL" if check.soft else "FAIL"
-    print(f"  ✗ {check.name} ({elapsed:.1f}s) [{severity}, exit={result.returncode}]")
+    print(f"  {severity} {check.name} ({elapsed:.1f}s) [exit={result.returncode}]")
     return check.soft, elapsed
 
 
@@ -126,7 +142,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    fast_skip = {"pyright", "coverage-gate", "pip-audit"} if args.fast else set()
+    fast_skip = (
+        {"pyright-ci", "pyright-strict", "coverage-gate", "pip-audit"} if args.fast else set()
+    )
     skip = set(args.skip) | fast_skip
     only = set(args.only)
 
@@ -154,12 +172,12 @@ def main() -> int:
 
     print("\n" + "=" * 60)
     if failures:
-        print(f"GATE FAILED ({len(failures)} hard fail) — total {total_elapsed:.1f}s")
+        print(f"GATE FAILED ({len(failures)} hard fail) - total {total_elapsed:.1f}s")
         for name in failures:
             print(f"  - {name}")
         return 1
 
-    print(f"GATE PASSED ({len(to_run)} checks) — total {total_elapsed:.1f}s")
+    print(f"GATE PASSED ({len(to_run)} checks) - total {total_elapsed:.1f}s")
     return 0
 
 

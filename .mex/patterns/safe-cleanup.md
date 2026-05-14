@@ -32,8 +32,8 @@ Use `git clean -ndX` only for dry-run discovery. Do not run blanket `git clean -
 
 ## Never delete without explicit approval
 
-- `.env*`.
-- `apps/dashboard/.env.local`.
-- `backend/.env`.
+- Environment files.
+- Dashboard local env files.
+- Backend local env files.
 - `backend/tdlib/`.
 - Any local credentials, sessions, or production-like runtime data.

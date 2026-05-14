@@ -66,8 +66,8 @@ def test_module_facades_are_canonical_owners() -> None:
     assert dispatcher.process_due_warmup_dispatches.__module__ == "app.modules.warmup.dispatcher"
 
 
-def test_warmup_service_facade_reexports_query_command_and_read_model_functions() -> None:
-    from app.modules.warmup import commands, queries, read_models, service
+def test_warmup_service_facade_reexports_query_functions() -> None:
+    from app.modules.warmup import queries, service
 
     assert service.get_warmup_readiness is queries.get_warmup_readiness
     assert service.validate_warmup is queries.validate_warmup
@@ -79,6 +79,10 @@ def test_warmup_service_facade_reexports_query_command_and_read_model_functions(
     assert service.get_warmup_isolation_status is queries.get_warmup_isolation_status
     assert service.warmup_operation_policy is queries.warmup_operation_policy
 
+
+def test_warmup_service_facade_reexports_command_functions() -> None:
+    from app.modules.warmup import commands, service
+
     assert service.create_warmup_session is commands.create_warmup_session
     assert service.create_warmup_session_use_case is commands.create_warmup_session_use_case
     assert service.pause_warmup_session is commands.pause_warmup_session
@@ -87,6 +91,10 @@ def test_warmup_service_facade_reexports_query_command_and_read_model_functions(
     assert service.resume_warmup_session_use_case is commands.resume_warmup_session_use_case
     assert service.delete_warmup_session is commands.delete_warmup_session
     assert service.delete_warmup_session_use_case is commands.delete_warmup_session_use_case
+
+
+def test_warmup_service_facade_reexports_read_model_functions() -> None:
+    from app.modules.warmup import read_models, service
 
     assert service.session_read is read_models.session_read
     assert service.session_summary is read_models.session_summary

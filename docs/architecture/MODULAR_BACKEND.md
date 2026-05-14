@@ -85,8 +85,8 @@ These wrappers should not regain ownership of new account update behavior.
 - `planner.py` still owns plan construction and execution intent hashing.
 - `executor.py` still owns job execution and result materialization.
 
-Warmup remains metadata/wrapper-only and has not been split into equivalent
-module-owned internals yet.
+Warmup has since been split into equivalent module-owned internals; see the
+Warmup Module section below.
 
 ## Phase 3D: Account Editing Typed Errors
 

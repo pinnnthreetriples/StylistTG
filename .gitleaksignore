@@ -1,0 +1,11 @@
+# Synthetic test fixtures from pre-public history. These fingerprints are
+# intentionally narrow so new real secrets still fail gitleaks.
+9cf05c7ae6c16d69a0d90b1884a1a4c03a908ff9:backend/tests/security/test_pii_leak_guard.py:generic-api-key:32
+9cf05c7ae6c16d69a0d90b1884a1a4c03a908ff9:backend/tests/security/test_pii_leak_guard.py:generic-api-key:37
+9cf05c7ae6c16d69a0d90b1884a1a4c03a908ff9:backend/tests/security/test_pii_leak_guard.py:generic-api-key:42
+9cf05c7ae6c16d69a0d90b1884a1a4c03a908ff9:backend/tests/security/test_pii_leak_guard.py:generic-api-key:115
+a0fbb59295bafa5dca299127e1c2b35540376b69:backend/tests/test_config_validation.py:generic-api-key:146
+0f5ba7b4725e72d0c37e524d6e7c213a33ebd762:backend/tests/test_saas_foundation.py:generic-api-key:149
+0f5ba7b4725e72d0c37e524d6e7c213a33ebd762:backend/tests/test_saas_foundation.py:generic-api-key:164
+6236412c198552eb9bb9ca8ba1c060f666c6d89d:backend/tests/test_cloud_bootstrap_scripts.py:generic-api-key:39
+0f5ba7b4725e72d0c37e524d6e7c213a33ebd762:backend/tests/test_config_validation.py:generic-api-key:109

@@ -14,8 +14,6 @@ from app.config import settings
 from app.logging_utils import log_warn
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
-from app.workers.warmup_jobs import run_warmup_due_sessions
-from app.workers.warmup_dispatch_jobs import run_warmup_dispatch_tick
 from app.workers.profile_jobs import run_profile_job
 from app.services.worker_plane import (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
@@ -94,15 +92,12 @@ def enqueue_account_update_job(job_id: str) -> bool:
 
 
 def enqueue_warmup_due_sessions() -> bool:
-    queue = get_queue(WARMUP_QUEUE_NAME)
-    try:
-        cast(Any, queue).enqueue_call(
-            func=run_warmup_due_sessions, job_id="warmup-due-sessions", unique=True
-        )
-    except RedisError:
-        _log_enqueue_failure(queue.name, "warmup-due-sessions", "RedisError")
-        return False
-    return True
+    from app.job_queue.workflows import enqueue_workflow
+
+    return enqueue_workflow(
+        workflow_type="warmup_due_sessions",
+        job_id="warmup-due-sessions",
+    )
 
 
 def enqueue_warmup_dispatch_tick() -> bool:
@@ -112,17 +107,12 @@ def enqueue_warmup_dispatch_tick() -> bool:
     in Redis. Failure short-circuits to False so the async ticker can log
     the issue without raising.
     """
-    queue = get_queue(WARMUP_DISPATCH_QUEUE_NAME)
-    try:
-        cast(Any, queue).enqueue_call(
-            func=run_warmup_dispatch_tick,
-            job_id="warmup-dispatch-tick",
-            unique=True,
-        )
-    except RedisError:
-        _log_enqueue_failure(queue.name, "warmup-dispatch-tick", "RedisError")
-        return False
-    return True
+    from app.job_queue.workflows import enqueue_workflow
+
+    return enqueue_workflow(
+        workflow_type="warmup_dispatch_tick",
+        job_id="warmup-dispatch-tick",
+    )
 
 
 def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds: int = 0) -> bool:

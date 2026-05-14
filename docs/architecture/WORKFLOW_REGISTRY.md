@@ -101,9 +101,24 @@ app.modules.warmup.jobs:run_warmup_dispatch_tick
 ```
 
 Deep warmup dispatcher and worker internals remain in the existing
-`app.services.warmup*` implementation paths during Phase 4. Module facades are
-the canonical boundary, while repository, policies, and typed-error extraction
+`app.modules.warmup` implementation paths. Legacy `app.services.warmup*` files
+remain compatibility wrappers. Repository, policies, and typed-error extraction
 are deferred.
+
+## How Module Router Registration Works
+
+`FeatureModule` stores `router_path` as a lazy `module:function` string. The
+registry resolves routers only when `main.py` calls `iter_routers()`:
+
+```text
+app.modules.registry.iter_routers()
+  -> app.modules.account_editing.router:router
+  -> app.modules.warmup.router:router
+```
+
+The registry must not import `app.api` or hold eager `APIRouter` objects in
+module metadata. Legacy API modules remain import-compatible wrappers around the
+module router modules.
 
 ## How To Add A New Workflow
 

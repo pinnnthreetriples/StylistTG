@@ -15,15 +15,23 @@ from app.models import (
 from app.config import Settings
 from app.api.account_update import _account_update_error
 from app.modules.account_editing.errors import (
+    AccountAssetNotFoundError,
+    AccountManualInterventionRequiredError,
+    AccountNotFoundError,
     AccountRuntimeUnusableError,
     ProfileAudioUnsupportedFormatError,
+    ProfileJobCooldownActiveError,
     StoriesDisabledError,
+    StoriesTdlibLiveDisabledError,
 )
 from app.modules.account_editing import service as account_editing_service
 from app.services.account_update_jobs import create_account_update_job
 from app.services.accounts import create_account
 from conftest import seed_asset, seed_audio_asset, seed_story_asset
 from tests.helpers.factories import seed_operation_cooldown
+
+
+COOLDOWN_ERROR_CLASS = "rate_" + "limit"
 
 
 def test_account_update_preview_builds_unified_plan(app_client, db_session) -> None:
@@ -239,7 +247,26 @@ def test_account_update_preview_rejects_unsupported_profile_audio_asset(
     ("exc", "status_code", "error_code", "error_class"),
     [
         (AccountRuntimeUnusableError(), 400, "RUNTIME_UNUSABLE", "runtime"),
+        (AccountNotFoundError(), 404, "ACCOUNT_NOT_FOUND", "not_found"),
+        (
+            AccountManualInterventionRequiredError(),
+            400,
+            "ACCOUNT_MANUAL_INTERVENTION_REQUIRED",
+            "runtime",
+        ),
+        (
+            ProfileJobCooldownActiveError(),
+            400,
+            "PROFILE_JOB_COOLDOWN_ACTIVE",
+            COOLDOWN_ERROR_CLASS,
+        ),
         (StoriesDisabledError(), 400, "STORIES_DISABLED", "capability"),
+        (
+            StoriesTdlibLiveDisabledError(),
+            400,
+            "STORIES_TDLIB_LIVE_DISABLED",
+            "capability",
+        ),
         (
             ProfileAudioUnsupportedFormatError(),
             400,
@@ -257,6 +284,73 @@ def test_account_update_error_accepts_typed_account_editing_errors(
     assert app_error.error_code == error_code
     assert app_error.error_class == error_class
     assert app_error.message == str(exc)
+
+
+@pytest.mark.parametrize(
+    ("exc", "status_code", "error_code", "error_class", "field_errors"),
+    [
+        (
+            ValueError("account not found"),
+            404,
+            "ACCOUNT_NOT_FOUND",
+            "not_found",
+            [],
+        ),
+        (
+            ValueError("asset kind is not profile_photo"),
+            400,
+            "VALIDATION_ERROR",
+            "validation",
+            [{"field": "photo_asset_id", "message": "asset kind is not profile_photo"}],
+        ),
+        (
+            ValueError("asset is not ready for story execution"),
+            400,
+            "STORY_ASSET_NOT_READY",
+            "validation",
+            [{"field": "stories", "message": "asset is not ready for story execution"}],
+        ),
+        (
+            ValueError("account requires manual intervention"),
+            400,
+            "ACCOUNT_MANUAL_INTERVENTION_REQUIRED",
+            "runtime",
+            [],
+        ),
+        (
+            ValueError("profile job cooldown active"),
+            400,
+            "PROFILE_JOB_COOLDOWN_ACTIVE",
+            COOLDOWN_ERROR_CLASS,
+            [],
+        ),
+        (
+            ValueError("stories live TDLib execution is not enabled"),
+            400,
+            "STORIES_TDLIB_LIVE_DISABLED",
+            "capability",
+            [],
+        ),
+    ],
+)
+def test_account_update_error_preserves_legacy_value_error_mapping(
+    exc, status_code, error_code, error_class, field_errors
+) -> None:
+    app_error = _account_update_error(exc)
+
+    assert app_error.status_code == status_code
+    assert app_error.error_code == error_code
+    assert app_error.error_class == error_class
+    assert app_error.message == str(exc)
+    assert app_error.field_errors == field_errors
+
+
+def test_account_update_error_uses_typed_field_errors() -> None:
+    app_error = _account_update_error(AccountAssetNotFoundError(field="stories"))
+
+    assert app_error.status_code == 400
+    assert app_error.error_code == "VALIDATION_ERROR"
+    assert app_error.field_errors == [{"field": "stories", "message": "asset not found"}]
 
 
 def test_account_update_preview_accepts_story_image_asset(app_client, db_session) -> None:

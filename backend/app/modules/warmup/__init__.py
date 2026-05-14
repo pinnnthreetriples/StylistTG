@@ -16,17 +16,27 @@ from app.modules.warmup.module import module
 if TYPE_CHECKING:
     from app.modules.warmup import dispatcher as dispatcher
     from app.modules.warmup import events as events
+    from app.modules.warmup import isolation as isolation
     from app.modules.warmup import jobs as jobs
+    from app.modules.warmup import p2p as p2p
+    from app.modules.warmup import readiness as readiness
+    from app.modules.warmup import router as router
     from app.modules.warmup import service as service
     from app.modules.warmup import worker as worker
 
-_LAZY_SUBMODULES = frozenset({"dispatcher", "events", "jobs", "service", "worker"})
+_LAZY_SUBMODULES = frozenset(
+    {"dispatcher", "events", "isolation", "jobs", "p2p", "readiness", "router", "service", "worker"}
+)
 
 __all__ = [
     "dispatcher",
     "events",
+    "isolation",
     "jobs",
     "module",
+    "p2p",
+    "readiness",
+    "router",
     "service",
     "worker",
 ]

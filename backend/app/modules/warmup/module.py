@@ -6,6 +6,7 @@ from app.services.worker_plane import WARMUP_DISPATCH_QUEUE_NAME, WARMUP_QUEUE_N
 
 module = FeatureModule(
     name="warmup",
+    router_path="app.modules.warmup.router:router",
     workflows=(
         WorkflowSpec(
             workflow_type="warmup_due_sessions",

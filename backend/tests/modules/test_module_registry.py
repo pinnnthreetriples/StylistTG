@@ -1,7 +1,13 @@
 import pytest
 
 from app.modules.contracts import WorkflowArgsMode
-from app.modules.registry import get_workflow_spec, iter_modules, iter_workflows
+from app.modules.registry import (
+    get_workflow_spec,
+    iter_modules,
+    iter_router_paths,
+    iter_workflows,
+    resolve_router,
+)
 from app.services.worker_plane import (
     PROFILE_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
@@ -49,3 +55,36 @@ def test_warmup_workflow_metadata_uses_no_arg_handlers() -> None:
 def test_unknown_workflow_type_raises_controlled_error() -> None:
     with pytest.raises(ValueError, match="Unknown workflow_type: missing"):
         get_workflow_spec("missing")
+
+
+def test_router_paths_are_lazy_module_routes() -> None:
+    assert iter_router_paths() == (
+        "app.modules.account_editing.router:router",
+        "app.modules.warmup.router:router",
+    )
+
+
+def test_router_paths_resolve_without_api_wrapper_imports() -> None:
+    account_router = resolve_router("app.modules.account_editing.router:router")
+    warmup_router = resolve_router("app.modules.warmup.router:router")
+
+    assert account_router.prefix == "/api/account-update"
+    assert warmup_router.prefix == "/api/warmup"
+
+
+def test_module_router_registration_does_not_duplicate_routes() -> None:
+    from fastapi.routing import APIRoute
+
+    from app.main import app
+
+    seen: set[tuple[str, tuple[str, ...]]] = set()
+    duplicates: list[tuple[str, tuple[str, ...]]] = []
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        key = (route.path, tuple(sorted(route.methods or ())))
+        if key in seen:
+            duplicates.append(key)
+        seen.add(key)
+
+    assert duplicates == []

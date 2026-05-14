@@ -23,3 +23,4 @@ class WorkflowSpec:
 class FeatureModule:
     name: str
     workflows: tuple[WorkflowSpec, ...]
+    router_path: str | None = None

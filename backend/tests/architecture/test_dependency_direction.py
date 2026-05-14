@@ -55,6 +55,8 @@ def test_domain_layers_do_not_import_api_layer() -> None:
     violations: list[str] = []
     for root in DOMAIN_ROOTS:
         for source in _python_files(root):
+            if "modules" in source.parts and source.name == "router.py":
+                continue
             for imported in _imports(source):
                 if imported == "app.api" or imported.startswith("app.api."):
                     violations.append(

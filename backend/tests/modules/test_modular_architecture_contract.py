@@ -8,11 +8,11 @@ from app.modules.contracts import FeatureModule, WorkflowArgsMode
 from app.modules.registry import get_workflow_spec, iter_modules, iter_workflows
 
 
-def test_feature_module_does_not_expose_router_yet() -> None:
+def test_feature_module_uses_lazy_router_path_not_router_object() -> None:
     field_names = {field.name for field in dataclasses.fields(FeatureModule)}
 
     assert "router" not in field_names
-    assert field_names == {"name", "workflows"}
+    assert field_names == {"name", "workflows", "router_path"}
 
 
 def test_modules_registry_does_not_import_api_or_fastapi_routers() -> None:
@@ -21,6 +21,23 @@ def test_modules_registry_does_not_import_api_or_fastapi_routers() -> None:
     assert "app.api" not in source
     assert "APIRouter" not in source
     assert "include_router" not in source
+
+
+def test_module_router_paths_are_lazy_strings() -> None:
+    router_paths = registry.iter_router_paths()
+
+    assert router_paths == (
+        "app.modules.account_editing.router:router",
+        "app.modules.warmup.router:router",
+    )
+
+
+def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
+    routers = list(registry.iter_routers())
+    prefixes = {router.prefix for router in routers}
+
+    assert "/api/account-update" in prefixes
+    assert "/api/warmup" in prefixes
 
 
 def test_account_editing_workflow_type_remains_account_update() -> None:

@@ -80,8 +80,9 @@ npm run qa:browser
 
 | Trigger | What runs |
 |---|---|
-| Every PR | backend lint, pytest (non-live), alembic upgrade, migration smoke, compileall, frontend lint/test/typecheck/build, browser QA, OpenAPI drift |
-| Nightly | Full backend tests with coverage, full frontend suite, full Playwright, dependency audit |
+| Every PR | backend lint/format, pytest coverage (non-live), coverage gate, test analyzer, Pyright, pip-audit, alembic upgrade, migration smoke, compileall, backend Docker build, frontend npm audit/OpenAPI drift/lint/test/build, Semgrep |
+| Path-filtered PR | Browser QA for dashboard/browser-related changes |
+| Nightly | randomized backend tests, flaky rerun detection, mutation gate, jscpd HTML reports |
 | Manual | Live TDLib/Telegram tests (requires explicit secrets and feature flags) |
 
 ## Tests That Must Not Run in Normal PR

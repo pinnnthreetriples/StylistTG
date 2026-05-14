@@ -8,17 +8,24 @@ All PRs must pass:
 
 ```
 backend lint              python -m ruff check .
-backend tests             python -m pytest
+backend format            python -m ruff format --check .
+backend tests+coverage    python -m pytest tests -n auto --dist=loadscope --cov=app --cov=tools --cov-branch --cov-context=test
+coverage gate             python scripts/coverage_gate.py
+test quality analyzer     python -m tools.test_analyzer --path tests --coverage reports/coverage.json --severity INFO
+backend pyright           python -m pyright app/api app/services app/schemas.py app/config.py app/workers
+backend pip-audit         python -m pip_audit --skip-editable --progress-spinner=off
 Alembic upgrade           python -m alembic upgrade head
 migration smoke           python -m app.tools.migration_smoke
 compileall                python -m compileall app
 OpenAPI drift check       npm run check:api
 frontend lint             npm run lint
 frontend tests            npm test
-frontend typecheck        npm run typecheck
 frontend build            npm run build
-browser smoke             npm run qa:browser
+browser smoke             npm run qa:browser  # only when dashboard/browser paths change
 Docker build              docker build -f backend/Dockerfile -t stylisttg-backend:test .
+Semgrep                   semgrep scan --config p/ci --config .semgrep/stylisttg.yml --error backend/app apps packages
+jscpd app                 npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
+jscpd tests               npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
 ```
 
 Bugfix PRs must include a regression test that fails before the fix and passes after.

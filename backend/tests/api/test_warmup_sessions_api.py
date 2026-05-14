@@ -226,7 +226,7 @@ def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(
     enqueued: list[str] = []
 
     monkeypatch.setattr(
-        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        "app.modules.warmup.commands.enqueue_warmup_due_sessions",
         lambda: enqueued.append("warmup") or True,
     )
 
@@ -248,7 +248,7 @@ def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(
 
     monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
     monkeypatch.setattr(
-        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        "app.modules.warmup.commands.enqueue_warmup_due_sessions",
         lambda: enqueued.append("warmup") or True,
     )
 
@@ -268,7 +268,7 @@ def test_create_warmup_session_marks_session_failed_when_enqueue_fails(
     strategy = _seed_strategy(db_session)
 
     monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
-    monkeypatch.setattr("app.modules.warmup.service.enqueue_warmup_due_sessions", lambda: False)
+    monkeypatch.setattr("app.modules.warmup.commands.enqueue_warmup_due_sessions", lambda: False)
 
     response = app_client.post(
         "/api/warmup/sessions",
@@ -420,11 +420,11 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
 
     monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
     monkeypatch.setattr(
-        "app.modules.warmup.service.enqueue_warmup_due_sessions",
+        "app.modules.warmup.commands.enqueue_warmup_due_sessions",
         lambda: enqueued.append("dry") or True,
     )
     monkeypatch.setattr(
-        "app.modules.warmup.service.enqueue_warmup_dispatch_tick",
+        "app.modules.warmup.commands.enqueue_warmup_dispatch_tick",
         lambda: enqueued.append("dispatch") or True,
     )
     response = app_client.post(

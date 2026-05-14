@@ -1,8 +1,7 @@
 """Warmup module public boundary.
 
-Phase 4 keeps warmup as a mixed wrapper-first module. Public consumers should
-use explicit submodule imports from this package; deep service implementation
-movement is intentionally deferred.
+Public consumers should use explicit submodule imports from this package.
+Legacy service and worker paths remain wrappers around this canonical module.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from app.modules.contracts import FeatureModule
+    from app.modules.warmup import commands as commands
     from app.modules.warmup import contracts as contracts
     from app.modules.warmup import dispatcher as dispatcher
     from app.modules.warmup import errors as errors
@@ -21,7 +21,9 @@ if TYPE_CHECKING:
     from app.modules.warmup import jobs as jobs
     from app.modules.warmup import p2p as p2p
     from app.modules.warmup import policies as policies
+    from app.modules.warmup import queries as queries
     from app.modules.warmup import readiness as readiness
+    from app.modules.warmup import read_models as read_models
     from app.modules.warmup import repository as repository
     from app.modules.warmup import router as router
     from app.modules.warmup import service as service
@@ -31,6 +33,7 @@ if TYPE_CHECKING:
 
 _LAZY_SUBMODULES = frozenset(
     {
+        "commands",
         "contracts",
         "dispatcher",
         "errors",
@@ -39,7 +42,9 @@ _LAZY_SUBMODULES = frozenset(
         "jobs",
         "p2p",
         "policies",
+        "queries",
         "readiness",
+        "read_models",
         "repository",
         "router",
         "service",
@@ -49,6 +54,7 @@ _LAZY_SUBMODULES = frozenset(
 _LAZY_FEATURE_EXPORTS = frozenset({"module"})
 
 __all__ = [
+    "commands",
     "contracts",
     "dispatcher",
     "errors",
@@ -58,7 +64,9 @@ __all__ = [
     "module",
     "p2p",
     "policies",
+    "queries",
     "readiness",
+    "read_models",
     "repository",
     "router",
     "service",

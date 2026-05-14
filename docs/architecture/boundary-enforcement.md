@@ -48,6 +48,12 @@ Direct imports of a module's own internals are allowed inside that same module.
 Imports across feature modules must use the target module package, `contracts`,
 `interfaces`, `service`, `jobs`, or `events`.
 
+Warmup's canonical public submodules include `contracts`, `repository`,
+`policies`, `errors`, `read_models`, `queries`, `commands`, `service`, `router`,
+`jobs`, `worker`, `dispatcher`, `events`, `isolation`, `readiness`, and `p2p`.
+`repository` and `policies` are explicit package surfaces for warmup ownership;
+they are not recommended cross-module dependencies.
+
 ## Allowed Dependency Direction
 
 Allowed direction:
@@ -131,5 +137,17 @@ The enforced checks live in `backend/tests/architecture/`:
 - `test_dependency_direction.py`
 - `test_no_fastapi_in_domain.py`
 - `test_no_sqlalchemy_models_in_api_contracts.py`
+- `test_warmup_module_boundaries.py`
+
+Warmup-specific checks enforce that:
+
+- `app.modules.warmup` does not import legacy `app.services.warmup*` or
+  `app.workers.warmup*` paths.
+- `contracts.py` does not import ORM or runtime dependencies.
+- `repository.py` does not import FastAPI or API helpers.
+- `policies.py` does not import DB sessions, SQLAlchemy query helpers, routers,
+  API helpers, Redis/RQ, or TDLib adapters.
+- only `router.py` imports FastAPI inside `app.modules.warmup`.
+- `service.py` remains a facade rather than the runtime owner.
 
 They run in normal `pytest` and require no additional runtime dependency.

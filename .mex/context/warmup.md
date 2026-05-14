@@ -10,17 +10,21 @@ edges:
   - .mex/context/workers.md
   - .mex/context/security.md
   - docs/runbooks/account-preparation.md
-last_updated: 2026-05-10
+last_updated: 2026-05-15
 ---
 
 # Account Preparation / Warmup
 
 ## Implemented surfaces
 
-- Backend router: `backend/app/api/warmup.py` under `/api/warmup`.
+- Backend module router: `backend/app/modules/warmup/router.py` under
+  `/api/warmup`; `backend/app/api/warmup.py` remains a compatibility wrapper.
 - Frontend route: `/modules/warmup`.
 - Frontend module: `apps/dashboard/src/modules/warmup`.
 - Helper route: `apps/dashboard/src/routes/WarmupRoute.tsx`.
+- Canonical warmup backend boundary: `app.modules.warmup` with contracts,
+  repository, policies, errors, read models, queries, commands, service facade,
+  jobs, worker, dispatcher, events, isolation, readiness, and p2p.
 
 ## Persistence
 
@@ -31,6 +35,8 @@ Warmup state uses `WarmupStrategy`, `WarmupSession`, `WarmupEvent`, `WarmupTaskR
 - Dry-run sessions use `warmup_jobs`.
 - Shadow/live micro-session dispatch uses `warmup_dispatch_jobs`.
 - Scheduler enqueue is gated by `WARMUP_SCHEDULER_ENABLED`, `WARMUP_WORKERS_ENABLED`, and `WARMUP_HARD_DISABLE`.
+- Workflow types remain `warmup_due_sessions` and `warmup_dispatch_tick`; no-arg
+  RQ handlers remain under `app.modules.warmup.jobs`.
 
 ## Live safety gates
 

@@ -59,11 +59,37 @@ def test_legacy_worker_and_dispatch_services_remain_available() -> None:
 def test_module_facades_are_canonical_owners() -> None:
     from app.modules.warmup import dispatcher, events, repository, service, worker
 
-    assert service.warmup_operation_policy.__module__ == "app.modules.warmup.service"
+    assert service.warmup_operation_policy.__module__ == "app.modules.warmup.queries"
     assert events.write_warmup_event.__module__ == "app.modules.warmup.events"
     assert repository.list_warmup_sessions.__module__ == "app.modules.warmup.repository"
     assert worker.process_due_warmup_sessions.__module__ == "app.modules.warmup.worker"
     assert dispatcher.process_due_warmup_dispatches.__module__ == "app.modules.warmup.dispatcher"
+
+
+def test_warmup_service_facade_reexports_query_command_and_read_model_functions() -> None:
+    from app.modules.warmup import commands, queries, read_models, service
+
+    assert service.get_warmup_readiness is queries.get_warmup_readiness
+    assert service.validate_warmup is queries.validate_warmup
+    assert service.list_warmup_strategies is queries.list_warmup_strategies
+    assert service.list_warmup_sessions_page is queries.list_warmup_sessions_page
+    assert service.get_warmup_session_detail is queries.get_warmup_session_detail
+    assert service.get_warmup_session_status is queries.get_warmup_session_status
+    assert service.list_warmup_session_events_page is queries.list_warmup_session_events_page
+    assert service.get_warmup_isolation_status is queries.get_warmup_isolation_status
+    assert service.warmup_operation_policy is queries.warmup_operation_policy
+
+    assert service.create_warmup_session is commands.create_warmup_session
+    assert service.create_warmup_session_use_case is commands.create_warmup_session_use_case
+    assert service.pause_warmup_session is commands.pause_warmup_session
+    assert service.pause_warmup_session_use_case is commands.pause_warmup_session_use_case
+    assert service.resume_warmup_session is commands.resume_warmup_session
+    assert service.resume_warmup_session_use_case is commands.resume_warmup_session_use_case
+    assert service.delete_warmup_session is commands.delete_warmup_session
+    assert service.delete_warmup_session_use_case is commands.delete_warmup_session_use_case
+
+    assert service.session_read is read_models.session_read
+    assert service.session_summary is read_models.session_summary
 
 
 def test_module_warmup_does_not_import_legacy_worker_entrypoints() -> None:
@@ -73,4 +99,4 @@ def test_module_warmup_does_not_import_legacy_worker_entrypoints() -> None:
         path.read_text(encoding="utf-8") for path in Path("app/modules/warmup").glob("*.py")
     )
 
-    assert "app.workers.warmup" not in module_sources
+    assert "app.workers." + "warmup" not in module_sources

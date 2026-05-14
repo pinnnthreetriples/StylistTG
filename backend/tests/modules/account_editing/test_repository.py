@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from app.models import Job, JobState, utc_now
+from app.models import AccountState
+from app.modules.account_editing.errors import (
+    AccountManualInterventionRequiredError,
+    AccountNotFoundError,
+    AccountRuntimeUnusableError,
+)
 from app.modules.account_editing.planner import (
     account_update_profile_payload,
     build_account_update_plan,
@@ -33,8 +41,38 @@ def _queued_account_update_job(account_id: str, workspace_id: str) -> Job:
 
 
 def test_require_account_raises_exact_missing_account_error(db_session) -> None:
-    with pytest.raises(ValueError, match="^account not found$"):
+    with pytest.raises(AccountNotFoundError, match="^account not found$"):
         AccountEditingRepository(db_session).require_account(account_id="missing")
+
+
+def test_validate_account_for_job_raises_typed_manual_intervention_error(db_session) -> None:
+    account = seed_account_with_profile(db_session)
+    account.account_state = AccountState.MANUAL_INTERVENTION_NEEDED
+    db_session.commit()
+
+    with pytest.raises(
+        AccountManualInterventionRequiredError,
+        match="^account requires manual intervention$",
+    ):
+        AccountEditingRepository(db_session).validate_account_for_job(account_id=account.id)
+
+
+def test_validate_account_for_job_raises_typed_runtime_unusable_error(db_session) -> None:
+    class RuntimeBrokenAdapter:
+        def inspect_runtime(self, account_id: str) -> dict[str, Any]:
+            return {
+                "account_state": AccountState.AUTHORIZED_READY,
+                "runtime_health": "missing_session",
+                "ok": False,
+            }
+
+    account = seed_account_with_profile(db_session)
+
+    with pytest.raises(AccountRuntimeUnusableError, match="^account is not execution_usable$"):
+        AccountEditingRepository(db_session).validate_account_for_job(
+            account_id=account.id,
+            execution_adapter=RuntimeBrokenAdapter(),
+        )
 
 
 def test_get_asset_returns_none_for_missing_asset(db_session) -> None:

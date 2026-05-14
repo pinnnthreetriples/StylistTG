@@ -5,6 +5,10 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import Account, Asset, Job
+from app.modules.account_editing.errors import (
+    AccountNotFoundError,
+    account_editing_error_from_legacy_message,
+)
 from app.services.accounts import get_account
 from app.services.assets import get_asset
 from app.services.execution_policy import ExecutionUsableAdapter
@@ -28,7 +32,7 @@ class AccountEditingRepository:
     def require_account(self, *, account_id: str, workspace_id: str | None = None) -> Account:
         account = self.get_account(account_id=account_id, workspace_id=workspace_id)
         if account is None:
-            raise ValueError("account not found")
+            raise AccountNotFoundError()
         return account
 
     def validate_account_for_job(
@@ -38,12 +42,18 @@ class AccountEditingRepository:
         workspace_id: str | None = None,
         execution_adapter: ExecutionUsableAdapter | None = None,
     ) -> Account:
-        return validate_account_for_job(
-            self._session,
-            account_id,
-            workspace_id=workspace_id,
-            execution_adapter=execution_adapter,
-        )
+        try:
+            return validate_account_for_job(
+                self._session,
+                account_id,
+                workspace_id=workspace_id,
+                execution_adapter=execution_adapter,
+            )
+        except ValueError as exc:
+            typed_error = account_editing_error_from_legacy_message(str(exc))
+            if typed_error is not None:
+                raise typed_error from exc
+            raise
 
     def find_active_duplicate_job(self, *, account_id: str, intent_hash: str) -> Job | None:
         return find_active_duplicate_job(self._session, account_id, intent_hash)

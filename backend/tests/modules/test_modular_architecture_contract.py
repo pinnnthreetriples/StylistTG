@@ -75,9 +75,11 @@ def test_legacy_account_update_paths_are_compatibility_wrappers() -> None:
 
 
 def test_account_editing_has_internal_policy_and_repository_layers() -> None:
+    from app.modules.account_editing.errors import AccountEditingError
     from app.modules.account_editing.policies import AccountEditingPolicy
     from app.modules.account_editing.repository import AccountEditingRepository
 
+    assert AccountEditingError.__module__ == "app.modules.account_editing.errors"
     assert AccountEditingPolicy.__name__ == "AccountEditingPolicy"
     assert AccountEditingRepository.__name__ == "AccountEditingRepository"
 

@@ -6,6 +6,7 @@ from app.errors import AppError
 from app.logging_utils import log_event
 from app.models import JobState, utc_now
 from app.modules.account_editing import service as account_editing_service
+from app.modules.account_editing.errors import AccountEditingError
 from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
 from app.api.tenant_helpers import require_account_in_workspace
 from app.services.auth_context import (
@@ -53,7 +54,7 @@ def preview_account_update(
             },
         )
         session.commit()
-    except ValueError as exc:
+    except (AccountEditingError, ValueError) as exc:
         raise _account_update_error(exc) from exc
     return AccountUpdatePreviewRead(**preview)
 
@@ -104,7 +105,7 @@ def post_account_update_job(
             metadata={"job_state": job.job_state},
         )
         session.commit()
-    except ValueError as exc:
+    except (AccountEditingError, ValueError) as exc:
         raise _account_update_error(exc) from exc
     if job.job_state == JobState.QUEUED:
         log_event("account_update_enqueue_requested", account_id=payload.account_id, job_id=job.id)
@@ -131,7 +132,18 @@ def post_account_update_job(
     return AccountUpdateJobSummaryRead(**job_summary(job))
 
 
-def _account_update_error(exc: ValueError) -> AppError:
+def _account_update_error(exc: AccountEditingError | ValueError) -> AppError:
+    if isinstance(exc, AccountEditingError):
+        return AppError(
+            status_code=status.HTTP_404_NOT_FOUND
+            if exc.error_class == "not_found"
+            else status.HTTP_400_BAD_REQUEST,
+            error_code=exc.error_code,
+            error_class=exc.error_class,
+            message=exc.legacy_message,
+            field_errors=list(exc.field_errors),
+        )
+
     message = str(exc)
     error_code = "ACCOUNT_NOT_FOUND" if message == "account not found" else "VALIDATION_ERROR"
     error_class = "not_found" if message == "account not found" else "validation"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.modules.account_editing.errors import AccountNotFoundError
 from app.modules.account_editing import executor, planner, service
 
 
@@ -86,3 +87,25 @@ def test_old_service_wrapper_preserves_missing_account_error(monkeypatch) -> Non
             account_id="missing-account",
             desired_state={},
         )
+
+
+def test_old_service_wrapper_converts_typed_errors_to_value_error(monkeypatch) -> None:
+    from app.services import account_update_jobs
+
+    def fake_preview(session: object, **kwargs: object) -> dict[str, object]:
+        raise AccountNotFoundError()
+
+    monkeypatch.setattr(
+        account_update_jobs.account_editing_service,
+        "build_account_update_preview",
+        fake_preview,
+    )
+
+    with pytest.raises(ValueError, match="^account not found$") as exc_info:
+        account_update_jobs.build_account_update_preview(
+            object(),
+            account_id="missing-account",
+            desired_state={},
+        )
+
+    assert not isinstance(exc_info.value, AccountNotFoundError)

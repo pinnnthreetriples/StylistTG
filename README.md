@@ -300,12 +300,15 @@ Staging backend/worker deploy:
 CI:
 
 - `.github/workflows/ci.yml` runs backend checks against real PostgreSQL and Redis services.
-- Backend CI runs Alembic heads, upgrade head, migration smoke, ruff, pytest, and compileall.
-- Frontend CI runs `npm ci`, lint, tests, and build.
-- Private repo on the current GitHub plan cannot enforce branch protection/rulesets.
-  Until GitHub Pro or a public repo is available, follow
-  [docs/runbooks/git-workflow-without-branch-protection.md](docs/runbooks/git-workflow-without-branch-protection.md)
-  manually.
+- Backend CI runs Alembic heads, upgrade head, migration smoke, ruff, pip-audit,
+  Pyright, pytest with coverage, compileall, and the backend Docker build.
+- Frontend CI runs `npm ci`, npm audit, OpenAPI drift check, lint, tests, and build
+  (`tsc -b` plus Vite). Browser QA runs for dashboard/browser-related changes.
+- Test Quality runs backend Ruff format/lint, pytest coverage, coverage gate,
+  test analyzer, pip-audit, soft Pyright/Schemathesis, and jscpd. Semgrep runs
+  as a separate workflow.
+- Branch protection for `main` currently requires CI status checks. PRs should also
+  treat Test Quality and Semgrep as merge blockers even when not marked required.
 
 Live smoke helper:
 
@@ -341,6 +344,7 @@ Checks:
 
 ```powershell
 npm run lint
+npm test
 npm run build
 cd backend
 python -m ruff check .

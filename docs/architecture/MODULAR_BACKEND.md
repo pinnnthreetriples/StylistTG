@@ -104,15 +104,29 @@ module-owned internals yet.
 
 ## Warmup Module
 
-`app.modules.warmup` is metadata/wrapper-only in the current phase.
+`app.modules.warmup` is the canonical module boundary for warmup in Phase 4.
+This is a mixed wrapper-first ownership migration, not a deep warmup redesign.
 
 Current workflows:
 
 - `warmup_due_sessions`
 - `warmup_dispatch_tick`
 
-Both warmup workflows use no-arg handlers. Warmup API, services, dispatch logic,
-and worker implementations have not been migrated into module-owned internals.
+Both warmup workflows use no-arg handlers and keep their existing queue names and
+deterministic job ids.
+
+Phase 4 ownership rules:
+
+- Public warmup API paths remain unchanged.
+- Router registry is still not enabled in `main.py`.
+- `app.modules.warmup.jobs` is the canonical no-arg RQ handler entrypoint.
+- Legacy worker entrypoints delegate to module jobs.
+- Existing `app.services.warmup*` implementations remain in place and are used
+  through module facades.
+- Deep dispatcher/worker physical moves and repository/policies/errors split are
+  deferred.
+
+See `docs/architecture/WARMUP_MODULE.md` for the warmup-specific boundary.
 
 ## Account Update Reference Audit
 

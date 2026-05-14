@@ -116,27 +116,18 @@ def test_enqueue_failure_logs_queue_and_job_without_secret_url(monkeypatch) -> N
     ]
 
 
-def test_warmup_dispatch_tick_uses_dispatch_queue(monkeypatch) -> None:
-    """enqueue_warmup_dispatch_tick must route to WARMUP_DISPATCH_QUEUE_NAME, not warmup_jobs."""
+def test_warmup_dispatch_tick_delegates_to_workflow_registry(monkeypatch) -> None:
+    enqueued: list[tuple[str, str]] = []
 
-    class FlexQueue(FakeQueue):
-        def enqueue_call(self, *, func, args=(), job_id=None, unique=False):
-            self.calls.append(("call", func, args, job_id))
+    def enqueue_workflow(*, workflow_type: str, job_id: str) -> bool:
+        enqueued.append((workflow_type, job_id))
+        return True
 
-    queues: list[FlexQueue] = []
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(
-        rq,
-        "Queue",
-        lambda name, connection: queues.append(FlexQueue(name, connection)) or queues[-1],
-    )
+    monkeypatch.setattr("app.job_queue.workflows.enqueue_workflow", enqueue_workflow)
 
     assert rq.enqueue_warmup_dispatch_tick() is True
 
-    assert len(queues) == 1
-    assert queues[0].name == rq.WARMUP_DISPATCH_QUEUE_NAME
-    # Job id must be deterministic so back-to-back ticks coalesce via unique=True
-    assert queues[0].calls[0][3] == "warmup-dispatch-tick"
+    assert enqueued == [("warmup_dispatch_tick", "warmup-dispatch-tick")]
 
 
 def test_warmup_dispatch_queue_is_in_production_allowlist() -> None:
@@ -149,19 +140,9 @@ def test_warmup_dispatch_queue_is_in_production_allowlist() -> None:
 
 
 def test_warmup_dispatch_tick_redis_error_returns_false(monkeypatch) -> None:
-    """A Redis failure in enqueue_warmup_dispatch_tick must return False, not raise."""
-    events: list = []
-
-    class FailingQueue(FakeQueue):
-        def enqueue_call(self, *, func, args=(), job_id=None, unique=False):
-            raise RedisError("connection refused")
-
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
-    monkeypatch.setattr(rq, "Queue", lambda name, connection: FailingQueue(name, connection))
-    monkeypatch.setattr(rq, "log_warn", lambda event, **fields: events.append((event, fields)))
+    """A workflow enqueue failure in enqueue_warmup_dispatch_tick must return False."""
+    monkeypatch.setattr("app.job_queue.workflows.enqueue_workflow", lambda **kwargs: False)
 
     result = rq.enqueue_warmup_dispatch_tick()
 
     assert result is False
-    assert events[0][0] == "queue_enqueue_failed"
-    assert events[0][1]["queue_name"] == rq.WARMUP_DISPATCH_QUEUE_NAME

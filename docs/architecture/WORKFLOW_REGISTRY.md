@@ -78,8 +78,32 @@ retry-{job_id}
 
 Default/profile delayed retry still uses the existing profile worker handler.
 
-Warmup remains metadata/wrapper-only. Its API, services, dispatcher, scheduler,
-and worker internals have not moved into module-owned implementation code yet.
+## How Warmup Enqueue Works
+
+Warmup is module-owned through a mixed wrapper-first boundary. The public API and
+legacy service paths remain unchanged, but existing enqueue helpers now route
+through the workflow registry:
+
+```text
+enqueue_warmup_due_sessions()
+  -> enqueue_workflow("warmup_due_sessions", job_id="warmup-due-sessions")
+
+enqueue_warmup_dispatch_tick()
+  -> enqueue_workflow("warmup_dispatch_tick", job_id="warmup-dispatch-tick")
+```
+
+Both workflows use `WorkflowArgsMode.NONE`, so the resolved RQ calls use
+`args=()`. The no-arg handlers are:
+
+```text
+app.modules.warmup.jobs:run_warmup_due_sessions
+app.modules.warmup.jobs:run_warmup_dispatch_tick
+```
+
+Deep warmup dispatcher and worker internals remain in the existing
+`app.services.warmup*` implementation paths during Phase 4. Module facades are
+the canonical boundary, while repository, policies, and typed-error extraction
+are deferred.
 
 ## How To Add A New Workflow
 

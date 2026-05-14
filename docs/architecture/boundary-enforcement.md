@@ -27,6 +27,7 @@ Rules:
   cycles;
 - consumers should import stable package submodules or documented public
   contracts.
+- module routers are presentation-layer submodules and may import FastAPI.
 
 Good:
 
@@ -66,6 +67,10 @@ repositories -> FastAPI or app.api
 feature module internals -> another feature module internals
 ```
 
+Exception: `app.modules.<feature>.router` is a presentation-layer module and may
+depend on API helpers while public routes are migrating into module-owned
+routers.
+
 The architecture tests report the source file, offending import, and expected
 boundary when a rule is violated.
 
@@ -76,11 +81,12 @@ FastAPI belongs in the presentation layer:
 - `app.api`
 - `app.main`
 - `app.errors`
+- `app.modules.<feature>.router`
 
 FastAPI imports are blocked in modules, workers, job queues, storage, adapters,
-and services, except for the existing `app.services.auth_context` bridge. That
-allowlist is explicit in the architecture test and should not grow without a
-clear migration reason.
+and services, except for module router files and the existing
+`app.services.auth_context` bridge. That allowlist is explicit in the
+architecture test and should not grow without a clear migration reason.
 
 ## API Contracts And ORM Models
 

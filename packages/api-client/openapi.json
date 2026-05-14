@@ -5,88 +5,6 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/account-update/preview": {
-      "post": {
-        "tags": [
-          "account-update"
-        ],
-        "summary": "Preview Account Update",
-        "operationId": "preview_account_update_api_account_update_preview_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountUpdateCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountUpdatePreviewRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/account-update/jobs": {
-      "post": {
-        "tags": [
-          "account-update"
-        ],
-        "summary": "Post Account Update Job",
-        "operationId": "post_account_update_job_api_account_update_jobs_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountUpdateCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountUpdateJobSummaryRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/account-import-batches": {
       "get": {
         "tags": [
@@ -4566,6 +4484,159 @@
         }
       }
     },
+    "/api/workers/queues": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Worker Queues",
+        "operationId": "get_worker_queues_api_workers_queues_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QueueDescriptorRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Worker Queues Api Workers Queues Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/diagnostics": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Worker Diagnostics",
+        "operationId": "get_worker_diagnostics_api_workers_diagnostics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerDiagnosticsRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workers/job-policies": {
+      "get": {
+        "tags": [
+          "workers"
+        ],
+        "summary": "Get Job Policies",
+        "operationId": "get_job_policies_api_workers_job_policies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/RetryPolicyRead"
+                  },
+                  "type": "object",
+                  "title": "Response Get Job Policies Api Workers Job Policies Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-update/preview": {
+      "post": {
+        "tags": [
+          "account-update"
+        ],
+        "summary": "Preview Account Update",
+        "operationId": "preview_account_update_api_account_update_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountUpdateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountUpdatePreviewRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-update/jobs": {
+      "post": {
+        "tags": [
+          "account-update"
+        ],
+        "summary": "Post Account Update Job",
+        "operationId": "post_account_update_job_api_account_update_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountUpdateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountUpdateJobSummaryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup/readiness": {
       "get": {
         "tags": [
@@ -5079,77 +5150,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/workers/queues": {
-      "get": {
-        "tags": [
-          "workers"
-        ],
-        "summary": "Get Worker Queues",
-        "operationId": "get_worker_queues_api_workers_queues_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/QueueDescriptorRead"
-                  },
-                  "type": "array",
-                  "title": "Response Get Worker Queues Api Workers Queues Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/workers/diagnostics": {
-      "get": {
-        "tags": [
-          "workers"
-        ],
-        "summary": "Get Worker Diagnostics",
-        "operationId": "get_worker_diagnostics_api_workers_diagnostics_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkerDiagnosticsRead"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/workers/job-policies": {
-      "get": {
-        "tags": [
-          "workers"
-        ],
-        "summary": "Get Job Policies",
-        "operationId": "get_job_policies_api_workers_job_policies_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "$ref": "#/components/schemas/RetryPolicyRead"
-                  },
-                  "type": "object",
-                  "title": "Response Get Job Policies Api Workers Job Policies Get"
                 }
               }
             }

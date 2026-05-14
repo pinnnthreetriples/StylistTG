@@ -48,6 +48,8 @@ def test_fastapi_imports_stay_out_of_domain_logic() -> None:
         for source in _python_files(root):
             if source in FASTAPI_IMPORT_ALLOWLIST:
                 continue
+            if "modules" in source.parts and source.name == "router.py":
+                continue
             for imported in _imports(source):
                 if imported == "fastapi" or imported.startswith("fastapi."):
                     violations.append(

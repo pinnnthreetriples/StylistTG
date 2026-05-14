@@ -10,16 +10,17 @@ The current goal is a safe foundation, not a large rewrite. Existing public API
 paths, job models, job states, workflow identifiers, and worker behavior remain
 the compatibility contract.
 
-## Current Phase: Account Update Ownership
+## Current Phase: Module-Owned Runtime Boundaries
 
-The current phase is still compatibility-first, but `account_update` ownership has
-flipped into `app.modules.account_editing`. This is a mechanical ownership move,
-not a behavior rewrite.
+The current backend has module-owned runtime boundaries for `account_update` and
+warmup. This is still compatibility-first: public routes, workflow identifiers,
+models, queues, and worker behavior remain the compatibility contract.
 
-- `FeatureModule` intentionally has no `router` field in this phase.
-- Router registry is not enabled in `main.py`.
+- `FeatureModule` stores lazy `router_path` strings, not `APIRouter` objects.
+- `main.py` registers module routers through `app.modules.registry.iter_routers()`.
 - Existing API routers remain the public entrypoints.
 - Account update legacy service and worker modules remain as compatibility wrappers.
+- Warmup legacy service and worker modules remain as compatibility wrappers.
 - Module names may differ from workflow types.
 
 ## Module Rules
@@ -106,8 +107,9 @@ module-owned internals yet.
 
 ## Warmup Module
 
-`app.modules.warmup` is the canonical module boundary for warmup in Phase 4.
-This is a mixed wrapper-first ownership migration, not a deep warmup redesign.
+`app.modules.warmup` is the canonical module boundary for warmup. Phase 6 moved
+the warmup implementation bodies into module-owned files without changing
+behavior.
 
 Current workflows:
 
@@ -117,18 +119,31 @@ Current workflows:
 Both warmup workflows use no-arg handlers and keep their existing queue names and
 deterministic job ids.
 
-Phase 4 ownership rules:
+Current ownership rules:
 
 - Public warmup API paths remain unchanged.
-- Router registry is still not enabled in `main.py`.
 - `app.modules.warmup.jobs` is the canonical no-arg RQ handler entrypoint.
 - Legacy worker entrypoints delegate to module jobs.
-- Existing `app.services.warmup*` implementations remain in place and are used
-  through module facades.
-- Deep dispatcher/worker physical moves and repository/policies/errors split are
-  deferred.
+- Existing `app.services.warmup*` files are compatibility wrappers.
+- Warmup isolation, readiness, p2p, event, worker, dispatcher, and service
+  implementations live under `app.modules.warmup`.
+- Repository/policies/errors split is deferred.
 
 See `docs/architecture/WARMUP_MODULE.md` for the warmup-specific boundary.
+
+## Phase 7: Lazy Router Registry
+
+Module routers are registered through lazy metadata:
+
+- `app.modules.account_editing.module` declares
+  `router_path="app.modules.account_editing.router:router"`.
+- `app.modules.warmup.module` declares
+  `router_path="app.modules.warmup.router:router"`.
+- `app.modules.registry` resolves router paths only when `main.py` calls
+  `iter_routers()`.
+
+Legacy API modules remain import-compatible by aliasing to the module router
+modules. Non-module routers are still manually registered in `main.py`.
 
 ## Account Update Reference Audit
 
@@ -164,7 +179,7 @@ Possible future phases should stay narrow:
 
 - Continue splitting account editing internals only when behavior-matching tests
   exist first.
-- Introduce router registry only after duplicate-route risks are handled.
-- Move warmup internals only as separate dry-run/shadow/live-safe slices.
+- Move remaining warmup internals into repository/policies/errors only as
+  separate dry-run/shadow/live-safe slices.
 - Retire legacy compatibility functions only after call-site audits show no users.
 - Extend architecture contracts when new modules need new public interfaces.

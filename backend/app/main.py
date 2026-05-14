@@ -12,7 +12,6 @@ from starlette.types import ExceptionHandler
 
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
-from app.api.account_update import router as account_update_router
 from app.api.account_imports import router as account_imports_router
 from app.api.account_audit_routes import router as account_audit_router
 from app.api.account_compat_routes import router as account_compat_router
@@ -35,7 +34,6 @@ from app.api.story_capabilities import router as story_capabilities_router
 from app.api.story_posts import router as story_posts_router
 from app.api.telegram_auth import router as telegram_auth_router
 from app.api.tdlib_runtime import router as tdlib_runtime_router
-from app.api.warmup import router as warmup_router
 from app.api.workers import router as workers_router
 from app.config import settings
 from app.db import SessionLocal
@@ -46,6 +44,7 @@ from app.errors import (
     AppError,
 )
 from app.logging_utils import configure_logging, generate_request_id, log_event, log_request
+from app.modules.registry import iter_routers
 from app.observability import init_api_observability
 from app.schemas import ReadinessRead
 from app.services.auth_batch_recovery import recover_auth_batches
@@ -170,7 +169,6 @@ app.add_exception_handler(HTTPException, cast(ExceptionHandler, http_exception_h
 app.add_exception_handler(
     RequestValidationError, cast(ExceptionHandler, validation_exception_handler)
 )
-app.include_router(account_update_router)
 app.include_router(account_imports_router)
 app.include_router(auth_router)
 app.include_router(auth_batches_router)
@@ -195,8 +193,9 @@ app.include_router(story_capabilities_router)
 app.include_router(story_posts_router)
 app.include_router(telegram_auth_router)
 app.include_router(tdlib_runtime_router)
-app.include_router(warmup_router)
 app.include_router(workers_router)
+for module_router in iter_routers():
+    app.include_router(module_router)
 
 
 @app.middleware("http")

@@ -6,7 +6,7 @@ from pathlib import Path
 
 APP_ROOT = Path("app")
 MODULES_ROOT = APP_ROOT / "modules"
-PUBLIC_SUBMODULES = {"contracts", "interfaces", "module", "service", "jobs", "events"}
+PUBLIC_SUBMODULES = {"contracts", "interfaces", "module", "service", "jobs", "events", "router"}
 SHARED_MODULES = {"contracts", "registry"}
 
 

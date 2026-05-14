@@ -21,13 +21,13 @@ def test_legacy_worker_and_dispatch_services_remain_available() -> None:
     assert callable(warmup_dispatch.process_due_warmup_dispatches)
 
 
-def test_module_facades_delegate_to_legacy_services() -> None:
+def test_module_facades_are_canonical_owners() -> None:
     from app.modules.warmup import dispatcher, events, service, worker
 
-    assert service.warmup_operation_policy.__module__ == "app.services.warmup"
-    assert events.write_warmup_event.__module__ == "app.services.warmup"
-    assert worker.process_due_warmup_sessions.__module__ == "app.services.warmup_worker"
-    assert dispatcher.process_due_warmup_dispatches.__module__ == "app.services.warmup_dispatch"
+    assert service.warmup_operation_policy.__module__ == "app.modules.warmup.service"
+    assert events.write_warmup_event.__module__ == "app.modules.warmup.events"
+    assert worker.process_due_warmup_sessions.__module__ == "app.modules.warmup.worker"
+    assert dispatcher.process_due_warmup_dispatches.__module__ == "app.modules.warmup.dispatcher"
 
 
 def test_module_warmup_does_not_import_legacy_worker_entrypoints() -> None:

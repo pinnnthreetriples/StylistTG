@@ -6,6 +6,7 @@ from app.services.worker_plane import PROFILE_QUEUE_NAME
 
 module = FeatureModule(
     name="account_editing",
+    router_path="app.modules.account_editing.router:router",
     workflows=(
         WorkflowSpec(
             workflow_type="account_update",

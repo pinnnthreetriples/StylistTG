@@ -1,3 +1,9 @@
+"""Account editing API router.
+
+Compatibility owner for app.api.account_update.
+Do not add behavior to the legacy app.api wrapper.
+"""
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 

@@ -41,7 +41,8 @@ routers from the registry.
 ```mermaid
 flowchart LR
     API["API / Service"] --> Facade["Module Facade"]
-    Facade --> Enqueue["enqueue_workflow"]
+    Facade --> ModuleEnqueue["Module enqueue helper"]
+    ModuleEnqueue --> Enqueue["enqueue_workflow"]
     Enqueue --> Registry["WorkflowSpec"]
     Registry --> Queue["RQ Queue"]
     Registry --> Handler["Lazy handler_path"]
@@ -50,14 +51,17 @@ flowchart LR
 
 For `/api/account-update/jobs`, the API calls
 `app.modules.account_editing.service.enqueue_job()`. The facade calls
+`app.modules.account_editing.enqueue.enqueue_account_update_job()`, which calls
 `enqueue_workflow(workflow_type="account_update", job_id=job.id)`.
 
 The old `app.job_queue.rq.enqueue_account_update_job()` remains as a compatibility
-function and delegates to the workflow registry.
+function and delegates to the module enqueue helper.
 
 Account update implementation ownership now lives under `app.modules.account_editing`:
 
 - Planning and intent hashing: `app.modules.account_editing.planner`
+- API DTOs: `app.modules.account_editing.contracts`
+- Queue enqueue ownership: `app.modules.account_editing.enqueue`
 - Preview and job creation use cases: `app.modules.account_editing.service`
 - Execution and materialization: `app.modules.account_editing.executor`
 - RQ handler path: `app.modules.account_editing.jobs:run_account_update_job`
@@ -68,9 +72,11 @@ kept until call-site audits show they can be removed safely.
 
 ## How Account Update Delayed Retry Works
 
-`reenqueue_job_with_delay(..., workflow_type="account_update")` resolves the
-`account_update` `WorkflowSpec`, uses the spec queue, resolves the lazy handler,
-and preserves the retry job id format:
+`reenqueue_job_with_delay(..., workflow_type="account_update")` remains a public
+compatibility entrypoint in `app.job_queue.rq`. It delegates to
+`app.modules.account_editing.enqueue.reenqueue_account_update_job_with_delay()`,
+which resolves the `account_update` `WorkflowSpec`, uses the spec queue, resolves
+the lazy handler, and preserves the retry job id format:
 
 ```text
 retry-{job_id}
@@ -80,9 +86,11 @@ Default/profile delayed retry still uses the existing profile worker handler.
 
 ## How Warmup Enqueue Works
 
-Warmup is module-owned through a mixed wrapper-first boundary. The public API and
-legacy service paths remain unchanged, but existing enqueue helpers now route
-through the workflow registry:
+Warmup is module-owned through canonical boundary files under
+`app.modules.warmup`, including `contracts`, `repository`, `policies`, `errors`,
+`read_models`, `queries`, `commands`, `service`, and `enqueue`. The public API
+and legacy service paths remain unchanged, but enqueue ownership now lives in
+`app.modules.warmup.enqueue`:
 
 ```text
 enqueue_warmup_due_sessions()
@@ -100,10 +108,10 @@ app.modules.warmup.jobs:run_warmup_due_sessions
 app.modules.warmup.jobs:run_warmup_dispatch_tick
 ```
 
-Deep warmup dispatcher and worker internals remain in the existing
-`app.modules.warmup` implementation paths. Legacy `app.services.warmup*` files
-remain compatibility wrappers. Repository, policies, and typed-error extraction
-are deferred.
+Legacy `app.job_queue.rq.enqueue_warmup_due_sessions()` and
+`app.job_queue.rq.enqueue_warmup_dispatch_tick()` remain compatibility functions
+and delegate to the module enqueue helpers. Legacy `app.services.warmup*` and
+`app.workers.warmup*` files remain compatibility wrappers.
 
 ## How Module Router Registration Works
 

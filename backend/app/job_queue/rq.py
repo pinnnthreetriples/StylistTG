@@ -86,33 +86,27 @@ def enqueue_profile_job(job_id: str) -> bool:
 
 
 def enqueue_account_update_job(job_id: str) -> bool:
-    from app.job_queue.workflows import enqueue_workflow
+    from app.modules.account_editing.enqueue import (
+        enqueue_account_update_job as module_enqueue_account_update_job,
+    )
 
-    return enqueue_workflow(workflow_type="account_update", job_id=job_id)
+    return module_enqueue_account_update_job(job_id)
 
 
 def enqueue_warmup_due_sessions() -> bool:
-    from app.job_queue.workflows import enqueue_workflow
-
-    return enqueue_workflow(
-        workflow_type="warmup_due_sessions",
-        job_id="warmup-due-sessions",
+    from app.modules.warmup.enqueue import (
+        enqueue_warmup_due_sessions as module_enqueue_warmup_due_sessions,
     )
+
+    return module_enqueue_warmup_due_sessions()
 
 
 def enqueue_warmup_dispatch_tick() -> bool:
-    """Phase 1: enqueue a shadow-execution dispatch tick.
-
-    Uses a fixed `job_id` plus `unique=True` so back-to-back ticks coalesce
-    in Redis. Failure short-circuits to False so the async ticker can log
-    the issue without raising.
-    """
-    from app.job_queue.workflows import enqueue_workflow
-
-    return enqueue_workflow(
-        workflow_type="warmup_dispatch_tick",
-        job_id="warmup-dispatch-tick",
+    from app.modules.warmup.enqueue import (
+        enqueue_warmup_dispatch_tick as module_enqueue_warmup_dispatch_tick,
     )
+
+    return module_enqueue_warmup_dispatch_tick()
 
 
 def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds: int = 0) -> bool:
@@ -156,15 +150,14 @@ def reenqueue_job_with_delay(
     job_id: str, *, delay_seconds: int, workflow_type: str | None = None
 ) -> bool:
     if workflow_type == "account_update":
-        from app.job_queue.workflows import resolve_handler
-        from app.modules.registry import get_workflow_spec
+        from app.modules.account_editing.enqueue import (
+            reenqueue_account_update_job_with_delay as module_reenqueue_account_update_job,
+        )
 
-        spec = get_workflow_spec("account_update")
-        queue = get_queue(spec.queue_name)
-        func = resolve_handler(spec.handler_path)
-    else:
-        queue = get_profile_queue()
-        func = run_profile_job
+        return module_reenqueue_account_update_job(job_id, delay_seconds=delay_seconds)
+
+    queue = get_profile_queue()
+    func = run_profile_job
     retry_job_id = f"retry-{job_id}"
     try:
         _cancel_existing_job(queue, retry_job_id)

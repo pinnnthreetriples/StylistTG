@@ -54,6 +54,9 @@ Canonical account update ownership now lives in:
 
 - `app.modules.account_editing.service` for preview, job creation, enqueue, and
   inline fallback use cases.
+- `app.modules.account_editing.contracts` for account update Pydantic API DTOs.
+- `app.modules.account_editing.enqueue` for account update workflow enqueue and
+  delayed retry ownership.
 - `app.modules.account_editing.policies` for business preconditions, safety
   checks, asset validation, and profile step selection.
 - `app.modules.account_editing.repository` for account/job/asset DB helper
@@ -71,6 +74,8 @@ Legacy paths remain available as compatibility wrappers:
 - `app.workers.account_update_jobs`
 
 These wrappers should not regain ownership of new account update behavior.
+See `docs/architecture/legacy-wrapper-audit.md` for the current wrapper map and
+removal conditions.
 
 ## Phase 3B: Account Editing Internal Split
 
@@ -78,6 +83,10 @@ These wrappers should not regain ownership of new account update behavior.
 
 - `service.py` remains the use-case facade used by the API and compatibility
   wrappers.
+- `contracts.py` owns account update API DTOs while `app.schemas` re-exports
+  them for import compatibility.
+- `enqueue.py` owns account update workflow enqueue semantics while
+  `app.job_queue.rq` keeps compatibility wrapper functions.
 - `policies.py` owns account update preconditions, safety blockers, cooldown
   checks, asset validation, and exact legacy error messages.
 - `repository.py` owns DB/helper delegation for accounts, assets, duplicate jobs,
@@ -133,6 +142,8 @@ Current ownership rules:
 - `app.modules.warmup.read_models` owns DTO assembly from warmup runtime state.
 - `app.modules.warmup.queries` owns read-only use cases.
 - `app.modules.warmup.commands` owns mutating use cases.
+- `app.modules.warmup.enqueue` owns warmup workflow enqueue helpers and
+  deterministic warmup job ids.
 - `app.modules.warmup.router` is the FastAPI presentation boundary.
 - `app.modules.warmup.service` remains the stable facade and re-exports query
   and command functions for router and legacy wrapper compatibility.
@@ -164,7 +175,7 @@ modules. Non-module routers are still manually registered in `main.py`.
 | --- | --- | --- | --- | --- |
 | `/api/account-update` router | `backend/app/api/account_update.py` | Public API compatibility | Keep | Public route remains stable while it calls the module facade. |
 | `account_update_router` include | `backend/app/main.py` | Public API compatibility | Keep | Router registry is intentionally not enabled yet. |
-| `enqueue_account_update_job` | `backend/app/job_queue/rq.py` | Public API compatibility | Keep as compatibility wrapper | Existing imports can still call it; it delegates to workflow registry. |
+| `enqueue_account_update_job` | `backend/app/job_queue/rq.py` | Public API compatibility | Keep as compatibility wrapper | Existing imports can still call it; it delegates to `app.modules.account_editing.enqueue`. |
 | `reenqueue_job_with_delay(..., workflow_type="account_update")` | `backend/app/job_queue/rq.py` | Candidate for future cleanup | Keep for now | Retry API is shared worker infrastructure; account_update branch now uses workflow metadata. |
 | `account_editing.module` workflow metadata | `backend/app/modules/account_editing/module.py` | Workflow metadata | Keep | Declares stable `account_update` workflow metadata. |
 | `account_editing.service` facade | `backend/app/modules/account_editing/service.py` | Workflow metadata | Keep | First runtime path through the module facade. |

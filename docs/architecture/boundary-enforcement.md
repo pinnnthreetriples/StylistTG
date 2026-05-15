@@ -49,10 +49,12 @@ Imports across feature modules must use the target module package, `contracts`,
 `interfaces`, `service`, `jobs`, or `events`.
 
 Warmup's canonical public submodules include `contracts`, `repository`,
-`policies`, `errors`, `read_models`, `queries`, `commands`, `service`, `router`,
-`jobs`, `worker`, `dispatcher`, `events`, `isolation`, `readiness`, and `p2p`.
-`repository` and `policies` are explicit package surfaces for warmup ownership;
-they are not recommended cross-module dependencies.
+`policies`, `errors`, `read_models`, `queries`, `commands`, `enqueue`,
+`service`, `router`, `jobs`, `worker`, `dispatcher`, `events`, `isolation`,
+`readiness`, and `p2p`. Account editing exposes equivalent explicit surfaces
+for `contracts`, `enqueue`, `service`, `router`, `jobs`, `executor`, `planner`,
+`policies`, and `repository`. `repository` and `policies` are explicit package
+surfaces for ownership; they are not recommended cross-module dependencies.
 
 ## Allowed Dependency Direction
 
@@ -138,6 +140,9 @@ The enforced checks live in `backend/tests/architecture/`:
 - `test_no_fastapi_in_domain.py`
 - `test_no_sqlalchemy_models_in_api_contracts.py`
 - `test_warmup_module_boundaries.py`
+- `test_account_editing_module_boundaries.py`
+- `test_job_queue_boundaries.py`
+- `test_legacy_wrappers.py`
 
 Warmup-specific checks enforce that:
 

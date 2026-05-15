@@ -69,11 +69,11 @@ def test_account_update_create_queues_unified_job(app_client, db_session, monkey
     db_session.commit()
     enqueued: list[tuple[str, str]] = []
 
-    def enqueue_workflow(*, workflow_type: str, job_id: str) -> bool:
-        enqueued.append((workflow_type, job_id))
+    def enqueue_job(job_id: str) -> bool:
+        enqueued.append(("account_update", job_id))
         return True
 
-    monkeypatch.setattr(account_editing_service, "enqueue_workflow", enqueue_workflow)
+    monkeypatch.setattr(account_editing_service, "enqueue_job", enqueue_job)
     response = app_client.post(
         "/api/account-update/jobs",
         json={
@@ -167,7 +167,10 @@ def test_account_update_create_runs_inline_when_queue_fallback_is_enabled(
 
     monkeypatch.setattr(account_editing_service, "enqueue_job", lambda job_id: False)
     monkeypatch.setattr(account_editing_service, "execute_inline_fallback", run_inline)
-    monkeypatch.setattr("app.api.account_update.settings.queue_inline_fallback_enabled", True)
+    monkeypatch.setattr(
+        "app.modules.account_editing.service.settings.queue_inline_fallback_enabled",
+        True,
+    )
     response = app_client.post(
         "/api/account-update/jobs",
         json={

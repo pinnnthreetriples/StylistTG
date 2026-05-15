@@ -5,10 +5,14 @@ import inspect
 from app.modules.account_editing import executor, jobs, policies, repository, service
 
 
+def _legacy_path(root: str, leaf: str) -> str:
+    return f"app.{root}.{leaf}"
+
+
 LEGACY_ACCOUNT_UPDATE_IMPORTS = (
-    "app.services.account_update_jobs",
-    "app.services.account_update_plan",
-    "app.workers.account_update_jobs",
+    _legacy_path("services", "account_update_jobs"),
+    _legacy_path("services", "account_update_plan"),
+    _legacy_path("workers", "account_update_jobs"),
 )
 
 

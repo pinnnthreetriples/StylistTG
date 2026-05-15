@@ -24,6 +24,7 @@ backend/app/modules/warmup/
   read_models.py
   queries.py
   commands.py
+  enqueue.py
   service.py
   router.py
   jobs.py
@@ -46,6 +47,8 @@ Ownership:
 - `read_models.py` owns DTO assembly from warmup runtime state.
 - `queries.py` owns read-only warmup use cases.
 - `commands.py` owns mutating warmup use cases and queue-failure transitions.
+- `enqueue.py` owns warmup workflow enqueue helpers and deterministic warmup
+  job ids.
 - `service.py` is the compatibility/use-case facade and re-exports query and
   command functions under stable public names.
 - `router.py` is the FastAPI presentation boundary.

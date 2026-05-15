@@ -1,3 +1,9 @@
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.account_editing.planner
+Do not add new behavior here.
+"""
+
 from __future__ import annotations
 
 from app.modules.account_editing.planner import (

@@ -46,3 +46,7 @@ export async function createAndStartAuthBatchFromValidation({
   onCreatedBatch?.(created.batch.id)
   return startBatch(created.batch.id)
 }
+
+export function serializeAuthBatchDraft(label: string): string {
+  return JSON.stringify({ label })
+}

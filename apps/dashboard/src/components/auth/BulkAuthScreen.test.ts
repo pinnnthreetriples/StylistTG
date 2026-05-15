@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest'
 
 import {
   createAndStartAuthBatchFromValidation,
+  serializeAuthBatchDraft,
 } from '@/components/auth/BulkAuthScreen.logic'
 import type { AuthBatchSnapshot, AuthBatchValidation } from '@/lib/authBatches'
 
@@ -88,5 +89,16 @@ describe('createAndStartAuthBatchFromValidation', () => {
     expect(startBatch).toHaveBeenCalledOnce()
     expect(startBatch).toHaveBeenCalledWith('batch-1')
     expect(started.batch.status).toBe('running')
+  })
+})
+
+describe('serializeAuthBatchDraft', () => {
+  test('does not persist clear-text phone inputs', () => {
+    const serialized = serializeAuthBatchDraft('May import')
+
+    expect(serialized).toBe(JSON.stringify({ label: 'May import' }))
+    expect(serialized).not.toContain('phone')
+    expect(serialized).not.toContain('rawInput')
+    expect(serialized).not.toContain('+15550102000')
   })
 })

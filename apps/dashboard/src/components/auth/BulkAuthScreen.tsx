@@ -2,7 +2,10 @@ import { AlertTriangle, CheckCircle2, Loader2, Pause, Play, RotateCcw, UserPlus,
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@stylisttg/ui'
-import { createAndStartAuthBatchFromValidation } from '@/components/auth/BulkAuthScreen.logic'
+import {
+  createAndStartAuthBatchFromValidation,
+  serializeAuthBatchDraft,
+} from '@/components/auth/BulkAuthScreen.logic'
 import {
   buildAuthBatchPrimaryActionLabel,
   buildAuthBatchValidationMessage,
@@ -70,8 +73,8 @@ export function BulkAuthScreen({
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(AUTH_BATCH_DRAFT_STORAGE_KEY, JSON.stringify({ label, rawInput }))
-  }, [label, rawInput])
+    window.localStorage.setItem(AUTH_BATCH_DRAFT_STORAGE_KEY, serializeAuthBatchDraft(label))
+  }, [label])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -513,8 +516,12 @@ function authBatchItemPhoneLabel(item: AuthBatchItem): string {
 function readDraft(): { label: string; rawInput: string } {
   if (typeof window === 'undefined') return { label: '', rawInput: '' }
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(AUTH_BATCH_DRAFT_STORAGE_KEY) || '{}') as Partial<{ label: string; rawInput: string }>
-    return { label: parsed.label ?? '', rawInput: parsed.rawInput ?? '' }
+    const parsed = JSON.parse(window.localStorage.getItem(AUTH_BATCH_DRAFT_STORAGE_KEY) || '{}') as Record<string, unknown>
+    const label = typeof parsed.label === 'string' ? parsed.label : ''
+    if ('rawInput' in parsed) {
+      window.localStorage.setItem(AUTH_BATCH_DRAFT_STORAGE_KEY, serializeAuthBatchDraft(label))
+    }
+    return { label, rawInput: '' }
   } catch {
     return { label: '', rawInput: '' }
   }

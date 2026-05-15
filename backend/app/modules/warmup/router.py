@@ -27,7 +27,7 @@ from app.modules.warmup.contracts import (
     WarmupValidateRequest,
 )
 from app.modules.warmup.errors import WarmupError
-from app.services.auth_context import (
+from app.modules.auth.dependencies import (
     AuthContext,
     require_authenticated,
     require_mutation_permission,

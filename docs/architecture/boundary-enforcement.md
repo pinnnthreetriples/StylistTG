@@ -9,6 +9,7 @@ The current backend modules are:
 
 ```text
 backend/app/modules/account_editing
+backend/app/modules/auth
 backend/app/modules/warmup
 ```
 
@@ -92,9 +93,9 @@ FastAPI belongs in the presentation layer:
 - `app.modules.<feature>.router`
 
 FastAPI imports are blocked in modules, workers, job queues, storage, adapters,
-and services, except for module router files and the existing
-`app.services.auth_context` bridge. That allowlist is explicit in the
-architecture test and should not grow without a clear migration reason.
+and services, except for module router files and
+`app.modules.auth.dependencies`. That allowlist is explicit in the architecture
+test and should not grow without a clear migration reason.
 
 ## API Contracts And ORM Models
 
@@ -143,6 +144,8 @@ The enforced checks live in `backend/tests/architecture/`:
 - `test_account_editing_module_boundaries.py`
 - `test_job_queue_boundaries.py`
 - `test_legacy_wrappers.py`
+- `test_storage_boundaries.py`
+- `test_auth_module_boundaries.py`
 
 Warmup-specific checks enforce that:
 

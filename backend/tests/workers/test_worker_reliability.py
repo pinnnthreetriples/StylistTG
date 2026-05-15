@@ -273,9 +273,9 @@ def test_reenqueue_job_with_delay_account_update_uses_workflow_registry(monkeypa
         handler_paths.append(handler_path)
         return workflow_handler
 
-    monkeypatch.setattr(rq_queue, "get_queue", get_queue)
+    monkeypatch.setattr("app.job_queue.workflows.get_queue", get_queue)
     monkeypatch.setattr("app.job_queue.workflows.resolve_handler", resolve_handler)
-    monkeypatch.setattr(rq_queue, "_cancel_existing_job", lambda *_: None)
+    monkeypatch.setattr("app.job_queue.workflows._cancel_existing_job", lambda *_: None)
 
     assert (
         rq_queue.reenqueue_job_with_delay("job-1", delay_seconds=30, workflow_type="account_update")

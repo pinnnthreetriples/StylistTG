@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/security.md
   - .mex/context/workers.md
-last_updated: 2026-05-10
+last_updated: 2026-05-15
 ---
 
 # Backend
@@ -19,7 +19,8 @@ last_updated: 2026-05-10
 
 - `backend/app/main.py` registers API routers, middleware, diagnostics, and lifespan loops.
 - `backend/app/api/` contains FastAPI routers.
-- `backend/app/services/` contains business logic and database state transitions.
+- `backend/app/services/` contains shared services and compatibility wrappers
+  while module-owned behavior migrates under `backend/app/modules/`.
 - `backend/app/adapters/` contains TDLib/profile/warmup adapter boundaries and mock fallbacks.
 - `backend/app/workers/` contains RQ worker entrypoints and queue handlers.
 - `backend/tests/` contains pytest tests and shared fakes in `conftest.py`.
@@ -50,5 +51,7 @@ cd backend; python -m ruff check .
 ## Change guidance
 
 - Prefer service-layer fixes over route-only patches.
+- For module-owned features, prefer module contracts/facades/enqueue helpers over
+  legacy wrappers.
 - Update OpenAPI artifacts when backend schema changes affect frontend contracts.
 - Add or update pytest coverage for auth, workspace, queue, and warmup behavior changes.

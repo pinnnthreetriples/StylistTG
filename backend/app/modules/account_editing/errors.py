@@ -60,6 +60,24 @@ class ProfileJobCooldownActiveError(AccountEditingError):
         )
 
 
+class AccountWarmupLockedError(AccountEditingError):
+    def __init__(self, reason: str | None) -> None:
+        super().__init__(
+            legacy_message=reason or "Аккаунт находится в подготовке",
+            error_code="ACCOUNT_WARMUP_LOCKED",
+            error_class="state_conflict",
+        )
+
+
+class AccountQueueUnavailableError(AccountEditingError):
+    def __init__(self) -> None:
+        super().__init__(
+            legacy_message="job queue is unavailable",
+            error_code="QUEUE_UNAVAILABLE",
+            error_class="queue",
+        )
+
+
 class AccountAssetNotFoundError(AccountEditingError):
     def __init__(
         self,

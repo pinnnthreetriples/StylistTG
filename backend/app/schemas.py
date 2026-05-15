@@ -28,6 +28,25 @@ WarmupStrategyRead = _warmup_contracts.WarmupStrategyRead
 WarmupValidateRead = _warmup_contracts.WarmupValidateRead
 WarmupValidateRequest = _warmup_contracts.WarmupValidateRequest
 
+_ACCOUNT_EDITING_CONTRACT_NAMES = {
+    "AccountUpdateCreate",
+    "AccountUpdateJobSummaryRead",
+    "AccountUpdatePreviewRead",
+    "AccountUpdateProfileAudioDesiredState",
+    "AccountUpdateProfileDesiredState",
+    "AccountUpdateStoryDesiredState",
+}
+
+
+def __getattr__(name: str) -> object:
+    if name not in _ACCOUNT_EDITING_CONTRACT_NAMES:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from app.modules.account_editing import contracts as _account_editing_contracts
+
+    value = getattr(_account_editing_contracts, name)
+    globals()[name] = value
+    return value
+
 
 def _empty_operation_cooldowns() -> list[AccountOperationCooldownRead]:
     return []
@@ -38,14 +57,6 @@ def _empty_readiness_risk_items() -> list[AccountReadinessRiskRead]:
 
 
 def _empty_import_items() -> list[AccountImportItemRead]:
-    return []
-
-
-def _empty_update_stories() -> list[AccountUpdateStoryDesiredState]:
-    return []
-
-
-def _empty_operation_safety_items() -> list[AccountOperationSafetyRead]:
     return []
 
 
@@ -887,27 +898,6 @@ class ProfileAudioAction(StrEnum):
     REMOVE = "remove"
 
 
-class AccountUpdateProfileDesiredState(BaseModel):
-    name: str | None = None
-    bio: str | None = None
-    username: str | None = None
-    photo_asset_id: str | None = None
-
-
-class AccountUpdateProfileAudioDesiredState(BaseModel):
-    action: ProfileAudioAction = ProfileAudioAction.KEEP
-    audio_asset_id: str | None = None
-
-
-class AccountUpdateStoryDesiredState(BaseModel):
-    action: Literal["post_image", "post_video"]
-    asset_id: str
-    caption: str | None = None
-    privacy_preset: str = "contacts"
-    active_period_seconds: int = 86400
-    protect_content: bool = False
-
-
 class StoryDraftCreate(BaseModel):
     account_id: str
     asset_id: str
@@ -953,13 +943,6 @@ class StoryCapabilitiesRead(BaseModel):
     ffprobe_available: bool
     ffmpeg_available: bool
     warnings: list[str]
-
-
-class AccountUpdateCreate(BaseModel):
-    account_id: str
-    profile: AccountUpdateProfileDesiredState | None = None
-    profile_audio: AccountUpdateProfileAudioDesiredState | None = None
-    stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=_empty_update_stories)
 
 
 class DashboardAccountRead(BaseModel):
@@ -1027,11 +1010,6 @@ class JobSummaryRead(BaseModel):
     message: str | None = None
 
 
-class AccountUpdateJobSummaryRead(JobSummaryRead):
-    workflow_type: str
-    workflow_version: int
-
-
 class DashboardPipelineRead(BaseModel):
     latest_job: JobSummaryRead | None
     latest_job_state: str | None
@@ -1079,23 +1057,6 @@ class ProfilePreviewRead(BaseModel):
     requires_execution_usable: bool
     dedup_would_block: bool
     dedup_blocked_by_job_id: str | None
-
-
-class AccountUpdatePreviewRead(ProfilePreviewRead):
-    workflow_type: str
-    workflow_version: int
-    desired_state_normalized: dict[str, Any]
-    capability_snapshot: dict[str, str]
-    account_safety: AccountSafetyRead | None = None
-    risk_by_operation: dict[str, AccountRiskRead] = Field(default_factory=dict)
-    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]] = Field(
-        default_factory=dict
-    )
-    safety_warnings: list[str] = Field(default_factory=list)
-    safety_blockers: list[str] = Field(default_factory=list)
-    operation_safety: list[AccountOperationSafetyRead] = Field(
-        default_factory=_empty_operation_safety_items
-    )
 
 
 class JobRead(BaseModel):

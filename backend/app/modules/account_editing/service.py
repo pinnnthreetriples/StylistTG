@@ -6,9 +6,19 @@ from sqlalchemy.orm import Session
 
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.config import Settings, settings
-from app.job_queue.workflows import enqueue_workflow
+from app.logging_utils import log_event
 from app.models import Account, Job, JobState, utc_now
+from app.modules.account_editing.contracts import (
+    AccountUpdateCreate,
+    AccountUpdateJobSummaryRead,
+    AccountUpdatePreviewRead,
+)
+from app.modules.account_editing.enqueue import enqueue_account_update_job
 from app.modules.account_editing.executor import execute_account_update_job
+from app.modules.account_editing.errors import (
+    AccountQueueUnavailableError,
+    AccountWarmupLockedError,
+)
 from app.modules.account_editing.planner import (
     account_update_profile_payload,
     build_account_update_plan,
@@ -17,7 +27,10 @@ from app.modules.account_editing.planner import (
 )
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.repository import AccountEditingRepository
+from app.modules.warmup import service as warmup_service
+from app.services.dashboard import job_summary
 from app.services.execution_policy import ExecutionUsableAdapter
+from app.services.operation_logs import log_operation
 from app.services.step_registry import validate_account_update_plan_steps
 
 
@@ -39,6 +52,39 @@ def build_preview(
         workspace_id=workspace_id,
         config=config,
     )
+
+
+def build_preview_use_case(
+    session: Session,
+    *,
+    payload: AccountUpdateCreate,
+    workspace_id: str,
+    config: Settings = settings,
+) -> AccountUpdatePreviewRead:
+    preview = build_preview(
+        session,
+        account_id=payload.account_id,
+        desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
+        workspace_id=workspace_id,
+        config=config,
+    )
+    log_operation(
+        session,
+        account_id=payload.account_id,
+        operation_type="account_update",
+        operation_key="preview",
+        status="completed",
+        severity="info",
+        source="account_update_api",
+        message="Account update preview built",
+        workspace_id=workspace_id,
+        metadata={
+            "safety_blockers": preview.get("safety_blockers", []),
+            "safety_warnings": preview.get("safety_warnings", []),
+        },
+    )
+    session.commit()
+    return AccountUpdatePreviewRead(**preview)
 
 
 def create_job(
@@ -63,11 +109,68 @@ def create_job(
     )
 
 
-def enqueue_job(job_id: str) -> bool:
-    return enqueue_workflow(
-        workflow_type=ACCOUNT_UPDATE_WORKFLOW_TYPE,
-        job_id=job_id,
+def create_job_use_case(
+    session: Session,
+    *,
+    payload: AccountUpdateCreate,
+    requested_by_user_id: str | None,
+    workspace_id: str,
+    config: Settings = settings,
+) -> AccountUpdateJobSummaryRead:
+    warmup_policy = warmup_service.warmup_operation_policy(
+        session,
+        account_id=payload.account_id,
+        workspace_id=workspace_id,
+        operation="profile_update",
     )
+    if warmup_policy["is_locked"]:
+        raise AccountWarmupLockedError(warmup_policy["reason"])
+
+    job = create_job(
+        session,
+        account_id=payload.account_id,
+        desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
+        requested_by_user_id=requested_by_user_id,
+        request_id=None,
+        workspace_id=workspace_id,
+        config=config,
+    )
+    log_operation(
+        session,
+        account_id=payload.account_id,
+        operation_type="account_update",
+        operation_key="create_job",
+        status="completed",
+        severity="info",
+        source="account_update_api",
+        message="Account update job created",
+        job_id=job.id,
+        workspace_id=workspace_id,
+        metadata={"job_state": job.job_state},
+    )
+    session.commit()
+    if job.job_state == JobState.QUEUED:
+        log_event("account_update_enqueue_requested", account_id=payload.account_id, job_id=job.id)
+        if enqueue_job(job.id) is False:
+            if settings.queue_inline_fallback_enabled:
+                log_event(
+                    "account_update_inline_fallback_requested",
+                    account_id=payload.account_id,
+                    job_id=job.id,
+                )
+                execute_inline_fallback(job.id, session=session)
+                session.refresh(job)
+                return AccountUpdateJobSummaryRead(**job_summary(job))
+            job.job_state = JobState.FAILED
+            job.finished_at = utc_now()
+            job.failure_reason = "enqueue_failed"
+            session.commit()
+            raise AccountQueueUnavailableError()
+    return AccountUpdateJobSummaryRead(**job_summary(job))
+
+
+def enqueue_job(job_id: str) -> bool:
+    return enqueue_account_update_job(job_id)
 
 
 def execute_inline_fallback(job_id: str, *, session: Session) -> None:

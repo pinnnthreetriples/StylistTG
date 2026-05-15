@@ -69,4 +69,5 @@ def test_contract_scan_covers_known_schema_files() -> None:
     scanned = {str(path).replace("\\", "/") for path in _contract_files()}
 
     assert "app/schemas.py" in scanned
+    assert "app/modules/account_editing/contracts.py" in scanned
     assert "app/modules/warmup/contracts.py" in scanned

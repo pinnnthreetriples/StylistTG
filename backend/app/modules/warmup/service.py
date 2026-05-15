@@ -7,13 +7,12 @@ from app.modules.warmup.commands import (
     create_warmup_session_use_case,
     delete_warmup_session,
     delete_warmup_session_use_case,
-    enqueue_warmup_dispatch_tick,
-    enqueue_warmup_due_sessions,
     pause_warmup_session,
     pause_warmup_session_use_case,
     resume_warmup_session,
     resume_warmup_session_use_case,
 )
+from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.policies import is_warmup_active_status

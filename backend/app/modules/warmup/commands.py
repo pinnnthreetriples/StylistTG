@@ -6,10 +6,10 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.job_queue.rq import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, new_id
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
+from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.modules.warmup.errors import WarmupIsolationConflictError, WarmupQueueUnavailableError
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import acquire_claim, release_claim

@@ -1,4 +1,8 @@
-"""RQ entrypoint for warmup dispatch tick (Phase 1 shadow execution)."""
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.warmup.jobs
+Do not add new behavior here.
+"""
 
 from __future__ import annotations
 

@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
-from sqlalchemy.orm import Session
-
 from app.config import Settings, settings
 from app.models import Account, AccountState, AssetKind, AssetStatus
 from app.modules.account_editing.errors import (
@@ -33,7 +31,7 @@ from app.services.jobs import is_profile_job_cooldown_active
 
 
 class AccountEditingPolicy:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Any) -> None:
         self._session = session
         self._repo = AccountEditingRepository(session)
 

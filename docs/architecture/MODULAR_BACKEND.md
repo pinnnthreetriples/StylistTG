@@ -13,7 +13,7 @@ the compatibility contract.
 ## Current Phase: Stabilized Module Boundaries
 
 The current backend has module-owned runtime boundaries for `account_update` and
-warmup. Warmup is now split into canonical contracts, repository, policies,
+warmup, and `app.modules.auth` owns auth context/dependency resolution. Warmup is now split into canonical contracts, repository, policies,
 errors, query/read-model, command, router, worker, and dispatcher modules. This
 is still compatibility-first: public routes, workflow identifiers, models,
 queues, deterministic job ids, no-arg handlers, and worker behavior remain the
@@ -24,6 +24,8 @@ compatibility contract.
 - Existing API routers remain the public entrypoints.
 - Account update legacy service and worker modules remain as compatibility wrappers.
 - Warmup legacy service and worker modules remain as compatibility wrappers.
+- `app.services.auth_context` remains a compatibility wrapper around
+  `app.modules.auth`.
 - Module names may differ from workflow types.
 
 ## Module Rules

@@ -307,10 +307,11 @@ CI:
   and build (`tsc -b` plus Vite). Browser QA runs for dashboard/browser-related changes.
 - Test Quality runs backend Ruff format/lint, pytest coverage, coverage gate,
   test analyzer, pip-audit, soft Pyright/Schemathesis, and jscpd. Semgrep runs
-  as a separate workflow and uploads SARIF for PR annotations/code scanning.
+  as a separate workflow. CodeQL uses GitHub Default Setup; Secret Scan, SBOM,
+  and Container Scan provide the committed security baseline workflows.
 - Secrets Scan runs Gitleaks against the PR/push commit range. Trivy runs separate
-  filesystem and backend Docker image scans and fails on fixable HIGH/CRITICAL
-  findings.
+  filesystem and backend Docker image scans; backend image CRITICAL findings
+  block, while HIGH/CRITICAL reports are uploaded for triage.
 - Complexity runs Xenon against `backend/app`, `backend/tools`, and `backend/scripts`
   as a soft reporting gate while the current complexity baseline is reviewed.
 - Branch protection for `main` currently requires `Backend (Python 3.12)`, `Frontend`,

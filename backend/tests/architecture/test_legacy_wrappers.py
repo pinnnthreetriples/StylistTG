@@ -25,6 +25,7 @@ WRAPPER_PATHS = (
     Path("app/api/warmup.py"),
     Path("app/services/account_update_jobs.py"),
     Path("app/services/account_update_plan.py"),
+    Path("app/services/auth_context.py"),
     Path("app/workers/account_update_jobs.py"),
     Path("app/services/warmup.py"),
     Path("app/services/warmup_worker.py"),

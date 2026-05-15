@@ -25,7 +25,9 @@ python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
 
-The launcher rejects unknown queue names.
+The launcher rejects unknown queue names. Optional runtime role validation is
+documented in `docs/runtime/runtime-boundaries.md`; deployment process guidance
+lives in `docs/runtime/deployment-processes.md`.
 
 ## Locks
 

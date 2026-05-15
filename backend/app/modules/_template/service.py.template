@@ -1,0 +1,5 @@
+from __future__ import annotations
+
+
+def example_use_case() -> str:
+    return "ok"

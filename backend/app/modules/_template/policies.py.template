@@ -1,0 +1,5 @@
+from __future__ import annotations
+
+
+def example_policy(enabled: bool) -> bool:
+    return enabled

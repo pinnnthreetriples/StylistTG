@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { fetchAuthRuntimeMode, updateAuthRuntimeMode } from '@/lib/auth'
+import { fetchAuthRuntimeMode, updateAuthRuntimeMode } from '@/modules/auth'
 import { AddAccountsPage } from '@/features/accounts/AddAccountsPage'
 
 export function AuthBatchRoute() {

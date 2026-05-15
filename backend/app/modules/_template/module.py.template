@@ -1,0 +1,10 @@
+from __future__ import annotations
+
+from app.modules.contracts import FeatureModule
+
+
+module = FeatureModule(
+    name="<module_name>",
+    router_path="app.modules.<module_name>.router:router",
+    workflows=(),
+)

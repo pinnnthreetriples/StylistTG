@@ -21,12 +21,11 @@ import { normalizeError } from '@/lib/appErrors'
 import type { ProfilePreview } from '@/lib/api'
 import type { ApiError } from '@/lib/dashboard'
 import { useDashboardInitialState } from '@/hooks/useDashboardInitialState'
-import { useAuthBootstrap } from '@/hooks/useAuthBootstrap'
-import { useAuthFlow } from '@/hooks/useAuthFlow'
 import { useDashboardActions } from '@/hooks/useDashboardActions'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useDashboardPresentation } from '@/hooks/useDashboardPresentation'
-import { useProfileDraft } from '@/hooks/useProfileDraft'
+import { useAuthBootstrap, useAuthFlow, type AuthPhase } from '@/modules/auth'
+import { useProfileDraft } from '@/modules/account-editing'
 import { useTerminalJobRefresh } from '@/hooks/useTerminalJobRefresh'
 import {
   useDeleteStoryPostMutation,
@@ -51,7 +50,6 @@ import {
   validateProxyInput,
   type AccountProxyInput,
 } from '@/lib/proxy'
-import type { AuthPhase } from '@/lib/auth'
 import { appRoutes, type AppRouteState } from '@/lib/routes'
 
 const JOB_POLLING_INTERVAL_MS = getPollingIntervalMs()

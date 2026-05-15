@@ -14,10 +14,10 @@ DOMAIN_ROOTS = [
     APP_ROOT / "adapters",
 ]
 
-# Existing compatibility dependency provider. This file intentionally bridges
-# FastAPI dependency injection and service-level auth context helpers.
+# Auth FastAPI dependency provider. Legacy app.services.auth_context is a
+# compatibility wrapper and must not import FastAPI directly.
 FASTAPI_IMPORT_ALLOWLIST = {
-    APP_ROOT / "services" / "auth_context.py",
+    APP_ROOT / "modules" / "auth" / "dependencies.py",
 }
 
 

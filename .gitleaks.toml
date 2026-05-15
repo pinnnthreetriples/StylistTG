@@ -2,3 +2,14 @@ title = "StylistTG Gitleaks configuration"
 
 [extend]
 useDefault = true
+
+[[allowlists]]
+description = "Documented test-only placeholder tokens"
+regexes = [
+  '''Bearer token''',
+  '''Bearer token-[0-9]+''',
+  '''secret-token''',
+  '''role-token''',
+  '''admin-token''',
+  '''test-token''',
+]

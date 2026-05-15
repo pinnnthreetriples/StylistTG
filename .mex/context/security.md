@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - .mex/patterns/live-tdlib-safety.md
-last_updated: 2026-05-13
+last_updated: 2026-05-15
 ---
 
 # Security and Live Safety
@@ -25,6 +25,8 @@ last_updated: 2026-05-13
 ## Application boundaries
 
 - Workspace scoping is mandatory for user-owned resources.
+- Auth context and FastAPI auth dependencies are canonically owned by
+  `app.modules.auth`; `app.services.auth_context` is compatibility-only.
 - User-facing runtime policy changes must persist in PostgreSQL instead of mutating process-local settings.
 - Backend diagnostics must expose safe metadata only.
 - Audit/operation metadata must be sanitized.
@@ -41,3 +43,6 @@ last_updated: 2026-05-13
 
 - For security-sensitive backend changes, run targeted pytest plus `cd backend; python -m ruff check .`.
 - For frontend auth/API contract changes, run targeted vitest/typecheck as applicable.
+- Repository security baseline checks are CI, Test Quality, Semgrep, CodeQL
+  Default Setup, Secret Scan, SBOM, and Container Scan. See
+  `docs/security/security-baseline.md`.

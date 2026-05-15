@@ -1,4 +1,4 @@
-name: Trivy
+name: Container Scan
 
 on:
   pull_request:
@@ -14,59 +14,37 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  filesystem:
-    name: Trivy filesystem
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Scan repository filesystem
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-          format: table
-
-  backend-image:
+  trivy:
     name: Trivy backend image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Build backend Docker image
-        run: docker build -f backend/Dockerfile -t stylisttg-backend:${{ github.sha }} .
-
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t stylisttg-backend:scan .
       - name: Prepare Trivy install path
         run: mkdir -p "$HOME/.local/bin"
-
-      - name: Trivy backend CRITICAL gate
+      - name: Trivy CRITICAL gate
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: stylisttg-backend:${{ github.sha }}
+          image-ref: stylisttg-backend:scan
           scanners: vuln
+          format: table
           severity: CRITICAL
           exit-code: "1"
           ignore-unfixed: true
-          format: table
-
-      - name: Trivy backend HIGH/CRITICAL report
+      - name: Trivy HIGH/CRITICAL report
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         if: always()
         continue-on-error: true
         with:
-          image-ref: stylisttg-backend:${{ github.sha }}
+          image-ref: stylisttg-backend:scan
           scanners: vuln
+          format: sarif
+          output: trivy-backend.sarif
           severity: HIGH,CRITICAL
           exit-code: "0"
           ignore-unfixed: true
-          format: sarif
-          output: trivy-backend.sarif
-
-      - name: Upload backend Trivy report
+      - name: Upload Trivy report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && hashFiles('trivy-backend.sarif') != ''
         with:

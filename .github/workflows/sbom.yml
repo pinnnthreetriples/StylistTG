@@ -1,0 +1,50 @@
+name: SBOM
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  sbom:
+    name: Generate SBOMs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t stylisttg-backend:sbom .
+      - name: Backend Python SBOM
+        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        with:
+          path: backend
+          format: spdx-json
+          output-file: sbom-backend.spdx.json
+      - name: Frontend workspace SBOM
+        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom-frontend.spdx.json
+      - name: Backend container SBOM
+        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        with:
+          image: stylisttg-backend:sbom
+          format: spdx-json
+          output-file: sbom-container.spdx.json
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-reports
+          path: |
+            sbom-backend.spdx.json
+            sbom-frontend.spdx.json
+            sbom-container.spdx.json
+

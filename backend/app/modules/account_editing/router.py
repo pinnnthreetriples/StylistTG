@@ -17,7 +17,7 @@ from app.modules.account_editing.contracts import (
     AccountUpdatePreviewRead,
 )
 from app.modules.account_editing.errors import AccountEditingError
-from app.services.auth_context import (
+from app.modules.auth.dependencies import (
     AuthContext,
     require_authenticated,
     require_mutation_permission,

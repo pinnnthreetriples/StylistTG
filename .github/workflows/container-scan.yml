@@ -1,0 +1,48 @@
+name: Container Scan
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  trivy:
+    name: Trivy backend image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t stylisttg-backend:scan .
+      - name: Trivy CRITICAL gate
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        with:
+          image-ref: stylisttg-backend:scan
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Trivy HIGH/CRITICAL report
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        if: always()
+        with:
+          image-ref: stylisttg-backend:scan
+          format: sarif
+          output: trivy-backend.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          ignore-unfixed: true
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && hashFiles('trivy-backend.sarif') != ''
+        with:
+          name: trivy-backend-report
+          path: trivy-backend.sarif
+

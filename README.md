@@ -306,9 +306,11 @@ CI:
   (`tsc -b` plus Vite). Browser QA runs for dashboard/browser-related changes.
 - Test Quality runs backend Ruff format/lint, pytest coverage, coverage gate,
   test analyzer, pip-audit, soft Pyright/Schemathesis, and jscpd. Semgrep runs
-  as a separate workflow.
+  as a separate workflow. CodeQL, Secret Scan, SBOM, and Container Scan provide
+  the security baseline.
 - Branch protection for `main` currently requires CI status checks. PRs should also
-  treat Test Quality and Semgrep as merge blockers even when not marked required.
+  treat Test Quality, Semgrep, CodeQL, Secret Scan, SBOM, and Container Scan as
+  merge blockers even when not marked required.
 
 Live smoke helper:
 

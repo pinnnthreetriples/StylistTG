@@ -26,8 +26,8 @@ browser smoke             npm run qa:browser  # only when dashboard/browser path
 Docker build              docker build -f backend/Dockerfile -t stylisttg-backend:test .
 Semgrep                   semgrep scan --config p/ci --config .semgrep/stylisttg.yml --error backend/app apps packages
 Gitleaks PR diff          gitleaks git --config .gitleaks.toml --redact --log-opts="<base>..<head>" .
-Trivy filesystem          trivy fs --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 .
-Trivy backend image       trivy image --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 stylisttg-backend:test
+Trivy filesystem          trivy fs --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
+Trivy backend image       trivy image --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 stylisttg-backend:test
 complexity (soft)         python -m xenon --max-absolute B --max-modules A --max-average A app tools scripts
 jscpd app                 npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
 jscpd tests               npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
@@ -41,8 +41,8 @@ Hard gates:
 - `CI / Frontend` - npm audit, OpenAPI drift, lint, tests, Vitest coverage, build.
 - `Semgrep / Semgrep CE` - Semgrep with SARIF upload for PR annotations/code scanning.
 - `Secrets Scan / Gitleaks PR diff` - scans the PR or push commit range and fails on detected secrets.
-- `Trivy / Trivy filesystem` - repository filesystem dependency/config scan; fails on HIGH/CRITICAL.
-- `Trivy / Trivy backend image` - backend image scan; fails on HIGH/CRITICAL.
+- `Trivy / Trivy filesystem` - repository filesystem dependency/config scan; fails on fixable HIGH/CRITICAL.
+- `Trivy / Trivy backend image` - backend image scan; fails on fixable HIGH/CRITICAL.
 
 Soft gates:
 
@@ -68,6 +68,11 @@ Recommended required status checks after the quality/security expansion:
 
 Keep `Complexity / Xenon complexity (soft)` non-required until its threshold is promoted
 from reporting-only to a hard gate.
+
+Trivy uses `ignore-unfixed` so these hard gates block actionable HIGH/CRITICAL fixes
+without failing permanently on upstream base-image advisories that have no patched
+package yet. No `.trivyignore` entries are configured; add one only for a confirmed
+false positive with an inline reason and expiry/issue reference.
 
 Bugfix PRs must include a regression test that fails before the fix and passes after.
 

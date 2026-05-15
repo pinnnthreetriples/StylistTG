@@ -309,7 +309,8 @@ CI:
   test analyzer, pip-audit, soft Pyright/Schemathesis, and jscpd. Semgrep runs
   as a separate workflow and uploads SARIF for PR annotations/code scanning.
 - Secrets Scan runs Gitleaks against the PR/push commit range. Trivy runs separate
-  filesystem and backend Docker image scans and fails on HIGH/CRITICAL findings.
+  filesystem and backend Docker image scans and fails on fixable HIGH/CRITICAL
+  findings.
 - Complexity runs Xenon against `backend/app`, `backend/tools`, and `backend/scripts`
   as a soft reporting gate while the current complexity baseline is reviewed.
 - Branch protection for `main` currently requires `Backend (Python 3.12)`, `Frontend`,

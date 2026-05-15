@@ -18,10 +18,10 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.6.0"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.2.6"
   },
   "devDependencies": {
     "@types/react": "^19.2.14"

@@ -50,7 +50,7 @@ jobs:
 
       # ----- Hard gates (fail the build) --------------------------------------
       - name: Ruff lint
-        run: python -m ruff check .
+        run: python -m ruff check . --output-format=github
 
       - name: Ruff format check
         run: python -m ruff format --check .

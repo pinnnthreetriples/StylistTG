@@ -1,7 +1,7 @@
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -20,6 +20,26 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/assets/**',
+        'src/main.tsx',
+        'src/router.tsx',
+      ],
+      thresholds: {
+        lines: 20,
+        functions: 15,
+        branches: 15,
+        statements: 20,
+      },
     },
   },
 })

@@ -20,7 +20,7 @@ COPY backend/migrations ./migrations
 RUN python -m pip install --upgrade pip && \
     python -m pip install uv==0.10.9 && \
     uv sync --locked --no-dev && \
-    python -m pip uninstall -y uv
+    /usr/local/bin/python -m pip uninstall -y uv
 
 USER stylisttg
 

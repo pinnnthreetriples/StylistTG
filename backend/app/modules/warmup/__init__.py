@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.modules.warmup import commands as commands
     from app.modules.warmup import contracts as contracts
     from app.modules.warmup import dispatcher as dispatcher
+    from app.modules.warmup import enqueue as enqueue
     from app.modules.warmup import errors as errors
     from app.modules.warmup import events as events
     from app.modules.warmup import isolation as isolation
@@ -36,6 +37,7 @@ _LAZY_SUBMODULES = frozenset(
         "commands",
         "contracts",
         "dispatcher",
+        "enqueue",
         "errors",
         "events",
         "isolation",
@@ -57,6 +59,7 @@ __all__ = [
     "commands",
     "contracts",
     "dispatcher",
+    "enqueue",
     "errors",
     "events",
     "isolation",

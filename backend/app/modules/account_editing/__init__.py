@@ -18,7 +18,9 @@ from app.modules.account_editing.errors import (
     AccountEditingError,
     AccountManualInterventionRequiredError,
     AccountNotFoundError,
+    AccountQueueUnavailableError,
     AccountRuntimeUnusableError,
+    AccountWarmupLockedError,
     ProfileAudioUnsupportedFormatError,
     ProfileJobCooldownActiveError,
     StoriesDisabledError,
@@ -27,9 +29,11 @@ from app.modules.account_editing.errors import (
 from app.modules.account_editing.module import module
 
 if TYPE_CHECKING:
+    from app.modules.account_editing import contracts as contracts
+    from app.modules.account_editing import enqueue as enqueue
     from app.modules.account_editing import router as router
 
-_LAZY_SUBMODULES = frozenset({"router"})
+_LAZY_SUBMODULES = frozenset({"contracts", "enqueue", "router"})
 
 __all__ = [
     "AccountAssetKindInvalidError",
@@ -38,7 +42,11 @@ __all__ = [
     "AccountEditingError",
     "AccountManualInterventionRequiredError",
     "AccountNotFoundError",
+    "AccountQueueUnavailableError",
     "AccountRuntimeUnusableError",
+    "AccountWarmupLockedError",
+    "contracts",
+    "enqueue",
     "ProfileAudioUnsupportedFormatError",
     "ProfileJobCooldownActiveError",
     "StoriesDisabledError",

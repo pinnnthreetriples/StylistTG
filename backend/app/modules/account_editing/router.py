@@ -7,23 +7,21 @@ Do not add behavior to the legacy app.api wrapper.
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.errors import AppError
-from app.logging_utils import log_event
-from app.models import JobState, utc_now
 from app.modules.account_editing import service as account_editing_service
+from app.modules.account_editing.contracts import (
+    AccountUpdateCreate,
+    AccountUpdateJobSummaryRead,
+    AccountUpdatePreviewRead,
+)
 from app.modules.account_editing.errors import AccountEditingError
-from app.schemas import AccountUpdateCreate, AccountUpdateJobSummaryRead, AccountUpdatePreviewRead
-from app.api.tenant_helpers import require_account_in_workspace
 from app.services.auth_context import (
     AuthContext,
     require_authenticated,
     require_mutation_permission,
 )
-from app.services.dashboard import job_summary
-from app.services.operation_logs import log_operation
-from app.services.warmup import warmup_operation_policy
-from app.config import settings
 from app.services.runtime_settings import execution_policy_settings
 
 router = APIRouter(prefix="/api/account-update", tags=["account-update"])
@@ -37,32 +35,14 @@ def preview_account_update(
 ):
     require_account_in_workspace(session, payload.account_id, auth)
     try:
-        preview = account_editing_service.build_preview(
+        return account_editing_service.build_preview_use_case(
             session,
-            account_id=payload.account_id,
-            desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
+            payload=payload,
             workspace_id=auth.workspace_id,
             config=execution_policy_settings(session),
         )
-        log_operation(
-            session,
-            account_id=payload.account_id,
-            operation_type="account_update",
-            operation_key="preview",
-            status="completed",
-            severity="info",
-            source="account_update_api",
-            message="Account update preview built",
-            workspace_id=auth.workspace_id,
-            metadata={
-                "safety_blockers": preview.get("safety_blockers", []),
-                "safety_warnings": preview.get("safety_warnings", []),
-            },
-        )
-        session.commit()
     except (AccountEditingError, ValueError) as exc:
         raise _account_update_error(exc) from exc
-    return AccountUpdatePreviewRead(**preview)
 
 
 @router.post(
@@ -74,76 +54,29 @@ def post_account_update_job(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     require_account_in_workspace(session, payload.account_id, auth)
-    warmup_policy = warmup_operation_policy(
-        session,
-        account_id=payload.account_id,
-        workspace_id=auth.workspace_id,
-        operation="profile_update",
-    )
-    if warmup_policy["is_locked"]:
-        raise AppError(
-            status_code=status.HTTP_409_CONFLICT,
-            error_code="ACCOUNT_WARMUP_LOCKED",
-            error_class="state_conflict",
-            message=warmup_policy["reason"],
-        )
     try:
-        job = account_editing_service.create_job(
+        return account_editing_service.create_job_use_case(
             session,
-            account_id=payload.account_id,
-            desired_state=payload.model_dump(exclude={"account_id"}, exclude_none=True),
-            requested_by_user_id=auth.user_id,
-            request_id=None,
+            payload=payload,
             workspace_id=auth.workspace_id,
+            requested_by_user_id=auth.user_id,
             config=execution_policy_settings(session),
         )
-        log_operation(
-            session,
-            account_id=payload.account_id,
-            operation_type="account_update",
-            operation_key="create_job",
-            status="completed",
-            severity="info",
-            source="account_update_api",
-            message="Account update job created",
-            job_id=job.id,
-            workspace_id=auth.workspace_id,
-            metadata={"job_state": job.job_state},
-        )
-        session.commit()
     except (AccountEditingError, ValueError) as exc:
         raise _account_update_error(exc) from exc
-    if job.job_state == JobState.QUEUED:
-        log_event("account_update_enqueue_requested", account_id=payload.account_id, job_id=job.id)
-        if account_editing_service.enqueue_job(job.id) is False:
-            if settings.queue_inline_fallback_enabled:
-                log_event(
-                    "account_update_inline_fallback_requested",
-                    account_id=payload.account_id,
-                    job_id=job.id,
-                )
-                account_editing_service.execute_inline_fallback(job.id, session=session)
-                session.refresh(job)
-                return AccountUpdateJobSummaryRead(**job_summary(job))
-            job.job_state = JobState.FAILED
-            job.finished_at = utc_now()
-            job.failure_reason = "enqueue_failed"
-            session.commit()
-            raise AppError(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                error_code="QUEUE_UNAVAILABLE",
-                error_class="queue",
-                message="job queue is unavailable",
-            )
-    return AccountUpdateJobSummaryRead(**job_summary(job))
 
 
 def _account_update_error(exc: AccountEditingError | ValueError) -> AppError:
     if isinstance(exc, AccountEditingError):
+        status_code = status.HTTP_400_BAD_REQUEST
+        if exc.error_class == "not_found":
+            status_code = status.HTTP_404_NOT_FOUND
+        elif exc.error_code == "ACCOUNT_WARMUP_LOCKED":
+            status_code = status.HTTP_409_CONFLICT
+        elif exc.error_code == "QUEUE_UNAVAILABLE":
+            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return AppError(
-            status_code=status.HTTP_404_NOT_FOUND
-            if exc.error_class == "not_found"
-            else status.HTTP_400_BAD_REQUEST,
+            status_code=status_code,
             error_code=exc.error_code,
             error_class=exc.error_class,
             message=exc.legacy_message,

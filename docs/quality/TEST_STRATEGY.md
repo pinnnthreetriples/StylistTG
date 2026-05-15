@@ -68,6 +68,7 @@ npm --workspace @stylisttg/api-client test
 npm run lint
 npm run typecheck
 npm run build
+npm run coverage
 
 # OpenAPI drift check
 npm run check:api
@@ -80,7 +81,8 @@ npm run qa:browser
 
 | Trigger | What runs |
 |---|---|
-| Every PR | backend lint/format, pytest coverage (non-live), coverage gate, test analyzer, Pyright, pip-audit, alembic upgrade, migration smoke, compileall, backend Docker build, frontend npm audit/OpenAPI drift/lint/test/build, Semgrep |
+| Every PR | backend lint/format, pytest coverage (non-live), coverage gate, test analyzer, Pyright, pip-audit, alembic upgrade, migration smoke, compileall, backend Docker build, frontend npm audit/OpenAPI drift/lint/test/coverage/build, Semgrep, Gitleaks, Trivy |
+| Soft PR signal | Xenon complexity report for backend `app`, `tools`, and `scripts` |
 | Path-filtered PR | Browser QA for dashboard/browser-related changes |
 | Nightly | randomized backend tests, flaky rerun detection, mutation gate, jscpd HTML reports |
 | Manual | Live TDLib/Telegram tests (requires explicit secrets and feature flags) |

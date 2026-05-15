@@ -20,13 +20,54 @@ compileall                python -m compileall app
 OpenAPI drift check       npm run check:api
 frontend lint             npm run lint
 frontend tests            npm test
+frontend coverage         npm run coverage
 frontend build            npm run build
 browser smoke             npm run qa:browser  # only when dashboard/browser paths change
 Docker build              docker build -f backend/Dockerfile -t stylisttg-backend:test .
 Semgrep                   semgrep scan --config p/ci --config .semgrep/stylisttg.yml --error backend/app apps packages
+Gitleaks PR diff          gitleaks git --config .gitleaks.toml --redact --log-opts="<base>..<head>" .
+Trivy filesystem          trivy fs --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 .
+Trivy backend image       trivy image --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 stylisttg-backend:test
+complexity (soft)         python -m xenon --max-absolute B --max-modules A --max-average A app tools scripts
 jscpd app                 npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
 jscpd tests               npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
 ```
+
+## Current CI Checks
+
+Hard gates:
+
+- `CI / Backend (Python 3.12)` - migrations, Ruff, pip-audit, Pyright subset, pytest coverage, compileall, backend Docker build.
+- `CI / Frontend` - npm audit, OpenAPI drift, lint, tests, Vitest coverage, build.
+- `Semgrep / Semgrep CE` - Semgrep with SARIF upload for PR annotations/code scanning.
+- `Secrets Scan / Gitleaks PR diff` - scans the PR or push commit range and fails on detected secrets.
+- `Trivy / Trivy filesystem` - repository filesystem dependency/config scan; fails on HIGH/CRITICAL.
+- `Trivy / Trivy backend image` - backend image scan; fails on HIGH/CRITICAL.
+
+Soft gates:
+
+- `Complexity / Xenon complexity (soft)` - reports complexity for `backend/app`, `backend/tools`, and `backend/scripts`; does not block merges yet.
+- `Test Quality / Pyright (strict, soft)` and `Schemathesis OpenAPI fuzz (soft)` - visible backlog checks.
+
+Current required status checks for `main`:
+
+- `Backend (Python 3.12)`
+- `Frontend`
+- `Browser QA`
+
+Recommended required status checks after the quality/security expansion:
+
+- `Backend (Python 3.12)`
+- `Frontend`
+- `Browser QA`
+- `Test Quality / test-quality-pr`
+- `Semgrep / Semgrep CE`
+- `Secrets Scan / Gitleaks PR diff`
+- `Trivy / Trivy filesystem`
+- `Trivy / Trivy backend image`
+
+Keep `Complexity / Xenon complexity (soft)` non-required until its threshold is promoted
+from reporting-only to a hard gate.
 
 Bugfix PRs must include a regression test that fails before the fix and passes after.
 

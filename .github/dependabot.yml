@@ -11,6 +11,14 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      # Security updates are intentionally not grouped here; Dependabot opens
+      # them separately from routine weekly version updates.
+      github-actions-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -24,7 +32,10 @@ updates:
       - "dependencies"
       - "frontend"
     groups:
+      # Security updates are intentionally not grouped here; Dependabot opens
+      # them separately from routine weekly version updates.
       npm-minor-and-patch:
+        applies-to: version-updates
         update-types:
           - "minor"
           - "patch"
@@ -41,7 +52,30 @@ updates:
       - "dependencies"
       - "backend"
     groups:
+      # Security updates are intentionally not grouped here; Dependabot opens
+      # them separately from routine weekly version updates.
       python-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:45"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    groups:
+      # Security updates are intentionally not grouped here; Dependabot opens
+      # them separately from routine weekly version updates.
+      docker-minor-and-patch:
+        applies-to: version-updates
         update-types:
           - "minor"
           - "patch"

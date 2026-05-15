@@ -95,7 +95,7 @@ jobs:
         run: uv run python -m app.tools.migration_smoke
       - name: Ruff
         working-directory: backend
-        run: uv run ruff check .
+        run: uv run ruff check . --output-format=github
       - name: pip-audit
         working-directory: backend
         run: |
@@ -141,6 +141,8 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
+      - name: Frontend coverage
+        run: npm run coverage
       - name: Build
         run: npm run build
 

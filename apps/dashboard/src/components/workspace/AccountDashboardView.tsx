@@ -9,7 +9,7 @@ import { Check } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { AccountHeader } from '@/components/dashboard/accountWorkspace/AccountHeader'
-import { WarmupIsolationBanner } from '@/modules/warmup/components/WarmupIsolationBanner'
+import { WarmupIsolationBanner } from '@/modules/warmup'
 import { DashboardActionBar } from '@/components/dashboard/DashboardActionBar'
 import { ErrorBanner } from '@/components/dashboard/ErrorBanner'
 import { JobStepPanel } from '@/components/dashboard/jobs/JobPanels'

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { updateExecutionPolicy } from '@/lib/api'
-import { updateAuthRuntimeMode } from '@/lib/auth'
+import { updateAuthRuntimeMode } from '@/modules/auth'
 import {
   settingsBundleQueryOptions,
   updateSettingsAuthModeInCache,

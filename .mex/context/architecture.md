@@ -10,7 +10,7 @@ edges:
   - .mex/context/frontend.md
   - .mex/context/workers.md
   - .mex/context/security.md
-last_updated: 2026-05-10
+last_updated: 2026-05-15
 ---
 
 # Architecture
@@ -18,6 +18,10 @@ last_updated: 2026-05-10
 ## System shape
 
 StylistTG is a local-first Telegram account/profile automation platform with a React dashboard, FastAPI backend, PostgreSQL persistence, Redis/RQ execution queues, and TDLib adapters. The dashboard calls FastAPI through `/api` and polls for state.
+
+Runtime role metadata lives in `backend/app/runtime` and documents API,
+scheduler, reaper, auth/profile/warmup workers, and maintenance worker
+boundaries without adding new queues.
 
 ## Primary flows
 
@@ -44,5 +48,6 @@ StylistTG is a local-first Telegram account/profile automation platform with a R
 
 - `AGENT_HANDOFF.md`
 - `docs/architecture/production-execution-plane.md`
+- `docs/runtime/runtime-boundaries.md`
 - `docs/architecture/frontend-saas-foundation.md`
 - `docs/api/frontend.md`

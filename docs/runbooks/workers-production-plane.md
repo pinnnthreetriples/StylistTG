@@ -40,6 +40,16 @@ python -m app.workers.run_worker --queues warmup_dispatch_jobs
 
 Unknown queues are rejected.
 
+Role validation is optional and keeps existing commands compatible:
+
+```powershell
+cd backend
+python -m app.workers.run_worker --queues profile_jobs --role profile_worker
+python -m app.workers.run_worker --queues warmup_dispatch_jobs --role warmup_dispatch_worker
+```
+
+Runtime role boundaries are documented in `docs/runtime/runtime-boundaries.md`.
+
 Auth-session jobs use the `auth_jobs` queue. They are allowed only for Telegram authorization/reauthorization state transitions and must not run profile/story/music mutations.
 
 Warmup dry-run sessions use `warmup_jobs`. Shadow/live micro-session dispatch uses `warmup_dispatch_jobs`; live modes require explicit warmup feature gates and operator approval before touching real Telegram accounts.

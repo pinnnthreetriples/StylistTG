@@ -1,0 +1,19 @@
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from app.db import get_session
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated
+
+
+# Import APIRouter and Depends from FastAPI in the concrete router.py.
+router = APIRouter(prefix="/api/<module_path>", tags=["<module_name>"])
+
+
+@router.get("/health")
+def module_health(
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> dict[str, str]:
+    return {"status": "ok", "workspace_id": str(auth.workspace_id)}

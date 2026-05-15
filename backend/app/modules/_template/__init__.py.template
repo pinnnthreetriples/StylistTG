@@ -1,0 +1,11 @@
+"""<module_name> module public surface."""
+
+__all__ = [
+    "contracts",
+    "errors",
+    "module",
+    "policies",
+    "repository",
+    "router",
+    "service",
+]

@@ -42,7 +42,7 @@ import {
 } from '@/lib/api'
 import type { AccountSafetySummary } from '@/lib/accountSafety'
 import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
-import { fetchAuthRuntimeMode, fetchAuthState } from '@/lib/auth'
+import { fetchAuthRuntimeMode, fetchAuthState } from '@/modules/auth'
 
 export const queryKeys = {
   currentUser: ['currentUser'] as const,

@@ -2,7 +2,7 @@
 
 Usage:
     python scripts/check.py            # run everything (recommended before push)
-    python scripts/check.py --fast     # skip slow checks (pyright, coverage gate, pip-audit)
+    python scripts/check.py --fast     # skip slow checks (pyright, coverage gate, pip-audit, complexity)
     python scripts/check.py --skip pyright pip-audit
     python scripts/check.py --only ruff analyzer
 
@@ -96,6 +96,25 @@ CHECKS: list[Check] = [
         [sys.executable, "-m", "pip_audit", "--skip-editable", "--progress-spinner=off"],
         REPO_ROOT,
     ),
+    Check(
+        "complexity",
+        [
+            sys.executable,
+            "-m",
+            "xenon",
+            "--max-absolute",
+            "B",
+            "--max-modules",
+            "A",
+            "--max-average",
+            "A",
+            "app",
+            "tools",
+            "scripts",
+        ],
+        REPO_ROOT,
+        soft=True,
+    ),
 ]
 
 
@@ -143,7 +162,9 @@ def main() -> int:
     args = parser.parse_args()
 
     fast_skip = (
-        {"pyright-ci", "pyright-strict", "coverage-gate", "pip-audit"} if args.fast else set()
+        {"pyright-ci", "pyright-strict", "coverage-gate", "pip-audit", "complexity"}
+        if args.fast
+        else set()
     )
     skip = set(args.skip) | fast_skip
     only = set(args.only)

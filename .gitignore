@@ -70,6 +70,10 @@ backend/reports/
 backend/.coverage
 backend/.coverage.*
 backend/htmlcov/
+*.sarif
+gitleaks-report.*
+trivy-results.*
+reports-xenon.txt
 
 # cache
 .cache/

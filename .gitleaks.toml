@@ -1,0 +1,4 @@
+title = "StylistTG Gitleaks configuration"
+
+[extend]
+useDefault = true

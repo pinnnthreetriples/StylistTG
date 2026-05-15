@@ -43,6 +43,16 @@ repos:
         exclude: \.(ps1|cmd|bat)$  # PowerShell/cmd scripts must keep CRLF on Windows
 
   # -------------------------------------------------------------------------
+  # Gitleaks: block newly staged secrets before they leave the workstation.
+  # Keep allowlists in .gitleaks.toml limited to reviewed false positives.
+  # -------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.29.0
+    hooks:
+      - id: gitleaks
+        args: [--config, .gitleaks.toml, --redact]
+
+  # -------------------------------------------------------------------------
   # Ruff: fast lint + format check on staged Python files.
   # -------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit

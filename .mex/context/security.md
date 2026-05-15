@@ -43,6 +43,6 @@ last_updated: 2026-05-15
 
 - For security-sensitive backend changes, run targeted pytest plus `cd backend; python -m ruff check .`.
 - For frontend auth/API contract changes, run targeted vitest/typecheck as applicable.
-- Repository security baseline workflows are CI, Test Quality, Semgrep, CodeQL,
-  Secret Scan, SBOM, and Container Scan. See
+- Repository security baseline checks are CI, Test Quality, Semgrep, CodeQL
+  Default Setup, Secret Scan, SBOM, and Container Scan. See
   `docs/security/security-baseline.md`.

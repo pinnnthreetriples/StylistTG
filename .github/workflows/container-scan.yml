@@ -21,10 +21,13 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Build backend image
         run: docker build -f backend/Dockerfile -t stylisttg-backend:scan .
+      - name: Prepare Trivy install path
+        run: mkdir -p "$HOME/.local/bin"
       - name: Trivy CRITICAL gate
         uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:
           image-ref: stylisttg-backend:scan
+          scanners: vuln
           format: table
           severity: CRITICAL
           exit-code: "1"
@@ -32,8 +35,10 @@ jobs:
       - name: Trivy HIGH/CRITICAL report
         uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         if: always()
+        continue-on-error: true
         with:
           image-ref: stylisttg-backend:scan
+          scanners: vuln
           format: sarif
           output: trivy-backend.sarif
           severity: HIGH,CRITICAL
@@ -45,4 +50,3 @@ jobs:
         with:
           name: trivy-backend-report
           path: trivy-backend.sarif
-

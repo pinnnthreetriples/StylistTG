@@ -33,6 +33,13 @@ jscpd app                 npx jscpd app --threshold 2 --reporters json --output 
 jscpd tests               npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
 ```
 
+Nightly-only local profiles:
+
+```
+backend randomized seeds  python scripts/check.py --only nightly-randomized
+backend mutation suite    python scripts/check.py --only mutation
+```
+
 ## Current CI Checks
 
 Hard gates:
@@ -48,6 +55,16 @@ Soft gates:
 
 - `Complexity / Xenon complexity (soft)` - reports complexity for `backend/app`, `backend/tools`, and `backend/scripts`; does not block merges yet.
 - `Test Quality / Pyright (strict, soft)` and `Schemathesis OpenAPI fuzz (soft)` - visible backlog checks.
+
+Nightly/manual reliability gates:
+
+- `.github/workflows/nightly-test-reliability.yml` has no PR trigger.
+- Hard: `Backend randomized reliability` fails when any configured seed fails.
+- Soft/reporting: `Flaky detection`, `Mutation testing (soft)`, `Contract fuzz (soft)`, and `jscpd reports (soft)`.
+- Artifacts include seeded pytest JUnit and JSON summaries, `reports/flaky-report.json`, `reports/mutation-report.json`, Schemathesis reports, and jscpd HTML/JSON reports.
+- Live TDLib/Telegram/S3 behavior is excluded with safe local env defaults; randomized/flaky jobs also exclude the separate contract fuzz marker.
+
+Promote a nightly soft gate to hard only after the candidate backlog is empty, the report has been stable over repeated nightly/manual runs, and the runtime budget is acceptable for scheduled CI.
 
 Current required status checks for `main`:
 

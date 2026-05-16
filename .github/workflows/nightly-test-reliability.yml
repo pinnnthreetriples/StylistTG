@@ -1,0 +1,376 @@
+name: Nightly Test Reliability
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  APP_ENV: test
+  AUTH_MODE: local
+  DB_CONNECTION_MODE: local
+  DATABASE_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg_ci
+  DATABASE_DIRECT_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg_ci
+  DATABASE_BASE_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432
+  DATABASE_ADMIN_URL: postgresql://stylisttg:stylisttg@localhost:5432/postgres
+  REDIS_URL: redis://localhost:6379/0
+  PROFILE_EXECUTION_ADAPTER: mock
+  STORAGE_BACKEND: local
+  TDLIB_LIVE_ENABLED: "false"
+  STORIES_TDLIB_LIVE_ENABLED: "false"
+  WARMUP_LIVE_ENABLED: "false"
+  ALLOW_TDLIB_LIVE_SMOKE: "false"
+  TDLIB_API_ID: "0"
+  TDLIB_API_HASH: ""
+  TELEGRAM_API_ID: "0"
+  TELEGRAM_API_HASH: ""
+
+permissions:
+  contents: read
+
+jobs:
+  backend-randomized-reliability:
+    name: Backend randomized reliability
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stylisttg
+          POSTGRES_PASSWORD: stylisttg
+          POSTGRES_DB: stylisttg_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stylisttg -d stylisttg_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install backend dependencies
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
+      - name: Prepare reports directory
+        run: mkdir -p reports
+      - name: Run seeded pytest matrix
+        run: uv run python scripts/nightly_randomized.py --seeds 101 202 303
+      - name: Write seed summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          summary_path = Path("reports/randomized-summary.json")
+          out = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          out.write_text("## Backend randomized reliability\n\n", encoding="utf-8")
+          if not summary_path.exists():
+              with out.open("a", encoding="utf-8") as handle:
+                  handle.write("No randomized summary was produced.\n")
+              raise SystemExit(0)
+          data = json.loads(summary_path.read_text(encoding="utf-8"))
+          with out.open("a", encoding="utf-8") as handle:
+              handle.write("| Seed | Status | Duration |\n")
+              handle.write("| --- | --- | ---: |\n")
+              for result in data["results"]:
+                  handle.write(
+                      f"| `{result['seed']}` | {result['status']} | {result['duration_seconds']}s |\n"
+                  )
+              failed = data.get("failed_seeds", [])
+              handle.write(f"\nFailed seeds: `{', '.join(failed) if failed else 'none'}`\n")
+          PY
+      - name: Upload randomized reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: backend-randomized-reliability-reports
+          path: backend/reports/
+
+  flaky-detection:
+    name: Flaky detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stylisttg
+          POSTGRES_PASSWORD: stylisttg
+          POSTGRES_DB: stylisttg_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stylisttg -d stylisttg_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install backend dependencies
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
+      - name: Prepare reports directory
+        run: mkdir -p reports
+      - name: Run rerun profile
+        run: uv run python scripts/flaky_detection.py --reruns 2 --reruns-delay 1
+      - name: Write flaky summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("reports/flaky-report.json")
+          out = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          out.write_text("## Flaky detection\n\n", encoding="utf-8")
+          if not report_path.exists():
+              with out.open("a", encoding="utf-8") as handle:
+                  handle.write("No flaky report was produced.\n")
+              raise SystemExit(0)
+          data = json.loads(report_path.read_text(encoding="utf-8"))
+          candidates = data.get("flaky_candidates", [])
+          with out.open("a", encoding="utf-8") as handle:
+              handle.write(f"Flaky candidates: **{len(candidates)}**\n\n")
+              if candidates:
+                  for candidate in candidates:
+                      handle.write(f"- `{candidate}`\n")
+              else:
+                  handle.write("No tests passed only after rerun.\n")
+          if candidates:
+              print(f"::warning title=Flaky candidates::{len(candidates)} tests passed only after rerun")
+          PY
+      - name: Upload flaky reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: flaky-detection-reports
+          path: backend/reports/
+
+  mutation-testing:
+    name: Mutation testing (soft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install backend dependencies
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
+      - name: Prepare reports directory
+        run: mkdir -p reports
+      - name: Run scoped mutmut profile
+        run: uv run python scripts/mutation_suite.py --soft --max-children 2
+      - name: Write mutation summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("reports/mutation-report.json")
+          out = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          out.write_text("## Mutation testing (soft)\n\n", encoding="utf-8")
+          if not report_path.exists():
+              with out.open("a", encoding="utf-8") as handle:
+                  handle.write("No mutation report was produced.\n")
+              raise SystemExit(0)
+          data = json.loads(report_path.read_text(encoding="utf-8"))
+          with out.open("a", encoding="utf-8") as handle:
+              handle.write("| Mutant status | Count |\n")
+              handle.write("| --- | ---: |\n")
+              for key in ("killed", "survived", "timeout", "incompetent"):
+                  handle.write(f"| {key} | {data.get(key, 0)} |\n")
+              handle.write(f"\nMutation score: **{data.get('score', 'n/a')}%**\n")
+          if data.get("survived", 0):
+              print(f"::warning title=Survived mutants::{data['survived']} mutants survived")
+          PY
+      - name: Upload mutation reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mutation-testing-reports
+          path: |
+            backend/reports/
+            backend/mutants/mutmut-cicd-stats.json
+
+  contract-fuzz:
+    name: Contract fuzz (soft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stylisttg
+          POSTGRES_PASSWORD: stylisttg
+          POSTGRES_DB: stylisttg_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stylisttg -d stylisttg_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install backend dependencies
+        run: |
+          python -m pip install uv==0.10.9
+          uv sync --locked --extra dev
+      - name: Run deeper Schemathesis profile
+        timeout-minutes: 20
+        env:
+          SCHEMATHESIS_MAX_EXAMPLES: "25"
+        run: |
+          mkdir -p reports
+          set +e
+          uv run python -m pytest tests/contract/ -m contract \
+            -p no:randomly \
+            --tb=short -q \
+            --junitxml=reports/schemathesis-nightly-junit.xml \
+            | tee reports/schemathesis-nightly.log
+          status=${PIPESTATUS[0]}
+          python - "$status" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          status = int(sys.argv[1])
+          Path("reports/schemathesis-nightly-report.json").write_text(
+              json.dumps(
+                  {
+                      "returncode": status,
+                      "max_examples": 25,
+                      "junit": "reports/schemathesis-nightly-junit.xml",
+                      "log": "reports/schemathesis-nightly.log",
+                  },
+                  indent=2,
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=Schemathesis soft failure::contract fuzz exited with $status"
+          fi
+          exit 0
+      - name: Write contract fuzz summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("reports/schemathesis-nightly-report.json")
+          out = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          out.write_text("## Contract fuzz (soft)\n\n", encoding="utf-8")
+          if not report_path.exists():
+              with out.open("a", encoding="utf-8") as handle:
+                  handle.write("No Schemathesis report was produced.\n")
+              raise SystemExit(0)
+          data = json.loads(report_path.read_text(encoding="utf-8"))
+          with out.open("a", encoding="utf-8") as handle:
+              handle.write(f"Max examples per operation: `{data['max_examples']}`\n\n")
+              handle.write(f"Pytest return code: `{data['returncode']}`\n")
+          PY
+      - name: Upload contract fuzz reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: contract-fuzz-reports
+          path: backend/reports/
+
+  jscpd-reports:
+    name: jscpd reports (soft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Generate jscpd reports
+        run: |
+          mkdir -p reports
+          npx --yes jscpd backend/app --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
+          npx --yes jscpd backend/tests --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
+          npx --yes jscpd apps packages --reporters json,html --output reports/jscpd-frontend || true
+      - name: Write jscpd summary
+        if: always()
+        run: |
+          {
+            echo "## jscpd reports (soft)"
+            echo
+            echo "- backend app: \`reports/jscpd-backend-app\`"
+            echo "- backend tests: \`reports/jscpd-backend-tests\`"
+            echo "- frontend apps/packages: \`reports/jscpd-frontend\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload jscpd reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: jscpd-nightly-reports
+          path: reports/

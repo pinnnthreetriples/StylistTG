@@ -115,6 +115,17 @@ CHECKS: list[Check] = [
         REPO_ROOT,
         soft=True,
     ),
+    Check(
+        "nightly-randomized",
+        [sys.executable, "scripts/nightly_randomized.py"],
+        REPO_ROOT,
+    ),
+    Check(
+        "mutation",
+        [sys.executable, "scripts/mutation_suite.py", "--soft"],
+        REPO_ROOT,
+        soft=True,
+    ),
 ]
 
 

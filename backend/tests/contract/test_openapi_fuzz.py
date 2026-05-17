@@ -27,6 +27,8 @@ module uses the @pytest.mark.allow_pii_in_logs opt-out.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 import schemathesis
 from hypothesis import HealthCheck, settings as hypothesis_settings
@@ -45,7 +47,7 @@ schema = schemathesis.openapi.from_asgi("/openapi.json", app)
 #   - deadline=None — xdist parallelism + ASGI startup spikes can blow defaults.
 #   - too_slow ignored for the same reason.
 _FUZZ_SETTINGS = hypothesis_settings(
-    max_examples=5,
+    max_examples=int(os.getenv("SCHEMATHESIS_MAX_EXAMPLES", "5")),
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much],
 )

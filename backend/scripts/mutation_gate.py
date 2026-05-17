@@ -31,6 +31,7 @@ def main() -> int:
     caught_by_type_check = int(stats.get("caught_by_type_check", 0))
     survived = int(stats.get("survived", 0))
     no_tests = int(stats.get("no_tests", 0))
+    incompetent = int(stats.get("incompetent", 0))
     timeout = int(stats.get("timeout", 0))
     suspicious = int(stats.get("suspicious", 0))
     segfault = int(stats.get("segfault", 0))
@@ -40,12 +41,14 @@ def main() -> int:
     passed = killed + caught_by_type_check
     score = _pct(passed, denominator)
     unstable = timeout + suspicious + segfault + interrupted
+    incompetent_total = incompetent + no_tests
 
     print(f"mutation score: {score:.1f}% ({passed}/{denominator})")
     print(
         "mutants: "
         f"total={total} killed={killed} typecheck={caught_by_type_check} "
-        f"survived={survived} no_tests={no_tests} skipped={skipped} unstable={unstable}"
+        f"survived={survived} timeout={timeout} incompetent={incompetent_total} "
+        f"skipped={skipped} unstable={unstable}"
     )
 
     failures: list[str] = []

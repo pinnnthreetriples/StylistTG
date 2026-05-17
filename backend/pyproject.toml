@@ -143,14 +143,23 @@ show_contexts = false
 
 [tool.mutmut]
 paths_to_mutate = [
-  "app/adapters/tdlib_auth.py",
-  "app/services/plan.py",
-  "app/services/step_registry.py",
+  "app/services/secret_redaction.py",
+  "app/services/phone_hints.py",
+  "app/storage/paths.py",
+  "app/services/step_policy.py",
+  "app/modules/account_editing/planner.py",
+  "app/modules/account_editing/policies.py",
+  "app/modules/warmup/policies.py",
 ]
 tests_dir = [
-  "tests/properties",
-  "tests/domain/test_plan_and_dedup.py",
+  "tests/security/test_property_security_helpers.py",
+  "tests/storage/test_storage_layer.py",
+  "tests/domain/test_step_policy.py",
   "tests/accounts/test_account_update_plan.py",
+  "tests/modules/test_account_editing_policies.py",
+  "tests/modules/account_editing/test_policies.py",
+  "tests/warmup/test_warmup_account_integration.py",
+  "tests/modules/warmup/test_warmup_legacy_compatibility.py",
 ]
 pytest_add_cli_args = ["-p", "no:randomly"]
 

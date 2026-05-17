@@ -48,7 +48,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_legacy_wrapper_deprecation_manifest.py",
-      "test_count": 4
+      "test_count": 5
     },
     {
       "boundary_keywords": [

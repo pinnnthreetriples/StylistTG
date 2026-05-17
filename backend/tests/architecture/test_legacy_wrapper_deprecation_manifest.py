@@ -44,3 +44,13 @@ def test_legacy_wrapper_manifest_files_have_compatibility_markers() -> None:
     errors = validate_manifest(REPO_ROOT, _manifest())
 
     assert errors == []
+
+
+def test_legacy_wrapper_manifest_rejects_invalid_stage() -> None:
+    manifest = build_manifest()
+    manifest["wrappers"][0]["stage"] = "stage_9_invalid"
+
+    errors = validate_manifest(REPO_ROOT, manifest)
+
+    assert "docs/architecture/legacy-wrappers.json does not match generated manifest" in errors
+    assert any("uses invalid stage 'stage_9_invalid'" in error for error in errors)

@@ -1,0 +1,852 @@
+{
+  "architecture_tests": [
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "router",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_account_editing_module_boundaries.py",
+      "test_count": 4
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "legacy",
+        "router"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_auth_module_boundaries.py",
+      "test_count": 5
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "router",
+        "storage"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_dependency_direction.py",
+      "test_count": 3
+    },
+    {
+      "boundary_keywords": [
+        "legacy",
+        "workflow"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_job_queue_boundaries.py",
+      "test_count": 3
+    },
+    {
+      "boundary_keywords": [
+        "legacy"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_legacy_wrappers.py",
+      "test_count": 2
+    },
+    {
+      "boundary_keywords": [
+        "workflow"
+      ],
+      "mentions_ast": false,
+      "path": "backend/tests/architecture/test_module_template_not_registered.py",
+      "test_count": 4
+    },
+    {
+      "boundary_keywords": [
+        "contracts",
+        "router"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_no_cross_module_internal_imports.py",
+      "test_count": 2
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "legacy",
+        "router",
+        "storage"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_no_fastapi_in_domain.py",
+      "test_count": 2
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_no_sqlalchemy_models_in_api_contracts.py",
+      "test_count": 2
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_runtime_boundaries.py",
+      "test_count": 3
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "router",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_storage_boundaries.py",
+      "test_count": 4
+    },
+    {
+      "boundary_keywords": [
+        "legacy",
+        "runtime",
+        "workflow"
+      ],
+      "mentions_ast": false,
+      "path": "backend/tests/architecture/test_structure_audit_report.py",
+      "test_count": 6
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
+        "legacy",
+        "router",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_warmup_module_boundaries.py",
+      "test_count": 9
+    }
+  ],
+  "boundaries": {
+    "contracts_forbidden_imports": {
+      "backend/app/modules/account_editing/contracts.py": [],
+      "backend/app/modules/auth/contracts.py": [],
+      "backend/app/modules/warmup/contracts.py": [],
+      "backend/app/schemas.py": []
+    },
+    "fastapi_outside_router_or_auth_dependencies": [],
+    "policies_forbidden_imports": {
+      "backend/app/modules/account_editing/policies.py": [],
+      "backend/app/modules/auth/policies.py": [],
+      "backend/app/modules/warmup/policies.py": []
+    },
+    "repositories_forbidden_imports": {
+      "backend/app/modules/account_editing/repository.py": [],
+      "backend/app/modules/auth/repository.py": [],
+      "backend/app/modules/warmup/repository.py": []
+    },
+    "routers_importing_models": {
+      "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/warmup/router.py": []
+    }
+  },
+  "findings": [
+    {
+      "area": "backend-modules",
+      "evidence": "app.modules.registry imports auth, account_editing, and warmup; _template remains documentation-only.",
+      "finding": "Backend module registry has auth, account_editing, and warmup as canonical modules.",
+      "id": "STRUCTURE-001",
+      "recommendation": "Continue adding new product modules through the documented module checklist.",
+      "risk": "Low. The main feature module boundary is explicit and enforced by architecture tests.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
+    },
+    {
+      "area": "frontend",
+      "evidence": "apps/dashboard/src/modules has account-editing, auth, and warmup indexes; global dashboard roots still contain many files.",
+      "finding": "Frontend modularization is started, but global lib, hooks, components, and features still own substantial feature logic.",
+      "id": "STRUCTURE-002",
+      "recommendation": "Move feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
+      "risk": "Future frontend work can bypass module boundaries unless feature ownership keeps moving behind public module indexes.",
+      "severity": "medium",
+      "status": "open",
+      "suggested_phase": "Phase 23"
+    },
+    {
+      "area": "storage-contracts",
+      "evidence": "Storage boundary docs intentionally defer app.models split and shared contracts extraction.",
+      "finding": "app.models.py remains global and app.schemas.py remains a compatibility/global DTO layer.",
+      "id": "STRUCTURE-003",
+      "recommendation": "Extract shared contracts and continue moving ORM access behind repositories before splitting app.models.",
+      "risk": "New code may import global ORM or DTO layers unless architecture tests keep blocking the highest-risk paths.",
+      "severity": "medium",
+      "status": "deferred",
+      "suggested_phase": "Phase 24"
+    },
+    {
+      "area": "legacy-wrappers",
+      "evidence": "Wrappers include compatibility docstrings and are documented in legacy-wrapper-audit.md.",
+      "finding": "Legacy API/service/worker wrappers remain import-compatible by design.",
+      "id": "STRUCTURE-004",
+      "recommendation": "Define removal readiness and downstream call-site migration criteria.",
+      "risk": "Low while architecture tests prevent modules from importing legacy wrappers.",
+      "severity": "low",
+      "status": "accepted",
+      "suggested_phase": "Phase 25"
+    },
+    {
+      "area": "runtime",
+      "evidence": "Runtime role metadata assigns reserved queues to maintenance_worker until dedicated roles are justified.",
+      "finding": "maintenance_worker temporarily owns reserved media, story, and account-lifecycle queues.",
+      "id": "STRUCTURE-005",
+      "recommendation": "Introduce dedicated roles once media/story/lifecycle execution becomes active production work.",
+      "risk": "Moderate future blast-radius risk if those queues become active without a role split.",
+      "severity": "low",
+      "status": "deferred",
+      "suggested_phase": "Phase 26"
+    },
+    {
+      "area": "architecture-tests",
+      "evidence": "Multiple tests parse imports and source files independently with small local helper functions.",
+      "finding": "Architecture tests contain duplicated static-analysis helper patterns.",
+      "id": "STRUCTURE-006",
+      "recommendation": "Consolidate AST/import helper utilities after the boundary set stabilizes.",
+      "risk": "Low. Duplication can make future boundary-rule changes noisy.",
+      "severity": "low",
+      "status": "open",
+      "suggested_phase": "Phase 23+"
+    },
+    {
+      "area": "security",
+      "evidence": "CI, Test Quality, Semgrep, Secret Scan, SBOM, Container Scan, Trivy, Complexity, Gitleaks config, and security docs exist.",
+      "finding": "Security baseline workflows and documentation are present.",
+      "id": "STRUCTURE-007",
+      "recommendation": "Keep security docs in sync with GitHub branch protection and workflow policy changes.",
+      "risk": "Low. Branch protection remains a repository setting outside source control.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
+    }
+  ],
+  "forbidden_runtime_claims": {
+    "queues": [],
+    "workflows": []
+  },
+  "frontend_modules": [
+    {
+      "files": [
+        "apps/dashboard/src/modules/account-editing/api.ts",
+        "apps/dashboard/src/modules/account-editing/hooks.ts",
+        "apps/dashboard/src/modules/account-editing/index.ts",
+        "apps/dashboard/src/modules/account-editing/labels.ts",
+        "apps/dashboard/src/modules/account-editing/types.ts"
+      ],
+      "has_components_dir": false,
+      "has_index": true,
+      "name": "account-editing",
+      "path": "apps/dashboard/src/modules/account-editing"
+    },
+    {
+      "files": [
+        "apps/dashboard/src/modules/auth/api.ts",
+        "apps/dashboard/src/modules/auth/batches.ts",
+        "apps/dashboard/src/modules/auth/bootstrap.ts",
+        "apps/dashboard/src/modules/auth/hooks.ts",
+        "apps/dashboard/src/modules/auth/index.ts",
+        "apps/dashboard/src/modules/auth/types.ts"
+      ],
+      "has_components_dir": false,
+      "has_index": true,
+      "name": "auth",
+      "path": "apps/dashboard/src/modules/auth"
+    },
+    {
+      "files": [
+        "apps/dashboard/src/modules/warmup/WarmupModule.tsx",
+        "apps/dashboard/src/modules/warmup/api.ts",
+        "apps/dashboard/src/modules/warmup/components/WarmupCreateWizard.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupDailyCountersPanel.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupDailyCountersPanel.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupEventLog.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupIsolationBanner.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupIsolationBanner.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupProxySnapshotPanel.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupReadinessBanner.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupSessionDetail.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupSessionsTable.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupStatusBadge.tsx",
+        "apps/dashboard/src/modules/warmup/hooks.ts",
+        "apps/dashboard/src/modules/warmup/index.ts",
+        "apps/dashboard/src/modules/warmup/labels.test.ts",
+        "apps/dashboard/src/modules/warmup/labels.ts",
+        "apps/dashboard/src/modules/warmup/types.ts",
+        "apps/dashboard/src/modules/warmup/warmupModule.test.tsx"
+      ],
+      "has_components_dir": true,
+      "has_index": true,
+      "name": "warmup",
+      "path": "apps/dashboard/src/modules/warmup"
+    },
+    {
+      "files": [],
+      "global_file_counts": {
+        "apps/dashboard/src/components": 42,
+        "apps/dashboard/src/features": 41,
+        "apps/dashboard/src/hooks": 13,
+        "apps/dashboard/src/lib": 56
+      },
+      "has_components_dir": null,
+      "has_index": null,
+      "module_boundary_test": true,
+      "name": "_global_frontend_ownership_snapshot",
+      "path": "apps/dashboard/src"
+    }
+  ],
+  "generated_at": "2026-05-17T00:00:00Z",
+  "legacy_wrappers": [
+    {
+      "canonical_owner": "app.modules.account_editing.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.api.account_update",
+      "module_import_references": [],
+      "path": "backend/app/api/account_update.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.api.warmup",
+      "module_import_references": [],
+      "path": "backend/app/api/warmup.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_editing.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.account_update_jobs",
+      "module_import_references": [],
+      "path": "backend/app/services/account_update_jobs.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_editing.planner",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.account_update_plan",
+      "module_import_references": [],
+      "path": "backend/app/services/account_update_plan.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_editing.executor",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.workers.account_update_jobs",
+      "module_import_references": [],
+      "path": "backend/app/workers/account_update_jobs.py"
+    },
+    {
+      "canonical_owner": "app.modules.auth.dependencies / context",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.auth_context",
+      "module_import_references": [],
+      "path": "backend/app/services/auth_context.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.worker",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup_worker",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup_worker.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.dispatcher",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup_dispatch",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup_dispatch.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.isolation",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup_isolation",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup_isolation.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.readiness",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup_readiness",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup_readiness.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.p2p",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.services.warmup_p2p",
+      "module_import_references": [],
+      "path": "backend/app/services/warmup_p2p.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.jobs",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.workers.warmup_jobs",
+      "module_import_references": [],
+      "path": "backend/app/workers/warmup_jobs.py"
+    },
+    {
+      "canonical_owner": "app.modules.warmup.jobs",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "exists": true,
+      "import_path": "app.workers.warmup_dispatch_jobs",
+      "module_import_references": [],
+      "path": "backend/app/workers/warmup_dispatch_jobs.py"
+    }
+  ],
+  "modules": [
+    {
+      "documentation_only": true,
+      "files": [
+        "backend/app/modules/_template/README.md",
+        "backend/app/modules/_template/__init__.py.template",
+        "backend/app/modules/_template/contracts.py.template",
+        "backend/app/modules/_template/errors.py.template",
+        "backend/app/modules/_template/jobs.py.template",
+        "backend/app/modules/_template/module.py.template",
+        "backend/app/modules/_template/policies.py.template",
+        "backend/app/modules/_template/repository.py.template",
+        "backend/app/modules/_template/router.py.template",
+        "backend/app/modules/_template/service.py.template",
+        "backend/app/modules/_template/tests.md"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": false,
+      "has_init": false,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": false,
+      "has_service_facade": false,
+      "name": "_template",
+      "registered": false,
+      "router_path": null,
+      "template_files_are_non_runtime": true,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_editing/__init__.py",
+        "backend/app/modules/account_editing/contracts.py",
+        "backend/app/modules/account_editing/enqueue.py",
+        "backend/app/modules/account_editing/errors.py",
+        "backend/app/modules/account_editing/executor.py",
+        "backend/app/modules/account_editing/jobs.py",
+        "backend/app/modules/account_editing/module.py",
+        "backend/app/modules/account_editing/planner.py",
+        "backend/app/modules/account_editing/policies.py",
+        "backend/app/modules/account_editing/repository.py",
+        "backend/app/modules/account_editing/router.py",
+        "backend/app/modules/account_editing/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": true,
+      "has_errors": true,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": true,
+      "has_policies": true,
+      "has_repository": true,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "account_editing",
+      "registered": true,
+      "router_path": "app.modules.account_editing.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": true,
+      "workflows": [
+        {
+          "args_mode": "JOB_ID",
+          "description": "Manual Telegram account update workflow.",
+          "handler_path": "app.modules.account_editing.jobs:run_account_update_job",
+          "module": "account_editing",
+          "queue_name": "profile_jobs",
+          "workflow_type": "account_update"
+        }
+      ]
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/auth/__init__.py",
+        "backend/app/modules/auth/context.py",
+        "backend/app/modules/auth/contracts.py",
+        "backend/app/modules/auth/dependencies.py",
+        "backend/app/modules/auth/errors.py",
+        "backend/app/modules/auth/module.py",
+        "backend/app/modules/auth/policies.py",
+        "backend/app/modules/auth/repository.py",
+        "backend/app/modules/auth/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": true,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": true,
+      "has_repository": true,
+      "has_router": false,
+      "has_service_facade": true,
+      "name": "auth",
+      "registered": true,
+      "router_path": null,
+      "template_files_are_non_runtime": null,
+      "tests_present": true,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/warmup/__init__.py",
+        "backend/app/modules/warmup/commands.py",
+        "backend/app/modules/warmup/contracts.py",
+        "backend/app/modules/warmup/dispatcher.py",
+        "backend/app/modules/warmup/enqueue.py",
+        "backend/app/modules/warmup/errors.py",
+        "backend/app/modules/warmup/events.py",
+        "backend/app/modules/warmup/isolation.py",
+        "backend/app/modules/warmup/jobs.py",
+        "backend/app/modules/warmup/module.py",
+        "backend/app/modules/warmup/p2p.py",
+        "backend/app/modules/warmup/policies.py",
+        "backend/app/modules/warmup/queries.py",
+        "backend/app/modules/warmup/read_models.py",
+        "backend/app/modules/warmup/readiness.py",
+        "backend/app/modules/warmup/repository.py",
+        "backend/app/modules/warmup/router.py",
+        "backend/app/modules/warmup/service.py",
+        "backend/app/modules/warmup/worker.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": true,
+      "has_errors": true,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": true,
+      "has_policies": true,
+      "has_repository": true,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "warmup",
+      "registered": true,
+      "router_path": "app.modules.warmup.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": true,
+      "workflows": [
+        {
+          "args_mode": "NONE",
+          "description": "Dispatch due warmup micro-sessions.",
+          "handler_path": "app.modules.warmup.jobs:run_warmup_dispatch_tick",
+          "module": "warmup",
+          "queue_name": "warmup_dispatch_jobs",
+          "workflow_type": "warmup_dispatch_tick"
+        },
+        {
+          "args_mode": "NONE",
+          "description": "Scan due warmup sessions.",
+          "handler_path": "app.modules.warmup.jobs:run_warmup_due_sessions",
+          "module": "warmup",
+          "queue_name": "warmup_jobs",
+          "workflow_type": "warmup_due_sessions"
+        }
+      ]
+    }
+  ],
+  "queues": [
+    {
+      "covered_by_roles": [
+        "maintenance_worker"
+      ],
+      "is_production_queue": true,
+      "name": "account_lifecycle_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "auth_worker"
+      ],
+      "is_production_queue": true,
+      "name": "auth_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "maintenance_worker"
+      ],
+      "is_production_queue": true,
+      "name": "maintenance_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "maintenance_worker"
+      ],
+      "is_production_queue": true,
+      "name": "media_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "profile_worker"
+      ],
+      "is_production_queue": true,
+      "name": "profile_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "scheduler"
+      ],
+      "is_production_queue": true,
+      "name": "scheduler_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "maintenance_worker"
+      ],
+      "is_production_queue": true,
+      "name": "story_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "warmup_dispatch_worker"
+      ],
+      "is_production_queue": true,
+      "name": "warmup_dispatch_jobs"
+    },
+    {
+      "covered_by_roles": [
+        "warmup_worker"
+      ],
+      "is_production_queue": true,
+      "name": "warmup_jobs"
+    }
+  ],
+  "recommended_next_phases": [
+    "Phase 23 - Frontend feature ownership cleanup",
+    "Phase 24 - Shared contracts extraction",
+    "Phase 25 - Legacy wrappers deprecation plan",
+    "Phase 26 - Dedicated runtime roles for maintenance/media/story/lifecycle",
+    "Phase 27 - First new module: analytics read-only or broadcast preview-only"
+  ],
+  "runtime_roles": [
+    {
+      "allows_live_tdlib": false,
+      "description": "FastAPI request handling without worker queue consumption.",
+      "name": "api",
+      "queues": [],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": true,
+      "description": "Telegram auth and reauth worker.",
+      "name": "auth_worker",
+      "queues": [
+        "auth_jobs"
+      ],
+      "requires_session_storage": true,
+      "requires_tdlib": true
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Maintenance and reserved queue worker role.",
+      "name": "maintenance_worker",
+      "queues": [
+        "account_lifecycle_jobs",
+        "maintenance_jobs",
+        "media_jobs",
+        "story_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": true,
+      "description": "Profile/account update worker.",
+      "name": "profile_worker",
+      "queues": [
+        "profile_jobs"
+      ],
+      "requires_session_storage": true,
+      "requires_tdlib": true
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Out-of-band stale job reconciliation without queue consumption.",
+      "name": "reaper",
+      "queues": [],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Scheduled enqueue decisions and lightweight scheduler jobs.",
+      "name": "scheduler",
+      "queues": [
+        "scheduler_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": true,
+      "description": "Warmup micro-session dispatch worker.",
+      "name": "warmup_dispatch_worker",
+      "queues": [
+        "warmup_dispatch_jobs"
+      ],
+      "requires_session_storage": true,
+      "requires_tdlib": true
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Dry-run account preparation worker.",
+      "name": "warmup_worker",
+      "queues": [
+        "warmup_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    }
+  ],
+  "security_checks": [
+    {
+      "exists": true,
+      "name": "CI",
+      "path": ".github/workflows/ci.yml"
+    },
+    {
+      "exists": true,
+      "name": "CodeQL Default Setup",
+      "path": "docs/security/security-baseline.md"
+    },
+    {
+      "exists": true,
+      "name": "Complexity",
+      "path": ".github/workflows/complexity.yml"
+    },
+    {
+      "exists": true,
+      "name": "Container Scan",
+      "path": ".github/workflows/container-scan.yml"
+    },
+    {
+      "exists": true,
+      "name": "Dependabot",
+      "path": ".github/dependabot.yml"
+    },
+    {
+      "exists": true,
+      "name": "Gitleaks config",
+      "path": ".gitleaks.toml"
+    },
+    {
+      "exists": true,
+      "name": "SBOM",
+      "path": ".github/workflows/sbom.yml"
+    },
+    {
+      "exists": true,
+      "name": "Secret Scan",
+      "path": ".github/workflows/secret-scan.yml"
+    },
+    {
+      "exists": true,
+      "name": "Semgrep",
+      "path": ".github/workflows/semgrep.yml"
+    },
+    {
+      "exists": true,
+      "name": "Test Quality",
+      "path": ".github/workflows/test-quality.yml"
+    },
+    {
+      "exists": true,
+      "name": "Trivy",
+      "path": ".github/workflows/trivy.yml"
+    }
+  ],
+  "workflows": [
+    {
+      "args_mode": "JOB_ID",
+      "description": "Manual Telegram account update workflow.",
+      "handler_path": "app.modules.account_editing.jobs:run_account_update_job",
+      "module": "account_editing",
+      "queue_name": "profile_jobs",
+      "workflow_type": "account_update"
+    },
+    {
+      "args_mode": "NONE",
+      "description": "Dispatch due warmup micro-sessions.",
+      "handler_path": "app.modules.warmup.jobs:run_warmup_dispatch_tick",
+      "module": "warmup",
+      "queue_name": "warmup_dispatch_jobs",
+      "workflow_type": "warmup_dispatch_tick"
+    },
+    {
+      "args_mode": "NONE",
+      "description": "Scan due warmup sessions.",
+      "handler_path": "app.modules.warmup.jobs:run_warmup_due_sessions",
+      "module": "warmup",
+      "queue_name": "warmup_jobs",
+      "workflow_type": "warmup_due_sessions"
+    }
+  ]
+}

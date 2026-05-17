@@ -36,7 +36,10 @@ from app.storage.paths import (
 # Settings for CI speed
 # ---------------------------------------------------------------------------
 
-CI_SETTINGS = settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
+CI_SETTINGS = settings(
+    max_examples=50,
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.differing_executors],
+)
 
 
 # ---------------------------------------------------------------------------

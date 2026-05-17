@@ -61,7 +61,7 @@ Nightly/manual reliability gates:
 - `.github/workflows/nightly-test-reliability.yml` has no PR trigger.
 - Hard: `Backend randomized reliability` fails when any configured seed fails.
 - Soft/reporting: `Flaky detection`, `Mutation testing (soft)`, `Contract fuzz (soft)`, and `jscpd reports (soft)`.
-- Artifacts include seeded pytest JUnit and JSON summaries, `reports/flaky-report.json`, `reports/mutation-report.json`, Schemathesis reports, and jscpd HTML/JSON reports.
+- Artifacts include seeded pytest JUnit and JSON summaries, `reports/flaky-report.json`, `reports/mutation-report.json` with not-checked diagnostics, Schemathesis reports from a migrated local PostgreSQL schema, and jscpd HTML/JSON reports.
 - Live TDLib/Telegram/S3 behavior is excluded with safe local env defaults; randomized/flaky jobs also exclude the separate contract fuzz marker.
 
 Promote a nightly soft gate to hard only after the candidate backlog is empty, the report has been stable over repeated nightly/manual runs, and the runtime budget is acceptable for scheduled CI.

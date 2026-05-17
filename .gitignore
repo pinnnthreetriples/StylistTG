@@ -70,6 +70,7 @@ backend/reports/
 backend/.coverage
 backend/.coverage.*
 backend/htmlcov/
+backend/mutants/
 *.sarif
 gitleaks-report.*
 trivy-results.*

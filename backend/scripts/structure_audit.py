@@ -101,6 +101,20 @@ def _import_names(path: Path) -> list[str]:
     return sorted(imports)
 
 
+def _imported_paths(path: Path) -> list[str]:
+    tree = _parse_ast(path)
+    if tree is None:
+        return []
+    imported_paths: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_paths.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_paths.add(node.module)
+            imported_paths.update(f"{node.module}.{alias.name}" for alias in node.names)
+    return sorted(imported_paths)
+
+
 def _has_import_prefix(path: Path, forbidden: tuple[str, ...]) -> list[str]:
     matches: list[str] = []
     for imported in _import_names(path):
@@ -120,6 +134,11 @@ def _literal_value(node: ast.AST, constants: dict[str, str]) -> Any:
         return node.value
     if isinstance(node, ast.Name):
         return constants.get(node.id, node.id)
+    if isinstance(node, ast.Attribute):
+        owner = _literal_value(node.value, constants)
+        if owner == "WorkflowArgsMode":
+            return node.attr
+        return f"{owner}.{node.attr}" if owner else node.attr
     if isinstance(node, (ast.Tuple, ast.List)):
         return tuple(_literal_value(element, constants) for element in node.elts)
     return None
@@ -280,8 +299,11 @@ def _module_import_references(repo_root: Path, import_path: str) -> list[str]:
     references: list[str] = []
     modules_root = repo_root / MODULES_ROOT
     for path in _python_files(modules_root):
-        text = path.read_text(encoding="utf-8")
-        if import_path in text:
+        imported_paths = _imported_paths(path)
+        if any(
+            imported == import_path or imported.startswith(f"{import_path}.")
+            for imported in imported_paths
+        ):
             references.append(_relative(path, repo_root))
     return sorted(references)
 

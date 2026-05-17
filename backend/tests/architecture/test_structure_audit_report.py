@@ -68,3 +68,13 @@ def test_audit_report_does_not_claim_broadcast_or_analytics_runtime() -> None:
         assert all(forbidden not in name for name in runtime_names)
         assert all(forbidden not in name for name in queue_names)
         assert all(forbidden not in workflow_type for workflow_type in workflow_types)
+
+
+def test_structure_audit_report_preserves_workflow_args_modes() -> None:
+    workflows = {
+        workflow["workflow_type"]: workflow["args_mode"]
+        for workflow in _committed_report()["workflows"]
+    }
+    assert workflows["account_update"] == "JOB_ID"
+    assert workflows["warmup_due_sessions"] == "NONE"
+    assert workflows["warmup_dispatch_tick"] == "NONE"

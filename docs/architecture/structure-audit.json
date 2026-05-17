@@ -116,7 +116,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 5
+      "test_count": 6
     },
     {
       "boundary_keywords": [
@@ -316,9 +316,7 @@
       "documented_in_audit": true,
       "exists": true,
       "import_path": "app.api.account_update",
-      "module_import_references": [
-        "backend/app/modules/account_editing/router.py"
-      ],
+      "module_import_references": [],
       "path": "backend/app/api/account_update.py"
     },
     {
@@ -328,9 +326,7 @@
       "documented_in_audit": true,
       "exists": true,
       "import_path": "app.api.warmup",
-      "module_import_references": [
-        "backend/app/modules/warmup/router.py"
-      ],
+      "module_import_references": [],
       "path": "backend/app/api/warmup.py"
     },
     {
@@ -520,7 +516,7 @@
       "tests_present": true,
       "workflows": [
         {
-          "args_mode": null,
+          "args_mode": "JOB_ID",
           "description": "Manual Telegram account update workflow.",
           "handler_path": "app.modules.account_editing.jobs:run_account_update_job",
           "module": "account_editing",
@@ -599,7 +595,7 @@
       "tests_present": true,
       "workflows": [
         {
-          "args_mode": null,
+          "args_mode": "NONE",
           "description": "Dispatch due warmup micro-sessions.",
           "handler_path": "app.modules.warmup.jobs:run_warmup_dispatch_tick",
           "module": "warmup",
@@ -607,7 +603,7 @@
           "workflow_type": "warmup_dispatch_tick"
         },
         {
-          "args_mode": null,
+          "args_mode": "NONE",
           "description": "Scan due warmup sessions.",
           "handler_path": "app.modules.warmup.jobs:run_warmup_due_sessions",
           "module": "warmup",
@@ -829,7 +825,7 @@
   ],
   "workflows": [
     {
-      "args_mode": null,
+      "args_mode": "JOB_ID",
       "description": "Manual Telegram account update workflow.",
       "handler_path": "app.modules.account_editing.jobs:run_account_update_job",
       "module": "account_editing",
@@ -837,7 +833,7 @@
       "workflow_type": "account_update"
     },
     {
-      "args_mode": null,
+      "args_mode": "NONE",
       "description": "Dispatch due warmup micro-sessions.",
       "handler_path": "app.modules.warmup.jobs:run_warmup_dispatch_tick",
       "module": "warmup",
@@ -845,7 +841,7 @@
       "workflow_type": "warmup_dispatch_tick"
     },
     {
-      "args_mode": null,
+      "args_mode": "NONE",
       "description": "Scan due warmup sessions.",
       "handler_path": "app.modules.warmup.jobs:run_warmup_due_sessions",
       "module": "warmup",

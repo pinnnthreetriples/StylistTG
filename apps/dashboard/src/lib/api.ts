@@ -1,5 +1,4 @@
 import {
-  buildAssetContentUrl as buildTypedAssetContentUrl,
   cancelJob as cancelTypedJob,
   checkAccountProxy as checkTypedAccountProxy,
   createAccountSafetyOverride as createTypedAccountSafetyOverride,
@@ -111,6 +110,7 @@ import type { AccountProxy, AccountProxyInput, AccountProxySummary } from '@/lib
 import type { LivePreflight } from '@/lib/settings'
 import { dashboardApiClient } from '@/lib/apiClient'
 export {
+  buildAssetContentUrl,
   createAccountUpdateJob,
   createStoryDraft,
   deleteStoryDraft,
@@ -120,10 +120,10 @@ export {
   uploadProfilePhoto,
   uploadStoryImage,
   uploadStoryVideo,
-} from '@/modules/account-editing/api'
-import { composeDisplayName } from '@/modules/account-editing/mappers'
-import type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing/types'
-export type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing/types'
+} from '@/modules/account-editing'
+import { composeDisplayName } from '@/modules/account-editing'
+import type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing'
+export type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing'
 
 const RUNTIME_REFRESH_TIMEOUT_MS = 45000
 
@@ -551,10 +551,6 @@ export function fetchStoryCapabilities(accountId: string): Promise<StoryCapabili
 
 export function deleteStoryPost(accountId: string, postId: string): Promise<void> {
   return deleteTypedStoryPost(typedClient, accountId, postId, { signal: AbortSignal.timeout(RUNTIME_REFRESH_TIMEOUT_MS) })
-}
-
-export function buildAssetContentUrl(assetId: string): string {
-  return buildTypedAssetContentUrl(typedClient, assetId)
 }
 
 export function previewProfileJob(accountId: string, form: FormPayload): Promise<ProfilePreview> {

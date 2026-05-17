@@ -78,8 +78,7 @@ describe('frontend module boundaries', () => {
     expect(useProfileDraftCompat).toContain("from '@/modules/account-editing'")
     expect(dashboardCompat).toContain("from '@/modules/account-editing/mappers'")
     expect(dashboardCompat).toContain("from '@/modules/account-editing/types'")
-    expect(apiCompat).toContain("from '@/modules/account-editing/api'")
-    expect(apiCompat).toContain("from '@/modules/account-editing/types'")
+    expect(apiCompat).toContain("from '@/modules/account-editing'")
 
     expect(useAuthBootstrapCompat).toContain("from '@/modules/auth'")
     expect(useAuthFlowCompat).toContain("from '@/modules/auth'")

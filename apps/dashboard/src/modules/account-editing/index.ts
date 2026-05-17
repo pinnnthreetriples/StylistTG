@@ -1,4 +1,15 @@
-export { createAccountUpdateJob, previewAccountUpdateJob } from './api'
+export {
+  buildAssetContentUrl,
+  createAccountUpdateJob,
+  createStoryDraft,
+  deleteStoryDraft,
+  previewAccountUpdateJob,
+  updateStoryDraft,
+  uploadProfileAudio,
+  uploadProfilePhoto,
+  uploadStoryImage,
+  uploadStoryVideo,
+} from './api'
 export {
   appKnownMediaSyncNote,
   areDashboardFormStatesEqual,

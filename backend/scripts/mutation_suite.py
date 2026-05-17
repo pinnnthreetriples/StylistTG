@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import shutil
 import shlex
 import subprocess
 import sys
@@ -14,7 +16,11 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _run(cmd: list[str], *, output_path: Path | None = None) -> int:
+def _run(
+    cmd: list[str],
+    *,
+    output_path: Path | None = None,
+) -> int:
     print(" ".join(shlex.quote(part) for part in cmd), flush=True)
     if output_path is None:
         result = subprocess.run(cmd, cwd=REPO_ROOT, check=False)
@@ -38,7 +44,28 @@ def _int(stats: dict[str, Any], key: str) -> int:
     return int(stats.get(key, 0) or 0)
 
 
-def _normalized_report(stats: dict[str, Any], returncodes: dict[str, int]) -> dict[str, Any]:
+def _mutmut_cmd() -> list[str]:
+    executable = shutil.which("mutmut")
+    if executable:
+        return [executable]
+    return [sys.executable, "-m", "mutmut"]
+
+
+def _count_result_status(results_path: Path, status: str) -> int:
+    if not results_path.exists():
+        return 0
+    pattern = re.compile(rf":\s+{re.escape(status)}$")
+    return sum(
+        1 for line in results_path.read_text(encoding="utf-8").splitlines() if pattern.search(line)
+    )
+
+
+def _normalized_report(
+    stats: dict[str, Any],
+    returncodes: dict[str, int],
+    *,
+    results_path: Path,
+) -> dict[str, Any]:
     total = _int(stats, "total")
     skipped = _int(stats, "skipped")
     killed = _int(stats, "killed")
@@ -46,6 +73,7 @@ def _normalized_report(stats: dict[str, Any], returncodes: dict[str, int]) -> di
     survived = _int(stats, "survived")
     timeout = _int(stats, "timeout")
     incompetent = _int(stats, "incompetent") + _int(stats, "no_tests")
+    not_checked = _count_result_status(results_path, "not checked")
     suspicious = _int(stats, "suspicious")
     segfault = _int(stats, "segfault")
     interrupted = _int(stats, "check_was_interrupted_by_user")
@@ -60,6 +88,7 @@ def _normalized_report(stats: dict[str, Any], returncodes: dict[str, int]) -> di
         "survived": survived,
         "timeout": timeout,
         "incompetent": incompetent,
+        "not_checked": not_checked,
         "suspicious": suspicious,
         "segfault": segfault,
         "interrupted": interrupted,
@@ -78,20 +107,39 @@ def main() -> int:
 
     reports_dir = (REPO_ROOT / args.reports_dir).resolve()
     reports_dir.mkdir(parents=True, exist_ok=True)
+    results_path = reports_dir / "mutmut-results.txt"
+    mutmut_cmd = _mutmut_cmd()
 
     returncodes = {
-        "run": _run([sys.executable, "-m", "mutmut", "run", "--max-children", args.max_children]),
-        "export_cicd_stats": _run([sys.executable, "-m", "mutmut", "export-cicd-stats"]),
+        "run": _run([*mutmut_cmd, "run", "--max-children", args.max_children]),
+        "export_cicd_stats": _run([*mutmut_cmd, "export-cicd-stats"]),
         "results": _run(
-            [sys.executable, "-m", "mutmut", "results"],
-            output_path=reports_dir / "mutmut-results.txt",
+            [*mutmut_cmd, "results"],
+            output_path=results_path,
         ),
     }
 
     stats_path = REPO_ROOT / "mutants" / "mutmut-cicd-stats.json"
     if stats_path.exists():
         stats = json.loads(stats_path.read_text(encoding="utf-8"))
-        report = _normalized_report(stats, returncodes)
+        report = _normalized_report(stats, returncodes, results_path=results_path)
+        checked = sum(
+            int(report.get(key, 0))
+            for key in (
+                "killed",
+                "caught_by_type_check",
+                "survived",
+                "timeout",
+                "incompetent",
+                "suspicious",
+                "segfault",
+                "interrupted",
+            )
+        )
+        if report["total"] > 0 and checked == 0 and report["not_checked"] > 0:
+            report["error"] = (
+                "mutmut generated mutants but did not check them; see mutmut-results.txt"
+            )
     else:
         report = {
             "error": f"mutation stats not found: {stats_path.as_posix()}",
@@ -104,18 +152,24 @@ def main() -> int:
     print("\nMutation summary")
     for key in ("killed", "survived", "timeout", "incompetent"):
         print(f"- {key}: {report.get(key, 0)}")
+    if "not_checked" in report:
+        print(f"- not_checked: {report['not_checked']}")
     if "score" in report:
         print(f"- score: {report['score']}%")
 
     failures: list[str] = []
     if any(code != 0 for code in returncodes.values()):
         failures.append("one or more mutmut commands returned non-zero")
-    if "score" not in report:
+    if report.get("error"):
+        failures.append(str(report["error"]))
+    score = report.get("score")
+    if not isinstance(score, int | float):
         failures.append("mutation score unavailable")
-    elif float(report["score"]) < args.min_score:
-        failures.append(f"mutation score {report['score']}% < {args.min_score}%")
-    if int(report.get("survived", 0)) > 0:
-        failures.append(f"{report['survived']} mutants survived")
+    elif float(score) < args.min_score:
+        failures.append(f"mutation score {score}% < {args.min_score}%")
+    survived = report.get("survived", 0)
+    if isinstance(survived, int) and survived > 0:
+        failures.append(f"{survived} mutants survived")
 
     if failures:
         for failure in failures:

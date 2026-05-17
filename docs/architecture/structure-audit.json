@@ -292,7 +292,8 @@
     {
       "files": [
         "apps/dashboard/src/modules/shared/api.ts",
-        "apps/dashboard/src/modules/shared/index.ts"
+        "apps/dashboard/src/modules/shared/index.ts",
+        "apps/dashboard/src/modules/shared/jobs.ts"
       ],
       "has_components_dir": false,
       "has_index": true,

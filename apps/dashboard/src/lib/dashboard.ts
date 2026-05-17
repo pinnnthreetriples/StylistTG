@@ -2,6 +2,7 @@ import type { StoryCapabilities } from '@/lib/api'
 import type { ApiError } from '@/lib/http'
 import { labelIssue, labelStoryCapabilityWarning } from '@/lib/uiLabels'
 
+export { buildJobMetrics } from '@/modules/shared'
 export {
   appKnownMediaSyncNote,
   areDashboardFormStatesEqual,
@@ -46,11 +47,8 @@ export type StoryCapabilityStatus = {
   items: string[]
 }
 
-type JobStateLike = {
+type JobActivityLike = {
   job_state: string
-}
-
-type JobActivityLike = JobStateLike & {
   finished_at?: string | null
   message?: string | null
 }
@@ -149,21 +147,6 @@ export function formatAccountStateLabel(accountState: string | null | undefined)
       return 'Ожидает код'
     default:
       return accountState ?? 'unknown'
-  }
-}
-
-export function buildJobMetrics(jobs: JobStateLike[]): {
-  total: number
-  success: number
-  issues: number
-} {
-  const materialJobs = jobs.filter((job) => job.job_state !== 'dedup_blocked')
-  return {
-    total: materialJobs.length,
-    success: materialJobs.filter((job) => job.job_state === 'completed').length,
-    issues: materialJobs.filter((job) =>
-      ['failed', 'manual_intervention_needed', 'partially_completed', 'canceled'].includes(job.job_state),
-    ).length,
   }
 }
 

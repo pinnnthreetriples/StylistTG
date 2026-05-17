@@ -23,7 +23,6 @@ import {
   areDashboardFormStatesEqual,
   buildChangeItems,
   buildDashboardFormState,
-  buildJobMetrics,
   clearProfilePhotoDraft,
   clearStoredDashboardFormDraft,
   isSupportedProfileAudioFile,
@@ -31,6 +30,7 @@ import {
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
 } from './mappers'
+import { buildJobMetrics } from '@/modules/shared'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
 import {

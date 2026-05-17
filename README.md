@@ -173,6 +173,7 @@ Readiness semantics:
 Account lifecycle and production-plane docs:
 
 - `docs/architecture/account-lifecycle.md`
+- `docs/architecture/STRUCTURE_AUDIT.md`
 - `docs/architecture/production-execution-plane.md`
 - `docs/runbooks/account-deletion.md`
 - `docs/runbooks/workers-production-plane.md`

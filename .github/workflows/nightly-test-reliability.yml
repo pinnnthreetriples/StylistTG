@@ -227,8 +227,16 @@ jobs:
               for key in ("killed", "survived", "timeout", "incompetent"):
                   handle.write(f"| {key} | {data.get(key, 0)} |\n")
               handle.write(f"\nMutation score: **{data.get('score', 'n/a')}%**\n")
+              if data.get("error"):
+                  handle.write(f"\nReport note: `{data['error']}`\n")
           if data.get("survived", 0):
               print(f"::warning title=Survived mutants::{data['survived']} mutants survived")
+          returncodes = data.get("returncodes", {})
+          failed_steps = [name for name, code in returncodes.items() if code]
+          if failed_steps:
+              print(f"::warning title=Mutation soft failure::mutmut steps returned non-zero: {', '.join(failed_steps)}")
+          if data.get("error"):
+              print(f"::warning title=Mutation report incomplete::{data['error']}")
           PY
       - name: Upload mutation reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

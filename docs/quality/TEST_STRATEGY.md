@@ -102,8 +102,8 @@ Hard:
 Soft/reporting:
 
 - Flaky detection runs pytest with `pytest-rerunfailures`, writes `reports/flaky-report.json`, and warns when a test passes only after rerun.
-- Mutation testing uses `mutmut` against the scoped pure modules in `pyproject.toml`, writes `reports/mutation-report.json`, and reports killed/survived/timeout/incompetent mutants without blocking the first PR.
-- Contract fuzz runs the existing Schemathesis test with a higher nightly `SCHEMATHESIS_MAX_EXAMPLES` value and a step timeout.
+- Mutation testing uses `mutmut` against the scoped pure modules in `pyproject.toml`, writes `reports/mutation-report.json`, and reports killed/survived/timeout/incompetent/not-checked mutants without blocking the first PR.
+- Contract fuzz runs the existing Schemathesis test with a higher nightly `SCHEMATHESIS_MAX_EXAMPLES` value, a migrated local PostgreSQL schema, and a step timeout.
 - jscpd emits HTML/JSON reports for backend app, backend tests, and frontend `apps`/`packages` without changing the ordinary thresholds.
 
 Promote a soft nightly check to hard only after its baseline is clean for several consecutive nightly runs, the owning team has triaged remaining candidates, and the expected runtime is stable enough not to create noisy failures.

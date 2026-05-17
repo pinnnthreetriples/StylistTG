@@ -142,6 +142,7 @@ output = "reports/coverage.json"
 show_contexts = false
 
 [tool.mutmut]
+also_copy = ["app"]
 paths_to_mutate = [
   "app/services/secret_redaction.py",
   "app/services/phone_hints.py",

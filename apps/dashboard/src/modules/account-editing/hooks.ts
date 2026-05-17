@@ -17,7 +17,7 @@ import {
   uploadProfilePhoto,
   uploadStoryImage,
   uploadStoryVideo,
-} from '@/lib/api'
+} from './api'
 import { normalizeError } from '@/lib/appErrors'
 import {
   areDashboardFormStatesEqual,
@@ -30,9 +30,7 @@ import {
   persistStoredDashboardFormDraft,
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
-  type CurrentProfile,
-  type FormState,
-} from '@/lib/dashboard'
+} from './mappers'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
 import {
@@ -42,6 +40,7 @@ import {
   type JobSummary,
   type ProfilePreview,
 } from './api'
+import type { CurrentProfile, FormState } from './types'
 import { invalidateAccountSafetyQueries } from '@/lib/queries'
 
 type Dashboard = {

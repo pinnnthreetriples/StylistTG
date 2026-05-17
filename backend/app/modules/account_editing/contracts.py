@@ -4,14 +4,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas import (
+from app.contracts.accounts import ProfileAudioAction, ProfilePreviewRead
+from app.contracts.jobs import JobSummaryRead
+from app.contracts.safety import (
     AccountOperationCooldownRead,
     AccountOperationSafetyRead,
     AccountRiskRead,
     AccountSafetyRead,
-    JobSummaryRead,
-    ProfileAudioAction,
-    ProfilePreviewRead,
 )
 
 

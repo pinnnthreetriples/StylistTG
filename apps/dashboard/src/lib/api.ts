@@ -3,13 +3,10 @@ import {
   cancelJob as cancelTypedJob,
   checkAccountProxy as checkTypedAccountProxy,
   createAccountSafetyOverride as createTypedAccountSafetyOverride,
-  createAccountUpdateJob as createTypedAccountUpdateJob,
   createProfileJob as createTypedProfileJob,
-  createStoryDraft as createTypedStoryDraft,
   deleteAccount as deleteTypedAccount,
   deleteAccountProxy as deleteTypedAccountProxy,
   deleteJob as deleteTypedJob,
-  deleteStoryDraft as deleteTypedStoryDraft,
   deleteStoryPost as deleteTypedStoryPost,
   fetchAccountOperationLogs as fetchTypedAccountOperationLogs,
   fetchAccountProxy as fetchTypedAccountProxy,
@@ -62,14 +59,11 @@ import {
   fetchStoryCapabilities as fetchTypedStoryCapabilities,
   fetchStoryDrafts as fetchTypedStoryDrafts,
   previewAccountBatchSafety as previewTypedAccountBatchSafety,
-  previewAccountUpdateJob as previewTypedAccountUpdateJob,
   previewProfileJob as previewTypedProfileJob,
   refreshRuntime as refreshTypedRuntime,
   runAccountValidityCheck as runTypedAccountValidityCheck,
   saveAccountProxy as saveTypedAccountProxy,
   updateExecutionPolicy as updateTypedExecutionPolicy,
-  updateStoryDraft as updateTypedStoryDraft,
-  uploadAsset,
   type AccountListItem,
   type AccountReadinessRisk,
   type AccountReadinessRiskSummary,
@@ -106,19 +100,30 @@ import type {
   AccountSafety,
   AccountSafetySummary,
   AccountValidityCheck,
-  OperationSafety,
   SafetyOperation,
   FreshValidityPolicy,
   RecentFailurePolicy,
   UnknownCapabilityPolicy,
 } from '@/lib/accountSafety'
-import { composeDisplayName } from '@/lib/dashboard'
 import type { AccountRuntimeDiagnostics, RuntimeDiagnostics } from '@/lib/diagnostics'
-import { isApiError } from '@/lib/http'
 import type { OperationLogPage } from '@/lib/operationLogs'
 import type { AccountProxy, AccountProxyInput, AccountProxySummary } from '@/lib/proxy'
 import type { LivePreflight } from '@/lib/settings'
 import { dashboardApiClient } from '@/lib/apiClient'
+export {
+  createAccountUpdateJob,
+  createStoryDraft,
+  deleteStoryDraft,
+  previewAccountUpdateJob,
+  updateStoryDraft,
+  uploadProfileAudio,
+  uploadProfilePhoto,
+  uploadStoryImage,
+  uploadStoryVideo,
+} from '@/modules/account-editing/api'
+import { composeDisplayName } from '@/modules/account-editing/mappers'
+import type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing/types'
+export type { FormPayload, ProfilePreview, StoryDraftPayload } from '@/modules/account-editing/types'
 
 const RUNTIME_REFRESH_TIMEOUT_MS = 45000
 
@@ -190,41 +195,6 @@ export type JobStep = {
   finished_at: string | null
 }
 
-export type ProfilePreview = {
-  can_create_job: boolean
-  blocking_errors: string[]
-  warnings: string[]
-  normalized_payload: Record<string, unknown>
-  execution_intent_hash: string
-  plan_json_snapshot: {
-    steps?: Array<{
-      step_key: string
-      step_type: string
-      order: number
-      required: boolean
-      idempotency_class: string
-      payload: Record<string, unknown>
-    }>
-  } & Record<string, unknown>
-  steps: Array<{
-    step_key: string
-    step_type: string
-    order: number
-    required: boolean
-    idempotency_class: string
-    payload: Record<string, unknown>
-  }>
-  requires_execution_usable: boolean
-  dedup_would_block: boolean
-  dedup_blocked_by_job_id: string | null
-  account_safety?: AccountSafety | null
-  risk_by_operation?: AccountSafety['risk_by_operation']
-  cooldowns_by_operation?: AccountSafety['cooldowns_by_operation']
-  safety_warnings?: string[]
-  safety_blockers?: string[]
-  operation_safety?: OperationSafety[]
-}
-
 export type ExecutionPolicy = {
   profile_job_cooldown_seconds: number
   profile_job_cooldown_enabled: boolean
@@ -275,29 +245,6 @@ export type AccountBatchSafetyPreview = {
     reasons: AccountSafety['reasons']
     cooldowns: AccountOperationCooldown[]
   }>
-}
-
-export type FormPayload = {
-  firstName: string
-  lastName: string
-  bio: string
-  username: string
-  profilePhotoAssetId: string | null
-  profileAudioAction: 'keep' | 'add' | 'remove'
-  profileAudioAssetId: string | null
-  stories: StoryDraftPayload[]
-}
-
-export type StoryDraftPayload = {
-  draftId: string | null
-  clientId: string
-  action: 'post_image' | 'post_video'
-  assetId: string
-  fileName: string
-  caption: string
-  privacyPreset: 'contacts' | 'close_friends' | 'public'
-  activePeriodSeconds: 86400
-  protectContent: boolean
 }
 
 export type StoryPost = DashboardResponse['story_posts'][number]
@@ -594,73 +541,12 @@ export function updateExecutionPolicy(update: number | ExecutionPolicyUpdate): P
   return updateTypedExecutionPolicy(typedClient, body) as Promise<ExecutionPolicy>
 }
 
-export function uploadProfilePhoto(file: File): Promise<{ id: string }> {
-  return uploadAsset(typedClient, '/api/assets/profile-photo', file)
-}
-
-export function uploadProfileAudio(file: File): Promise<{ id: string }> {
-  return uploadAsset(typedClient, '/api/assets/profile-audio', file)
-}
-
-export function uploadStoryImage(file: File): Promise<{ id: string }> {
-  return uploadAsset(typedClient, '/api/assets/story-image', file)
-}
-
-export function uploadStoryVideo(file: File): Promise<{ id: string }> {
-  return uploadAsset(typedClient, '/api/assets/story-video', file)
-}
-
 export function fetchStoryDrafts(accountId: string): Promise<StoryDraftRead[]> {
   return fetchTypedStoryDrafts(typedClient, accountId)
 }
 
 export function fetchStoryCapabilities(accountId: string): Promise<StoryCapabilities> {
   return fetchTypedStoryCapabilities(typedClient, accountId) as Promise<StoryCapabilities>
-}
-
-export function createStoryDraft(
-  accountId: string,
-  draft: Omit<StoryDraftPayload, 'draftId' | 'clientId' | 'fileName' | 'action'>,
-  mediaKind: 'image' | 'video',
-): Promise<StoryDraftRead> {
-  return createTypedStoryDraft(typedClient, {
-    account_id: accountId,
-    asset_id: draft.assetId,
-    media_kind: mediaKind,
-    caption: draft.caption || null,
-    privacy_preset: draft.privacyPreset,
-    active_period_seconds: draft.activePeriodSeconds,
-    protect_content: draft.protectContent,
-  })
-}
-
-export function updateStoryDraft(
-  draftId: string,
-  patch: Partial<Pick<StoryDraftPayload, 'caption' | 'privacyPreset' | 'activePeriodSeconds' | 'protectContent'>>,
-): Promise<StoryDraftRead> {
-  return updateTypedStoryDraft(typedClient, draftId, {
-    caption: patch.caption,
-    privacy_preset: patch.privacyPreset,
-    active_period_seconds: patch.activePeriodSeconds,
-    protect_content: patch.protectContent,
-  })
-}
-
-export async function deleteStoryDraft(draftId: string): Promise<void> {
-  try {
-    await deleteTypedStoryDraft(typedClient, draftId)
-  } catch (error) {
-    if (
-      (isApiError(error) && error.error_code === 'STORY_DRAFT_NOT_FOUND') ||
-      (typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code?: string }).code === 'STORY_DRAFT_NOT_FOUND')
-    ) {
-      return
-    }
-    throw error
-  }
 }
 
 export function deleteStoryPost(accountId: string, postId: string): Promise<void> {
@@ -681,14 +567,6 @@ export function previewProfileJob(accountId: string, form: FormPayload): Promise
   }) as Promise<ProfilePreview>
 }
 
-export function previewAccountUpdateJob(
-  accountId: string,
-  form: FormPayload,
-  init?: Pick<RequestInit, 'signal'>,
-): Promise<ProfilePreview> {
-  return previewTypedAccountUpdateJob(typedClient, buildAccountUpdateBody(accountId, form), init) as Promise<ProfilePreview>
-}
-
 export function createProfileJob(accountId: string, form: FormPayload): Promise<JobSummary> {
   return createTypedProfileJob(typedClient, {
     account_id: accountId,
@@ -697,33 +575,4 @@ export function createProfileJob(accountId: string, form: FormPayload): Promise<
     username: form.username || null,
     photo_asset_id: form.profilePhotoAssetId,
   })
-}
-
-export function createAccountUpdateJob(accountId: string, form: FormPayload): Promise<JobSummary> {
-  return createTypedAccountUpdateJob(typedClient, buildAccountUpdateBody(accountId, form))
-}
-
-function buildAccountUpdateBody(accountId: string, form: FormPayload) {
-  return {
-    account_id: accountId,
-    profile: {
-      name: composeDisplayName(form.firstName, form.lastName) || null,
-      bio: form.bio || null,
-      username: form.username || null,
-      photo_asset_id: form.profilePhotoAssetId,
-    },
-    profile_audio: {
-      action: form.profileAudioAction,
-      audio_asset_id: form.profileAudioAction === 'add' ? form.profileAudioAssetId : null,
-    },
-    stories: form.stories.map((story) => ({
-      client_id: story.clientId,
-      action: story.action,
-      asset_id: story.assetId,
-      caption: story.caption || null,
-      privacy_preset: story.privacyPreset,
-      active_period_seconds: story.activePeriodSeconds,
-      protect_content: story.protectContent,
-    })),
-  }
 }

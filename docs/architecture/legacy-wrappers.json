@@ -1,0 +1,218 @@
+{
+  "generated_at": "2026-05-17T00:00:00Z",
+  "wrappers": [
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_editing.router",
+      "file": "backend/app/api/account_update.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_update",
+      "notes": "Preserves legacy router import path for /api/account-update.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.router",
+      "file": "backend/app/api/warmup.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.warmup",
+      "notes": "Preserves legacy router import path for /api/warmup.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_editing.service",
+      "file": "backend/app/services/account_update_jobs.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_update_jobs",
+      "notes": "Preserves old account update preview/job service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_editing.planner",
+      "file": "backend/app/services/account_update_plan.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_update_plan",
+      "notes": "Preserves old account update planner imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility",
+        "backend/app/api"
+      ],
+      "canonical_owner": "app.modules.auth.dependencies / context",
+      "file": "backend/app/services/auth_context.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.auth_context",
+      "notes": "Preserves existing auth dependency imports and override keys.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.service",
+      "file": "backend/app/services/warmup.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup",
+      "notes": "Preserves old warmup service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.dispatcher",
+      "file": "backend/app/services/warmup_dispatch.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup_dispatch",
+      "notes": "Preserves old warmup dispatch service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.isolation",
+      "file": "backend/app/services/warmup_isolation.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup_isolation",
+      "notes": "Preserves old warmup isolation imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.p2p",
+      "file": "backend/app/services/warmup_p2p.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup_p2p",
+      "notes": "Preserves old warmup peer selection imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.readiness",
+      "file": "backend/app/services/warmup_readiness.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup_readiness",
+      "notes": "Preserves old warmup readiness imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.warmup.worker",
+      "file": "backend/app/services/warmup_worker.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.warmup_worker",
+      "notes": "Preserves old warmup due-session worker service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_editing.executor",
+      "file": "backend/app/workers/account_update_jobs.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.workers.account_update_jobs",
+      "notes": "Preserves old RQ worker import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility",
+        "workflow_registry"
+      ],
+      "canonical_owner": "app.modules.warmup.jobs",
+      "file": "backend/app/workers/warmup_dispatch_jobs.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.workers.warmup_dispatch_jobs",
+      "notes": "Preserves old warmup dispatch worker import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility",
+        "workflow_registry"
+      ],
+      "canonical_owner": "app.modules.warmup.jobs",
+      "file": "backend/app/workers/warmup_jobs.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.workers.warmup_jobs",
+      "notes": "Preserves old warmup due-session worker import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    }
+  ]
+}

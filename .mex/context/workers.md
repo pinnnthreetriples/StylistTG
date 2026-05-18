@@ -48,8 +48,9 @@ cd backend; python -m app.workers.run_worker --queues profile_jobs --role profil
 - Runtime role metadata lives in `backend/app/runtime/roles.py`; optional
   `run_worker --role ...` validation enforces role-to-queue allowlists while
   preserving raw `--queues` compatibility.
-- Reserved `media_jobs`, `story_jobs`, and `account_lifecycle_jobs` belong to
-  `maintenance_worker` until dedicated roles exist.
+- Reserved queue ownership is explicit: `maintenance_worker` owns
+  `maintenance_jobs`, `media_worker` owns `media_jobs`, `story_worker` owns
+  `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`.
 - Feature-specific enqueue ownership lives in module enqueue helpers such as
   `app.modules.account_editing.enqueue` and `app.modules.warmup.enqueue`;
   `app.job_queue.rq` keeps compatibility wrapper imports.

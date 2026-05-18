@@ -20,7 +20,10 @@ Current staging worker commands remain compatible. New dedicated worker launcher
 cd backend
 python -m app.workers.run_worker --queues auth_jobs
 python -m app.workers.run_worker --queues profile_jobs
-python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_worker
+python -m app.workers.run_worker --queues media_jobs --role media_worker
+python -m app.workers.run_worker --queues story_jobs --role story_worker
+python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
@@ -28,6 +31,8 @@ python -m app.workers.run_worker --queues warmup_dispatch_jobs
 The launcher rejects unknown queue names. Optional runtime role validation is
 documented in `docs/runtime/runtime-boundaries.md`; deployment process guidance
 lives in `docs/runtime/deployment-processes.md`.
+Raw `--queues` mode remains compatible for existing invocations; role-aware
+startup validates that a worker role only consumes its owned queue.
 
 ## Locks
 

@@ -58,6 +58,87 @@ def test_worker_role_validation_is_optional(monkeypatch: pytest.MonkeyPatch) -> 
     assert calls == [("warmup_dispatch_worker", "warmup_dispatch_jobs")]
 
 
+@pytest.mark.parametrize(
+    ("role_name", "queue_name"),
+    [
+        ("maintenance_worker", "maintenance_jobs"),
+        ("media_worker", "media_jobs"),
+        ("story_worker", "story_jobs"),
+        ("account_lifecycle_worker", "account_lifecycle_jobs"),
+    ],
+)
+def test_worker_role_validation_accepts_matching_reserved_queue(
+    monkeypatch: pytest.MonkeyPatch, role_name: str, queue_name: str
+) -> None:
+    worker_calls: list[list[str]] = []
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_worker", "--queues", queue_name, "--role", role_name],
+    )
+    monkeypatch.setattr(run_worker, "init_worker_observability", lambda: None)
+    monkeypatch.setattr(run_worker, "get_queue", lambda name: name)
+    monkeypatch.setattr(run_worker, "Redis", SimpleNamespace(from_url=lambda _url: object()))
+    monkeypatch.setattr(
+        run_worker,
+        "SimpleWorker",
+        lambda queues, connection: SimpleNamespace(work=lambda: worker_calls.append(list(queues))),
+    )
+
+    run_worker.main()
+
+    assert worker_calls == [[queue_name]]
+
+
+def test_worker_role_validation_rejects_cross_role_queue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_worker", "--queues", "media_jobs", "--role", "maintenance_worker"],
+    )
+    monkeypatch.setattr(run_worker, "init_worker_observability", lambda: None)
+
+    with pytest.raises(ValueError, match="runtime role maintenance_worker cannot consume"):
+        run_worker.main()
+
+
+def test_worker_raw_queue_mode_still_accepts_reserved_queue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue_validations: list[str] = []
+    role_validations: list[tuple[str, str]] = []
+    worker_calls: list[list[str]] = []
+
+    monkeypatch.setattr(sys, "argv", ["run_worker", "--queues", "media_jobs"])
+    monkeypatch.setattr(run_worker, "init_worker_observability", lambda: None)
+    monkeypatch.setattr(
+        run_worker,
+        "assert_queue_allowed",
+        lambda queue_name: queue_validations.append(queue_name),
+    )
+    monkeypatch.setattr(
+        run_worker,
+        "assert_runtime_role_allows_queue",
+        lambda role_name, queue_name: role_validations.append((role_name, queue_name)),
+    )
+    monkeypatch.setattr(run_worker, "get_queue", lambda name: name)
+    monkeypatch.setattr(run_worker, "Redis", SimpleNamespace(from_url=lambda _url: object()))
+    monkeypatch.setattr(
+        run_worker,
+        "SimpleWorker",
+        lambda queues, connection: SimpleNamespace(work=lambda: worker_calls.append(list(queues))),
+    )
+
+    run_worker.main()
+
+    assert queue_validations == ["media_jobs"]
+    assert role_validations == []
+    assert worker_calls == [["media_jobs"]]
+
+
 def test_flush_observability_does_not_mask_worker_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

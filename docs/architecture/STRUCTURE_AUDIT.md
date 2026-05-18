@@ -15,7 +15,7 @@ Status legend:
 | Area | Status | Evidence | Risk | Recommended follow-up |
 |---|---|---|---|---|
 | Backend modules | GREEN | `app.modules.registry` registers `auth`, `account_editing`, and `warmup`; `_template` is documentation-only and unregistered. | Low. Canonical ownership is explicit. | Keep using `docs/architecture/new-module-checklist.md` for new modules. |
-| Runtime roles | GREEN | `backend/app/runtime/roles.py` covers all production queues; `api` and `reaper` consume no queues. | Low. Role enforcement is optional but test-covered. | Split reserved queues into dedicated roles when they become active runtime work. |
+| Runtime roles | GREEN | `backend/app/runtime/roles.py` covers all production queues; `api` and `reaper` consume no queues; reserved queues have dedicated roles. | Low. Role enforcement is optional but test-covered. | Keep role ownership narrow as reserved queues become active runtime work. |
 | Architecture enforcement | GREEN | `backend/tests/architecture` covers storage, auth, FastAPI, wrappers, workflows, runtime, and module template boundaries. | Low. Regex/AST helper duplication can create maintenance cost. | Consolidate architecture-test helpers later. |
 | Security baseline | GREEN | CI, Test Quality, Semgrep, Secret Scan, SBOM, Container Scan, Trivy, Complexity, Gitleaks config, and security docs exist. | Low. Branch protection remains a GitHub setting outside the repo. | Keep docs aligned with repository settings. |
 | Frontend modules | YELLOW | `apps/dashboard/src/modules` contains `account-editing`, `auth`, `warmup`, `shared`, and stronger `moduleBoundaries.test.ts`; `frontend-ownership-audit.md` records migrated and deferred surfaces. | Medium. New UI work can bypass module ownership. | Continue Phase 23-style small ownership moves. |
@@ -80,7 +80,10 @@ No `broadcast` or `analytics` runtime module exists yet.
 | `profile_worker` | `profile_jobs` | Yes | GREEN | Profile/account update execution. |
 | `warmup_worker` | `warmup_jobs` | No | GREEN | Warmup due-session scanning. |
 | `warmup_dispatch_worker` | `warmup_dispatch_jobs` | Yes | GREEN | Live warmup dispatch. |
-| `maintenance_worker` | `maintenance_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs` | No | YELLOW | Temporary owner for reserved queues. |
+| `maintenance_worker` | `maintenance_jobs` | No | GREEN | Generic maintenance jobs. |
+| `media_worker` | `media_jobs` | No | GREEN | Reserved media queue ownership. |
+| `story_worker` | `story_jobs` | No | GREEN | Reserved story queue ownership. |
+| `account_lifecycle_worker` | `account_lifecycle_jobs` | No | GREEN | Account lifecycle queue ownership. |
 
 Runtime docs:
 
@@ -184,7 +187,7 @@ Current architecture tests include:
 | STRUCTURE-002 | medium | open | frontend | Frontend modules now include a shared surface and ownership audit, but global dashboard roots still own substantial code. | Feature work may bypass module boundaries. | Continue frontend ownership cleanup. |
 | STRUCTURE-003 | medium | open | storage-contracts | `app.contracts` extraction has started; `app.models.py` and parts of `app.schemas.py` remain global/compatibility layers. | ORM/DTO coupling remains possible outside enforced paths. | Continue shared contracts extraction. |
 | STRUCTURE-004 | low | accepted | legacy-wrappers | Wrappers remain documented, manifested, audited, and import-compatible. | Legacy surfaces can linger indefinitely. | Advance deprecation stages in dedicated PRs. |
-| STRUCTURE-005 | low | deferred | runtime | `maintenance_worker` owns reserved queues. | Blast radius may grow if reserved queues become active. | Phase 26 dedicated role split. |
+| STRUCTURE-005 | info | closed | runtime | Dedicated runtime roles now own media, story, and account-lifecycle queues. | Low while roles remain narrow. | Keep roles narrow as queues become active. |
 | STRUCTURE-006 | low | open | architecture-tests | Static helper patterns are duplicated. | Rule maintenance may become noisy. | Consolidate helpers later. |
 | STRUCTURE-007 | info | accepted | security | Baseline workflows and docs exist. | Branch protection is external. | Keep source docs aligned with repository settings. |
 
@@ -198,7 +201,7 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 | Shared DTO layer | YELLOW | `app.contracts` now holds low-risk shared DTOs while `app.schemas.py` preserves compatibility. | Continue extracting only proven shared contracts. |
 | Global ORM file | YELLOW | `app.models.py` split would be broad and migration-sensitive. | Keep repositories as the enforced access boundary first. |
 | Legacy wrappers | YELLOW | Compatibility contracts still matter for existing imports and tests. | Follow the staged deprecation plan; no removal before Stage 5. |
-| Reserved runtime queues | YELLOW | Media/story/account-lifecycle queues are not yet dedicated active runtime roles. | Split once production execution requires it. |
+| Reserved runtime queues | GREEN | Media/story/account-lifecycle queues now have explicit runtime roles before active production ownership expands. | Keep role-to-queue ownership narrow as handlers are added. |
 | Architecture helper duplication | YELLOW | Tests evolved phase by phase. | Consolidate only after rules stabilize. |
 
 ## 13. Recommended Next Phases
@@ -208,5 +211,5 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 | Phase 23 | Frontend feature ownership cleanup | Started with low-risk account-editing/auth helpers, compatibility re-exports, and stronger boundary tests. |
 | Phase 24 | Shared contracts extraction | Started with low-risk shared DTOs in `app.contracts`; `app.schemas.py` remains compatible. |
 | Phase 25 | Legacy wrappers deprecation plan | Added staged deprecation plan, manifest, audit script, and tests; no wrappers removed. |
-| Phase 26 | Dedicated runtime roles for maintenance/media/story/lifecycle | Split reserved queues out of `maintenance_worker` when they become active runtime responsibilities. |
+| Phase 26 | Dedicated runtime roles for maintenance/media/story/lifecycle | Completed reserved queue role split while preserving queue names and raw worker startup compatibility. |
 | Phase 27 | First real new module | Add a low-risk module, preferably analytics read-only or broadcast preview-only, using the backend/frontend module checklist without introducing live behavior prematurely. |

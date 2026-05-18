@@ -35,7 +35,10 @@ Queue-specific worker commands are available for later service splits:
 ```bash
 python -m app.workers.run_worker --queues auth_jobs
 python -m app.workers.run_worker --queues profile_jobs
-python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_worker
+python -m app.workers.run_worker --queues media_jobs --role media_worker
+python -m app.workers.run_worker --queues story_jobs --role story_worker
+python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 ```
 
 Keep the compatibility worker command until the Northflank deployment is

@@ -33,7 +33,10 @@ Queue-specific launcher:
 cd backend
 python -m app.workers.run_worker --queues auth_jobs
 python -m app.workers.run_worker --queues profile_jobs
-python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
+python -m app.workers.run_worker --queues maintenance_jobs
+python -m app.workers.run_worker --queues media_jobs
+python -m app.workers.run_worker --queues story_jobs
+python -m app.workers.run_worker --queues account_lifecycle_jobs
 python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
 ```
@@ -46,6 +49,10 @@ Role validation is optional and keeps existing commands compatible:
 cd backend
 python -m app.workers.run_worker --queues profile_jobs --role profile_worker
 python -m app.workers.run_worker --queues warmup_dispatch_jobs --role warmup_dispatch_worker
+python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_worker
+python -m app.workers.run_worker --queues media_jobs --role media_worker
+python -m app.workers.run_worker --queues story_jobs --role story_worker
+python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 ```
 
 Runtime role boundaries are documented in `docs/runtime/runtime-boundaries.md`.

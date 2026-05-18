@@ -41,3 +41,12 @@ def test_runtime_roles_use_existing_queue_constants() -> None:
 
     assert {queue for role in iter_runtime_roles() for queue in role.queues} <= allowed
     assert "app.services.worker_plane" in _imports_for(APP_ROOT / "runtime" / "roles.py")
+
+
+def test_reserved_runtime_roles_are_split() -> None:
+    roles = {role.name: role.queues for role in iter_runtime_roles()}
+
+    assert roles["maintenance_worker"] == ("maintenance_jobs",)
+    assert roles["media_worker"] == ("media_jobs",)
+    assert roles["story_worker"] == ("story_jobs",)
+    assert roles["account_lifecycle_worker"] == ("account_lifecycle_jobs",)

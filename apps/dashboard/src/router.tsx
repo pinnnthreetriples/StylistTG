@@ -36,6 +36,10 @@ const AccountWorkspaceRouteComponent = lazyRouteComponent(
 const LoginRouteComponent = lazyRouteComponent(() => import('@/features/auth/LoginPage'), 'LoginPage')
 
 const HomeRouteComponent = lazyRouteComponent(() => import('@/routes/HomeRoute'), 'HomeRoute')
+const NeuroCommentingRouteComponent = lazyRouteComponent(
+  () => import('@/routes/NeuroCommentingRoute'),
+  'NeuroCommentingRoute',
+)
 
 const rootRoute = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -119,6 +123,12 @@ const warmupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'modules/warmup',
   component: WarmupRouteComponent,
+})
+
+const neuroCommentingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'neuro-commenting',
+  component: NeuroCommentingRouteComponent,
 })
 
 const billingRoute = createRoute({
@@ -208,6 +218,7 @@ const routeTree = rootRoute.addChildren([
   healthRoute,
   jobsRoute,
   warmupRoute,
+  neuroCommentingRoute,
   billingRoute,
   proxyRoute,
   accountRoute,

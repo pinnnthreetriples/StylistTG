@@ -293,6 +293,29 @@
     },
     {
       "files": [
+        "apps/dashboard/src/modules/neuro-commenting/NeuroCommentingPage.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/api.ts",
+        "apps/dashboard/src/modules/neuro-commenting/components/AccountsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/ApprovalBadge.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/CampaignDetailSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/CampaignListSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/CampaignStatusBadge.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/EventsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/GeneratedCommentsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/TargetsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/hooks.ts",
+        "apps/dashboard/src/modules/neuro-commenting/index.ts",
+        "apps/dashboard/src/modules/neuro-commenting/neuroCommenting.test.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/neuroCommentingRoute.test.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/types.ts"
+      ],
+      "has_components_dir": true,
+      "has_index": true,
+      "name": "neuro-commenting",
+      "path": "apps/dashboard/src/modules/neuro-commenting"
+    },
+    {
+      "files": [
         "apps/dashboard/src/modules/shared/api.ts",
         "apps/dashboard/src/modules/shared/index.ts",
         "apps/dashboard/src/modules/shared/jobs.ts"

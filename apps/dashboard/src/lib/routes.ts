@@ -79,6 +79,7 @@ export const appRoutes = {
   jobs: () => '/jobs',
   warmup: () => '/modules/warmup',
   proxy: () => '/proxy',
+  neuroCommenting: () => '/neuro-commenting',
   login: () => '/login',
   account: accountRoute,
   accountProfile: accountProfileRoute,

@@ -1,25 +1,44 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  addNeuroCampaignAccount,
+  addNeuroCampaignTarget,
+  approveNeuroGeneratedComment,
   buildAssetContentUrl,
   confirmOtp,
   confirmAccountImportBatch,
   createApiClient,
   createAccountImportBatch,
   createAuthBatch,
+  createNeuroCampaign,
   createTelegramAuthSession,
+  deleteNeuroCampaignAccount,
+  deleteNeuroCampaignTarget,
+  editNeuroGeneratedComment,
   fetchAccountRuntimeDiagnostics,
   fetchCurrentUser,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
+  fetchNeuroCampaign,
+  fetchNeuroCampaignAccounts,
+  fetchNeuroCampaigns,
+  fetchNeuroCampaignTargets,
+  fetchNeuroEvents,
+  fetchNeuroGeneratedComment,
+  fetchNeuroGeneratedComments,
   fetchReady,
   fetchRuntimeDiagnostics,
   fetchAccountRiskSummary,
   fetchTdlibRuntimeStatus,
   normalizeClientError,
+  pauseNeuroCampaign,
+  rejectNeuroGeneratedComment,
   resolveApiBaseUrl,
+  startNeuroCampaign,
+  stopNeuroCampaign,
   submitTelegramAuthCode,
   startOtp,
+  updateNeuroCampaign,
   validateAccountImportBatch,
   validateAuthBatchPhones,
 } from './index'
@@ -374,6 +393,110 @@ describe('@stylisttg/api-client', () => {
     expect(url).not.toContain(' ')
   })
 
+  test('neuro-commenting campaign CRUD wrappers hit correct endpoints', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      return jsonResponse(neuroCampaignPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroCampaigns(client)
+    await createNeuroCampaign(client, neuroCampaignCreatePayload())
+    await fetchNeuroCampaign(client, 'camp-1')
+    await updateNeuroCampaign(client, 'camp-1', { name: 'Updated' })
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET http://api.test/api/neuro-commenting/campaigns',
+      'POST http://api.test/api/neuro-commenting/campaigns',
+      'GET http://api.test/api/neuro-commenting/campaigns/camp-1',
+      'PATCH http://api.test/api/neuro-commenting/campaigns/camp-1',
+    ])
+  })
+
+  test('neuro-commenting campaign lifecycle wrappers', async () => {
+    const calls: Array<{ url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL) => {
+      calls.push({ url: requestUrl(input) })
+      return jsonResponse(neuroCampaignPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await startNeuroCampaign(client, 'camp-1')
+    await pauseNeuroCampaign(client, 'camp-1')
+    await stopNeuroCampaign(client, 'camp-1')
+
+    expect(calls.map((c) => c.url)).toEqual([
+      'http://api.test/api/neuro-commenting/campaigns/camp-1/start',
+      'http://api.test/api/neuro-commenting/campaigns/camp-1/pause',
+      'http://api.test/api/neuro-commenting/campaigns/camp-1/stop',
+    ])
+  })
+
+  test('neuro-commenting accounts and targets wrappers', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const method = requestMethod(input, init)
+      calls.push({ method, url: requestUrl(input) })
+      if (method === 'DELETE') return new Response(null, { status: 204 })
+      if (requestUrl(input).includes('/accounts')) {
+        return jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+      }
+      return jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroCampaignAccounts(client, 'camp-1')
+    await addNeuroCampaignAccount(client, 'camp-1', { account_id: 'acct-1', rotation_weight: 1, rotation_order: 0 })
+    await deleteNeuroCampaignAccount(client, 'camp-1', 'acct-1')
+    await fetchNeuroCampaignTargets(client, 'camp-1')
+    await addNeuroCampaignTarget(client, 'camp-1', { channel_ref: '@test', source_type: 'channel' })
+    await deleteNeuroCampaignTarget(client, 'camp-1', 'target-1')
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET http://api.test/api/neuro-commenting/campaigns/camp-1/accounts',
+      'POST http://api.test/api/neuro-commenting/campaigns/camp-1/accounts',
+      'DELETE http://api.test/api/neuro-commenting/campaigns/camp-1/accounts/acct-1',
+      'GET http://api.test/api/neuro-commenting/campaigns/camp-1/targets',
+      'POST http://api.test/api/neuro-commenting/campaigns/camp-1/targets',
+      'DELETE http://api.test/api/neuro-commenting/campaigns/camp-1/targets/target-1',
+    ])
+  })
+
+  test('neuro-commenting generated comments wrappers', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const commentPayload = neuroGeneratedCommentPayload()
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      if (requestUrl(input).endsWith('/generated-comments') || requestUrl(input).includes('campaign_id')) {
+        return jsonResponse({ items: [commentPayload], total: 1, page: 1, limit: 50 })
+      }
+      return jsonResponse(commentPayload)
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroGeneratedComments(client)
+    await fetchNeuroGeneratedComments(client, { campaign_id: 'camp-1' })
+    await fetchNeuroGeneratedComment(client, 'comment-1')
+    await editNeuroGeneratedComment(client, 'comment-1', { edited_text: 'edited' })
+    await approveNeuroGeneratedComment(client, 'comment-1')
+    await rejectNeuroGeneratedComment(client, 'comment-1', { reason: 'off-topic' })
+
+    expect(calls.length).toBe(6)
+    expect(calls[0].url).toContain('/generated-comments')
+    expect(calls[3].method).toBe('PATCH')
+    expect(calls[4].url).toContain('/approve')
+    expect(calls[5].url).toContain('/reject')
+  })
+
+  test('neuro-commenting events wrapper', async () => {
+    const fetchMock = async () => jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    const result = await fetchNeuroEvents(client)
+    expect(result).toEqual({ items: [], total: 0, page: 1, limit: 50 })
+  })
+
   test('account runtime diagnostics sends X-Account-Id header', async () => {
     const calls: Array<{ url: string; accountId: string | null }> = []
     const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -405,6 +528,12 @@ function jsonResponse(payload: unknown): Response {
 
 function requestUrl(input: RequestInfo | URL): string {
   return input instanceof Request ? input.url : String(input)
+}
+
+function requestMethod(input: RequestInfo | URL, init?: RequestInit): string {
+  if (init?.method) return init.method
+  if (input instanceof Request) return input.method
+  return 'GET'
 }
 
 function requestContentType(input: RequestInfo | URL, init?: RequestInit): string | null {
@@ -439,6 +568,45 @@ function authSessionPayload() {
     updated_at: '2026-05-03T00:00:00Z',
     completed_at: null,
     failed_at: '2026-05-03T00:00:00Z',
+  }
+}
+
+function neuroCampaignPayload() {
+  return {
+    items: [{ id: 'camp-1', workspace_id: 'ws-1', name: 'Test', status: 'draft' }],
+    total: 1,
+    page: 1,
+    limit: 50,
+  }
+}
+
+function neuroCampaignCreatePayload() {
+  return {
+    name: 'Test Campaign',
+    mode: 'all_posts' as const,
+    work_mode: 'manual' as const,
+    approval_mode: 'manual_required' as const,
+    send_mode: 'dry_run' as const,
+    send_strategy: 'comment' as const,
+    rotation_strategy: 'round_robin' as const,
+    language_mode: 'auto',
+    delay_min_seconds: 60,
+    delay_max_seconds: 300,
+    dry_run: true,
+    auto_send_enabled: false as const,
+    safety_enabled: true,
+  }
+}
+
+function neuroGeneratedCommentPayload() {
+  return {
+    id: 'comment-1',
+    campaign_id: 'camp-1',
+    workspace_id: 'ws-1',
+    final_text: 'Test comment',
+    approval_status: 'pending',
+    created_at: '2026-05-18T00:00:00Z',
+    updated_at: null,
   }
 }
 

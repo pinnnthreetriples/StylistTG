@@ -84,6 +84,10 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
         True,
     ),
     ("GET", "/api/neuro-commenting/generated-comments", "viewer", False),
+    ("GET", "/api/neuro-commenting/observed-posts", "viewer", False),
+    ("GET", "/api/neuro-commenting/observed-posts/{observed_post_id}", "viewer", False),
+    ("GET", "/api/neuro-commenting/attempts", "viewer", False),
+    ("GET", "/api/neuro-commenting/attempts/{attempt_id}", "viewer", False),
     (
         "GET",
         "/api/neuro-commenting/generated-comments/{comment_id}",
@@ -105,6 +109,36 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     (
         "POST",
         "/api/neuro-commenting/generated-comments/{comment_id}/reject",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/campaigns/{campaign_id}/observe",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}/observe",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}/refresh-metadata",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/observed-posts/{observed_post_id}/generate",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/generated-comments/{comment_id}/send",
         "operator",
         True,
     ),
@@ -289,6 +323,8 @@ def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
         "campaign_id": "00000000-0000-4000-8000-000000000101",
         "comment_id": "00000000-0000-4000-8000-000000000102",
         "target_id": "00000000-0000-4000-8000-000000000103",
+        "observed_post_id": "00000000-0000-4000-8000-000000000104",
+        "attempt_id": "00000000-0000-4000-8000-000000000105",
     }
     if "{account_id}" in path:
         account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")

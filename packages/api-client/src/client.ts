@@ -100,6 +100,16 @@ export type NeuroGeneratedComment = Schema<'NeuroGeneratedCommentRead'>
 export type NeuroGeneratedCommentPage = Schema<'NeuroGeneratedCommentPageRead'>
 export type NeuroGeneratedCommentUpdate = Schema<'NeuroGeneratedCommentUpdate'>
 export type NeuroGeneratedCommentReject = Schema<'NeuroGeneratedCommentRejectRequest'>
+export type NeuroAcceptedJob = Schema<'NeuroAcceptedJobRead'>
+export type NeuroAttempt = Schema<'NeuroAttemptRead'>
+export type NeuroAttemptPage = Schema<'NeuroAttemptPageRead'>
+export type NeuroGenerateObservedPostRequest = Schema<'NeuroGenerateObservedPostRequest'>
+export type NeuroManualSend = Schema<'NeuroManualSendRead'>
+export type NeuroManualSendRequest = Schema<'NeuroManualSendRequest'>
+export type NeuroObservedPost = Schema<'NeuroObservedPostRead'>
+export type NeuroObservedPostPage = Schema<'NeuroObservedPostPageRead'>
+export type NeuroObserveCampaignRequest = Schema<'NeuroObserveCampaignRequest'>
+export type NeuroObserveTargetRequest = Schema<'NeuroObserveTargetRequest'>
 export type NeuroEvent = Schema<'NeuroEventRead'>
 export type NeuroEventPage = Schema<'NeuroEventPageRead'>
 
@@ -433,6 +443,121 @@ export async function rejectNeuroGeneratedComment(
       body: payload,
     }),
     'reject neuro generated comment',
+  )
+}
+
+export async function sendNeuroGeneratedComment(
+  client: StylistTgClient,
+  commentId: string,
+  payload: NeuroManualSendRequest = { enqueue: true },
+): Promise<NeuroManualSend> {
+  return unwrap(
+    client.openapi.POST('/api/neuro-commenting/generated-comments/{comment_id}/send', {
+      params: { path: { comment_id: commentId } },
+      body: payload,
+    }),
+    'send neuro generated comment',
+  )
+}
+
+export async function fetchNeuroObservedPosts(
+  client: StylistTgClient,
+  params?: { campaign_id?: string; target_id?: string; page?: number; limit?: number },
+): Promise<NeuroObservedPostPage> {
+  return unwrap(
+    client.openapi.GET('/api/neuro-commenting/observed-posts', {
+      params: { query: params },
+    }),
+    'neuro observed posts',
+  )
+}
+
+export async function fetchNeuroObservedPost(
+  client: StylistTgClient,
+  observedPostId: string,
+): Promise<NeuroObservedPost> {
+  return unwrap(
+    client.openapi.GET('/api/neuro-commenting/observed-posts/{observed_post_id}', {
+      params: { path: { observed_post_id: observedPostId } },
+    }),
+    'neuro observed post',
+  )
+}
+
+export async function observeNeuroCampaign(
+  client: StylistTgClient,
+  campaignId: string,
+  payload: NeuroObserveCampaignRequest = { generate: true },
+): Promise<NeuroAcceptedJob> {
+  return unwrap(
+    client.openapi.POST('/api/neuro-commenting/campaigns/{campaign_id}/observe', {
+      params: { path: { campaign_id: campaignId } },
+      body: payload,
+    }),
+    'observe neuro campaign',
+  )
+}
+
+export async function observeNeuroTarget(
+  client: StylistTgClient,
+  campaignId: string,
+  targetId: string,
+  payload: NeuroObserveTargetRequest = { generate: true },
+): Promise<NeuroAcceptedJob> {
+  return unwrap(
+    client.openapi.POST('/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}/observe', {
+      params: { path: { campaign_id: campaignId, target_id: targetId } },
+      body: payload,
+    }),
+    'observe neuro target',
+  )
+}
+
+export async function refreshNeuroTargetMetadata(
+  client: StylistTgClient,
+  campaignId: string,
+  targetId: string,
+): Promise<NeuroAcceptedJob> {
+  return unwrap(
+    client.openapi.POST('/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}/refresh-metadata', {
+      params: { path: { campaign_id: campaignId, target_id: targetId } },
+    }),
+    'refresh neuro target metadata',
+  )
+}
+
+export async function generateNeuroObservedPost(
+  client: StylistTgClient,
+  observedPostId: string,
+  payload: NeuroGenerateObservedPostRequest = { force: false },
+): Promise<NeuroAcceptedJob> {
+  return unwrap(
+    client.openapi.POST('/api/neuro-commenting/observed-posts/{observed_post_id}/generate', {
+      params: { path: { observed_post_id: observedPostId } },
+      body: payload,
+    }),
+    'generate neuro observed post',
+  )
+}
+
+export async function fetchNeuroAttempts(
+  client: StylistTgClient,
+  params?: { campaign_id?: string; generated_comment_id?: string; page?: number; limit?: number },
+): Promise<NeuroAttemptPage> {
+  return unwrap(
+    client.openapi.GET('/api/neuro-commenting/attempts', {
+      params: { query: params },
+    }),
+    'neuro attempts',
+  )
+}
+
+export async function fetchNeuroAttempt(client: StylistTgClient, attemptId: string): Promise<NeuroAttempt> {
+  return unwrap(
+    client.openapi.GET('/api/neuro-commenting/attempts/{attempt_id}', {
+      params: { path: { attempt_id: attemptId } },
+    }),
+    'neuro attempt',
   )
 }
 

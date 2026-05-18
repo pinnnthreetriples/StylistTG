@@ -67,17 +67,21 @@ class ApprovalService:
         comment.final_text = comment.edited_text or comment.generated_text
         comment.approved_by = actor_user_id
         comment.approved_at = datetime.now(UTC)
-        attempt = NeuroCommentAttempt(
-            id=new_id(),
-            campaign_id=comment.campaign_id,
-            generated_comment_id=comment.id,
-            account_id=comment.account_id,
-            target_id=comment.target_id,
-            observed_post_id=comment.observed_post_id,
-            status=NeuroAttemptStatus.CREATED.value,
+        attempt = repository.get_attempt_for_generated_comment(
+            session, generated_comment_id=comment.id
         )
-        session.add(attempt)
-        session.flush()
+        if attempt is None:
+            attempt = NeuroCommentAttempt(
+                id=new_id(),
+                campaign_id=comment.campaign_id,
+                generated_comment_id=comment.id,
+                account_id=comment.account_id,
+                target_id=comment.target_id,
+                observed_post_id=comment.observed_post_id,
+                status=NeuroAttemptStatus.CREATED.value,
+            )
+            session.add(attempt)
+            session.flush()
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,

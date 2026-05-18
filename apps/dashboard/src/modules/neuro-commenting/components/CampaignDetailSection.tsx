@@ -1,5 +1,5 @@
 import { Button, Card, FormField, Input, Select, Skeleton } from '@stylisttg/ui'
-import { Pause, Play, Save, Square } from 'lucide-react'
+import { Eye, Pause, Play, Save, Square } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import {
@@ -7,7 +7,7 @@ import {
   editorStateFromCampaign,
   type CampaignEditorState,
 } from '../formPayloads'
-import { useCampaignLifecycleMutation, useNeuroCampaign, useUpdateNeuroCampaign } from '../hooks'
+import { useCampaignLifecycleMutation, useNeuroCampaign, useObserveCampaignMutation, useUpdateNeuroCampaign } from '../hooks'
 import type { UpdateCampaignPayload } from '../types'
 
 import { CampaignStatusBadge } from './CampaignStatusBadge'
@@ -15,6 +15,7 @@ import { CampaignStatusBadge } from './CampaignStatusBadge'
 export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
   const campaignQuery = useNeuroCampaign(campaignId)
   const lifecycle = useCampaignLifecycleMutation(campaignId)
+  const observe = useObserveCampaignMutation(campaignId)
   const updateCampaign = useUpdateNeuroCampaign(campaignId)
   const [form, setForm] = useState<{ campaignId: string; value: CampaignEditorState } | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -34,7 +35,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
   const isRunning = campaign.status === 'running'
   const isPaused = campaign.status === 'paused'
   const editorForm = form?.campaignId === campaign.id ? form.value : editorStateFromCampaign(campaign)
-  const mutationError = updateCampaign.isError || lifecycle.isError ? 'Не удалось сохранить изменения' : null
+  const mutationError = updateCampaign.isError || lifecycle.isError || observe.isError ? 'Не удалось сохранить изменения' : null
   const updateEditorForm = (patch: Partial<CampaignEditorState>) => {
     setForm({ campaignId: campaign.id, value: { ...editorForm, ...patch } })
   }
@@ -206,6 +207,20 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
       </form>
 
       <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          icon={<Eye className="size-3.5" />}
+          onClick={() => observe.mutate()}
+          disabled={observe.isPending}
+        >
+          Observe campaign now
+        </Button>
+        {observe.data ? (
+          <span className="self-center text-xs text-gray-500">
+            Accepted: {observe.data.job_id}
+          </span>
+        ) : null}
         {isDraft || isPaused ? (
           <Button
             size="sm"

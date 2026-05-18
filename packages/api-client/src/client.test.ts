@@ -23,17 +23,26 @@ import {
   fetchNeuroCampaignAccounts,
   fetchNeuroCampaigns,
   fetchNeuroCampaignTargets,
+  fetchNeuroAttempt,
+  fetchNeuroAttempts,
   fetchNeuroEvents,
   fetchNeuroGeneratedComment,
   fetchNeuroGeneratedComments,
+  fetchNeuroObservedPost,
+  fetchNeuroObservedPosts,
   fetchReady,
   fetchRuntimeDiagnostics,
   fetchAccountRiskSummary,
   fetchTdlibRuntimeStatus,
+  generateNeuroObservedPost,
   normalizeClientError,
+  observeNeuroCampaign,
+  observeNeuroTarget,
   pauseNeuroCampaign,
   rejectNeuroGeneratedComment,
+  refreshNeuroTargetMetadata,
   resolveApiBaseUrl,
+  sendNeuroGeneratedComment,
   startNeuroCampaign,
   stopNeuroCampaign,
   submitTelegramAuthCode,
@@ -481,12 +490,75 @@ describe('@stylisttg/api-client', () => {
     await editNeuroGeneratedComment(client, 'comment-1', { edited_text: 'edited' })
     await approveNeuroGeneratedComment(client, 'comment-1')
     await rejectNeuroGeneratedComment(client, 'comment-1', { reason: 'off-topic' })
+    await sendNeuroGeneratedComment(client, 'comment-1')
 
-    expect(calls.length).toBe(6)
+    expect(calls.length).toBe(7)
     expect(calls[0].url).toContain('/generated-comments')
     expect(calls[3].method).toBe('PATCH')
     expect(calls[4].url).toContain('/approve')
     expect(calls[5].url).toContain('/reject')
+    expect(calls[6].url).toContain('/send')
+  })
+
+  test('neuro-commenting observed posts wrappers hit correct endpoints', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      if (requestUrl(input).endsWith('/observed-posts') || requestUrl(input).includes('campaign_id')) {
+        return jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+      }
+      return jsonResponse(neuroObservedPostPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroObservedPosts(client, { campaign_id: 'camp-1', target_id: 'target-1' })
+    await fetchNeuroObservedPost(client, 'post-1')
+    await generateNeuroObservedPost(client, 'post-1')
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET http://api.test/api/neuro-commenting/observed-posts?campaign_id=camp-1&target_id=target-1',
+      'GET http://api.test/api/neuro-commenting/observed-posts/post-1',
+      'POST http://api.test/api/neuro-commenting/observed-posts/post-1/generate',
+    ])
+  })
+
+  test('neuro-commenting observe target and refresh wrappers hit correct endpoints', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      return jsonResponse({ accepted: true, job_id: 'job-1', queue_name: 'neuro_comment_jobs' })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await observeNeuroCampaign(client, 'camp-1')
+    await observeNeuroTarget(client, 'camp-1', 'target-1', { generate: false })
+    await refreshNeuroTargetMetadata(client, 'camp-1', 'target-1')
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'POST http://api.test/api/neuro-commenting/campaigns/camp-1/observe',
+      'POST http://api.test/api/neuro-commenting/campaigns/camp-1/targets/target-1/observe',
+      'POST http://api.test/api/neuro-commenting/campaigns/camp-1/targets/target-1/refresh-metadata',
+    ])
+  })
+
+  test('neuro-commenting attempts wrappers hit correct endpoints', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      if (requestUrl(input).endsWith('/attempts') || requestUrl(input).includes('campaign_id')) {
+        return jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+      }
+      return jsonResponse(neuroAttemptPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroAttempts(client, { campaign_id: 'camp-1', generated_comment_id: 'comment-1' })
+    await fetchNeuroAttempt(client, 'attempt-1')
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET http://api.test/api/neuro-commenting/attempts?campaign_id=camp-1&generated_comment_id=comment-1',
+      'GET http://api.test/api/neuro-commenting/attempts/attempt-1',
+    ])
   })
 
   test('neuro-commenting events wrapper', async () => {
@@ -607,6 +679,48 @@ function neuroGeneratedCommentPayload() {
     approval_status: 'pending',
     created_at: '2026-05-18T00:00:00Z',
     updated_at: null,
+  }
+}
+
+function neuroObservedPostPayload() {
+  return {
+    id: 'post-1',
+    campaign_id: 'camp-1',
+    target_id: 'target-1',
+    source_chat_id: 'chat-1',
+    source_message_id: 'msg-1',
+    post_text: 'Observed post',
+    media_summary: null,
+    language: 'en',
+    matched_mode: 'all_posts',
+    matched_keywords: [],
+    status: 'seen',
+    seen_at: '2026-05-18T00:00:00Z',
+    processed_at: null,
+    created_at: '2026-05-18T00:00:00Z',
+    updated_at: '2026-05-18T00:00:00Z',
+  }
+}
+
+function neuroAttemptPayload() {
+  return {
+    id: 'attempt-1',
+    campaign_id: 'camp-1',
+    generated_comment_id: 'comment-1',
+    account_id: 'account-1',
+    target_id: 'target-1',
+    observed_post_id: 'post-1',
+    status: 'created',
+    send_strategy: 'comment',
+    telegram_message_id: null,
+    error_code: null,
+    error_message: null,
+    flood_wait_seconds: null,
+    reserved_limit_at: null,
+    sent_at: null,
+    failed_at: null,
+    created_at: '2026-05-18T00:00:00Z',
+    updated_at: '2026-05-18T00:00:00Z',
   }
 }
 

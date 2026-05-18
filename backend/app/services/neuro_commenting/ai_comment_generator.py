@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.config import Settings, settings
 from app.services.neuro_commenting.prompt_builder import BuiltPrompt
 
 
@@ -11,6 +12,15 @@ class GeneratedCommentText:
     text: str
     provider: str
     model: str
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+
+
+class AICommentGenerationError(RuntimeError):
+    def __init__(self, error_code: str, message: str) -> None:
+        super().__init__(message)
+        self.error_code = error_code
 
 
 class AICommentProvider(Protocol):
@@ -39,3 +49,16 @@ class AICommentGenerator:
 
     def generate(self, prompt: BuiltPrompt) -> GeneratedCommentText:
         return self._provider.generate_comment(prompt)
+
+
+def build_ai_comment_generator(config: Settings = settings) -> AICommentGenerator:
+    provider = config.neuro_comment_ai_provider
+    if provider == "fake":
+        return AICommentGenerator(FakeAICommentProvider())
+    if provider == "openai_compatible":
+        from app.services.neuro_commenting.ai_provider_openai import (
+            OpenAICompatibleCommentProvider,
+        )
+
+        return AICommentGenerator(OpenAICompatibleCommentProvider(settings=config))
+    raise ValueError(f"unknown AI provider: {provider}")

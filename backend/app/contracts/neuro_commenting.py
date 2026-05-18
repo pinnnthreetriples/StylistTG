@@ -323,6 +323,111 @@ class NeuroGeneratedCommentPageRead(BaseModel):
     limit: int
 
 
+class NeuroObservedPostRead(BaseModel):
+    id: str
+    campaign_id: str
+    target_id: str
+    source_chat_id: str
+    source_message_id: str
+    post_text: str | None
+    media_summary: str | None
+    language: str | None
+    matched_mode: str | None
+    matched_keywords: list[str]
+    status: str
+    seen_at: datetime
+    processed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("seen_at", "processed_at", "created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroObservedPostPageRead(BaseModel):
+    items: list[NeuroObservedPostRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroObserveCampaignRequest(BaseModel):
+    limit: int | None = Field(default=None, ge=1, le=100)
+    generate: StrictBool = True
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroObserveTargetRequest(BaseModel):
+    limit: int | None = Field(default=None, ge=1, le=100)
+    generate: StrictBool = True
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroGenerateObservedPostRequest(BaseModel):
+    force: StrictBool = False
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroAttemptRead(BaseModel):
+    id: str
+    campaign_id: str
+    generated_comment_id: str
+    account_id: str | None
+    target_id: str | None
+    observed_post_id: str | None
+    status: str
+    send_strategy: str
+    telegram_message_id: str | None
+    error_code: str | None
+    error_message: str | None
+    flood_wait_seconds: int | None
+    reserved_limit_at: datetime | None
+    sent_at: datetime | None
+    failed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("reserved_limit_at", "sent_at", "failed_at", "created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroAttemptPageRead(BaseModel):
+    items: list[NeuroAttemptRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroManualSendRequest(BaseModel):
+    enqueue: StrictBool = True
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroManualSendRead(BaseModel):
+    accepted: bool
+    attempt: NeuroAttemptRead
+    job_id: str | None = None
+    queue_name: str | None = None
+    send_enabled: bool
+    disabled_reason: str | None = None
+
+
+class NeuroAcceptedJobRead(BaseModel):
+    accepted: bool
+    job_id: str
+    queue_name: str
+
+
 class NeuroEventRead(BaseModel):
     id: str
     workspace_id: str

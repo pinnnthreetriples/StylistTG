@@ -303,9 +303,11 @@
         "apps/dashboard/src/modules/neuro-commenting/components/EventsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/GeneratedCommentsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/TargetsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/formPayloads.ts",
         "apps/dashboard/src/modules/neuro-commenting/hooks.ts",
         "apps/dashboard/src/modules/neuro-commenting/index.ts",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommenting.test.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/neuroCommentingErrorStates.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingRoute.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/types.ts"
       ],

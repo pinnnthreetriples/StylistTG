@@ -20,6 +20,7 @@ export function CampaignListSection({
   const [newName, setNewName] = useState('')
 
   const campaigns: NeuroCampaign[] = campaignsQuery.data?.items ?? []
+  const mutationError = createMutation.isError ? 'Не удалось сохранить изменения' : null
 
   const handleCreate = () => {
     if (!newName.trim()) return
@@ -45,21 +46,28 @@ export function CampaignListSection({
       </div>
 
       {showCreate ? (
-        <Card className="flex items-center gap-2 p-3">
-          <Input
-            className="flex-1"
-            placeholder="Название кампании"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          />
-          <Button size="sm" onClick={handleCreate} disabled={createMutation.isPending || !newName.trim()}>
-            Добавить
-          </Button>
+        <Card className="grid gap-2 p-3">
+          <div className="flex items-center gap-2">
+            <Input
+              className="flex-1"
+              placeholder="Название кампании"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+            <Button size="sm" onClick={handleCreate} disabled={createMutation.isPending || !newName.trim()}>
+              Добавить
+            </Button>
+          </div>
+          {mutationError ? <p className="text-xs font-medium text-red-500">{mutationError}</p> : null}
         </Card>
       ) : null}
 
-      {campaigns.length === 0 && !campaignsQuery.isLoading ? (
+      {campaignsQuery.isError ? (
+        <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+      ) : null}
+
+      {campaigns.length === 0 && !campaignsQuery.isLoading && !campaignsQuery.isError ? (
         <EmptyState title="Нет кампаний" description="Создайте первую кампанию для начала работы" />
       ) : null}
 

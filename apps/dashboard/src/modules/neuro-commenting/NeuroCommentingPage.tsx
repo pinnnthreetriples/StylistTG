@@ -8,8 +8,8 @@ import { EventsSection } from './components/EventsSection'
 import { GeneratedCommentsSection } from './components/GeneratedCommentsSection'
 import { TargetsSection } from './components/TargetsSection'
 
-export function NeuroCommentingPage() {
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
+export function NeuroCommentingPage({ initialSelectedCampaignId = null }: { initialSelectedCampaignId?: string | null } = {}) {
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(initialSelectedCampaignId)
 
   return (
     <PageShell>

@@ -34,4 +34,12 @@ export type UpdateCampaignPayload = {
   mode?: CampaignMode | null
   work_mode?: WorkMode | null
   approval_mode?: ApprovalMode | null
+  language_mode?: string | null
+  prompt_template?: string | null
+  max_comments_per_hour?: number | null
+  max_comments_per_day?: number | null
+  delay_min_seconds?: number | null
+  delay_max_seconds?: number | null
+  safety_enabled?: boolean | null
+  auto_send_enabled?: false | null
 }

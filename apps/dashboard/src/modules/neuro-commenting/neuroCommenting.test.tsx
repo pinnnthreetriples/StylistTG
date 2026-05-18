@@ -4,14 +4,136 @@ import { describe, expect, test } from 'vitest'
 
 import { AccountsSection } from './components/AccountsSection'
 import { ApprovalBadge } from './components/ApprovalBadge'
+import { CampaignListSection } from './components/CampaignListSection'
 import { CampaignStatusBadge } from './components/CampaignStatusBadge'
 import { EventsSection } from './components/EventsSection'
-import { TargetsSection } from './components/TargetsSection'
+import { GeneratedCommentsSection } from './components/GeneratedCommentsSection'
+import {
+  buildCampaignAccountPayload,
+  buildGeneratedCommentEditPayload,
+  buildTargetPayload,
+  parseKeywordList,
+  visibleGeneratedCommentText,
+} from './formPayloads'
 import { neuroQueryKeys } from './hooks'
+import { TargetsSection } from './components/TargetsSection'
+import type { NeuroCampaign, NeuroCampaignAccount, NeuroGeneratedComment, NeuroTarget } from './types'
 
-function renderWithClient(ui: React.ReactElement): string {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function renderWithClient(ui: React.ReactElement, seed?: (queryClient: QueryClient) => void): string {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnMount: false, retry: false } } })
+  seed?.(queryClient)
   return renderToStaticMarkup(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
+
+function campaign(overrides: Partial<NeuroCampaign> = {}): NeuroCampaign {
+  return {
+    id: 'campaign-1',
+    workspace_id: 'workspace-1',
+    name: 'Launch campaign',
+    description: null,
+    status: 'draft',
+    mode: 'all_posts',
+    work_mode: 'manual',
+    approval_mode: 'manual_required',
+    send_mode: 'dry_run',
+    send_strategy: 'comment',
+    rotation_strategy: 'round_robin',
+    language_mode: 'auto',
+    prompt_template: null,
+    system_prompt: null,
+    negative_prompt: null,
+    prompt_version: 1,
+    max_comments_total: null,
+    max_comments_per_hour: null,
+    max_comments_per_day: null,
+    delay_min_seconds: 60,
+    delay_max_seconds: 300,
+    rotate_after_comments: null,
+    quiet_hours_start: null,
+    quiet_hours_end: null,
+    timezone: null,
+    dry_run: true,
+    auto_send_enabled: false,
+    safety_enabled: true,
+    started_at: null,
+    stopped_at: null,
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  }
+}
+
+function campaignAccount(overrides: Partial<NeuroCampaignAccount> = {}): NeuroCampaignAccount {
+  return {
+    id: 'campaign-account-1',
+    campaign_id: 'campaign-1',
+    account_id: 'account-1',
+    status: 'active',
+    rotation_weight: 1,
+    rotation_order: 0,
+    comments_sent: 0,
+    comments_failed: 0,
+    last_used_at: null,
+    cooldown_until: null,
+    last_error_code: null,
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  }
+}
+
+function target(overrides: Partial<NeuroTarget> = {}): NeuroTarget {
+  return {
+    id: 'target-1',
+    campaign_id: 'campaign-1',
+    channel_ref: '@example',
+    channel_id: null,
+    discussion_chat_id: null,
+    title: null,
+    username: null,
+    status: 'active',
+    source_type: 'channel',
+    activity_level: null,
+    keywords: [],
+    exclude_keywords: [],
+    last_seen_message_id: null,
+    last_processed_message_id: null,
+    last_commented_at: null,
+    health_score: 100,
+    success_count: 0,
+    fail_count: 0,
+    deleted_comment_count: 0,
+    flood_wait_count: 0,
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  }
+}
+
+function generatedComment(overrides: Partial<NeuroGeneratedComment> = {}): NeuroGeneratedComment {
+  return {
+    id: 'comment-1',
+    campaign_id: 'campaign-1',
+    target_id: null,
+    account_id: null,
+    observed_post_id: null,
+    generated_text: 'Generated fallback',
+    edited_text: null,
+    final_text: null,
+    model: null,
+    provider: null,
+    prompt_version: 1,
+    language: null,
+    safety_status: 'passed',
+    safety_reason: null,
+    approval_status: 'pending',
+    approved_by: null,
+    approved_at: null,
+    rejected_reason: null,
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  }
 }
 
 describe('neuro-commenting query keys', () => {
@@ -43,9 +165,37 @@ describe('neuro-commenting query keys', () => {
 })
 
 describe('neuro-commenting section components', () => {
+  test('CampaignListSection renders campaigns from query data', () => {
+    const html = renderWithClient(<CampaignListSection selectedId={null} onSelect={() => undefined} />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.campaigns, {
+        items: [campaign({ name: 'Seeded campaign' })],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('Seeded campaign')
+  })
+
   test('AccountsSection renders loading skeleton', () => {
     const html = renderWithClient(<AccountsSection campaignId="c-1" />)
     expect(html).toContain('skeleton')
+  })
+
+  test('AccountsSection renders add form', () => {
+    const html = renderWithClient(<AccountsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.accounts('campaign-1'), {
+        items: [campaignAccount()],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('account_id')
+    expect(html).toContain('Добавить')
+    expect(html).toContain('Удалить')
   })
 
   test('TargetsSection renders loading skeleton', () => {
@@ -53,9 +203,84 @@ describe('neuro-commenting section components', () => {
     expect(html).toContain('skeleton')
   })
 
+  test('TargetsSection renders add form', () => {
+    const html = renderWithClient(<TargetsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.targets('campaign-1'), {
+        items: [target()],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('channel_ref')
+    expect(html).toContain('Добавить канал')
+    expect(html).toContain('Удалить')
+  })
+
   test('EventsSection renders loading skeleton', () => {
     const html = renderWithClient(<EventsSection campaignId="c-1" />)
     expect(html).toContain('skeleton')
+  })
+
+  test('GeneratedCommentsSection displays generated text fallback and pending actions', () => {
+    const html = renderWithClient(<GeneratedCommentsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), {
+        items: [generatedComment()],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('Generated fallback')
+    expect(html).toContain('Редактировать')
+    expect(html).toContain('Одобрить')
+    expect(html).toContain('Отклонить')
+  })
+
+})
+
+describe('neuro-commenting form payload helpers', () => {
+  test('buildCampaignAccountPayload trims account id and parses rotation fields', () => {
+    expect(buildCampaignAccountPayload({ accountId: ' account-1 ', rotationWeight: '2', rotationOrder: '3' })).toEqual({
+      account_id: 'account-1',
+      rotation_weight: 2,
+      rotation_order: 3,
+    })
+  })
+
+  test('parseKeywordList trims comma-separated keywords', () => {
+    expect(parseKeywordList('ai, marketing, tg')).toEqual(['ai', 'marketing', 'tg'])
+    expect(parseKeywordList(' ai, ,tg ')).toEqual(['ai', 'tg'])
+  })
+
+  test('buildTargetPayload trims channel and parses keyword fields', () => {
+    expect(
+      buildTargetPayload({
+        channelRef: ' @channel ',
+        title: ' Product ',
+        keywords: 'ai, marketing, tg',
+        excludeKeywords: 'spam, ads',
+      }),
+    ).toEqual({
+      channel_ref: '@channel',
+      title: 'Product',
+      source_type: 'channel',
+      keywords: ['ai', 'marketing', 'tg'],
+      exclude_keywords: ['spam', 'ads'],
+    })
+  })
+
+  test('visibleGeneratedCommentText falls back from final to edited to generated text', () => {
+    expect(visibleGeneratedCommentText(generatedComment({ final_text: 'Final' }))).toBe('Final')
+    expect(visibleGeneratedCommentText(generatedComment({ edited_text: 'Edited' }))).toBe('Edited')
+    expect(visibleGeneratedCommentText(generatedComment())).toBe('Generated fallback')
+  })
+
+  test('buildGeneratedCommentEditPayload rejects empty text', () => {
+    expect(buildGeneratedCommentEditPayload(' Updated ')).toEqual({ edited_text: 'Updated' })
+    expect(() => buildGeneratedCommentEditPayload('   ')).toThrow('edited_text required')
   })
 })
 

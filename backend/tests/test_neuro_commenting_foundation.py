@@ -589,6 +589,20 @@ def test_api_rejects_unknown_neuro_list_query_params(app_client) -> None:
         assert response.json()["error_code"] == "HTTP_ERROR"
 
 
+def test_api_rejects_unknown_nested_neuro_list_query_params(app_client) -> None:
+    campaign_id = _create_api_campaign(app_client)["id"]
+    endpoints = [
+        f"/api/neuro-commenting/campaigns/{campaign_id}/accounts",
+        f"/api/neuro-commenting/campaigns/{campaign_id}/targets",
+    ]
+
+    for endpoint in endpoints:
+        response = app_client.get(endpoint, params={"page": 1, "unexpected": "1"})
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "HTTP_ERROR"
+
+
 def test_api_create_campaign_rejects_boolean_numeric_fields(app_client) -> None:
     response = app_client.post(
         "/api/neuro-commenting/campaigns",

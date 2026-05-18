@@ -6,6 +6,9 @@ export function EventsSection({ campaignId }: { campaignId: string | undefined }
   const eventsQuery = useNeuroEvents(campaignId)
   const events = eventsQuery.data?.items ?? []
 
+  if (eventsQuery.isError) {
+    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+  }
   if (eventsQuery.isLoading) return <Skeleton className="h-40 w-full" />
 
   return (

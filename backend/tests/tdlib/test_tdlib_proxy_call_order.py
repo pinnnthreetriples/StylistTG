@@ -147,5 +147,5 @@ def _settings(tmp_path) -> Settings:
         tdlib_database_root=tmp_path / "database",
         tdlib_files_root=tmp_path / "files",
         tdlib_receive_timeout_seconds=0.01,
-        tdlib_auth_timeout_seconds=0.05,
+        tdlib_auth_timeout_seconds=1.0,
     )

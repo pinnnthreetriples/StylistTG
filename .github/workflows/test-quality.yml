@@ -37,6 +37,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Install Node quality dependencies
+        working-directory: .
+        run: npm ci --ignore-scripts
+
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
@@ -119,11 +123,13 @@ jobs:
         continue-on-error: true
 
       - name: jscpd duplicate detection (app)
-        run: npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
+        working-directory: .
+        run: npm exec -- jscpd backend/app --gitignore --noTips --threshold 2 --reporters json --output backend/reports/jscpd-app
         if: always()
 
       - name: jscpd duplicate detection (tests)
-        run: npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
+        working-directory: .
+        run: npm exec -- jscpd backend/tests --gitignore --noTips --threshold 5 --reporters json --output backend/reports/jscpd-tests
         if: always()
 
       # SARIF upload disabled — enable code scanning in repo settings first:

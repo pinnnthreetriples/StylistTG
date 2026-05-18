@@ -22,19 +22,19 @@ jobs:
       - name: Build backend image
         run: docker build -f backend/Dockerfile -t stylisttg-backend:sbom .
       - name: Backend Python SBOM
-        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           path: backend
           format: spdx-json
           output-file: sbom-backend.spdx.json
       - name: Frontend workspace SBOM
-        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           path: .
           format: spdx-json
           output-file: sbom-frontend.spdx.json
       - name: Backend container SBOM
-        uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: stylisttg-backend:sbom
           format: spdx-json

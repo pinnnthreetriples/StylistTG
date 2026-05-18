@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -63,11 +64,11 @@ def get_import_batches(
 
 @router.get("/{batch_id}", response_model=AccountImportBatchRead)
 def get_import_batch_detail(
-    batch_id: str,
+    batch_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    row = get_import_batch(session, batch_id=batch_id, workspace_id=auth.workspace_id)
+    row = get_import_batch(session, batch_id=str(batch_id), workspace_id=auth.workspace_id)
     if row is None:
         raise AppError(
             status_code=404,
@@ -80,7 +81,7 @@ def get_import_batch_detail(
 
 @router.post("/{batch_id}/validate", response_model=AccountImportBatchRead)
 def post_validate_import_batch(
-    batch_id: str,
+    batch_id: UUID,
     payload: AccountImportBatchValidate,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
@@ -88,7 +89,7 @@ def post_validate_import_batch(
     content = _decode_optional_base64(payload.content_base64)
     row = validate_batch(
         session,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         workspace_id=auth.workspace_id,
         content=content,
         metadata=payload.metadata,
@@ -98,14 +99,14 @@ def post_validate_import_batch(
 
 @router.post("/{batch_id}/confirm", response_model=AccountImportBatchRead)
 def post_confirm_import_batch(
-    batch_id: str,
+    batch_id: UUID,
     payload: AccountImportBatchConfirm,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     row = confirm_import_batch(
         session,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         workspace_id=auth.workspace_id,
         confirmation=payload.confirmation,
     )

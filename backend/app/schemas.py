@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from app.contracts import accounts as _account_contracts
 from app.contracts import jobs as _job_contracts
@@ -331,7 +331,7 @@ class TelegramAuthSessionRead(BaseModel):
 class AccountImportBatchCreate(BaseModel):
     source_type: Literal["tdlib-directory", "tdata", "session-file", "json-metadata"]
     label: str | None = Field(default=None, max_length=255)
-    dry_run: bool = True
+    dry_run: StrictBool = True
     metadata: dict[str, Any] | None = None
 
 

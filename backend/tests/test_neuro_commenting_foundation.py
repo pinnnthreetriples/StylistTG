@@ -336,7 +336,7 @@ def test_api_campaign_lifecycle_and_events(app_client) -> None:
     assert events_response.json()["total"] >= 1
 
 
-def test_api_campaign_accounts_and_targets_flow(app_client, db_session) -> None:
+def test_api_campaign_accounts_flow(app_client, db_session) -> None:
     account = seed_account(db_session, external_ref="+15550103000")
     second_account = seed_account(db_session, external_ref="+15550103001")
     db_session.commit()
@@ -366,6 +366,15 @@ def test_api_campaign_accounts_and_targets_flow(app_client, db_session) -> None:
     assert len(accounts_body["items"]) == 1
     assert accounts_body["items"][0]["account_id"] == account.id
 
+    delete_account_response = app_client.delete(
+        f"/api/neuro-commenting/campaigns/{campaign_id}/accounts/{account.id}"
+    )
+    assert delete_account_response.status_code == 204
+
+
+def test_api_campaign_targets_flow(app_client) -> None:
+    campaign_id = _create_api_campaign(app_client)["id"]
+
     target_response = app_client.post(
         f"/api/neuro-commenting/campaigns/{campaign_id}/targets",
         json={"channel_ref": "@example"},
@@ -394,11 +403,6 @@ def test_api_campaign_accounts_and_targets_flow(app_client, db_session) -> None:
         f"/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}"
     )
     assert delete_target_response.status_code == 204
-
-    delete_account_response = app_client.delete(
-        f"/api/neuro-commenting/campaigns/{campaign_id}/accounts/{account.id}"
-    )
-    assert delete_account_response.status_code == 204
 
 
 def test_api_campaign_account_and_target_lists_are_workspace_scoped(app_client, db_session) -> None:
@@ -443,7 +447,7 @@ def test_api_campaign_account_and_target_lists_are_workspace_scoped(app_client, 
     assert targets_response.json()["error_code"] == "CAMPAIGN_NOT_FOUND"
 
 
-def test_api_generated_comment_review_flow(app_client, db_session) -> None:
+def _seed_generated_comment_review_set(db_session) -> tuple[str, str, str, str]:
     campaign = CampaignService().create_campaign(
         db_session,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
@@ -487,42 +491,56 @@ def test_api_generated_comment_review_flow(app_client, db_session) -> None:
     db_session.add_all([edit_comment, approve_comment, reject_comment, other_comment])
     db_session.commit()
 
+    return campaign.id, edit_comment.id, approve_comment.id, reject_comment.id
+
+
+def test_api_generated_comment_listing_flow(app_client, db_session) -> None:
+    campaign_id, edit_comment_id, approve_comment_id, reject_comment_id = (
+        _seed_generated_comment_review_set(db_session)
+    )
+
     list_response = app_client.get("/api/neuro-commenting/generated-comments")
     assert list_response.status_code == 200
     assert list_response.json()["total"] >= 4
 
     filtered_response = app_client.get(
         "/api/neuro-commenting/generated-comments",
-        params={"campaign_id": campaign.id},
+        params={"campaign_id": campaign_id},
     )
     assert filtered_response.status_code == 200
     filtered_body = filtered_response.json()
     assert filtered_body["total"] == 3
     assert {item["id"] for item in filtered_body["items"]} == {
-        edit_comment.id,
-        approve_comment.id,
-        reject_comment.id,
+        edit_comment_id,
+        approve_comment_id,
+        reject_comment_id,
     }
 
-    get_response = app_client.get(f"/api/neuro-commenting/generated-comments/{edit_comment.id}")
+    get_response = app_client.get(f"/api/neuro-commenting/generated-comments/{edit_comment_id}")
     assert get_response.status_code == 200
     assert get_response.json()["generated_text"] == "Draft text"
 
+
+def test_api_generated_comment_review_mutations(app_client, db_session) -> None:
+    _campaign_id, edit_comment_id, approve_comment_id, reject_comment_id = (
+        _seed_generated_comment_review_set(db_session)
+    )
+
     edit_response = app_client.patch(
-        f"/api/neuro-commenting/generated-comments/{edit_comment.id}",
+        f"/api/neuro-commenting/generated-comments/{edit_comment_id}",
         json={"edited_text": "Edited text"},
     )
     assert edit_response.status_code == 200
     assert edit_response.json()["final_text"] == "Edited text"
 
     approve_response = app_client.post(
-        f"/api/neuro-commenting/generated-comments/{approve_comment.id}/approve"
+        f"/api/neuro-commenting/generated-comments/{approve_comment_id}/approve"
     )
     assert approve_response.status_code == 200
     assert approve_response.json()["approval_status"] == "approved"
 
     reject_response = app_client.post(
-        f"/api/neuro-commenting/generated-comments/{reject_comment.id}/reject",
+        f"/api/neuro-commenting/generated-comments/{reject_comment_id}/reject",
         json={"reason": "Not useful"},
     )
     assert reject_response.status_code == 200

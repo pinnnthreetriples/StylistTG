@@ -9,6 +9,7 @@ from app.db import get_session
 from app.errors import AppError
 from app.schemas import (
     NeuroCampaignAccountCreate,
+    NeuroCampaignAccountPageRead,
     NeuroCampaignAccountRead,
     NeuroCampaignCreate,
     NeuroCampaignPageRead,
@@ -21,6 +22,7 @@ from app.schemas import (
     NeuroGeneratedCommentRejectRequest,
     NeuroGeneratedCommentUpdate,
     NeuroTargetCreate,
+    NeuroTargetPageRead,
     NeuroTargetRead,
 )
 from app.services.auth_context import (
@@ -36,11 +38,16 @@ from app.services.neuro_commenting.target_service import TargetService
 
 router = APIRouter(prefix="/api/neuro-commenting", tags=["neuro-commenting"])
 _LIST_QUERY_PARAMS = {"page", "limit"}
+_GENERATED_QUERY_PARAMS = {"campaign_id", "page", "limit"}
 _EVENT_QUERY_PARAMS = {"campaign_id", "page", "limit"}
 
 
 def _reject_unknown_list_query_params(request: Request) -> None:
     _reject_unknown_query_params(request, allowed=_LIST_QUERY_PARAMS)
+
+
+def _reject_unknown_generated_query_params(request: Request) -> None:
+    _reject_unknown_query_params(request, allowed=_GENERATED_QUERY_PARAMS)
 
 
 def _reject_unknown_event_query_params(request: Request) -> None:
@@ -186,6 +193,35 @@ def delete_campaign_account(
         raise _neuro_error(exc) from exc
 
 
+@router.get(
+    "/campaigns/{campaign_id}/accounts",
+    response_model=NeuroCampaignAccountPageRead,
+)
+def get_campaign_accounts(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroCampaignAccountPageRead:
+    try:
+        campaign = repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = repository.list_campaign_accounts_page(
+        session, campaign_id=campaign.id, page=page, limit=limit
+    )
+    return NeuroCampaignAccountPageRead(
+        items=[NeuroCampaignAccountRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
 @router.post(
     "/campaigns/{campaign_id}/targets",
     response_model=NeuroTargetRead,
@@ -236,6 +272,33 @@ def delete_campaign_target(
         raise _neuro_error(exc) from exc
 
 
+@router.get(
+    "/campaigns/{campaign_id}/targets",
+    response_model=NeuroTargetPageRead,
+)
+def get_campaign_targets(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroTargetPageRead:
+    try:
+        campaign = repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = repository.list_targets(session, campaign_id=campaign.id, page=page, limit=limit)
+    return NeuroTargetPageRead(
+        items=[NeuroTargetRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
 @router.post("/campaigns/{campaign_id}/start", response_model=NeuroCampaignRead)
 def post_campaign_start(
     campaign_id: UUID,
@@ -265,14 +328,26 @@ def post_campaign_stop(
 
 @router.get("/generated-comments", response_model=NeuroGeneratedCommentPageRead)
 def get_generated_comments(
+    campaign_id: UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1, le=10000),
     limit: int = Query(default=50, ge=1, le=100),
-    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    _valid_query: None = Depends(_reject_unknown_generated_query_params),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> NeuroGeneratedCommentPageRead:
+    try:
+        if campaign_id is not None:
+            repository.require_campaign(
+                session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+            )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
     items, total = repository.list_generated_comments(
-        session, workspace_id=auth.workspace_id, page=page, limit=limit
+        session,
+        workspace_id=auth.workspace_id,
+        campaign_id=str(campaign_id) if campaign_id is not None else None,
+        page=page,
+        limit=limit,
     )
     return NeuroGeneratedCommentPageRead(
         items=[NeuroGeneratedCommentRead.model_validate(item) for item in items],

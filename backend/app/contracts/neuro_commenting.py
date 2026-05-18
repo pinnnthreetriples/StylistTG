@@ -216,6 +216,13 @@ class NeuroCampaignAccountRead(BaseModel):
         return _serialize_utc_datetime(value)
 
 
+class NeuroCampaignAccountPageRead(BaseModel):
+    items: list[NeuroCampaignAccountRead]
+    total: int
+    page: int
+    limit: int
+
+
 class NeuroTargetCreate(BaseModel):
     channel_ref: str = Field(min_length=1, max_length=255)
     channel_id: str | None = None
@@ -259,6 +266,13 @@ class NeuroTargetRead(BaseModel):
     @field_serializer("last_commented_at", "created_at", "updated_at")
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         return _serialize_utc_datetime(value)
+
+
+class NeuroTargetPageRead(BaseModel):
+    items: list[NeuroTargetRead]
+    total: int
+    page: int
+    limit: int
 
 
 class NeuroGeneratedCommentUpdate(BaseModel):

@@ -1,0 +1,104 @@
+import { Button, Card, EmptyState, FormField, Input, Skeleton } from '@stylisttg/ui'
+import { Trash2 } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+
+import { buildCampaignAccountPayload, type AccountFormState } from '../formPayloads'
+import { useAddCampaignAccount, useNeuroCampaignAccounts, useRemoveCampaignAccount } from '../hooks'
+import type { NeuroCampaignAccountCreate } from '../types'
+
+export function AccountsSection({ campaignId }: { campaignId: string }) {
+  const accountsQuery = useNeuroCampaignAccounts(campaignId)
+  const addAccount = useAddCampaignAccount(campaignId)
+  const removeAccount = useRemoveCampaignAccount(campaignId)
+  const [form, setForm] = useState<AccountFormState>({
+    accountId: '',
+    rotationWeight: '1',
+    rotationOrder: '0',
+  })
+  const [formError, setFormError] = useState<string | null>(null)
+  const accounts = accountsQuery.data?.items ?? []
+
+  if (accountsQuery.isError) {
+    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+  }
+  if (accountsQuery.isLoading) return <Skeleton className="h-20 w-full" />
+
+  const isMutating = addAccount.isPending || removeAccount.isPending
+  const mutationError = addAccount.isError || removeAccount.isError ? 'Не удалось сохранить изменения' : null
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setFormError(null)
+    let payload: NeuroCampaignAccountCreate
+    try {
+      payload = buildCampaignAccountPayload(form)
+    } catch {
+      setFormError('Заполните account_id и корректные значения ротации')
+      return
+    }
+    addAccount.mutate(payload, {
+      onSuccess: () => {
+        setForm({ accountId: '', rotationWeight: '1', rotationOrder: '0' })
+      },
+    })
+  }
+
+  return (
+    <Card className="p-4">
+      <h3 className="mb-3 text-sm font-semibold text-gray-900">Аккаунты ({accountsQuery.data?.total ?? 0})</h3>
+      <form className="mb-3 grid gap-2 sm:grid-cols-[1fr_80px_80px_auto]" onSubmit={handleSubmit}>
+        <FormField className="sm:col-span-1" error={formError} htmlFor="neuro-account-id">
+          <Input
+            id="neuro-account-id"
+            placeholder="account_id"
+            value={form.accountId}
+            onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))}
+          />
+        </FormField>
+        <Input
+          aria-label="rotation_weight"
+          min={1}
+          type="number"
+          value={form.rotationWeight}
+          onChange={(event) => setForm((current) => ({ ...current, rotationWeight: event.target.value }))}
+        />
+        <Input
+          aria-label="rotation_order"
+          min={0}
+          type="number"
+          value={form.rotationOrder}
+          onChange={(event) => setForm((current) => ({ ...current, rotationOrder: event.target.value }))}
+        />
+        <Button type="submit" disabled={isMutating || !form.accountId.trim()}>
+          Добавить
+        </Button>
+      </form>
+      {mutationError ? <p className="mb-3 text-xs font-medium text-red-500">{mutationError}</p> : null}
+      {accounts.length === 0 ? (
+        <EmptyState title="Нет аккаунтов" description="Добавьте аккаунты к кампании" />
+      ) : (
+        <div className="space-y-1.5">
+          {accounts.map((account) => (
+            <div key={account.id} className="flex items-center justify-between rounded border border-gray-100 px-3 py-2 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">{account.account_id}</span>
+                <span className="ml-2 text-xs text-gray-400">
+                  w:{account.rotation_weight} o:{account.rotation_order}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Trash2 className="size-3.5" />}
+                onClick={() => removeAccount.mutate(account.account_id)}
+                disabled={isMutating}
+              >
+                Удалить
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}

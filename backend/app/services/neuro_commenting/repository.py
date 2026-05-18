@@ -107,6 +107,26 @@ def list_campaign_accounts(
     )
 
 
+def list_campaign_accounts_page(
+    session: Session,
+    *,
+    campaign_id: str,
+    page: int = 1,
+    limit: int = 50,
+) -> tuple[list[NeuroCommentCampaignAccount], int]:
+    query = session.query(NeuroCommentCampaignAccount).filter(
+        NeuroCommentCampaignAccount.campaign_id == campaign_id
+    )
+    total = int(query.with_entities(func.count()).scalar() or 0)
+    items = (
+        query.order_by(NeuroCommentCampaignAccount.rotation_order.asc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return items, total
+
+
 def get_target(
     session: Session,
     *,
@@ -135,10 +155,29 @@ def require_target(
     return target
 
 
+def list_targets(
+    session: Session,
+    *,
+    campaign_id: str,
+    page: int = 1,
+    limit: int = 50,
+) -> tuple[list[NeuroCommentTarget], int]:
+    query = session.query(NeuroCommentTarget).filter(NeuroCommentTarget.campaign_id == campaign_id)
+    total = int(query.with_entities(func.count()).scalar() or 0)
+    items = (
+        query.order_by(NeuroCommentTarget.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return items, total
+
+
 def list_generated_comments(
     session: Session,
     *,
     workspace_id: str,
+    campaign_id: str | None = None,
     page: int = 1,
     limit: int = 50,
 ) -> tuple[list[NeuroCommentGeneratedComment], int]:
@@ -147,6 +186,8 @@ def list_generated_comments(
         .join(NeuroCommentCampaign)
         .filter(NeuroCommentCampaign.workspace_id == workspace_id)
     )
+    if campaign_id is not None:
+        query = query.filter(NeuroCommentGeneratedComment.campaign_id == campaign_id)
     total = int(query.with_entities(func.count()).scalar() or 0)
     items = (
         query.order_by(NeuroCommentGeneratedComment.created_at.desc())

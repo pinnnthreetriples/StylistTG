@@ -10,7 +10,7 @@ All PRs must pass:
 backend lint              python -m ruff check .
 backend format            python -m ruff format --check .
 backend tests+coverage    python -m pytest tests -n auto --dist=loadscope --cov=app --cov=tools --cov-branch --cov-context=test
-coverage gate             python scripts/coverage_gate.py
+coverage gate             python scripts/coverage_gate.py  # package + critical-file floors
 test quality analyzer     python -m tools.test_analyzer --path tests --coverage reports/coverage.json --severity INFO
 backend pyright           python -m pyright app/api app/services app/schemas.py app/config.py app/workers
 backend pip-audit         python -m pip_audit --skip-editable --progress-spinner=off
@@ -29,8 +29,8 @@ Gitleaks PR diff          gitleaks git --config .gitleaks.toml --redact --log-op
 Trivy filesystem          trivy fs --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
 Trivy backend image       trivy image --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 stylisttg-backend:test
 complexity (soft)         python -m xenon --max-absolute B --max-modules A --max-average A app tools scripts
-jscpd app                 npx jscpd app --threshold 2 --reporters json --output reports/jscpd-app
-jscpd tests               npx jscpd tests --threshold 5 --reporters json --output reports/jscpd-tests
+jscpd app                 npm exec -- jscpd backend/app --gitignore --threshold 2 --reporters json --output backend/reports/jscpd-app
+jscpd tests               npm exec -- jscpd backend/tests --gitignore --threshold 5 --reporters json --output backend/reports/jscpd-tests
 ```
 
 Nightly-only local profiles:
@@ -45,7 +45,7 @@ backend mutation suite    python scripts/check.py --only mutation
 Hard gates:
 
 - `CI / Backend (Python 3.12)` - migrations, Ruff, pip-audit, Pyright subset, pytest coverage, compileall, backend Docker build.
-- `CI / Frontend` - npm audit, OpenAPI drift, lint, tests, Vitest coverage, build.
+- `CI / Frontend` - npm audit, OpenAPI drift, lint, tests, Vitest coverage with ratcheted package thresholds, build.
 - `Semgrep / Semgrep CE` - Semgrep with SARIF upload for PR annotations/code scanning.
 - `Secrets Scan / Gitleaks PR diff` - scans the PR or push commit range and fails on detected secrets.
 - `Trivy / Trivy filesystem` - repository filesystem dependency/config scan; fails on fixable HIGH/CRITICAL.
@@ -61,7 +61,8 @@ Nightly/manual reliability gates:
 - `.github/workflows/nightly-test-reliability.yml` has no PR trigger.
 - Hard: `Backend randomized reliability` fails when any configured seed fails.
 - Soft/reporting: `Flaky detection`, `Mutation testing (soft)`, `Contract fuzz (soft)`, and `jscpd reports (soft)`.
-- Artifacts include seeded pytest JUnit and JSON summaries, `reports/flaky-report.json`, `reports/mutation-report.json` with not-checked diagnostics, Schemathesis reports from a migrated local PostgreSQL schema, and jscpd HTML/JSON reports.
+- Artifacts include seeded pytest JUnit and JSON summaries, `reports/flaky-report.json`, `reports/mutation-report.json` with not-checked diagnostics, Schemathesis reports from a migrated local PostgreSQL schema, and jscpd HTML/JSON reports generated from the pinned `jscpd` devDependency.
+- Mutation survived mutants and score shortfalls remain soft, but mutation infrastructure/report integrity failures are hard so a broken mutmut run cannot be reported as a healthy soft signal.
 - Live TDLib/Telegram/S3 behavior is excluded with safe local env defaults; randomized/flaky jobs also exclude the separate contract fuzz marker.
 
 Promote a nightly soft gate to hard only after the candidate backlog is empty, the report has been stable over repeated nightly/manual runs, and the runtime budget is acceptable for scheduled CI.

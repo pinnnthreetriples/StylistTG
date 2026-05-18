@@ -8,6 +8,7 @@ export type AppRouteState =
   | { screen: 'health' }
   | { screen: 'jobs' }
   | { screen: 'warmup' }
+  | { screen: 'neuro-commenting' }
   | { screen: 'proxy' }
   | { screen: 'account'; accountId: string; section: AccountWorkspaceSection }
 
@@ -19,6 +20,7 @@ export type AppRouteName =
   | 'health'
   | 'jobs'
   | 'warmup'
+  | 'neuro-commenting'
   | 'proxy'
   | 'account'
   | 'account-profile'

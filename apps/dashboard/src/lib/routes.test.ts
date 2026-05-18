@@ -21,6 +21,7 @@ describe('app route contracts', () => {
     expect(appRoutes.settings()).toBe('/settings')
     expect(appRoutes.authBatch()).toBe('/accounts/add')
     expect(appRoutes.operations()).toBe('/operations')
+    expect(appRoutes.neuroCommenting()).toBe('/neuro-commenting')
   })
 
   it('keeps canonical account workspace URL contracts stable', () => {

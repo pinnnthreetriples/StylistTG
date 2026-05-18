@@ -290,9 +290,7 @@ def get_campaign_targets(
         )
     except ValueError as exc:
         raise _neuro_error(exc) from exc
-    items, total = repository.list_targets(
-        session, campaign_id=campaign.id, page=page, limit=limit
-    )
+    items, total = repository.list_targets(session, campaign_id=campaign.id, page=page, limit=limit)
     return NeuroTargetPageRead(
         items=[NeuroTargetRead.model_validate(item) for item in items],
         total=total,

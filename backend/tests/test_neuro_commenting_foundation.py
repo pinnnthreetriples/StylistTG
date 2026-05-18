@@ -401,9 +401,7 @@ def test_api_campaign_accounts_and_targets_flow(app_client, db_session) -> None:
     assert delete_account_response.status_code == 204
 
 
-def test_api_campaign_account_and_target_lists_are_workspace_scoped(
-    app_client, db_session
-) -> None:
+def test_api_campaign_account_and_target_lists_are_workspace_scoped(app_client, db_session) -> None:
     _own_workspace, foreign_workspace = seed_two_workspaces(db_session)
     foreign_account = seed_account(
         db_session,
@@ -531,9 +529,7 @@ def test_api_generated_comment_review_flow(app_client, db_session) -> None:
     assert reject_response.json()["approval_status"] == "rejected"
 
 
-def test_api_generated_comment_campaign_filter_is_workspace_scoped(
-    app_client, db_session
-) -> None:
+def test_api_generated_comment_campaign_filter_is_workspace_scoped(app_client, db_session) -> None:
     _own_workspace, foreign_workspace = seed_two_workspaces(db_session)
     foreign_campaign = CampaignService().create_campaign(
         db_session,

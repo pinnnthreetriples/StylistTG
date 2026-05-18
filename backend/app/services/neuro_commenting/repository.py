@@ -162,9 +162,7 @@ def list_targets(
     page: int = 1,
     limit: int = 50,
 ) -> tuple[list[NeuroCommentTarget], int]:
-    query = session.query(NeuroCommentTarget).filter(
-        NeuroCommentTarget.campaign_id == campaign_id
-    )
+    query = session.query(NeuroCommentTarget).filter(NeuroCommentTarget.campaign_id == campaign_id)
     total = int(query.with_entities(func.count()).scalar() or 0)
     items = (
         query.order_by(NeuroCommentTarget.created_at.desc())

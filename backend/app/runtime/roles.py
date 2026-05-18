@@ -85,16 +85,35 @@ RUNTIME_ROLES: tuple[RuntimeRole, ...] = (
     ),
     RuntimeRole(
         name="maintenance_worker",
-        queues=(
-            MAINTENANCE_QUEUE_NAME,
-            MEDIA_QUEUE_NAME,
-            STORY_QUEUE_NAME,
-            ACCOUNT_LIFECYCLE_QUEUE_NAME,
-        ),
+        queues=(MAINTENANCE_QUEUE_NAME,),
         requires_tdlib=False,
         requires_session_storage=False,
         allows_live_tdlib=False,
-        description="Maintenance and reserved queue worker role.",
+        description="Maintenance worker for generic maintenance jobs.",
+    ),
+    RuntimeRole(
+        name="media_worker",
+        queues=(MEDIA_QUEUE_NAME,),
+        requires_tdlib=False,
+        requires_session_storage=False,
+        allows_live_tdlib=False,
+        description="Media processing worker.",
+    ),
+    RuntimeRole(
+        name="story_worker",
+        queues=(STORY_QUEUE_NAME,),
+        requires_tdlib=False,
+        requires_session_storage=False,
+        allows_live_tdlib=False,
+        description="Story queue worker for reserved story jobs.",
+    ),
+    RuntimeRole(
+        name="account_lifecycle_worker",
+        queues=(ACCOUNT_LIFECYCLE_QUEUE_NAME,),
+        requires_tdlib=False,
+        requires_session_storage=False,
+        allows_live_tdlib=False,
+        description="Account lifecycle worker.",
     ),
 )
 

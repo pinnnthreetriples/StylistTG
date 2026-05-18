@@ -11,9 +11,12 @@ The backend Docker image is intentionally generic. Production deployments should
 | Profile worker container | `profile_worker` | Consumes `profile_jobs`; requires TDLib/session configuration for live profile execution. |
 | Warmup worker container | `warmup_worker` | Consumes `warmup_jobs`; dry-run account preparation. |
 | Warmup dispatch worker container | `warmup_dispatch_worker` | Consumes `warmup_dispatch_jobs`; live-capable warmup dispatch remains gated. |
+| Maintenance worker container | `maintenance_worker` | Consumes `maintenance_jobs`; no TDLib/session requirement. |
+| Media worker container | `media_worker` | Consumes `media_jobs`; reserved media ownership is explicit. |
+| Story worker container | `story_worker` | Consumes `story_jobs`; reserved story ownership is explicit. |
+| Account lifecycle worker container | `account_lifecycle_worker` | Consumes `account_lifecycle_jobs`; reserved lifecycle ownership is explicit. |
 | Scheduler process | `scheduler` | Owns scheduled enqueue decisions. |
 | Reaper process | `reaper` | Owns stale job reconciliation outside API replicas. |
-| Maintenance worker container | `maintenance_worker` | Temporary owner for reserved maintenance/media/story/account-lifecycle queues. |
 
 ## Worker Commands
 
@@ -28,6 +31,10 @@ Role validation can be added without changing queue names:
 ```powershell
 cd backend; python -m app.workers.run_worker --queues profile_jobs --role profile_worker
 cd backend; python -m app.workers.run_worker --queues warmup_dispatch_jobs --role warmup_dispatch_worker
+cd backend; python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_worker
+cd backend; python -m app.workers.run_worker --queues media_jobs --role media_worker
+cd backend; python -m app.workers.run_worker --queues story_jobs --role story_worker
+cd backend; python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 ```
 
 ## Operational Rules

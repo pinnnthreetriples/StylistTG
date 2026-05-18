@@ -97,6 +97,29 @@ def _normalized_report(
     }
 
 
+def _classify_failures(report: dict[str, Any], *, min_score: float) -> tuple[list[str], list[str]]:
+    hard_failures: list[str] = []
+    soft_failures: list[str] = []
+
+    returncodes = report.get("returncodes", {})
+    if isinstance(returncodes, dict) and any(code != 0 for code in returncodes.values()):
+        hard_failures.append("one or more mutmut commands returned non-zero")
+    if report.get("error"):
+        hard_failures.append(str(report["error"]))
+
+    score = report.get("score")
+    if not isinstance(score, int | float):
+        hard_failures.append("mutation score unavailable")
+    elif float(score) < min_score:
+        soft_failures.append(f"mutation score {score}% < {min_score}%")
+
+    survived = report.get("survived", 0)
+    if isinstance(survived, int) and survived > 0:
+        soft_failures.append(f"{survived} mutants survived")
+
+    return hard_failures, soft_failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reports-dir", default="reports")
@@ -157,24 +180,14 @@ def main() -> int:
     if "score" in report:
         print(f"- score: {report['score']}%")
 
-    failures: list[str] = []
-    if any(code != 0 for code in returncodes.values()):
-        failures.append("one or more mutmut commands returned non-zero")
-    if report.get("error"):
-        failures.append(str(report["error"]))
-    score = report.get("score")
-    if not isinstance(score, int | float):
-        failures.append("mutation score unavailable")
-    elif float(score) < args.min_score:
-        failures.append(f"mutation score {score}% < {args.min_score}%")
-    survived = report.get("survived", 0)
-    if isinstance(survived, int) and survived > 0:
-        failures.append(f"{survived} mutants survived")
+    hard_failures, soft_failures = _classify_failures(report, min_score=args.min_score)
 
-    if failures:
-        for failure in failures:
+    if hard_failures or soft_failures:
+        for failure in hard_failures:
+            print(f"FAIL: {failure}", file=sys.stderr)
+        for failure in soft_failures:
             print(f"SOFT-FAIL: {failure}" if args.soft else f"FAIL: {failure}", file=sys.stderr)
-        return 0 if args.soft else 1
+        return 1 if hard_failures or (soft_failures and not args.soft) else 0
     return 0
 
 

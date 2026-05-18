@@ -364,12 +364,14 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Install Node quality dependencies
+        run: npm ci --ignore-scripts
       - name: Generate jscpd reports
         run: |
           mkdir -p reports
-          npx --yes jscpd backend/app --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
-          npx --yes jscpd backend/tests --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
-          npx --yes jscpd apps packages --reporters json,html --output reports/jscpd-frontend || true
+          npm exec -- jscpd backend/app --gitignore --noTips --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
+          npm exec -- jscpd backend/tests --gitignore --noTips --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
+          npm exec -- jscpd apps packages --gitignore --noTips --reporters json,html --output reports/jscpd-frontend || true
       - name: Write jscpd summary
         if: always()
         run: |

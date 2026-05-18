@@ -16,6 +16,7 @@ Exit code reflects worst single check (0 = all pass, 1 = any fail, 2 = setup err
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import subprocess
 import sys
@@ -144,10 +145,12 @@ def _run(check: Check, verbose: bool) -> tuple[bool, float]:
     start = time.monotonic()
     print(f"\n=== [{check.name}] {' '.join(shlex.quote(p) for p in check.cmd)}", flush=True)
     try:
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
         result = subprocess.run(
             check.cmd,
             cwd=check.cwd,
             check=False,
+            env=env,
             stdout=None if verbose else subprocess.PIPE,
             stderr=None if verbose else subprocess.STDOUT,
             text=True,

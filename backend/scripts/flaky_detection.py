@@ -8,21 +8,45 @@ import re
 import shlex
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RERUN_RE = re.compile(r"\bRERUN\b\s+([^\s]+::[^\s]+)")
+FLAKY_JUNIT_TAGS = {"flakyFailure", "flakyError"}
 
 
-def _candidate_ids(output: str) -> list[str]:
+def _candidate_ids_from_output(output: str) -> set[str]:
     candidates: set[str] = set()
     for line in output.splitlines():
         match = RERUN_RE.search(line)
         if match:
             candidates.add(match.group(1))
-    return sorted(candidates)
+    return candidates
+
+
+def _candidate_ids_from_junit(junit_path: Path) -> set[str]:
+    if not junit_path.exists():
+        return set()
+
+    root = ET.parse(junit_path).getroot()
+    candidates: set[str] = set()
+    for testcase in root.iter("testcase"):
+        if not any(child.tag in FLAKY_JUNIT_TAGS for child in testcase):
+            continue
+        classname = testcase.attrib.get("classname", "").strip()
+        name = testcase.attrib.get("name", "").strip()
+        if classname and name:
+            candidates.add(f"{classname}::{name}")
+        elif name:
+            candidates.add(name)
+    return candidates
+
+
+def _candidate_ids(output: str, junit_path: Path) -> list[str]:
+    return sorted(_candidate_ids_from_output(output) | _candidate_ids_from_junit(junit_path))
 
 
 def main() -> int:
@@ -70,7 +94,7 @@ def main() -> int:
         print(result.stdout, end="")
     log_path.write_text(result.stdout or "", encoding="utf-8")
 
-    candidates = _candidate_ids(result.stdout or "")
+    candidates = _candidate_ids(result.stdout or "", junit_path)
     report: dict[str, Any] = {
         "returncode": result.returncode,
         "reruns": int(args.reruns),

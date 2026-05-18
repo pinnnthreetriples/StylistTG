@@ -19,7 +19,7 @@ Testing levels, scope, tooling, and run cadence for StylistTG.
 
 - **Unit** — `secret_redaction`, `phone_hints`, `import_validation`, `plan`, `step_policy`, config validators, storage key normalization. No DB, no HTTP, no external services.
 - **Service** — `auth_batches`, `accounts`, `jobs`, `assets`, `dashboard`, `story_drafts`, `tenant_scope`. Uses in-memory SQLite via `db_session` fixture.
-- **API** — Endpoint request/response contracts, status codes, error shapes, pagination, auth dependency presence. Uses `TestClient` with overridden session.
+- **API** — Endpoint request/response contracts, status codes, error shapes, pagination, auth dependency presence, and schema-invalid request rejection for fuzz-discovered regressions. Uses `TestClient` with overridden session.
 - **Security** — Role/auth matrix (no-auth/viewer/operator/admin), cross-workspace isolation, PII visibility per role, secret redaction in logs and errors.
 - **Contract** — `npm run check:api` verifies OpenAPI spec matches live backend export. Vitest tests verify `@stylisttg/api-client` wrapper behavior with mocked fetch. PR CI keeps Schemathesis soft and shallow; the nightly reliability workflow increases Schemathesis examples and stores reports for triage.
 - **Integration** — Tests that require real PostgreSQL or Redis (marked `postgres`/`redis`). Run in CI with service containers.
@@ -44,6 +44,9 @@ python -m pytest -m "not live"
 
 # With coverage
 python -m pytest --cov=app --cov-report=term-missing
+
+# Hard coverage gates, including critical-file floors for pure/security modules
+python scripts/coverage_gate.py
 
 # Parallel (requires pytest-xdist)
 python -m pytest -n auto
@@ -102,7 +105,7 @@ Hard:
 Soft/reporting:
 
 - Flaky detection runs pytest with `pytest-rerunfailures`, writes `reports/flaky-report.json`, and warns when a test passes only after rerun.
-- Mutation testing uses `mutmut` against the scoped pure modules in `pyproject.toml`, writes `reports/mutation-report.json`, and reports killed/survived/timeout/incompetent/not-checked mutants without blocking the first PR.
+- Mutation testing uses `mutmut` against the scoped pure modules in `pyproject.toml`, writes `reports/mutation-report.json`, and reports killed/survived/timeout/incompetent/not-checked mutants without blocking survived mutants yet. Mutation infrastructure failures, missing scores, and not-checked-only runs are hard failures even in the soft nightly job.
 - Contract fuzz runs the existing Schemathesis test with a higher nightly `SCHEMATHESIS_MAX_EXAMPLES` value, a migrated local PostgreSQL schema, and a step timeout.
 - jscpd emits HTML/JSON reports for backend app, backend tests, and frontend `apps`/`packages` without changing the ordinary thresholds.
 

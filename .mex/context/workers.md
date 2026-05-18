@@ -56,6 +56,8 @@ cd backend; python -m app.workers.run_worker --queues profile_jobs --role profil
 - Reserved queue ownership is explicit: `maintenance_worker` owns
   `maintenance_jobs`, `media_worker` owns `media_jobs`, `story_worker` owns
   `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`.
+- Resource-constrained staging may still run one physical worker service with
+  grouped raw `--queues`; production isolation should use role-aware commands.
 - Feature-specific enqueue ownership lives in module enqueue helpers such as
   `app.modules.account_editing.enqueue` and `app.modules.warmup.enqueue`;
   `app.job_queue.rq` keeps compatibility wrapper imports.

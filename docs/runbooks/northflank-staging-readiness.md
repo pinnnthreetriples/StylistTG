@@ -30,7 +30,14 @@ Worker service command:
 python -m app.workers.run_worker --queues profile_jobs,auth_jobs
 ```
 
-Queue-specific worker commands are available for later service splits:
+Northflank staging may keep one worker service and group reserved queues with
+raw `--queues` mode when resource limits do not allow separate services:
+
+```bash
+python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
+```
+
+Queue-specific role commands are available for later service splits:
 
 ```bash
 python -m app.workers.run_worker --queues auth_jobs
@@ -41,8 +48,8 @@ python -m app.workers.run_worker --queues story_jobs --role story_worker
 python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 ```
 
-Keep the compatibility worker command until the Northflank deployment is
-explicitly split into queue-specific workers.
+Keep compatibility worker commands until the Northflank deployment is explicitly
+split into queue-specific workers.
 
 ## Required Runtime Env
 

@@ -52,6 +52,7 @@ def test_queue_allowlist_rejects_cross_role_consumption() -> None:
     disallowed_pairs = (
         ("media_worker", STORY_QUEUE_NAME),
         ("story_worker", MEDIA_QUEUE_NAME),
+        ("story_worker", ACCOUNT_LIFECYCLE_QUEUE_NAME),
         ("maintenance_worker", MEDIA_QUEUE_NAME),
         ("maintenance_worker", STORY_QUEUE_NAME),
         ("maintenance_worker", ACCOUNT_LIFECYCLE_QUEUE_NAME),

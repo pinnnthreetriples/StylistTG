@@ -2,7 +2,22 @@
 
 The backend Docker image is intentionally generic. Production deployments should run distinct process roles from that image instead of mixing API traffic and live worker execution in one process.
 
-## Intended Process Split
+## Staging / Constrained Mode
+
+Northflank staging may keep two physical services:
+
+- `stylistg-staging-api`
+- `stylistg-staging-worker`
+
+The worker service may use raw queue mode and consume multiple queues without
+`--role`, including grouped reserved queues. This is accepted for
+resource-constrained staging and does not weaken the code-level role model.
+
+```powershell
+cd backend; python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
+```
+
+## Production / Full Isolation Mode
 
 | Process | Role | Notes |
 | --- | --- | --- |
@@ -25,6 +40,7 @@ Existing raw queue startup remains compatible:
 
 ```powershell
 cd backend; python -m app.workers.run_worker --queues profile_jobs
+cd backend; python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
 ```
 
 Role validation can be added without changing queue names:

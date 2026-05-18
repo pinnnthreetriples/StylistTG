@@ -105,14 +105,20 @@ def test_worker_role_validation_rejects_cross_role_queue(
         run_worker.main()
 
 
-def test_worker_raw_queue_mode_still_accepts_reserved_queue(
+def test_worker_raw_queue_mode_still_accepts_grouped_reserved_queues(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     queue_validations: list[str] = []
     role_validations: list[tuple[str, str]] = []
     worker_calls: list[list[str]] = []
+    grouped_queues = (
+        "maintenance_jobs",
+        "media_jobs",
+        "story_jobs",
+        "account_lifecycle_jobs",
+    )
 
-    monkeypatch.setattr(sys, "argv", ["run_worker", "--queues", "media_jobs"])
+    monkeypatch.setattr(sys, "argv", ["run_worker", "--queues", ",".join(grouped_queues)])
     monkeypatch.setattr(run_worker, "init_worker_observability", lambda: None)
     monkeypatch.setattr(
         run_worker,
@@ -134,9 +140,9 @@ def test_worker_raw_queue_mode_still_accepts_reserved_queue(
 
     run_worker.main()
 
-    assert queue_validations == ["media_jobs"]
+    assert queue_validations == list(grouped_queues)
     assert role_validations == []
-    assert worker_calls == [["media_jobs"]]
+    assert worker_calls == [list(grouped_queues)]
 
 
 def test_flush_observability_does_not_mask_worker_exception(

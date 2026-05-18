@@ -33,17 +33,18 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "4.1.6",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jscpd": "4.2.3",
     "openapi-typescript": "^7.10.1",
     "promexeus": "^0.3.4",
     "turbo": "^2.9.14",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.3",
     "vite": "^8.0.13",
-    "vitest": "^4.1.6",
-    "@vitest/coverage-v8": "4.1.6"
+    "vitest": "^4.1.6"
   }
 }

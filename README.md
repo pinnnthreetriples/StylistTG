@@ -306,16 +306,18 @@ CI:
   Pyright, pytest with coverage, compileall, and the backend Docker build.
 - Frontend CI runs `npm ci`, npm audit, OpenAPI drift check, lint, tests, coverage,
   and build (`tsc -b` plus Vite). Browser QA runs for dashboard/browser-related changes.
-- Test Quality runs backend Ruff format/lint, pytest coverage, coverage gate,
-  test analyzer, pip-audit, soft Pyright/Schemathesis, and jscpd. Semgrep runs
+- Test Quality runs backend Ruff format/lint, pytest coverage, package and
+  critical-file coverage gates, test analyzer, pip-audit, soft Pyright/Schemathesis,
+  and jscpd. Semgrep runs
   as a separate workflow. CodeQL uses GitHub Default Setup; Secret Scan, SBOM,
   and Container Scan provide the committed security baseline workflows.
 - Nightly Test Reliability is a separate scheduled/manual workflow. It runs
   seeded backend pytest, flaky rerun detection, scoped mutmut, deeper
   Schemathesis fuzz, and jscpd HTML/JSON reports without adding work to PR
-  checks. Randomized seed failures are hard; flaky, mutation, deep fuzz, and
-  duplication reports are soft while their baselines stabilize. Live
-  TDLib/Telegram/S3 checks are not run there.
+  checks. Randomized seed failures and broken mutation infrastructure are hard;
+  flaky candidates, survived mutants, deep fuzz findings, and duplication reports
+  are soft while their baselines stabilize. Live TDLib/Telegram/S3 checks are not
+  run there.
 - Secrets Scan runs Gitleaks against the PR/push commit range. Trivy runs separate
   filesystem and backend Docker image scans; backend image CRITICAL findings
   block, while HIGH/CRITICAL reports are uploaded for triage.

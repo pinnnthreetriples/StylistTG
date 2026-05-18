@@ -34,6 +34,19 @@ THRESHOLDS: list[tuple[str, float, float]] = [
     ("tools/test_analyzer", 86.0, 67.0),  # our own quality tool
 ]
 
+# Critical pure/security modules get file-level gates so package averages cannot
+# hide weak assertions in small high-risk files.
+CRITICAL_FILE_THRESHOLDS: list[tuple[str, float, float]] = [
+    # file_path                                      line%   branch%
+    ("app/services/secret_redaction.py", 100.0, 100.0),
+    ("app/services/phone_hints.py", 100.0, 100.0),
+    ("app/storage/paths.py", 90.0, 81.0),
+    ("app/services/step_policy.py", 84.0, 71.0),
+    ("app/modules/account_editing/planner.py", 88.0, 78.0),
+    ("app/modules/account_editing/policies.py", 90.0, 85.0),
+    ("app/modules/warmup/policies.py", 81.0, 71.0),
+]
+
 
 def _normalize(path: str) -> str:
     return path.replace("\\", "/")
@@ -56,18 +69,15 @@ def _branch_pct(summary: dict[str, float | int]) -> float:
     return (covered / num) * 100.0
 
 
-def main() -> int:
-    report_path = Path("reports/coverage.json")
-    if not report_path.exists():
-        print(
-            f"ERROR: {report_path} not found. Run pytest with --cov-branch first.", file=sys.stderr
-        )
-        return 2
+def _line_pct(summary: dict[str, float | int]) -> float:
+    num = int(summary.get("num_statements", 0) or 0)
+    covered = int(summary.get("covered_lines", 0) or 0)
+    if num == 0:
+        return 100.0
+    return (covered / num) * 100.0
 
-    data = json.loads(report_path.read_text(encoding="utf-8"))
-    files = data["files"]
 
-    # Aggregate covered_lines / num_statements per package (weighted avg, not per-file avg).
+def _aggregate_packages(files: dict[str, dict]) -> dict[str, dict[str, int]]:
     agg: dict[str, dict[str, int]] = defaultdict(
         lambda: {"covered_lines": 0, "num_statements": 0, "covered_branches": 0, "num_branches": 0}
     )
@@ -80,7 +90,10 @@ def main() -> int:
         agg[pkg]["num_statements"] += int(s.get("num_statements", 0))
         agg[pkg]["covered_branches"] += int(s.get("covered_branches", 0))
         agg[pkg]["num_branches"] += int(s.get("num_branches", 0))
+    return agg
 
+
+def _check_package_thresholds(agg: dict[str, dict[str, int]]) -> list[str]:
     failures: list[str] = []
     print(f"{'package':<28}{'line':>10}{'min':>10}{'branch':>10}{'min':>10}{'status':>10}")
     print("-" * 78)
@@ -91,11 +104,8 @@ def main() -> int:
                 f"{prefix:<28}{'n/a':>10}{min_line:>10.1f}{'n/a':>10}{min_branch:>10.1f}{'SKIP':>10}"
             )
             continue
-        line_pct = (bucket["covered_lines"] / bucket["num_statements"]) * 100.0
-        if bucket["num_branches"] == 0:
-            branch_pct = 100.0
-        else:
-            branch_pct = (bucket["covered_branches"] / bucket["num_branches"]) * 100.0
+        line_pct = _line_pct(bucket)
+        branch_pct = _branch_pct(bucket)
 
         ok_line = line_pct >= min_line
         ok_branch = branch_pct >= min_branch
@@ -109,6 +119,55 @@ def main() -> int:
             failures.append(f"{prefix}: branch {branch_pct:.1f}% < {min_branch:.1f}%")
 
     print("-" * 78)
+    return failures
+
+
+def _check_critical_file_thresholds(files: dict[str, dict]) -> list[str]:
+    failures: list[str] = []
+    print("\nCritical file coverage")
+    print(f"{'file':<48}{'line':>10}{'min':>10}{'branch':>10}{'min':>10}{'status':>10}")
+    print("-" * 98)
+    for path, min_line, min_branch in CRITICAL_FILE_THRESHOLDS:
+        info = files.get(path)
+        if info is None:
+            print(
+                f"{path:<48}{'n/a':>10}{min_line:>10.1f}{'n/a':>10}{min_branch:>10.1f}{'FAIL':>10}"
+            )
+            failures.append(f"{path}: missing from coverage report")
+            continue
+
+        summary = info["summary"]
+        line_pct = _line_pct(summary)
+        branch_pct = _branch_pct(summary)
+        ok_line = line_pct >= min_line
+        ok_branch = branch_pct >= min_branch
+        status = "PASS" if (ok_line and ok_branch) else "FAIL"
+        print(
+            f"{path:<48}{line_pct:>9.1f}%{min_line:>9.1f}%{branch_pct:>9.1f}%{min_branch:>9.1f}%{status:>10}"
+        )
+        if not ok_line:
+            failures.append(f"{path}: line {line_pct:.1f}% < {min_line:.1f}%")
+        if not ok_branch:
+            failures.append(f"{path}: branch {branch_pct:.1f}% < {min_branch:.1f}%")
+
+    print("-" * 98)
+    return failures
+
+
+def main() -> int:
+    report_path = Path("reports/coverage.json")
+    if not report_path.exists():
+        print(
+            f"ERROR: {report_path} not found. Run pytest with --cov-branch first.", file=sys.stderr
+        )
+        return 2
+
+    data = json.loads(report_path.read_text(encoding="utf-8"))
+    files = {_normalize(path): info for path, info in data["files"].items()}
+    failures = [
+        *_check_package_thresholds(_aggregate_packages(files)),
+        *_check_critical_file_thresholds(files),
+    ]
     if failures:
         print("\nFAILED:", file=sys.stderr)
         for f in failures:

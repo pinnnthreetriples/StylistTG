@@ -9,7 +9,7 @@ Prepare a future analytics module around workspace-scoped reporting without coup
 ## Non-goals
 
 - No backend analytics module in this PR.
-- No `analytics_jobs` queue.
+- No analytics queue.
 - No analytics workflow type.
 - No new metrics ingestion runtime.
 

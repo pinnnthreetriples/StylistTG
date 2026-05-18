@@ -9,7 +9,7 @@ Prepare the architecture questions for a future broadcast module that can safely
 ## Non-goals
 
 - No backend broadcast module in this PR.
-- No `broadcast_jobs` queue.
+- No broadcast queue.
 - No broadcast workflow type.
 - No Telegram live send behavior.
 

@@ -15,13 +15,16 @@ No role metadata in this document enables live TDLib by itself. Existing feature
 | `profile_worker` | Profile/account update execution. | `profile_jobs` | Requires TDLib runtime and per-account session storage. | Redis worker queue and DB job/account writes. | Explicitly allowed, still gated. | `python -m app.workers.run_worker --queues profile_jobs --role profile_worker` |
 | `warmup_worker` | Dry-run account preparation jobs. | `warmup_jobs` | No live TDLib/session requirement. | Redis worker queue and warmup DB writes. | No. | `python -m app.workers.run_worker --queues warmup_jobs --role warmup_worker` |
 | `warmup_dispatch_worker` | Warmup micro-session dispatch. | `warmup_dispatch_jobs` | Requires TDLib runtime and per-account session storage. | Redis worker queue and warmup DB writes. | Explicitly allowed, still gated. | `python -m app.workers.run_worker --queues warmup_dispatch_jobs --role warmup_dispatch_worker` |
-| `maintenance_worker` | Maintenance and reserved queue taxonomy. | `maintenance_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs` | No TDLib/session requirement in this phase. | Redis worker queue and DB access as needed by future maintenance jobs. | No. | role-specific worker command when these queues are active. |
+| `maintenance_worker` | Generic maintenance jobs. | `maintenance_jobs` | No TDLib/session requirement. | Redis worker queue and DB access as needed by maintenance jobs. | No. | `python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_worker` |
+| `media_worker` | Reserved media processing jobs. | `media_jobs` | No TDLib/session requirement. | Redis worker queue and DB access as needed by future media jobs. | No. | `python -m app.workers.run_worker --queues media_jobs --role media_worker` |
+| `story_worker` | Reserved story jobs. | `story_jobs` | No TDLib/session requirement. | Redis worker queue and DB access as needed by future story jobs. | No. | `python -m app.workers.run_worker --queues story_jobs --role story_worker` |
+| `account_lifecycle_worker` | Account lifecycle jobs. | `account_lifecycle_jobs` | No TDLib/session requirement. | Redis worker queue and DB access as needed by lifecycle jobs. | No. | `python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker` |
 
 ## Enforcement
 
 `backend/app/runtime/roles.py` is the executable registry for runtime roles. `app.workers.run_worker` keeps the legacy `--queues` mode and adds optional `--role` validation. When `--role` is supplied, every requested queue must belong to the role.
 
-Reserved queues remain assigned to `maintenance_worker` until dedicated roles exist. New queues require an update to `app.services.worker_plane`, this document, runtime role tests, and deployment runbooks.
+Reserved queue ownership is explicit: `media_worker` owns `media_jobs`, `story_worker` owns `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`. New queues require an update to `app.services.worker_plane`, this document, runtime role tests, and deployment runbooks.
 
 ## Preflight
 

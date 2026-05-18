@@ -103,7 +103,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_runtime_boundaries.py",
-      "test_count": 3
+      "test_count": 4
     },
     {
       "boundary_keywords": [
@@ -134,7 +134,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 6
+      "test_count": 8
     },
     {
       "boundary_keywords": [
@@ -223,13 +223,13 @@
     },
     {
       "area": "runtime",
-      "evidence": "Runtime role metadata assigns reserved queues to maintenance_worker until dedicated roles are justified.",
-      "finding": "maintenance_worker temporarily owns reserved media, story, and account-lifecycle queues.",
+      "evidence": "Runtime role metadata maps each reserved queue to a dedicated worker role; maintenance_worker maps only to maintenance_jobs.",
+      "finding": "Dedicated runtime roles now own media, story, and account-lifecycle queues.",
       "id": "STRUCTURE-005",
-      "recommendation": "Introduce dedicated roles once media/story/lifecycle execution becomes active production work.",
-      "risk": "Moderate future blast-radius risk if those queues become active without a role split.",
-      "severity": "low",
-      "status": "deferred",
+      "recommendation": "Keep runtime roles narrow as media/story/lifecycle queues become active.",
+      "risk": "Low. Reserved queue ownership is explicit before those queues become active production responsibilities.",
+      "severity": "info",
+      "status": "closed",
       "suggested_phase": "Phase 26"
     },
     {
@@ -665,7 +665,7 @@
   "queues": [
     {
       "covered_by_roles": [
-        "maintenance_worker"
+        "account_lifecycle_worker"
       ],
       "is_production_queue": true,
       "name": "account_lifecycle_jobs"
@@ -686,7 +686,7 @@
     },
     {
       "covered_by_roles": [
-        "maintenance_worker"
+        "media_worker"
       ],
       "is_production_queue": true,
       "name": "media_jobs"
@@ -707,7 +707,7 @@
     },
     {
       "covered_by_roles": [
-        "maintenance_worker"
+        "story_worker"
       ],
       "is_production_queue": true,
       "name": "story_jobs"
@@ -737,6 +737,16 @@
   "runtime_roles": [
     {
       "allows_live_tdlib": false,
+      "description": "Account lifecycle worker.",
+      "name": "account_lifecycle_worker",
+      "queues": [
+        "account_lifecycle_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": false,
       "description": "FastAPI request handling without worker queue consumption.",
       "name": "api",
       "queues": [],
@@ -755,13 +765,20 @@
     },
     {
       "allows_live_tdlib": false,
-      "description": "Maintenance and reserved queue worker role.",
+      "description": "Maintenance worker for generic maintenance jobs.",
       "name": "maintenance_worker",
       "queues": [
-        "account_lifecycle_jobs",
-        "maintenance_jobs",
-        "media_jobs",
-        "story_jobs"
+        "maintenance_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Media processing worker.",
+      "name": "media_worker",
+      "queues": [
+        "media_jobs"
       ],
       "requires_session_storage": false,
       "requires_tdlib": false
@@ -790,6 +807,16 @@
       "name": "scheduler",
       "queues": [
         "scheduler_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Story queue worker for reserved story jobs.",
+      "name": "story_worker",
+      "queues": [
+        "story_jobs"
       ],
       "requires_session_storage": false,
       "requires_tdlib": false

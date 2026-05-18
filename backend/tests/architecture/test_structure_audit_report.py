@@ -70,6 +70,36 @@ def test_audit_report_does_not_claim_broadcast_or_analytics_runtime() -> None:
         assert all(forbidden not in workflow_type for workflow_type in workflow_types)
 
 
+def test_structure_audit_report_includes_split_reserved_runtime_roles() -> None:
+    roles = {
+        role["name"]: role["queues"]
+        for role in _committed_report()["runtime_roles"]
+        if role["name"]
+        in {
+            "maintenance_worker",
+            "media_worker",
+            "story_worker",
+            "account_lifecycle_worker",
+        }
+    }
+
+    assert roles == {
+        "maintenance_worker": ["maintenance_jobs"],
+        "media_worker": ["media_jobs"],
+        "story_worker": ["story_jobs"],
+        "account_lifecycle_worker": ["account_lifecycle_jobs"],
+    }
+
+
+def test_structure_005_no_longer_reports_broad_maintenance_ownership() -> None:
+    findings = {finding["id"]: finding for finding in _committed_report()["findings"]}
+    finding = findings["STRUCTURE-005"]
+
+    assert finding["status"] in {"accepted", "closed"}
+    assert "temporarily owns reserved" not in finding["finding"]
+    assert "Dedicated runtime roles" in finding["finding"]
+
+
 def test_structure_audit_report_preserves_workflow_args_modes() -> None:
     workflows = {
         workflow["workflow_type"]: workflow["args_mode"]

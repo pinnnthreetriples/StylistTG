@@ -15,7 +15,7 @@
     "qa:screenshots": "playwright test --project=chromium"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
+    "@fontsource-variable/geist": "^5.2.9",
     "@sentry/react": "^10.53.1",
     "@stylisttg/api-client": "file:../../packages/api-client",
     "@stylisttg/ui": "file:../../packages/ui",
@@ -23,7 +23,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-form": "^1.32.0",
     "@tanstack/react-query": "^5.100.10",
-    "@tanstack/react-router": "^1.169.2",
+    "@tanstack/react-router": "^1.170.4",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.13",
     "class-variance-authority": "^0.7.1",

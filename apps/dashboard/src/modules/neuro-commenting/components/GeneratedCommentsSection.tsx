@@ -37,26 +37,29 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
         <EmptyState title="Нет комментариев" description="Запустите кампанию для генерации комментариев" />
       ) : (
         <div className="space-y-2">
-          {comments.map((comment) => (
-            <div key={comment.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-              <div className="mb-2 flex items-start justify-between gap-2">
-                {editingCommentId === comment.id ? (
-                  <textarea
-                    className="min-h-20 flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
-                    value={editedText}
-                    onChange={(event) => setEditedText(event.target.value)}
-                  />
-                ) : (
-                  <p className="text-sm text-gray-800">{visibleGeneratedCommentText(comment)}</p>
-                )}
-                <ApprovalBadge status={comment.approval_status} />
-              </div>
-              {editingCommentId === comment.id && formError ? (
-                <p className="mb-2 text-xs font-medium text-red-500">{formError}</p>
-              ) : null}
-              {mutationError ? <p className="mb-2 text-xs font-medium text-red-500">{mutationError}</p> : null}
-              {comment.approval_status === 'pending' ? (
-                <div className="flex flex-wrap gap-1.5">
+          {comments.map((comment) => {
+            const canReview = comment.approval_status === 'pending' || comment.approval_status === 'edited'
+
+            return (
+              <div key={comment.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  {editingCommentId === comment.id ? (
+                    <textarea
+                      className="min-h-20 flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+                      value={editedText}
+                      onChange={(event) => setEditedText(event.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-800">{visibleGeneratedCommentText(comment)}</p>
+                  )}
+                  <ApprovalBadge status={comment.approval_status} />
+                </div>
+                {editingCommentId === comment.id && formError ? (
+                  <p className="mb-2 text-xs font-medium text-red-500">{formError}</p>
+                ) : null}
+                {mutationError ? <p className="mb-2 text-xs font-medium text-red-500">{mutationError}</p> : null}
+                {canReview ? (
+                  <div className="flex flex-wrap gap-1.5">
                   {editingCommentId === comment.id ? (
                     <Button
                       size="sm"
@@ -131,8 +134,9 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                   />
                 </div>
               ) : null}
-            </div>
-          ))}
+              </div>
+            )
+          })}
         </div>
       )}
     </Card>

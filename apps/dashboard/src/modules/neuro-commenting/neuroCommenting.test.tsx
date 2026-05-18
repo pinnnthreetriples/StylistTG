@@ -10,6 +10,7 @@ import { EventsSection } from './components/EventsSection'
 import { GeneratedCommentsSection } from './components/GeneratedCommentsSection'
 import {
   buildCampaignAccountPayload,
+  buildCampaignEditorPayload,
   buildGeneratedCommentEditPayload,
   buildTargetPayload,
   parseKeywordList,
@@ -239,6 +240,27 @@ describe('neuro-commenting section components', () => {
     expect(html).toContain('Отклонить')
   })
 
+  test('GeneratedCommentsSection renders approve/reject controls for edited comments', () => {
+    const html = renderWithClient(<GeneratedCommentsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), {
+        items: [
+          generatedComment({
+            approval_status: 'edited',
+            edited_text: 'Edited text',
+            final_text: 'Edited text',
+          }),
+        ],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('Edited text')
+    expect(html).toContain('Редактировать')
+    expect(html).toContain('Одобрить')
+    expect(html).toContain('Отклонить')
+  })
 })
 
 describe('neuro-commenting form payload helpers', () => {
@@ -281,6 +303,23 @@ describe('neuro-commenting form payload helpers', () => {
   test('buildGeneratedCommentEditPayload rejects empty text', () => {
     expect(buildGeneratedCommentEditPayload(' Updated ')).toEqual({ edited_text: 'Updated' })
     expect(() => buildGeneratedCommentEditPayload('   ')).toThrow('edited_text required')
+  })
+
+  test('buildCampaignEditorPayload rejects delay max below backend minimum', () => {
+    expect(() =>
+      buildCampaignEditorPayload({
+        promptTemplate: '',
+        languageMode: 'auto',
+        mode: 'all_posts',
+        workMode: 'manual',
+        approvalMode: 'manual_required',
+        maxCommentsPerHour: '',
+        maxCommentsPerDay: '',
+        delayMinSeconds: '0',
+        delayMaxSeconds: '10',
+        safetyEnabled: true,
+      }),
+    ).toThrow('delay_max_seconds invalid')
   })
 })
 

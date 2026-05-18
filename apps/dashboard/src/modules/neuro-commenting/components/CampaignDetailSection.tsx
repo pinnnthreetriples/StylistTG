@@ -164,7 +164,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
           <FormField label="Delay max" htmlFor="neuro-campaign-delay-max">
             <Input
               id="neuro-campaign-delay-max"
-              min={0}
+              min={60}
               type="number"
               value={editorForm.delayMaxSeconds}
               onChange={(event) => updateEditorForm({ delayMaxSeconds: event.target.value })}

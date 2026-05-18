@@ -110,6 +110,7 @@ export function buildCampaignEditorPayload(form: CampaignEditorState): UpdateCam
   if (promptTemplate.length > 5000) throw new Error('prompt_template too long')
   const delayMinSeconds = requiredNonNegativeInt(form.delayMinSeconds, 'delay_min_seconds')
   const delayMaxSeconds = requiredNonNegativeInt(form.delayMaxSeconds, 'delay_max_seconds')
+  if (delayMaxSeconds < 60) throw new Error('delay_max_seconds invalid')
   if (delayMaxSeconds < delayMinSeconds) throw new Error('delay range invalid')
   return {
     prompt_template: promptTemplate || null,

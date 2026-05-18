@@ -29,6 +29,7 @@ from app.schemas import (
     AuthBatchSubmitPasswordRequest,
     AuthBatchValidateRead,
     AuthBatchValidateRequest,
+    AuthBatchValidatePhoneInput,
 )
 from app.services.auth_batch_dispatcher import dispatch_once
 from app.services.auth_batch_state import (
@@ -74,7 +75,12 @@ def validate_phones(
     )
 
 
-@router.post("", response_model=AuthBatchSnapshotRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=AuthBatchSnapshotRead,
+    status_code=status.HTTP_201_CREATED,
+    responses={status.HTTP_200_OK: {"model": AuthBatchSnapshotRead}},
+)
 def create_batch(
     payload: AuthBatchCreate,
     response: Response,
@@ -362,7 +368,7 @@ def get_batch_events(
     ]
 
 
-def _phone_input(item: AuthBatchPhoneInput) -> PhoneInput:
+def _phone_input(item: AuthBatchPhoneInput | AuthBatchValidatePhoneInput) -> PhoneInput:
     return PhoneInput(phone_number=item.phone_number, label=item.label)
 
 

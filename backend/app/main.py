@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
@@ -8,6 +9,8 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 
 from app.api.auth import router as auth_router
@@ -27,6 +30,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.diagnostics import router as diagnostics_router
 from app.api.jobs import router as jobs_router
 from app.api.me import router as me_router
+from app.api.neuro_commenting import router as neuro_commenting_router
 from app.api.operation_logs import router as operation_logs_router
 from app.api.settings import router as settings_router
 from app.api.story_drafts import router as story_drafts_router
@@ -46,7 +50,7 @@ from app.errors import (
 from app.logging_utils import configure_logging, generate_request_id, log_event, log_request
 from app.modules.registry import iter_routers
 from app.observability import init_api_observability
-from app.schemas import ReadinessRead
+from app.schemas import ApiErrorRead, ReadinessRead
 from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics
 from app.services.stale_jobs import reap_stale_jobs
@@ -186,6 +190,7 @@ app.include_router(dashboard_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(me_router)
+app.include_router(neuro_commenting_router)
 app.include_router(operation_logs_router)
 app.include_router(settings_router)
 app.include_router(story_drafts_router)
@@ -196,6 +201,139 @@ app.include_router(tdlib_runtime_router)
 app.include_router(workers_router)
 for module_router in iter_routers():
     app.include_router(module_router)
+
+
+_static_route_methods_cache: dict[str, set[str]] | None = None
+
+
+def _static_route_methods() -> dict[str, set[str]]:
+    global _static_route_methods_cache
+    if _static_route_methods_cache is not None:
+        return _static_route_methods_cache
+
+    route_methods: dict[str, set[str]] = {}
+    for route in app.routes:
+        if not isinstance(route, APIRoute) or "{" in route.path_format:
+            continue
+        methods = set(route.methods or set())
+        if "GET" in methods:
+            methods.add("HEAD")
+        route_methods.setdefault(route.path_format, set()).update(methods)
+    _static_route_methods_cache = route_methods
+    return route_methods
+
+
+def _api_error_schema_components() -> dict[str, Any]:
+    schema = ApiErrorRead.model_json_schema(ref_template="#/components/schemas/{model}")
+    defs = cast(dict[str, Any], schema.pop("$defs", {}))
+    return {**defs, "ApiErrorRead": schema}
+
+
+def _document_standard_error_responses(openapi_schema: dict[str, Any]) -> None:
+    components = cast(dict[str, Any], openapi_schema.setdefault("components", {}))
+    schemas = cast(dict[str, Any], components.setdefault("schemas", {}))
+    schemas.update(_api_error_schema_components())
+    bad_request_response = {
+        "description": "Bad Request",
+        "content": {"application/json": {"schema": {"type": "object"}}},
+    }
+    not_found_response = {
+        "description": "Not Found",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ApiErrorRead"}}},
+    }
+    conflict_response = {
+        "description": "Conflict",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ApiErrorRead"}}},
+    }
+    paths = cast(dict[str, Any], openapi_schema.get("paths", {}))
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        path_item_dict = cast(dict[str, Any], path_item)
+        for raw_operation in path_item_dict.values():
+            if not isinstance(raw_operation, dict) or "responses" not in raw_operation:
+                continue
+            operation = cast(dict[str, Any], raw_operation)
+            responses = cast(dict[str, Any], operation["responses"])
+            responses.setdefault("400", deepcopy(bad_request_response))
+            responses.setdefault("404", deepcopy(not_found_response))
+            responses.setdefault("409", deepcopy(conflict_response))
+
+
+def _strip_query_parameter_nullability(openapi_schema: dict[str, Any]) -> None:
+    paths = cast(dict[str, Any], openapi_schema.get("paths", {}))
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        path_item_dict = cast(dict[str, Any], path_item)
+        for raw_operation in path_item_dict.values():
+            if not isinstance(raw_operation, dict):
+                continue
+            operation = cast(dict[str, Any], raw_operation)
+            parameters = operation.get("parameters", [])
+            if not isinstance(parameters, list):
+                continue
+            for raw_parameter in cast(list[Any], parameters):
+                if not isinstance(raw_parameter, dict):
+                    continue
+                parameter = cast(dict[str, Any], raw_parameter)
+                if parameter.get("in") != "query":
+                    continue
+                schema = parameter.get("schema")
+                if isinstance(schema, dict):
+                    _remove_null_schema_variant(cast(dict[str, Any], schema))
+
+
+def _remove_null_schema_variant(schema: dict[str, Any]) -> None:
+    any_of = schema.get("anyOf")
+    if not isinstance(any_of, list):
+        return
+    any_of_variants = cast(list[Any], any_of)
+    non_null_variants: list[Any] = [
+        variant for variant in any_of_variants if not _is_null_schema_variant(variant)
+    ]
+    if len(non_null_variants) == 1 and isinstance(non_null_variants[0], dict):
+        schema.pop("anyOf")
+        schema.update(cast(dict[str, Any], non_null_variants[0]))
+    elif len(non_null_variants) != len(any_of_variants):
+        schema["anyOf"] = non_null_variants
+
+
+def _is_null_schema_variant(variant: Any) -> bool:
+    if not isinstance(variant, dict):
+        return False
+    return cast(dict[str, Any], variant).get("type") == "null"
+
+
+def custom_openapi() -> dict[str, Any]:
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        routes=app.routes,
+    )
+    _document_standard_error_responses(openapi_schema)
+    _strip_query_parameter_nullability(openapi_schema)
+    app.openapi_schema = openapi_schema
+    return openapi_schema
+
+
+app.openapi = custom_openapi
+
+
+@app.middleware("http")
+async def static_route_method_guard_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    allowed_methods = _static_route_methods().get(request.url.path)
+    if allowed_methods is not None and request.method not in allowed_methods:
+        return JSONResponse(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            content={"detail": "Method Not Allowed"},
+            headers={"Allow": ", ".join(sorted(allowed_methods))},
+        )
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -262,7 +400,16 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/ready", response_model=ReadinessRead)
+@app.get(
+    "/ready",
+    response_model=ReadinessRead,
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Service Unavailable",
+            "model": ReadinessRead,
+        }
+    },
+)
 def ready(response: Response) -> ReadinessRead:
     diagnostics = build_runtime_diagnostics()
     is_ready = diagnostics.get("database") == "ok" and diagnostics.get("redis") == "ok"

@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -33,10 +35,11 @@ from app.services.auth_context import (
     require_authenticated,
     require_mutation_permission,
 )
-from app.services.risk_gate import evaluate_action_gate
+from app.services.risk_gate import ACTION_TYPES, evaluate_action_gate
 from app.services.runtime_settings import execution_policy_settings
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+ACTION_TYPE_PATTERN = "^(" + "|".join(re.escape(action_type) for action_type in ACTION_TYPES) + ")$"
 
 
 @router.get("/safety-summary", response_model=list[AccountSafetySummaryRead])
@@ -115,7 +118,7 @@ def get_account_cooldowns(
 @router.get("/{account_id}/action-gate", response_model=ActionGateRead)
 def get_account_action_gate(
     account_id: str,
-    action_type: str,
+    action_type: str = Query(pattern=ACTION_TYPE_PATTERN),
     override_reason: str | None = None,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),

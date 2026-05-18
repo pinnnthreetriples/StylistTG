@@ -30,6 +30,8 @@ def create_account(
     if workspace_id == DEFAULT_LOCAL_WORKSPACE_ID:
         ensure_default_workspace(session)
     check_workspace_limit(session, workspace_id, "accounts")
+    if get_account_by_external_ref(session, external_ref, workspace_id=workspace_id) is not None:
+        raise ValueError("account already exists")
     account = Account(
         workspace_id=workspace_id,
         external_ref=external_ref,

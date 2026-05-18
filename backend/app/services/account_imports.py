@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -166,9 +167,9 @@ def import_batch_to_dict(batch: AccountImportBatch) -> dict[str, Any]:
         "label": batch.label,
         "dry_run": batch.dry_run,
         "item_count": batch.item_count,
-        "created_at": batch.created_at,
-        "completed_at": batch.completed_at,
-        "failed_at": batch.failed_at,
+        "created_at": _aware_utc(batch.created_at),
+        "completed_at": _aware_utc(batch.completed_at),
+        "failed_at": _aware_utc(batch.failed_at),
         "failure_code": batch.failure_code,
         "failure_message": batch.failure_message,
         "items": [import_item_to_dict(item) for item in batch.items],
@@ -185,8 +186,8 @@ def import_item_to_dict(item: AccountImportItem) -> dict[str, Any]:
         "validation_code": item.validation_code,
         "validation_message": item.validation_message,
         "risk_level": item.risk_level,
-        "created_at": item.created_at,
-        "updated_at": item.updated_at,
+        "created_at": _aware_utc(item.created_at),
+        "updated_at": _aware_utc(item.updated_at),
     }
 
 
@@ -206,3 +207,9 @@ def metadata_to_bytes(metadata: dict[str, Any] | None) -> bytes | None:
     if metadata is None:
         return None
     return json.dumps(metadata, sort_keys=True, default=str).encode("utf-8")
+
+
+def _aware_utc(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=UTC)

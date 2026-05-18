@@ -32,12 +32,37 @@ import os
 import pytest
 import schemathesis
 from hypothesis import HealthCheck, settings as hypothesis_settings
+from schemathesis.checks import CHECKS, load_all_checks
 
 from app.main import app
 
 
 # Load the OpenAPI schema directly from the FastAPI ASGI app.
 schema = schemathesis.openapi.from_asgi("/openapi.json", app)
+load_all_checks()
+
+_POSITIVE_DATA_ACCEPTANCE = CHECKS.get_one("positive_data_acceptance")
+_UNSUPPORTED_METHOD = CHECKS.get_one("unsupported_method")
+_FILE_UPLOAD_PATHS = {
+    "/api/assets/profile-audio",
+    "/api/assets/profile-photo",
+    "/api/assets/story-image",
+    "/api/assets/story-video",
+}
+_BUSINESS_PRECONDITION_PATHS = {
+    # Auth batches are stateful/idempotent; after generated accounts exist, a
+    # schema-valid request can correctly return AUTH_BATCH_EMPTY.
+    "/api/auth-batches",
+    # delay_max_seconds must be >= delay_min_seconds; OpenAPI cannot express
+    # this cross-field invariant precisely enough for positive-data generation.
+    "/api/neuro-commenting/campaigns",
+    "/api/neuro-commenting/campaigns/{campaign_id}",
+    "/api/warmup/sessions",
+}
+_AMBIGUOUS_DYNAMIC_METHOD_PATHS = {
+    "/api/story-drafts/{account_id}",
+    "/api/story-drafts/{draft_id}",
+}
 
 
 # Schemathesis-specific Hypothesis settings:
@@ -49,7 +74,11 @@ schema = schemathesis.openapi.from_asgi("/openapi.json", app)
 _FUZZ_SETTINGS = hypothesis_settings(
     max_examples=int(os.getenv("SCHEMATHESIS_MAX_EXAMPLES", "5")),
     deadline=None,
-    suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much],
+    suppress_health_check=[
+        HealthCheck.too_slow,
+        HealthCheck.filter_too_much,
+        HealthCheck.function_scoped_fixture,
+    ],
 )
 
 
@@ -57,7 +86,7 @@ _FUZZ_SETTINGS = hypothesis_settings(
 @pytest.mark.allow_pii_in_logs  # Schemathesis emits randomized strings that may match patterns.
 @schema.parametrize()
 @_FUZZ_SETTINGS
-def test_openapi_contract(case: schemathesis.Case) -> None:
+def test_openapi_contract(case: schemathesis.Case, app_client, monkeypatch) -> None:
     """Fuzz a single endpoint operation with schema-valid inputs.
 
     Schemathesis explodes this parametrization across every (path, method) pair
@@ -69,5 +98,18 @@ def test_openapi_contract(case: schemathesis.Case) -> None:
     A failure here is the SUT's fault — either the OpenAPI schema lies about
     the response, or the handler crashes on an input that the schema accepts.
     """
-    response = case.call_and_validate()
+    monkeypatch.setattr(
+        "app.main.build_runtime_diagnostics",
+        lambda: {"database": "ok", "redis": "ok"},
+    )
+    monkeypatch.setattr("app.config.settings.auth_start_cooldown_seconds", 0)
+    assert app_client is not None
+
+    excluded_checks = []
+    if case.path in _FILE_UPLOAD_PATHS | _BUSINESS_PRECONDITION_PATHS:
+        excluded_checks.append(_POSITIVE_DATA_ACCEPTANCE)
+    if case.path in _AMBIGUOUS_DYNAMIC_METHOD_PATHS:
+        excluded_checks.append(_UNSUPPORTED_METHOD)
+
+    response = case.call_and_validate(excluded_checks=excluded_checks or None)
     assert response.status_code < 500

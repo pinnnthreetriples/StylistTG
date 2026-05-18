@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/security.md
   - .mex/context/workers.md
-last_updated: 2026-05-15
+last_updated: 2026-05-18
 ---
 
 # Backend
@@ -30,6 +30,8 @@ last_updated: 2026-05-15
 - `/api/accounts`, `/api/dashboard`, `/api/jobs`, `/api/workers`
 - `/api/accounts/auth-sessions` for auth sessions
 - `/api/warmup` for account preparation
+- `/api/neuro-commenting` for NeuroCommenting foundation: campaigns,
+  targets, campaign accounts, generated comments, approvals, and events
 - `/health`, `/ready`, diagnostics endpoints
 
 ## Data model rules
@@ -37,6 +39,8 @@ last_updated: 2026-05-15
 - Workspace scoping is mandatory for user-owned resources.
 - Current profile truth lives in `account_profile_state`.
 - Warmup truth lives in `warmup_session` and related warmup tables.
+- NeuroCommenting foundation truth lives in `neuro_comment_*` tables with
+  manual approval and TDLib sending disabled by default.
 - Operation/audit metadata must be sanitized before persistence.
 
 ## Commands

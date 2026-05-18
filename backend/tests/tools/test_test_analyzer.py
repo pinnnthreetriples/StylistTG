@@ -18,8 +18,10 @@ import pytest
 from tools.test_analyzer import (
     Analyzer,
     AnalyzerConfig,
+    FileContext,
     Issue,
     JsonReporter,
+    Rule,
     SarifReporter,
     Severity,
     filter_by_baseline,
@@ -49,6 +51,27 @@ def _analyze_source(source: str, config: AnalyzerConfig | None = None) -> list[I
         path.unlink(missing_ok=True)
 
     return issues
+
+
+class BrokenRule(Rule):
+    id = "BROKEN001"
+    type = "meta"
+    default_severity = Severity.CRITICAL
+
+    def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
+        raise RuntimeError("broken rule")
+
+
+def test_analyzer_reports_rule_crashes_as_critical(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_sample.py"
+    test_file.write_text("def test_example():\n    assert 1 == 1\n", encoding="utf-8")
+    analyzer = Analyzer(AnalyzerConfig(), rules=[BrokenRule()])
+
+    issues = analyzer.analyze_file(test_file, tmp_path)
+
+    assert [issue.rule_id for issue in issues] == ["META002"]
+    assert issues[0].severity == Severity.CRITICAL
+    assert "BROKEN001" in issues[0].message
 
 
 # ---------------------------------------------------------------------------

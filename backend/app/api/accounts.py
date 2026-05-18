@@ -32,13 +32,21 @@ def post_account(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    return create_account(
-        session,
-        external_ref=payload.external_ref,
-        telegram_user_id=payload.telegram_user_id,
-        workspace_id=auth.workspace_id,
-        actor_user_id=auth.user_id,
-    )
+    try:
+        return create_account(
+            session,
+            external_ref=payload.external_ref,
+            telegram_user_id=payload.telegram_user_id,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+        )
+    except ValueError as exc:
+        raise AppError(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_ALREADY_EXISTS",
+            error_class="conflict",
+            message=str(exc),
+        ) from exc
 
 
 @router.get("", response_model=list[AccountListItemRead])

@@ -52,6 +52,51 @@ CI_SETTINGS = settings(
 class TestRedactTextProperties:
     """redact_text must strip values after any sensitive key pattern."""
 
+    def test_multiple_secret_spellings_are_redacted_in_one_message(self):
+        text = (
+            "api_hash=not-a-real-api-hash "
+            "password: hunter2hunter2 "
+            "https://user:proxy-secret@example.invalid/db"
+        )
+
+        result = redact_text(text)
+
+        assert "not-a-real-api-hash" not in result
+        assert "hunter2hunter2" not in result
+        assert "proxy-secret" not in result
+        assert "api_hash=***" in result
+        assert "password: ***" in result
+        assert "https://***:***@example.invalid/db" in result
+
+    def test_quoted_json_like_secret_key_is_redacted(self):
+        result = redact_text('{"api_hash": "not-a-real-api-hash", "safe": "keep"}')
+
+        assert "not-a-real-api-hash" not in result
+        assert result == '{"api_hash": "***", "safe": "keep"}'
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ('"api_hash', '"api_hash'),
+            ('"safe": "keep"', '"safe": "keep"'),
+            ('"api_hash" = "keep"', '"api_hash" = "keep"'),
+            ('"api_hash":   ', '"api_hash":   '),
+            ("password:   ", "password:   "),
+        ],
+    )
+    def test_incomplete_secret_assignments_are_left_as_is(self, text, expected):
+        assert redact_text(text) == expected
+
+    def test_quoted_secret_value_handles_escaped_or_missing_closing_quote(self):
+        assert redact_text(r'password="secret\"tail"') == 'password="***"'
+        assert redact_text('password="unterminated') == 'password="***'
+
+    def test_url_without_credentials_is_preserved(self):
+        assert (
+            redact_text("visit https://example.invalid/path ok")
+            == "visit https://example.invalid/path ok"
+        )
+
     @given(
         key=st.sampled_from(list(SENSITIVE_FRAGMENTS)),
         value=st.text(min_size=4, max_size=30, alphabet=string.ascii_letters + string.digits),
@@ -94,6 +139,22 @@ class TestRedactTextProperties:
 @pytest.mark.unit
 class TestRedactMetadataProperties:
     """redact_metadata must recursively clean dicts, lists, and strings."""
+
+    def test_nested_lists_and_safe_keys_are_preserved_while_secrets_are_masked(self):
+        result = redact_metadata(
+            {
+                "safe": [{"label": "keep"}, {"api_hash": "not-a-real-hash"}],
+                "proxy": {"proxy_password": "do-not-leak", "host": "127.0.0.1"},
+            }
+        )
+
+        assert result["safe"][0]["label"] == "keep"
+        assert result["safe"][1]["api_hash"] == "***"
+        assert result["proxy"]["proxy_password"] == "***"
+        assert result["proxy"]["host"] == "127.0.0.1"
+
+    def test_non_container_values_are_preserved(self):
+        assert redact_metadata(42) == 42
 
     @given(
         key=st.sampled_from(list(SENSITIVE_FRAGMENTS)),
@@ -157,6 +218,16 @@ class TestIsSensitiveKeyProperties:
 @pytest.mark.unit
 class TestPhoneHintProperties:
     """phone_hint must never return the full phone number."""
+
+    def test_phone_hint_keeps_only_last_four_digits_after_separator_stripping(self):
+        assert phone_hint("+1 (555) 123-9876") == "***9876"
+        assert required_phone_hint("+44 20 7946 0958") == "***0958"
+
+    def test_phone_hint_handles_non_strings_and_short_digit_values(self):
+        assert phone_hint(None) is None
+        assert phone_hint(15551239876) is None
+        assert phone_hint("12-3") == "***"
+        assert required_phone_hint(None) == "***"
 
     @given(
         phone=st.from_regex(r"\+1[0-9]{10}", fullmatch=True),
@@ -261,6 +332,24 @@ class TestArchivePathSafety:
 @pytest.mark.unit
 class TestNormalizeStorageKeyProperties:
     """normalize_storage_key must reject traversal and absolute keys."""
+
+    def test_exact_normalization_and_rejection_boundaries(self):
+        assert (
+            normalize_storage_key(" assets//one\\source\\file.jpg ") == "assets/one/source/file.jpg"
+        )
+
+        for key in (
+            "",
+            ".",
+            "./asset.jpg",
+            "../asset.jpg",
+            "/asset.jpg",
+            "~/asset.jpg",
+            "C:/asset.jpg",
+            "C:\\asset.jpg",
+        ):
+            with pytest.raises(InvalidStorageKeyError):
+                normalize_storage_key(key)
 
     @given(
         prefix=st.text(min_size=0, max_size=5, alphabet=string.ascii_lowercase),
@@ -381,6 +470,15 @@ class TestLocalStorageResolvePath:
 @pytest.mark.unit
 class TestValidateTdlibAccountIdProperties:
     """validate_tdlib_account_id must reject unsafe characters."""
+
+    def test_tdlib_account_id_accepts_safe_boundaries_and_rejects_path_like_values(self):
+        assert validate_tdlib_account_id("a") == "a"
+        assert validate_tdlib_account_id("A_1-2") == "A_1-2"
+        assert validate_tdlib_account_id("a" * 128) == "a" * 128
+
+        for value in ("." * 1, "a" * 129, "-starts-with-dash", "_starts_with_underscore"):
+            with pytest.raises(InvalidStorageKeyError):
+                validate_tdlib_account_id(value)
 
     @given(
         safe_id=st.from_regex(r"[A-Za-z0-9][A-Za-z0-9_-]{0,30}", fullmatch=True),

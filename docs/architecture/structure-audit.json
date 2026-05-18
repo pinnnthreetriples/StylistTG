@@ -154,7 +154,9 @@
       "backend/app/contracts/__init__.py": [],
       "backend/app/contracts/accounts.py": [],
       "backend/app/contracts/jobs.py": [],
+      "backend/app/contracts/neuro_commenting.py": [],
       "backend/app/contracts/safety.py": [],
+      "backend/app/contracts/types.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
       "backend/app/modules/warmup/contracts.py": [],
@@ -693,6 +695,13 @@
     },
     {
       "covered_by_roles": [
+        "neuro_comment_worker"
+      ],
+      "is_production_queue": true,
+      "name": "neuro_comment_jobs"
+    },
+    {
+      "covered_by_roles": [
         "profile_worker"
       ],
       "is_production_queue": true,
@@ -779,6 +788,16 @@
       "name": "media_worker",
       "queues": [
         "media_jobs"
+      ],
+      "requires_session_storage": false,
+      "requires_tdlib": false
+    },
+    {
+      "allows_live_tdlib": false,
+      "description": "Safe neuro-commenting generation and manual approval worker.",
+      "name": "neuro_comment_worker",
+      "queues": [
+        "neuro_comment_jobs"
       ],
       "requires_session_storage": false,
       "requires_tdlib": false
@@ -931,6 +950,17 @@
     },
     {
       "forbidden_imports": [],
+      "has_explicit_all": false,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/neuro_commenting.py"
+    },
+    {
+      "forbidden_imports": [],
       "has_explicit_all": true,
       "imports": [
         "__future__",
@@ -939,6 +969,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/safety.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "pydantic",
+        "typing",
+        "uuid"
+      ],
+      "path": "backend/app/contracts/types.py"
     }
   ],
   "workflows": [

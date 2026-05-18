@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - docs/architecture/production-execution-plane.md
-last_updated: 2026-05-15
+last_updated: 2026-05-18
 ---
 
 # Workers and Queues
@@ -27,6 +27,8 @@ last_updated: 2026-05-15
 - `scheduler_jobs`: scheduler/reaper taxonomy.
 - `warmup_jobs`: dry-run account preparation.
 - `warmup_dispatch_jobs`: shadow/live warmup micro-session dispatch.
+- `neuro_comment_jobs`: NeuroCommenting foundation jobs; only safe
+  generation is implemented, live sending remains disabled.
 
 ## Local workers
 
@@ -35,6 +37,7 @@ cd backend; python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 
 cd backend; python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 cd backend; python -m app.workers.run_worker --queues warmup_jobs
 cd backend; python -m app.workers.run_worker --queues warmup_dispatch_jobs
+cd backend; python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 cd backend; python -m app.workers.run_worker --queues profile_jobs --role profile_worker
 ```
 
@@ -44,6 +47,8 @@ cd backend; python -m app.workers.run_worker --queues profile_jobs --role profil
 - API embedded stale-job reaper is disabled by default; production scheduler/reaper work should run outside API replicas.
 - `scripts/start-dev.ps1` starts profile/auth workers, not warmup workers.
 - Warmup workers are started manually only when testing the warmup module.
+- NeuroCommenting workers are started manually only when testing the
+  NeuroCommenting foundation; they must not perform live TDLib sending.
 - Worker diagnostics must report the production queue taxonomy.
 - Runtime role metadata lives in `backend/app/runtime/roles.py`; optional
   `run_worker --role ...` validation enforces role-to-queue allowlists while

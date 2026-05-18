@@ -23,6 +23,7 @@ MAINTENANCE_QUEUE_NAME = "maintenance_jobs"
 SCHEDULER_QUEUE_NAME = "scheduler_jobs"
 WARMUP_QUEUE_NAME = "warmup_jobs"
 WARMUP_DISPATCH_QUEUE_NAME = "warmup_dispatch_jobs"
+NEURO_COMMENT_QUEUE_NAME = "neuro_comment_jobs"
 
 PRODUCTION_QUEUE_NAMES = (
     AUTH_QUEUE_NAME,
@@ -34,6 +35,7 @@ PRODUCTION_QUEUE_NAMES = (
     SCHEDULER_QUEUE_NAME,
     WARMUP_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
+    NEURO_COMMENT_QUEUE_NAME,
 )
 
 
@@ -65,6 +67,10 @@ def queue_descriptors() -> list[QueueDescriptor]:
             WARMUP_DISPATCH_QUEUE_NAME,
             "Live warmup micro-session dispatch (network + advanced execution modes)",
             live_execution_default=True,
+        ),
+        QueueDescriptor(
+            NEURO_COMMENT_QUEUE_NAME,
+            "Neuro-commenting generation and safe manual-approval preparation jobs",
         ),
     ]
 

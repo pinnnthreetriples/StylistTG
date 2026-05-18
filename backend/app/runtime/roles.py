@@ -7,6 +7,7 @@ from app.services.worker_plane import (
     AUTH_QUEUE_NAME,
     MAINTENANCE_QUEUE_NAME,
     MEDIA_QUEUE_NAME,
+    NEURO_COMMENT_QUEUE_NAME,
     PROFILE_QUEUE_NAME,
     PRODUCTION_QUEUE_NAMES,
     SCHEDULER_QUEUE_NAME,
@@ -82,6 +83,14 @@ RUNTIME_ROLES: tuple[RuntimeRole, ...] = (
         requires_session_storage=True,
         allows_live_tdlib=True,
         description="Warmup micro-session dispatch worker.",
+    ),
+    RuntimeRole(
+        name="neuro_comment_worker",
+        queues=(NEURO_COMMENT_QUEUE_NAME,),
+        requires_tdlib=False,
+        requires_session_storage=False,
+        allows_live_tdlib=False,
+        description="Safe neuro-commenting generation and manual approval worker.",
     ),
     RuntimeRole(
         name="maintenance_worker",

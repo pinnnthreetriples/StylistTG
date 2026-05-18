@@ -95,9 +95,10 @@ def test_structure_005_no_longer_reports_broad_maintenance_ownership() -> None:
     findings = {finding["id"]: finding for finding in _committed_report()["findings"]}
     finding = findings["STRUCTURE-005"]
 
-    assert finding["status"] in {"accepted", "closed"}
+    assert finding["status"] == "accepted"
     assert "temporarily owns reserved" not in finding["finding"]
-    assert "Dedicated runtime roles" in finding["finding"]
+    assert "logically split" in finding["finding"]
+    assert "staging may still group queues" in finding["risk"]
 
 
 def test_structure_audit_report_preserves_workflow_args_modes() -> None:

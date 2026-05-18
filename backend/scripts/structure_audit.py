@@ -576,12 +576,12 @@ def _findings(
         Finding(
             id="STRUCTURE-005",
             severity="info",
-            status="closed",
+            status="accepted",
             area="runtime",
-            finding="Dedicated runtime roles now own media, story, and account-lifecycle queues.",
+            finding="Reserved queue ownership is logically split into dedicated runtime roles.",
             evidence="Runtime role metadata maps each reserved queue to a dedicated worker role; maintenance_worker maps only to maintenance_jobs.",
-            risk="Low. Reserved queue ownership is explicit before those queues become active production responsibilities.",
-            recommendation="Keep runtime roles narrow as media/story/lifecycle queues become active.",
+            risk="Low. Resource-constrained staging may still group queues in one physical worker by using raw --queues mode without --role.",
+            recommendation="Keep logical roles narrow and split physical worker services only when production resources allow it.",
             suggested_phase="Phase 26",
         ),
         Finding(

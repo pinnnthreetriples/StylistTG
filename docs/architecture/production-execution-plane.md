@@ -14,7 +14,16 @@ The production execution plane is a safety foundation for future live Telegram w
 - `warmup_jobs`: dry-run account preparation jobs.
 - `warmup_dispatch_jobs`: shadow/live warmup micro-session dispatch.
 
-Current staging worker commands remain compatible. New dedicated worker launchers can use:
+Current staging worker commands remain compatible. Resource-constrained staging
+may keep one physical worker service and use raw queue mode without `--role`:
+
+```powershell
+cd backend
+python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
+```
+
+New dedicated worker launchers can use role validation when production resources
+allow one worker service per logical role:
 
 ```powershell
 cd backend

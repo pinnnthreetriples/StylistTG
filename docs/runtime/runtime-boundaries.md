@@ -26,6 +26,18 @@ No role metadata in this document enables live TDLib by itself. Existing feature
 
 Reserved queue ownership is explicit: `media_worker` owns `media_jobs`, `story_worker` owns `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`. New queues require an update to `app.services.worker_plane`, this document, runtime role tests, and deployment runbooks.
 
+## Deployment Modes
+
+Staging or resource-constrained environments may run one physical worker service
+without `--role` and consume grouped queues, for example
+`maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs`. This keeps the
+current two-service Northflank staging contour intact.
+
+Production isolation should use role-aware worker commands so each logical role
+consumes only its owned queue. The code-level role model is split now so
+production can isolate workers later without changing queue names or job
+contracts.
+
 ## Preflight
 
 `backend/app/runtime/preflight.py` provides internal, non-live checks for role metadata, queue allowlists, TDLib-required flags, live-allowed flags, and session-root configuration. It must not read Telegram session directories or call TDLib.

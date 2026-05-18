@@ -224,12 +224,12 @@
     {
       "area": "runtime",
       "evidence": "Runtime role metadata maps each reserved queue to a dedicated worker role; maintenance_worker maps only to maintenance_jobs.",
-      "finding": "Dedicated runtime roles now own media, story, and account-lifecycle queues.",
+      "finding": "Reserved queue ownership is logically split into dedicated runtime roles.",
       "id": "STRUCTURE-005",
-      "recommendation": "Keep runtime roles narrow as media/story/lifecycle queues become active.",
-      "risk": "Low. Reserved queue ownership is explicit before those queues become active production responsibilities.",
+      "recommendation": "Keep logical roles narrow and split physical worker services only when production resources allow it.",
+      "risk": "Low. Resource-constrained staging may still group queues in one physical worker by using raw --queues mode without --role.",
       "severity": "info",
-      "status": "closed",
+      "status": "accepted",
       "suggested_phase": "Phase 26"
     },
     {

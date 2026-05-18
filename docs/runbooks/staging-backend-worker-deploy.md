@@ -42,7 +42,14 @@ Worker:
 python -m app.workers.run_worker --queues profile_jobs,auth_jobs
 ```
 
-Queue-specific worker launcher is available for the production execution-plane foundation:
+Resource-constrained staging may group reserved queues in the same physical
+worker service by using raw queue mode without `--role`:
+
+```bash
+python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
+```
+
+Queue-specific role launchers are available for the production execution-plane foundation:
 
 ```bash
 python -m app.workers.run_worker --queues auth_jobs
@@ -53,7 +60,8 @@ python -m app.workers.run_worker --queues story_jobs --role story_worker
 python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 ```
 
-Keep the compatibility worker command unless the hosting provider is explicitly split into queue-specific worker services.
+Keep compatibility worker commands unless the hosting provider is explicitly
+split into queue-specific worker services.
 
 Migration:
 

@@ -187,7 +187,7 @@ Current architecture tests include:
 | STRUCTURE-002 | medium | open | frontend | Frontend modules now include a shared surface and ownership audit, but global dashboard roots still own substantial code. | Feature work may bypass module boundaries. | Continue frontend ownership cleanup. |
 | STRUCTURE-003 | medium | open | storage-contracts | `app.contracts` extraction has started; `app.models.py` and parts of `app.schemas.py` remain global/compatibility layers. | ORM/DTO coupling remains possible outside enforced paths. | Continue shared contracts extraction. |
 | STRUCTURE-004 | low | accepted | legacy-wrappers | Wrappers remain documented, manifested, audited, and import-compatible. | Legacy surfaces can linger indefinitely. | Advance deprecation stages in dedicated PRs. |
-| STRUCTURE-005 | info | closed | runtime | Dedicated runtime roles now own media, story, and account-lifecycle queues. | Low while roles remain narrow. | Keep roles narrow as queues become active. |
+| STRUCTURE-005 | info | accepted | runtime | Reserved queue ownership is logically split into dedicated runtime roles. | Low. Resource-constrained staging may still group queues in one physical worker by using raw `--queues` mode without `--role`. | Keep logical roles narrow and split physical worker services only when production resources allow it. |
 | STRUCTURE-006 | low | open | architecture-tests | Static helper patterns are duplicated. | Rule maintenance may become noisy. | Consolidate helpers later. |
 | STRUCTURE-007 | info | accepted | security | Baseline workflows and docs exist. | Branch protection is external. | Keep source docs aligned with repository settings. |
 
@@ -201,7 +201,7 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 | Shared DTO layer | YELLOW | `app.contracts` now holds low-risk shared DTOs while `app.schemas.py` preserves compatibility. | Continue extracting only proven shared contracts. |
 | Global ORM file | YELLOW | `app.models.py` split would be broad and migration-sensitive. | Keep repositories as the enforced access boundary first. |
 | Legacy wrappers | YELLOW | Compatibility contracts still matter for existing imports and tests. | Follow the staged deprecation plan; no removal before Stage 5. |
-| Reserved runtime queues | GREEN | Media/story/account-lifecycle queues now have explicit runtime roles before active production ownership expands. | Keep role-to-queue ownership narrow as handlers are added. |
+| Reserved runtime queues | GREEN | Media/story/account-lifecycle queues now have explicit logical runtime roles before active production ownership expands. | Keep role-to-queue ownership narrow as handlers are added; staging may group queues physically. |
 | Architecture helper duplication | YELLOW | Tests evolved phase by phase. | Consolidate only after rules stabilize. |
 
 ## 13. Recommended Next Phases
@@ -211,5 +211,5 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 | Phase 23 | Frontend feature ownership cleanup | Started with low-risk account-editing/auth helpers, compatibility re-exports, and stronger boundary tests. |
 | Phase 24 | Shared contracts extraction | Started with low-risk shared DTOs in `app.contracts`; `app.schemas.py` remains compatible. |
 | Phase 25 | Legacy wrappers deprecation plan | Added staged deprecation plan, manifest, audit script, and tests; no wrappers removed. |
-| Phase 26 | Dedicated runtime roles for maintenance/media/story/lifecycle | Completed reserved queue role split while preserving queue names and raw worker startup compatibility. |
+| Phase 26 | Logical runtime roles for maintenance/media/story/lifecycle | Completed reserved queue role split while preserving queue names, raw worker startup compatibility, and constrained staging deployments. |
 | Phase 27 | First real new module | Add a low-risk module, preferably analytics read-only or broadcast preview-only, using the backend/frontend module checklist without introducing live behavior prematurely. |

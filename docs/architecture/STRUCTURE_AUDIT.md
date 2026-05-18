@@ -18,9 +18,9 @@ Status legend:
 | Runtime roles | GREEN | `backend/app/runtime/roles.py` covers all production queues; `api` and `reaper` consume no queues. | Low. Role enforcement is optional but test-covered. | Split reserved queues into dedicated roles when they become active runtime work. |
 | Architecture enforcement | GREEN | `backend/tests/architecture` covers storage, auth, FastAPI, wrappers, workflows, runtime, and module template boundaries. | Low. Regex/AST helper duplication can create maintenance cost. | Consolidate architecture-test helpers later. |
 | Security baseline | GREEN | CI, Test Quality, Semgrep, Secret Scan, SBOM, Container Scan, Trivy, Complexity, Gitleaks config, and security docs exist. | Low. Branch protection remains a GitHub setting outside the repo. | Keep docs aligned with repository settings. |
-| Frontend modules | YELLOW | `apps/dashboard/src/modules` contains `account-editing`, `auth`, `warmup`, and `moduleBoundaries.test.ts`; global `lib`, `hooks`, `components`, and `features` still contain significant code. | Medium. New UI work can bypass module ownership. | Phase 23: frontend feature ownership cleanup. |
-| Storage/contracts | YELLOW | `app.models.py` and `app.schemas.py` remain global by design; contract/router/policy/repository rules are enforced for high-risk paths. | Medium. Shared DTO and ORM boundaries are still transitional. | Phase 24: shared contracts extraction. |
-| Legacy wrappers | YELLOW | API/service/worker wrappers remain import-compatible and documented in `legacy-wrapper-audit.md`. | Low while tests prevent module imports of wrappers. | Phase 25: legacy wrapper deprecation plan. |
+| Frontend modules | YELLOW | `apps/dashboard/src/modules` contains `account-editing`, `auth`, `warmup`, `shared`, and stronger `moduleBoundaries.test.ts`; `frontend-ownership-audit.md` records migrated and deferred surfaces. | Medium. New UI work can bypass module ownership. | Continue Phase 23-style small ownership moves. |
+| Storage/contracts | YELLOW | `backend/app/contracts` exists for low-risk shared DTOs; `app.schemas.py` remains a compatibility re-export/global DTO layer. | Medium. Remaining DTO and ORM boundaries are still transitional. | Continue shared-contract extraction before any `app.models.py` split. |
+| Legacy wrappers | YELLOW | API/service/worker wrappers remain import-compatible and now have `legacy-wrapper-deprecation-plan.md`, `legacy-wrappers.json`, and audit tests. | Low while tests prevent module imports of wrappers. | Advance wrapper stages only in dedicated PRs. |
 | Immediate RED findings | GREEN | The static audit reports no forbidden broadcast/analytics queues/workflows and no FastAPI/ORM boundary contradictions. | None found in this snapshot. | Re-run `python backend/scripts/structure_audit.py` after structural changes. |
 
 ## 2. Current Architecture Snapshot
@@ -62,11 +62,12 @@ No `broadcast` or `analytics` runtime module exists yet.
 
 | Area | Status | Evidence | Risk | Recommended follow-up |
 |---|---|---|---|---|
-| `modules/account-editing` | YELLOW | Public `index.ts` exists with API/hooks/labels/types extracted behind module exports. | Medium. Some account-editing UI and query logic still lives in global dashboard folders. | Move feature-specific components/helpers behind module exports in Phase 23. |
-| `modules/auth` | YELLOW | Public `index.ts` exists with API, batches, bootstrap, hooks, and types. | Medium. Auth UI components remain global. | Keep compatibility re-exports while migrating ownership. |
+| `modules/account-editing` | YELLOW | Public `index.ts` exists with API/hooks/labels/types/mappers extracted behind module exports. | Medium. Some account-editing UI components still live in global dashboard folders. | Continue mechanical component moves in later PRs. |
+| `modules/auth` | YELLOW | Public `index.ts` exists with API, batches, bootstrap, hooks, labels, and types. | Medium. Large auth UI components remain global by design. | Keep compatibility re-exports while migrating ownership. |
 | `modules/warmup` | GREEN | Warmup has module API/hooks/types/labels/components and public `index.ts`. | Low. Boundary is ahead of other frontend modules. | Use as the frontend module reference shape. |
-| Frontend boundary tests | GREEN | `apps/dashboard/src/modules/moduleBoundaries.test.ts` exists. | Low. It is a lightweight structural guard. | Expand as more components move into modules. |
-| Global frontend roots | YELLOW | `apps/dashboard/src/lib`, `hooks`, `components`, and `features` remain significant. | Medium. Feature ownership remains partly convention-based. | Phase 23 should reduce global feature logic without changing UI behavior. |
+| `modules/shared` | YELLOW | Shared API client glue has a public index. | Low. Shared ownership is intentionally narrow. | Add only neutral helpers when a feature move requires them. |
+| Frontend boundary tests | GREEN | `apps/dashboard/src/modules/moduleBoundaries.test.ts` checks indexes, cross-module public imports, legacy wrapper imports, and deep component imports. | Low. It is still static and lightweight. | Expand as more components move into modules. |
+| Global frontend roots | YELLOW | `apps/dashboard/src/lib`, `hooks`, `components`, and `features` remain significant but compatibility paths preserve old imports. | Medium. Feature ownership remains partly convention-based. | Continue reducing global feature logic without changing UI behavior. |
 
 ## 5. Runtime / Process Structure
 
@@ -114,7 +115,8 @@ Branch protection itself is a repository setting and is not encoded in this repo
 | Repositories may import ORM but not FastAPI/API | GREEN | `account_editing.repository` and `warmup.repository` are checked. | Low. | Add repositories for new modules before queries grow. |
 | Policies remain DB/session-free | GREEN | Account editing and warmup policies are checked. | Low. | Keep policy functions pure. |
 | `app.models.py` remains global | YELLOW | Documented in `docs/architecture/storage-boundary.md`. | Medium. A global ORM file makes accidental imports easier. | Defer model split until repositories and shared contracts are stable. |
-| `app.schemas.py` remains compatibility/global DTO layer | YELLOW | Required for existing imports and shared DTOs. | Medium. Module contracts can still depend on shared compatibility DTOs. | Phase 24 shared contracts extraction. |
+| `app.contracts` shared DTO package | YELLOW | Low-risk shared job/profile-preview/safety DTOs live under `backend/app/contracts`. | Low. Package purity is enforced by architecture tests. | Move only DTOs with proven shared ownership. |
+| `app.schemas.py` remains compatibility/global DTO layer | YELLOW | Required for existing imports and still re-exports moved shared DTOs. | Medium. Remaining DTOs can still accumulate shared ownership debt. | Continue incremental shared contracts extraction. |
 
 ## 8. Auth / Workspace Boundary
 
@@ -179,9 +181,9 @@ Current architecture tests include:
 | ID | Severity | Status | Area | Evidence | Risk | Recommendation |
 |---|---|---|---|---|---|---|
 | STRUCTURE-001 | info | accepted | backend-modules | Registered modules are `auth`, `account_editing`, `warmup`; `_template` is unregistered. | Low. | Continue using the module checklist. |
-| STRUCTURE-002 | medium | open | frontend | Frontend modules exist, but global dashboard roots still own substantial code. | Feature work may bypass module boundaries. | Phase 23 frontend ownership cleanup. |
-| STRUCTURE-003 | medium | deferred | storage-contracts | `app.models.py` and `app.schemas.py` remain global/compatibility layers. | ORM/DTO coupling remains possible outside enforced paths. | Phase 24 shared contracts extraction. |
-| STRUCTURE-004 | low | accepted | legacy-wrappers | Wrappers remain documented and import-compatible. | Legacy surfaces can linger indefinitely. | Phase 25 deprecation plan. |
+| STRUCTURE-002 | medium | open | frontend | Frontend modules now include a shared surface and ownership audit, but global dashboard roots still own substantial code. | Feature work may bypass module boundaries. | Continue frontend ownership cleanup. |
+| STRUCTURE-003 | medium | open | storage-contracts | `app.contracts` extraction has started; `app.models.py` and parts of `app.schemas.py` remain global/compatibility layers. | ORM/DTO coupling remains possible outside enforced paths. | Continue shared contracts extraction. |
+| STRUCTURE-004 | low | accepted | legacy-wrappers | Wrappers remain documented, manifested, audited, and import-compatible. | Legacy surfaces can linger indefinitely. | Advance deprecation stages in dedicated PRs. |
 | STRUCTURE-005 | low | deferred | runtime | `maintenance_worker` owns reserved queues. | Blast radius may grow if reserved queues become active. | Phase 26 dedicated role split. |
 | STRUCTURE-006 | low | open | architecture-tests | Static helper patterns are duplicated. | Rule maintenance may become noisy. | Consolidate helpers later. |
 | STRUCTURE-007 | info | accepted | security | Baseline workflows and docs exist. | Branch protection is external. | Keep source docs aligned with repository settings. |
@@ -192,10 +194,10 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 
 | Debt | Status | Why it remains | Recommended follow-up |
 |---|---|---|---|
-| Global frontend ownership | YELLOW | Phase 20-22 intentionally avoided broad UI moves. | Move feature logic incrementally behind module public indexes. |
-| Shared DTO layer | YELLOW | `app.schemas.py` preserves compatibility and shared DTOs. | Extract low-risk shared contracts in Phase 24. |
+| Global frontend ownership | YELLOW | This PR moved a small account-editing/auth slice, but broad UI components remain global. | Move feature logic incrementally behind module public indexes. |
+| Shared DTO layer | YELLOW | `app.contracts` now holds low-risk shared DTOs while `app.schemas.py` preserves compatibility. | Continue extracting only proven shared contracts. |
 | Global ORM file | YELLOW | `app.models.py` split would be broad and migration-sensitive. | Keep repositories as the enforced access boundary first. |
-| Legacy wrappers | YELLOW | Compatibility contracts still matter for existing imports and tests. | Define removal readiness and call-site migration. |
+| Legacy wrappers | YELLOW | Compatibility contracts still matter for existing imports and tests. | Follow the staged deprecation plan; no removal before Stage 5. |
 | Reserved runtime queues | YELLOW | Media/story/account-lifecycle queues are not yet dedicated active runtime roles. | Split once production execution requires it. |
 | Architecture helper duplication | YELLOW | Tests evolved phase by phase. | Consolidate only after rules stabilize. |
 
@@ -203,8 +205,8 @@ No RED findings were found in this audit snapshot. A future run should add RED f
 
 | Phase | Goal | Scope |
 |---|---|---|
-| Phase 23 | Frontend feature ownership cleanup | Move account-editing/auth feature-specific UI helpers and components behind module public indexes while preserving UX and compatibility re-exports. |
-| Phase 24 | Shared contracts extraction | Introduce a shared contracts namespace for common DTOs now held in `app.schemas.py`; keep OpenAPI semantics stable. |
-| Phase 25 | Legacy wrappers deprecation plan | Define downstream call-site migration, removal criteria, and versioned deprecation policy for compatibility wrappers. |
+| Phase 23 | Frontend feature ownership cleanup | Started with low-risk account-editing/auth helpers, compatibility re-exports, and stronger boundary tests. |
+| Phase 24 | Shared contracts extraction | Started with low-risk shared DTOs in `app.contracts`; `app.schemas.py` remains compatible. |
+| Phase 25 | Legacy wrappers deprecation plan | Added staged deprecation plan, manifest, audit script, and tests; no wrappers removed. |
 | Phase 26 | Dedicated runtime roles for maintenance/media/story/lifecycle | Split reserved queues out of `maintenance_worker` when they become active runtime responsibilities. |
 | Phase 27 | First real new module | Add a low-risk module, preferably analytics read-only or broadcast preview-only, using the backend/frontend module checklist without introducing live behavior prematurely. |

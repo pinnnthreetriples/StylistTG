@@ -11,6 +11,7 @@ from typing import Any
 GENERATED_AT = "2026-05-17T00:00:00Z"
 
 MODULES_ROOT = Path("backend/app/modules")
+CONTRACTS_ROOT = Path("backend/app/contracts")
 RUNTIME_ROOT = Path("backend/app/runtime")
 FRONTEND_MODULES_ROOT = Path("apps/dashboard/src/modules")
 
@@ -310,6 +311,7 @@ def _module_import_references(repo_root: Path, import_path: str) -> list[str]:
 
 def _audit_legacy_wrappers(repo_root: Path) -> list[dict[str, Any]]:
     audit_doc = _read_text(repo_root, "docs/architecture/legacy-wrapper-audit.md")
+    manifest_text = _read_text(repo_root, "docs/architecture/legacy-wrappers.json")
     wrappers: list[dict[str, Any]] = []
     for wrapper in WRAPPER_PATHS:
         path = repo_root / wrapper
@@ -325,10 +327,28 @@ def _audit_legacy_wrappers(repo_root: Path) -> list[dict[str, Any]]:
                 "canonical_owner": canonical_match.group(1).strip() if canonical_match else None,
                 "do_not_add_behavior_marker": "Do not add new behavior here." in text,
                 "documented_in_audit": import_path in audit_doc or wrapper in audit_doc,
+                "documented_in_manifest": import_path in manifest_text or wrapper in manifest_text,
                 "module_import_references": _module_import_references(repo_root, import_path),
             }
         )
     return wrappers
+
+
+def _audit_shared_contracts(repo_root: Path) -> list[dict[str, Any]]:
+    contracts_root = repo_root / CONTRACTS_ROOT
+    contracts: list[dict[str, Any]] = []
+    if not contracts_root.exists():
+        return contracts
+    for path in _python_files(contracts_root):
+        contracts.append(
+            {
+                "path": _relative(path, repo_root),
+                "imports": _import_names(path),
+                "forbidden_imports": _has_import_prefix(path, FORBIDDEN_CONTRACT_IMPORTS),
+                "has_explicit_all": _has_all_dunder(path),
+            }
+        )
+    return contracts
 
 
 def _audit_architecture_tests(repo_root: Path) -> list[dict[str, Any]]:
@@ -448,6 +468,7 @@ def _audit_security_checks(repo_root: Path) -> list[dict[str, Any]]:
 
 def _audit_boundaries(repo_root: Path) -> dict[str, Any]:
     contract_files = sorted((repo_root / MODULES_ROOT).glob("*/contracts.py"))
+    contract_files.extend(_python_files(repo_root / CONTRACTS_ROOT))
     contract_files.append(repo_root / "backend/app/schemas.py")
     policy_files = sorted((repo_root / MODULES_ROOT).glob("*/policies.py"))
     repository_files = sorted((repo_root / MODULES_ROOT).glob("*/repository.py"))
@@ -524,21 +545,21 @@ def _findings(
             severity="medium",
             status="open",
             area="frontend",
-            finding="Frontend modularization is started, but global lib, hooks, components, and features still own substantial feature logic.",
-            evidence="apps/dashboard/src/modules has account-editing, auth, and warmup indexes; global dashboard roots still contain many files.",
+            finding="Frontend modularization is progressing, but global lib, hooks, components, and features still own substantial feature logic.",
+            evidence="apps/dashboard/src/modules has account-editing, auth, warmup, and shared indexes; frontend-ownership-audit.md records migrated and deferred surfaces.",
             risk="Future frontend work can bypass module boundaries unless feature ownership keeps moving behind public module indexes.",
-            recommendation="Move feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
+            recommendation="Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
             suggested_phase="Phase 23",
         ),
         Finding(
             id="STRUCTURE-003",
             severity="medium",
-            status="deferred",
+            status="open",
             area="storage-contracts",
-            finding="app.models.py remains global and app.schemas.py remains a compatibility/global DTO layer.",
-            evidence="Storage boundary docs intentionally defer app.models split and shared contracts extraction.",
-            risk="New code may import global ORM or DTO layers unless architecture tests keep blocking the highest-risk paths.",
-            recommendation="Extract shared contracts and continue moving ORM access behind repositories before splitting app.models.",
+            finding="Shared contracts extraction has started while app.schemas.py remains a compatibility/global DTO layer.",
+            evidence="backend/app/contracts exists for low-risk shared DTOs; app.schemas re-exports moved DTOs for compatibility.",
+            risk="Remaining DTOs in app.schemas.py can still attract new shared imports unless architecture tests keep enforcing boundaries.",
+            recommendation="Move only proven shared DTOs into app.contracts and continue keeping ORM access behind repositories before splitting app.models.",
             suggested_phase="Phase 24",
         ),
         Finding(
@@ -546,10 +567,10 @@ def _findings(
             severity="low",
             status="accepted",
             area="legacy-wrappers",
-            finding="Legacy API/service/worker wrappers remain import-compatible by design.",
-            evidence="Wrappers include compatibility docstrings and are documented in legacy-wrapper-audit.md.",
+            finding="Legacy API/service/worker wrappers remain import-compatible with a static deprecation plan.",
+            evidence="Wrappers include compatibility docstrings and are documented in legacy-wrapper-audit.md, legacy-wrapper-deprecation-plan.md, and legacy-wrappers.json.",
             risk="Low while architecture tests prevent modules from importing legacy wrappers.",
-            recommendation="Define removal readiness and downstream call-site migration criteria.",
+            recommendation="Advance stages only in dedicated compatibility-preserving PRs; do not remove wrappers before Stage 5.",
             suggested_phase="Phase 25",
         ),
         Finding(
@@ -639,6 +660,7 @@ def build_report(repo_root: Path) -> dict[str, Any]:
         "runtime_roles": runtime_roles,
         "queues": queues,
         "legacy_wrappers": _audit_legacy_wrappers(repo_root),
+        "shared_contracts": _audit_shared_contracts(repo_root),
         "architecture_tests": _audit_architecture_tests(repo_root),
         "frontend_modules": _audit_frontend_modules(repo_root),
         "security_checks": _audit_security_checks(repo_root),

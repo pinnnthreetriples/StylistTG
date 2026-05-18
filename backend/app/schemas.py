@@ -1,12 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.contracts import accounts as _account_contracts
+from app.contracts import jobs as _job_contracts
+from app.contracts import safety as _safety_contracts
 from app.modules.warmup import contracts as _warmup_contracts
+
+ProfileAudioAction = _account_contracts.ProfileAudioAction
+ProfilePreviewRead = _account_contracts.ProfilePreviewRead
+ProfilePreviewStepRead = _account_contracts.ProfilePreviewStepRead
+JobSummaryRead = _job_contracts.JobSummaryRead
+AccountCapabilityRead = _safety_contracts.AccountCapabilityRead
+AccountOperationCooldownRead = _safety_contracts.AccountOperationCooldownRead
+AccountOperationSafetyRead = _safety_contracts.AccountOperationSafetyRead
+AccountRiskRead = _safety_contracts.AccountRiskRead
+AccountSafetyRead = _safety_contracts.AccountSafetyRead
+AccountSafetyReasonRead = _safety_contracts.AccountSafetyReasonRead
+AccountSafetySummaryRead = _safety_contracts.AccountSafetySummaryRead
+AccountValidityCheckRead = _safety_contracts.AccountValidityCheckRead
 
 WarmupCheckItemRead = _warmup_contracts.WarmupCheckItemRead
 WarmupCheckSeverityRead = _warmup_contracts.WarmupCheckSeverityRead
@@ -46,10 +61,6 @@ def __getattr__(name: str) -> object:
     value = getattr(_account_editing_contracts, name)
     globals()[name] = value
     return value
-
-
-def _empty_operation_cooldowns() -> list[AccountOperationCooldownRead]:
-    return []
 
 
 def _empty_readiness_risk_items() -> list[AccountReadinessRiskRead]:
@@ -134,55 +145,6 @@ class AccountRuntimeDiagnosticsRead(BaseModel):
     lock_owner: str | None
     lock_epoch: int
     diagnostic_timestamp: str
-
-
-class AccountSafetyReasonRead(BaseModel):
-    code: str
-    severity: str
-    source: str
-    message: str
-    last_seen_at: datetime | None = None
-
-
-class AccountCapabilityRead(BaseModel):
-    state: str
-    reason_codes: list[str]
-    label: str
-    last_checked_at: datetime | None = None
-    source: str
-
-
-class AccountRiskRead(BaseModel):
-    level: str
-    reasons: list[AccountSafetyReasonRead]
-
-
-class AccountOperationCooldownRead(BaseModel):
-    id: str
-    account_id: str
-    operation: str
-    level: str
-    reason_code: str
-    started_at: datetime
-    retry_after_at: datetime
-    source: str
-    source_job_id: str | None = None
-    source_step_id: str | None = None
-
-
-class AccountSafetySummaryRead(BaseModel):
-    account_id: str
-    health_status: str
-    overall_risk_level: str
-    validity_status: str
-    proxy_status: str = "none"
-    capability_summary: dict[str, str]
-    cooldown_summary: list[AccountOperationCooldownRead] = Field(
-        default_factory=_empty_operation_cooldowns
-    )
-    top_reasons: list[AccountSafetyReasonRead]
-    last_checked_at: datetime
-    source: str
 
 
 class AccountReadinessRiskReasonRead(BaseModel):
@@ -420,41 +382,8 @@ class RetryPolicyRead(BaseModel):
     error_category: str
 
 
-class AccountOperationSafetyRead(BaseModel):
-    operation: str
-    state: str
-    warnings: list[str] = Field(default_factory=list)
-    blockers: list[str] = Field(default_factory=list)
-    cooldowns: list[AccountOperationCooldownRead] = Field(
-        default_factory=_empty_operation_cooldowns
-    )
-    can_override: bool = False
-
-
 class AccountValidityCheckRequest(BaseModel):
     mode: Literal["db_snapshot", "tdlib_readonly", "full_capability"] = "db_snapshot"
-
-
-class AccountValidityCheckRead(BaseModel):
-    id: str
-    account_id: str
-    mode: str
-    status: str
-    started_at: datetime
-    finished_at: datetime | None
-    error_code: str | None
-    error_class: str | None
-    details: dict[str, Any] | None
-    result: dict[str, Any] | None
-    created_at: datetime
-
-
-class AccountSafetyRead(AccountSafetySummaryRead):
-    capabilities: dict[str, AccountCapabilityRead]
-    risk_by_operation: dict[str, AccountRiskRead]
-    cooldowns_by_operation: dict[str, list[AccountOperationCooldownRead]]
-    reasons: list[AccountSafetyReasonRead]
-    last_validity_check: AccountValidityCheckRead | None = None
 
 
 class AccountBatchSafetyPreviewRequest(BaseModel):
@@ -892,12 +821,6 @@ class ProfilePreviewRequest(BaseModel):
     photo_asset_id: str | None = None
 
 
-class ProfileAudioAction(StrEnum):
-    KEEP = "keep"
-    ADD = "add"
-    REMOVE = "remove"
-
-
 class StoryDraftCreate(BaseModel):
     account_id: str
     asset_id: str
@@ -1000,16 +923,6 @@ class DashboardStoryPostRead(BaseModel):
     expires_at: datetime | None
 
 
-class JobSummaryRead(BaseModel):
-    job_id: str
-    job_state: str
-    execution_intent_hash: str
-    plan_summary: list[str]
-    created_at: datetime | None
-    dedup_blocked_by_job_id: str | None = None
-    message: str | None = None
-
-
 class DashboardPipelineRead(BaseModel):
     latest_job: JobSummaryRead | None
     latest_job_state: str | None
@@ -1035,28 +948,6 @@ class DashboardProfileRead(BaseModel):
     editable_fields: DashboardEditableFieldsRead
     pipeline: DashboardPipelineRead
     diagnostics: DashboardDiagnosticsRead
-
-
-class ProfilePreviewStepRead(BaseModel):
-    step_key: str
-    step_type: str
-    order: int
-    required: bool
-    idempotency_class: str
-    payload: dict[str, Any]
-
-
-class ProfilePreviewRead(BaseModel):
-    can_create_job: bool
-    blocking_errors: list[str]
-    warnings: list[str]
-    normalized_payload: dict[str, Any]
-    execution_intent_hash: str
-    plan_json_snapshot: dict[str, Any]
-    steps: list[ProfilePreviewStepRead]
-    requires_execution_usable: bool
-    dedup_would_block: bool
-    dedup_blocked_by_job_id: str | None
 
 
 class JobRead(BaseModel):

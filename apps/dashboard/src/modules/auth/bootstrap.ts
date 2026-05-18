@@ -12,7 +12,8 @@ import {
   type AuthStateResponse,
   type AuthErrorMessage,
 } from './api'
-import type { ApiError, FormState } from '@/lib/dashboard'
+import type { ApiError } from '@/lib/http'
+import type { FormState } from '@/modules/account-editing'
 import { authStateQueryOptions } from '@/lib/queries'
 
 export function useAuthBootstrap({

@@ -20,5 +20,13 @@ to `app.modules`. Do not add behavior to these files.
 | `app.workers.warmup_jobs` | `app.modules.warmup.jobs` | Preserve old RQ due-session worker path. | Canonical warmup jobs module only. | No-arg handler signature or due-session behavior. | Remove after worker configs and imports use module job paths only. | Workflow registry compatibility tests. |
 | `app.workers.warmup_dispatch_jobs` | `app.modules.warmup.jobs` | Preserve old RQ dispatch worker path. | Canonical warmup jobs module only. | No-arg handler signature or dispatch behavior. | Remove after worker configs and imports use module job paths only. | Workflow registry compatibility tests. |
 
+Deprecation process:
+
+- `docs/architecture/legacy-wrapper-deprecation-plan.md` defines the staged removal policy.
+- `docs/architecture/legacy-wrappers.json` is the deterministic machine-readable wrapper manifest.
+- `backend/scripts/legacy_wrapper_audit.py` validates the committed manifest; `--print` emits the deterministic manifest to stdout.
+
+All wrappers remain in Stage 0 compatibility active. This audit does not remove
+wrappers, emit runtime deprecation warnings, rename paths, or change exports.
 Architecture tests enforce that feature modules do not import these wrappers and
 that wrapper files keep compatibility-owner docstrings.

@@ -17,22 +17,20 @@ import {
   uploadProfilePhoto,
   uploadStoryImage,
   uploadStoryVideo,
-} from '@/lib/api'
+} from './api'
 import { normalizeError } from '@/lib/appErrors'
 import {
   areDashboardFormStatesEqual,
   buildChangeItems,
   buildDashboardFormState,
-  buildJobMetrics,
   clearProfilePhotoDraft,
   clearStoredDashboardFormDraft,
   isSupportedProfileAudioFile,
   persistStoredDashboardFormDraft,
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
-  type CurrentProfile,
-  type FormState,
-} from '@/lib/dashboard'
+} from './mappers'
+import { buildJobMetrics } from '@/modules/shared'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
 import {
@@ -42,6 +40,7 @@ import {
   type JobSummary,
   type ProfilePreview,
 } from './api'
+import type { CurrentProfile, FormState } from './types'
 import { invalidateAccountSafetyQueries } from '@/lib/queries'
 
 type Dashboard = {

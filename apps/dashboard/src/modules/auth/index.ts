@@ -40,6 +40,7 @@ export {
 } from './batches'
 export { useAuthBootstrap } from './bootstrap'
 export { useAuthFlow } from './hooks'
+export { redactAuthUiError } from './labels'
 export type {
   AuthBatch,
   AuthBatchItem,

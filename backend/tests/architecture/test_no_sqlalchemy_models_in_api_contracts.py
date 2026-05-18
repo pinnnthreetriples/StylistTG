@@ -23,7 +23,7 @@ def _contract_files() -> list[Path]:
         if "__pycache__" in path.parts:
             continue
         stem = path.stem.lower()
-        if any(marker in stem for marker in CONTRACT_NAME_MARKERS):
+        if "contracts" in path.parts or any(marker in stem for marker in CONTRACT_NAME_MARKERS):
             candidates.append(path)
     return candidates
 
@@ -69,5 +69,7 @@ def test_contract_scan_covers_known_schema_files() -> None:
     scanned = {str(path).replace("\\", "/") for path in _contract_files()}
 
     assert "app/schemas.py" in scanned
+    assert "app/contracts/jobs.py" in scanned
+    assert "app/contracts/safety.py" in scanned
     assert "app/modules/account_editing/contracts.py" in scanned
     assert "app/modules/warmup/contracts.py" in scanned

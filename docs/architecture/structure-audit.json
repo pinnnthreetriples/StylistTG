@@ -46,6 +46,14 @@
       "boundary_keywords": [
         "legacy"
       ],
+      "mentions_ast": false,
+      "path": "backend/tests/architecture/test_legacy_wrapper_deprecation_manifest.py",
+      "test_count": 5
+    },
+    {
+      "boundary_keywords": [
+        "legacy"
+      ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_legacy_wrappers.py",
       "test_count": 2
@@ -101,6 +109,16 @@
       "boundary_keywords": [
         "FastAPI",
         "contracts",
+        "runtime"
+      ],
+      "mentions_ast": true,
+      "path": "backend/tests/architecture/test_shared_contracts_boundaries.py",
+      "test_count": 3
+    },
+    {
+      "boundary_keywords": [
+        "FastAPI",
+        "contracts",
         "router",
         "runtime"
       ],
@@ -133,6 +151,10 @@
   ],
   "boundaries": {
     "contracts_forbidden_imports": {
+      "backend/app/contracts/__init__.py": [],
+      "backend/app/contracts/accounts.py": [],
+      "backend/app/contracts/jobs.py": [],
+      "backend/app/contracts/safety.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
       "backend/app/modules/warmup/contracts.py": [],
@@ -168,10 +190,10 @@
     },
     {
       "area": "frontend",
-      "evidence": "apps/dashboard/src/modules has account-editing, auth, and warmup indexes; global dashboard roots still contain many files.",
-      "finding": "Frontend modularization is started, but global lib, hooks, components, and features still own substantial feature logic.",
+      "evidence": "apps/dashboard/src/modules has account-editing, auth, warmup, and shared indexes; frontend-ownership-audit.md records migrated and deferred surfaces.",
+      "finding": "Frontend modularization is progressing, but global lib, hooks, components, and features still own substantial feature logic.",
       "id": "STRUCTURE-002",
-      "recommendation": "Move feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
+      "recommendation": "Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
       "risk": "Future frontend work can bypass module boundaries unless feature ownership keeps moving behind public module indexes.",
       "severity": "medium",
       "status": "open",
@@ -179,21 +201,21 @@
     },
     {
       "area": "storage-contracts",
-      "evidence": "Storage boundary docs intentionally defer app.models split and shared contracts extraction.",
-      "finding": "app.models.py remains global and app.schemas.py remains a compatibility/global DTO layer.",
+      "evidence": "backend/app/contracts exists for low-risk shared DTOs; app.schemas re-exports moved DTOs for compatibility.",
+      "finding": "Shared contracts extraction has started while app.schemas.py remains a compatibility/global DTO layer.",
       "id": "STRUCTURE-003",
-      "recommendation": "Extract shared contracts and continue moving ORM access behind repositories before splitting app.models.",
-      "risk": "New code may import global ORM or DTO layers unless architecture tests keep blocking the highest-risk paths.",
+      "recommendation": "Move only proven shared DTOs into app.contracts and continue keeping ORM access behind repositories before splitting app.models.",
+      "risk": "Remaining DTOs in app.schemas.py can still attract new shared imports unless architecture tests keep enforcing boundaries.",
       "severity": "medium",
-      "status": "deferred",
+      "status": "open",
       "suggested_phase": "Phase 24"
     },
     {
       "area": "legacy-wrappers",
-      "evidence": "Wrappers include compatibility docstrings and are documented in legacy-wrapper-audit.md.",
-      "finding": "Legacy API/service/worker wrappers remain import-compatible by design.",
+      "evidence": "Wrappers include compatibility docstrings and are documented in legacy-wrapper-audit.md, legacy-wrapper-deprecation-plan.md, and legacy-wrappers.json.",
+      "finding": "Legacy API/service/worker wrappers remain import-compatible with a static deprecation plan.",
       "id": "STRUCTURE-004",
-      "recommendation": "Define removal readiness and downstream call-site migration criteria.",
+      "recommendation": "Advance stages only in dedicated compatibility-preserving PRs; do not remove wrappers before Stage 5.",
       "risk": "Low while architecture tests prevent modules from importing legacy wrappers.",
       "severity": "low",
       "status": "accepted",
@@ -244,6 +266,7 @@
         "apps/dashboard/src/modules/account-editing/hooks.ts",
         "apps/dashboard/src/modules/account-editing/index.ts",
         "apps/dashboard/src/modules/account-editing/labels.ts",
+        "apps/dashboard/src/modules/account-editing/mappers.ts",
         "apps/dashboard/src/modules/account-editing/types.ts"
       ],
       "has_components_dir": false,
@@ -258,12 +281,24 @@
         "apps/dashboard/src/modules/auth/bootstrap.ts",
         "apps/dashboard/src/modules/auth/hooks.ts",
         "apps/dashboard/src/modules/auth/index.ts",
+        "apps/dashboard/src/modules/auth/labels.ts",
         "apps/dashboard/src/modules/auth/types.ts"
       ],
       "has_components_dir": false,
       "has_index": true,
       "name": "auth",
       "path": "apps/dashboard/src/modules/auth"
+    },
+    {
+      "files": [
+        "apps/dashboard/src/modules/shared/api.ts",
+        "apps/dashboard/src/modules/shared/index.ts",
+        "apps/dashboard/src/modules/shared/jobs.ts"
+      ],
+      "has_components_dir": false,
+      "has_index": true,
+      "name": "shared",
+      "path": "apps/dashboard/src/modules/shared"
     },
     {
       "files": [
@@ -314,6 +349,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.api.account_update",
       "module_import_references": [],
@@ -324,6 +360,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.api.warmup",
       "module_import_references": [],
@@ -334,6 +371,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.account_update_jobs",
       "module_import_references": [],
@@ -344,6 +382,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.account_update_plan",
       "module_import_references": [],
@@ -354,6 +393,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.workers.account_update_jobs",
       "module_import_references": [],
@@ -364,6 +404,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.auth_context",
       "module_import_references": [],
@@ -374,6 +415,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup",
       "module_import_references": [],
@@ -384,6 +426,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup_worker",
       "module_import_references": [],
@@ -394,6 +437,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup_dispatch",
       "module_import_references": [],
@@ -404,6 +448,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup_isolation",
       "module_import_references": [],
@@ -414,6 +459,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup_readiness",
       "module_import_references": [],
@@ -424,6 +470,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.services.warmup_p2p",
       "module_import_references": [],
@@ -434,6 +481,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.workers.warmup_jobs",
       "module_import_references": [],
@@ -444,6 +492,7 @@
       "do_not_add_behavior_marker": true,
       "docstring_present": true,
       "documented_in_audit": true,
+      "documented_in_manifest": true,
       "exists": true,
       "import_path": "app.workers.warmup_dispatch_jobs",
       "module_import_references": [],
@@ -821,6 +870,48 @@
       "exists": true,
       "name": "Trivy",
       "path": ".github/workflows/trivy.yml"
+    }
+  ],
+  "shared_contracts": [
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__"
+      ],
+      "path": "backend/app/contracts/__init__.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "enum",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/accounts.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic"
+      ],
+      "path": "backend/app/contracts/jobs.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/safety.py"
     }
   ],
   "workflows": [

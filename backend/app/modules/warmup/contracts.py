@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.contracts.types import UuidString
+
 
 class WarmupStatusRead(StrEnum):
     DRAFT = "draft"
@@ -24,8 +26,8 @@ class WarmupCheckSeverityRead(StrEnum):
 
 
 class WarmupValidateRequest(BaseModel):
-    account_id: str
-    strategy_id: str
+    account_id: UuidString
+    strategy_id: UuidString
 
 
 class WarmupCheckItemRead(BaseModel):
@@ -44,8 +46,8 @@ class WarmupValidateRead(BaseModel):
 
 
 class WarmupSessionCreateRequest(BaseModel):
-    account_id: str
-    strategy_id: str
+    account_id: UuidString
+    strategy_id: UuidString
 
 
 class WarmupExecutionModeRead(StrEnum):

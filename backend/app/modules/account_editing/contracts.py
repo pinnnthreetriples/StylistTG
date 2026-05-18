@@ -12,6 +12,7 @@ from app.contracts.safety import (
     AccountRiskRead,
     AccountSafetyRead,
 )
+from app.contracts.types import UuidString
 
 
 def _empty_update_stories() -> list[AccountUpdateStoryDesiredState]:
@@ -44,7 +45,7 @@ class AccountUpdateStoryDesiredState(BaseModel):
 
 
 class AccountUpdateCreate(BaseModel):
-    account_id: str
+    account_id: UuidString
     profile: AccountUpdateProfileDesiredState | None = None
     profile_audio: AccountUpdateProfileAudioDesiredState | None = None
     stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=_empty_update_stories)

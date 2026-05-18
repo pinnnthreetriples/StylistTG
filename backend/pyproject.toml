@@ -161,6 +161,7 @@ tests_dir = [
   "tests/modules/account_editing/test_policies.py",
   "tests/warmup/test_warmup_account_integration.py",
   "tests/modules/warmup/test_warmup_legacy_compatibility.py",
+  "tests/modules/warmup/test_warmup_policies.py",
 ]
 pytest_add_cli_args = ["-p", "no:randomly"]
 

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Literal
+from datetime import UTC, datetime
+from typing import Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer, field_validator
 
 from app.contracts import accounts as _account_contracts
 from app.contracts import jobs as _job_contracts
+from app.contracts import neuro_commenting as _neuro_commenting_contracts
 from app.contracts import safety as _safety_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
@@ -22,6 +23,20 @@ AccountSafetyRead = _safety_contracts.AccountSafetyRead
 AccountSafetyReasonRead = _safety_contracts.AccountSafetyReasonRead
 AccountSafetySummaryRead = _safety_contracts.AccountSafetySummaryRead
 AccountValidityCheckRead = _safety_contracts.AccountValidityCheckRead
+NeuroCampaignAccountCreate = _neuro_commenting_contracts.NeuroCampaignAccountCreate
+NeuroCampaignAccountRead = _neuro_commenting_contracts.NeuroCampaignAccountRead
+NeuroCampaignCreate = _neuro_commenting_contracts.NeuroCampaignCreate
+NeuroCampaignPageRead = _neuro_commenting_contracts.NeuroCampaignPageRead
+NeuroCampaignRead = _neuro_commenting_contracts.NeuroCampaignRead
+NeuroCampaignUpdate = _neuro_commenting_contracts.NeuroCampaignUpdate
+NeuroEventPageRead = _neuro_commenting_contracts.NeuroEventPageRead
+NeuroEventRead = _neuro_commenting_contracts.NeuroEventRead
+NeuroGeneratedCommentPageRead = _neuro_commenting_contracts.NeuroGeneratedCommentPageRead
+NeuroGeneratedCommentRead = _neuro_commenting_contracts.NeuroGeneratedCommentRead
+NeuroGeneratedCommentRejectRequest = _neuro_commenting_contracts.NeuroGeneratedCommentRejectRequest
+NeuroGeneratedCommentUpdate = _neuro_commenting_contracts.NeuroGeneratedCommentUpdate
+NeuroTargetCreate = _neuro_commenting_contracts.NeuroTargetCreate
+NeuroTargetRead = _neuro_commenting_contracts.NeuroTargetRead
 
 WarmupCheckItemRead = _warmup_contracts.WarmupCheckItemRead
 WarmupCheckSeverityRead = _warmup_contracts.WarmupCheckSeverityRead
@@ -52,6 +67,9 @@ _ACCOUNT_EDITING_CONTRACT_NAMES = {
     "AccountUpdateStoryDesiredState",
 }
 
+ProfileCooldownSeconds = Literal[0] | Annotated[int, Field(ge=30, le=600)]
+OperationCooldownSeconds = Literal[0] | Annotated[int, Field(ge=30, le=86400)]
+
 
 def __getattr__(name: str) -> object:
     if name not in _ACCOUNT_EDITING_CONTRACT_NAMES:
@@ -71,9 +89,15 @@ def _empty_import_items() -> list[AccountImportItemRead]:
     return []
 
 
+def _serialize_utc_datetime(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.isoformat().replace("+00:00", "Z")
+
+
 class AccountCreate(BaseModel):
-    external_ref: str
-    telegram_user_id: str | None = None
+    external_ref: str = Field(min_length=1)
+    telegram_user_id: str | None = Field(default=None, min_length=1)
 
 
 class AccountWarmupInfoRead(BaseModel):
@@ -103,6 +127,10 @@ class AccountRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
 
 
 class AccountListItemRead(BaseModel):
@@ -327,6 +355,12 @@ class TelegramAuthSessionRead(BaseModel):
     completed_at: datetime | None
     failed_at: datetime | None
 
+    @field_serializer("cooldown_until", "created_at", "updated_at", "completed_at", "failed_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        return _serialize_utc_datetime(value)
+
 
 class AccountImportBatchCreate(BaseModel):
     source_type: Literal["tdlib-directory", "tdata", "session-file", "json-metadata"]
@@ -337,7 +371,10 @@ class AccountImportBatchCreate(BaseModel):
 
 class AccountImportBatchValidate(BaseModel):
     metadata: dict[str, Any] | None = None
-    content_base64: str | None = None
+    content_base64: str | None = Field(
+        default=None,
+        pattern=r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+    )
 
 
 class AccountImportBatchConfirm(BaseModel):
@@ -585,18 +622,57 @@ class ExecutionPolicyRead(BaseModel):
 
 
 class ExecutionPolicyUpdate(BaseModel):
-    profile_job_cooldown_seconds: int | None = None
-    profile_update_cooldown_seconds: int | None = None
-    username_cooldown_seconds: int | None = None
-    profile_photo_cooldown_seconds: int | None = None
-    profile_music_cooldown_seconds: int | None = None
-    story_post_cooldown_seconds: int | None = None
-    story_delete_cooldown_seconds: int | None = None
-    unknown_capability_policy: Literal["warning_only", "block_live_execution"] | None = None
-    recent_failure_policy: Literal["warning_only", "cooldown"] | None = None
-    fresh_validity_required: Literal["never", "if_stale", "always_for_live"] | None = None
-    fresh_validity_max_age_minutes: int | None = None
-    manual_hard_blocker_override_enabled: bool | None = None
+    profile_job_cooldown_seconds: ProfileCooldownSeconds = Field(
+        default=cast(ProfileCooldownSeconds, None)
+    )
+    profile_update_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    username_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    profile_photo_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    profile_music_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    story_post_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    story_delete_cooldown_seconds: OperationCooldownSeconds = Field(
+        default=cast(OperationCooldownSeconds, None)
+    )
+    unknown_capability_policy: Literal["warning_only", "block_live_execution"] = Field(
+        default=cast(Literal["warning_only", "block_live_execution"], None)
+    )
+    recent_failure_policy: Literal["warning_only", "cooldown"] = Field(
+        default=cast(Literal["warning_only", "cooldown"], None)
+    )
+    fresh_validity_required: Literal["never", "if_stale", "always_for_live"] = Field(
+        default=cast(Literal["never", "if_stale", "always_for_live"], None)
+    )
+    fresh_validity_max_age_minutes: Annotated[int, Field(ge=1, le=1440)] = Field(
+        default=cast(int, None)
+    )
+    manual_hard_blocker_override_enabled: StrictBool = Field(default=cast(StrictBool, None))
+
+    @field_validator(
+        "profile_job_cooldown_seconds",
+        "profile_update_cooldown_seconds",
+        "username_cooldown_seconds",
+        "profile_photo_cooldown_seconds",
+        "profile_music_cooldown_seconds",
+        "story_post_cooldown_seconds",
+        "story_delete_cooldown_seconds",
+        "fresh_validity_max_age_minutes",
+        mode="before",
+    )
+    @classmethod
+    def _reject_boolean_ints(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("boolean values are not valid integers")
+        return value
 
 
 class LivePreflightRead(BaseModel):
@@ -613,7 +689,7 @@ class LivePreflightRead(BaseModel):
 
 
 class OtpStartRequest(BaseModel):
-    phone_number: str
+    phone_number: str = Field(pattern=r"^\+[1-9]\d{7,14}$")
 
 
 class OtpConfirmRequest(BaseModel):
@@ -649,16 +725,21 @@ class AuthRuntimeModeRead(BaseModel):
 
 
 class AuthRuntimeModeUpdate(BaseModel):
-    tdlib_use_test_dc: bool
+    tdlib_use_test_dc: StrictBool
 
 
 class AuthBatchPhoneInput(BaseModel):
-    phone_number: str
+    phone_number: str = Field(pattern=r"^\+[1-9]\d{7,14}$")
+    label: str | None = None
+
+
+class AuthBatchValidatePhoneInput(BaseModel):
+    phone_number: str = Field(min_length=1)
     label: str | None = None
 
 
 class AuthBatchValidateRequest(BaseModel):
-    items: list[AuthBatchPhoneInput]
+    items: list[AuthBatchValidatePhoneInput] = Field(min_length=1)
 
 
 class AuthBatchValidItemRead(BaseModel):
@@ -692,12 +773,19 @@ class AuthBatchValidateRead(BaseModel):
 
 
 class AuthBatchCreate(BaseModel):
-    idempotency_key: str
+    idempotency_key: str = Field(min_length=1, max_length=128)
     label: str | None = None
-    items: list[AuthBatchPhoneInput]
-    max_running_commands: int = 2
-    max_waiting_input: int = 5
-    max_total_active: int = 6
+    items: list[AuthBatchPhoneInput] = Field(min_length=1)
+    max_running_commands: int = Field(default=2, ge=1, le=12)
+    max_waiting_input: int = Field(default=5, ge=1, le=12)
+    max_total_active: int = Field(default=6, ge=1, le=12)
+
+    @field_validator("max_running_commands", "max_waiting_input", "max_total_active", mode="before")
+    @classmethod
+    def _reject_boolean_ints(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("boolean values are not valid integers")
+        return value
 
 
 class AuthBatchRead(BaseModel):
@@ -715,6 +803,12 @@ class AuthBatchRead(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+    @field_serializer("created_at", "started_at", "finished_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        return _serialize_utc_datetime(value)
 
 
 class AuthBatchItemRead(BaseModel):
@@ -737,6 +831,12 @@ class AuthBatchItemRead(BaseModel):
     updated_at: datetime
     authorized_at: datetime | None
 
+    @field_serializer("code_expires_at", "next_retry_at", "updated_at", "authorized_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        return _serialize_utc_datetime(value)
+
 
 class AuthBatchSnapshotRead(BaseModel):
     batch: AuthBatchRead
@@ -744,12 +844,20 @@ class AuthBatchSnapshotRead(BaseModel):
     server_time: datetime
     poll_again_in_ms: int
 
+    @field_serializer("server_time")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
+
 
 class AuthBatchPollRead(BaseModel):
     batch: AuthBatchRead
     items: list[AuthBatchItemRead]
     server_time: datetime
     poll_again_in_ms: int
+
+    @field_serializer("server_time")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
 
 
 class AuthBatchSubmitCodeRequest(BaseModel):

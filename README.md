@@ -143,9 +143,10 @@ python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class 
 python -m app.workers.run_worker --queues account_lifecycle_jobs,maintenance_jobs
 python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
+python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 ```
 
-Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes auth and batch-auth work, `account_lifecycle_jobs`/`maintenance_jobs` are reserved for safe lifecycle/maintenance foundations, and warmup workers are only needed when testing the warmup module. Diagnostics report the production queue taxonomy.
+Use separate workers in normal development: `profile_jobs` executes profile/account-update work, `auth_jobs` executes auth and batch-auth work, `account_lifecycle_jobs`/`maintenance_jobs` are reserved for safe lifecycle/maintenance foundations, warmup workers are only needed when testing the warmup module, and `neuro_comment_jobs` is only needed when testing the NeuroCommenting foundation. Diagnostics report the production queue taxonomy.
 
 Diagnostics:
 

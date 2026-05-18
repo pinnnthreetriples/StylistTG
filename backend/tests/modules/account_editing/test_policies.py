@@ -9,6 +9,7 @@ from app.modules.account_editing.errors import (
     AccountAssetNotFoundError,
     ProfileAudioUnsupportedFormatError,
     StoriesDisabledError,
+    StoriesTdlibLiveDisabledError,
 )
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.planner import normalize_account_update_desired_state
@@ -29,6 +30,14 @@ def test_requested_profile_fields_returns_only_requested_profile_keys(db_session
     desired_state = {"profile": {"name": "Stylist TG", "username": None}, "stories": []}
 
     assert _policy(db_session).requested_profile_fields(desired_state) == {"name", "username"}
+
+
+def test_requested_profile_fields_ignores_missing_or_non_mapping_profile(db_session) -> None:
+    policy = _policy(db_session)
+
+    assert policy.requested_profile_fields({}) == set()
+    assert policy.requested_profile_fields({"profile": None}) == set()
+    assert policy.requested_profile_fields({"profile": ["name"]}) == set()
 
 
 def test_changed_profile_step_types_detects_name_change(db_session) -> None:
@@ -108,6 +117,24 @@ def test_changed_profile_step_types_detects_photo_when_asset_differs(
     ) == {"set_profile_photo"}
 
 
+def test_changed_profile_step_types_does_not_update_empty_matching_fields(db_session) -> None:
+    account = seed_account_with_profile(db_session)
+    account.profile_state.first_name = ""
+    account.profile_state.last_name = ""
+    account.profile_state.bio = None
+    account.profile_state.username = None
+    db_session.commit()
+    desired_state = _normalized_profile(name="", bio="", username="")
+
+    steps = _policy(db_session).changed_profile_step_types(
+        account=account,
+        desired_state=desired_state,
+        requested_profile_fields={"name", "bio", "username"},
+    )
+
+    assert steps == set()
+
+
 def test_preview_safety_returns_hard_stop_and_execution_usable_blockers(db_session) -> None:
     account = create_account(db_session, external_ref="+15550105001")
     account.account_state = AccountState.MANUAL_INTERVENTION_NEEDED
@@ -136,6 +163,29 @@ def test_validate_job_creation_blocks_stories_when_stories_disabled(db_session) 
             account_id=account.id,
             desired_state=desired_state,
             config=Settings(stories_enabled=False),
+        )
+
+
+def test_validate_job_creation_blocks_stories_when_tdlib_live_disabled(db_session) -> None:
+    account = seed_account_with_profile(db_session)
+    desired_state = normalize_account_update_desired_state(
+        {"stories": [{"action": "post_image", "asset_id": "story-missing"}]}
+    )
+
+    with pytest.raises(
+        StoriesTdlibLiveDisabledError,
+        match="^stories live TDLib execution is not enabled$",
+    ):
+        _policy(db_session).validate_job_creation(
+            account=account,
+            account_id=account.id,
+            desired_state=desired_state,
+            config=Settings(
+                stories_enabled=True,
+                profile_execution_adapter="tdlib",
+                stories_tdlib_live_enabled=False,
+                profile_job_cooldown_seconds=0,
+            ),
         )
 
 

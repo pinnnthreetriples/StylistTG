@@ -6,6 +6,8 @@ Do not add behavior to the legacy app.api wrapper.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -89,7 +91,7 @@ def post_warmup_session(
 @router.get("/sessions", response_model=WarmupSessionPageRead)
 def get_warmup_sessions(
     status_filter: list[str] | None = Query(default=None, alias="status"),
-    page: int = Query(default=1, ge=1),
+    page: int = Query(default=1, ge=1, le=10000),
     limit: int = Query(default=20, ge=1, le=100),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
@@ -105,13 +107,13 @@ def get_warmup_sessions(
 
 @router.get("/sessions/{session_id}", response_model=WarmupSessionRead)
 def get_warmup_session_detail(
-    session_id: str,
+    session_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupSessionRead:
     try:
         return warmup_service.get_warmup_session_detail(
-            session, session_id=session_id, workspace_id=auth.workspace_id
+            session, session_id=str(session_id), workspace_id=auth.workspace_id
         )
     except WarmupError as exc:
         raise _warmup_error(exc) from exc
@@ -119,13 +121,13 @@ def get_warmup_session_detail(
 
 @router.get("/sessions/{session_id}/status", response_model=WarmupSessionStatusRead)
 def get_warmup_session_status(
-    session_id: str,
+    session_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupSessionStatusRead:
     try:
         return warmup_service.get_warmup_session_status(
-            session, session_id=session_id, workspace_id=auth.workspace_id
+            session, session_id=str(session_id), workspace_id=auth.workspace_id
         )
     except WarmupError as exc:
         raise _warmup_error(exc) from exc
@@ -133,7 +135,7 @@ def get_warmup_session_status(
 
 @router.put("/sessions/{session_id}/pause", response_model=WarmupSessionRead)
 def put_warmup_session_pause(
-    session_id: str,
+    session_id: UUID,
     payload: WarmupPauseRequest,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
@@ -141,7 +143,7 @@ def put_warmup_session_pause(
     try:
         return warmup_service.pause_warmup_session_use_case(
             session,
-            session_id=session_id,
+            session_id=str(session_id),
             workspace_id=auth.workspace_id,
             reason=payload.reason,
         )
@@ -152,14 +154,14 @@ def put_warmup_session_pause(
 
 @router.put("/sessions/{session_id}/resume", response_model=WarmupSessionRead)
 def put_warmup_session_resume(
-    session_id: str,
+    session_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ) -> WarmupSessionRead:
     try:
         return warmup_service.resume_warmup_session_use_case(
             session,
-            session_id=session_id,
+            session_id=str(session_id),
             workspace_id=auth.workspace_id,
         )
     except WarmupError as exc:
@@ -169,13 +171,13 @@ def put_warmup_session_resume(
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_warmup_session_endpoint(
-    session_id: str,
+    session_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ) -> None:
     try:
         warmup_service.delete_warmup_session_use_case(
-            session, session_id=session_id, workspace_id=auth.workspace_id
+            session, session_id=str(session_id), workspace_id=auth.workspace_id
         )
     except WarmupError as exc:
         session.rollback()
@@ -184,8 +186,8 @@ def delete_warmup_session_endpoint(
 
 @router.get("/sessions/{session_id}/events", response_model=WarmupEventPageRead)
 def get_warmup_session_events(
-    session_id: str,
-    page: int = Query(default=1, ge=1),
+    session_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
     limit: int = Query(default=50, ge=1, le=100),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
@@ -193,7 +195,7 @@ def get_warmup_session_events(
     try:
         return warmup_service.list_warmup_session_events_page(
             session,
-            session_id=session_id,
+            session_id=str(session_id),
             workspace_id=auth.workspace_id,
             page=page,
             limit=limit,
@@ -207,7 +209,7 @@ def get_warmup_session_events(
     response_model=WarmupIsolationStatusRead,
 )
 def get_warmup_isolation_status(
-    account_id: str,
+    account_id: UUID,
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupIsolationStatusRead:
@@ -217,8 +219,9 @@ def get_warmup_isolation_status(
     The endpoint verifies the account belongs to the caller's workspace.
     Returns is_isolated=False with claim=null when no claim exists.
     """
-    require_account_in_workspace(session, account_id, auth)
-    return warmup_service.get_warmup_isolation_status(session, account_id=account_id)
+    account_id_str = str(account_id)
+    require_account_in_workspace(session, account_id_str, auth)
+    return warmup_service.get_warmup_isolation_status(session, account_id=account_id_str)
 
 
 def _warmup_error(exc: WarmupError) -> AppError:

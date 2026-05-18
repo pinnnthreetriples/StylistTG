@@ -30,6 +30,7 @@ cd backend; python -m app.workers.run_worker --queues maintenance_jobs,media_job
 | Media worker container | `media_worker` | Consumes `media_jobs`; reserved media ownership is explicit. |
 | Story worker container | `story_worker` | Consumes `story_jobs`; reserved story ownership is explicit. |
 | Account lifecycle worker container | `account_lifecycle_worker` | Consumes `account_lifecycle_jobs`; reserved lifecycle ownership is explicit. |
+| NeuroCommenting worker container | `neuro_comment_worker` | Consumes `neuro_comment_jobs`; safe foundation generation/manual approval support only. |
 | Scheduler process | `scheduler` | Owns scheduled enqueue decisions. |
 | Reaper process | `reaper` | Owns stale job reconciliation outside API replicas. |
 
@@ -51,6 +52,7 @@ cd backend; python -m app.workers.run_worker --queues maintenance_jobs --role ma
 cd backend; python -m app.workers.run_worker --queues media_jobs --role media_worker
 cd backend; python -m app.workers.run_worker --queues story_jobs --role story_worker
 cd backend; python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
+cd backend; python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 ```
 
 ## Operational Rules

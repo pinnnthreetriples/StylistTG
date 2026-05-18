@@ -16,6 +16,7 @@ maintenance_jobs
 scheduler_jobs
 warmup_jobs
 warmup_dispatch_jobs
+neuro_comment_jobs
 ```
 
 ## Commands
@@ -39,6 +40,7 @@ python -m app.workers.run_worker --queues story_jobs
 python -m app.workers.run_worker --queues account_lifecycle_jobs
 python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
+python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 ```
 
 Unknown queues are rejected.
@@ -53,6 +55,7 @@ python -m app.workers.run_worker --queues maintenance_jobs --role maintenance_wo
 python -m app.workers.run_worker --queues media_jobs --role media_worker
 python -m app.workers.run_worker --queues story_jobs --role story_worker
 python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
+python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 ```
 
 Runtime role boundaries are documented in `docs/runtime/runtime-boundaries.md`.
@@ -60,6 +63,8 @@ Runtime role boundaries are documented in `docs/runtime/runtime-boundaries.md`.
 Auth-session jobs use the `auth_jobs` queue. They are allowed only for Telegram authorization/reauthorization state transitions and must not run profile/story/music mutations.
 
 Warmup dry-run sessions use `warmup_jobs`. Shadow/live micro-session dispatch uses `warmup_dispatch_jobs`; live modes require explicit warmup feature gates and operator approval before touching real Telegram accounts.
+
+NeuroCommenting foundation jobs use `neuro_comment_jobs`. The foundation stage only supports safe generation/manual approval interfaces; live sending remains disabled.
 
 Future TDLib live auth worker command, after the TDLib runtime image and isolated
 volume mounts are validated:

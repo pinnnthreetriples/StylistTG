@@ -60,6 +60,53 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Auth batches
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
+    ("GET", "/api/neuro-commenting/campaigns", "viewer", False),
+    ("POST", "/api/neuro-commenting/campaigns", "operator", True),
+    ("GET", "/api/neuro-commenting/campaigns/{campaign_id}", "viewer", False),
+    ("PATCH", "/api/neuro-commenting/campaigns/{campaign_id}", "operator", True),
+    ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/start", "operator", True),
+    ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/pause", "operator", True),
+    ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/stop", "operator", True),
+    ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/accounts", "operator", True),
+    (
+        "DELETE",
+        "/api/neuro-commenting/campaigns/{campaign_id}/accounts/{account_id}",
+        "operator",
+        True,
+    ),
+    ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/targets", "operator", True),
+    (
+        "DELETE",
+        "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}",
+        "operator",
+        True,
+    ),
+    ("GET", "/api/neuro-commenting/generated-comments", "viewer", False),
+    (
+        "GET",
+        "/api/neuro-commenting/generated-comments/{comment_id}",
+        "viewer",
+        False,
+    ),
+    (
+        "PATCH",
+        "/api/neuro-commenting/generated-comments/{comment_id}",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/generated-comments/{comment_id}/approve",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/generated-comments/{comment_id}/reject",
+        "operator",
+        True,
+    ),
+    ("GET", "/api/neuro-commenting/events", "viewer", False),
     # Story drafts
     ("GET", "/api/story-drafts/{account_id}", "viewer", False),
     ("POST", "/api/story-drafts", "operator", True),
@@ -236,10 +283,16 @@ def _setup_test_env(*, role: str):
 
 
 def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
-    """Replace {account_id} etc. with real or dummy IDs."""
+    replacements = {
+        "campaign_id": "00000000-0000-4000-8000-000000000101",
+        "comment_id": "00000000-0000-4000-8000-000000000102",
+        "target_id": "00000000-0000-4000-8000-000000000103",
+    }
     if "{account_id}" in path:
         account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")
-        return path.replace("{account_id}", account_id)
+        path = path.replace("{account_id}", account_id)
+    for name, value in replacements.items():
+        path = path.replace(f"{{{name}}}", value)
     return path
 
 

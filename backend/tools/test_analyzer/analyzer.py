@@ -66,7 +66,20 @@ class Analyzer:
                     continue
             try:
                 issues = rule.check(ctx, self.config)
-            except Exception:
+            except Exception as exc:
+                all_issues.append(
+                    Issue(
+                        rule_id="META002",
+                        rule_type="analyzer",
+                        severity=Severity.CRITICAL,
+                        file=relative_path,
+                        line=1,
+                        message=(f"Analyzer rule {rule.id} crashed: {type(exc).__name__}: {exc}"),
+                        recommendation=(
+                            "Fix the analyzer rule before trusting this test-quality gate."
+                        ),
+                    )
+                )
                 continue
             for issue in issues:
                 # Apply severity overrides from config

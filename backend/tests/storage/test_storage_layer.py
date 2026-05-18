@@ -8,7 +8,7 @@ from app.services.asset_cleanup import cleanup_orphan_asset_directories
 from app.storage import build_storage_service
 from app.storage.errors import InvalidStorageKeyError
 from app.storage.local import LocalStorageService
-from app.storage.paths import normalize_storage_key, resolve_tdlib_account_dirs
+from app.storage.paths import normalize_storage_key, resolve_child_path, resolve_tdlib_account_dirs
 
 
 def test_local_storage_save_open_exists_delete(tmp_path) -> None:
@@ -41,6 +41,26 @@ def test_storage_key_normalization_rejects_traversal() -> None:
 
     with pytest.raises(InvalidStorageKeyError):
         normalize_storage_key("assets/./asset.jpg")
+
+
+def test_storage_key_normalization_rejects_exact_boundary_values() -> None:
+    assert normalize_storage_key(" assets//one\\source\\file.jpg ") == "assets/one/source/file.jpg"
+
+    for key in ("", ".", "./asset.jpg", "~/asset.jpg", "C:/asset.jpg"):
+        with pytest.raises(InvalidStorageKeyError):
+            normalize_storage_key(key)
+
+
+def test_resolve_child_path_does_not_create_directory_when_disabled(tmp_path) -> None:
+    child = resolve_child_path(tmp_path, "safe", "child", create=False)
+
+    assert child == (tmp_path / "safe" / "child").resolve()
+    assert not child.exists()
+
+
+def test_resolve_child_path_rejects_escape_after_resolution(tmp_path) -> None:
+    with pytest.raises(InvalidStorageKeyError):
+        resolve_child_path(tmp_path, "..", "escape")
 
 
 def test_s3_adapter_builds_with_complete_config() -> None:

@@ -6,7 +6,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/INDEX.md
-last_updated: 2026-05-13
+last_updated: 2026-05-18
 ---
 
 # StylistTG Memory Router
@@ -18,7 +18,7 @@ last_updated: 2026-05-13
 - React/TypeScript/Vite dashboard lives in `apps/dashboard` with shared packages under `packages/`.
 - FastAPI backend lives in `backend/app` with routers, services, adapters, RQ workers, and SQLAlchemy models.
 - Local dashboard launcher `scripts/start-dev.ps1` starts Memurai Redis, backend on port `8002`, profile/auth workers, and Vite on `5173`.
-- Queue taxonomy includes `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`, `warmup_jobs`, and `warmup_dispatch_jobs`.
+- Queue taxonomy includes `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`, `warmup_jobs`, `warmup_dispatch_jobs`, and `neuro_comment_jobs`.
 - Account Preparation / Warmup is implemented at backend `/api/warmup` and frontend `/modules/warmup`.
 - Frontend is polling-first; no WebSocket/SSE contract exists.
 - PostgreSQL is the persisted source of truth; Redis/RQ is execution infrastructure.

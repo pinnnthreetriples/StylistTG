@@ -53,8 +53,7 @@ class TestTypoRateDistribution:
         n = 10000
         rng = random.Random(42)
         typos = sum(
-            1 for _ in range(n)
-            if maybe_typo("Hello world test", probability, rng=rng).has_typo
+            1 for _ in range(n) if maybe_typo("Hello world test", probability, rng=rng).has_typo
         )
         observed_rate = typos / n
 
@@ -88,9 +87,7 @@ class TestShuffleDeterminism:
         seed_a=st.integers(min_value=0, max_value=2**30),
         seed_b=st.integers(min_value=2**30 + 1, max_value=2**31),
     )
-    def test_different_seeds_produce_different_output(
-        self, n: int, seed_a: int, seed_b: int
-    ):
+    def test_different_seeds_produce_different_output(self, n: int, seed_a: int, seed_b: int):
         items = list(range(n))
         a = shuffle(items, seed=seed_a)
         b = shuffle(items, seed=seed_b)

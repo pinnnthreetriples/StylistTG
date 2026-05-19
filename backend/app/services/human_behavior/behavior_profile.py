@@ -76,16 +76,10 @@ def get_or_create_baseline(
         id=new_id(),
         workspace_id=workspace_id,
         account_id=account_id,
-        typing_speed_baseline_cpm=int(
-            r.uniform(*ranges["typing_speed_cpm"])
-        ),
+        typing_speed_baseline_cpm=int(r.uniform(*ranges["typing_speed_cpm"])),
         typo_rate_baseline=round(r.uniform(*ranges["typo_rate"]), 4),
-        profile_view_probability_baseline=round(
-            r.uniform(*ranges["profile_view_probability"]), 4
-        ),
-        scroll_probability_baseline=round(
-            r.uniform(*ranges["scroll_probability"]), 4
-        ),
+        profile_view_probability_baseline=round(r.uniform(*ranges["profile_view_probability"]), 4),
+        scroll_probability_baseline=round(r.uniform(*ranges["scroll_probability"]), 4),
         message_deletion_probability_baseline=round(
             r.uniform(*ranges["message_deletion_probability"]), 4
         ),
@@ -117,9 +111,7 @@ def randomize_for_session(
         profile_view_probability=max(
             0.0, min(1.0, jitter(baseline.profile_view_probability_baseline))
         ),
-        scroll_probability=max(
-            0.0, min(1.0, jitter(baseline.scroll_probability_baseline))
-        ),
+        scroll_probability=max(0.0, min(1.0, jitter(baseline.scroll_probability_baseline))),
         message_deletion_probability=max(
             0.0, min(1.0, jitter(baseline.message_deletion_probability_baseline))
         ),

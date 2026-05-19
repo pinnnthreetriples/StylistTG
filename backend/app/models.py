@@ -286,16 +286,12 @@ class AccountBehaviorProfile(Base):
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), nullable=False
     )
-    account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False
-    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
     typing_speed_baseline_cpm: Mapped[int] = mapped_column(Integer, nullable=False)
     typo_rate_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     profile_view_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     scroll_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
-    message_deletion_probability_baseline: Mapped[float] = mapped_column(
-        Float, nullable=False
-    )
+    message_deletion_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     action_sequence_seed: Mapped[int] = mapped_column(Integer, nullable=False)
     last_randomization_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

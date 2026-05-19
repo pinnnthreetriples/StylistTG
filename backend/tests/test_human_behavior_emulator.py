@@ -56,13 +56,9 @@ class TestBehaviorProfileBaseline:
         session = _make_session()
         account = _ensure_account(session)
 
-        first = get_or_create_baseline(
-            session, account.id, WORKSPACE_ID, preset="balanced"
-        )
+        first = get_or_create_baseline(session, account.id, WORKSPACE_ID, preset="balanced")
         session.flush()
-        second = get_or_create_baseline(
-            session, account.id, WORKSPACE_ID, preset="balanced"
-        )
+        second = get_or_create_baseline(session, account.id, WORKSPACE_ID, preset="balanced")
         assert first.id == second.id
         assert first.typing_speed_baseline_cpm == second.typing_speed_baseline_cpm
         assert first.typo_rate_baseline == second.typo_rate_baseline
@@ -74,9 +70,7 @@ class TestRandomizeForSession:
     def test_session_values_within_10_percent(self):
         session = _make_session()
         account = _ensure_account(session)
-        baseline = get_or_create_baseline(
-            session, account.id, WORKSPACE_ID, rng=random.Random(42)
-        )
+        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=random.Random(42))
 
         rng = random.Random(99)
         sp = randomize_for_session(baseline, rng=rng)

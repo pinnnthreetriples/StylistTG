@@ -272,6 +272,40 @@ class AccountGgrScore(Base):
     )
 
 
+class AccountBehaviorProfile(Base):
+    __tablename__ = "account_behavior_profile"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "account_id", name="uq_account_behavior_profile_ws_account"
+        ),
+        Index("ix_account_behavior_profile_workspace_id", "workspace_id"),
+        Index("ix_account_behavior_profile_account_id", "account_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False
+    )
+    typing_speed_baseline_cpm: Mapped[int] = mapped_column(Integer, nullable=False)
+    typo_rate_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    profile_view_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    scroll_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    message_deletion_probability_baseline: Mapped[float] = mapped_column(
+        Float, nullable=False
+    )
+    action_sequence_seed: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_randomization_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class WorkspacePlan(Base):
     __tablename__ = "workspace_plan"
 

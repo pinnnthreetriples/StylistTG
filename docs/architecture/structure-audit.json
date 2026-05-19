@@ -154,6 +154,7 @@
       "backend/app/contracts/__init__.py": [],
       "backend/app/contracts/accounts.py": [],
       "backend/app/contracts/ggr.py": [],
+      "backend/app/contracts/human_behavior.py": [],
       "backend/app/contracts/jobs.py": [],
       "backend/app/contracts/neuro_commenting.py": [],
       "backend/app/contracts/safety.py": [],
@@ -375,7 +376,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 42,
-        "apps/dashboard/src/features": 43,
+        "apps/dashboard/src/features": 44,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 56
       },
@@ -990,6 +991,16 @@
         "typing"
       ],
       "path": "backend/app/contracts/ggr.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic"
+      ],
+      "path": "backend/app/contracts/human_behavior.py"
     },
     {
       "forbidden_imports": [],

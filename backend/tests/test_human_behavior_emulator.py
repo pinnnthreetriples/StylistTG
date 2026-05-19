@@ -31,6 +31,11 @@ from app.services.human_behavior.action_sequencer import shuffle
 WORKSPACE_ID = "00000000-0000-4000-8000-000000000002"
 
 
+def _seeded_rng(seed: int = 42) -> random.Random:
+    """Return a deterministic RNG instance (seed is explicit)."""
+    return random.Random(seed)
+
+
 def _make_session() -> Session:
     factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -70,9 +75,9 @@ class TestRandomizeForSession:
     def test_session_values_within_10_percent(self):
         session = _make_session()
         account = _ensure_account(session)
-        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=random.Random(42))
+        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
 
-        rng = random.Random(99)
+        rng = _seeded_rng(99)
         sp = randomize_for_session(baseline, rng=rng)
 
         # typing speed should be within 10% of baseline
@@ -92,7 +97,7 @@ class TestTypingEmulator:
     def test_duration_approximately_correct(self):
         text = "Hello world, this is a test of the typing emulator"
         cpm = 120.0
-        fragments = emit_typing(text, cpm, rng=random.Random(42))
+        fragments = emit_typing(text, cpm, rng=_seeded_rng(42))
 
         expected = len(text) * 60.0 / cpm
         actual_typing_only = sum(f.duration_seconds for f in fragments)
@@ -108,13 +113,13 @@ class TestTypoGenerator:
     """4. probability=0.0 → never typo; 1.0 → always."""
 
     def test_zero_probability_never_typos(self):
-        rng = random.Random(42)
+        rng = _seeded_rng(42)
         for _ in range(100):
             result = maybe_typo("Hello world", 0.0, rng=rng)
             assert result.has_typo is False
 
     def test_full_probability_always_typos(self):
-        rng = random.Random(42)
+        rng = _seeded_rng(42)
         for _ in range(100):
             result = maybe_typo("Hello world", 1.0, rng=rng)
             assert result.has_typo is True
@@ -126,13 +131,13 @@ class TestDecoyActions:
     """5. probability=0.0 → no decoys; 1.0 → always."""
 
     def test_zero_probability_no_actions(self):
-        rng = random.Random(42)
+        rng = _seeded_rng(42)
         for _ in range(100):
             actions = run_before_send("acct-1", 0.0, rng=rng)
             assert actions == []
 
     def test_full_probability_always_actions(self):
-        rng = random.Random(42)
+        rng = _seeded_rng(42)
         for _ in range(100):
             actions = run_before_send("acct-1", 1.0, rng=rng)
             assert len(actions) >= 1

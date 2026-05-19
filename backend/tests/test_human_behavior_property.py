@@ -19,6 +19,11 @@ from app.services.human_behavior.typo_generator import maybe_typo
 from app.services.human_behavior.action_sequencer import shuffle
 
 
+def _seeded_rng(seed: int = 42) -> random.Random:
+    """Return a deterministic RNG instance (seed is explicit)."""
+    return random.Random(seed)
+
+
 class TestTypingDurationDistribution:
     """1. Over many runs, mean typing duration ≈ expected ± 15%."""
 
@@ -30,7 +35,7 @@ class TestTypingDurationDistribution:
     )
     def test_mean_duration_within_tolerance(self, text_len: int, cpm: float, seed: int):
         text = "a" * text_len
-        rng = random.Random(seed)
+        rng = _seeded_rng(seed)
         fragments = emit_typing(text, cpm, rng=rng)
 
         expected = text_len * 60.0 / cpm
@@ -51,7 +56,7 @@ class TestTypoRateDistribution:
     @pytest.mark.parametrize("probability", [0.0, 0.05, 0.50, 1.0])
     def test_typo_rate_converges(self, probability: float):
         n = 10000
-        rng = random.Random(42)
+        rng = _seeded_rng(42)
         typos = sum(
             1 for _ in range(n) if maybe_typo("Hello world test", probability, rng=rng).has_typo
         )
@@ -94,3 +99,30 @@ class TestShuffleDeterminism:
         # With n ≥ 10 and different seeds, the Hamming distance should be > 0
         distance = sum(1 for x, y in zip(a, b, strict=True) if x != y)
         assert distance > 0, f"seeds {seed_a} vs {seed_b} produced same order for n={n}"
+
+
+class TestEdgeCases:
+    """Boundary and error-path coverage."""
+
+    def test_typo_on_single_char_returns_original(self):
+        """Single-char text cannot swap adjacent chars → no typo possible."""
+        rng = _seeded_rng(0)
+        result = maybe_typo("X", 1.0, rng=rng)
+        # Single char has no adjacent pair to swap
+        assert result.typo_text in (None, "X")
+
+    def test_shuffle_empty_list(self):
+        """Shuffling empty list returns empty list."""
+        assert shuffle([], seed=1) == []
+
+    def test_shuffle_single_element(self):
+        """Shuffling single-element list returns same list."""
+        assert shuffle(["only"], seed=99) == ["only"]
+
+    def test_emit_typing_single_char(self):
+        """Single char still produces valid fragments."""
+        frags = emit_typing("A", 60.0, rng=_seeded_rng(7))
+        assert len(frags) >= 1
+        assert all(f.duration_seconds >= 0 for f in frags)
+        # At least one fragment should have positive duration
+        assert any(f.duration_seconds > 0 for f in frags)

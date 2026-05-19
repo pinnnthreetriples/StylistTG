@@ -4,8 +4,8 @@ Phase 2 Task 14: per-account stable behavior profile for the
 HumanBehaviorEmulator layer. Stores randomized-on-first-use
 baseline values so each account looks consistently unique.
 
-Revision ID: 20260520_0035
-Revises: 20260520_0034
+Revision ID: 20260520_0037
+Revises: 20260520_0036
 Create Date: 2026-05-20
 """
 
@@ -15,8 +15,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20260520_0035"
-down_revision = "20260520_0034"
+revision = "20260520_0037"
+down_revision = "20260520_0036"
 branch_labels = None
 depends_on = None
 

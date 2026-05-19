@@ -29,6 +29,20 @@ ChannelRuleType = Literal[
     "blacklist", "whitelist", "auto_blacklist_suggested", "auto_whitelist_suggested"
 ]
 
+# Phase 0 Task 1: enum values declared in DB/python enum but not yet implemented.
+# Reject at Create/Update boundary with feature_not_available marker.
+_DISABLED_CAMPAIGN_MODES: frozenset[str] = frozenset({"semantic_match"})
+_DISABLED_WORK_MODES: frozenset[str] = frozenset({"scheduled"})
+_DISABLED_CHANNEL_RULE_TYPES: frozenset[str] = frozenset(
+    {"auto_blacklist_suggested", "auto_whitelist_suggested"}
+)
+
+
+def _reject_disabled_value(value: object, *, disabled: frozenset[str], feature: str) -> object:
+    if isinstance(value, str) and value in disabled:
+        raise ValueError(f"feature_not_available: {feature}={value}")
+    return value
+
 
 def _serialize_utc_datetime(value: datetime | None) -> str | None:
     if value is None:
@@ -92,6 +106,18 @@ class NeuroCampaignCreate(BaseModel):
             raise ValueError("auto_send_enabled must be false")
         return value
 
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _reject_disabled_mode(cls, value: object) -> object:
+        return _reject_disabled_value(value, disabled=_DISABLED_CAMPAIGN_MODES, feature="mode")
+
+    @field_validator("work_mode", mode="before")
+    @classmethod
+    def _reject_disabled_work_mode(cls, value: object) -> object:
+        return _reject_disabled_value(
+            value, disabled=_DISABLED_WORK_MODES, feature="work_mode"
+        )
+
 
 class NeuroCampaignUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
@@ -142,6 +168,22 @@ class NeuroCampaignUpdate(BaseModel):
         if value is not None and value is not False:
             raise ValueError("auto_send_enabled must be false")
         return value
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _reject_disabled_mode(cls, value: object) -> object:
+        if value is None:
+            return value
+        return _reject_disabled_value(value, disabled=_DISABLED_CAMPAIGN_MODES, feature="mode")
+
+    @field_validator("work_mode", mode="before")
+    @classmethod
+    def _reject_disabled_work_mode(cls, value: object) -> object:
+        if value is None:
+            return value
+        return _reject_disabled_value(
+            value, disabled=_DISABLED_WORK_MODES, feature="work_mode"
+        )
 
 
 class NeuroCampaignRead(BaseModel):
@@ -593,6 +635,13 @@ class NeuroChannelRuleCreate(BaseModel):
         if not target_ref:
             raise ValueError("target_ref is required")
         return target_ref
+
+    @field_validator("rule_type", mode="before")
+    @classmethod
+    def _reject_disabled_rule_type(cls, value: object) -> object:
+        return _reject_disabled_value(
+            value, disabled=_DISABLED_CHANNEL_RULE_TYPES, feature="rule_type"
+        )
 
 
 class NeuroCampaignStatsRead(BaseModel):

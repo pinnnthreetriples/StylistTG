@@ -56,7 +56,7 @@ class FakeRedis:
     def eval(self, script: str, numkeys: int, *args):
         keys = list(args[:numkeys])
         argv = list(args[numkeys:])
-        if "reserve_limit_v1" in script:
+        if "reserve_limit_v2" in script:
             reservation_key = str(argv[0])
             reservation_payload = str(argv[1])
             reservation_ttl = int(argv[2])
@@ -73,9 +73,25 @@ class FakeRedis:
                 if current >= max_value:
                     return [0, name, self.ttl(key)]
                 checked.append((key, name, max_value, window_seconds))
+            min_delay_count = int(argv[cursor])
+            cursor += 1
+            min_delay: list[tuple[str, str, int]] = []
+            for index in range(min_delay_count):
+                key = str(keys[limit_count + index])
+                name = str(argv[cursor])
+                reserve_ttl = int(argv[cursor + 1])
+                cursor += 2
+                if self.get(key) is not None:
+                    return [0, name, self.ttl(key)]
+                min_delay.append((key, name, reserve_ttl))
             for key, _name, _max_value, window_seconds in checked:
                 self.incrby(key, 1)
                 self.expire(key, window_seconds, nx=True)
+            for key, name, reserve_ttl in min_delay:
+                if not self.set(key, reservation_key, ex=reserve_ttl, nx=True):
+                    for counter_key, _name, _max_value, _window_seconds in checked:
+                        self.decrby(counter_key, 1)
+                    return [0, name, self.ttl(key)]
             self.set(reservation_key, reservation_payload, ex=reservation_ttl, nx=True)
             return [1, "", 0]
         raise AssertionError("unexpected lua script")
@@ -229,6 +245,32 @@ def test_commit_sets_min_delay_ttl_from_limit() -> None:
     limiter.commit(reservation)
 
     assert redis.ttl("neuro:workspace-1:last_comment:target:target-1") == 10
+
+
+def test_min_delay_is_reserved_atomically_until_rollback() -> None:
+    redis = FakeRedis()
+    limiter = NeuroCommentRateLimiter(
+        redis_client=redis,
+        limits=[
+            {
+                "scope_type": "target",
+                "scope_id": "target-1",
+                "limit_type": "min_delay_between_comments",
+                "max_value": 10,
+                "window_seconds": 10,
+            }
+        ],
+    )
+
+    first = limiter.reserve(_scope())
+    denied_before_commit = limiter.reserve(_scope())
+    limiter.rollback(first)
+    after_rollback = limiter.reserve(_scope())
+
+    assert first.allowed is True
+    assert denied_before_commit.allowed is False
+    assert denied_before_commit.reason == "target min_delay_between_comments active"
+    assert after_rollback.allowed is True
 
 
 def test_max_parallel_attempts_releases_capacity_on_commit() -> None:

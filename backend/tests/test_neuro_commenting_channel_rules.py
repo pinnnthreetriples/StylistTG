@@ -52,6 +52,33 @@ def test_create_list_delete_rule_and_policy_blocks_blacklist(db_session) -> None
     assert allowed.allowed is True
 
 
+def test_create_rule_deduplicates_same_workspace_target_and_type(db_session) -> None:
+    _campaign, target = _campaign_and_target(db_session)
+    service = ChannelRulesService()
+
+    first = service.create_rule(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        actor_user_id="user-1",
+        payload={"target_ref": target.channel_ref, "rule_type": "blacklist", "reason": "bad"},
+    )
+    duplicate = service.create_rule(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        actor_user_id="user-2",
+        payload={
+            "target_ref": f" {target.channel_ref} ",
+            "rule_type": "blacklist",
+            "reason": "still bad",
+        },
+    )
+    listed, total = service.list_rules(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+
+    assert duplicate.id == first.id
+    assert total == 1
+    assert [rule.id for rule in listed] == [first.id]
+
+
 def test_auto_suggestion_does_not_block_and_pause_resume_target(db_session) -> None:
     _campaign, target = _campaign_and_target(db_session)
     service = ChannelRulesService()

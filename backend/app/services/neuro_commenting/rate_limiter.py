@@ -13,12 +13,16 @@ from app.config import settings
 from app.models import NeuroCommentCampaign, NeuroCommentCampaignAccount, NeuroCommentTarget
 
 _RESERVE_SCRIPT = """
--- reserve_limit_v1
+-- reserve_limit_v2
 local reservation_key = ARGV[1]
 local reservation_payload = ARGV[2]
 local reservation_ttl = tonumber(ARGV[3])
 local limit_count = tonumber(ARGV[4])
 local cursor = 5
+
+if redis.call("EXISTS", reservation_key) == 1 then
+  return {0, "reservation_conflict", reservation_ttl}
+end
 
 for i = 1, limit_count do
   local key = KEYS[i]
@@ -27,6 +31,17 @@ for i = 1, limit_count do
   cursor = cursor + 3
   local current = tonumber(redis.call("GET", key) or "0")
   if current >= max_value then
+    return {0, name, redis.call("TTL", key)}
+  end
+end
+
+local min_delay_count = tonumber(ARGV[cursor])
+cursor = cursor + 1
+for i = 1, min_delay_count do
+  local key = KEYS[limit_count + i]
+  local name = ARGV[cursor]
+  cursor = cursor + 2
+  if redis.call("GET", key) then
     return {0, name, redis.call("TTL", key)}
   end
 end
@@ -43,9 +58,35 @@ for i = 1, limit_count do
   cursor = cursor + 2
 end
 
+cursor = 5 + (limit_count * 3) + 1
+local reserved_min_delay_keys = {}
+for i = 1, min_delay_count do
+  local key = KEYS[limit_count + i]
+  local name = ARGV[cursor]
+  local reserve_ttl = tonumber(ARGV[cursor + 1])
+  if not redis.call("SET", key, reservation_key, "EX", reserve_ttl, "NX") then
+    for j = 1, limit_count do
+      redis.call("DECRBY", KEYS[j], 1)
+    end
+    for _, reserved_key in ipairs(reserved_min_delay_keys) do
+      if redis.call("GET", reserved_key) == reservation_key then
+        redis.call("DEL", reserved_key)
+      end
+    end
+    return {0, name, redis.call("TTL", key)}
+  end
+  table.insert(reserved_min_delay_keys, key)
+  cursor = cursor + 2
+end
+
 if not redis.call("SET", reservation_key, reservation_payload, "EX", reservation_ttl, "NX") then
   for i = 1, limit_count do
     redis.call("DECRBY", KEYS[i], 1)
+  end
+  for _, reserved_key in ipairs(reserved_min_delay_keys) do
+    if redis.call("GET", reserved_key) == reservation_key then
+      redis.call("DEL", reserved_key)
+    end
   end
   return {0, "reservation_conflict", reservation_ttl}
 end
@@ -130,9 +171,6 @@ class NeuroCommentRateLimiter:
             parallel_limits = [
                 item for item in limits if item["limit_type"] == "max_parallel_attempts"
             ]
-            min_delay_denied = self._first_min_delay_denied(redis, scope, limits)
-            if min_delay_denied is not None:
-                return min_delay_denied
             window_counter_keys = [self._limit_key(scope, limit) for limit in counter_limits]
             parallel_counter_keys = [self._parallel_key(scope, limit) for limit in parallel_limits]
             reserve_limits = [
@@ -156,10 +194,16 @@ class NeuroCommentRateLimiter:
                         f"{limit['scope_type']}:{limit['scope_id']}"
                     ),
                     "ttl": int(limit["window_seconds"]),
+                    "reserve_ttl": min(
+                        int(limit["window_seconds"]),
+                        self._reservation_ttl_seconds,
+                    ),
+                    "name": self._limit_name(limit),
                 }
                 for limit in limits
                 if limit["limit_type"] == "min_delay_between_comments"
             ]
+            min_delay_keys = [item["key"] for item in last_comment_keys]
             reservation_key = self._reservation_key(scope.workspace_id, reservation_id)
             payload = json.dumps(
                 {
@@ -172,13 +216,16 @@ class NeuroCommentRateLimiter:
             )
             result = redis.eval(
                 _RESERVE_SCRIPT,
-                len(reserve_keys),
+                len(reserve_keys) + len(min_delay_keys),
                 *reserve_keys,
+                *min_delay_keys,
                 reservation_key,
                 payload,
                 self._reservation_ttl_seconds,
                 len(reserve_limits),
                 *self._lua_limit_args(reserve_limits),
+                len(last_comment_keys),
+                *self._lua_min_delay_args(last_comment_keys),
             )
             if int(result[0]) != 1:
                 denied_name = self._decode_lua_value(result[1])
@@ -237,6 +284,8 @@ class NeuroCommentRateLimiter:
                 pipeline = redis.pipeline()
                 for counter_key in data.get("rollback_counter_keys", data.get("counter_keys", [])):
                     pipeline.decrby(counter_key, 1)
+                for item in data.get("last_comment_keys", []):
+                    pipeline.delete(item["key"])
                 pipeline.delete(key)
                 pipeline.execute()
         except RedisError:
@@ -334,23 +383,6 @@ class NeuroCommentRateLimiter:
             )
         return defaults
 
-    def _first_min_delay_denied(
-        self, redis: Any, scope: RateLimitScope, limits: list[dict[str, Any]]
-    ) -> RateLimitReservation | None:
-        for limit in limits:
-            limit_type = str(limit["limit_type"])
-            if limit_type == "min_delay_between_comments":
-                last_key = f"neuro:{scope.workspace_id}:last_comment:{limit['scope_type']}:{limit['scope_id']}"
-                if redis.get(last_key) is not None:
-                    return RateLimitReservation(
-                        None,
-                        False,
-                        reason=f"{limit['scope_type']} min_delay_between_comments active",
-                        retry_after_seconds=max(1, int(redis.ttl(last_key))),
-                        checked_limits=[self._limit_name(limit)],
-                    )
-        return None
-
     def _lua_limit_args(self, limits: list[dict[str, Any]]) -> list[Any]:
         args: list[Any] = []
         for limit in limits:
@@ -363,6 +395,12 @@ class NeuroCommentRateLimiter:
             )
         return args
 
+    def _lua_min_delay_args(self, last_comment_keys: list[dict[str, Any]]) -> list[Any]:
+        args: list[Any] = []
+        for item in last_comment_keys:
+            args.extend([item["name"], int(item["reserve_ttl"])])
+        return args
+
     def _denied_reason(self, limit_name: str) -> str:
         if limit_name == "reservation_conflict":
             return "reservation_conflict"
@@ -370,6 +408,8 @@ class NeuroCommentRateLimiter:
             return limit_name
         scope, limit_type = limit_name.split(" ", 1)
         scope_type = scope.split(":", 1)[0]
+        if limit_type == "min_delay_between_comments":
+            return f"{scope_type} {limit_type} active"
         return f"{scope_type} {limit_type} limit exceeded"
 
     def _decode_lua_value(self, value: Any) -> str:

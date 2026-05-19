@@ -131,9 +131,7 @@ def test_full_observe_to_attempt_pipeline_with_fake_tdlib(db_session) -> None:
         .filter(NeuroCommentEvent.workspace_id == WORKSPACE)
         .all()
     }
-    assert "post_observed" in observed_events
-    assert "ai_generation_started" in observed_events
-    assert "comment_approved" in observed_events
+    assert {"post_observed", "ai_generation_started", "comment_approved"} <= observed_events
 
 
 def test_ai_failure_marks_observed_post_failed(db_session) -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
@@ -59,15 +60,17 @@ def _seed_pending_comment(
     return comment
 
 
+_FROZEN_NOW = datetime(2026, 5, 19, 12, 0, 0, tzinfo=UTC)
+
+
+@freeze_time(_FROZEN_NOW)
 def test_expires_pending_comments_older_than_ttl(db_session) -> None:
     campaign = _seed_campaign(db_session)
-    now = datetime.now(UTC)
+    now = _FROZEN_NOW
     stale = _seed_pending_comment(db_session, campaign, created_at=now - timedelta(hours=5))
     fresh = _seed_pending_comment(db_session, campaign, created_at=now - timedelta(minutes=10))
 
-    expired = ApprovalExpirer().expire_stale_approvals(
-        db_session, ttl_seconds=14400, now=now
-    )
+    expired = ApprovalExpirer().expire_stale_approvals(db_session, ttl_seconds=14400, now=now)
 
     db_session.refresh(stale)
     db_session.refresh(fresh)
@@ -76,9 +79,10 @@ def test_expires_pending_comments_older_than_ttl(db_session) -> None:
     assert fresh.approval_status == NeuroGeneratedApprovalStatus.PENDING.value
 
 
+@freeze_time(_FROZEN_NOW)
 def test_does_not_touch_non_pending_comments(db_session) -> None:
     campaign = _seed_campaign(db_session)
-    now = datetime.now(UTC)
+    now = _FROZEN_NOW
     approved = _seed_pending_comment(
         db_session,
         campaign,
@@ -92,9 +96,7 @@ def test_does_not_touch_non_pending_comments(db_session) -> None:
         approval_status=NeuroGeneratedApprovalStatus.REJECTED.value,
     )
 
-    expired = ApprovalExpirer().expire_stale_approvals(
-        db_session, ttl_seconds=14400, now=now
-    )
+    expired = ApprovalExpirer().expire_stale_approvals(db_session, ttl_seconds=14400, now=now)
 
     db_session.refresh(approved)
     db_session.refresh(rejected)
@@ -103,9 +105,10 @@ def test_does_not_touch_non_pending_comments(db_session) -> None:
     assert rejected.approval_status == NeuroGeneratedApprovalStatus.REJECTED.value
 
 
+@freeze_time(_FROZEN_NOW)
 def test_writes_audit_event_on_expiration(db_session) -> None:
     campaign = _seed_campaign(db_session)
-    now = datetime.now(UTC)
+    now = _FROZEN_NOW
     _seed_pending_comment(db_session, campaign, created_at=now - timedelta(hours=10))
 
     ApprovalExpirer().expire_stale_approvals(db_session, ttl_seconds=3600, now=now)

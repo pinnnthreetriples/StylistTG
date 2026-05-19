@@ -628,7 +628,9 @@ def delete_limit(
 def get_prompt_presets(
     _auth: AuthContext = Depends(require_authenticated),
 ) -> NeuroPromptPresetListRead:
-    items = [NeuroPromptPresetRead.model_validate(preset.to_dict()) for preset in list_prompt_presets()]
+    items = [
+        NeuroPromptPresetRead.model_validate(preset.to_dict()) for preset in list_prompt_presets()
+    ]
     return NeuroPromptPresetListRead(items=items, total=len(items))
 
 

@@ -112,9 +112,7 @@ class TargetService:
             if raw_ref in seen_in_batch or raw_ref in existing_refs:
                 skipped.append(BulkTargetSkip(channel_ref=raw_ref, reason="duplicate"))
                 continue
-            rule = rules_service.find_rule(
-                session, workspace_id=workspace_id, target_ref=raw_ref
-            )
+            rule = rules_service.find_rule(session, workspace_id=workspace_id, target_ref=raw_ref)
             if rule is not None and rule.rule_type == "blacklist":
                 skipped.append(BulkTargetSkip(channel_ref=raw_ref, reason="blacklisted_workspace"))
                 continue
@@ -130,9 +128,7 @@ class TargetService:
                 source_type=payload.get("source_type", "channel"),
                 activity_level=payload.get("activity_level"),
                 keywords=repository.normalize_keywords(payload.get("keywords")),
-                exclude_keywords=repository.normalize_keywords(
-                    payload.get("exclude_keywords")
-                ),
+                exclude_keywords=repository.normalize_keywords(payload.get("exclude_keywords")),
             )
             session.add(target)
             session.flush()

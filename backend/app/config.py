@@ -240,9 +240,7 @@ class Settings(BaseSettings):
         if self.neuro_comment_approval_ttl_seconds <= 0:
             raise ValueError("NEURO_COMMENT_APPROVAL_TTL_SECONDS must be positive")
         if self.neuro_comment_approval_expirer_interval_seconds <= 0:
-            raise ValueError(
-                "NEURO_COMMENT_APPROVAL_EXPIRER_INTERVAL_SECONDS must be positive"
-            )
+            raise ValueError("NEURO_COMMENT_APPROVAL_EXPIRER_INTERVAL_SECONDS must be positive")
         return self
 
     @staticmethod

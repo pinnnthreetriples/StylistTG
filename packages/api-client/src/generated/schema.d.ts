@@ -5068,7 +5068,10 @@ export interface components {
             /** Prompt Template */
             prompt_template: string;
         };
-        /** NeuroTargetBulkCreateItem */
+        /**
+         * NeuroTargetBulkCreateItem
+         * @description Single item in a bulk-import request - shares the create contract.
+         */
         NeuroTargetBulkCreateItem: {
             /** Channel Ref */
             channel_ref: string;

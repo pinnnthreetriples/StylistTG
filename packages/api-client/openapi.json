@@ -21293,7 +21293,8 @@
         "required": [
           "channel_ref"
         ],
-        "title": "NeuroTargetBulkCreateItem"
+        "title": "NeuroTargetBulkCreateItem",
+        "description": "Single item in a bulk-import request - shares the create contract."
       },
       "NeuroTargetBulkCreateRead": {
         "properties": {

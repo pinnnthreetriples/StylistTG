@@ -53,8 +53,7 @@ _PRESETS: tuple[PromptPreset, ...] = (
         language="ru",
         description="1–2 предложения, экспертная позиция",
         system_prompt=(
-            "Ты эксперт в обсуждаемой теме. Пиши спокойно, без эмодзи, без "
-            "маркетинговых клише."
+            "Ты эксперт в обсуждаемой теме. Пиши спокойно, без эмодзи, без маркетинговых клише."
         ),
         prompt_template=(
             "Сформулируй мнение эксперта (1–2 предложения) по теме поста. "
@@ -71,8 +70,7 @@ _PRESETS: tuple[PromptPreset, ...] = (
             "вопрос автору без оценочных суждений."
         ),
         prompt_template=(
-            "Сформулируй один уточняющий вопрос автору поста. Без воды и без "
-            "благодарностей."
+            "Сформулируй один уточняющий вопрос автору поста. Без воды и без благодарностей."
         ),
     ),
     PromptPreset(
@@ -81,13 +79,9 @@ _PRESETS: tuple[PromptPreset, ...] = (
         language="ru",
         description="1 эмодзи + 2–4 слова",
         system_prompt=(
-            "Ты пишешь живые короткие реакции. Используй ровно один эмодзи в "
-            "начале и пару слов."
+            "Ты пишешь живые короткие реакции. Используй ровно один эмодзи в начале и пару слов."
         ),
-        prompt_template=(
-            "Напиши реакцию: один эмодзи и 2–4 слова. Без знаков препинания "
-            "в конце."
-        ),
+        prompt_template=("Напиши реакцию: один эмодзи и 2–4 слова. Без знаков препинания в конце."),
     ),
     PromptPreset(
         id="short_native_en",
@@ -99,8 +93,7 @@ _PRESETS: tuple[PromptPreset, ...] = (
             "greetings, no marketing tone."
         ),
         prompt_template=(
-            "Write a short comment (3–7 words) on the channel post. Keep it "
-            "natural and on-topic."
+            "Write a short comment (3–7 words) on the channel post. Keep it natural and on-topic."
         ),
     ),
 )

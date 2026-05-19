@@ -62,9 +62,13 @@ class SafetyPresetLimits:
 
 
 SAFETY_PRESET_LIMITS: dict[str, SafetyPresetLimits] = {
-    "conservative": SafetyPresetLimits(per_hour=3, per_day=20, min_delay_seconds=600, max_parallel=1),
+    "conservative": SafetyPresetLimits(
+        per_hour=3, per_day=20, min_delay_seconds=600, max_parallel=1
+    ),
     "balanced": SafetyPresetLimits(per_hour=8, per_day=50, min_delay_seconds=180, max_parallel=2),
-    "aggressive": SafetyPresetLimits(per_hour=20, per_day=150, min_delay_seconds=60, max_parallel=4),
+    "aggressive": SafetyPresetLimits(
+        per_hour=20, per_day=150, min_delay_seconds=60, max_parallel=4
+    ),
 }
 
 
@@ -196,9 +200,7 @@ class CampaignService:
         )
         return campaign
 
-    def _enforce_age_forced_preset(
-        self, session: Session, campaign: NeuroCommentCampaign
-    ) -> None:
+    def _enforce_age_forced_preset(self, session: Session, campaign: NeuroCommentCampaign) -> None:
         if campaign.safety_preset == "conservative":
             return
         now = datetime.now(UTC)

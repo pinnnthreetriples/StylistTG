@@ -116,9 +116,7 @@ class NeuroCampaignCreate(BaseModel):
     @field_validator("work_mode", mode="before")
     @classmethod
     def _reject_disabled_work_mode(cls, value: object) -> object:
-        return _reject_disabled_value(
-            value, disabled=_DISABLED_WORK_MODES, feature="work_mode"
-        )
+        return _reject_disabled_value(value, disabled=_DISABLED_WORK_MODES, feature="work_mode")
 
 
 class NeuroCampaignUpdate(BaseModel):
@@ -184,9 +182,7 @@ class NeuroCampaignUpdate(BaseModel):
     def _reject_disabled_work_mode(cls, value: object) -> object:
         if value is None:
             return value
-        return _reject_disabled_value(
-            value, disabled=_DISABLED_WORK_MODES, feature="work_mode"
-        )
+        return _reject_disabled_value(value, disabled=_DISABLED_WORK_MODES, feature="work_mode")
 
 
 class NeuroCampaignRead(BaseModel):

@@ -22,6 +22,7 @@ const changeOperationLabels: Record<ChangeItem['operation'], string> = {
   set_bio: 'Описание',
   set_username: 'Юзернейм',
   set_profile_photo: 'Фото профиля',
+  set_pinned_channel: 'Закрепленный канал',
   add_profile_audio: 'Музыка профиля',
   remove_profile_audio: 'Удалить музыку',
   keep_profile_audio: 'Музыка без изменений',
@@ -34,6 +35,7 @@ const profileOperations = new Set<ChangeItem['operation']>([
   'set_bio',
   'set_username',
   'set_profile_photo',
+  'set_pinned_channel',
 ])
 const musicOperations = new Set<ChangeItem['operation']>(['add_profile_audio', 'remove_profile_audio'])
 const storyOperations = new Set<ChangeItem['operation']>(['post_story_image', 'post_story_video'])
@@ -86,6 +88,7 @@ export function buildDashboardFormState(source: DashboardHydrationSource): FormS
     username: source.current_profile.username ?? '',
     profilePhotoAssetId:
       source.current_profile.profile_photo_asset_id ?? source.editable_fields.profile_photo,
+    pinnedChannelRef: source.current_profile.pinned_channel_ref ?? source.editable_fields.pinned_channel_ref ?? null,
     profileAudioAction: 'keep',
     profileAudioAssetId: source.profile_audio?.source_asset_id ?? source.current_profile.profile_audio_asset_id ?? null,
     stories: [],
@@ -99,6 +102,7 @@ export function areDashboardFormStatesEqual(left: FormState, right: FormState): 
     left.bio === right.bio &&
     left.username === right.username &&
     left.profilePhotoAssetId === right.profilePhotoAssetId &&
+    left.pinnedChannelRef === right.pinnedChannelRef &&
     left.profileAudioAction === right.profileAudioAction &&
     left.profileAudioAssetId === right.profileAudioAssetId &&
     JSON.stringify(left.stories) === JSON.stringify(right.stories)
@@ -125,6 +129,7 @@ export function readStoredDashboardFormDraft(
     bio: parsed.bio,
     username: parsed.username,
     profilePhotoAssetId: parsed.profilePhotoAssetId,
+    pinnedChannelRef: parsed.pinnedChannelRef ?? null,
     profileAudioAction: parsed.profileAudioAction ?? 'keep',
     profileAudioAssetId: parsed.profileAudioAssetId ?? null,
     stories: parsed.stories ?? [],
@@ -206,6 +211,14 @@ export function buildChangeItems(current: CurrentProfile, draft: FormState): Cha
       value:
         (current.profile_photo_asset_id ?? null) !== draft.profilePhotoAssetId
           ? 'Фото будет обновлено'
+          : 'Без изменений',
+    },
+    {
+      operation: 'set_pinned_channel',
+      changed: (current.pinned_channel_ref ?? '') !== (draft.pinnedChannelRef ?? ''),
+      value:
+        (current.pinned_channel_ref ?? '') !== (draft.pinnedChannelRef ?? '')
+          ? (draft.pinnedChannelRef || 'Пусто')
           : 'Без изменений',
     },
   ]

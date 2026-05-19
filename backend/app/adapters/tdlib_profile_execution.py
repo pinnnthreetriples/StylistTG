@@ -47,6 +47,12 @@ def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
         return {"@type": "setBio", "bio": payload.get("bio") or ""}
     if step_type == "set_username":
         return {"@type": "setUsername", "username": payload.get("username") or ""}
+    if step_type == "set_pinned_channel":
+        channel_ref = payload.get("pinned_channel_ref") or ""
+        if channel_ref:
+            chat_id = int(channel_ref) if channel_ref.lstrip("-").isdigit() else 0
+            return {"@type": "setPersonalChat", "chat_id": chat_id}
+        return {"@type": "setPersonalChat", "chat_id": 0}
     if step_type == "set_profile_photo":
         return {
             "@type": "setProfilePhoto",

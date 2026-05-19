@@ -9,6 +9,7 @@ const serverForm: FormState = {
   bio: 'math',
   username: 'ada',
   profilePhotoAssetId: null,
+  pinnedChannelRef: null,
   profileAudioAction: 'keep',
   profileAudioAssetId: null,
   stories: [],

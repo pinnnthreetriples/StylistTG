@@ -75,6 +75,16 @@ class MockProfileExecutionAdapter:
                 yield {"event": "runtime_closed"}
                 return
 
+            if step_type == "set_pinned_channel":
+                yield {
+                    "event": "step_succeeded",
+                    **event,
+                    "verification_attempted": False,
+                    "verification_result": None,
+                    "result_payload": {"applied": payload},
+                }
+                continue
+
             if step_type == "upload_profile_audio":
                 audio_asset_id = payload.get("audio_asset_id")
                 uploaded_audio_file_id = f"mock-file-{audio_asset_id}"

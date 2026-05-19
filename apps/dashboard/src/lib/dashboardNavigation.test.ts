@@ -49,6 +49,7 @@ describe('dashboard navigation hydration', () => {
       bio: 'draft bio',
       username: 'draft_user',
       profilePhotoAssetId: null,
+      pinnedChannelRef: null,
       profileAudioAction: 'keep',
       profileAudioAssetId: null,
       stories: [],

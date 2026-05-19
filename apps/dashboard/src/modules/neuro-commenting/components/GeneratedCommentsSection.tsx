@@ -1,5 +1,5 @@
 import { Button, Card, EmptyState, Skeleton } from '@stylisttg/ui'
-import { Check, Pencil, Save, X } from 'lucide-react'
+import { Check, Pencil, Save, Send, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { buildGeneratedCommentEditPayload, visibleGeneratedCommentText } from '../formPayloads'
@@ -15,6 +15,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
   const [editedText, setEditedText] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+  const [sendDisabledReason, setSendDisabledReason] = useState<string | null>(null)
   const comments = commentsQuery.data?.items ?? []
 
   if (commentsQuery.isError) {
@@ -22,7 +23,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
   }
   if (commentsQuery.isLoading) return <Skeleton className="h-40 w-full" />
 
-  const isMutating = mutations.edit.isPending || mutations.approve.isPending || mutations.reject.isPending
+  const isMutating = mutations.edit.isPending || mutations.approve.isPending || mutations.reject.isPending || mutations.send.isPending
   const mutationError =
     mutations.edit.isError || mutations.approve.isError || mutations.reject.isError
       ? 'Не удалось сохранить изменения'
@@ -39,6 +40,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
         <div className="space-y-2">
           {comments.map((comment) => {
             const canReview = comment.approval_status === 'pending' || comment.approval_status === 'edited'
+            const canSend = comment.approval_status === 'approved'
 
             return (
               <div key={comment.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
@@ -58,6 +60,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                   <p className="mb-2 text-xs font-medium text-red-500">{formError}</p>
                 ) : null}
                 {mutationError ? <p className="mb-2 text-xs font-medium text-red-500">{mutationError}</p> : null}
+                {sendDisabledReason ? <p className="mb-2 text-xs font-medium text-amber-700">{sendDisabledReason}</p> : null}
                 {canReview ? (
                   <div className="flex flex-wrap gap-1.5">
                   {editingCommentId === comment.id ? (
@@ -132,6 +135,33 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                     value={rejectReason}
                     onChange={(event) => setRejectReason(event.target.value)}
                   />
+                </div>
+              ) : null}
+              {canSend ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={<Send className="size-3" />}
+                    onClick={() => {
+                      setSendDisabledReason(null)
+                      mutations.send.mutate(comment.id, {
+                        onError: (error) => {
+                          const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
+                          if (code === 'NEURO_COMMENT_SEND_DISABLED') {
+                            setSendDisabledReason('TDLib neuro-comment sending is disabled.')
+                          } else if (code === 'NEURO_COMMENT_RATE_LIMITER_NOT_READY') {
+                            setSendDisabledReason('Neuro-comment sending requires Redis limiter.')
+                          } else {
+                            setSendDisabledReason('Не удалось отправить комментарий вручную')
+                          }
+                        },
+                      })
+                    }}
+                    disabled={isMutating}
+                  >
+                    Send manually
+                  </Button>
                 </div>
               ) : null}
               </div>

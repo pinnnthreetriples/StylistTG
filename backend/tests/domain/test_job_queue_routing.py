@@ -7,9 +7,11 @@ class FakeQueue:
         self.name = name
         self.connection = connection
         self.calls: list[tuple[str, object, tuple, str | None]] = []
+        self.unique_flags: list[bool] = []
 
     def enqueue_call(self, *, func, args, job_id=None, unique=False):
         self.calls.append(("call", func, args, job_id))
+        self.unique_flags.append(unique)
 
     def enqueue_in(self, delta, func, *, args, job_id=None):
         self.calls.append(("in", func, args, job_id))
@@ -146,3 +148,37 @@ def test_warmup_dispatch_tick_redis_error_returns_false(monkeypatch) -> None:
     result = rq.enqueue_warmup_dispatch_tick()
 
     assert result is False
+
+
+def test_neuro_generate_enqueue_dedupes_normal_and_not_forced(monkeypatch) -> None:
+    queues: list[FakeQueue] = []
+    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(
+        rq,
+        "Queue",
+        lambda name, connection: queues.append(FakeQueue(name, connection)) or queues[-1],
+    )
+
+    assert (
+        rq.enqueue_neuro_generate_comment(
+            "campaign-1", "workspace-1", "observed-1", job_id="neuro-generate-observed-1"
+        )
+        is True
+    )
+    assert (
+        rq.enqueue_neuro_generate_comment(
+            "campaign-1",
+            "workspace-1",
+            "observed-1",
+            force=True,
+            job_id="neuro-generate-force-observed-1-test",
+        )
+        is True
+    )
+
+    assert [queue.name for queue in queues] == [rq.NEURO_COMMENT_QUEUE_NAME] * 2
+    assert [queue.calls[0][3] for queue in queues] == [
+        "neuro-generate-observed-1",
+        "neuro-generate-force-observed-1-test",
+    ]
+    assert [queue.unique_flags[0] for queue in queues] == [True, False]

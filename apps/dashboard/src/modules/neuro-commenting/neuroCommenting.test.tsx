@@ -4,6 +4,8 @@ import { describe, expect, test } from 'vitest'
 
 import { AccountsSection } from './components/AccountsSection'
 import { ApprovalBadge } from './components/ApprovalBadge'
+import { AttemptsSection } from './components/AttemptsSection'
+import { CampaignDetailSection } from './components/CampaignDetailSection'
 import { CampaignListSection } from './components/CampaignListSection'
 import { CampaignStatusBadge } from './components/CampaignStatusBadge'
 import { EventsSection } from './components/EventsSection'
@@ -18,7 +20,7 @@ import {
 } from './formPayloads'
 import { neuroQueryKeys } from './hooks'
 import { TargetsSection } from './components/TargetsSection'
-import type { NeuroCampaign, NeuroCampaignAccount, NeuroGeneratedComment, NeuroTarget } from './types'
+import type { NeuroAttempt, NeuroCampaign, NeuroCampaignAccount, NeuroGeneratedComment, NeuroTarget } from './types'
 
 function renderWithClient(ui: React.ReactElement, seed?: (queryClient: QueryClient) => void): string {
   const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnMount: false, retry: false } } })
@@ -137,6 +139,29 @@ function generatedComment(overrides: Partial<NeuroGeneratedComment> = {}): Neuro
   }
 }
 
+function attempt(overrides: Partial<NeuroAttempt> = {}): NeuroAttempt {
+  return {
+    id: 'attempt-1',
+    campaign_id: 'campaign-1',
+    generated_comment_id: 'comment-1',
+    account_id: 'account-1',
+    target_id: 'target-1',
+    observed_post_id: 'post-1',
+    status: 'created',
+    send_strategy: 'comment',
+    telegram_message_id: null,
+    error_code: null,
+    error_message: null,
+    flood_wait_seconds: null,
+    reserved_limit_at: null,
+    sent_at: null,
+    failed_at: null,
+    created_at: '2026-05-18T00:00:00Z',
+    updated_at: '2026-05-18T00:00:00Z',
+    ...overrides,
+  }
+}
+
 describe('neuro-commenting query keys', () => {
   test('campaigns key is stable', () => {
     expect(neuroQueryKeys.campaigns).toEqual(['neuro-commenting', 'campaigns'])
@@ -157,6 +182,11 @@ describe('neuro-commenting query keys', () => {
   test('generatedComments key falls back to all', () => {
     expect(neuroQueryKeys.generatedComments()).toEqual(['neuro-commenting', 'generated-comments', 'all'])
     expect(neuroQueryKeys.generatedComments('c-1')).toEqual(['neuro-commenting', 'generated-comments', 'c-1'])
+  })
+
+  test('attempts key falls back to all', () => {
+    expect(neuroQueryKeys.attempts()).toEqual(['neuro-commenting', 'attempts', 'all'])
+    expect(neuroQueryKeys.attempts('c-1')).toEqual(['neuro-commenting', 'attempts', 'c-1'])
   })
 
   test('events key falls back to all', () => {
@@ -199,6 +229,14 @@ describe('neuro-commenting section components', () => {
     expect(html).toContain('Удалить')
   })
 
+  test('CampaignDetailSection renders observe campaign button', () => {
+    const html = renderWithClient(<CampaignDetailSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.campaign('campaign-1'), campaign())
+    })
+
+    expect(html).toContain('Observe campaign now')
+  })
+
   test('TargetsSection renders loading skeleton', () => {
     const html = renderWithClient(<TargetsSection campaignId="c-1" />)
     expect(html).toContain('skeleton')
@@ -216,6 +254,8 @@ describe('neuro-commenting section components', () => {
 
     expect(html).toContain('channel_ref')
     expect(html).toContain('Добавить канал')
+    expect(html).toContain('Refresh metadata')
+    expect(html).toContain('Observe target')
     expect(html).toContain('Удалить')
   })
 
@@ -260,6 +300,34 @@ describe('neuro-commenting section components', () => {
     expect(html).toContain('Редактировать')
     expect(html).toContain('Одобрить')
     expect(html).toContain('Отклонить')
+  })
+
+  test('GeneratedCommentsSection renders manual send for approved comments', () => {
+    const html = renderWithClient(<GeneratedCommentsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), {
+        items: [generatedComment({ approval_status: 'approved', final_text: 'Approved text' })],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('Send manually')
+  })
+
+  test('AttemptsSection renders attempt status', () => {
+    const html = renderWithClient(<AttemptsSection campaignId="campaign-1" />, (queryClient) => {
+      queryClient.setQueryData(neuroQueryKeys.attempts('campaign-1'), {
+        items: [attempt({ status: 'sent', telegram_message_id: 'telegram-1' })],
+        total: 1,
+        page: 1,
+        limit: 50,
+      })
+    })
+
+    expect(html).toContain('Attempts')
+    expect(html).toContain('sent')
+    expect(html).toContain('telegram-1')
   })
 })
 

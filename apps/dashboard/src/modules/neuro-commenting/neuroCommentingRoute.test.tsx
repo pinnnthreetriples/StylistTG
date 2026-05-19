@@ -74,6 +74,7 @@ describe('neuro-commenting route smoke', () => {
       queryClient.setQueryData(neuroQueryKeys.accounts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
       queryClient.setQueryData(neuroQueryKeys.targets('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
       queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+      queryClient.setQueryData(neuroQueryKeys.attempts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
       queryClient.setQueryData(neuroQueryKeys.events('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
     })
 
@@ -81,6 +82,7 @@ describe('neuro-commenting route smoke', () => {
     expect(html).toContain('Аккаунты')
     expect(html).toContain('Каналы')
     expect(html).toContain('Сгенерированные комментарии')
+    expect(html).toContain('Attempts')
     expect(html).toContain('События')
   })
 })

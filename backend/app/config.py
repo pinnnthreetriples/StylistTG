@@ -111,6 +111,18 @@ class Settings(BaseSettings):
     warmup_peer_eligibility_delay_hours: int = 24
     warmup_datacenter_proxy_policy: str = "warn"
     warmup_spam_bot_recovery_enabled: bool = False
+    neuro_comment_ai_provider: str = "fake"
+    neuro_comment_ai_base_url: str | None = None
+    neuro_comment_ai_api_key: SecretStr | None = None
+    neuro_comment_ai_model: str = "gpt-4o-mini"
+    neuro_comment_ai_timeout_seconds: float = 20.0
+    neuro_comment_ai_max_retries: int = 2
+    neuro_comment_ai_max_tokens: int = 120
+    neuro_comment_ai_temperature: float = 0.7
+    neuro_comment_tdlib_observer_enabled: bool = False
+    neuro_comment_tdlib_send_enabled: bool = False
+    neuro_comment_require_redis_limiter_for_send: bool = True
+    neuro_comment_observe_post_limit: int = 20
     rate_limit_auth_jobs_per_tenant_per_hour: int = 20
     rate_limit_profile_jobs_per_tenant_per_hour: int = 100
     rate_limit_media_jobs_per_tenant_per_hour: int = 50
@@ -194,6 +206,19 @@ class Settings(BaseSettings):
             missing = [name for name, value in required_s3_settings.items() if not value]
             if missing:
                 raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
+        if self.neuro_comment_ai_provider != "fake":
+            if not self.neuro_comment_ai_base_url:
+                raise ValueError("NEURO_COMMENT_AI_BASE_URL is required unless provider=fake")
+            if not self.neuro_comment_ai_api_key:
+                raise ValueError("NEURO_COMMENT_AI_API_KEY is required unless provider=fake")
+        if self.neuro_comment_ai_timeout_seconds <= 0:
+            raise ValueError("NEURO_COMMENT_AI_TIMEOUT_SECONDS must be positive")
+        if self.neuro_comment_ai_max_retries < 0:
+            raise ValueError("NEURO_COMMENT_AI_MAX_RETRIES must be non-negative")
+        if self.neuro_comment_ai_max_tokens <= 0:
+            raise ValueError("NEURO_COMMENT_AI_MAX_TOKENS must be positive")
+        if self.neuro_comment_observe_post_limit <= 0:
+            raise ValueError("NEURO_COMMENT_OBSERVE_POST_LIMIT must be positive")
         return self
 
     @staticmethod

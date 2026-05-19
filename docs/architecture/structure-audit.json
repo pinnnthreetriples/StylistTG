@@ -297,6 +297,7 @@
         "apps/dashboard/src/modules/neuro-commenting/api.ts",
         "apps/dashboard/src/modules/neuro-commenting/components/AccountsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/ApprovalBadge.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/AttemptsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/CampaignDetailSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/CampaignListSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/CampaignStatusBadge.tsx",

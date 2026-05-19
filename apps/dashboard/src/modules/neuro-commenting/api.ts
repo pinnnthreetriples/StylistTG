@@ -12,8 +12,15 @@ import {
   fetchNeuroCampaignTargets,
   fetchNeuroEvents,
   fetchNeuroGeneratedComments,
+  fetchNeuroAttempts,
+  fetchNeuroObservedPosts,
+  generateNeuroObservedPost,
+  observeNeuroCampaign,
+  observeNeuroTarget,
   pauseNeuroCampaign,
   rejectNeuroGeneratedComment,
+  refreshNeuroTargetMetadata,
+  sendNeuroGeneratedComment,
   startNeuroCampaign,
   stopNeuroCampaign,
   updateNeuroCampaign,
@@ -88,6 +95,30 @@ export function listGeneratedComments(params?: { campaign_id?: string; page?: nu
   return fetchNeuroGeneratedComments(client, params)
 }
 
+export function listObservedPosts(params?: { campaign_id?: string; target_id?: string; page?: number; limit?: number }) {
+  return fetchNeuroObservedPosts(client, params)
+}
+
+export function observeCampaign(campaignId: string, payload?: { limit?: number | null; generate?: boolean }) {
+  return observeNeuroCampaign(client, campaignId, { generate: payload?.generate ?? true, limit: payload?.limit ?? undefined })
+}
+
+export function observeTarget(
+  campaignId: string,
+  targetId: string,
+  payload?: { limit?: number | null; generate?: boolean },
+) {
+  return observeNeuroTarget(client, campaignId, targetId, { generate: payload?.generate ?? true, limit: payload?.limit ?? undefined })
+}
+
+export function refreshTargetMetadata(campaignId: string, targetId: string) {
+  return refreshNeuroTargetMetadata(client, campaignId, targetId)
+}
+
+export function generateObservedPost(observedPostId: string, payload?: { force?: boolean }) {
+  return generateNeuroObservedPost(client, observedPostId, { force: payload?.force ?? false })
+}
+
 export function editGeneratedComment(commentId: string, payload: NeuroGeneratedCommentUpdate) {
   return editNeuroGeneratedComment(client, commentId, payload)
 }
@@ -98,6 +129,14 @@ export function approveGeneratedComment(commentId: string) {
 
 export function rejectGeneratedComment(commentId: string, payload: NeuroGeneratedCommentReject) {
   return rejectNeuroGeneratedComment(client, commentId, payload)
+}
+
+export function sendGeneratedComment(commentId: string, payload?: { enqueue?: boolean }) {
+  return sendNeuroGeneratedComment(client, commentId, { enqueue: payload?.enqueue ?? true })
+}
+
+export function listAttempts(params?: { campaign_id?: string; generated_comment_id?: string; page?: number; limit?: number }) {
+  return fetchNeuroAttempts(client, params)
 }
 
 export function listEvents(params?: { campaign_id?: string; page?: number; limit?: number }) {

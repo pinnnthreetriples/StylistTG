@@ -2,6 +2,7 @@ import { PageHeader, PageShell } from '@stylisttg/ui'
 import { useState } from 'react'
 
 import { AccountsSection } from './components/AccountsSection'
+import { AttemptsSection } from './components/AttemptsSection'
 import { CampaignDetailSection } from './components/CampaignDetailSection'
 import { CampaignListSection } from './components/CampaignListSection'
 import { EventsSection } from './components/EventsSection'
@@ -32,6 +33,7 @@ export function NeuroCommentingPage({ initialSelectedCampaignId = null }: { init
                 <TargetsSection campaignId={selectedCampaignId} />
               </div>
               <GeneratedCommentsSection campaignId={selectedCampaignId} />
+              <AttemptsSection campaignId={selectedCampaignId} />
               <EventsSection campaignId={selectedCampaignId} />
             </>
           ) : (

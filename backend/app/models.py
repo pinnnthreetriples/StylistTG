@@ -1119,6 +1119,7 @@ class NeuroCommentGeneratedComment(Base):
 class NeuroCommentAttempt(Base):
     __tablename__ = "neuro_comment_attempts"
     __table_args__ = (
+        UniqueConstraint("generated_comment_id", name="uq_neuro_comment_attempt_generated_comment"),
         Index("ix_neuro_comment_attempt_campaign_status", "campaign_id", "status"),
         Index("ix_neuro_comment_attempt_comment", "generated_comment_id"),
     )

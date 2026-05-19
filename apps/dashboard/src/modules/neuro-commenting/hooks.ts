@@ -10,12 +10,18 @@ import {
   listCampaignAccounts,
   listCampaigns,
   listCampaignTargets,
+  listAttempts,
   listEvents,
   listGeneratedComments,
+  listObservedPosts,
+  observeCampaign,
+  observeTarget,
   pauseCampaign,
   rejectGeneratedComment,
+  refreshTargetMetadata,
   removeCampaignAccount,
   removeCampaignTarget,
+  sendGeneratedComment,
   startCampaign,
   stopCampaign,
   updateCampaign,
@@ -34,7 +40,9 @@ export const neuroQueryKeys = {
   campaign: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId] as const,
   accounts: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'accounts'] as const,
   targets: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'targets'] as const,
+  observedPosts: (campaignId?: string) => ['neuro-commenting', 'observed-posts', campaignId ?? 'all'] as const,
   generatedComments: (campaignId?: string) => ['neuro-commenting', 'generated-comments', campaignId ?? 'all'] as const,
+  attempts: (campaignId?: string) => ['neuro-commenting', 'attempts', campaignId ?? 'all'] as const,
   events: (campaignId?: string) => ['neuro-commenting', 'events', campaignId ?? 'all'] as const,
 }
 
@@ -78,11 +86,39 @@ export function useNeuroGeneratedComments(campaignId?: string) {
   })
 }
 
+export function useNeuroObservedPosts(campaignId?: string) {
+  return useQuery({
+    queryKey: neuroQueryKeys.observedPosts(campaignId),
+    queryFn: () => listObservedPosts(campaignId ? { campaign_id: campaignId } : undefined),
+    refetchInterval: 20_000,
+  })
+}
+
+export function useNeuroAttempts(campaignId?: string) {
+  return useQuery({
+    queryKey: neuroQueryKeys.attempts(campaignId),
+    queryFn: () => listAttempts(campaignId ? { campaign_id: campaignId } : undefined),
+    refetchInterval: 20_000,
+  })
+}
+
 export function useNeuroEvents(campaignId?: string) {
   return useQuery({
     queryKey: neuroQueryKeys.events(campaignId),
     queryFn: () => listEvents(campaignId ? { campaign_id: campaignId } : undefined),
     refetchInterval: 20_000,
+  })
+}
+
+export function useObserveCampaignMutation(campaignId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => observeCampaign(campaignId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.observedPosts(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+    },
   })
 }
 
@@ -166,10 +202,31 @@ export function useRemoveCampaignTarget(campaignId: string) {
   })
 }
 
+export function useTargetRuntimeMutations(campaignId: string) {
+  const queryClient = useQueryClient()
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.targets(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.observedPosts(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+  }
+  return {
+    observe: useMutation({
+      mutationFn: (targetId: string) => observeTarget(campaignId, targetId),
+      onSuccess: invalidate,
+    }),
+    refreshMetadata: useMutation({
+      mutationFn: (targetId: string) => refreshTargetMetadata(campaignId, targetId),
+      onSuccess: invalidate,
+    }),
+  }
+}
+
 export function useGeneratedCommentMutations(campaignId?: string) {
   const queryClient = useQueryClient()
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.attempts(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
   }
   return {
@@ -185,6 +242,10 @@ export function useGeneratedCommentMutations(campaignId?: string) {
     reject: useMutation({
       mutationFn: ({ commentId, payload }: { commentId: string; payload: NeuroGeneratedCommentReject }) =>
         rejectGeneratedComment(commentId, payload),
+      onSuccess: invalidate,
+    }),
+    send: useMutation({
+      mutationFn: (commentId: string) => sendGeneratedComment(commentId),
       onSuccess: invalidate,
     }),
   }

@@ -1,15 +1,16 @@
 import { Button, Card, EmptyState, FormField, Input, Skeleton } from '@stylisttg/ui'
-import { Trash2 } from 'lucide-react'
+import { Eye, RefreshCcw, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { buildTargetPayload, type TargetFormState } from '../formPayloads'
-import { useAddCampaignTarget, useNeuroCampaignTargets, useRemoveCampaignTarget } from '../hooks'
+import { useAddCampaignTarget, useNeuroCampaignTargets, useRemoveCampaignTarget, useTargetRuntimeMutations } from '../hooks'
 import type { NeuroTargetCreate } from '../types'
 
 export function TargetsSection({ campaignId }: { campaignId: string }) {
   const targetsQuery = useNeuroCampaignTargets(campaignId)
   const addTarget = useAddCampaignTarget(campaignId)
   const removeTarget = useRemoveCampaignTarget(campaignId)
+  const runtime = useTargetRuntimeMutations(campaignId)
   const [form, setForm] = useState<TargetFormState>({
     channelRef: '',
     title: '',
@@ -24,8 +25,11 @@ export function TargetsSection({ campaignId }: { campaignId: string }) {
   }
   if (targetsQuery.isLoading) return <Skeleton className="h-20 w-full" />
 
-  const isMutating = addTarget.isPending || removeTarget.isPending
-  const mutationError = addTarget.isError || removeTarget.isError ? 'Не удалось сохранить изменения' : null
+  const isMutating = addTarget.isPending || removeTarget.isPending || runtime.observe.isPending || runtime.refreshMetadata.isPending
+  const mutationError =
+    addTarget.isError || removeTarget.isError || runtime.observe.isError || runtime.refreshMetadata.isError
+      ? 'Не удалось сохранить изменения'
+      : null
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -89,15 +93,35 @@ export function TargetsSection({ campaignId }: { campaignId: string }) {
                 <span className="font-medium text-gray-700">{target.channel_ref}</span>
                 {target.title ? <span className="ml-2 text-xs text-gray-400">{target.title}</span> : null}
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<Trash2 className="size-3.5" />}
-                onClick={() => removeTarget.mutate(target.id)}
-                disabled={isMutating}
-              >
-                Удалить
-              </Button>
+              <div className="flex flex-wrap justify-end gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<RefreshCcw className="size-3.5" />}
+                  onClick={() => runtime.refreshMetadata.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Refresh metadata
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Eye className="size-3.5" />}
+                  onClick={() => runtime.observe.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Observe target
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Trash2 className="size-3.5" />}
+                  onClick={() => removeTarget.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Удалить
+                </Button>
+              </div>
             </div>
           ))}
         </div>

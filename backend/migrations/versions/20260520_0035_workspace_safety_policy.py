@@ -16,12 +16,14 @@ down_revision = "20260520_0033"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     op.create_table(
         "workspace_safety_policy",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("workspace_id", sa.String(length=36), nullable=False),
+        sa.Column("id", UUID_STRING, nullable=False),
+        sa.Column("workspace_id", UUID_STRING, nullable=False),
         sa.Column("mode", sa.String(length=32), nullable=False, server_default="balanced"),
         sa.Column("delay_multiplier", sa.Float(), nullable=False, server_default="1.0"),
         sa.Column(

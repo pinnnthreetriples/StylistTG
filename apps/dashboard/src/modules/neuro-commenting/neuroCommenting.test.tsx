@@ -58,6 +58,7 @@ function campaign(overrides: Partial<NeuroCampaign> = {}): NeuroCampaign {
     dry_run: true,
     auto_send_enabled: false,
     safety_enabled: true,
+    safety_preset: 'balanced',
     started_at: null,
     stopped_at: null,
     created_at: null,

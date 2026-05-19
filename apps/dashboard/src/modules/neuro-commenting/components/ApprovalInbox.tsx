@@ -32,16 +32,16 @@ export function ApprovalInbox({
   const commentsQuery = useNeuroGeneratedComments(campaignId)
   const mutations = useGeneratedCommentMutations(campaignId)
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [rawActiveIndex, setActiveIndex] = useState(0)
   const [showHint, setShowHint] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
 
-  const items = commentsQuery.data?.items ?? []
+  const commentItems = commentsQuery.data?.items
   const pending: Pending[] = useMemo(
     () =>
-      items
+      (commentItems ?? [])
         .filter((comment) => comment.approval_status === 'pending' || comment.approval_status === 'edited')
         .map((comment) => ({
           id: comment.id,
@@ -49,14 +49,13 @@ export function ApprovalInbox({
           status: comment.approval_status,
           campaignId: comment.campaign_id,
         })),
-    [items],
+    [commentItems],
   )
 
-  useEffect(() => {
-    if (activeIndex >= pending.length) {
-      setActiveIndex(Math.max(0, pending.length - 1))
-    }
-  }, [pending.length, activeIndex])
+  // Derived in render to avoid setState in effect; the queue length can shrink
+  // when items move out of pending status and the previously-focused index
+  // would otherwise point past the end.
+  const activeIndex = pending.length === 0 ? 0 : Math.min(rawActiveIndex, pending.length - 1)
 
   useEffect(() => {
     function isEditableTarget(target: EventTarget | null): boolean {

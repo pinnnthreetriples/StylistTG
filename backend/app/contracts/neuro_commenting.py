@@ -334,16 +334,8 @@ class NeuroTargetPageRead(BaseModel):
     limit: int
 
 
-class NeuroTargetBulkCreateItem(BaseModel):
-    channel_ref: str = Field(min_length=1, max_length=255)
-    channel_id: str | None = None
-    discussion_chat_id: str | None = None
-    title: str | None = None
-    username: str | None = None
-    source_type: str = "channel"
-    activity_level: str | None = None
-    keywords: list[str] = Field(default_factory=_empty_keywords)
-    exclude_keywords: list[str] = Field(default_factory=_empty_keywords)
+class NeuroTargetBulkCreateItem(NeuroTargetCreate):
+    """Single item in a bulk-import request - shares the create contract."""
 
     model_config = ConfigDict(extra="forbid")
 

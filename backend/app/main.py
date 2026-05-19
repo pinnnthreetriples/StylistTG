@@ -1,7 +1,7 @@
 import asyncio
 from copy import deepcopy
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, suppress
 from typing import Any, cast
 
@@ -229,6 +229,18 @@ def _api_error_schema_components() -> dict[str, Any]:
     return {**defs, "ApiErrorRead": schema}
 
 
+def _iter_openapi_operations(openapi_schema: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    paths = cast(dict[str, Any], openapi_schema.get("paths", {}))
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        path_item_dict = cast(dict[str, Any], path_item)
+        for raw_operation in path_item_dict.values():
+            if not isinstance(raw_operation, dict):
+                continue
+            yield cast(dict[str, Any], raw_operation)
+
+
 def _document_standard_error_responses(openapi_schema: dict[str, Any]) -> None:
     components = cast(dict[str, Any], openapi_schema.setdefault("components", {}))
     schemas = cast(dict[str, Any], components.setdefault("schemas", {}))
@@ -245,43 +257,29 @@ def _document_standard_error_responses(openapi_schema: dict[str, Any]) -> None:
         "description": "Conflict",
         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ApiErrorRead"}}},
     }
-    paths = cast(dict[str, Any], openapi_schema.get("paths", {}))
-    for path_item in paths.values():
-        if not isinstance(path_item, dict):
+    for operation in _iter_openapi_operations(openapi_schema):
+        if "responses" not in operation:
             continue
-        path_item_dict = cast(dict[str, Any], path_item)
-        for raw_operation in path_item_dict.values():
-            if not isinstance(raw_operation, dict) or "responses" not in raw_operation:
-                continue
-            operation = cast(dict[str, Any], raw_operation)
-            responses = cast(dict[str, Any], operation["responses"])
-            responses.setdefault("400", deepcopy(bad_request_response))
-            responses.setdefault("404", deepcopy(not_found_response))
-            responses.setdefault("409", deepcopy(conflict_response))
+        responses = cast(dict[str, Any], operation["responses"])
+        responses.setdefault("400", deepcopy(bad_request_response))
+        responses.setdefault("404", deepcopy(not_found_response))
+        responses.setdefault("409", deepcopy(conflict_response))
 
 
 def _strip_query_parameter_nullability(openapi_schema: dict[str, Any]) -> None:
-    paths = cast(dict[str, Any], openapi_schema.get("paths", {}))
-    for path_item in paths.values():
-        if not isinstance(path_item, dict):
+    for operation in _iter_openapi_operations(openapi_schema):
+        parameters = operation.get("parameters", [])
+        if not isinstance(parameters, list):
             continue
-        path_item_dict = cast(dict[str, Any], path_item)
-        for raw_operation in path_item_dict.values():
-            if not isinstance(raw_operation, dict):
+        for raw_parameter in cast(list[Any], parameters):
+            if not isinstance(raw_parameter, dict):
                 continue
-            operation = cast(dict[str, Any], raw_operation)
-            parameters = operation.get("parameters", [])
-            if not isinstance(parameters, list):
+            parameter = cast(dict[str, Any], raw_parameter)
+            if parameter.get("in") != "query":
                 continue
-            for raw_parameter in cast(list[Any], parameters):
-                if not isinstance(raw_parameter, dict):
-                    continue
-                parameter = cast(dict[str, Any], raw_parameter)
-                if parameter.get("in") != "query":
-                    continue
-                schema = parameter.get("schema")
-                if isinstance(schema, dict):
-                    _remove_null_schema_variant(cast(dict[str, Any], schema))
+            schema = parameter.get("schema")
+            if isinstance(schema, dict):
+                _remove_null_schema_variant(cast(dict[str, Any], schema))
 
 
 def _remove_null_schema_variant(schema: dict[str, Any]) -> None:

@@ -120,6 +120,8 @@ export type NeuroChannelStats = Schema<'NeuroChannelStatsRead'>
 export type NeuroFailureReason = Schema<'NeuroFailureReasonRead'>
 export type NeuroChannelRule = Schema<'NeuroChannelRuleRead'>
 export type NeuroChannelRuleCreate = Schema<'NeuroChannelRuleCreate'>
+export type NeuroPromptPreset = Schema<'NeuroPromptPresetRead'>
+export type NeuroPromptPresetList = Schema<'NeuroPromptPresetListRead'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
@@ -639,6 +641,10 @@ export async function fetchNeuroFailureReasons(
 
 export async function fetchNeuroChannelRules(client: StylistTgClient): Promise<NeuroPage<NeuroChannelRule>> {
   return client.request<NeuroPage<NeuroChannelRule>>('/api/neuro-commenting/channel-rules')
+}
+
+export async function fetchNeuroPromptPresets(client: StylistTgClient): Promise<NeuroPromptPresetList> {
+  return client.request<NeuroPromptPresetList>('/api/neuro-commenting/prompt-presets')
 }
 
 export async function createNeuroChannelRule(

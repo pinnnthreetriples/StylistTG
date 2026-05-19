@@ -28,6 +28,7 @@ LimitType = Literal[
 ChannelRuleType = Literal[
     "blacklist", "whitelist", "auto_blacklist_suggested", "auto_whitelist_suggested"
 ]
+SafetyPreset = Literal["conservative", "balanced", "aggressive"]
 
 # Phase 0 Task 1: enum values declared in DB/python enum but not yet implemented.
 # Reject at Create/Update boundary with feature_not_available marker.
@@ -81,6 +82,7 @@ class NeuroCampaignCreate(BaseModel):
     dry_run: StrictBool = True
     auto_send_enabled: AutoSendDisabled = False
     safety_enabled: StrictBool = True
+    safety_preset: SafetyPreset = "balanced"
 
     model_config = ConfigDict(extra="forbid")
 
@@ -144,6 +146,7 @@ class NeuroCampaignUpdate(BaseModel):
     dry_run: StrictBool | None = None
     auto_send_enabled: AutoSendDisabled | None = None
     safety_enabled: StrictBool | None = None
+    safety_preset: SafetyPreset | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -215,6 +218,7 @@ class NeuroCampaignRead(BaseModel):
     dry_run: bool
     auto_send_enabled: bool
     safety_enabled: bool
+    safety_preset: str
     started_at: datetime | None
     stopped_at: datetime | None
     created_at: datetime
@@ -328,6 +332,37 @@ class NeuroTargetPageRead(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class NeuroTargetBulkCreateItem(BaseModel):
+    channel_ref: str = Field(min_length=1, max_length=255)
+    channel_id: str | None = None
+    discussion_chat_id: str | None = None
+    title: str | None = None
+    username: str | None = None
+    source_type: str = "channel"
+    activity_level: str | None = None
+    keywords: list[str] = Field(default_factory=_empty_keywords)
+    exclude_keywords: list[str] = Field(default_factory=_empty_keywords)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroTargetBulkCreateRequest(BaseModel):
+    items: list[NeuroTargetBulkCreateItem] = Field(min_length=1, max_length=200)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class NeuroTargetBulkSkippedItemRead(BaseModel):
+    channel_ref: str
+    reason: Literal["duplicate", "blacklisted_workspace", "invalid_ref", "limit_exceeded"]
+
+
+class NeuroTargetBulkCreateRead(BaseModel):
+    created: list[NeuroTargetRead]
+    skipped: list[NeuroTargetBulkSkippedItemRead]
+    requested: int
 
 
 class NeuroGeneratedCommentUpdate(BaseModel):
@@ -734,3 +769,17 @@ class NeuroFailureReasonPageRead(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class NeuroPromptPresetRead(BaseModel):
+    id: str
+    name: str
+    language: str
+    description: str
+    system_prompt: str
+    prompt_template: str
+
+
+class NeuroPromptPresetListRead(BaseModel):
+    items: list[NeuroPromptPresetRead]
+    total: int

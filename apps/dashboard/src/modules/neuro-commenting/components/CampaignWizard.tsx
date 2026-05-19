@@ -2,7 +2,7 @@ import { Button, Card, Input } from '@stylisttg/ui'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { useState } from 'react'
 
-import { useCreateNeuroCampaign, useUpdateNeuroCampaign } from '../hooks'
+import { useCreateNeuroCampaign, useNeuroPromptPresets, useUpdateNeuroCampaign } from '../hooks'
 import type { ApprovalMode, CampaignMode, WorkMode } from '../types'
 
 /**
@@ -61,8 +61,10 @@ export function CampaignWizard({
   const [step, setStep] = useState<WizardStep>(1)
   const [state, setState] = useState<WizardState>(initialState)
   const [error, setError] = useState<string | null>(null)
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('')
   const createMutation = useCreateNeuroCampaign()
   const updateMutation = useUpdateNeuroCampaign('')
+  const presetsQuery = useNeuroPromptPresets()
 
   const canAdvance =
     (step === 1 && state.name.trim().length > 0) ||
@@ -211,6 +213,28 @@ export function CampaignWizard({
 
       {step === 3 ? (
         <div className="grid gap-4">
+          <label className="grid gap-1 text-xs font-medium text-gray-700">
+            Пресет промпта
+            <select
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+              value={selectedPresetId}
+              onChange={(event) => {
+                const id = event.target.value
+                setSelectedPresetId(id)
+                const preset = presetsQuery.data?.items.find((item) => item.id === id)
+                if (preset) {
+                  setState((s) => ({ ...s, promptTemplate: preset.prompt_template }))
+                }
+              }}
+            >
+              <option value="">— без пресета —</option>
+              {(presetsQuery.data?.items ?? []).map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name} ({preset.language})
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="grid gap-1 text-xs font-medium text-gray-700">
             Промпт для AI
             <textarea

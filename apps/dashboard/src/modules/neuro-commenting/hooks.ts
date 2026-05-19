@@ -13,6 +13,7 @@ import {
   fetchNeuroCampaignAttempts,
   fetchNeuroCampaignStats,
   fetchNeuroChannelRules,
+  fetchNeuroPromptPresets,
   fetchNeuroChannelStats,
   fetchNeuroFailureReasons,
   fetchNeuroLiveReadiness,
@@ -66,6 +67,7 @@ export const neuroQueryKeys = {
   campaignAttempts: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'attempts'] as const,
   failureReasons: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'failure-reasons'] as const,
   channelRules: ['neuro-commenting', 'channel-rules'] as const,
+  promptPresets: ['neuro-commenting', 'prompt-presets'] as const,
 }
 
 export function useNeuroCampaigns() {
@@ -169,6 +171,14 @@ export function useNeuroFailureReasons(campaignId: string | null) {
     queryKey: neuroQueryKeys.failureReasons(campaignId ?? '__disabled__'),
     queryFn: () => fetchNeuroFailureReasons(campaignId!),
     enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroPromptPresets() {
+  return useQuery({
+    queryKey: neuroQueryKeys.promptPresets,
+    queryFn: () => fetchNeuroPromptPresets(),
+    staleTime: 60 * 60 * 1000,
   })
 }
 

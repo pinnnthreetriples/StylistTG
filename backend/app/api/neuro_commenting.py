@@ -46,6 +46,11 @@ from app.schemas import (
     NeuroObservedPostRead,
     NeuroObserveCampaignRequest,
     NeuroObserveTargetRequest,
+    NeuroPromptPresetListRead,
+    NeuroPromptPresetRead,
+    NeuroTargetBulkCreateRead,
+    NeuroTargetBulkCreateRequest,
+    NeuroTargetBulkSkippedItemRead,
     NeuroTargetCreate,
     NeuroTargetPageRead,
     NeuroTargetRead,
@@ -67,6 +72,7 @@ from app.services.neuro_commenting.enums import NeuroAttemptStatus, NeuroEventLe
 from app.services.neuro_commenting.errors import NeuroCommentingError, NeuroConflictError
 from app.services.neuro_commenting.limits_service import LimitsService
 from app.services.neuro_commenting.live_readiness_service import LiveReadinessService
+from app.services.neuro_commenting.prompt_presets import list_prompt_presets
 from app.models import NeuroCommentAttempt, new_id
 from app.services.neuro_commenting.sender_service import SenderService
 from app.services.neuro_commenting.target_service import TargetService
@@ -444,6 +450,39 @@ def post_campaign_target(
         raise _neuro_error(exc) from exc
 
 
+@router.post(
+    "/campaigns/{campaign_id}/targets/bulk",
+    response_model=NeuroTargetBulkCreateRead,
+    status_code=status.HTTP_200_OK,
+)
+def post_campaign_targets_bulk(
+    campaign_id: UUID,
+    payload: NeuroTargetBulkCreateRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroTargetBulkCreateRead:
+    try:
+        result = TargetService().bulk_add_targets(
+            session,
+            campaign_id=str(campaign_id),
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+            items=[item.model_dump() for item in payload.items],
+        )
+        session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+    return NeuroTargetBulkCreateRead(
+        created=[NeuroTargetRead.model_validate(target) for target in result.created],
+        skipped=[
+            NeuroTargetBulkSkippedItemRead(channel_ref=item.channel_ref, reason=item.reason)
+            for item in result.skipped
+        ],
+        requested=result.requested,
+    )
+
+
 @router.delete(
     "/campaigns/{campaign_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT
 )
@@ -583,6 +622,14 @@ def delete_limit(
     except ValueError as exc:
         session.rollback()
         raise _neuro_error(exc) from exc
+
+
+@router.get("/prompt-presets", response_model=NeuroPromptPresetListRead)
+def get_prompt_presets(
+    _auth: AuthContext = Depends(require_authenticated),
+) -> NeuroPromptPresetListRead:
+    items = [NeuroPromptPresetRead.model_validate(preset.to_dict()) for preset in list_prompt_presets()]
+    return NeuroPromptPresetListRead(items=items, total=len(items))
 
 
 @router.get("/channel-rules", response_model=NeuroChannelRulePageRead)

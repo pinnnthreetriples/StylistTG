@@ -5,6 +5,7 @@
 
 param(
     [switch]$NoBrowser,
+    [switch]$OpenBrowser,
     [switch]$NoWait
 )
 
@@ -338,8 +339,12 @@ Write-Host ""
 Write-Host "  ============================================" -ForegroundColor Cyan
 Write-Host ""
 
-if (-not $NoBrowser) {
+if ($OpenBrowser -and -not $NoBrowser) {
     Start-Process "http://localhost:5173"
+}
+else {
+    Write-Host "  Browser not opened. Use -OpenBrowser to launch http://localhost:5173." -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 if ($NoWait) {

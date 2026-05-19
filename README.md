@@ -60,7 +60,8 @@ Recommended one-command launcher on Windows:
 
 It starts Redis-compatible Memurai from `C:\Tools\Memurai`, runs migrations,
 starts the FastAPI backend on port `8002`, starts separate RQ workers, and starts Vite
-on port `5173`.
+on port `5173`. It does not open a browser by default; pass `-OpenBrowser`
+to launch `http://localhost:5173`.
 
 Frontend:
 

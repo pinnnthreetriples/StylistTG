@@ -53,6 +53,8 @@ From repo root:
 .\scripts\start-dev.ps1
 ```
 
+The launcher starts the local stack without opening a browser by default. Use `.\scripts\start-dev.ps1 -OpenBrowser` if you want it to open the dashboard URL after startup.
+
 This should start:
 
 - Memurai Redis;

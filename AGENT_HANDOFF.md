@@ -180,6 +180,8 @@ It is intended to:
 - start separate RQ workers for `profile_jobs` and `auth_jobs`;
 - start Vite frontend at `http://localhost:5173`.
 
+The launcher does not open a browser by default. Pass `-OpenBrowser` when you want it to launch the local dashboard URL.
+
 Warmup workers are not part of the default launcher. Start them manually only when testing the warmup module.
 
 Manual frontend:

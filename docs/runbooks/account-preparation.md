@@ -16,6 +16,8 @@
 .\scripts\start-dev.ps1
 ```
 
+Лаунчер поднимает локальный dashboard stack, но не открывает браузер по умолчанию. Если нужно сразу открыть интерфейс, запустите `.\scripts\start-dev.ps1 -OpenBrowser`.
+
 Отдельный worker после включения очереди:
 
 ```powershell

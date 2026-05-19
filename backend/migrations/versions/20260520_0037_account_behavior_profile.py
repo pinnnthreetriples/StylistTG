@@ -20,20 +20,22 @@ down_revision = "20260520_0036"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     op.create_table(
         "account_behavior_profile",
-        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("id", UUID_STRING, primary_key=True),
         sa.Column(
             "workspace_id",
-            sa.String(36),
+            UUID_STRING,
             sa.ForeignKey("workspace.id"),
             nullable=False,
         ),
         sa.Column(
             "account_id",
-            sa.String(36),
+            UUID_STRING,
             sa.ForeignKey("account.id"),
             nullable=False,
         ),

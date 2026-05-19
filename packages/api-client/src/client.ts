@@ -112,6 +112,13 @@ export type NeuroObserveCampaignRequest = Schema<'NeuroObserveCampaignRequest'>
 export type NeuroObserveTargetRequest = Schema<'NeuroObserveTargetRequest'>
 export type NeuroEvent = Schema<'NeuroEventRead'>
 export type NeuroEventPage = Schema<'NeuroEventPageRead'>
+export type NeuroCampaignStats = Schema<'NeuroCampaignStatsRead'>
+export type NeuroPage<T> = { items: T[]; total: number; page: number; limit: number }
+export type NeuroAccountStats = Schema<'NeuroAccountStatsRead'>
+export type NeuroChannelStats = Schema<'NeuroChannelStatsRead'>
+export type NeuroFailureReason = Schema<'NeuroFailureReasonRead'>
+export type NeuroChannelRule = Schema<'NeuroChannelRuleRead'>
+export type NeuroChannelRuleCreate = Schema<'NeuroChannelRuleCreate'>
 
 export function resolveApiBaseUrl(value: string | undefined): string {
   if (!value) return ''
@@ -571,6 +578,88 @@ export async function fetchNeuroEvents(
     }),
     'neuro events',
   )
+}
+
+export async function fetchNeuroCampaignStats(client: StylistTgClient, campaignId: string): Promise<NeuroCampaignStats> {
+  return client.request<NeuroCampaignStats>(`/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/stats`)
+}
+
+export async function fetchNeuroAccountStats(
+  client: StylistTgClient,
+  campaignId: string,
+): Promise<NeuroPage<NeuroAccountStats>> {
+  return client.request<NeuroPage<NeuroAccountStats>>(
+    `/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/account-stats`,
+  )
+}
+
+export async function fetchNeuroChannelStats(
+  client: StylistTgClient,
+  campaignId: string,
+): Promise<NeuroPage<NeuroChannelStats>> {
+  return client.request<NeuroPage<NeuroChannelStats>>(
+    `/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/channel-stats`,
+  )
+}
+
+export async function fetchNeuroCampaignAttempts(
+  client: StylistTgClient,
+  campaignId: string,
+): Promise<NeuroPage<NeuroAttempt>> {
+  return client.request<NeuroPage<NeuroAttempt>>(
+    `/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/attempts`,
+  )
+}
+
+export async function fetchNeuroFailureReasons(
+  client: StylistTgClient,
+  campaignId: string,
+): Promise<NeuroPage<NeuroFailureReason>> {
+  return client.request<NeuroPage<NeuroFailureReason>>(
+    `/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/failure-reasons`,
+  )
+}
+
+export async function fetchNeuroChannelRules(client: StylistTgClient): Promise<NeuroPage<NeuroChannelRule>> {
+  return client.request<NeuroPage<NeuroChannelRule>>('/api/neuro-commenting/channel-rules')
+}
+
+export async function createNeuroChannelRule(
+  client: StylistTgClient,
+  payload: NeuroChannelRuleCreate,
+): Promise<NeuroChannelRule> {
+  return client.request<NeuroChannelRule>('/api/neuro-commenting/channel-rules', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteNeuroChannelRule(client: StylistTgClient, ruleId: string): Promise<void> {
+  await client.request<void>(`/api/neuro-commenting/channel-rules/${encodeURIComponent(ruleId)}`, { method: 'DELETE' })
+}
+
+export async function blacklistNeuroTarget(client: StylistTgClient, targetId: string): Promise<NeuroChannelRule> {
+  return client.request<NeuroChannelRule>(`/api/neuro-commenting/targets/${encodeURIComponent(targetId)}/blacklist`, {
+    method: 'POST',
+  })
+}
+
+export async function whitelistNeuroTarget(client: StylistTgClient, targetId: string): Promise<NeuroChannelRule> {
+  return client.request<NeuroChannelRule>(`/api/neuro-commenting/targets/${encodeURIComponent(targetId)}/whitelist`, {
+    method: 'POST',
+  })
+}
+
+export async function pauseNeuroTarget(client: StylistTgClient, targetId: string): Promise<NeuroTarget> {
+  return client.request<NeuroTarget>(`/api/neuro-commenting/targets/${encodeURIComponent(targetId)}/pause`, {
+    method: 'POST',
+  })
+}
+
+export async function resumeNeuroTarget(client: StylistTgClient, targetId: string): Promise<NeuroTarget> {
+  return client.request<NeuroTarget>(`/api/neuro-commenting/targets/${encodeURIComponent(targetId)}/resume`, {
+    method: 'POST',
+  })
 }
 
 export async function fetchDashboard(client: StylistTgClient, accountId: string): Promise<DashboardProfile> {

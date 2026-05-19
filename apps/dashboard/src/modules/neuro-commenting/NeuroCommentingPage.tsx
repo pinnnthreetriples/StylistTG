@@ -2,15 +2,33 @@ import { PageHeader, PageShell } from '@stylisttg/ui'
 import { useState } from 'react'
 
 import { AccountsSection } from './components/AccountsSection'
+import { AnalyticsSection } from './components/AnalyticsSection'
 import { AttemptsSection } from './components/AttemptsSection'
 import { CampaignDetailSection } from './components/CampaignDetailSection'
 import { CampaignListSection } from './components/CampaignListSection'
+import { ChannelRulesSection } from './components/ChannelRulesSection'
 import { EventsSection } from './components/EventsSection'
 import { GeneratedCommentsSection } from './components/GeneratedCommentsSection'
 import { TargetsSection } from './components/TargetsSection'
+import {
+  useCreateNeuroChannelRule,
+  useDeleteNeuroChannelRule,
+  useNeuroAccountStats,
+  useNeuroCampaignStats,
+  useNeuroChannelRules,
+  useNeuroChannelStats,
+} from './hooks'
 
 export function NeuroCommentingPage({ initialSelectedCampaignId = null }: { initialSelectedCampaignId?: string | null } = {}) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(initialSelectedCampaignId)
+  const campaignStats = useNeuroCampaignStats(selectedCampaignId)
+  const accountStats = useNeuroAccountStats(selectedCampaignId)
+  const channelStats = useNeuroChannelStats(selectedCampaignId)
+  const channelRules = useNeuroChannelRules()
+  const createRule = useCreateNeuroChannelRule()
+  const deleteRule = useDeleteNeuroChannelRule()
+  const analyticsError =
+    campaignStats.isError || accountStats.isError || channelStats.isError ? 'Не удалось загрузить аналитику' : null
 
   return (
     <PageShell>
@@ -33,7 +51,25 @@ export function NeuroCommentingPage({ initialSelectedCampaignId = null }: { init
                 <TargetsSection campaignId={selectedCampaignId} />
               </div>
               <GeneratedCommentsSection campaignId={selectedCampaignId} />
+              <AnalyticsSection
+                stats={campaignStats.data ?? null}
+                accounts={accountStats.data?.items ?? []}
+                channels={channelStats.data?.items ?? []}
+                loading={campaignStats.isLoading || accountStats.isLoading || channelStats.isLoading}
+                error={analyticsError}
+              />
               <AttemptsSection campaignId={selectedCampaignId} />
+              <ChannelRulesSection
+                rules={channelRules.data?.items ?? []}
+                loading={channelRules.isLoading}
+                error={
+                  channelRules.isError || createRule.isError || deleteRule.isError
+                    ? 'Не удалось сохранить правила каналов'
+                    : null
+                }
+                onCreate={(payload) => createRule.mutate(payload)}
+                onDelete={(ruleId) => deleteRule.mutate(ruleId)}
+              />
               <EventsSection campaignId={selectedCampaignId} />
             </>
           ) : (

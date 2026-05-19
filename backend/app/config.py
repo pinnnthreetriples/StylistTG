@@ -123,6 +123,15 @@ class Settings(BaseSettings):
     neuro_comment_tdlib_send_enabled: bool = False
     neuro_comment_require_redis_limiter_for_send: bool = True
     neuro_comment_observe_post_limit: int = 20
+    neuro_comment_rate_limiter_enabled: bool = True
+    neuro_comment_rate_limiter_fail_closed: bool = True
+    neuro_comment_rate_limiter_reservation_ttl_seconds: int = 300
+    neuro_comment_default_account_comments_per_hour: int = 8
+    neuro_comment_default_account_comments_per_day: int = 50
+    neuro_comment_default_target_comments_per_hour: int = 5
+    neuro_comment_default_campaign_comments_per_hour: int = 30
+    neuro_comment_default_campaign_comments_per_day: int = 200
+    neuro_comment_default_min_delay_between_comments_seconds: int = 180
     rate_limit_auth_jobs_per_tenant_per_hour: int = 20
     rate_limit_profile_jobs_per_tenant_per_hour: int = 100
     rate_limit_media_jobs_per_tenant_per_hour: int = 50

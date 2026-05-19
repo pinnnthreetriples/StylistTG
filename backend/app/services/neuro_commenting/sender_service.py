@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Any, Protocol
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.config import Settings, settings
 from app.models import (
@@ -16,6 +16,7 @@ from app.models import (
     NeuroCommentTarget,
 )
 from app.services.neuro_commenting import repository
+from app.services.neuro_commenting.account_health_service import AccountHealthService
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroAttemptStatus,
@@ -28,10 +29,17 @@ from app.services.neuro_commenting.enums import (
 )
 from app.services.neuro_commenting.errors import (
     NeuroConflictError,
-    NeuroRateLimiterNotReadyError,
     NeuroRuntimeDisabledError,
     NeuroValidationError,
 )
+from app.services.neuro_commenting.limits_service import LimitsService
+from app.services.neuro_commenting.rate_limiter import (
+    NeuroCommentRateLimiter,
+    RateLimitReservation,
+    RateLimitScope,
+)
+from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
+from app.services.neuro_commenting.target_health_service import TargetHealthService
 
 
 @dataclass(frozen=True)
@@ -118,10 +126,14 @@ class SenderService:
         config: Settings = settings,
         sender: TelegramCommentSender | None = None,
         analytics: AnalyticsService | None = None,
+        limiter: Any | None = None,
+        redis_client: Any | None = None,
     ) -> None:
         self._config = config
         self._sender = sender
         self._analytics = analytics or AnalyticsService()
+        self._limiter = limiter
+        self._redis_client = redis_client
 
     def prepare_send(
         self, *, campaign: NeuroCommentCampaign, comment: NeuroCommentGeneratedComment
@@ -159,20 +171,36 @@ class SenderService:
                 "TDLib neuro-comment sending is disabled.",
                 error_code="NEURO_COMMENT_SEND_DISABLED",
             )
-        if self._config.neuro_comment_require_redis_limiter_for_send:
-            self._analytics.write_event(
-                session,
-                workspace_id=workspace_id,
-                campaign_id=context.campaign.id,
-                account_id=attempt.account_id,
-                target_id=attempt.target_id,
-                generated_comment_id=context.comment.id,
-                attempt_id=attempt.id,
-                event_type="manual_send_blocked",
-                message="Neuro-comment sending requires Redis limiter.",
-                data={"error_code": "NEURO_COMMENT_RATE_LIMITER_NOT_READY"},
+        if context.target is not None:
+            decision = ChannelRulesPolicy().check_target_allowed(
+                session, workspace_id=workspace_id, target=context.target
             )
-            raise NeuroRateLimiterNotReadyError()
+            if not decision.allowed:
+                attempt.status = NeuroAttemptStatus.SKIPPED.value
+                attempt.error_code = "CHANNEL_RULE_BLOCKED"
+                attempt.error_message = decision.reason
+                self._analytics.write_event(
+                    session,
+                    workspace_id=workspace_id,
+                    campaign_id=context.campaign.id,
+                    account_id=attempt.account_id,
+                    target_id=attempt.target_id,
+                    observed_post_id=attempt.observed_post_id,
+                    generated_comment_id=context.comment.id,
+                    attempt_id=attempt.id,
+                    event_type="channel_rule_blocked",
+                    event_level=NeuroEventLevel.WARNING,
+                    message=decision.reason or "channel rule blocked send",
+                    data={"matched_rule_id": decision.matched_rule_id},
+                )
+                return attempt
+        reservation = self._reserve_for_attempt(session, context=context, workspace_id=workspace_id)
+        if (
+            reservation is None
+            and attempt.status == NeuroAttemptStatus.SKIPPED.value
+            and attempt.error_code == "RATE_LIMIT_DENIED"
+        ):
+            return attempt
         assert context.target is not None
         final_text = (
             context.comment.final_text
@@ -205,17 +233,22 @@ class SenderService:
                 text=final_text,
             )
         except TelegramCommentSendError as exc:
+            self._rollback_reservation(reservation)
             self._mark_send_error(session, workspace_id=workspace_id, attempt=attempt, error=exc)
             return attempt
+        self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value
         attempt.telegram_message_id = result.telegram_message_id
         attempt.sent_at = result.sent_at
         attempt.error_code = None
         attempt.error_message = None
-        if context.campaign_account is not None:
-            context.campaign_account.comments_sent += 1
-            context.campaign_account.last_used_at = result.sent_at
-        context.target.success_count += 1
+        self.record_attempt_success(
+            session,
+            campaign=context.campaign,
+            comment=context.comment,
+            attempt=attempt,
+            telegram_message_id=result.telegram_message_id,
+        )
         context.target.last_commented_at = result.sent_at
         self._analytics.write_event(
             session,
@@ -230,6 +263,138 @@ class SenderService:
             message="manual neuro-comment sent",
             data={"attempt_id": attempt.id},
         )
+        return attempt
+
+    def send_comment(
+        self,
+        *,
+        campaign: NeuroCommentCampaign,
+        comment: NeuroCommentGeneratedComment,
+        attempt: NeuroCommentAttempt,
+    ) -> NeuroCommentAttempt:
+        session = self._session_for(comment, attempt, campaign)
+        target = self._target_for_send(session, campaign=campaign, comment=comment, attempt=attempt)
+        if session is not None and target is not None:
+            decision = ChannelRulesPolicy().check_target_allowed(
+                session, workspace_id=campaign.workspace_id, target=target
+            )
+            if not decision.allowed:
+                attempt.status = NeuroAttemptStatus.SKIPPED.value
+                attempt.error_code = "CHANNEL_RULE_BLOCKED"
+                attempt.error_message = decision.reason
+                return attempt
+
+        limiter = self._limiter or self._limiter_for_send(session, campaign)
+        reservation = limiter.reserve(
+            RateLimitScope(
+                workspace_id=campaign.workspace_id,
+                campaign_id=campaign.id,
+                account_id=attempt.account_id or comment.account_id,
+                target_id=attempt.target_id or comment.target_id,
+            )
+        )
+        if not reservation.allowed:
+            attempt.status = NeuroAttemptStatus.SKIPPED.value
+            attempt.error_code = "RATE_LIMIT_DENIED"
+            attempt.error_message = reservation.reason
+            return attempt
+        attempt.status = NeuroAttemptStatus.SKIPPED.value
+        attempt.error_code = "AUTO_SEND_DISABLED"
+        attempt.error_message = "TDLib comment sender is not enabled in foundation skeleton"
+        limiter.rollback(reservation)
+        return attempt
+
+    def record_attempt_success(
+        self,
+        session: Session,
+        *,
+        campaign: NeuroCommentCampaign,
+        comment: NeuroCommentGeneratedComment,
+        attempt: NeuroCommentAttempt,
+        telegram_message_id: str | None = None,
+    ) -> NeuroCommentAttempt:
+        now = datetime.now(UTC)
+        attempt.status = NeuroAttemptStatus.SENT.value
+        attempt.telegram_message_id = telegram_message_id or attempt.telegram_message_id
+        attempt.sent_at = attempt.sent_at or now
+        attempt.error_code = None
+        attempt.error_message = None
+        account_id = attempt.account_id or comment.account_id
+        target_id = attempt.target_id or comment.target_id
+        if account_id is not None:
+            AccountHealthService().record_account_send_success(
+                session,
+                campaign_id=campaign.id,
+                account_id=account_id,
+                workspace_id=campaign.workspace_id,
+            )
+        if target_id is not None:
+            target_health = TargetHealthService()
+            target_health.record_target_success(
+                session, workspace_id=campaign.workspace_id, target_id=target_id
+            )
+            target_health.suggest_rules_for_target(
+                session, workspace_id=campaign.workspace_id, target_id=target_id
+            )
+        return attempt
+
+    def record_attempt_failure(
+        self,
+        session: Session,
+        *,
+        campaign: NeuroCommentCampaign,
+        comment: NeuroCommentGeneratedComment,
+        attempt: NeuroCommentAttempt,
+        error_code: str,
+        error_message: str | None = None,
+        flood_wait_seconds: int | None = None,
+    ) -> NeuroCommentAttempt:
+        now = datetime.now(UTC)
+        attempt.status = NeuroAttemptStatus.FAILED.value
+        attempt.error_code = error_code
+        attempt.error_message = error_message
+        attempt.failed_at = now
+        account_id = attempt.account_id or comment.account_id
+        target_id = attempt.target_id or comment.target_id
+        if error_code == "FLOOD_WAIT":
+            seconds = max(1, int(flood_wait_seconds or attempt.flood_wait_seconds or 1))
+            attempt.flood_wait_seconds = seconds
+            if account_id is not None:
+                AccountHealthService().record_account_flood_wait(
+                    session,
+                    campaign_id=campaign.id,
+                    account_id=account_id,
+                    workspace_id=campaign.workspace_id,
+                    flood_wait_seconds=seconds,
+                )
+            if target_id is not None:
+                target_health = TargetHealthService()
+                target_health.record_target_flood_wait(
+                    session, workspace_id=campaign.workspace_id, target_id=target_id
+                )
+                target_health.suggest_rules_for_target(
+                    session, workspace_id=campaign.workspace_id, target_id=target_id
+                )
+            return attempt
+        if account_id is not None:
+            AccountHealthService().record_account_send_failure(
+                session,
+                campaign_id=campaign.id,
+                account_id=account_id,
+                workspace_id=campaign.workspace_id,
+                error_code=error_code,
+            )
+        if target_id is not None:
+            target_health = TargetHealthService()
+            target_health.record_target_failure(
+                session,
+                workspace_id=campaign.workspace_id,
+                target_id=target_id,
+                error_code=error_code,
+            )
+            target_health.suggest_rules_for_target(
+                session, workspace_id=campaign.workspace_id, target_id=target_id
+            )
         return attempt
 
     def preflight_attempt(
@@ -318,6 +483,114 @@ class SenderService:
         ):
             raise NeuroConflictError("account is not active", error_code="ACCOUNT_NOT_ACTIVE")
 
+    def _reserve_for_attempt(
+        self, session: Session, *, context: _SendContext, workspace_id: str
+    ) -> RateLimitReservation | None:
+        if not getattr(self._config, "neuro_comment_require_redis_limiter_for_send", True):
+            return None
+        limiter = self._limiter or self._limiter_for_send(session, context.campaign)
+        reservation = limiter.reserve(
+            RateLimitScope(
+                workspace_id=workspace_id,
+                campaign_id=context.campaign.id,
+                account_id=context.attempt.account_id or context.comment.account_id,
+                target_id=context.attempt.target_id or context.comment.target_id,
+            )
+        )
+        if not reservation.allowed:
+            context.attempt.status = NeuroAttemptStatus.SKIPPED.value
+            context.attempt.error_code = "RATE_LIMIT_DENIED"
+            context.attempt.error_message = reservation.reason
+            self._analytics.write_event(
+                session,
+                workspace_id=workspace_id,
+                campaign_id=context.campaign.id,
+                account_id=context.attempt.account_id,
+                target_id=context.attempt.target_id,
+                observed_post_id=context.attempt.observed_post_id,
+                generated_comment_id=context.comment.id,
+                attempt_id=context.attempt.id,
+                event_type="rate_limit_denied",
+                event_level=NeuroEventLevel.WARNING,
+                message=reservation.reason or "rate limit denied",
+                data={"checked_limits": reservation.checked_limits},
+            )
+            return None
+        self._analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=context.attempt.account_id,
+            target_id=context.attempt.target_id,
+            observed_post_id=context.attempt.observed_post_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=context.attempt.id,
+            event_type="rate_limit_reserved",
+            message="neuro-comment send rate limit reserved",
+            data={"reservation_id": reservation.reservation_id},
+        )
+        return reservation
+
+    def _commit_reservation(self, reservation: RateLimitReservation | None) -> None:
+        if reservation is None:
+            return
+        limiter = self._limiter or NeuroCommentRateLimiter(redis_client=self._redis_client)
+        limiter.commit(reservation)
+
+    def _rollback_reservation(self, reservation: RateLimitReservation | None) -> None:
+        if reservation is None:
+            return
+        limiter = self._limiter or NeuroCommentRateLimiter(redis_client=self._redis_client)
+        limiter.rollback(reservation)
+
+    def _limiter_for_send(
+        self, session: Session | None, campaign: NeuroCommentCampaign
+    ) -> NeuroCommentRateLimiter:
+        limits = None
+        if session is not None:
+            limits = [
+                {
+                    "scope_type": item.scope_type,
+                    "scope_id": item.scope_id,
+                    "limit_type": item.limit_type,
+                    "max_value": item.max_value,
+                    "window_seconds": item.window_seconds,
+                }
+                for item in LimitsService().resolve_effective_limits(
+                    session, campaign_id=campaign.id, workspace_id=campaign.workspace_id
+                )
+                if item.enabled
+            ]
+        return NeuroCommentRateLimiter(redis_client=self._redis_client, limits=limits)
+
+    def _session_for(
+        self,
+        comment: NeuroCommentGeneratedComment,
+        attempt: NeuroCommentAttempt,
+        campaign: NeuroCommentCampaign,
+    ) -> Session | None:
+        return object_session(attempt) or object_session(comment) or object_session(campaign)
+
+    def _target_for_send(
+        self,
+        session: Session | None,
+        *,
+        campaign: NeuroCommentCampaign,
+        comment: NeuroCommentGeneratedComment,
+        attempt: NeuroCommentAttempt,
+    ) -> NeuroCommentTarget | None:
+        target_id = attempt.target_id or comment.target_id
+        if session is None or target_id is None:
+            return None
+        return (
+            session.query(NeuroCommentTarget)
+            .filter(
+                NeuroCommentTarget.id == target_id,
+                NeuroCommentTarget.campaign_id == campaign.id,
+            )
+            .one_or_none()
+        )
+
     def _mark_send_error(
         self,
         session: Session,
@@ -340,8 +613,45 @@ class SenderService:
             )
             if campaign_account is not None and error.flood_wait_seconds is not None:
                 campaign_account.cooldown_until = now + timedelta(seconds=error.flood_wait_seconds)
+                AccountHealthService().record_account_flood_wait(
+                    session,
+                    campaign_id=attempt.campaign_id,
+                    account_id=campaign_account.account_id,
+                    workspace_id=workspace_id,
+                    flood_wait_seconds=error.flood_wait_seconds,
+                )
+            if attempt.target_id is not None:
+                target_health = TargetHealthService()
+                target_health.record_target_flood_wait(
+                    session, workspace_id=workspace_id, target_id=attempt.target_id
+                )
+                target_health.suggest_rules_for_target(
+                    session, workspace_id=workspace_id, target_id=attempt.target_id
+                )
         else:
             attempt.status = NeuroAttemptStatus.FAILED.value
+            campaign_account = _campaign_account_or_none(
+                session, attempt.campaign_id, attempt.account_id
+            )
+            if campaign_account is not None:
+                AccountHealthService().record_account_send_failure(
+                    session,
+                    campaign_id=attempt.campaign_id,
+                    account_id=campaign_account.account_id,
+                    workspace_id=workspace_id,
+                    error_code=error.error_code,
+                )
+            if attempt.target_id is not None:
+                target_health = TargetHealthService()
+                target_health.record_target_failure(
+                    session,
+                    workspace_id=workspace_id,
+                    target_id=attempt.target_id,
+                    error_code=error.error_code,
+                )
+                target_health.suggest_rules_for_target(
+                    session, workspace_id=workspace_id, target_id=attempt.target_id
+                )
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,

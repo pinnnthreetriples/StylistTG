@@ -14,6 +14,7 @@ describe('TanStack Router route tree', () => {
         '/settings',
         '/auth/batch',
         '/operations',
+        '/modules/neuro-commenting',
         '/accounts/$accountId',
         '/accounts/$accountId/profile',
         '/accounts/$accountId/jobs',

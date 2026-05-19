@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from app.models import (
+    AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
@@ -66,7 +67,13 @@ def test_post_detector_modes_are_deterministic() -> None:
 
 
 def _campaign_with_target(db_session, *, mode: str = "all_posts"):
-    account = seed_account(db_session, external_ref="+15550104001")
+    account = seed_account(
+        db_session,
+        external_ref="+15550104001",
+        account_state=AccountState.EXECUTION_USABLE,
+        runtime_health="ready",
+        session_present=True,
+    )
     campaign = CampaignService().create_campaign(
         db_session,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,

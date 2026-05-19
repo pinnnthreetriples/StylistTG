@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from app.config import settings
+from app.services.neuro_commenting import rate_limiter
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     AccountState,
@@ -26,6 +27,31 @@ from app.services.neuro_commenting.sender_service import (
 from app.services.neuro_commenting.tdlib_comment_sender import TdlibTelegramCommentSender
 from app.services.neuro_commenting.target_service import TargetService
 from tests.helpers.factories import seed_account
+from tests.test_neuro_commenting_rate_limiter import FakeRedis
+
+
+class DenyExceededLimiter:
+    def __init__(self) -> None:
+        self.called = False
+
+    def reserve(self, scope):
+        _ = scope
+        self.called = True
+        return SimpleNamespace(
+            allowed=False,
+            reservation_id=None,
+            reason="account comments_per_hour limit exceeded",
+            retry_after_seconds=60,
+            checked_limits=[],
+        )
+
+    def commit(self, reservation):  # pragma: no cover - denied reservations are not committed
+        _ = reservation
+        raise AssertionError("commit should not be called for denied reservation")
+
+    def rollback(self, reservation):  # pragma: no cover - denied reservations are not rolled back
+        _ = reservation
+        raise AssertionError("rollback should not be called for denied reservation")
 
 
 def _approved_comment_with_attempt(db_session):
@@ -119,23 +145,47 @@ def test_manual_send_fails_closed_when_disabled(db_session) -> None:
         raise AssertionError("manual send did not fail closed")
 
 
-def test_limiter_gate_denied_does_not_construct_tdlib_sender(db_session) -> None:
+def test_default_sender_uses_settings_redis_limiter_when_required(db_session, monkeypatch) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    redis = FakeRedis()
+    monkeypatch.setattr(rate_limiter.Redis, "from_url", lambda redis_url: redis)
     config = SimpleNamespace(
         neuro_comment_tdlib_send_enabled=True,
         neuro_comment_require_redis_limiter_for_send=True,
     )
+    sender = FakeTelegramCommentSender(telegram_message_id="telegram-default-limiter")
 
-    try:
-        SenderService(config=config).send_attempt(
-            db_session,
-            attempt_id=attempt.id,
-            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        )
-    except Exception as exc:
-        assert getattr(exc, "error_code", "") == "NEURO_COMMENT_RATE_LIMITER_NOT_READY"
-    else:
-        raise AssertionError("limiter gate did not fail closed")
+    sent = SenderService(config=config, sender=sender).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert sent.status == NeuroAttemptStatus.SENT.value
+    assert sender.calls == 1
+    assert any(":reservation:" in key for key in redis.deleted)
+
+
+def test_rate_limit_exceeded_denies_send_before_sender_call(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    limiter = DenyExceededLimiter()
+    config = SimpleNamespace(
+        neuro_comment_tdlib_send_enabled=True,
+        neuro_comment_require_redis_limiter_for_send=True,
+    )
+    sender = FakeTelegramCommentSender(telegram_message_id="not-sent")
+
+    result = SenderService(config=config, limiter=limiter, sender=sender).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert limiter.called is True
+    assert sender.calls == 0
+    assert result.status == NeuroAttemptStatus.SKIPPED.value
+    assert result.error_code == "RATE_LIMIT_DENIED"
+    assert result.error_message == "account comments_per_hour limit exceeded"
 
 
 def test_fake_sender_success_updates_attempt_and_counters(db_session) -> None:

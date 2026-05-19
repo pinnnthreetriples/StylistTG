@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import NeuroCommentCampaign, new_id
+from app.models import Account, NeuroCommentCampaign, NeuroCommentCampaignAccount, new_id
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroApprovalMode,
@@ -45,6 +46,29 @@ _MUTABLE_FIELDS = {
     "dry_run",
     "auto_send_enabled",
     "safety_enabled",
+    "safety_preset",
+}
+
+_VALID_SAFETY_PRESETS = ("conservative", "balanced", "aggressive")
+_AGE_FORCED_CONSERVATIVE_HOURS = 7 * 24
+
+
+@dataclass(frozen=True)
+class SafetyPresetLimits:
+    per_hour: int
+    per_day: int
+    min_delay_seconds: int
+    max_parallel: int
+
+
+SAFETY_PRESET_LIMITS: dict[str, SafetyPresetLimits] = {
+    "conservative": SafetyPresetLimits(
+        per_hour=3, per_day=20, min_delay_seconds=600, max_parallel=1
+    ),
+    "balanced": SafetyPresetLimits(per_hour=8, per_day=50, min_delay_seconds=180, max_parallel=2),
+    "aggressive": SafetyPresetLimits(
+        per_hour=20, per_day=150, min_delay_seconds=60, max_parallel=4
+    ),
 }
 
 
@@ -96,6 +120,7 @@ class CampaignService:
             dry_run=bool(payload.get("dry_run", True)),
             auto_send_enabled=False,
             safety_enabled=bool(payload.get("safety_enabled", True)),
+            safety_preset=str(payload.get("safety_preset") or "balanced"),
         )
         session.add(campaign)
         session.flush()
@@ -160,6 +185,7 @@ class CampaignService:
             NeuroCampaignStatus.STOPPED.value,
         }:
             raise ValueError("campaign status cannot be started")
+        self._enforce_age_forced_preset(session, campaign)
         campaign.status = NeuroCampaignStatus.RUNNING.value
         campaign.started_at = datetime.now(UTC)
         campaign.stopped_at = None
@@ -170,9 +196,33 @@ class CampaignService:
             campaign_id=campaign.id,
             event_type="campaign_started",
             message="neuro commenting campaign started in safe manual mode",
-            data={"actor_user_id": actor_user_id},
+            data={"actor_user_id": actor_user_id, "safety_preset": campaign.safety_preset},
         )
         return campaign
+
+    def _enforce_age_forced_preset(self, session: Session, campaign: NeuroCommentCampaign) -> None:
+        if campaign.safety_preset == "conservative":
+            return
+        now = datetime.now(UTC)
+        cutoff = now - timedelta(hours=_AGE_FORCED_CONSERVATIVE_HOURS)
+        rows = (
+            session.query(Account.id, Account.created_at)
+            .join(
+                NeuroCommentCampaignAccount,
+                NeuroCommentCampaignAccount.account_id == Account.id,
+            )
+            .filter(NeuroCommentCampaignAccount.campaign_id == campaign.id)
+            .all()
+        )
+        for _account_id, created_at in rows:
+            if created_at is None:
+                continue
+            created = created_at if created_at.tzinfo else created_at.replace(tzinfo=UTC)
+            if created >= cutoff:
+                raise ValueError(
+                    "age_forces_conservative: campaign has accounts younger than 7 days; "
+                    "switch safety_preset to conservative before starting"
+                )
 
     def pause_campaign(
         self,
@@ -250,6 +300,9 @@ class CampaignService:
         ):
             if int(payload["delay_max_seconds"]) < int(payload["delay_min_seconds"]):
                 raise ValueError("delay_max_seconds must be >= delay_min_seconds")
+        preset = payload.get("safety_preset")
+        if preset is not None and preset not in _VALID_SAFETY_PRESETS:
+            raise ValueError("invalid safety_preset")
 
     def _validate_enum(self, payload: dict[str, Any], field: str, enum_type: type[StrEnum]) -> None:
         value = payload.get(field)

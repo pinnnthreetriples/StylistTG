@@ -24,6 +24,7 @@ import {
   fetchNeuroLiveReadiness as fetchTypedNeuroLiveReadiness,
   fetchNeuroAttempts,
   fetchNeuroObservedPosts,
+  fetchNeuroPromptPresets as fetchTypedNeuroPromptPresets,
   generateNeuroObservedPost,
   observeNeuroCampaign,
   observeNeuroTarget,
@@ -188,6 +189,10 @@ export function fetchNeuroFailureReasons(campaignId: string) {
 
 export function fetchNeuroChannelRules() {
   return fetchTypedNeuroChannelRules(client)
+}
+
+export function fetchNeuroPromptPresets() {
+  return fetchTypedNeuroPromptPresets(client)
 }
 
 export function createNeuroChannelRule(payload: NeuroChannelRuleCreate) {

@@ -95,6 +95,13 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/targets", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/targets", "operator", True),
     (
+        "POST",
+        "/api/neuro-commenting/campaigns/{campaign_id}/targets/bulk",
+        "operator",
+        True,
+    ),
+    ("GET", "/api/neuro-commenting/prompt-presets", "viewer", False),
+    (
         "DELETE",
         "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}",
         "operator",

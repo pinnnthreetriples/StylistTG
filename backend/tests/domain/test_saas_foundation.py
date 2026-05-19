@@ -147,6 +147,9 @@ def test_supabase_auth_allowed_in_production() -> None:
         stale_job_reaper_enabled=False,
         operator_api_token="operator-token-value",
         proxy_credentials_encryption_key="lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
+        neuro_comment_ai_provider="openai_compatible",
+        neuro_comment_ai_base_url="https://ai.example.com/v1",
+        neuro_comment_ai_api_key="test-cloud-key",
     )
 
     assert config.auth_mode == "supabase_jwt"
@@ -162,6 +165,9 @@ def test_local_auth_override_allows_controlled_production_testing() -> None:
         stale_job_reaper_enabled=False,
         operator_api_token="operator-token-value",
         proxy_credentials_encryption_key="lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
+        neuro_comment_ai_provider="openai_compatible",
+        neuro_comment_ai_base_url="https://ai.example.com/v1",
+        neuro_comment_ai_api_key="test-cloud-key",
     )
 
     assert config.allow_local_auth_in_prod is True

@@ -960,6 +960,9 @@ class NeuroCommentCampaign(Base):
     dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_send_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     safety_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    safety_preset: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="balanced", server_default="balanced"
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     stopped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

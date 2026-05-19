@@ -7608,6 +7608,90 @@
         }
       }
     },
+    "/api/neuro-commenting/campaigns/{campaign_id}/targets/bulk": {
+      "post": {
+        "tags": [
+          "neuro-commenting"
+        ],
+        "summary": "Post Campaign Targets Bulk",
+        "operationId": "post_campaign_targets_bulk_api_neuro_commenting_campaigns__campaign_id__targets_bulk_post",
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NeuroTargetBulkCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NeuroTargetBulkCreateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}": {
       "delete": {
         "tags": [
@@ -7976,6 +8060,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/neuro-commenting/prompt-presets": {
+      "get": {
+        "tags": [
+          "neuro-commenting"
+        ],
+        "summary": "Get Prompt Presets",
+        "operationId": "get_prompt_presets_api_neuro_commenting_prompt_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NeuroPromptPresetListRead"
                 }
               }
             }
@@ -18862,6 +18998,16 @@
             "type": "boolean",
             "title": "Safety Enabled",
             "default": true
+          },
+          "safety_preset": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ],
+            "title": "Safety Preset",
+            "default": "balanced"
           }
         },
         "additionalProperties": false,
@@ -19093,6 +19239,10 @@
             "type": "boolean",
             "title": "Safety Enabled"
           },
+          "safety_preset": {
+            "type": "string",
+            "title": "Safety Preset"
+          },
           "started_at": {
             "anyOf": [
               {
@@ -19168,6 +19318,7 @@
           "dry_run",
           "auto_send_enabled",
           "safety_enabled",
+          "safety_preset",
           "started_at",
           "stopped_at",
           "created_at",
@@ -19592,6 +19743,22 @@
               }
             ],
             "title": "Safety Enabled"
+          },
+          "safety_preset": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "conservative",
+                  "balanced",
+                  "aggressive"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Preset"
           }
         },
         "additionalProperties": false,
@@ -20978,6 +21145,228 @@
           "updated_at"
         ],
         "title": "NeuroObservedPostRead"
+      },
+      "NeuroPromptPresetListRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NeuroPromptPresetRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "NeuroPromptPresetListRead"
+      },
+      "NeuroPromptPresetRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "system_prompt": {
+            "type": "string",
+            "title": "System Prompt"
+          },
+          "prompt_template": {
+            "type": "string",
+            "title": "Prompt Template"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "language",
+          "description",
+          "system_prompt",
+          "prompt_template"
+        ],
+        "title": "NeuroPromptPresetRead"
+      },
+      "NeuroTargetBulkCreateItem": {
+        "properties": {
+          "channel_ref": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Channel Ref"
+          },
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "discussion_chat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discussion Chat Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "default": "channel"
+          },
+          "activity_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity Level"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords"
+          },
+          "exclude_keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exclude Keywords"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel_ref"
+        ],
+        "title": "NeuroTargetBulkCreateItem",
+        "description": "Single item in a bulk-import request - shares the create contract."
+      },
+      "NeuroTargetBulkCreateRead": {
+        "properties": {
+          "created": {
+            "items": {
+              "$ref": "#/components/schemas/NeuroTargetRead"
+            },
+            "type": "array",
+            "title": "Created"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/NeuroTargetBulkSkippedItemRead"
+            },
+            "type": "array",
+            "title": "Skipped"
+          },
+          "requested": {
+            "type": "integer",
+            "title": "Requested"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "skipped",
+          "requested"
+        ],
+        "title": "NeuroTargetBulkCreateRead"
+      },
+      "NeuroTargetBulkCreateRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NeuroTargetBulkCreateItem"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "NeuroTargetBulkCreateRequest"
+      },
+      "NeuroTargetBulkSkippedItemRead": {
+        "properties": {
+          "channel_ref": {
+            "type": "string",
+            "title": "Channel Ref"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "duplicate",
+              "blacklisted_workspace",
+              "invalid_ref",
+              "limit_exceeded"
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel_ref",
+          "reason"
+        ],
+        "title": "NeuroTargetBulkSkippedItemRead"
       },
       "NeuroTargetCreate": {
         "properties": {

@@ -1480,6 +1480,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/neuro-commenting/campaigns/{campaign_id}/targets/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Campaign Targets Bulk */
+        post: operations["post_campaign_targets_bulk_api_neuro_commenting_campaigns__campaign_id__targets_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/neuro-commenting/campaigns/{campaign_id}/targets/{target_id}": {
         parameters: {
             query?: never;
@@ -1531,6 +1548,23 @@ export interface paths {
         head?: never;
         /** Patch Limit */
         patch: operations["patch_limit_api_neuro_commenting_limits__limit_id__patch"];
+        trace?: never;
+    };
+    "/api/neuro-commenting/prompt-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Prompt Presets */
+        get: operations["get_prompt_presets_api_neuro_commenting_prompt_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/neuro-commenting/channel-rules": {
@@ -4433,6 +4467,12 @@ export interface components {
              * @default true
              */
             safety_enabled: boolean;
+            /**
+             * Safety Preset
+             * @default balanced
+             * @enum {string}
+             */
+            safety_preset: "conservative" | "balanced" | "aggressive";
         };
         /** NeuroCampaignPageRead */
         NeuroCampaignPageRead: {
@@ -4503,6 +4543,8 @@ export interface components {
             auto_send_enabled: boolean;
             /** Safety Enabled */
             safety_enabled: boolean;
+            /** Safety Preset */
+            safety_preset: string;
             /** Started At */
             started_at: string | null;
             /** Stopped At */
@@ -4599,6 +4641,8 @@ export interface components {
             auto_send_enabled?: false | null;
             /** Safety Enabled */
             safety_enabled?: boolean | null;
+            /** Safety Preset */
+            safety_preset?: ("conservative" | "balanced" | "aggressive") | null;
         };
         /** NeuroChannelRuleCreate */
         NeuroChannelRuleCreate: {
@@ -5001,6 +5045,79 @@ export interface components {
             created_at: string | null;
             /** Updated At */
             updated_at: string | null;
+        };
+        /** NeuroPromptPresetListRead */
+        NeuroPromptPresetListRead: {
+            /** Items */
+            items: components["schemas"]["NeuroPromptPresetRead"][];
+            /** Total */
+            total: number;
+        };
+        /** NeuroPromptPresetRead */
+        NeuroPromptPresetRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Language */
+            language: string;
+            /** Description */
+            description: string;
+            /** System Prompt */
+            system_prompt: string;
+            /** Prompt Template */
+            prompt_template: string;
+        };
+        /**
+         * NeuroTargetBulkCreateItem
+         * @description Single item in a bulk-import request - shares the create contract.
+         */
+        NeuroTargetBulkCreateItem: {
+            /** Channel Ref */
+            channel_ref: string;
+            /** Channel Id */
+            channel_id?: string | null;
+            /** Discussion Chat Id */
+            discussion_chat_id?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Username */
+            username?: string | null;
+            /**
+             * Source Type
+             * @default channel
+             */
+            source_type: string;
+            /** Activity Level */
+            activity_level?: string | null;
+            /** Keywords */
+            keywords?: string[];
+            /** Exclude Keywords */
+            exclude_keywords?: string[];
+        };
+        /** NeuroTargetBulkCreateRead */
+        NeuroTargetBulkCreateRead: {
+            /** Created */
+            created: components["schemas"]["NeuroTargetRead"][];
+            /** Skipped */
+            skipped: components["schemas"]["NeuroTargetBulkSkippedItemRead"][];
+            /** Requested */
+            requested: number;
+        };
+        /** NeuroTargetBulkCreateRequest */
+        NeuroTargetBulkCreateRequest: {
+            /** Items */
+            items: components["schemas"]["NeuroTargetBulkCreateItem"][];
+        };
+        /** NeuroTargetBulkSkippedItemRead */
+        NeuroTargetBulkSkippedItemRead: {
+            /** Channel Ref */
+            channel_ref: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "duplicate" | "blacklisted_workspace" | "invalid_ref" | "limit_exceeded";
         };
         /** NeuroTargetCreate */
         NeuroTargetCreate: {
@@ -11826,6 +11943,70 @@ export interface operations {
             };
         };
     };
+    post_campaign_targets_bulk_api_neuro_commenting_campaigns__campaign_id__targets_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NeuroTargetBulkCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeuroTargetBulkCreateRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_campaign_target_api_neuro_commenting_campaigns__campaign_id__targets__target_id__delete: {
         parameters: {
             query?: never;
@@ -12130,6 +12311,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_prompt_presets_api_neuro_commenting_prompt_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeuroPromptPresetListRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
                 };
             };
         };

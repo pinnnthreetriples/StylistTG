@@ -42,6 +42,7 @@ function campaign(overrides: Partial<NeuroCampaign> = {}): NeuroCampaign {
     dry_run: true,
     auto_send_enabled: false,
     safety_enabled: true,
+    safety_preset: 'balanced',
     started_at: null,
     stopped_at: null,
     created_at: null,
@@ -62,27 +63,68 @@ describe('neuro-commenting route smoke', () => {
     expect(html).toContain('Выберите кампанию или создайте новую')
   })
 
-  test('NeuroCommentingPage renders detail sections for selected campaign', () => {
-    const html = renderWithClient(<NeuroCommentingPage initialSelectedCampaignId="campaign-1" />, (queryClient) => {
-      queryClient.setQueryData(neuroQueryKeys.campaigns, {
-        items: [campaign()],
-        total: 1,
-        page: 1,
-        limit: 50,
-      })
-      queryClient.setQueryData(neuroQueryKeys.campaign('campaign-1'), campaign())
-      queryClient.setQueryData(neuroQueryKeys.accounts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
-      queryClient.setQueryData(neuroQueryKeys.targets('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
-      queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
-      queryClient.setQueryData(neuroQueryKeys.attempts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
-      queryClient.setQueryData(neuroQueryKeys.events('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+  function seedCampaign(queryClient: QueryClient) {
+    queryClient.setQueryData(neuroQueryKeys.campaigns, {
+      items: [campaign()],
+      total: 1,
+      page: 1,
+      limit: 50,
     })
+    queryClient.setQueryData(neuroQueryKeys.campaign('campaign-1'), campaign())
+    queryClient.setQueryData(neuroQueryKeys.accounts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+    queryClient.setQueryData(neuroQueryKeys.targets('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+    queryClient.setQueryData(neuroQueryKeys.generatedComments('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+    queryClient.setQueryData(neuroQueryKeys.attempts('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+    queryClient.setQueryData(neuroQueryKeys.events('campaign-1'), { items: [], total: 0, page: 1, limit: 50 })
+  }
+
+  test('NeuroCommentingPage renders setup tab by default with detail sections', () => {
+    const html = renderWithClient(<NeuroCommentingPage initialSelectedCampaignId="campaign-1" />, seedCampaign)
 
     expect(html).toContain('Selected campaign')
     expect(html).toContain('Аккаунты')
     expect(html).toContain('Каналы')
+    expect(html).toContain('data-testid="neuro-commenting-tab-setup"')
+    // Setup tab should be selected by default.
+    expect(html).toContain(
+      'aria-selected="true" data-testid="neuro-commenting-tab-setup"',
+    )
+    // Queue-only section header must not render under setup tab.
+    expect(html).not.toContain('Сгенерированные комментарии')
+  })
+
+  test('NeuroCommentingPage renders queue tab content when initialTab=queue', () => {
+    const html = renderWithClient(
+      <NeuroCommentingPage initialSelectedCampaignId="campaign-1" initialTab="queue" />,
+      seedCampaign,
+    )
+
     expect(html).toContain('Сгенерированные комментарии')
+    expect(html).toContain(
+      'aria-selected="true" data-testid="neuro-commenting-tab-queue"',
+    )
+    // Attempts table belongs to analytics tab and must be absent here.
+    expect(html).not.toContain('<h3 class="mb-3 text-sm font-semibold text-gray-900">Attempts')
+  })
+
+  test('NeuroCommentingPage renders analytics tab content when initialTab=analytics', () => {
+    const html = renderWithClient(
+      <NeuroCommentingPage initialSelectedCampaignId="campaign-1" initialTab="analytics" />,
+      seedCampaign,
+    )
+
     expect(html).toContain('Attempts')
     expect(html).toContain('События')
+    expect(html).toContain(
+      'aria-selected="true" data-testid="neuro-commenting-tab-analytics"',
+    )
+    // Setup-tab content (Аккаунты form) is absent on analytics tab.
+    expect(html).not.toContain('neuro-account-id')
+  })
+
+  test('NeuroCommentingPage exposes new-campaign wizard launcher', () => {
+    const html = renderWithClient(<NeuroCommentingPage />)
+
+    expect(html).toContain('Новая кампания (визард)')
   })
 })

@@ -132,6 +132,8 @@ class Settings(BaseSettings):
     neuro_comment_default_campaign_comments_per_hour: int = 30
     neuro_comment_default_campaign_comments_per_day: int = 200
     neuro_comment_default_min_delay_between_comments_seconds: int = 180
+    neuro_comment_approval_ttl_seconds: int = 14400
+    neuro_comment_approval_expirer_interval_seconds: int = 900
     rate_limit_auth_jobs_per_tenant_per_hour: int = 20
     rate_limit_profile_jobs_per_tenant_per_hour: int = 100
     rate_limit_media_jobs_per_tenant_per_hour: int = 50
@@ -201,6 +203,11 @@ class Settings(BaseSettings):
             if not self.proxy_credentials_encryption_key:
                 raise ValueError("cloud API requires PROXY_CREDENTIALS_ENCRYPTION_KEY (Fernet key)")
             self._validate_fernet_key(self.proxy_credentials_encryption_key)
+            if self.neuro_comment_ai_provider == "fake":
+                raise ValueError(
+                    "cloud API requires NEURO_COMMENT_AI_PROVIDER!=fake "
+                    "(fake provider must not be used in production/cloud mode)"
+                )
         if self.storage_backend not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be local or s3")
         if self.tdlib_storage_backend != "local":
@@ -230,6 +237,10 @@ class Settings(BaseSettings):
             raise ValueError("NEURO_COMMENT_AI_MAX_TOKENS must be positive")
         if self.neuro_comment_observe_post_limit <= 0:
             raise ValueError("NEURO_COMMENT_OBSERVE_POST_LIMIT must be positive")
+        if self.neuro_comment_approval_ttl_seconds <= 0:
+            raise ValueError("NEURO_COMMENT_APPROVAL_TTL_SECONDS must be positive")
+        if self.neuro_comment_approval_expirer_interval_seconds <= 0:
+            raise ValueError("NEURO_COMMENT_APPROVAL_EXPIRER_INTERVAL_SECONDS must be positive")
         return self
 
     @staticmethod

@@ -156,6 +156,7 @@
       "backend/app/contracts/jobs.py": [],
       "backend/app/contracts/neuro_commenting.py": [],
       "backend/app/contracts/safety.py": [],
+      "backend/app/contracts/safety_gate.py": [],
       "backend/app/contracts/types.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
@@ -370,7 +371,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 42,
-        "apps/dashboard/src/features": 41,
+        "apps/dashboard/src/features": 43,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 56
       },
@@ -1006,6 +1007,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/safety.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/safety_gate.py"
     },
     {
       "forbidden_imports": [],

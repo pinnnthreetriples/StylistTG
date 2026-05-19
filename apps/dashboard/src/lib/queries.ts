@@ -33,12 +33,14 @@ import {
   fetchLatestJob,
   fetchExecutionPolicy,
   fetchFrontendDiagnosticsSummary,
+  fetchWorkspaceSafetyPolicy,
   fetchCurrentUser,
   fetchLatestJobs,
   fetchLivePreflight,
   fetchRuntimeDiagnostics,
   fetchStoryCapabilities,
   fetchStoryDrafts,
+  updateWorkspaceSafetyPolicy,
 } from '@/lib/api'
 import type { AccountSafetySummary } from '@/lib/accountSafety'
 import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
@@ -100,6 +102,7 @@ export const queryKeys = {
     runtime: ['settings', 'runtime'] as const,
     preflight: ['settings', 'preflight'] as const,
     policy: ['settings', 'policy'] as const,
+    safetyPolicy: ['settings', 'safetyPolicy'] as const,
     authMode: ['settings', 'authMode'] as const,
     frontendDiagnostics: ['settings', 'frontendDiagnostics'] as const,
   },
@@ -196,6 +199,13 @@ export function frontendDiagnosticsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.settings.frontendDiagnostics,
     queryFn: fetchFrontendDiagnosticsSummary,
+  })
+}
+
+export function workspaceSafetyPolicyQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.settings.safetyPolicy,
+    queryFn: fetchWorkspaceSafetyPolicy,
   })
 }
 
@@ -527,4 +537,11 @@ export function updateSettingsAuthModeInCache(queryClient: QueryClient, authMode
   queryClient.setQueryData(queryKeys.settings.bundle, (current: SettingsBundle | undefined) =>
     current ? { ...current, authMode } : current,
   )
+}
+
+export function updateWorkspaceSafetyPolicyInCache(
+  queryClient: QueryClient,
+  policy: Awaited<ReturnType<typeof updateWorkspaceSafetyPolicy>>,
+): void {
+  queryClient.setQueryData(queryKeys.settings.safetyPolicy, policy)
 }

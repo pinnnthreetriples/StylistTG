@@ -51,6 +51,9 @@ export type Readiness = Schema<'ReadinessRead'>
 export type FrontendDiagnosticsSummary = Schema<'FrontendDiagnosticsSummaryRead'>
 export type ExecutionPolicy = Schema<'ExecutionPolicyRead'>
 export type ExecutionPolicyUpdate = Schema<'ExecutionPolicyUpdate'>
+export type WorkspaceSafetyMode = 'conservative' | 'balanced' | 'aggressive'
+export type WorkspaceSafetyPolicy = Schema<'WorkspaceSafetyPolicyRead'>
+export type WorkspaceSafetyPolicyUpdate = Schema<'WorkspaceSafetyPolicyUpdate'>
 export type JobDetail = Schema<'JobDetailRead'>
 export type JobStep = Schema<'JobStepListItemRead'>
 export type JobSummary = Schema<'JobSummaryRead'>
@@ -1201,6 +1204,20 @@ export async function updateExecutionPolicy(
     }),
     'update execution policy',
   )
+}
+
+export async function fetchWorkspaceSafetyPolicy(client: StylistTgClient): Promise<WorkspaceSafetyPolicy> {
+  return client.request<WorkspaceSafetyPolicy>('/api/safety-policy')
+}
+
+export async function updateWorkspaceSafetyPolicy(
+  client: StylistTgClient,
+  update: WorkspaceSafetyPolicyUpdate,
+): Promise<WorkspaceSafetyPolicy> {
+  return client.request<WorkspaceSafetyPolicy>('/api/safety-policy', {
+    method: 'PATCH',
+    body: JSON.stringify(update),
+  })
 }
 
 export async function fetchStoryDrafts(client: StylistTgClient, accountId: string): Promise<StoryDraftRead[]> {

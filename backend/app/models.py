@@ -191,6 +191,52 @@ class SensitiveAuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class WorkspaceSafetyPolicy(Base):
+    __tablename__ = "workspace_safety_policy"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", name="uq_workspace_safety_policy_workspace"),
+        CheckConstraint(
+            "mode in ('conservative', 'balanced', 'aggressive')",
+            name="ck_workspace_safety_policy_mode",
+        ),
+        Index("ix_workspace_safety_policy_workspace_id", "workspace_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    mode: Mapped[str] = mapped_column(String(32), nullable=False, default="balanced")
+    delay_multiplier: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    typing_chars_per_minute_min: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=100
+    )
+    typing_chars_per_minute_max: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=150
+    )
+    profile_view_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.7)
+    scroll_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.3)
+    typo_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.05)
+    message_deletion_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.02)
+    quiet_hours_local_start: Mapped[int | None] = mapped_column(Integer, nullable=True, default=120)
+    quiet_hours_local_end: Mapped[int | None] = mapped_column(Integer, nullable=True, default=360)
+    require_warmup_before_commenting: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
+    min_warmup_days: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    require_healthy_proxy: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    min_account_age_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
+    auto_pause_on_flood_wait_count: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    auto_pause_on_deleted_comments_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5
+    )
+    quarantine_hours_on_flood_wait: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class WorkspacePlan(Base):
     __tablename__ = "workspace_plan"
 

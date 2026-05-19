@@ -27,6 +27,7 @@ import {
   removeAccountFromAccountsCache,
   removeAccountScopedQueries,
   settingsBundleQueryOptions,
+  workspaceSafetyPolicyQueryOptions,
   storyCapabilitiesQueryOptions,
   storyDraftsQueryOptions,
   updateSettingsAuthModeInCache,
@@ -71,6 +72,7 @@ describe('query cache configuration', () => {
     ])
     expect(authStateQueryOptions('account-1').queryKey).toEqual(['authState', 'account-1'])
     expect(settingsBundleQueryOptions().queryKey).toEqual(['settings', 'bundle'])
+    expect(workspaceSafetyPolicyQueryOptions().queryKey).toEqual(['settings', 'safetyPolicy'])
     expect(dashboardBundleQueryOptions('account-1').queryKey).toEqual([
       'dashboard',
       'account-1',

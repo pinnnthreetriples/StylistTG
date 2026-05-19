@@ -21,7 +21,7 @@ last_updated: 2026-05-13
 .\scripts\start-dev.ps1
 ```
 
-On this Windows workstation the launcher starts Memurai Redis at `127.0.0.1:6379`, applies migrations, starts FastAPI on localhost port `8002`, starts profile/auth RQ workers, and starts Vite on localhost port `5173`.
+On this Windows workstation the launcher starts Memurai Redis at `127.0.0.1:6379`, applies migrations, starts FastAPI on localhost port `8002`, starts profile/auth RQ workers, and starts Vite on localhost port `5173`. It does not open a browser by default; pass `-OpenBrowser` to launch the local dashboard URL on port `5173`.
 
 ## Manual backend
 

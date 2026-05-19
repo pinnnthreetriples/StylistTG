@@ -17,6 +17,7 @@ from app.models import (
 )
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.account_health_service import AccountHealthService
+from app.services.neuro_commenting.account_selector import DefaultAccountReadinessProvider
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroAttemptStatus,
@@ -407,6 +408,7 @@ class SenderService:
         ):
             return context.attempt
         self._validate_context(context)
+        self._validate_preflight_guards(session, workspace_id=workspace_id, context=context)
         return context.attempt
 
     def _load_context(
@@ -448,6 +450,28 @@ class SenderService:
             context.target,
             context.campaign_account,
         )
+
+    def _validate_preflight_guards(
+        self, session: Session, *, workspace_id: str, context: _SendContext
+    ) -> None:
+        if not self._config.neuro_comment_tdlib_send_enabled:
+            return
+        if context.target is not None:
+            decision = ChannelRulesPolicy().check_target_allowed(
+                session, workspace_id=workspace_id, target=context.target
+            )
+            if not decision.allowed:
+                raise NeuroConflictError(
+                    decision.reason or "channel rule blocked send",
+                    error_code="CHANNEL_RULE_BLOCKED",
+                )
+        if context.campaign_account is not None and not DefaultAccountReadinessProvider(
+            session
+        ).is_ready(context.campaign_account.account_id):
+            raise NeuroConflictError(
+                "account runtime is not ready",
+                error_code="ACCOUNT_RUNTIME_NOT_READY",
+            )
 
     def _comment_sender(self) -> TelegramCommentSender:
         if self._sender is None:

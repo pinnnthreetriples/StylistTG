@@ -237,6 +237,41 @@ class WorkspaceSafetyPolicy(Base):
     )
 
 
+class AccountGgrScore(Base):
+    __tablename__ = "account_ggr_scores"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "account_id", name="uq_account_ggr_scores_ws_account"),
+        CheckConstraint("score >= 1.0 AND score <= 10.0", name="ck_account_ggr_scores_range"),
+        CheckConstraint(
+            "bucket IN ('strong', 'medium', 'weak')",
+            name="ck_account_ggr_scores_bucket",
+        ),
+        Index("ix_account_ggr_scores_workspace_id", "workspace_id"),
+        Index("ix_account_ggr_scores_account_id", "account_id"),
+        Index("ix_account_ggr_scores_next_calculation", "next_calculation_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False, default=5.0)
+    bucket: Mapped[str] = mapped_column(String(16), nullable=False, default="medium")
+    breakdown_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    previous_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    next_calculation_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_calculated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class WorkspacePlan(Base):
     __tablename__ = "workspace_plan"
 

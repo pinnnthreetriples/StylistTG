@@ -153,6 +153,7 @@
     "contracts_forbidden_imports": {
       "backend/app/contracts/__init__.py": [],
       "backend/app/contracts/accounts.py": [],
+      "backend/app/contracts/ggr.py": [],
       "backend/app/contracts/jobs.py": [],
       "backend/app/contracts/neuro_commenting.py": [],
       "backend/app/contracts/safety.py": [],
@@ -332,6 +333,8 @@
     },
     {
       "files": [
+        "apps/dashboard/src/modules/shared/GGRBadge.test.tsx",
+        "apps/dashboard/src/modules/shared/GGRBadge.tsx",
         "apps/dashboard/src/modules/shared/api.ts",
         "apps/dashboard/src/modules/shared/index.ts",
         "apps/dashboard/src/modules/shared/jobs.ts"
@@ -976,6 +979,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/accounts.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/ggr.py"
     },
     {
       "forbidden_imports": [],

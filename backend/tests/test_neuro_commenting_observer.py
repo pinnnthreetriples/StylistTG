@@ -1,3 +1,4 @@
+# pyright: reportUnknownVariableType=false, reportUnknownParameterType=false, reportMissingParameterType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportArgumentType=false
 from __future__ import annotations
 
 from app.models import (
@@ -257,6 +258,42 @@ def test_observe_target_creates_observed_post_and_dedupes(db_session) -> None:
 
 def test_observe_target_stops_after_metadata_marks_no_discussion(db_session) -> None:
     _account, campaign, target = _campaign_with_target(db_session)
+    observer = FakeTelegramPostObserver(
+        metadata=TargetMetadata(
+            channel_id="channel-1",
+            discussion_chat_id=None,
+            title="Example",
+            username="example",
+            status="no_discussion",
+        ),
+        posts=[ObservedTelegramPost("chat-1", "msg-1", "AI launch", None, "en")],
+    )
+
+    posts = observe_target(
+        db_session,
+        campaign_id=campaign.id,
+        target_id=target.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        limit=10,
+        generate=True,
+        observer=observer,
+    )
+    db_session.commit()
+
+    assert posts == []
+    assert target.status == NeuroTargetStatus.NO_DISCUSSION.value
+    assert db_session.query(NeuroCommentObservedPost).count() == 0
+    assert db_session.query(NeuroCommentGeneratedComment).count() == 0
+    assert db_session.query(NeuroCommentEvent).filter_by(event_type="observe_failed").count() == 1
+
+
+def test_observe_target_refreshes_when_channel_id_exists_but_discussion_missing(
+    db_session,
+) -> None:
+    _account, campaign, target = _campaign_with_target(db_session)
+    target.channel_id = "channel-1"
+    target.discussion_chat_id = None
+    target.status = NeuroTargetStatus.ACTIVE.value
     observer = FakeTelegramPostObserver(
         metadata=TargetMetadata(
             channel_id="channel-1",

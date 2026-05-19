@@ -301,7 +301,8 @@ def observe_target(
         message="neuro-comment target observation started",
         data={"limit": post_limit, "generate": generate},
     )
-    if not target.channel_id:
+    metadata_missing = not target.channel_id or not target.discussion_chat_id
+    if metadata_missing:
         try:
             target = refresh_target_metadata(
                 session,
@@ -321,18 +322,18 @@ def observe_target(
                 error_class=exc.__class__.__name__,
             )
             raise
-        if target.status == NeuroTargetStatus.NO_DISCUSSION.value or not target.discussion_chat_id:
-            _write_observe_failed(
-                session,
-                workspace_id=workspace_id,
-                campaign_id=campaign.id,
-                target_id=target.id,
-                account_id=selected.account.account_id,
-                error_code="TARGET_NO_DISCUSSION",
-                error_class="NeuroConflictError",
-            )
-            session.flush()
-            return []
+    if target.status == NeuroTargetStatus.NO_DISCUSSION.value or not target.discussion_chat_id:
+        _write_observe_failed(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=campaign.id,
+            target_id=target.id,
+            account_id=selected.account.account_id,
+            error_code="TARGET_NO_DISCUSSION",
+            error_class="NeuroConflictError",
+        )
+        session.flush()
+        return []
     try:
         posts = active_observer.fetch_recent_posts(selected.account.account_id, target, post_limit)
     except NeuroCommentingError as exc:

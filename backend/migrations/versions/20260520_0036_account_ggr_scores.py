@@ -37,9 +37,7 @@ def upgrade() -> None:
             server_default="medium",
         ),
         sa.Column("breakdown_json", sa.JSON(), nullable=False, server_default="{}"),
-        sa.Column(
-            "previous_score", sa.Float(), nullable=True
-        ),
+        sa.Column("previous_score", sa.Float(), nullable=True),
         sa.Column(
             "next_calculation_at",
             sa.DateTime(timezone=True),

@@ -36,7 +36,9 @@ from app.services.ggr_calculator import (
 pytestmark = [pytest.mark.unit]
 
 
-def _make_workspace(session: Session, *, name: str = "Test Workspace", ws_id: str | None = None) -> Workspace:
+def _make_workspace(
+    session: Session, *, name: str = "Test Workspace", ws_id: str | None = None
+) -> Workspace:
     """Create a workspace with required fields (slug, owner)."""
     wid = ws_id or new_id()
     user = User(
@@ -138,7 +140,8 @@ class TestBucketBoundaries:
 class TestComponentScoring:
     def test_age_score_new_account(self, session: Session, workspace: Workspace):
         acct = _make_account(
-            session, workspace.id,
+            session,
+            workspace.id,
             external_ref="+7999000010",
             created_at=datetime.now(UTC) - timedelta(hours=12),
             account_state=AccountState.REGISTERED,
@@ -147,7 +150,8 @@ class TestComponentScoring:
 
     def test_age_score_one_week(self, session: Session, workspace: Workspace):
         acct = _make_account(
-            session, workspace.id,
+            session,
+            workspace.id,
             external_ref="+7999000011",
             created_at=datetime.now(UTC) - timedelta(days=3),
             account_state=AccountState.REGISTERED,
@@ -156,7 +160,8 @@ class TestComponentScoring:
 
     def test_age_score_month(self, session: Session, workspace: Workspace):
         acct = _make_account(
-            session, workspace.id,
+            session,
+            workspace.id,
             external_ref="+7999000012",
             created_at=datetime.now(UTC) - timedelta(days=15),
             account_state=AccountState.REGISTERED,
@@ -165,7 +170,8 @@ class TestComponentScoring:
 
     def test_age_score_old(self, session: Session, workspace: Workspace):
         acct = _make_account(
-            session, workspace.id,
+            session,
+            workspace.id,
             external_ref="+7999000013",
             created_at=datetime.now(UTC) - timedelta(days=60),
             account_state=AccountState.REGISTERED,
@@ -175,31 +181,37 @@ class TestComponentScoring:
     def test_origin_score_imported(self):
         class FakeAccount:
             origin = "imported"
+
         assert _origin_score(FakeAccount()) == 0.7
 
     def test_origin_score_bought(self):
         class FakeAccount:
             origin = "bought"
+
         assert _origin_score(FakeAccount()) == 0.5
 
     def test_origin_score_created(self):
         class FakeAccount:
             origin = "created"
+
         assert _origin_score(FakeAccount()) == 0.9
 
     def test_proxy_score_healthy(self):
         class FakeAccount:
             proxy_status = "healthy"
+
         assert _proxy_score(FakeAccount()) == 1.0
 
     def test_proxy_score_failed(self):
         class FakeAccount:
             proxy_status = "failed"
+
         assert _proxy_score(FakeAccount()) == 0.0
 
     def test_proxy_score_unknown(self):
         class FakeAccount:
             proxy_status = "unknown"
+
         assert _proxy_score(FakeAccount()) == 0.5
 
 
@@ -210,39 +222,68 @@ class TestComponentScoring:
 
 class TestScoreFormula:
     def test_all_components_max(self):
-        components = {k: 1.0 for k in [
-            "age", "origin", "history", "proxy", "fingerprint",
-            "ip_change", "session_anomaly", "warmup", "profile",
-        ]}
+        components = {
+            k: 1.0
+            for k in [
+                "age",
+                "origin",
+                "history",
+                "proxy",
+                "fingerprint",
+                "ip_change",
+                "session_anomaly",
+                "warmup",
+                "profile",
+            ]
+        }
         score = compute_score(components)
         expected = round(1.0 + 9.0 * 1.0, 1)
         assert score == expected == 10.0
 
     def test_all_components_zero(self):
-        components = {k: 0.0 for k in [
-            "age", "origin", "history", "proxy", "fingerprint",
-            "ip_change", "session_anomaly", "warmup", "profile",
-        ]}
+        components = {
+            k: 0.0
+            for k in [
+                "age",
+                "origin",
+                "history",
+                "proxy",
+                "fingerprint",
+                "ip_change",
+                "session_anomaly",
+                "warmup",
+                "profile",
+            ]
+        }
         score = compute_score(components)
         expected = round(1.0 + 9.0 * 0.0, 1)
         assert score == expected == 1.0
 
     def test_mixed_components(self):
         components = {
-            "age": 1.0,        # 0.20 * 1.0 = 0.20
-            "origin": 0.7,     # 0.10 * 0.7 = 0.07
-            "history": 0.8,    # 0.15 * 0.8 = 0.12
-            "proxy": 1.0,      # 0.15 * 1.0 = 0.15
+            "age": 1.0,  # 0.20 * 1.0 = 0.20
+            "origin": 0.7,  # 0.10 * 0.7 = 0.07
+            "history": 0.8,  # 0.15 * 0.8 = 0.12
+            "proxy": 1.0,  # 0.15 * 1.0 = 0.15
             "fingerprint": 0.5,  # 0.10 * 0.5 = 0.05
             "ip_change": 1.0,  # 0.10 * 1.0 = 0.10
             "session_anomaly": 1.0,  # 0.10 * 1.0 = 0.10
-            "warmup": 0.5,     # 0.05 * 0.5 = 0.025
+            "warmup": 0.5,  # 0.05 * 0.5 = 0.025
             "profile": 0.667,  # 0.05 * 0.667 = 0.03335
         }
         total = sum(
-            {"age": 0.20, "origin": 0.10, "history": 0.15, "proxy": 0.15,
-             "fingerprint": 0.10, "ip_change": 0.10, "session_anomaly": 0.10,
-             "warmup": 0.05, "profile": 0.05}[k] * v
+            {
+                "age": 0.20,
+                "origin": 0.10,
+                "history": 0.15,
+                "proxy": 0.15,
+                "fingerprint": 0.10,
+                "ip_change": 0.10,
+                "session_anomaly": 0.10,
+                "warmup": 0.05,
+                "profile": 0.05,
+            }[k]
+            * v
             for k, v in components.items()
         )
         expected = round(1.0 + 9.0 * total, 1)
@@ -328,12 +369,14 @@ class TestTenantIsolation:
         ws_b = _make_workspace(session, name="Workspace B")
 
         acct_a = _make_account(
-            session, ws_a.id,
+            session,
+            ws_a.id,
             external_ref="+7999000020",
             created_at=datetime.now(UTC) - timedelta(days=30),
         )
         acct_b = _make_account(
-            session, ws_b.id,
+            session,
+            ws_b.id,
             external_ref="+7999000021",
             created_at=datetime.now(UTC) - timedelta(days=30),
         )

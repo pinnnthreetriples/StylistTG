@@ -49,7 +49,11 @@ def _age_score(account: Account) -> float:
     if not account.created_at:
         return 0.0
     now = datetime.now(UTC)
-    age = now - account.created_at.replace(tzinfo=UTC) if account.created_at.tzinfo is None else now - account.created_at
+    age = (
+        now - account.created_at.replace(tzinfo=UTC)
+        if account.created_at.tzinfo is None
+        else now - account.created_at
+    )
     days = age.total_seconds() / 86400
     if days < 1:
         return 0.0

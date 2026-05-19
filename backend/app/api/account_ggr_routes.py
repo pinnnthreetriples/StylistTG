@@ -1,8 +1,10 @@
+from typing import cast
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.tenant_helpers import require_account_in_workspace
-from app.contracts.ggr import GgrBreakdownRead, GgrScoreRead
+from app.contracts.ggr import GgrBreakdownRead, GgrBucket, GgrScoreRead
 from app.db import get_session
 from app.services.auth_context import AuthContext, require_authenticated
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
@@ -28,7 +30,7 @@ def get_account_ggr(
         id=ggr_row.id,
         account_id=ggr_row.account_id,
         score=ggr_row.score,
-        bucket=ggr_row.bucket,
+        bucket=cast(GgrBucket, ggr_row.bucket),
         breakdown=GgrBreakdownRead(
             age=breakdown.get("age", 0.0),
             origin=breakdown.get("origin", 0.0),

@@ -2721,6 +2721,79 @@
         }
       }
     },
+    "/api/accounts/{account_id}/ggr": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Ggr",
+        "operationId": "get_account_ggr_api_accounts__account_id__ggr_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GgrScoreRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/proxy-summary": {
       "get": {
         "tags": [
@@ -18038,6 +18111,173 @@
           "mode"
         ],
         "title": "FrontendDiagnosticsWorkersRead"
+      },
+      "GgrBreakdownRead": {
+        "properties": {
+          "age": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Age"
+          },
+          "origin": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Origin"
+          },
+          "history": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "History"
+          },
+          "proxy": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Proxy"
+          },
+          "fingerprint": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Fingerprint"
+          },
+          "ip_change": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Ip Change"
+          },
+          "session_anomaly": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Session Anomaly"
+          },
+          "warmup": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Warmup"
+          },
+          "profile": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Profile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "age",
+          "origin",
+          "history",
+          "proxy",
+          "fingerprint",
+          "ip_change",
+          "session_anomaly",
+          "warmup",
+          "profile"
+        ],
+        "title": "GgrBreakdownRead"
+      },
+      "GgrScoreRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Score"
+          },
+          "bucket": {
+            "type": "string",
+            "enum": [
+              "strong",
+              "medium",
+              "weak"
+            ],
+            "title": "Bucket"
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/GgrBreakdownRead"
+          },
+          "previous_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Score"
+          },
+          "last_calculated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Calculated At"
+          },
+          "next_calculation_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Calculation At"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "score",
+          "bucket",
+          "breakdown",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "GgrScoreRead"
       },
       "HTTPValidationError": {
         "properties": {

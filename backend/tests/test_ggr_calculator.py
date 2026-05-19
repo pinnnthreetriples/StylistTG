@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -34,6 +35,19 @@ from app.services.ggr_calculator import (
 )
 
 pytestmark = [pytest.mark.unit]
+
+_NOW = datetime(2026, 5, 20, 0, 0, 0, tzinfo=UTC)
+_ALL_COMPONENTS = [
+    "age",
+    "origin",
+    "history",
+    "proxy",
+    "fingerprint",
+    "ip_change",
+    "session_anomaly",
+    "warmup",
+    "profile",
+]
 
 
 def _make_workspace(
@@ -90,7 +104,7 @@ def _make_account(
         workspace_id=workspace_id,
         external_ref=external_ref,
         account_state=account_state,
-        created_at=created_at or (datetime.now(UTC) - timedelta(days=45)),
+        created_at=created_at or (_NOW - timedelta(days=45)),
     )
     acct.runtime_state = AccountRuntimeState(
         session_present=False,
@@ -137,13 +151,14 @@ class TestBucketBoundaries:
 # ---------------------------------------------------------------------------
 
 
+@freeze_time(_NOW)
 class TestComponentScoring:
     def test_age_score_new_account(self, session: Session, workspace: Workspace):
         acct = _make_account(
             session,
             workspace.id,
             external_ref="+7999000010",
-            created_at=datetime.now(UTC) - timedelta(hours=12),
+            created_at=_NOW - timedelta(hours=12),
             account_state=AccountState.REGISTERED,
         )
         assert _age_score(acct) == 0.0
@@ -153,7 +168,7 @@ class TestComponentScoring:
             session,
             workspace.id,
             external_ref="+7999000011",
-            created_at=datetime.now(UTC) - timedelta(days=3),
+            created_at=_NOW - timedelta(days=3),
             account_state=AccountState.REGISTERED,
         )
         assert _age_score(acct) == 0.5
@@ -163,7 +178,7 @@ class TestComponentScoring:
             session,
             workspace.id,
             external_ref="+7999000012",
-            created_at=datetime.now(UTC) - timedelta(days=15),
+            created_at=_NOW - timedelta(days=15),
             account_state=AccountState.REGISTERED,
         )
         assert _age_score(acct) == 0.8
@@ -173,7 +188,7 @@ class TestComponentScoring:
             session,
             workspace.id,
             external_ref="+7999000013",
-            created_at=datetime.now(UTC) - timedelta(days=60),
+            created_at=_NOW - timedelta(days=60),
             account_state=AccountState.REGISTERED,
         )
         assert _age_score(acct) == 1.0
@@ -222,39 +237,13 @@ class TestComponentScoring:
 
 class TestScoreFormula:
     def test_all_components_max(self):
-        components = {
-            k: 1.0
-            for k in [
-                "age",
-                "origin",
-                "history",
-                "proxy",
-                "fingerprint",
-                "ip_change",
-                "session_anomaly",
-                "warmup",
-                "profile",
-            ]
-        }
+        components = {k: 1.0 for k in _ALL_COMPONENTS}
         score = compute_score(components)
         expected = round(1.0 + 9.0 * 1.0, 1)
         assert score == expected == 10.0
 
     def test_all_components_zero(self):
-        components = {
-            k: 0.0
-            for k in [
-                "age",
-                "origin",
-                "history",
-                "proxy",
-                "fingerprint",
-                "ip_change",
-                "session_anomaly",
-                "warmup",
-                "profile",
-            ]
-        }
+        components = {k: 0.0 for k in _ALL_COMPONENTS}
         score = compute_score(components)
         expected = round(1.0 + 9.0 * 0.0, 1)
         assert score == expected == 1.0
@@ -363,6 +352,7 @@ class TestSmoothing:
 # ---------------------------------------------------------------------------
 
 
+@freeze_time(_NOW)
 class TestTenantIsolation:
     def test_workspace_a_cannot_see_workspace_b(self, session: Session):
         ws_a = _make_workspace(session, name="Workspace A")
@@ -372,13 +362,13 @@ class TestTenantIsolation:
             session,
             ws_a.id,
             external_ref="+7999000020",
-            created_at=datetime.now(UTC) - timedelta(days=30),
+            created_at=_NOW - timedelta(days=30),
         )
         acct_b = _make_account(
             session,
             ws_b.id,
             external_ref="+7999000021",
-            created_at=datetime.now(UTC) - timedelta(days=30),
+            created_at=_NOW - timedelta(days=30),
         )
 
         calculate_ggr(session, acct_a, ws_a.id)

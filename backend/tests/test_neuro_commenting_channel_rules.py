@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID
+from sqlalchemy import UniqueConstraint
+
+from app.models import DEFAULT_LOCAL_WORKSPACE_ID, NeuroCommentChannelRule
 from app.services.neuro_commenting.campaign_service import CampaignService
 from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
 from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
@@ -77,6 +79,16 @@ def test_create_rule_deduplicates_same_workspace_target_and_type(db_session) -> 
     assert duplicate.id == first.id
     assert total == 1
     assert [rule.id for rule in listed] == [first.id]
+
+
+def test_channel_rule_model_has_database_deduplication_constraint() -> None:
+    unique_columns = {
+        tuple(constraint.columns.keys())
+        for constraint in NeuroCommentChannelRule.__table__.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+
+    assert ("workspace_id", "target_ref", "rule_type") in unique_columns
 
 
 def test_auto_suggestion_does_not_block_and_pause_resume_target(db_session) -> None:

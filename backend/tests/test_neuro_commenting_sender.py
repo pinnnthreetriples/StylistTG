@@ -119,7 +119,7 @@ def test_manual_send_fails_closed_when_disabled(db_session) -> None:
         raise AssertionError("manual send did not fail closed")
 
 
-def test_limiter_gate_does_not_construct_tdlib_sender(db_session) -> None:
+def test_limiter_gate_denied_does_not_construct_tdlib_sender(db_session) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
     config = SimpleNamespace(
         neuro_comment_tdlib_send_enabled=True,

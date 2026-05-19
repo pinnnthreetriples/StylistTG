@@ -47,10 +47,23 @@ class ChannelRulesService:
         actor_user_id: str | None,
         payload: dict[str, Any],
     ) -> NeuroCommentChannelRule:
+        target_ref = str(payload["target_ref"]).strip()
+        existing = (
+            session.query(NeuroCommentChannelRule)
+            .filter(
+                NeuroCommentChannelRule.workspace_id == workspace_id,
+                NeuroCommentChannelRule.target_ref == target_ref,
+                NeuroCommentChannelRule.rule_type == payload["rule_type"],
+            )
+            .order_by(NeuroCommentChannelRule.created_at.desc())
+            .first()
+        )
+        if existing is not None:
+            return existing
         rule = NeuroCommentChannelRule(
             id=new_id(),
             workspace_id=workspace_id,
-            target_ref=str(payload["target_ref"]).strip(),
+            target_ref=target_ref,
             rule_type=payload["rule_type"],
             reason=payload.get("reason"),
             created_by=actor_user_id,

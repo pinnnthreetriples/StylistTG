@@ -7,8 +7,8 @@ from app.adapters.tdlib_auth import TdlibClientFactory
 from app.config import Settings, settings
 from app.models import NeuroCommentTarget
 from app.services.neuro_commenting.errors import NeuroRuntimeUnavailableError
+from app.services.neuro_commenting.tdlib_helpers import checked_tdlib_query, dict_or_empty
 from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
-from app.services.tdlib_client import safe_tdlib_error_message
 
 
 DISCUSSION_MESSAGE_NOT_RESOLVED = "DISCUSSION_MESSAGE_NOT_RESOLVED"
@@ -100,7 +100,7 @@ class TdlibDiscussionMessageResolver:
                 target.discussion_chat_id, None, TARGET_NO_DISCUSSION
             )
         with self._runtime.ready_client_context(account_id) as client:
-            response = _checked_query(
+            response = checked_tdlib_query(
                 client,
                 {
                     "@type": "getChatHistory",
@@ -110,12 +110,12 @@ class TdlibDiscussionMessageResolver:
                     "limit": self._history_limit,
                     "only_local": False,
                 },
-                self._config,
+                timeout_seconds=self._config.tdlib_receive_timeout_seconds,
             )
         messages = response.get("messages")
         message_list = cast(list[Any], messages) if isinstance(messages, list) else []
         for item in message_list:
-            message = _dict_or_empty(item)
+            message = dict_or_empty(item)
             if _message_matches_source(
                 message,
                 source_chat_id=source_chat_id,
@@ -144,14 +144,14 @@ def build_discussion_message_resolver(config: Settings = settings) -> Discussion
 def _message_matches_source(
     message: dict[str, Any], *, source_chat_id: str, source_message_id: str
 ) -> bool:
-    forward_info = _dict_or_empty(message.get("forward_info"))
-    source = _dict_or_empty(forward_info.get("source"))
+    forward_info = dict_or_empty(message.get("forward_info"))
+    source = dict_or_empty(forward_info.get("source"))
     if _ids_match(source, source_chat_id=source_chat_id, source_message_id=source_message_id):
         return True
-    origin = _dict_or_empty(forward_info.get("origin"))
+    origin = dict_or_empty(forward_info.get("origin"))
     if _ids_match(origin, source_chat_id=source_chat_id, source_message_id=source_message_id):
         return True
-    reply_to = _dict_or_empty(message.get("reply_to"))
+    reply_to = dict_or_empty(message.get("reply_to"))
     return _ids_match(reply_to, source_chat_id=source_chat_id, source_message_id=source_message_id)
 
 
@@ -165,28 +165,8 @@ def _ids_match(value: dict[str, Any], *, source_chat_id: str, source_message_id:
     )
 
 
-def _dict_or_empty(value: object) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        return {}
-    return cast(dict[str, Any], value)
-
-
 def _require_int_id(value: object) -> int:
     try:
         return int(str(value))
     except (TypeError, ValueError):
         raise NeuroRuntimeUnavailableError("chat not found", error_code="CHAT_NOT_FOUND") from None
-
-
-def _checked_query(client: Any, payload: dict[str, Any], config: Settings) -> dict[str, Any]:
-    try:
-        response = client.send_query(payload, config.tdlib_receive_timeout_seconds)
-    except Exception as exc:
-        raise NeuroRuntimeUnavailableError(
-            safe_tdlib_error_message(exc), error_code="TDLIB_RUNTIME_UNAVAILABLE"
-        ) from exc
-    if response.get("@type") == "error":
-        raise NeuroRuntimeUnavailableError(
-            safe_tdlib_error_message(response), error_code="TDLIB_RUNTIME_UNAVAILABLE"
-        )
-    return cast(dict[str, Any], response)

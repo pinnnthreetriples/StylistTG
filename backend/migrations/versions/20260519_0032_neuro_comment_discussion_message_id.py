@@ -1,7 +1,7 @@
 """Add discussion message mapping to observed posts.
 
-Revision ID: 20260519_0031
-Revises: 20260519_0030
+Revision ID: 20260519_0032
+Revises: 20260519_0031
 Create Date: 2026-05-19
 """
 
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20260519_0031"
-down_revision = "20260519_0030"
+revision = "20260519_0032"
+down_revision = "20260519_0031"
 branch_labels = None
 depends_on = None
 

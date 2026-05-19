@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Callable
 
 from app.adapters.tdlib_auth import (
@@ -33,16 +35,29 @@ class NeuroTdlibRuntime:
         self._factory_error: Exception | None = None
 
     def ready_client(self, account_id: str) -> TdlibClient:
+        client: TdlibClient | None = None
         try:
             client = self._factory().create(account_id)
             self._ensure_ready(client, account_id)
             return client
         except NeuroRuntimeUnavailableError:
+            if client is not None:
+                client.close()
             raise
         except Exception as exc:
+            if client is not None:
+                client.close()
             raise NeuroRuntimeUnavailableError(
                 "TDLib runtime is unavailable", error_code="TDLIB_RUNTIME_UNAVAILABLE"
             ) from exc
+
+    @contextmanager
+    def ready_client_context(self, account_id: str) -> Generator[TdlibClient]:
+        client = self.ready_client(account_id)
+        try:
+            yield client
+        finally:
+            client.close()
 
     def _factory(self) -> TdlibClientFactory:
         if self._client_factory is not None:

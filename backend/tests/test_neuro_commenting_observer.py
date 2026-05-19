@@ -16,6 +16,7 @@ from app.services.neuro_commenting.jobs import (
     observe_target,
     refresh_target_metadata,
 )
+from app.services.neuro_commenting.discussion_resolver import FakeDiscussionMessageResolver
 from app.services.neuro_commenting.post_detector import PostDetector
 from app.services.neuro_commenting.tdlib_observer import (
     FakeTelegramPostObserver,
@@ -186,6 +187,7 @@ def test_tdlib_observer_resolves_channel_ref_with_public_chat_search(db_session)
     assert search_query["username"] == "example"
     assert metadata.channel_id == "123"
     assert metadata.discussion_chat_id == "456"
+    assert client.close_calls == 1
 
 
 def test_tdlib_observer_uses_integer_chat_ids_and_skips_missing_message_id(
@@ -233,6 +235,7 @@ def test_tdlib_observer_uses_integer_chat_ids_and_skips_missing_message_id(
     assert history_query["chat_id"] == 123
     assert len(posts) == 1
     assert posts[0].source_message_id == "111"
+    assert client.close_calls == 1
 
 
 def test_observe_target_creates_observed_post_and_dedupes(db_session) -> None:
@@ -254,12 +257,25 @@ def test_observe_target_creates_observed_post_and_dedupes(db_session) -> None:
         limit=10,
         generate=False,
         observer=observer,
+        resolver=FakeDiscussionMessageResolver(
+            discussion_chat_id="discussion-1",
+            discussion_message_id="discussion-msg-1",
+        ),
     )
     db_session.commit()
 
     assert len(posts) == 1
+    assert posts[0].discussion_chat_id == "discussion-1"
+    assert posts[0].discussion_message_id == "discussion-msg-1"
+    assert posts[0].discussion_resolved_at is not None
     assert db_session.query(NeuroCommentObservedPost).count() == 1
     assert db_session.query(NeuroCommentEvent).filter_by(event_type="post_observed").count() == 1
+    assert (
+        db_session.query(NeuroCommentEvent)
+        .filter_by(event_type="discussion_message_resolved")
+        .count()
+        == 1
+    )
     assert db_session.query(NeuroCommentEvent).filter_by(event_type="post_skipped").count() >= 1
 
 
@@ -292,6 +308,41 @@ def test_observe_target_stops_after_metadata_marks_no_discussion(db_session) -> 
     assert db_session.query(NeuroCommentObservedPost).count() == 0
     assert db_session.query(NeuroCommentGeneratedComment).count() == 0
     assert db_session.query(NeuroCommentEvent).filter_by(event_type="observe_failed").count() == 1
+
+
+def test_observe_target_saves_discussion_resolution_failure(db_session) -> None:
+    _account, campaign, target = _campaign_with_target(db_session, mode="keyword_match")
+    target.discussion_chat_id = "discussion-1"
+    observer = FakeTelegramPostObserver(
+        posts=[ObservedTelegramPost("chat-1", "msg-1", "AI launch", None, "en")]
+    )
+
+    posts = observe_target(
+        db_session,
+        campaign_id=campaign.id,
+        target_id=target.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        limit=10,
+        generate=False,
+        observer=observer,
+        resolver=FakeDiscussionMessageResolver(
+            discussion_chat_id="discussion-1",
+            discussion_message_id=None,
+            error_code="DISCUSSION_MESSAGE_NOT_RESOLVED",
+        ),
+    )
+    db_session.commit()
+
+    assert len(posts) == 1
+    assert posts[0].discussion_chat_id == "discussion-1"
+    assert posts[0].discussion_message_id is None
+    assert posts[0].discussion_resolution_error_code == "DISCUSSION_MESSAGE_NOT_RESOLVED"
+    assert (
+        db_session.query(NeuroCommentEvent)
+        .filter_by(event_type="discussion_message_resolution_failed")
+        .count()
+        == 1
+    )
 
 
 def test_observe_target_refreshes_when_channel_id_exists_but_discussion_missing(
@@ -392,6 +443,7 @@ class _RecordingTdlibClient:
     def __init__(self, responses: dict[str, dict[str, object]]) -> None:
         self._responses = responses
         self.queries: list[dict[str, object]] = []
+        self.close_calls = 0
 
     def send_query(self, payload: dict[str, object], timeout: float) -> dict[str, object]:
         _ = timeout
@@ -410,7 +462,7 @@ class _RecordingTdlibClient:
         return None
 
     def close(self) -> None:
-        return None
+        self.close_calls += 1
 
 
 class _RecordingTdlibFactory:

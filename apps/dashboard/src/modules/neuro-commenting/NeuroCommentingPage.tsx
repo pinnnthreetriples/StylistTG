@@ -9,6 +9,7 @@ import { CampaignListSection } from './components/CampaignListSection'
 import { ChannelRulesSection } from './components/ChannelRulesSection'
 import { EventsSection } from './components/EventsSection'
 import { GeneratedCommentsSection } from './components/GeneratedCommentsSection'
+import { LiveReadinessSection } from './components/LiveReadinessSection'
 import { TargetsSection } from './components/TargetsSection'
 import {
   useCreateNeuroChannelRule,
@@ -46,6 +47,7 @@ export function NeuroCommentingPage({ initialSelectedCampaignId = null }: { init
           {selectedCampaignId ? (
             <>
               <CampaignDetailSection campaignId={selectedCampaignId} />
+              <LiveReadinessSection campaignId={selectedCampaignId} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <AccountsSection campaignId={selectedCampaignId} />
                 <TargetsSection campaignId={selectedCampaignId} />

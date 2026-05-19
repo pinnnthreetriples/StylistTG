@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
+    AccountState,
     NeuroAttemptStatus,
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
@@ -18,7 +19,13 @@ from tests.helpers.factories import seed_account, seed_two_workspaces
 
 
 def _runtime_seed(db_session):
-    account = seed_account(db_session, external_ref="+15550106001")
+    account = seed_account(
+        db_session,
+        external_ref="+15550106001",
+        account_state=AccountState.EXECUTION_USABLE,
+        runtime_health="ready",
+        session_present=True,
+    )
     campaign = CampaignService().create_campaign(
         db_session,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
@@ -46,6 +53,8 @@ def _runtime_seed(db_session):
         target_id=target.id,
         source_chat_id="chat-1",
         source_message_id="msg-1",
+        discussion_chat_id="discussion-1",
+        discussion_message_id="discussion-msg-1",
         post_text="Новый пост",
         language="ru",
     )
@@ -199,6 +208,29 @@ def test_existing_attempt_is_revalidated_before_enqueue(
     assert enqueued is False
 
 
+def test_send_endpoint_blocks_unresolved_discussion_before_enqueue(
+    app_client, db_session, monkeypatch
+) -> None:
+    _campaign, _target, observed, comment, _attempt = _runtime_seed(db_session)
+    observed.discussion_message_id = None
+    db_session.commit()
+    enqueued = False
+
+    def enqueue(*args, **kwargs):
+        nonlocal enqueued
+        _ = (args, kwargs)
+        enqueued = True
+        return True
+
+    monkeypatch.setattr("app.api.neuro_commenting.enqueue_neuro_send_attempt", enqueue)
+
+    response = app_client.post(f"/api/neuro-commenting/generated-comments/{comment.id}/send")
+
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "DISCUSSION_MESSAGE_NOT_RESOLVED"
+    assert enqueued is False
+
+
 def test_sent_attempt_is_idempotent_and_not_requeued(app_client, db_session, monkeypatch) -> None:
     _campaign, _target, _observed, comment, attempt = _runtime_seed(db_session)
     attempt.status = NeuroAttemptStatus.SENT.value
@@ -277,3 +309,39 @@ def test_runtime_endpoints_are_workspace_scoped(app_client, db_session) -> None:
 
     assert response.status_code == 404
     assert response.json()["error_code"] == "OBSERVED_POST_NOT_FOUND"
+
+
+def test_resolve_discussion_endpoint_updates_observed_post(
+    app_client, db_session, monkeypatch
+) -> None:
+    _campaign, _target, observed, _comment, _attempt = _runtime_seed(db_session)
+    observed.discussion_message_id = None
+    db_session.commit()
+
+    class Resolver:
+        def resolve(self, **kwargs):
+            _ = kwargs
+            return type(
+                "Resolution",
+                (),
+                {
+                    "discussion_chat_id": "discussion-1",
+                    "discussion_message_id": "discussion-msg-2",
+                    "error_code": None,
+                },
+            )()
+
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.jobs.build_discussion_message_resolver",
+        lambda: Resolver(),
+    )
+
+    response = app_client.post(
+        f"/api/neuro-commenting/observed-posts/{observed.id}/resolve-discussion"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["discussion_chat_id"] == "discussion-1"
+    assert body["discussion_message_id"] == "discussion-msg-2"
+    assert body["discussion_resolved_at"] is not None

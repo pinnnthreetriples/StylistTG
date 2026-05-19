@@ -1342,6 +1342,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/neuro-commenting/campaigns/{campaign_id}/live-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Campaign Live Readiness */
+        get: operations["get_campaign_live_readiness_api_neuro_commenting_campaigns__campaign_id__live_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/neuro-commenting/campaigns/{campaign_id}/account-stats": {
         parameters: {
             query?: never;
@@ -1801,6 +1818,23 @@ export interface paths {
         put?: never;
         /** Post Generate Observed Post */
         post: operations["post_generate_observed_post_api_neuro_commenting_observed_posts__observed_post_id__generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/neuro-commenting/observed-posts/{observed_post_id}/resolve-discussion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Resolve Observed Post Discussion */
+        post: operations["post_resolve_observed_post_discussion_api_neuro_commenting_observed_posts__observed_post_id__resolve_discussion_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4853,6 +4887,27 @@ export interface components {
             /** Enabled */
             enabled?: boolean | null;
         };
+        /** NeuroLiveReadinessCheckRead */
+        NeuroLiveReadinessCheckRead: {
+            /** Code */
+            code: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "blocker";
+            /** Message */
+            message: string;
+        };
+        /** NeuroLiveReadinessRead */
+        NeuroLiveReadinessRead: {
+            /** Campaign Id */
+            campaign_id: string;
+            /** Ready */
+            ready: boolean;
+            /** Checks */
+            checks: components["schemas"]["NeuroLiveReadinessCheckRead"][];
+        };
         /** NeuroManualSendRead */
         NeuroManualSendRead: {
             /** Accepted */
@@ -4918,6 +4973,14 @@ export interface components {
             source_chat_id: string;
             /** Source Message Id */
             source_message_id: string;
+            /** Discussion Chat Id */
+            discussion_chat_id: string | null;
+            /** Discussion Message Id */
+            discussion_message_id: string | null;
+            /** Discussion Resolved At */
+            discussion_resolved_at: string | null;
+            /** Discussion Resolution Error Code */
+            discussion_resolution_error_code: string | null;
             /** Post Text */
             post_text: string | null;
             /** Media Summary */
@@ -11138,6 +11201,66 @@ export interface operations {
             };
         };
     };
+    get_campaign_live_readiness_api_neuro_commenting_campaigns__campaign_id__live_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeuroLiveReadinessRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_campaign_account_stats_api_neuro_commenting_campaigns__campaign_id__account_stats_get: {
         parameters: {
             query?: {
@@ -13133,6 +13256,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NeuroAcceptedJobRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_resolve_observed_post_discussion_api_neuro_commenting_observed_posts__observed_post_id__resolve_discussion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                observed_post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeuroObservedPostRead"];
                 };
             };
             /** @description Bad Request */

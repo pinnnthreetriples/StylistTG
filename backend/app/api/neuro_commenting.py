@@ -39,6 +39,7 @@ from app.schemas import (
     NeuroLimitPageRead,
     NeuroLimitRead,
     NeuroLimitUpdate,
+    NeuroLiveReadinessRead,
     NeuroManualSendRead,
     NeuroManualSendRequest,
     NeuroObservedPostPageRead,
@@ -65,9 +66,11 @@ from app.services.neuro_commenting.channel_rules_service import ChannelRulesServ
 from app.services.neuro_commenting.enums import NeuroAttemptStatus, NeuroEventLevel
 from app.services.neuro_commenting.errors import NeuroCommentingError, NeuroConflictError
 from app.services.neuro_commenting.limits_service import LimitsService
+from app.services.neuro_commenting.live_readiness_service import LiveReadinessService
 from app.models import NeuroCommentAttempt, new_id
 from app.services.neuro_commenting.sender_service import SenderService
 from app.services.neuro_commenting.target_service import TargetService
+from app.services.neuro_commenting.jobs import resolve_observed_post_discussion
 from app.job_queue.rq import (
     enqueue_neuro_generate_comment,
     enqueue_neuro_observe_campaign,
@@ -184,6 +187,23 @@ def get_campaign_stats(
     return NeuroCampaignStatsRead.model_validate(
         AnalyticsService().campaign_stats(session, campaign_id=str(campaign_id))
     )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/live-readiness",
+    response_model=NeuroLiveReadinessRead,
+)
+def get_campaign_live_readiness(
+    campaign_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroLiveReadinessRead:
+    try:
+        return LiveReadinessService().check(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
 
 
 @router.get("/campaigns/{campaign_id}/account-stats", response_model=NeuroAccountStatsPageRead)
@@ -948,6 +968,32 @@ def post_generate_observed_post(
         job_id=job_id,
         queue_name=NEURO_COMMENT_QUEUE_NAME,
     )
+
+
+@router.post(
+    "/observed-posts/{observed_post_id}/resolve-discussion",
+    response_model=NeuroObservedPostRead,
+)
+def post_resolve_observed_post_discussion(
+    observed_post_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroObservedPostRead:
+    try:
+        observed = resolve_observed_post_discussion(
+            session,
+            observed_post_id=str(observed_post_id),
+            workspace_id=auth.workspace_id,
+        )
+        session.commit()
+        session.refresh(observed)
+        return NeuroObservedPostRead.model_validate(observed)
+    except NeuroCommentingError as exc:
+        session.commit()
+        raise _neuro_domain_error(exc) from exc
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
 
 
 @router.get("/attempts", response_model=NeuroAttemptPageRead)

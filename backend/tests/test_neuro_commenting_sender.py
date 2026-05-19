@@ -92,6 +92,8 @@ def _approved_comment_with_attempt(db_session):
         target_id=target.id,
         source_chat_id="source-chat-1",
         source_message_id="42",
+        discussion_chat_id="456",
+        discussion_message_id="99",
     )
     comment = NeuroCommentGeneratedComment(
         id=new_id(),
@@ -263,7 +265,61 @@ def test_fake_sender_success_updates_attempt_and_counters(db_session) -> None:
     )
     assert campaign_account.comments_sent == 1
     assert sender.calls == 1
-    assert sender.last_reply_to_message_id == "42"
+    assert sender.last_reply_to_message_id == "99"
+
+
+def test_manual_send_fails_if_discussion_message_id_is_missing(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    observed = db_session.get(NeuroCommentObservedPost, attempt.observed_post_id)
+    assert observed is not None
+    observed.discussion_message_id = None
+    db_session.commit()
+    config = type(
+        "Config",
+        (),
+        {
+            "neuro_comment_tdlib_send_enabled": True,
+            "neuro_comment_require_redis_limiter_for_send": False,
+        },
+    )()
+
+    try:
+        SenderService(config=config, sender=FakeTelegramCommentSender()).send_attempt(
+            db_session,
+            attempt_id=attempt.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+    except Exception as exc:
+        assert getattr(exc, "error_code", "") == "DISCUSSION_MESSAGE_NOT_RESOLVED"
+    else:
+        raise AssertionError("manual send accepted unresolved discussion mapping")
+
+
+def test_manual_send_prefers_observed_post_discussion_chat_id(db_session) -> None:
+    _campaign, target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    observed = db_session.get(NeuroCommentObservedPost, attempt.observed_post_id)
+    assert observed is not None
+    target.discussion_chat_id = "456"
+    observed.discussion_chat_id = "654"
+    observed.discussion_message_id = "99"
+    db_session.commit()
+    config = type(
+        "Config",
+        (),
+        {
+            "neuro_comment_tdlib_send_enabled": True,
+            "neuro_comment_require_redis_limiter_for_send": False,
+        },
+    )()
+    sender = FakeTelegramCommentSender(telegram_message_id="telegram-1")
+
+    SenderService(config=config, sender=sender).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert sender.last_discussion_chat_id == "654"
 
 
 def test_default_sender_uses_tdlib_sender_when_live_send_enabled() -> None:
@@ -388,6 +444,7 @@ class _RecordingTdlibClient:
     def __init__(self, *, responses: dict[str, dict[str, object]]) -> None:
         self._responses = responses
         self.queries: list[dict[str, object]] = []
+        self.close_calls = 0
 
     @property
     def client_id(self) -> int:
@@ -406,7 +463,62 @@ class _RecordingTdlibClient:
         return self._responses[str(payload["@type"])]
 
     def close(self) -> None:
-        return None
+        self.close_calls += 1
+
+
+def test_tdlib_sender_closes_client_after_send() -> None:
+    client = _RecordingTdlibClient(
+        responses={
+            "getMe": {"@type": "user", "id": 1},
+            "sendMessage": {"@type": "message", "id": 777},
+        }
+    )
+    sender = TdlibTelegramCommentSender(
+        config=SimpleNamespace(
+            tdlib_auth_timeout_seconds=0.1,
+            tdlib_receive_timeout_seconds=0.1,
+        ),
+        client_factory=_RecordingTdlibFactory(client),
+    )
+
+    sender.send_comment(
+        account_id="account-1",
+        discussion_chat_id="456",
+        reply_to_message_id="42",
+        text="Hello",
+    )
+
+    assert client.close_calls == 1
+
+
+def test_tdlib_sender_closes_client_after_send_error() -> None:
+    client = _RecordingTdlibClient(
+        responses={
+            "getMe": {"@type": "user", "id": 1},
+            "sendMessage": {"@type": "error", "message": "MESSAGE_NOT_FOUND"},
+        }
+    )
+    sender = TdlibTelegramCommentSender(
+        config=SimpleNamespace(
+            tdlib_auth_timeout_seconds=0.1,
+            tdlib_receive_timeout_seconds=0.1,
+        ),
+        client_factory=_RecordingTdlibFactory(client),
+    )
+
+    try:
+        sender.send_comment(
+            account_id="account-1",
+            discussion_chat_id="456",
+            reply_to_message_id="42",
+            text="Hello",
+        )
+    except TelegramCommentSendError:
+        pass
+    else:
+        raise AssertionError("TDLib send error was not raised")
+
+    assert client.close_calls == 1
 
 
 class _RecordingTdlibFactory:

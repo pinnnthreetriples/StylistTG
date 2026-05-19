@@ -99,6 +99,7 @@ class FakeTelegramCommentSender:
         self._telegram_message_id = telegram_message_id
         self._error = error
         self.calls = 0
+        self.last_discussion_chat_id: str | None = None
         self.last_reply_to_message_id: str | None = None
 
     def send_comment(
@@ -109,8 +110,9 @@ class FakeTelegramCommentSender:
         reply_to_message_id: str,
         text: str,
     ) -> SentCommentResult:
-        _ = (account_id, discussion_chat_id, text)
+        _ = (account_id, text)
         self.calls += 1
+        self.last_discussion_chat_id = discussion_chat_id
         self.last_reply_to_message_id = reply_to_message_id
         if self._error is not None:
             raise self._error
@@ -203,6 +205,12 @@ class SenderService:
         ):
             return attempt
         assert context.target is not None
+        assert context.observed_post is not None
+        discussion_chat_id = (
+            context.observed_post.discussion_chat_id or context.target.discussion_chat_id
+        )
+        if not discussion_chat_id:
+            raise NeuroConflictError("target has no discussion", error_code="TARGET_NO_DISCUSSION")
         final_text = (
             context.comment.final_text
             or context.comment.edited_text
@@ -225,12 +233,8 @@ class SenderService:
         try:
             result = self._comment_sender().send_comment(
                 account_id=str(attempt.account_id),
-                discussion_chat_id=str(context.target.discussion_chat_id),
-                reply_to_message_id=str(
-                    context.observed_post.source_message_id
-                    if context.observed_post is not None
-                    else ""
-                ),
+                discussion_chat_id=str(discussion_chat_id),
+                reply_to_message_id=str(context.observed_post.discussion_message_id),
                 text=final_text,
             )
         except TelegramCommentSendError as exc:
@@ -447,6 +451,7 @@ class SenderService:
         self._validate_send(
             context.campaign,
             context.comment,
+            context.observed_post,
             context.target,
             context.campaign_account,
         )
@@ -482,6 +487,7 @@ class SenderService:
         self,
         campaign: NeuroCommentCampaign,
         comment: NeuroCommentGeneratedComment,
+        observed_post: NeuroCommentObservedPost | None,
         target: NeuroCommentTarget | None,
         campaign_account: NeuroCommentCampaignAccount | None,
     ) -> None:
@@ -497,7 +503,16 @@ class SenderService:
             raise NeuroValidationError(
                 "comment final text is required", error_code="COMMENT_TEXT_MISSING"
             )
-        if target is None or not target.discussion_chat_id:
+        if observed_post is None:
+            raise NeuroConflictError(
+                "observed post is required", error_code="OBSERVED_POST_REQUIRED"
+            )
+        if not observed_post.discussion_message_id:
+            raise NeuroConflictError(
+                "discussion message is not resolved",
+                error_code="DISCUSSION_MESSAGE_NOT_RESOLVED",
+            )
+        if target is None or not (observed_post.discussion_chat_id or target.discussion_chat_id):
             raise NeuroConflictError("target has no discussion", error_code="TARGET_NO_DISCUSSION")
         if target.status != NeuroTargetStatus.ACTIVE.value:
             raise NeuroConflictError("target is not active", error_code="TARGET_NOT_ACTIVE")

@@ -113,6 +113,7 @@ export type NeuroObserveTargetRequest = Schema<'NeuroObserveTargetRequest'>
 export type NeuroEvent = Schema<'NeuroEventRead'>
 export type NeuroEventPage = Schema<'NeuroEventPageRead'>
 export type NeuroCampaignStats = Schema<'NeuroCampaignStatsRead'>
+export type NeuroLiveReadiness = Schema<'NeuroLiveReadinessRead'>
 export type NeuroPage<T> = { items: T[]; total: number; page: number; limit: number }
 export type NeuroAccountStats = Schema<'NeuroAccountStatsRead'>
 export type NeuroChannelStats = Schema<'NeuroChannelStatsRead'>
@@ -310,6 +311,12 @@ export async function stopNeuroCampaign(client: StylistTgClient, campaignId: str
       params: { path: { campaign_id: campaignId } },
     }),
     'stop neuro campaign',
+  )
+}
+
+export async function fetchNeuroLiveReadiness(client: StylistTgClient, campaignId: string): Promise<NeuroLiveReadiness> {
+  return client.request<NeuroLiveReadiness>(
+    `/api/neuro-commenting/campaigns/${encodeURIComponent(campaignId)}/live-readiness`,
   )
 }
 
@@ -544,6 +551,16 @@ export async function generateNeuroObservedPost(
       body: payload,
     }),
     'generate neuro observed post',
+  )
+}
+
+export async function resolveNeuroObservedPostDiscussion(
+  client: StylistTgClient,
+  observedPostId: string,
+): Promise<NeuroObservedPost> {
+  return client.request<NeuroObservedPost>(
+    `/api/neuro-commenting/observed-posts/${encodeURIComponent(observedPostId)}/resolve-discussion`,
+    { method: 'POST' },
   )
 }
 

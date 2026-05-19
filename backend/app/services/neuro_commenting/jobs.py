@@ -31,6 +31,10 @@ from app.services.neuro_commenting.errors import (
     NeuroNotFoundError,
     NeuroRuntimeUnavailableError,
 )
+from app.services.neuro_commenting.discussion_resolver import (
+    DiscussionMessageResolver,
+    build_discussion_message_resolver,
+)
 from app.services.neuro_commenting.post_detector import PostDetector
 from app.services.neuro_commenting.prompt_builder import PromptBuilder
 from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
@@ -221,6 +225,7 @@ def observe_campaign(
     limit: int | None = None,
     generate: bool = True,
     observer: TelegramPostObserver | None = None,
+    resolver: DiscussionMessageResolver | None = None,
 ) -> list[NeuroCommentObservedPost]:
     campaign = _require_campaign_for_job(
         session, campaign_id=campaign_id, workspace_id=workspace_id
@@ -257,6 +262,7 @@ def observe_campaign(
                         limit=limit,
                         generate=generate,
                         observer=observer,
+                        resolver=resolver,
                     )
                 )
             except NeuroCommentingError:
@@ -287,6 +293,7 @@ def observe_target(
     limit: int | None = None,
     generate: bool = True,
     observer: TelegramPostObserver | None = None,
+    resolver: DiscussionMessageResolver | None = None,
 ) -> list[NeuroCommentObservedPost]:
     campaign = _require_campaign_for_job(
         session, campaign_id=campaign_id, workspace_id=workspace_id
@@ -460,6 +467,15 @@ def observe_target(
         )
         if not was_created:
             continue
+        _resolve_discussion_for_observed_post(
+            session,
+            workspace_id=workspace_id,
+            account_id=selected.account.account_id,
+            target=target,
+            observed=observed,
+            resolver=resolver,
+            analytics=analytics,
+        )
         target.last_seen_message_id = post.source_message_id
         created.append(observed)
         analytics.write_event(
@@ -496,6 +512,92 @@ def observe_target(
                 continue
     session.flush()
     return created
+
+
+def resolve_observed_post_discussion(
+    session: Session,
+    *,
+    observed_post_id: str,
+    workspace_id: str,
+    resolver: DiscussionMessageResolver | None = None,
+) -> NeuroCommentObservedPost:
+    observed = repository.require_observed_post_for_workspace(
+        session, observed_post_id=observed_post_id, workspace_id=workspace_id
+    )
+    campaign = _require_campaign_for_job(
+        session, campaign_id=observed.campaign_id, workspace_id=workspace_id
+    )
+    target = repository.require_target(
+        session, target_id=observed.target_id, campaign_id=campaign.id
+    )
+    accounts = repository.list_campaign_accounts(session, campaign_id=campaign.id)
+    selected = AccountSelector(session=session).select_account(campaign, accounts, target)
+    if selected.account is None:
+        raise NeuroConflictError("no active account", error_code="NO_ACTIVE_ACCOUNT")
+    _resolve_discussion_for_observed_post(
+        session,
+        workspace_id=workspace_id,
+        account_id=selected.account.account_id,
+        target=target,
+        observed=observed,
+        resolver=resolver,
+        analytics=AnalyticsService(),
+    )
+    session.flush()
+    return observed
+
+
+def _resolve_discussion_for_observed_post(
+    session: Session,
+    *,
+    workspace_id: str,
+    account_id: str,
+    target: NeuroCommentTarget,
+    observed: NeuroCommentObservedPost,
+    resolver: DiscussionMessageResolver | None,
+    analytics: AnalyticsService,
+) -> None:
+    active_resolver = resolver or build_discussion_message_resolver()
+    resolution = active_resolver.resolve(
+        account_id=account_id,
+        target=target,
+        source_chat_id=observed.source_chat_id,
+        source_message_id=observed.source_message_id,
+    )
+    now = datetime.now(UTC)
+    observed.discussion_chat_id = resolution.discussion_chat_id
+    observed.discussion_message_id = resolution.discussion_message_id
+    observed.discussion_resolution_error_code = resolution.error_code
+    observed.discussion_resolved_at = now if resolution.discussion_message_id else None
+    if resolution.discussion_message_id:
+        analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=observed.campaign_id,
+            account_id=account_id,
+            target_id=target.id,
+            observed_post_id=observed.id,
+            event_type="discussion_message_resolved",
+            message="discussion message resolved for observed post",
+            data={"target_id": target.id, "observed_post_id": observed.id},
+        )
+    else:
+        analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=observed.campaign_id,
+            account_id=account_id,
+            target_id=target.id,
+            observed_post_id=observed.id,
+            event_type="discussion_message_resolution_failed",
+            event_level=NeuroEventLevel.WARNING,
+            message="discussion message could not be resolved",
+            data={
+                "target_id": target.id,
+                "observed_post_id": observed.id,
+                "error_code": resolution.error_code or "DISCUSSION_MESSAGE_NOT_RESOLVED",
+            },
+        )
 
 
 def refresh_target_metadata(

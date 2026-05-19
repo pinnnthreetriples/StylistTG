@@ -4,7 +4,13 @@ import hashlib
 import json
 from typing import Any, cast
 
-PROFILE_STEP_TYPES = ("set_name", "set_bio", "set_username", "set_profile_photo", "set_pinned_channel")
+PROFILE_STEP_TYPES = (
+    "set_name",
+    "set_bio",
+    "set_username",
+    "set_profile_photo",
+    "set_pinned_channel",
+)
 WORKFLOW_TYPE = "account_update"
 WORKFLOW_VERSION = 1
 JOB_PAYLOAD_VERSION = 2

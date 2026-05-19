@@ -117,8 +117,6 @@ def test_executor_calls_tdlib_set_personal_chat_with_correct_chat_id(db_session)
     assert exit_code == 0
     assert job.job_state == JobState.COMPLETED
 
-    pinned_steps = [
-        s for s in job.step_results if s.step_type == "set_pinned_channel"
-    ]
+    pinned_steps = [s for s in job.step_results if s.step_type == "set_pinned_channel"]
     assert len(pinned_steps) == 1
     assert pinned_steps[0].status == StepStatus.SUCCEEDED

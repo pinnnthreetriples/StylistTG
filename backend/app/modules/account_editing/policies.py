@@ -80,9 +80,7 @@ class AccountEditingPolicy:
         if desired_state.get("stories") and self._stories_live_execution_blocked(config):
             blocking_errors.append("stories live TDLib execution is not enabled")
         blocking_errors.extend(
-            self._cross_workspace_channel_ref_errors(
-                account=account, desired_state=desired_state
-            )
+            self._cross_workspace_channel_ref_errors(account=account, desired_state=desired_state)
         )
         blocking_errors.extend(
             self._preview_blocking_safety_errors(safety_fields["safety_blockers"])

@@ -37,6 +37,9 @@ def _valid_cloud_env(**overrides: str) -> dict[str, str]:
         "STALE_JOB_REAPER_ENABLED": "false",
         "OPERATOR_API_TOKEN": "operator-token-value",
         "PROXY_CREDENTIALS_ENCRYPTION_KEY": "uFYaczRrJN1Z__yAGnhqGrnew7Qsztc1AckpdB99XlM=",
+        "NEURO_COMMENT_AI_PROVIDER": "openai_compatible",
+        "NEURO_COMMENT_AI_BASE_URL": "https://ai.example.com/v1",
+        "NEURO_COMMENT_AI_API_KEY": "test-cloud-key",
     }
     env.update(overrides)
     return env

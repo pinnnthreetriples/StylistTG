@@ -97,6 +97,9 @@ class TestCloudConfigEdgeCases:
             "stale_job_reaper_enabled": False,
             "operator_api_token": "operator-token-value",
             "proxy_credentials_encryption_key": "lNK8NBJDS69pUgNfeH0oLVg9-p3rU92YJ2OYQwj-GNg=",
+            "neuro_comment_ai_provider": "openai_compatible",
+            "neuro_comment_ai_base_url": "https://ai.example.com/v1",
+            "neuro_comment_ai_api_key": "test-cloud-key",
         }
         base.update(overrides)
         return base

@@ -69,6 +69,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/channel-stats", "viewer", False),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/attempts", "viewer", False),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/failure-reasons", "viewer", False),
+    ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/live-readiness", "viewer", False),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}/limits", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns/{campaign_id}/limits", "operator", True),
     ("PATCH", "/api/neuro-commenting/limits/{limit_id}", "operator", True),
@@ -149,6 +150,12 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     (
         "POST",
         "/api/neuro-commenting/observed-posts/{observed_post_id}/generate",
+        "operator",
+        True,
+    ),
+    (
+        "POST",
+        "/api/neuro-commenting/observed-posts/{observed_post_id}/resolve-discussion",
         "operator",
         True,
     ),

@@ -20,6 +20,7 @@ export type {
   NeuroGeneratedCommentPage,
   NeuroGeneratedCommentReject,
   NeuroGeneratedCommentUpdate,
+  NeuroLiveReadiness,
   NeuroObservedPost,
   NeuroObservedPostPage,
   NeuroPage,

@@ -307,6 +307,7 @@
         "apps/dashboard/src/modules/neuro-commenting/components/ChannelRulesSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/EventsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/GeneratedCommentsSection.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/components/LiveReadinessSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/components/TargetsSection.tsx",
         "apps/dashboard/src/modules/neuro-commenting/formPayloads.ts",
         "apps/dashboard/src/modules/neuro-commenting/hooks.ts",
@@ -315,6 +316,7 @@
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingAnalytics.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingAttempts.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingErrorStates.test.tsx",
+        "apps/dashboard/src/modules/neuro-commenting/neuroCommentingLiveReadiness.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingRoute.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/neuroCommentingRules.test.tsx",
         "apps/dashboard/src/modules/neuro-commenting/types.ts"

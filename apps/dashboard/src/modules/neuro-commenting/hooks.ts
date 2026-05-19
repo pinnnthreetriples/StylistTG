@@ -15,6 +15,7 @@ import {
   fetchNeuroChannelRules,
   fetchNeuroChannelStats,
   fetchNeuroFailureReasons,
+  fetchNeuroLiveReadiness,
   getCampaign,
   listCampaignAccounts,
   listCampaigns,
@@ -32,6 +33,7 @@ import {
   removeCampaignAccount,
   removeCampaignTarget,
   resumeNeuroTarget,
+  resolveObservedPostDiscussion,
   sendGeneratedComment,
   startCampaign,
   stopCampaign,
@@ -58,6 +60,7 @@ export const neuroQueryKeys = {
   attempts: (campaignId?: string) => ['neuro-commenting', 'attempts', campaignId ?? 'all'] as const,
   events: (campaignId?: string) => ['neuro-commenting', 'events', campaignId ?? 'all'] as const,
   campaignStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'stats'] as const,
+  liveReadiness: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'live-readiness'] as const,
   accountStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'account-stats'] as const,
   channelStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'channel-stats'] as const,
   campaignAttempts: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'attempts'] as const,
@@ -129,6 +132,14 @@ export function useNeuroCampaignStats(campaignId: string | null) {
   })
 }
 
+export function useNeuroLiveReadiness(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.liveReadiness(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroLiveReadiness(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
 export function useNeuroAccountStats(campaignId: string | null) {
   return useQuery({
     queryKey: neuroQueryKeys.accountStats(campaignId ?? '__disabled__'),
@@ -184,6 +195,7 @@ export function useObserveCampaignMutation(campaignId: string) {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.observedPosts(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -204,6 +216,7 @@ export function useUpdateNeuroCampaign(campaignId: string) {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.campaigns })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.campaign(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -220,6 +233,7 @@ export function useCampaignLifecycleMutation(campaignId: string) {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.campaigns })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.campaign(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -231,6 +245,7 @@ export function useAddCampaignAccount(campaignId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.accounts(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -242,6 +257,7 @@ export function useRemoveCampaignAccount(campaignId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.accounts(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -253,6 +269,7 @@ export function useAddCampaignTarget(campaignId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.targets(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -264,6 +281,7 @@ export function useRemoveCampaignTarget(campaignId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.targets(campaignId) })
       void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
     },
   })
 }
@@ -275,6 +293,7 @@ export function useTargetRuntimeMutations(campaignId: string) {
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.observedPosts(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
   }
   return {
     observe: useMutation({
@@ -315,6 +334,7 @@ export function useTargetRuleActions(campaignId: string) {
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelRules })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelStats(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
   }
   return {
     pause: useMutation({ mutationFn: (targetId: string) => pauseNeuroTarget(targetId), onSuccess: invalidate }),
@@ -330,6 +350,9 @@ export function useGeneratedCommentMutations(campaignId?: string) {
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.attempts(campaignId) })
     void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+    if (campaignId) {
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
+    }
   }
   return {
     edit: useMutation({
@@ -351,4 +374,19 @@ export function useGeneratedCommentMutations(campaignId?: string) {
       onSuccess: invalidate,
     }),
   }
+}
+
+export function useResolveObservedPostDiscussionMutation(campaignId?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (observedPostId: string) => resolveObservedPostDiscussion(observedPostId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.observedPosts(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.generatedComments(campaignId) })
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+      if (campaignId) {
+        void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.liveReadiness(campaignId) })
+      }
+    },
+  })
 }

@@ -152,6 +152,8 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                             setSendDisabledReason('TDLib neuro-comment sending is disabled.')
                           } else if (code === 'NEURO_COMMENT_RATE_LIMITER_NOT_READY') {
                             setSendDisabledReason('Neuro-comment sending requires Redis limiter.')
+                          } else if (code === 'DISCUSSION_MESSAGE_NOT_RESOLVED') {
+                            setSendDisabledReason('Discussion message mapping is not resolved.')
                           } else {
                             setSendDisabledReason('Не удалось отправить комментарий вручную')
                           }

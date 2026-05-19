@@ -1057,6 +1057,12 @@ class NeuroCommentObservedPost(Base):
     )
     source_chat_id: Mapped[str] = mapped_column(String(255), nullable=False)
     source_message_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    discussion_chat_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    discussion_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    discussion_resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    discussion_resolution_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     post_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     media_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     language: Mapped[str | None] = mapped_column(String(32), nullable=True)

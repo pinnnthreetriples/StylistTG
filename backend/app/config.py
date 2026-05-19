@@ -215,7 +215,9 @@ class Settings(BaseSettings):
             missing = [name for name, value in required_s3_settings.items() if not value]
             if missing:
                 raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
-        if self.neuro_comment_ai_provider != "fake":
+        if self.neuro_comment_ai_provider not in {"fake", "openai_compatible"}:
+            raise ValueError("NEURO_COMMENT_AI_PROVIDER must be fake or openai_compatible")
+        if self.neuro_comment_ai_provider == "openai_compatible":
             if not self.neuro_comment_ai_base_url:
                 raise ValueError("NEURO_COMMENT_AI_BASE_URL is required unless provider=fake")
             if not self.neuro_comment_ai_api_key:

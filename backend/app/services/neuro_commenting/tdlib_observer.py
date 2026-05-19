@@ -82,8 +82,8 @@ class TdlibTelegramPostObserver:
     def refresh_target_metadata(
         self, account_id: str, target: NeuroCommentTarget
     ) -> TargetMetadata:
-        client = self._ready_client(account_id)
-        response = _resolve_target_chat(client, target, self._config)
+        with self._runtime.ready_client_context(account_id) as client:
+            response = _resolve_target_chat(client, target, self._config)
         chat_type = _dict_or_empty(response.get("type"))
         discussion_chat_id = response.get("linked_chat_id") or chat_type.get("linked_chat_id")
         status = "active" if discussion_chat_id else "no_discussion"
@@ -98,21 +98,21 @@ class TdlibTelegramPostObserver:
     def fetch_recent_posts(
         self, account_id: str, target: NeuroCommentTarget, limit: int
     ) -> list[ObservedTelegramPost]:
-        client = self._ready_client(account_id)
-        chat = _resolve_target_chat(client, target, self._config)
-        chat_id = _require_int_id(chat.get("id") or target.channel_id or target.channel_ref)
-        response = _checked_query(
-            client,
-            {
-                "@type": "getChatHistory",
-                "chat_id": chat_id,
-                "from_message_id": 0,
-                "offset": 0,
-                "limit": limit,
-                "only_local": False,
-            },
-            self._config,
-        )
+        with self._runtime.ready_client_context(account_id) as client:
+            chat = _resolve_target_chat(client, target, self._config)
+            chat_id = _require_int_id(chat.get("id") or target.channel_id or target.channel_ref)
+            response = _checked_query(
+                client,
+                {
+                    "@type": "getChatHistory",
+                    "chat_id": chat_id,
+                    "from_message_id": 0,
+                    "offset": 0,
+                    "limit": limit,
+                    "only_local": False,
+                },
+                self._config,
+            )
         messages = response.get("messages")
         message_list = cast(list[Any], messages) if isinstance(messages, list) else []
         posts: list[ObservedTelegramPost] = []
@@ -139,9 +139,6 @@ class TdlibTelegramPostObserver:
                 )
             )
         return posts
-
-    def _ready_client(self, account_id: str) -> TdlibClient:
-        return self._runtime.ready_client(account_id)
 
 
 def _dict_or_empty(value: object) -> dict[str, Any]:

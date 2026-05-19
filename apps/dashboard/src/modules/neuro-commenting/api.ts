@@ -21,6 +21,7 @@ import {
   fetchNeuroEvents,
   fetchNeuroFailureReasons as fetchTypedNeuroFailureReasons,
   fetchNeuroGeneratedComments,
+  fetchNeuroLiveReadiness as fetchTypedNeuroLiveReadiness,
   fetchNeuroAttempts,
   fetchNeuroObservedPosts,
   generateNeuroObservedPost,
@@ -31,6 +32,7 @@ import {
   rejectNeuroGeneratedComment,
   refreshNeuroTargetMetadata,
   resumeNeuroTarget as resumeTypedNeuroTarget,
+  resolveNeuroObservedPostDiscussion as resolveTypedNeuroObservedPostDiscussion,
   sendNeuroGeneratedComment,
   startNeuroCampaign,
   stopNeuroCampaign,
@@ -78,6 +80,10 @@ export function pauseCampaign(campaignId: string) {
 
 export function stopCampaign(campaignId: string) {
   return stopNeuroCampaign(client, campaignId)
+}
+
+export function fetchNeuroLiveReadiness(campaignId: string) {
+  return fetchTypedNeuroLiveReadiness(client, campaignId)
 }
 
 export function listCampaignAccounts(campaignId: string, params?: { page?: number; limit?: number }) {
@@ -130,6 +136,10 @@ export function refreshTargetMetadata(campaignId: string, targetId: string) {
 
 export function generateObservedPost(observedPostId: string, payload?: { force?: boolean }) {
   return generateNeuroObservedPost(client, observedPostId, { force: payload?.force ?? false })
+}
+
+export function resolveObservedPostDiscussion(observedPostId: string) {
+  return resolveTypedNeuroObservedPostDiscussion(client, observedPostId)
 }
 
 export function editGeneratedComment(commentId: string, payload: NeuroGeneratedCommentUpdate) {

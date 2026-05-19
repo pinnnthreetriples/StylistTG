@@ -36,6 +36,7 @@ import {
   fetchNeuroFailureReasons,
   fetchNeuroGeneratedComment,
   fetchNeuroGeneratedComments,
+  fetchNeuroLiveReadiness,
   fetchNeuroObservedPost,
   fetchNeuroObservedPosts,
   fetchReady,
@@ -51,6 +52,7 @@ import {
   rejectNeuroGeneratedComment,
   refreshNeuroTargetMetadata,
   resumeNeuroTarget,
+  resolveNeuroObservedPostDiscussion,
   resolveApiBaseUrl,
   sendNeuroGeneratedComment,
   startNeuroCampaign,
@@ -529,6 +531,26 @@ describe('@stylisttg/api-client', () => {
     ])
   })
 
+  test('neuro-commenting live readiness wrapper hits campaign endpoint', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ method: requestMethod(input, init), url: requestUrl(input) })
+      return jsonResponse({
+        campaign_id: 'camp-1',
+        ready: false,
+        checks: [{ code: 'NO_ACTIVE_ACCOUNT', severity: 'blocker', message: 'at least one active account is required' }],
+      })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    const result = await fetchNeuroLiveReadiness(client, 'camp-1')
+
+    expect(result.ready).toBe(false)
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET http://api.test/api/neuro-commenting/campaigns/camp-1/live-readiness',
+    ])
+  })
+
   test('neuro-commenting accounts and targets wrappers', async () => {
     const calls: Array<{ method: string; url: string }> = []
     const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -601,11 +623,13 @@ describe('@stylisttg/api-client', () => {
     await fetchNeuroObservedPosts(client, { campaign_id: 'camp-1', target_id: 'target-1' })
     await fetchNeuroObservedPost(client, 'post-1')
     await generateNeuroObservedPost(client, 'post-1')
+    await resolveNeuroObservedPostDiscussion(client, 'post-1')
 
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       'GET http://api.test/api/neuro-commenting/observed-posts?campaign_id=camp-1&target_id=target-1',
       'GET http://api.test/api/neuro-commenting/observed-posts/post-1',
       'POST http://api.test/api/neuro-commenting/observed-posts/post-1/generate',
+      'POST http://api.test/api/neuro-commenting/observed-posts/post-1/resolve-discussion',
     ])
   })
 
@@ -776,6 +800,10 @@ function neuroObservedPostPayload() {
     target_id: 'target-1',
     source_chat_id: 'chat-1',
     source_message_id: 'msg-1',
+    discussion_chat_id: 'discussion-1',
+    discussion_message_id: 'discussion-msg-1',
+    discussion_resolved_at: '2026-05-18T00:00:00Z',
+    discussion_resolution_error_code: null,
     post_text: 'Observed post',
     media_summary: null,
     language: 'en',

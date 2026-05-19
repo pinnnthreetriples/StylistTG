@@ -342,6 +342,10 @@ class NeuroObservedPostRead(BaseModel):
     target_id: str
     source_chat_id: str
     source_message_id: str
+    discussion_chat_id: str | None
+    discussion_message_id: str | None
+    discussion_resolved_at: datetime | None
+    discussion_resolution_error_code: str | None
     post_text: str | None
     media_summary: str | None
     language: str | None
@@ -355,7 +359,9 @@ class NeuroObservedPostRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_serializer("seen_at", "processed_at", "created_at", "updated_at")
+    @field_serializer(
+        "discussion_resolved_at", "seen_at", "processed_at", "created_at", "updated_at"
+    )
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         return _serialize_utc_datetime(value)
 
@@ -470,6 +476,18 @@ class NeuroEventPageRead(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class NeuroLiveReadinessCheckRead(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "blocker"]
+    message: str
+
+
+class NeuroLiveReadinessRead(BaseModel):
+    campaign_id: str
+    ready: bool
+    checks: list[NeuroLiveReadinessCheckRead]
 
 
 class NeuroLimitRead(BaseModel):

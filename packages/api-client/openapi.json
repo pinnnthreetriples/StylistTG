@@ -6705,6 +6705,80 @@
         }
       }
     },
+    "/api/neuro-commenting/campaigns/{campaign_id}/live-readiness": {
+      "get": {
+        "tags": [
+          "neuro-commenting"
+        ],
+        "summary": "Get Campaign Live Readiness",
+        "operationId": "get_campaign_live_readiness_api_neuro_commenting_campaigns__campaign_id__live_readiness_get",
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NeuroLiveReadinessRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/neuro-commenting/campaigns/{campaign_id}/account-stats": {
       "get": {
         "tags": [
@@ -9438,6 +9512,80 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NeuroAcceptedJobRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/neuro-commenting/observed-posts/{observed_post_id}/resolve-discussion": {
+      "post": {
+        "tags": [
+          "neuro-commenting"
+        ],
+        "summary": "Post Resolve Observed Post Discussion",
+        "operationId": "post_resolve_observed_post_discussion_api_neuro_commenting_observed_posts__observed_post_id__resolve_discussion_post",
+        "parameters": [
+          {
+            "name": "observed_post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Observed Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NeuroObservedPostRead"
                 }
               }
             }
@@ -20439,6 +20587,60 @@
         "type": "object",
         "title": "NeuroLimitUpdate"
       },
+      "NeuroLiveReadinessCheckRead": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "blocker"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "NeuroLiveReadinessCheckRead"
+      },
+      "NeuroLiveReadinessRead": {
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "title": "Campaign Id"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/NeuroLiveReadinessCheckRead"
+            },
+            "type": "array",
+            "title": "Checks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_id",
+          "ready",
+          "checks"
+        ],
+        "title": "NeuroLiveReadinessRead"
+      },
       "NeuroManualSendRead": {
         "properties": {
           "accepted": {
@@ -20609,6 +20811,50 @@
             "type": "string",
             "title": "Source Message Id"
           },
+          "discussion_chat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discussion Chat Id"
+          },
+          "discussion_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discussion Message Id"
+          },
+          "discussion_resolved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discussion Resolved At"
+          },
+          "discussion_resolution_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discussion Resolution Error Code"
+          },
           "post_text": {
             "anyOf": [
               {
@@ -20716,6 +20962,10 @@
           "target_id",
           "source_chat_id",
           "source_message_id",
+          "discussion_chat_id",
+          "discussion_message_id",
+          "discussion_resolved_at",
+          "discussion_resolution_error_code",
           "post_text",
           "media_summary",
           "language",

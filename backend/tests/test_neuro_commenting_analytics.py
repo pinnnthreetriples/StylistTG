@@ -135,6 +135,7 @@ def test_account_stats_include_campaign_account_status_and_cooldown(app_client, 
                 id=new_id(),
                 campaign_id=campaign.id,
                 account_id=account.id,
+                comments_generated=3,
                 comments_sent=2,
                 comments_failed=1,
                 success_rate=2 / 3,
@@ -149,6 +150,9 @@ def test_account_stats_include_campaign_account_status_and_cooldown(app_client, 
     item = response.json()["items"][0]
     assert item["status"] == "cooldown"
     assert item["cooldown_until"] is not None
+    assert item["comments_generated"] == 3
+    assert item["comments_sent"] == 2
+    assert item["comments_failed"] == 1
 
 
 def test_account_stats_include_campaign_accounts_without_events(app_client, db_session) -> None:
@@ -174,9 +178,11 @@ def test_account_stats_include_campaign_accounts_without_events(app_client, db_s
 
     assert response.status_code == 200
     item = next(item for item in response.json()["items"] if item["account_id"] == account.id)
+    assert item["comments_generated"] == 0
     assert item["comments_sent"] == 0
     assert item["comments_failed"] == 0
     assert item["flood_wait_count"] == 0
+    assert item["success_rate"] == 0
     assert item["status"] == "active"
 
 

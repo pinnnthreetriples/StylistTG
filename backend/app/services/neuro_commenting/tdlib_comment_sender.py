@@ -36,21 +36,21 @@ class TdlibTelegramCommentSender:
         try:
             chat_id = _require_int_id(discussion_chat_id, error_code="CHAT_NOT_FOUND")
             reply_to_id = _require_int_id(reply_to_message_id, error_code="MESSAGE_NOT_FOUND")
-            client = self._runtime.ready_client(account_id)
-            response = client.send_query(
-                {
-                    "@type": "sendMessage",
-                    "chat_id": chat_id,
-                    "reply_to_message_id": reply_to_id,
-                    "input_message_content": {
-                        "@type": "inputMessageText",
-                        "text": {"@type": "formattedText", "text": text, "entities": []},
-                        "disable_web_page_preview": True,
-                        "clear_draft": False,
+            with self._runtime.ready_client_context(account_id) as client:
+                response = client.send_query(
+                    {
+                        "@type": "sendMessage",
+                        "chat_id": chat_id,
+                        "reply_to_message_id": reply_to_id,
+                        "input_message_content": {
+                            "@type": "inputMessageText",
+                            "text": {"@type": "formattedText", "text": text, "entities": []},
+                            "disable_web_page_preview": True,
+                            "clear_draft": False,
+                        },
                     },
-                },
-                self._config.tdlib_auth_timeout_seconds,
-            )
+                    self._config.tdlib_auth_timeout_seconds,
+                )
         except TelegramCommentSendError:
             raise
         except NeuroRuntimeUnavailableError as exc:

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from app.config import settings
 from app.services.neuro_commenting import rate_limiter
 from app.models import (
+    Account,
     DEFAULT_LOCAL_WORKSPACE_ID,
     AccountState,
     NeuroCommentCampaignAccount,
@@ -18,6 +19,8 @@ from app.models import (
 from app.services.neuro_commenting.approval_service import ApprovalService
 from app.services.neuro_commenting.campaign_account_service import CampaignAccountService
 from app.services.neuro_commenting.campaign_service import CampaignService
+from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
+from app.services.neuro_commenting.errors import NeuroConflictError
 from app.services.neuro_commenting.sender_service import (
     FakeTelegramCommentSender,
     SenderService,
@@ -166,6 +169,51 @@ def test_default_sender_uses_settings_redis_limiter_when_required(db_session, mo
     assert sent.status == NeuroAttemptStatus.SENT.value
     assert sender.calls == 1
     assert any(":reservation:" in key for key in redis.deleted)
+
+
+def test_preflight_blocks_blacklisted_target_before_enqueue(db_session) -> None:
+    _campaign, target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    ChannelRulesService().create_rule(
+        db_session,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        actor_user_id="user-1",
+        payload={"target_ref": target.channel_ref, "rule_type": "blacklist"},
+    )
+    db_session.commit()
+
+    try:
+        SenderService(
+            config=SimpleNamespace(neuro_comment_tdlib_send_enabled=True)
+        ).preflight_attempt(
+            db_session,
+            attempt_id=attempt.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+    except NeuroConflictError as exc:
+        assert exc.error_code == "CHANNEL_RULE_BLOCKED"
+    else:
+        raise AssertionError("blacklisted target passed send preflight")
+
+
+def test_preflight_requires_ready_account_runtime(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    account = db_session.get(Account, attempt.account_id)
+    assert account is not None
+    account.runtime_state.runtime_health = "closed"
+    db_session.commit()
+
+    try:
+        SenderService(
+            config=SimpleNamespace(neuro_comment_tdlib_send_enabled=True)
+        ).preflight_attempt(
+            db_session,
+            attempt_id=attempt.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+    except NeuroConflictError as exc:
+        assert exc.error_code == "ACCOUNT_RUNTIME_NOT_READY"
+    else:
+        raise AssertionError("unready account runtime passed send preflight")
 
 
 def test_rate_limit_exceeded_denies_send_before_sender_call(db_session) -> None:

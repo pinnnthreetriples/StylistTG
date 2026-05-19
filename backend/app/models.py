@@ -1275,6 +1275,12 @@ class NeuroCommentAccountStats(Base):
 class NeuroCommentChannelRule(Base):
     __tablename__ = "neuro_comment_channel_rules"
     __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "target_ref",
+            "rule_type",
+            name="uq_neuro_comment_channel_rule_workspace_ref_type",
+        ),
         Index("ix_neuro_comment_channel_rule_workspace_ref", "workspace_id", "target_ref"),
     )
 

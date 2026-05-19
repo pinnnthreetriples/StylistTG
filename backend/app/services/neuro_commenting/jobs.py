@@ -33,6 +33,7 @@ from app.services.neuro_commenting.errors import (
 )
 from app.services.neuro_commenting.post_detector import PostDetector
 from app.services.neuro_commenting.prompt_builder import PromptBuilder
+from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
 from app.services.neuro_commenting.safety_policy import SafetyPolicy
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.tdlib_observer import (
@@ -70,8 +71,34 @@ def generate_comment(
     target = repository.require_target(
         session, target_id=observed_post.target_id, campaign_id=campaign.id
     )
+    rule_decision = ChannelRulesPolicy().check_target_allowed(
+        session, workspace_id=workspace_id, target=target
+    )
+    if not rule_decision.allowed:
+        observed_post.status = NeuroObservedPostStatus.FAILED.value
+        observed_post.processed_at = datetime.now(UTC)
+        AnalyticsService().write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=campaign.id,
+            target_id=target.id,
+            observed_post_id=observed_post.id,
+            event_type="channel_rule_blocked",
+            event_level=NeuroEventLevel.WARNING,
+            message="channel rule blocked neuro-comment generation",
+            data={
+                "error_code": "CHANNEL_RULE_BLOCKED",
+                "reason": rule_decision.reason,
+                "matched_rule_id": rule_decision.matched_rule_id,
+            },
+        )
+        session.flush()
+        raise NeuroConflictError(
+            rule_decision.reason or "target blocked by channel rule",
+            error_code="CHANNEL_RULE_BLOCKED",
+        )
     accounts = repository.list_campaign_accounts(session, campaign_id=campaign.id)
-    selected = AccountSelector().select_account(campaign, accounts, target)
+    selected = AccountSelector(session=session).select_account(campaign, accounts, target)
     analytics = AnalyticsService()
     analytics.write_event(
         session,
@@ -109,6 +136,8 @@ def generate_comment(
         campaign=campaign,
         target=target,
         account=selected.account,
+        session=session,
+        workspace_id=workspace_id,
     )
     comment = NeuroCommentGeneratedComment(
         id=new_id(),
@@ -275,8 +304,39 @@ def observe_target(
             error_class="NeuroConflictError",
         )
         raise NeuroConflictError("target is not active", error_code="TARGET_NOT_ACTIVE")
+    decision = ChannelRulesPolicy().check_target_allowed(
+        session,
+        workspace_id=workspace_id,
+        target=target,
+    )
+    if not decision.allowed:
+        _write_observe_failed(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=campaign.id,
+            target_id=target.id,
+            account_id=None,
+            error_code="CHANNEL_RULE_BLOCKED",
+            error_class="ChannelRulesPolicy",
+        )
+        AnalyticsService().write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=campaign.id,
+            target_id=target.id,
+            event_type="channel_rule_blocked",
+            event_level=NeuroEventLevel.WARNING,
+            message="channel rule blocked neuro-comment observation",
+            data={
+                "error_code": "CHANNEL_RULE_BLOCKED",
+                "reason": decision.reason,
+                "matched_rule_id": decision.matched_rule_id,
+            },
+        )
+        session.flush()
+        return []
     accounts = repository.list_campaign_accounts(session, campaign_id=campaign.id)
-    selected = AccountSelector().select_account(campaign, accounts, target)
+    selected = AccountSelector(session=session).select_account(campaign, accounts, target)
     if selected.account is None:
         _write_observe_failed(
             session,
@@ -451,7 +511,7 @@ def refresh_target_metadata(
     )
     target = repository.require_target(session, target_id=target_id, campaign_id=campaign.id)
     accounts = repository.list_campaign_accounts(session, campaign_id=campaign.id)
-    selected = AccountSelector().select_account(campaign, accounts, target)
+    selected = AccountSelector(session=session).select_account(campaign, accounts, target)
     if selected.account is None:
         raise NeuroConflictError("no active account", error_code="NO_ACTIVE_ACCOUNT")
     analytics = AnalyticsService()

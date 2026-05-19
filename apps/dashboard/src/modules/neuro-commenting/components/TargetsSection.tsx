@@ -1,16 +1,55 @@
 import { Button, Card, EmptyState, FormField, Input, Skeleton } from '@stylisttg/ui'
-import { Eye, RefreshCcw, Trash2 } from 'lucide-react'
+import { Ban, CheckCircle2, Eye, Pause, Play, RefreshCcw, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { buildTargetPayload, type TargetFormState } from '../formPayloads'
-import { useAddCampaignTarget, useNeuroCampaignTargets, useRemoveCampaignTarget, useTargetRuntimeMutations } from '../hooks'
+import {
+  useAddCampaignTarget,
+  useNeuroCampaignTargets,
+  useRemoveCampaignTarget,
+  useTargetRuleActions,
+  useTargetRuntimeMutations,
+} from '../hooks'
 import type { NeuroTargetCreate } from '../types'
 
-export function TargetsSection({ campaignId }: { campaignId: string }) {
+export type NeuroTargetActionRow = {
+  id: string
+  channel_ref: string
+  status: string
+}
+
+type TargetsSectionProps =
+  | { campaignId: string }
+  | {
+      targets: NeuroTargetActionRow[]
+      onPause?: (targetId: string) => void
+      onResume?: (targetId: string) => void
+      onBlacklist?: (targetId: string) => void
+      onWhitelist?: (targetId: string) => void
+    }
+
+export function TargetsSection(props: TargetsSectionProps) {
+  if ('targets' in props) {
+    return (
+      <TargetActionTable
+        targets={props.targets}
+        onPause={props.onPause}
+        onResume={props.onResume}
+        onBlacklist={props.onBlacklist}
+        onWhitelist={props.onWhitelist}
+      />
+    )
+  }
+
+  return <CampaignTargetsSection campaignId={props.campaignId} />
+}
+
+function CampaignTargetsSection({ campaignId }: { campaignId: string }) {
   const targetsQuery = useNeuroCampaignTargets(campaignId)
   const addTarget = useAddCampaignTarget(campaignId)
   const removeTarget = useRemoveCampaignTarget(campaignId)
   const runtime = useTargetRuntimeMutations(campaignId)
+  const ruleActions = useTargetRuleActions(campaignId)
   const [form, setForm] = useState<TargetFormState>({
     channelRef: '',
     title: '',
@@ -25,9 +64,24 @@ export function TargetsSection({ campaignId }: { campaignId: string }) {
   }
   if (targetsQuery.isLoading) return <Skeleton className="h-20 w-full" />
 
-  const isMutating = addTarget.isPending || removeTarget.isPending || runtime.observe.isPending || runtime.refreshMetadata.isPending
+  const isMutating =
+    addTarget.isPending ||
+    removeTarget.isPending ||
+    runtime.observe.isPending ||
+    runtime.refreshMetadata.isPending ||
+    ruleActions.pause.isPending ||
+    ruleActions.resume.isPending ||
+    ruleActions.blacklist.isPending ||
+    ruleActions.whitelist.isPending
   const mutationError =
-    addTarget.isError || removeTarget.isError || runtime.observe.isError || runtime.refreshMetadata.isError
+    addTarget.isError ||
+    removeTarget.isError ||
+    runtime.observe.isError ||
+    runtime.refreshMetadata.isError ||
+    ruleActions.pause.isError ||
+    ruleActions.resume.isError ||
+    ruleActions.blacklist.isError ||
+    ruleActions.whitelist.isError
       ? 'Не удалось сохранить изменения'
       : null
 
@@ -115,6 +169,42 @@ export function TargetsSection({ campaignId }: { campaignId: string }) {
                 <Button
                   size="sm"
                   variant="ghost"
+                  icon={<Pause className="size-3.5" />}
+                  onClick={() => ruleActions.pause.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Pause
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Play className="size-3.5" />}
+                  onClick={() => ruleActions.resume.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Resume
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Ban className="size-3.5" />}
+                  onClick={() => ruleActions.blacklist.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Blacklist
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<CheckCircle2 className="size-3.5" />}
+                  onClick={() => ruleActions.whitelist.mutate(target.id)}
+                  disabled={isMutating}
+                >
+                  Whitelist
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
                   icon={<Trash2 className="size-3.5" />}
                   onClick={() => removeTarget.mutate(target.id)}
                   disabled={isMutating}
@@ -127,5 +217,50 @@ export function TargetsSection({ campaignId }: { campaignId: string }) {
         </div>
       )}
     </Card>
+  )
+}
+
+function TargetActionTable({
+  targets,
+  onPause,
+  onResume,
+  onBlacklist,
+  onWhitelist,
+}: {
+  targets: NeuroTargetActionRow[]
+  onPause?: (targetId: string) => void
+  onResume?: (targetId: string) => void
+  onBlacklist?: (targetId: string) => void
+  onWhitelist?: (targetId: string) => void
+}) {
+  if (targets.length === 0) return <section aria-label="Neuro targets">No targets yet</section>
+
+  return (
+    <section aria-label="Neuro targets">
+      <table>
+        <tbody>
+          {targets.map((target) => (
+            <tr key={target.id}>
+              <td>{target.channel_ref}</td>
+              <td>{target.status}</td>
+              <td>
+                <button type="button" onClick={() => onPause?.(target.id)}>
+                  Pause
+                </button>
+                <button type="button" onClick={() => onResume?.(target.id)}>
+                  Resume
+                </button>
+                <button type="button" onClick={() => onBlacklist?.(target.id)}>
+                  Blacklist
+                </button>
+                <button type="button" onClick={() => onWhitelist?.(target.id)}>
+                  Whitelist
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   )
 }

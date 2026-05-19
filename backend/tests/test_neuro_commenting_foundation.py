@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models import (
+    AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,
     NeuroAttemptStatus,
     NeuroCommentAttempt,
@@ -112,7 +113,13 @@ def test_add_target_creates_target_and_event(db_session) -> None:
 
 
 def test_generate_comment_creates_pending_comment_and_event(db_session) -> None:
-    account = seed_account(db_session, external_ref="+15550102001")
+    account = seed_account(
+        db_session,
+        external_ref="+15550102001",
+        account_state=AccountState.EXECUTION_USABLE,
+        runtime_health="ready",
+        session_present=True,
+    )
     campaign = CampaignService().create_campaign(
         db_session,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,

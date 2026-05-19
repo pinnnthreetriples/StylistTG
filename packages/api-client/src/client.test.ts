@@ -4,6 +4,7 @@ import {
   addNeuroCampaignAccount,
   addNeuroCampaignTarget,
   approveNeuroGeneratedComment,
+  blacklistNeuroTarget,
   buildAssetContentUrl,
   confirmOtp,
   confirmAccountImportBatch,
@@ -11,21 +12,28 @@ import {
   createAccountImportBatch,
   createAuthBatch,
   createNeuroCampaign,
+  createNeuroChannelRule,
   createTelegramAuthSession,
   deleteNeuroCampaignAccount,
   deleteNeuroCampaignTarget,
+  deleteNeuroChannelRule,
   editNeuroGeneratedComment,
   fetchAccountRuntimeDiagnostics,
   fetchCurrentUser,
   createStylistTgClient,
   fetchFrontendDiagnosticsSummary,
+  fetchNeuroCampaignAttempts,
   fetchNeuroCampaign,
   fetchNeuroCampaignAccounts,
   fetchNeuroCampaigns,
+  fetchNeuroCampaignStats,
   fetchNeuroCampaignTargets,
   fetchNeuroAttempt,
   fetchNeuroAttempts,
+  fetchNeuroChannelRules,
+  fetchNeuroChannelStats,
   fetchNeuroEvents,
+  fetchNeuroFailureReasons,
   fetchNeuroGeneratedComment,
   fetchNeuroGeneratedComments,
   fetchNeuroObservedPost,
@@ -39,8 +47,10 @@ import {
   observeNeuroCampaign,
   observeNeuroTarget,
   pauseNeuroCampaign,
+  pauseNeuroTarget,
   rejectNeuroGeneratedComment,
   refreshNeuroTargetMetadata,
+  resumeNeuroTarget,
   resolveApiBaseUrl,
   sendNeuroGeneratedComment,
   startNeuroCampaign,
@@ -50,6 +60,7 @@ import {
   updateNeuroCampaign,
   validateAccountImportBatch,
   validateAuthBatchPhones,
+  whitelistNeuroTarget,
 } from './index'
 import type { paths } from './generated/schema'
 
@@ -280,6 +291,82 @@ describe('@stylisttg/api-client', () => {
       workspace_id: 'workspace-1',
       auth_source: 'supabase_jwt',
     })
+  })
+
+  test('neuro commenting analytics and rules wrappers call backend endpoints', async () => {
+    const calls: Array<{ url: string; method: string; body: unknown }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: requestUrl(input), method: init?.method ?? 'GET', body: await requestBody(input, init) })
+      const url = requestUrl(input)
+      if (url.endsWith('/stats')) {
+        return jsonResponse({
+          campaign_id: 'camp-1',
+          posts_seen: 1,
+          comments_generated: 2,
+          comments_pending: 0,
+          comments_edited: 0,
+          comments_approved: 1,
+          comments_rejected: 1,
+          comments_sent: 1,
+          comments_failed: 1,
+          comments_skipped: 0,
+          flood_wait_count: 0,
+          success_rate: 0.5,
+          approval_rate: 0.5,
+          generation_rate: 2,
+          last_observed_at: null,
+          last_generated_at: null,
+          last_sent_at: null,
+        })
+      }
+      if (url.endsWith('/channel-rules') && (init?.method ?? 'GET') === 'POST') {
+        return jsonResponse({
+          id: 'rule-1',
+          workspace_id: 'workspace-1',
+          target_ref: '@demo',
+          rule_type: 'blacklist',
+          reason: null,
+          created_by: null,
+          created_at: '2026-05-19T00:00:00Z',
+        })
+      }
+      if (url.includes('/blacklist') || url.includes('/whitelist')) {
+        return jsonResponse({
+          id: 'rule-1',
+          workspace_id: 'workspace-1',
+          target_ref: '@demo',
+          rule_type: 'blacklist',
+          reason: null,
+          created_by: null,
+          created_at: '2026-05-19T00:00:00Z',
+        })
+      }
+      if (url.includes('/pause') || url.includes('/resume')) {
+        return jsonResponse({ id: 'target-1', channel_ref: '@demo', status: 'paused' })
+      }
+      return jsonResponse({ items: [], total: 0, page: 1, limit: 50 })
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchNeuroCampaignStats(client, 'camp-1')
+    await fetchNeuroChannelStats(client, 'camp-1')
+    await fetchNeuroCampaignAttempts(client, 'camp-1')
+    await fetchNeuroFailureReasons(client, 'camp-1')
+    await fetchNeuroChannelRules(client)
+    await createNeuroChannelRule(client, { target_ref: '@demo', rule_type: 'blacklist' })
+    await blacklistNeuroTarget(client, 'target-1')
+    await whitelistNeuroTarget(client, 'target-1')
+    await pauseNeuroTarget(client, 'target-1')
+    await resumeNeuroTarget(client, 'target-1')
+    await deleteNeuroChannelRule(client, 'rule-1')
+
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toContain(
+      'GET http://api.test/api/neuro-commenting/campaigns/camp-1/stats',
+    )
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toContain(
+      'POST http://api.test/api/neuro-commenting/channel-rules',
+    )
+    expect(calls.at(-1)).toMatchObject({ method: 'DELETE', url: 'http://api.test/api/neuro-commenting/channel-rules/rule-1' })
   })
 
   test('TDLib auth and import wrappers use generated endpoint paths without leaking secrets in errors', async () => {

@@ -27,6 +27,10 @@ const OperationsRouteComponent = lazyRouteComponent(() => import('@/routes/Opera
 const HealthCenterRouteComponent = lazyRouteComponent(() => import('@/routes/HealthCenterRoute'), 'HealthCenterRoute')
 const JobsRouteComponent = lazyRouteComponent(() => import('@/routes/JobsRoute'), 'JobsRoute')
 const WarmupRouteComponent = lazyRouteComponent(() => import('@/routes/WarmupRoute'), 'WarmupRoute')
+const NeuroCommentingRouteComponent = lazyRouteComponent(
+  () => import('@/routes/NeuroCommentingRoute'),
+  'NeuroCommentingRoute',
+)
 const BillingRouteComponent = lazyRouteComponent(() => import('@/routes/BillingRoute'), 'BillingRoute')
 const ProxyCenterRouteComponent = lazyRouteComponent(() => import('@/routes/ProxyCenterRoute'), 'ProxyCenterRoute')
 const AccountWorkspaceRouteComponent = lazyRouteComponent(
@@ -36,10 +40,6 @@ const AccountWorkspaceRouteComponent = lazyRouteComponent(
 const LoginRouteComponent = lazyRouteComponent(() => import('@/features/auth/LoginPage'), 'LoginPage')
 
 const HomeRouteComponent = lazyRouteComponent(() => import('@/routes/HomeRoute'), 'HomeRoute')
-const NeuroCommentingRouteComponent = lazyRouteComponent(
-  () => import('@/routes/NeuroCommentingRoute'),
-  'NeuroCommentingRoute',
-)
 
 const rootRoute = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -127,7 +127,7 @@ const warmupRoute = createRoute({
 
 const neuroCommentingRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: 'neuro-commenting',
+  path: 'modules/neuro-commenting',
   component: NeuroCommentingRouteComponent,
 })
 

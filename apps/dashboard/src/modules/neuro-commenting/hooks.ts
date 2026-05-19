@@ -4,8 +4,17 @@ import {
   addCampaignAccount,
   addCampaignTarget,
   approveGeneratedComment,
+  blacklistNeuroTarget,
   createCampaign,
+  createNeuroChannelRule,
+  deleteNeuroChannelRule,
   editGeneratedComment,
+  fetchNeuroAccountStats,
+  fetchNeuroCampaignAttempts,
+  fetchNeuroCampaignStats,
+  fetchNeuroChannelRules,
+  fetchNeuroChannelStats,
+  fetchNeuroFailureReasons,
   getCampaign,
   listCampaignAccounts,
   listCampaigns,
@@ -17,18 +26,22 @@ import {
   observeCampaign,
   observeTarget,
   pauseCampaign,
+  pauseNeuroTarget,
   rejectGeneratedComment,
   refreshTargetMetadata,
   removeCampaignAccount,
   removeCampaignTarget,
+  resumeNeuroTarget,
   sendGeneratedComment,
   startCampaign,
   stopCampaign,
   updateCampaign,
+  whitelistNeuroTarget,
 } from './api'
 import type {
   CreateCampaignPayload,
   NeuroCampaignAccountCreate,
+  NeuroChannelRuleCreate,
   NeuroGeneratedCommentReject,
   NeuroGeneratedCommentUpdate,
   NeuroTargetCreate,
@@ -44,6 +57,12 @@ export const neuroQueryKeys = {
   generatedComments: (campaignId?: string) => ['neuro-commenting', 'generated-comments', campaignId ?? 'all'] as const,
   attempts: (campaignId?: string) => ['neuro-commenting', 'attempts', campaignId ?? 'all'] as const,
   events: (campaignId?: string) => ['neuro-commenting', 'events', campaignId ?? 'all'] as const,
+  campaignStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'stats'] as const,
+  accountStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'account-stats'] as const,
+  channelStats: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'channel-stats'] as const,
+  campaignAttempts: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'attempts'] as const,
+  failureReasons: (campaignId: string) => ['neuro-commenting', 'campaigns', campaignId, 'failure-reasons'] as const,
+  channelRules: ['neuro-commenting', 'channel-rules'] as const,
 }
 
 export function useNeuroCampaigns() {
@@ -99,6 +118,53 @@ export function useNeuroAttempts(campaignId?: string) {
     queryKey: neuroQueryKeys.attempts(campaignId),
     queryFn: () => listAttempts(campaignId ? { campaign_id: campaignId } : undefined),
     refetchInterval: 20_000,
+  })
+}
+
+export function useNeuroCampaignStats(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.campaignStats(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroCampaignStats(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroAccountStats(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.accountStats(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroAccountStats(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroChannelStats(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.channelStats(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroChannelStats(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroCampaignAttempts(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.campaignAttempts(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroCampaignAttempts(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroFailureReasons(campaignId: string | null) {
+  return useQuery({
+    queryKey: neuroQueryKeys.failureReasons(campaignId ?? '__disabled__'),
+    queryFn: () => fetchNeuroFailureReasons(campaignId!),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useNeuroChannelRules() {
+  return useQuery({
+    queryKey: neuroQueryKeys.channelRules,
+    queryFn: () => fetchNeuroChannelRules(),
   })
 }
 
@@ -219,6 +285,42 @@ export function useTargetRuntimeMutations(campaignId: string) {
       mutationFn: (targetId: string) => refreshTargetMetadata(campaignId, targetId),
       onSuccess: invalidate,
     }),
+  }
+}
+
+export function useCreateNeuroChannelRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: NeuroChannelRuleCreate) => createNeuroChannelRule(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelRules })
+    },
+  })
+}
+
+export function useDeleteNeuroChannelRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ruleId: string) => deleteNeuroChannelRule(ruleId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelRules })
+    },
+  })
+}
+
+export function useTargetRuleActions(campaignId: string) {
+  const queryClient = useQueryClient()
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.targets(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelRules })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.channelStats(campaignId) })
+    void queryClient.invalidateQueries({ queryKey: neuroQueryKeys.events(campaignId) })
+  }
+  return {
+    pause: useMutation({ mutationFn: (targetId: string) => pauseNeuroTarget(targetId), onSuccess: invalidate }),
+    resume: useMutation({ mutationFn: (targetId: string) => resumeNeuroTarget(targetId), onSuccess: invalidate }),
+    blacklist: useMutation({ mutationFn: (targetId: string) => blacklistNeuroTarget(targetId), onSuccess: invalidate }),
+    whitelist: useMutation({ mutationFn: (targetId: string) => whitelistNeuroTarget(targetId), onSuccess: invalidate }),
   }
 }
 

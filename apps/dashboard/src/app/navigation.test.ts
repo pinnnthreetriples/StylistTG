@@ -8,6 +8,7 @@ describe('navigation', () => {
     expect(labels).toContain('Аккаунты')
     expect(labels).toContain('Здоровье')
     expect(labels).toContain('Задачи')
+    expect(labels).toContain('Комментарии')
     expect(labels).toContain('Настройки')
     expect(labels).toContain('Биллинг')
   })
@@ -29,6 +30,11 @@ describe('navigation', () => {
   it('points Accounts primary navigation to the canonical accounts route', () => {
     const accounts = primaryNavigation.find((item) => item.label === 'Аккаунты')
     expect(accounts?.href).toBe('/accounts')
+  })
+
+  it('points NeuroCommenting navigation to the module route', () => {
+    const item = primaryNavigation.find((entry) => entry.label === 'Комментарии')
+    expect(item?.href).toBe('/modules/neuro-commenting')
   })
 
   it('has Биллинг as disabled', () => {

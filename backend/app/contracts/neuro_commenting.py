@@ -15,6 +15,19 @@ SendMode = Literal["dry_run", "manual_approval", "semi_auto"]
 SendStrategy = Literal["comment"]
 RotationStrategy = Literal["round_robin", "weighted", "least_used", "random"]
 AutoSendDisabled = Literal[False]
+LimitScopeType = Literal[
+    "workspace", "campaign", "account", "target", "campaign_account", "campaign_target"
+]
+LimitType = Literal[
+    "comments_per_minute",
+    "comments_per_hour",
+    "comments_per_day",
+    "min_delay_between_comments",
+    "max_parallel_attempts",
+]
+ChannelRuleType = Literal[
+    "blacklist", "whitelist", "auto_blacklist_suggested", "auto_whitelist_suggested"
+]
 
 
 def _serialize_utc_datetime(value: datetime | None) -> str | None:
@@ -454,6 +467,203 @@ class NeuroEventRead(BaseModel):
 
 class NeuroEventPageRead(BaseModel):
     items: list[NeuroEventRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroLimitRead(BaseModel):
+    id: str
+    campaign_id: str
+    scope_type: str
+    scope_id: str | None
+    limit_type: str
+    max_value: int
+    window_seconds: int
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        serialized = _serialize_utc_datetime(value)
+        assert serialized is not None
+        return serialized
+
+
+class NeuroLimitPageRead(BaseModel):
+    items: list[NeuroLimitRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroLimitCreate(BaseModel):
+    scope_type: LimitScopeType
+    scope_id: str | None = None
+    limit_type: LimitType
+    max_value: PositiveInt
+    window_seconds: PositiveInt
+    enabled: StrictBool = True
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("max_value", "window_seconds", mode="before")
+    @classmethod
+    def _reject_bool_ints(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("boolean is not a valid integer")
+        return value
+
+
+class NeuroLimitUpdate(BaseModel):
+    scope_type: LimitScopeType | None = None
+    scope_id: str | None = None
+    limit_type: LimitType | None = None
+    max_value: PositiveInt | None = None
+    window_seconds: PositiveInt | None = None
+    enabled: StrictBool | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("max_value", "window_seconds", mode="before")
+    @classmethod
+    def _reject_bool_ints(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("boolean is not a valid integer")
+        return value
+
+
+class NeuroChannelRuleRead(BaseModel):
+    id: str
+    workspace_id: str
+    target_ref: str
+    rule_type: str
+    reason: str | None
+    created_by: str | None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        serialized = _serialize_utc_datetime(value)
+        assert serialized is not None
+        return serialized
+
+
+class NeuroChannelRulePageRead(BaseModel):
+    items: list[NeuroChannelRuleRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroChannelRuleCreate(BaseModel):
+    target_ref: str = Field(min_length=1, max_length=255)
+    rule_type: ChannelRuleType
+    reason: str | None = Field(default=None, max_length=1000)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("target_ref")
+    @classmethod
+    def _target_ref_non_blank(cls, value: str) -> str:
+        target_ref = value.strip()
+        if not target_ref:
+            raise ValueError("target_ref is required")
+        return target_ref
+
+
+class NeuroCampaignStatsRead(BaseModel):
+    campaign_id: str
+    posts_seen: int
+    comments_generated: int
+    comments_pending: int
+    comments_edited: int
+    comments_approved: int
+    comments_rejected: int
+    comments_sent: int
+    comments_failed: int
+    comments_skipped: int
+    flood_wait_count: int
+    success_rate: float
+    approval_rate: float
+    generation_rate: float
+    last_observed_at: datetime | None
+    last_generated_at: datetime | None
+    last_sent_at: datetime | None
+
+    @field_serializer("last_observed_at", "last_generated_at", "last_sent_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroAccountStatsRead(BaseModel):
+    account_id: str
+    comments_generated: int
+    comments_sent: int
+    comments_failed: int
+    flood_wait_count: int
+    success_rate: float
+    last_success_at: datetime | None
+    last_failure_at: datetime | None
+    cooldown_until: datetime | None
+    status: str | None
+
+    @field_serializer("last_success_at", "last_failure_at", "cooldown_until")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroAccountStatsPageRead(BaseModel):
+    items: list[NeuroAccountStatsRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroChannelStatsRead(BaseModel):
+    target_id: str
+    channel_ref: str
+    title: str | None
+    posts_seen: int
+    comments_generated: int
+    comments_sent: int
+    comments_failed: int
+    flood_wait_count: int
+    health_score: float
+    success_rate: float
+    last_success_at: datetime | None
+    last_failure_at: datetime | None
+    rule_status: str
+
+    @field_serializer("last_success_at", "last_failure_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroChannelStatsPageRead(BaseModel):
+    items: list[NeuroChannelStatsRead]
+    total: int
+    page: int
+    limit: int
+
+
+class NeuroFailureReasonRead(BaseModel):
+    error_code: str
+    count: int
+    last_seen_at: datetime | None
+
+    @field_serializer("last_seen_at")
+    def _serialize_datetime(self, value: datetime | None) -> str | None:
+        return _serialize_utc_datetime(value)
+
+
+class NeuroFailureReasonPageRead(BaseModel):
+    items: list[NeuroFailureReasonRead]
     total: int
     page: int
     limit: int

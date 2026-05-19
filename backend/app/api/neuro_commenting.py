@@ -9,6 +9,8 @@ from app.db import get_session
 from app.errors import AppError
 from app.schemas import (
     NeuroAcceptedJobRead,
+    NeuroAccountStatsPageRead,
+    NeuroAccountStatsRead,
     NeuroAttemptPageRead,
     NeuroAttemptRead,
     NeuroCampaignAccountCreate,
@@ -17,14 +19,26 @@ from app.schemas import (
     NeuroCampaignCreate,
     NeuroCampaignPageRead,
     NeuroCampaignRead,
+    NeuroCampaignStatsRead,
     NeuroCampaignUpdate,
+    NeuroChannelRuleCreate,
+    NeuroChannelRulePageRead,
+    NeuroChannelRuleRead,
+    NeuroChannelStatsPageRead,
+    NeuroChannelStatsRead,
     NeuroEventPageRead,
     NeuroEventRead,
     NeuroGeneratedCommentPageRead,
     NeuroGeneratedCommentRead,
     NeuroGeneratedCommentRejectRequest,
     NeuroGeneratedCommentUpdate,
+    NeuroFailureReasonPageRead,
+    NeuroFailureReasonRead,
     NeuroGenerateObservedPostRequest,
+    NeuroLimitCreate,
+    NeuroLimitPageRead,
+    NeuroLimitRead,
+    NeuroLimitUpdate,
     NeuroManualSendRead,
     NeuroManualSendRequest,
     NeuroObservedPostPageRead,
@@ -47,8 +61,10 @@ from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.approval_service import ApprovalService
 from app.services.neuro_commenting.campaign_account_service import CampaignAccountService
 from app.services.neuro_commenting.campaign_service import CampaignService
+from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
 from app.services.neuro_commenting.enums import NeuroAttemptStatus, NeuroEventLevel
 from app.services.neuro_commenting.errors import NeuroCommentingError, NeuroConflictError
+from app.services.neuro_commenting.limits_service import LimitsService
 from app.models import NeuroCommentAttempt, new_id
 from app.services.neuro_commenting.sender_service import SenderService
 from app.services.neuro_commenting.target_service import TargetService
@@ -151,6 +167,130 @@ def get_campaign(
         return NeuroCampaignRead.model_validate(campaign)
     except ValueError as exc:
         raise _neuro_error(exc) from exc
+
+
+@router.get("/campaigns/{campaign_id}/stats", response_model=NeuroCampaignStatsRead)
+def get_campaign_stats(
+    campaign_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroCampaignStatsRead:
+    try:
+        repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    return NeuroCampaignStatsRead.model_validate(
+        AnalyticsService().campaign_stats(session, campaign_id=str(campaign_id))
+    )
+
+
+@router.get("/campaigns/{campaign_id}/account-stats", response_model=NeuroAccountStatsPageRead)
+def get_campaign_account_stats(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroAccountStatsPageRead:
+    try:
+        repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = AnalyticsService().account_stats_page(
+        session, campaign_id=str(campaign_id), page=page, limit=limit
+    )
+    return NeuroAccountStatsPageRead(
+        items=[NeuroAccountStatsRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.get("/campaigns/{campaign_id}/channel-stats", response_model=NeuroChannelStatsPageRead)
+def get_campaign_channel_stats(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroChannelStatsPageRead:
+    try:
+        campaign = repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = AnalyticsService().channel_stats_page(
+        session, campaign=campaign, page=page, limit=limit
+    )
+    return NeuroChannelStatsPageRead(
+        items=[NeuroChannelStatsRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.get("/campaigns/{campaign_id}/attempts", response_model=NeuroAttemptPageRead)
+def get_campaign_attempts(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroAttemptPageRead:
+    try:
+        repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = AnalyticsService().attempts_page(
+        session, campaign_id=str(campaign_id), page=page, limit=limit
+    )
+    return NeuroAttemptPageRead(
+        items=[NeuroAttemptRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/failure-reasons",
+    response_model=NeuroFailureReasonPageRead,
+)
+def get_campaign_failure_reasons(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroFailureReasonPageRead:
+    try:
+        repository.require_campaign(
+            session, campaign_id=str(campaign_id), workspace_id=auth.workspace_id
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    items, total = AnalyticsService().failure_reasons(
+        session, campaign_id=str(campaign_id), page=page, limit=limit
+    )
+    return NeuroFailureReasonPageRead(
+        items=[NeuroFailureReasonRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
 
 
 @router.patch("/campaigns/{campaign_id}", response_model=NeuroCampaignRead)
@@ -332,6 +472,189 @@ def get_campaign_targets(
         page=page,
         limit=limit,
     )
+
+
+@router.get("/campaigns/{campaign_id}/limits", response_model=NeuroLimitPageRead)
+def get_campaign_limits(
+    campaign_id: UUID,
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroLimitPageRead:
+    try:
+        items, total = LimitsService().list_limits(
+            session,
+            campaign_id=str(campaign_id),
+            workspace_id=auth.workspace_id,
+            page=page,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise _neuro_error(exc) from exc
+    return NeuroLimitPageRead(
+        items=[NeuroLimitRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/campaigns/{campaign_id}/limits",
+    response_model=NeuroLimitRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_campaign_limit(
+    campaign_id: UUID,
+    payload: NeuroLimitCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroLimitRead:
+    try:
+        limit = LimitsService().create_limit(
+            session,
+            campaign_id=str(campaign_id),
+            workspace_id=auth.workspace_id,
+            payload=payload.model_dump(),
+        )
+        session.commit()
+        session.refresh(limit)
+        return NeuroLimitRead.model_validate(limit)
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
+@router.patch("/limits/{limit_id}", response_model=NeuroLimitRead)
+def patch_limit(
+    limit_id: UUID,
+    payload: NeuroLimitUpdate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroLimitRead:
+    try:
+        limit = LimitsService().update_limit(
+            session,
+            limit_id=str(limit_id),
+            workspace_id=auth.workspace_id,
+            payload=payload.model_dump(exclude_unset=True),
+        )
+        session.commit()
+        session.refresh(limit)
+        return NeuroLimitRead.model_validate(limit)
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
+@router.delete("/limits/{limit_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_limit(
+    limit_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> None:
+    try:
+        LimitsService().delete_limit(
+            session, limit_id=str(limit_id), workspace_id=auth.workspace_id
+        )
+        session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
+@router.get("/channel-rules", response_model=NeuroChannelRulePageRead)
+def get_channel_rules(
+    page: int = Query(default=1, ge=1, le=10000),
+    limit: int = Query(default=50, ge=1, le=100),
+    _valid_query: None = Depends(_reject_unknown_list_query_params),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> NeuroChannelRulePageRead:
+    items, total = ChannelRulesService().list_rules(
+        session, workspace_id=auth.workspace_id, page=page, limit=limit
+    )
+    return NeuroChannelRulePageRead(
+        items=[NeuroChannelRuleRead.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/channel-rules",
+    response_model=NeuroChannelRuleRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_channel_rule(
+    payload: NeuroChannelRuleCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroChannelRuleRead:
+    rule = ChannelRulesService().create_rule(
+        session,
+        workspace_id=auth.workspace_id,
+        actor_user_id=auth.user_id,
+        payload=payload.model_dump(),
+    )
+    session.commit()
+    session.refresh(rule)
+    return NeuroChannelRuleRead.model_validate(rule)
+
+
+@router.delete("/channel-rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_channel_rule(
+    rule_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> None:
+    try:
+        ChannelRulesService().delete_rule(
+            session, workspace_id=auth.workspace_id, rule_id=str(rule_id)
+        )
+        session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
+@router.post("/targets/{target_id}/pause", response_model=NeuroTargetRead)
+def post_target_pause(
+    target_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroTargetRead:
+    return _target_status("pause", str(target_id), session, auth)
+
+
+@router.post("/targets/{target_id}/blacklist", response_model=NeuroChannelRuleRead)
+def post_target_blacklist(
+    target_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroChannelRuleRead:
+    return _target_rule("blacklist", str(target_id), session, auth)
+
+
+@router.post("/targets/{target_id}/whitelist", response_model=NeuroChannelRuleRead)
+def post_target_whitelist(
+    target_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroChannelRuleRead:
+    return _target_rule("whitelist", str(target_id), session, auth)
+
+
+@router.post("/targets/{target_id}/resume", response_model=NeuroTargetRead)
+def post_target_resume(
+    target_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> NeuroTargetRead:
+    return _target_status("resume", str(target_id), session, auth)
 
 
 @router.post("/campaigns/{campaign_id}/start", response_model=NeuroCampaignRead)
@@ -977,13 +1300,70 @@ def _campaign_lifecycle(
         raise _neuro_error(exc) from exc
 
 
+def _target_status(
+    action: str,
+    target_id: str,
+    session: Session,
+    auth: AuthContext,
+) -> NeuroTargetRead:
+    service = ChannelRulesService()
+    try:
+        if action == "pause":
+            target = service.pause_target(
+                session,
+                target_id=target_id,
+                workspace_id=auth.workspace_id,
+                actor_user_id=auth.user_id,
+            )
+        else:
+            target = service.resume_target(
+                session,
+                target_id=target_id,
+                workspace_id=auth.workspace_id,
+                actor_user_id=auth.user_id,
+            )
+        session.commit()
+        session.refresh(target)
+        return NeuroTargetRead.model_validate(target)
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
+def _target_rule(
+    rule_type: str,
+    target_id: str,
+    session: Session,
+    auth: AuthContext,
+) -> NeuroChannelRuleRead:
+    service = ChannelRulesService()
+    try:
+        target = service.require_target(
+            session, workspace_id=auth.workspace_id, target_id=target_id
+        )
+        rule = service.create_rule(
+            session,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+            payload={"target_ref": target.channel_ref, "rule_type": rule_type},
+        )
+        session.commit()
+        session.refresh(rule)
+        return NeuroChannelRuleRead.model_validate(rule)
+    except ValueError as exc:
+        session.rollback()
+        raise _neuro_error(exc) from exc
+
+
 def _neuro_error(exc: ValueError) -> AppError:
     message = str(exc)
     not_found = {
         "account not found",
         "campaign not found",
         "campaign account not found",
+        "channel rule not found",
         "generated comment not found",
+        "limit not found",
         "observed post not found",
         "attempt not found",
         "target not found",

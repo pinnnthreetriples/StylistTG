@@ -9,8 +9,8 @@ import authBatchesCompat from '../lib/authBatches.ts?raw'
 import authCompat from '../lib/auth.ts?raw'
 import dashboardCompat from '../lib/dashboard.ts?raw'
 
-const FEATURE_MODULES = ['account-editing', 'auth', 'warmup']
-const PUBLIC_MODULE_IMPORT_RE = /@\/modules\/(account-editing|auth|warmup)(\/(?!$|index(?:\.ts)?['"])[^'"]+)/
+const FEATURE_MODULES = ['account-editing', 'auth', 'warmup', 'neuro-commenting']
+const PUBLIC_MODULE_IMPORT_RE = /@\/modules\/(account-editing|auth|warmup|neuro-commenting)(\/(?!$|index(?:\.ts)?['"])[^'"]+)/
 const LEGACY_COMPAT_IMPORT_RE = /@\/(components\/auth|features\/auth|hooks\/use(AuthBootstrap|AuthFlow|ProfileDraft)|lib\/(auth|authBatches|dashboard))/
 const moduleSources = import.meta.glob('./**/*.{ts,tsx}', {
   query: '?raw',
@@ -45,7 +45,7 @@ describe('frontend module boundaries', () => {
   })
 
   it('allows feature modules to use auth only through the public auth index', () => {
-    for (const moduleName of ['account-editing', 'warmup']) {
+    for (const moduleName of ['account-editing', 'warmup', 'neuro-commenting']) {
       expect(readModule(moduleName)).not.toMatch(/@\/modules\/auth\//)
     }
   })

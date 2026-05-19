@@ -2,15 +2,24 @@ import {
   addNeuroCampaignAccount,
   addNeuroCampaignTarget,
   approveNeuroGeneratedComment,
+  blacklistNeuroTarget as blacklistTypedNeuroTarget,
   createNeuroCampaign,
+  createNeuroChannelRule as createTypedNeuroChannelRule,
   deleteNeuroCampaignAccount,
   deleteNeuroCampaignTarget,
+  deleteNeuroChannelRule as deleteTypedNeuroChannelRule,
   editNeuroGeneratedComment,
+  fetchNeuroAccountStats as fetchTypedNeuroAccountStats,
   fetchNeuroCampaign,
   fetchNeuroCampaignAccounts,
+  fetchNeuroCampaignAttempts as fetchTypedNeuroCampaignAttempts,
   fetchNeuroCampaigns,
+  fetchNeuroCampaignStats as fetchTypedNeuroCampaignStats,
   fetchNeuroCampaignTargets,
+  fetchNeuroChannelRules as fetchTypedNeuroChannelRules,
+  fetchNeuroChannelStats as fetchTypedNeuroChannelStats,
   fetchNeuroEvents,
+  fetchNeuroFailureReasons as fetchTypedNeuroFailureReasons,
   fetchNeuroGeneratedComments,
   fetchNeuroAttempts,
   fetchNeuroObservedPosts,
@@ -18,12 +27,15 @@ import {
   observeNeuroCampaign,
   observeNeuroTarget,
   pauseNeuroCampaign,
+  pauseNeuroTarget as pauseTypedNeuroTarget,
   rejectNeuroGeneratedComment,
   refreshNeuroTargetMetadata,
+  resumeNeuroTarget as resumeTypedNeuroTarget,
   sendNeuroGeneratedComment,
   startNeuroCampaign,
   stopNeuroCampaign,
   updateNeuroCampaign,
+  whitelistNeuroTarget as whitelistTypedNeuroTarget,
 } from '@stylisttg/api-client'
 
 import { dashboardApiClient } from '@/modules/shared'
@@ -32,6 +44,7 @@ import type {
   NeuroCampaignAccountCreate,
   NeuroCampaignCreate,
   NeuroCampaignUpdate,
+  NeuroChannelRuleCreate,
   NeuroGeneratedCommentReject,
   NeuroGeneratedCommentUpdate,
   NeuroTargetCreate,
@@ -141,4 +154,52 @@ export function listAttempts(params?: { campaign_id?: string; generated_comment_
 
 export function listEvents(params?: { campaign_id?: string; page?: number; limit?: number }) {
   return fetchNeuroEvents(client, params)
+}
+
+export function fetchNeuroCampaignStats(campaignId: string) {
+  return fetchTypedNeuroCampaignStats(client, campaignId)
+}
+
+export function fetchNeuroAccountStats(campaignId: string) {
+  return fetchTypedNeuroAccountStats(client, campaignId)
+}
+
+export function fetchNeuroChannelStats(campaignId: string) {
+  return fetchTypedNeuroChannelStats(client, campaignId)
+}
+
+export function fetchNeuroCampaignAttempts(campaignId: string) {
+  return fetchTypedNeuroCampaignAttempts(client, campaignId)
+}
+
+export function fetchNeuroFailureReasons(campaignId: string) {
+  return fetchTypedNeuroFailureReasons(client, campaignId)
+}
+
+export function fetchNeuroChannelRules() {
+  return fetchTypedNeuroChannelRules(client)
+}
+
+export function createNeuroChannelRule(payload: NeuroChannelRuleCreate) {
+  return createTypedNeuroChannelRule(client, payload)
+}
+
+export function deleteNeuroChannelRule(ruleId: string) {
+  return deleteTypedNeuroChannelRule(client, ruleId)
+}
+
+export function blacklistNeuroTarget(targetId: string) {
+  return blacklistTypedNeuroTarget(client, targetId)
+}
+
+export function whitelistNeuroTarget(targetId: string) {
+  return whitelistTypedNeuroTarget(client, targetId)
+}
+
+export function pauseNeuroTarget(targetId: string) {
+  return pauseTypedNeuroTarget(client, targetId)
+}
+
+export function resumeNeuroTarget(targetId: string) {
+  return resumeTypedNeuroTarget(client, targetId)
 }

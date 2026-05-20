@@ -13,9 +13,13 @@ from sqlalchemy.pool import StaticPool
 from app.db import Base
 from app.models import (
     Account,
+    AccountProfileState,
+    AccountProxy,
     AccountRuntimeState,
     AccountState,
     User,
+    WarmupSession,
+    WarmupStrategy,
     Workspace,
     WorkspaceMember,
     new_id,
@@ -26,7 +30,10 @@ from app.services.ggr_calculator import (
     _age_score,
     _apply_smoothing,
     _origin_score,
+    _history_score,
+    _profile_score,
     _proxy_score,
+    _warmup_score,
     backfill_ggr_scores,
     calculate_ggr,
     compute_bucket,
@@ -193,41 +200,96 @@ class TestComponentScoring:
         )
         assert _age_score(acct) == 1.0
 
-    def test_origin_score_imported(self):
-        class FakeAccount:
-            origin = "imported"
+    def test_origin_score_hardcoded(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000014")
+        assert _origin_score(session, acct) == 0.7
 
-        assert _origin_score(FakeAccount()) == 0.7
+    def test_history_score_hardcoded(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000015")
+        assert _history_score(session, acct) == 1.0
 
-    def test_origin_score_bought(self):
-        class FakeAccount:
-            origin = "bought"
 
-        assert _origin_score(FakeAccount()) == 0.5
+# ---------------------------------------------------------------------------
+# 2b. Integration component scoring (reads from real DB tables)
+# ---------------------------------------------------------------------------
 
-    def test_origin_score_created(self):
-        class FakeAccount:
-            origin = "created"
 
-        assert _origin_score(FakeAccount()) == 0.9
+@freeze_time(_NOW)
+class TestComponentScoringIntegration:
+    def test_proxy_score_reads_from_proxy_table(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000030")
+        proxy = AccountProxy(
+            account_id=acct.id,
+            proxy_type="socks5",
+            host="1.2.3.4",
+            port=1080,
+            status="tcp_working",
+        )
+        session.add(proxy)
+        session.commit()
+        assert _proxy_score(session, acct) == 1.0
 
-    def test_proxy_score_healthy(self):
-        class FakeAccount:
-            proxy_status = "healthy"
+        proxy.status = "failed"
+        session.commit()
+        assert _proxy_score(session, acct) == 0.0
 
-        assert _proxy_score(FakeAccount()) == 1.0
+        proxy.status = "unknown"
+        session.commit()
+        assert _proxy_score(session, acct) == 0.5
 
-    def test_proxy_score_failed(self):
-        class FakeAccount:
-            proxy_status = "failed"
+    def test_proxy_score_no_proxy(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000031")
+        assert _proxy_score(session, acct) == 0.5
 
-        assert _proxy_score(FakeAccount()) == 0.0
+    def test_warmup_score_reads_from_warmup_session(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000032")
+        strategy = WarmupStrategy(
+            id=new_id(),
+            workspace_id=workspace.id,
+            name="test-strategy",
+            execution_mode="passive",
+        )
+        session.add(strategy)
+        session.flush()
+        ws = WarmupSession(
+            id=new_id(),
+            workspace_id=workspace.id,
+            account_id=acct.id,
+            strategy_id=strategy.id,
+            status="completed",
+            current_day=0,
+            duration_days=7,
+            cadence_hours=6,
+        )
+        session.add(ws)
+        session.commit()
+        assert _warmup_score(session, acct) == 1.0
 
-    def test_proxy_score_unknown(self):
-        class FakeAccount:
-            proxy_status = "unknown"
+        ws.status = "active"
+        session.commit()
+        assert _warmup_score(session, acct) == 0.5
 
-        assert _proxy_score(FakeAccount()) == 0.5
+    def test_warmup_score_no_session(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000033")
+        assert _warmup_score(session, acct) == 0.0
+
+    def test_profile_score_reads_from_account_profile_state(
+        self, session: Session, workspace: Workspace
+    ):
+        acct = _make_account(session, workspace.id, external_ref="+7999000034")
+        ps = AccountProfileState(
+            account_id=acct.id,
+            first_name="X",
+            bio="hello",
+            profile_photo_asset_id="abc",
+        )
+        session.add(ps)
+        session.commit()
+        assert _profile_score(session, acct) == 0.75
+
+    def test_profile_score_empty(self, session: Session, workspace: Workspace):
+        acct = _make_account(session, workspace.id, external_ref="+7999000035")
+        assert _profile_score(session, acct) == 0.0
 
 
 # ---------------------------------------------------------------------------

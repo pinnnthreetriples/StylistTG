@@ -2,6 +2,24 @@
 
 Computes a weighted 1.0–10.0 rating from multiple component signals.
 Recalculates every 6 hours with max ±1.0 smoothing per cycle.
+
+Phase 2 Task 11 — partial wiring.
+
+Live signals (read from DB):
+  - age_score: account.created_at
+  - proxy_score: account_proxy status
+  - warmup_score: latest WarmupSession
+  - profile_score: AccountProfileState
+
+Stub signals (hardcoded until corresponding tasks land):
+  - origin_score: always 0.7 (imported) — TODO Task 18 bought-account flow
+  - history_score: always 1.0 — TODO integration with SpamBlock log
+  - fingerprint_score: always 0.5 — TODO Task 15 AccountStatusMonitor
+  - ip_change_score: always 1.0 — TODO Task 15
+  - session_anomaly_score: always 1.0 — TODO Task 15
+
+After Task 15 and Task 18 stub functions should be rewritten to read from
+account_status_observations and account.origin respectively.
 """
 
 from __future__ import annotations
@@ -15,6 +33,9 @@ from sqlalchemy.orm import Session
 from app.models import (
     Account,
     AccountGgrScore,
+    AccountProfileState,
+    AccountProxy,
+    WarmupSession,
     new_id,
     utc_now,
 )
@@ -64,90 +85,81 @@ def _age_score(account: Account) -> float:
     return 1.0
 
 
-def _origin_score(account: Account) -> float:
-    """Score based on account origin type."""
-    origin = getattr(account, "origin", None) or "imported"
-    origin_map: dict[str, float] = {
-        "created": 0.9,
-        "imported": 0.7,
-        "bought": 0.5,
-    }
-    return origin_map.get(origin, 0.7)
+# TODO Phase 1.5 Task 18: read account.origin once column lands
+def _origin_score(session: Session, account: Account) -> float:
+    """Score based on account origin type. Hardcoded 0.7 (imported) until Task 18."""
+    return 0.7
 
 
-def _history_score(account: Account) -> float:
-    """Score based on spamblock history: 1.0 - min(1.0, spamblock_count / 5)."""
-    spamblock_count = getattr(account, "spamblock_count", 0) or 0
-    return 1.0 - min(1.0, spamblock_count / 5)
+# TODO: integrate with SpamBlock log once it exists
+def _history_score(session: Session, account: Account) -> float:
+    """Score based on spamblock history. Hardcoded 1.0 until spamblock log lands."""
+    return 1.0
 
 
-def _proxy_score(account: Account) -> float:
-    """Score based on proxy health status."""
-    proxy_status = getattr(account, "proxy_status", None)
-    if proxy_status == "healthy":
+def _proxy_score(session: Session, account: Account) -> float:
+    """Score based on proxy health status from account_proxy table."""
+    proxy = session.get(AccountProxy, account.id)
+    if proxy is None:
+        return 0.5
+    status = proxy.status or "unknown"
+    if status in ("tcp_working", "tdlib_working"):
         return 1.0
-    if proxy_status == "failed":
+    if status in ("failed", "tdlib_failed"):
         return 0.0
     return 0.5
 
 
-def _fingerprint_score(account: Account) -> float:
-    """Score based on device fingerprint stability.
-
-    1.0 if device_model_hash stable 7+ days, 0.5 otherwise.
-    Simplified: checks if fingerprint_stable_since exists and is > 7 days ago.
-    """
-    stable_since = getattr(account, "fingerprint_stable_since", None)
-    if stable_since is None:
-        return 0.5
-    now = datetime.now(UTC)
-    if stable_since.tzinfo is None:
-        stable_since = stable_since.replace(tzinfo=UTC)
-    if (now - stable_since).days >= 7:
-        return 1.0
+# TODO Task 15: read from AccountStatusMonitor once it lands
+def _fingerprint_score(session: Session, account: Account) -> float:
+    """Score based on device fingerprint stability. Hardcoded 0.5 until Task 15."""
     return 0.5
 
 
-def _ip_change_score(account: Account) -> float:
-    """Score based on IP changes in last 24h: 1.0 - min(1.0, ip_changes_24h / 10)."""
-    ip_changes = getattr(account, "ip_changes_24h", 0) or 0
-    return 1.0 - min(1.0, ip_changes / 10)
+# TODO Task 15: read from account_status_observations
+def _ip_change_score(session: Session, account: Account) -> float:
+    """Score based on IP changes. Hardcoded 1.0 (no changes assumption) until Task 15."""
+    return 1.0
 
 
-def _session_anomaly_score(account: Account) -> float:
-    """Score based on session anomalies in last 7d: 1.0 - min(1.0, anomalies_7d / 10)."""
-    anomalies = getattr(account, "anomalies_7d", 0) or 0
-    return 1.0 - min(1.0, anomalies / 10)
+# TODO Task 15: read from account_status_observations
+def _session_anomaly_score(session: Session, account: Account) -> float:
+    """Score based on session anomalies. Hardcoded 1.0 until Task 15."""
+    return 1.0
 
 
-def _warmup_score(account: Account) -> float:
-    """Score based on warmup status."""
-    warmup_status = getattr(account, "warmup_status", None)
-    if warmup_status == "completed":
+def _warmup_score(session: Session, account: Account) -> float:
+    """Score based on latest WarmupSession status."""
+    stmt = (
+        select(WarmupSession)
+        .where(WarmupSession.account_id == account.id)
+        .order_by(WarmupSession.created_at.desc())
+        .limit(1)
+    )
+    ws = session.execute(stmt).scalar_one_or_none()
+    if ws is None:
+        return 0.0
+    if ws.status == "completed":
         return 1.0
-    if warmup_status == "in_progress":
+    if ws.status in ("active", "scheduled", "validating"):
         return 0.5
     return 0.0
 
 
-def _profile_score(account: Account) -> float:
-    """Score based on profile completeness (bio + name + photo = 3/3)."""
-    completeness = 0
-    if getattr(account, "display_name", None):
-        completeness += 1
-    if getattr(account, "bio", None):
-        completeness += 1
-    if getattr(account, "profile_photo_asset_id", None):
-        completeness += 1
-    return completeness / 3
+def _profile_score(session: Session, account: Account) -> float:
+    """Score based on profile completeness from AccountProfileState (4 fields)."""
+    ps = session.get(AccountProfileState, account.id)
+    if ps is None:
+        return 0.0
+    filled = sum(1 for v in [ps.first_name, ps.last_name, ps.bio, ps.profile_photo_asset_id] if v)
+    return filled / 4
 
 
 # ---------------------------------------------------------------------------
 # Core calculation
 # ---------------------------------------------------------------------------
 
-COMPONENT_FUNCTIONS: dict[str, Any] = {
-    "age": _age_score,
+_SESSION_COMPONENT_FUNCTIONS: dict[str, Any] = {
     "origin": _origin_score,
     "history": _history_score,
     "proxy": _proxy_score,
@@ -159,9 +171,12 @@ COMPONENT_FUNCTIONS: dict[str, Any] = {
 }
 
 
-def compute_components(account: Account) -> dict[str, float]:
+def compute_components(session: Session, account: Account) -> dict[str, float]:
     """Compute all component scores for an account."""
-    return {key: fn(account) for key, fn in COMPONENT_FUNCTIONS.items()}
+    result: dict[str, float] = {"age": _age_score(account)}
+    for key, fn in _SESSION_COMPONENT_FUNCTIONS.items():
+        result[key] = fn(session, account)
+    return result
 
 
 def compute_score(components: dict[str, float]) -> float:
@@ -220,7 +235,7 @@ def calculate_ggr(
         if ggr_row.next_calculation_at and ggr_row.next_calculation_at > now:
             return ggr_row
 
-    components = compute_components(account)
+    components = compute_components(session, account)
     raw_score = compute_score(components)
 
     previous_score = ggr_row.score if ggr_row else None

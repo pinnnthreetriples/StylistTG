@@ -36,6 +36,7 @@ jobs:
 
   backend:
     name: Backend (Python 3.12)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:

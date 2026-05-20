@@ -6,6 +6,7 @@ import type { AccountListItem } from '@/lib/api'
 import { accountStatus, maskPhone } from '@/lib/accounts'
 import { labelRiskLevelShort, labelRuntimeHealth, labelProxyStatus, runtimeHealthTone } from '@/lib/uiLabels'
 import { GGRBadge, type GgrBucket } from '@/modules/shared/GGRBadge'
+import { QuarantineStateBanner } from '@/modules/shared/QuarantineStateBanner'
 
 export type AccountTableRow = AccountListItem & {
   risk?: AccountRisk
@@ -65,6 +66,12 @@ export const accountColumns = [
       const label = labelRuntimeHealth(value)
       return <Badge tone={runtimeHealthTone(value)}>{label}</Badge>
     },
+  }),
+  columnHelper.display({
+    id: 'quarantine',
+    header: 'Карантин',
+    cell: ({ row }) => <QuarantineStateBanner accountId={row.original.account_id} compact />,
+    enableSorting: false,
   }),
   columnHelper.display({
     id: 'lastJob',

@@ -3823,7 +3823,7 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
             /** Typing Speed Baseline Cpm */
-            typing_speed_baseline_cpm: number;
+            typing_speed_baseline_cpm?: number | null;
             /** Typo Rate Baseline */
             typo_rate_baseline: number;
             /** Profile View Probability Baseline */

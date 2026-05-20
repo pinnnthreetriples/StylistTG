@@ -117,16 +117,23 @@ def get_or_create_baseline(
     if typing_range is not None:
         typing_cpm = int(r.uniform(*typing_range))
 
+    typo_range = ranges["typo_rate"]
+    pvp_range = ranges["profile_view_probability"]
+    sp_range = ranges["scroll_probability"]
+    mdp_range = ranges["message_deletion_probability"]
+    assert typo_range is not None and pvp_range is not None
+    assert sp_range is not None and mdp_range is not None
+
     profile = AccountBehaviorProfile(
         id=new_id(),
         workspace_id=workspace_id,
         account_id=account_id,
         typing_speed_baseline_cpm=typing_cpm,
-        typo_rate_baseline=round(r.uniform(*ranges["typo_rate"]), 4),
-        profile_view_probability_baseline=round(r.uniform(*ranges["profile_view_probability"]), 4),
-        scroll_probability_baseline=round(r.uniform(*ranges["scroll_probability"]), 4),
+        typo_rate_baseline=round(r.uniform(*typo_range), 4),
+        profile_view_probability_baseline=round(r.uniform(*pvp_range), 4),
+        scroll_probability_baseline=round(r.uniform(*sp_range), 4),
         message_deletion_probability_baseline=round(
-            r.uniform(*ranges["message_deletion_probability"]), 4
+            r.uniform(*mdp_range), 4
         ),
         action_sequence_seed=r.randint(0, 2**31 - 1),
         created_at=utc_now(),

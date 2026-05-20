@@ -17019,7 +17019,14 @@
             "title": "Workspace Id"
           },
           "typing_speed_baseline_cpm": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Typing Speed Baseline Cpm"
           },
           "typo_rate_baseline": {
@@ -17089,7 +17096,6 @@
           "id",
           "account_id",
           "workspace_id",
-          "typing_speed_baseline_cpm",
           "typo_rate_baseline",
           "profile_view_probability_baseline",
           "scroll_probability_baseline",

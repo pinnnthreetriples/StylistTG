@@ -638,6 +638,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Quarantine */
+        get: operations["get_account_quarantine_api_accounts__account_id__quarantine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/quarantine/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release Account Quarantine */
+        post: operations["release_account_quarantine_api_accounts__account_id__quarantine_release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/behavior-profile": {
         parameters: {
             query?: never;
@@ -3054,6 +3088,32 @@ export interface components {
             /** Password */
             password?: string | null;
         };
+        /** AccountQuarantineRead */
+        AccountQuarantineRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Account Id */
+            account_id: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "flood_wait" | "status_degraded" | "manual" | "bought_rest_period" | "fraud_high";
+            /** Started At */
+            started_at: string | null;
+            /** Until */
+            until: string | null;
+            /** Released At */
+            released_at?: string | null;
+            /** Released By User Id */
+            released_by_user_id?: string | null;
+            /** Metadata Json */
+            metadata_json?: {
+                [key: string]: unknown;
+            };
+        };
         /** AccountRead */
         AccountRead: {
             /** Id */
@@ -5439,6 +5499,16 @@ export interface components {
         ReadinessRead: {
             /** Status */
             status: string;
+        };
+        /** ReleaseRequest */
+        ReleaseRequest: {
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Override Gate Block
+             * @default false
+             */
+            override_gate_block: boolean;
         };
         /** RetryPolicyRead */
         RetryPolicyRead: {
@@ -8629,6 +8699,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GgrScoreRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_quarantine_api_accounts__account_id__quarantine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountQuarantineRead"] | null;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_account_quarantine_api_accounts__account_id__quarantine_release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountQuarantineRead"];
                 };
             };
             /** @description Bad Request */

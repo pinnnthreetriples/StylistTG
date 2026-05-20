@@ -9,7 +9,11 @@ from app.api.tenant_helpers import require_account_in_workspace
 from app.contracts.quarantine import AccountQuarantineRead, ReleaseRequest
 from app.db import get_session
 from app.models import utc_now
-from app.services.account_quarantine import QuarantineNotFound, get_active_quarantine, release_quarantine
+from app.services.account_quarantine import (
+    QuarantineNotFound,
+    get_active_quarantine,
+    release_quarantine,
+)
 from app.services.auth_context import AuthContext, require_authenticated, require_role
 from app.services.sensitive_audit import record_sensitive_audit_event
 

@@ -5,8 +5,15 @@ from datetime import timedelta
 import pytest
 
 from app.main import app
-from app.models import DEFAULT_LOCAL_USER_ID, DEFAULT_LOCAL_WORKSPACE_ID, SensitiveAuditEvent, WorkspaceSafetyPolicy, new_id, utc_now
-from app.models_account_quarantine import AccountQuarantine
+from app.models import (
+    DEFAULT_LOCAL_USER_ID,
+    DEFAULT_LOCAL_WORKSPACE_ID,
+    SensitiveAuditEvent,
+    AccountQuarantine,
+    WorkspaceSafetyPolicy,
+    new_id,
+    utc_now,
+)
 from app.services.account_quarantine import handle_flood_wait, is_account_quarantined
 from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.workspaces import ensure_default_workspace
@@ -82,20 +89,26 @@ def test_is_account_quarantined_active_then_false_after_expiry(db_session) -> No
     )
     db_session.commit()
 
-    assert is_account_quarantined(
-        db_session,
-        account_id=account.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    ) is True
+    assert (
+        is_account_quarantined(
+            db_session,
+            account_id=account.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+        is True
+    )
 
     quarantine.until = utc_now() - timedelta(seconds=1)
     db_session.commit()
 
-    assert is_account_quarantined(
-        db_session,
-        account_id=account.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    ) is False
+    assert (
+        is_account_quarantined(
+            db_session,
+            account_id=account.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+        is False
+    )
 
 
 def test_get_endpoint_returns_active_quarantine(admin_client, db_session) -> None:
@@ -169,11 +182,17 @@ def test_release_endpoint_non_admin_returns_403(app_client, db_session) -> None:
     )
 
     assert response.status_code == 403
+    body = response.json()
+    assert "detail" in body or "error_code" in body
 
 
-def test_tenant_isolation_workspace_a_cannot_see_workspace_b_quarantine(app_client, db_session) -> None:
+def test_tenant_isolation_workspace_a_cannot_see_workspace_b_quarantine(
+    app_client, db_session
+) -> None:
     workspace_a, workspace_b = seed_two_workspaces(db_session)
-    app.dependency_overrides[get_current_auth_context] = lambda: _auth("admin", workspace_id=workspace_a)
+    app.dependency_overrides[get_current_auth_context] = lambda: _auth(
+        "admin", workspace_id=workspace_a
+    )
     account_b = seed_account(
         db_session,
         external_ref="+15550109999",
@@ -195,3 +214,5 @@ def test_tenant_isolation_workspace_a_cannot_see_workspace_b_quarantine(app_clie
     response = app_client.get(f"/api/accounts/{account_b.id}/quarantine")
 
     assert response.status_code == 404
+    body = response.json()
+    assert "detail" in body or "error_code" in body

@@ -94,7 +94,9 @@ def is_account_quarantined(
     account_id: str,
     workspace_id: str,
 ) -> bool:
-    return get_active_quarantine(session, account_id=account_id, workspace_id=workspace_id) is not None
+    return (
+        get_active_quarantine(session, account_id=account_id, workspace_id=workspace_id) is not None
+    )
 
 
 def handle_flood_wait(

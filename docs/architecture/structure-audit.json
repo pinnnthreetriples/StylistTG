@@ -160,6 +160,7 @@
       "backend/app/contracts/human_behavior.py": [],
       "backend/app/contracts/jobs.py": [],
       "backend/app/contracts/neuro_commenting.py": [],
+      "backend/app/contracts/profile_completeness.py": [],
       "backend/app/contracts/quarantine.py": [],
       "backend/app/contracts/safety.py": [],
       "backend/app/contracts/safety_gate.py": [],
@@ -342,6 +343,8 @@
         "apps/dashboard/src/modules/shared/BoughtAccountOnboardingWizard.tsx",
         "apps/dashboard/src/modules/shared/GGRBadge.test.tsx",
         "apps/dashboard/src/modules/shared/GGRBadge.tsx",
+        "apps/dashboard/src/modules/shared/ProfileCompletenessBar.test.tsx",
+        "apps/dashboard/src/modules/shared/ProfileCompletenessBar.tsx",
         "apps/dashboard/src/modules/shared/QuarantineStateBanner.test.tsx",
         "apps/dashboard/src/modules/shared/QuarantineStateBanner.tsx",
         "apps/dashboard/src/modules/shared/api.ts",
@@ -1062,6 +1065,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/neuro_commenting.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "uuid"
+      ],
+      "path": "backend/app/contracts/profile_completeness.py"
     },
     {
       "forbidden_imports": [],

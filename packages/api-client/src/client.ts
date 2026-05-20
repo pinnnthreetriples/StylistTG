@@ -45,6 +45,7 @@ export type AccountBatchSafetyPreview = Schema<'AccountBatchSafetyPreviewRead'>
 export type AccountSafetyOverride = Schema<'AccountSafetyOverrideRead'>
 export type AccountOperationLogPage = Schema<'AccountOperationLogPageRead'>
 export type AccountProxyInput = Schema<'AccountProxyUpsert'>
+export type ProfileCompletenessReport = Schema<'ProfileCompletenessReport'>
 export type DashboardProfile = Schema<'DashboardProfileRead'>
 export type DiagnosticsRead = Schema<'DiagnosticsRead'>
 export type Readiness = Schema<'ReadinessRead'>
@@ -835,6 +836,18 @@ export async function fetchAccountProxy(client: StylistTgClient, accountId: stri
       params: { path: { account_id: accountId } },
     }),
     'account proxy',
+  )
+}
+
+export async function fetchProfileCompleteness(
+  client: StylistTgClient,
+  accountId: string,
+): Promise<ProfileCompletenessReport> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/profile-completeness', {
+      params: { path: { account_id: accountId } },
+    }),
+    'profile completeness',
   )
 }
 

@@ -638,6 +638,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/profile-completeness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Profile Completeness */
+        get: operations["get_account_profile_completeness_api_accounts__account_id__profile_completeness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/quarantine": {
         parameters: {
             query?: never;
@@ -5526,6 +5543,26 @@ export interface components {
          * @enum {string}
          */
         ProfileAudioAction: "keep" | "add" | "remove";
+        /** ProfileCompletenessReport */
+        ProfileCompletenessReport: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Score */
+            score: number;
+            /** Breakdown */
+            breakdown: {
+                [key: string]: boolean;
+            };
+            /** Missing Required */
+            missing_required: string[];
+            /** Missing Recommended */
+            missing_recommended: string[];
+            /** Evaluated At */
+            evaluated_at: string;
+        };
         /** ProfileJobCreate */
         ProfileJobCreate: {
             /** Account Id */
@@ -8813,6 +8850,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GgrScoreRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_profile_completeness_api_accounts__account_id__profile_completeness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCompletenessReport"];
                 };
             };
             /** @description Bad Request */

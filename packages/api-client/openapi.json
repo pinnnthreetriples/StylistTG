@@ -3149,6 +3149,79 @@
         }
       }
     },
+    "/api/accounts/{account_id}/profile-completeness": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Profile Completeness",
+        "operationId": "get_account_profile_completeness_api_accounts__account_id__profile_completeness_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileCompletenessReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/quarantine": {
       "get": {
         "tags": [
@@ -22952,6 +23025,56 @@
           "remove"
         ],
         "title": "ProfileAudioAction"
+      },
+      "ProfileCompletenessReport": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "breakdown": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Breakdown"
+          },
+          "missing_required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Required"
+          },
+          "missing_recommended": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Recommended"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "title": "Evaluated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "score",
+          "breakdown",
+          "missing_required",
+          "missing_recommended",
+          "evaluated_at"
+        ],
+        "title": "ProfileCompletenessReport"
       },
       "ProfileJobCreate": {
         "properties": {

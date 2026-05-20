@@ -9,6 +9,7 @@ import {
   deleteStoryPost as deleteTypedStoryPost,
   fetchAccountOperationLogs as fetchTypedAccountOperationLogs,
   fetchAccountProxy as fetchTypedAccountProxy,
+  fetchProfileCompleteness as fetchTypedProfileCompleteness,
   fetchAccountRisk as fetchTypedAccountRisk,
   fetchAccountRiskSummary as fetchTypedAccountRiskSummary,
   fetchAccountDeletionPreview as fetchTypedAccountDeletionPreview,
@@ -78,6 +79,7 @@ import {
   type QueueDescriptor,
   type RetryPolicy,
   type AccountSafetyOverride as SafetyOverride,
+  type ProfileCompletenessReport,
   type DashboardProfile as DashboardResponse,
   type JobSummary,
   type RuntimeRefresh,
@@ -147,6 +149,7 @@ export type {
   RuntimeRefresh,
   Readiness,
   SafetyOverride,
+  ProfileCompletenessReport,
   StoryDraftRead,
   AccountReadinessRisk,
   AccountReadinessRiskSummary,
@@ -433,6 +436,10 @@ export function fetchProxySummary(): Promise<AccountProxySummary[]> {
 
 export function fetchAccountProxy(accountId: string): Promise<AccountProxy | null> {
   return fetchTypedAccountProxy(typedClient, accountId) as Promise<AccountProxy | null>
+}
+
+export function fetchProfileCompleteness(accountId: string): Promise<ProfileCompletenessReport> {
+  return fetchTypedProfileCompleteness(typedClient, accountId)
 }
 
 export function saveAccountProxy(accountId: string, payload: AccountProxyInput): Promise<AccountProxy> {

@@ -37,6 +37,7 @@ def post_account(
             session,
             external_ref=payload.external_ref,
             telegram_user_id=payload.telegram_user_id,
+            origin=payload.origin,
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
         )
@@ -109,6 +110,7 @@ def account_list_item(session: Session, account: Account) -> AccountListItemRead
         username=username,
         phone_number=account.external_ref,
         telegram_user_id=account.telegram_user_id,
+        origin=account.origin,
         account_state=account.account_state,
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
@@ -154,6 +156,7 @@ def _account_list_item_batched(
         username=username,
         phone_number=account.external_ref,
         telegram_user_id=account.telegram_user_id,
+        origin=account.origin,
         account_state=account.account_state,
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",

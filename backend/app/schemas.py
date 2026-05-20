@@ -11,6 +11,7 @@ from app.contracts import jobs as _job_contracts
 from app.contracts import neuro_commenting as _neuro_commenting_contracts
 from app.contracts import safety as _safety_contracts
 from app.contracts import safety_gate as _safety_gate_contracts
+from app.contracts import bought_onboarding as _bought_onboarding_contracts
 from app.contracts import human_behavior as _human_behavior_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
@@ -31,6 +32,7 @@ WorkspaceSafetyPolicyUpdate = _safety_gate_contracts.WorkspaceSafetyPolicyUpdate
 GgrBreakdownRead = _ggr_contracts.GgrBreakdownRead
 GgrScoreRead = _ggr_contracts.GgrScoreRead
 BehaviorProfileRead = _human_behavior_contracts.BehaviorProfileRead
+BoughtOnboardingStatusRead = _bought_onboarding_contracts.BoughtOnboardingStatusRead
 NeuroAccountStatsPageRead = _neuro_commenting_contracts.NeuroAccountStatsPageRead
 NeuroAccountStatsRead = _neuro_commenting_contracts.NeuroAccountStatsRead
 NeuroAttemptPageRead = _neuro_commenting_contracts.NeuroAttemptPageRead
@@ -140,6 +142,7 @@ def _serialize_utc_datetime(value: datetime) -> str:
 class AccountCreate(BaseModel):
     external_ref: str = Field(min_length=1)
     telegram_user_id: str | None = Field(default=None, min_length=1)
+    origin: Literal["imported", "bought", "created"] = "imported"
 
 
 class AccountWarmupInfoRead(BaseModel):
@@ -164,6 +167,7 @@ class AccountRead(BaseModel):
     external_ref: str
     telegram_user_id: str | None
     auth_source: str
+    origin: Literal["imported", "bought", "created"]
     account_state: str
     created_at: datetime
     updated_at: datetime
@@ -181,6 +185,7 @@ class AccountListItemRead(BaseModel):
     username: str | None
     phone_number: str
     telegram_user_id: str | None
+    origin: Literal["imported", "bought", "created"]
     account_state: str
     runtime_health: str
     is_execution_usable: bool

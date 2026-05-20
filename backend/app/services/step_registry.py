@@ -15,6 +15,8 @@ SUPPORTED_ACCOUNT_UPDATE_STEP_TYPES = {
     "prepare_story_media",
     "post_story_image",
     "post_story_video",
+    "enable_2fa",
+    "terminate_other_sessions",
 }
 
 

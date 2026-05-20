@@ -701,6 +701,10 @@ class Account(Base):
     __tablename__ = "account"
     __table_args__ = (
         UniqueConstraint("workspace_id", "external_ref", name="uq_account_workspace_external_ref"),
+        CheckConstraint(
+            "origin IN ('imported','bought','created')",
+            name="ck_accounts_origin_valid",
+        ),
         Index("ix_account_workspace_updated", "workspace_id", "updated_at"),
     )
 
@@ -712,6 +716,9 @@ class Account(Base):
     telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     pinned_channel_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     auth_source: Mapped[str] = mapped_column(String(64), nullable=False, default="otp")
+    origin: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="imported", server_default="imported"
+    )
     account_state: Mapped[str] = mapped_column(
         String(64), nullable=False, default=AccountState.REGISTERED
     )
@@ -761,6 +768,36 @@ class Account(Base):
         back_populates="account", cascade="all, delete-orphan"
     )
     warmup_sessions: Mapped[list[WarmupSession]] = relationship(back_populates="account")
+
+
+class BoughtOnboardingState(Base):
+    __tablename__ = "bought_onboarding_state"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "account_id",
+            name="uq_bought_onboarding_state_ws_account",
+        ),
+        CheckConstraint(
+            "current_step IN ('enable_2fa','terminate_other_sessions','rest_period','ggr_precheck','completed')",
+            name="ck_bought_onboarding_state_current_step",
+        ),
+        Index("ix_bought_onboarding_state_workspace_account", "workspace_id", "account_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
+    current_step: Mapped[str] = mapped_column(String(64), nullable=False, default="enable_2fa")
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    details_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
 
 class AccountLifecycleEvent(Base):

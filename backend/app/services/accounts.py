@@ -24,9 +24,12 @@ def create_account(
     external_ref: str,
     telegram_user_id: str | None = None,
     auth_source: str = "otp",
+    origin: str = "imported",
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     actor_user_id: str | None = None,
 ) -> Account:
+    if origin not in {"imported", "bought", "created"}:
+        raise ValueError("unsupported account origin")
     if workspace_id == DEFAULT_LOCAL_WORKSPACE_ID:
         ensure_default_workspace(session)
     check_workspace_limit(session, workspace_id, "accounts")
@@ -37,6 +40,7 @@ def create_account(
         external_ref=external_ref,
         telegram_user_id=telegram_user_id,
         auth_source=auth_source,
+        origin=origin,
         account_state=AccountState.REGISTERED,
     )
     account.runtime_state = AccountRuntimeState(
@@ -52,7 +56,7 @@ def create_account(
         action="account.created",
         entity_type="account",
         entity_id=account.id,
-        metadata={"auth_source": auth_source},
+        metadata={"auth_source": auth_source, "origin": origin},
     )
     session.commit()
     session.refresh(account)

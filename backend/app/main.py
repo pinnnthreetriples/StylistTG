@@ -25,6 +25,7 @@ from app.api.account_runtime_routes import router as account_runtime_router
 from app.api.account_ggr_routes import router as account_ggr_router
 from app.api.account_quarantine_routes import router as account_quarantine_router
 from app.api.account_status_routes import router as account_status_router
+from app.api.bought_onboarding_routes import router as bought_onboarding_router
 from app.api.human_behavior_routes import router as human_behavior_router
 from app.api.account_safety_routes import router as account_safety_router
 from app.api.accounts import router as accounts_router
@@ -186,6 +187,7 @@ app.include_router(account_proxy_router)
 app.include_router(account_ggr_router)
 app.include_router(account_quarantine_router)
 app.include_router(account_status_router)
+app.include_router(bought_onboarding_router)
 app.include_router(human_behavior_router)
 app.include_router(account_compat_router)
 app.include_router(accounts_router)

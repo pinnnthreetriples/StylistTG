@@ -17,10 +17,10 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # PR / push checks
+  # PR checks
   # ---------------------------------------------------------------------------
   test-quality-pr:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:

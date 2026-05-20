@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -26,6 +26,7 @@ from app.models import (
 from app.services.account_profile_completeness import evaluate as evaluate_profile_completeness
 from app.services.account_quarantine import get_active_quarantine
 from app.services.cross_module_load_tracker import current_load, evaluate_threshold
+from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
 from app.services.safety_gate_cache import (
     InMemorySafetyGateCache,
@@ -94,7 +95,7 @@ class AccountSafetyGate:
         ggr = get_ggr_score(session, account_id, workspace_id) or calculate_ggr(
             session, account, workspace_id
         )
-        ggr_score = float(ggr.score) if ggr is not None else None
+        ggr_score = float(ggr.score)
 
         if intent == "commenting":
             reasons.extend(
@@ -146,7 +147,7 @@ class AccountSafetyGate:
 
         if intent == "commenting":
             load = current_load(session, workspace_id=account.workspace_id, account_id=account.id)
-            load_verdict = evaluate_threshold(load, policy.mode)
+            load_verdict = evaluate_threshold(load, _cross_module_safety_mode(policy))
             if load_verdict != "ok":
                 reasons.append(
                     _reason(
@@ -281,6 +282,12 @@ def _policy(session: Session, *, workspace_id: str) -> WorkspaceSafetyPolicy:
     if policy is None:
         raise RuntimeError("workspace safety policy was not created")
     return policy
+
+
+def _cross_module_safety_mode(policy: WorkspaceSafetyPolicy) -> CrossModuleSafetyMode:
+    if policy.mode not in {"conservative", "balanced", "aggressive"}:
+        raise ValueError(f"unsupported workspace safety policy mode: {policy.mode}")
+    return cast(CrossModuleSafetyMode, policy.mode)
 
 
 def _account(session: Session, *, workspace_id: str, account_id: str) -> Account:

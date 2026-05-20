@@ -12,6 +12,7 @@ export const emptyDashboardForm: FormState = {
   bio: '',
   username: '',
   profilePhotoAssetId: null,
+  pinnedChannelRef: null,
   profileAudioAction: 'keep',
   profileAudioAssetId: null,
   stories: [],

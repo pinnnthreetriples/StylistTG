@@ -15546,6 +15546,17 @@
               }
             ],
             "title": "Photo Asset Id"
+          },
+          "pinned_channel_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned Channel Ref"
           }
         },
         "type": "object",

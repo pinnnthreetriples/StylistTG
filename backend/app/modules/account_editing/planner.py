@@ -4,7 +4,13 @@ import hashlib
 import json
 from typing import Any, cast
 
-PROFILE_STEP_TYPES = ("set_name", "set_bio", "set_username", "set_profile_photo")
+PROFILE_STEP_TYPES = (
+    "set_name",
+    "set_bio",
+    "set_username",
+    "set_profile_photo",
+    "set_pinned_channel",
+)
 WORKFLOW_TYPE = "account_update"
 WORKFLOW_VERSION = 1
 JOB_PAYLOAD_VERSION = 2
@@ -19,6 +25,7 @@ def profile_payload_to_account_update_desired_state(payload: dict[str, Any]) -> 
                 "username": payload.get("username"),
                 "photo_asset_id": payload.get("photo_asset_id"),
                 "photo_asset_path": payload.get("photo_asset_path"),
+                "pinned_channel_ref": payload.get("pinned_channel_ref"),
             },
             "profile_audio": {"action": "keep", "audio_asset_id": None},
             "stories": [],
@@ -44,6 +51,7 @@ def normalize_account_update_desired_state(desired_state: dict[str, Any]) -> dic
             "bio": profile.get("bio"),
             "username": profile.get("username"),
             "photo_asset_id": profile.get("photo_asset_id"),
+            "pinned_channel_ref": profile.get("pinned_channel_ref"),
         },
         "profile_audio": {
             "action": audio_action,
@@ -99,6 +107,7 @@ def account_update_profile_payload(desired_state: dict[str, Any]) -> dict[str, A
         "username": profile.get("username"),
         "photo_asset_id": profile.get("photo_asset_id"),
         "photo_asset_path": profile.get("photo_asset_path"),
+        "pinned_channel_ref": profile.get("pinned_channel_ref"),
     }
 
 
@@ -111,6 +120,7 @@ def canonical_account_update_desired_state(desired_state: dict[str, Any]) -> dic
             "bio": profile.get("bio"),
             "username": profile.get("username"),
             "photo_asset_id": profile.get("photo_asset_id"),
+            "pinned_channel_ref": profile.get("pinned_channel_ref"),
         },
         "profile_audio": normalized["profile_audio"],
         "stories": normalized["stories"],
@@ -152,18 +162,21 @@ def build_account_update_plan(
             "photo_asset_id": profile.get("photo_asset_id"),
             "asset_path": profile.get("photo_asset_path"),
         },
+        "set_pinned_channel": {"pinned_channel_ref": profile.get("pinned_channel_ref")},
     }
     capability_keys = {
         "set_name": "profile_text",
         "set_bio": "profile_text",
         "set_username": "profile_text",
         "set_profile_photo": "profile_photo",
+        "set_pinned_channel": "profile_text",
     }
     compensation_policies = {
         "set_name": "restore_previous_value",
         "set_bio": "restore_previous_value",
         "set_username": "manual_only",
         "set_profile_photo": "manual_only",
+        "set_pinned_channel": "manual_only",
     }
     steps: list[dict[str, Any]] = []
     for step_type in PROFILE_STEP_TYPES:

@@ -530,6 +530,7 @@ class Account(Base):
     )
     external_ref: Mapped[str] = mapped_column(String(255), nullable=False)
     telegram_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pinned_channel_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     auth_source: Mapped[str] = mapped_column(String(64), nullable=False, default="otp")
     account_state: Mapped[str] = mapped_column(
         String(64), nullable=False, default=AccountState.REGISTERED

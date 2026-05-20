@@ -22,6 +22,7 @@ def test_profile_payload_maps_to_account_update_desired_state() -> None:
             "bio": "Profile editor",
             "username": "stylist",
             "photo_asset_id": "asset-1",
+            "pinned_channel_ref": None,
         },
         "profile_audio": {"action": "keep", "audio_asset_id": None},
         "stories": [],
@@ -48,6 +49,7 @@ def test_account_update_plan_contains_current_profile_steps_with_policies() -> N
         "set_bio",
         "set_username",
         "set_profile_photo",
+        "set_pinned_channel",
     ]
     assert {step["capability_key"] for step in plan["steps"]} == {"profile_text", "profile_photo"}
     assert all(step["retry_policy"] == "standard" for step in plan["steps"])
@@ -73,6 +75,7 @@ def test_account_update_plan_appends_profile_audio_add_steps() -> None:
         "set_bio",
         "set_username",
         "set_profile_photo",
+        "set_pinned_channel",
         "upload_profile_audio",
         "add_profile_audio",
     ]

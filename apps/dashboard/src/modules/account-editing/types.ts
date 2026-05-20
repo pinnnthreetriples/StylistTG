@@ -22,6 +22,7 @@ export type FormPayload = {
   bio: string
   username: string
   profilePhotoAssetId: string | null
+  pinnedChannelRef: string | null
   profileAudioAction: 'keep' | 'add' | 'remove'
   profileAudioAssetId: string | null
   stories: StoryDraftPayload[]
@@ -69,6 +70,7 @@ export type CurrentProfile = {
   username: string | null
   profile_photo_asset_id: string | null
   profile_audio_asset_id?: string | null
+  pinned_channel_ref?: string | null
 }
 
 export type FormState = {
@@ -77,6 +79,7 @@ export type FormState = {
   bio: string
   username: string
   profilePhotoAssetId: string | null
+  pinnedChannelRef: string | null
   profileAudioAction: 'keep' | 'add' | 'remove'
   profileAudioAssetId: string | null
   stories: StoryDraftPayload[]
@@ -88,6 +91,7 @@ export type ChangeItem = {
     | 'set_bio'
     | 'set_username'
     | 'set_profile_photo'
+    | 'set_pinned_channel'
     | 'add_profile_audio'
     | 'remove_profile_audio'
     | 'keep_profile_audio'
@@ -123,5 +127,6 @@ export type DashboardHydrationSource = {
     bio?: string | null
     username?: string | null
     profile_photo: string | null
+    pinned_channel_ref?: string | null
   }
 }

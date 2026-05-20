@@ -7,6 +7,7 @@ SUPPORTED_ACCOUNT_UPDATE_STEP_TYPES = {
     "set_bio",
     "set_username",
     "set_profile_photo",
+    "set_pinned_channel",
     "upload_profile_audio",
     "add_profile_audio",
     "remove_profile_audio",

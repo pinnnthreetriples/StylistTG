@@ -266,13 +266,14 @@
     {
       "files": [
         "apps/dashboard/src/modules/account-editing/api.ts",
+        "apps/dashboard/src/modules/account-editing/components/PinnedChannelField.tsx",
         "apps/dashboard/src/modules/account-editing/hooks.ts",
         "apps/dashboard/src/modules/account-editing/index.ts",
         "apps/dashboard/src/modules/account-editing/labels.ts",
         "apps/dashboard/src/modules/account-editing/mappers.ts",
         "apps/dashboard/src/modules/account-editing/types.ts"
       ],
-      "has_components_dir": false,
+      "has_components_dir": true,
       "has_index": true,
       "name": "account-editing",
       "path": "apps/dashboard/src/modules/account-editing"

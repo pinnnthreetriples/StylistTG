@@ -23,6 +23,7 @@ import {
   type FormState,
 } from '@/lib/dashboard'
 
+import { PinnedChannelField } from '@/modules/account-editing/components/PinnedChannelField'
 import { AvatarBlock } from './AvatarBlock'
 
 type ProfileTextField = 'firstName' | 'lastName' | 'username' | 'bio'
@@ -267,6 +268,13 @@ export const ProfileEditor = memo(function ProfileEditor({
                 />
               </div>
             </div>
+
+            {/* Pinned channel */}
+            <PinnedChannelField
+              value={draftForm.pinnedChannelRef}
+              currentValue={currentProfile.pinned_channel_ref ?? null}
+              onChange={(next) => onChange((prev) => ({ ...prev, pinnedChannelRef: next }))}
+            />
           </div>
         </div>
       </div>

@@ -3362,6 +3362,8 @@ export interface components {
             username?: string | null;
             /** Photo Asset Id */
             photo_asset_id?: string | null;
+            /** Pinned Channel Ref */
+            pinned_channel_ref?: string | null;
         };
         /** AccountUpdateStoryDesiredState */
         AccountUpdateStoryDesiredState: {

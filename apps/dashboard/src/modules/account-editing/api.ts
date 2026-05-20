@@ -105,6 +105,7 @@ function buildAccountUpdateBody(accountId: string, form: FormPayload) {
       bio: form.bio || null,
       username: form.username || null,
       photo_asset_id: form.profilePhotoAssetId,
+      pinned_channel_ref: form.pinnedChannelRef || null,
     },
     profile_audio: {
       action: form.profileAudioAction,

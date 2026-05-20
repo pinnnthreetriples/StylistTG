@@ -109,6 +109,7 @@ export function useProfileDraft({
       username: dashboard?.current_profile.username ?? null,
       profile_photo_asset_id: dashboard?.current_profile.profile_photo_asset_id ?? null,
       profile_audio_asset_id: dashboard?.profile_audio?.source_asset_id ?? null,
+      pinned_channel_ref: dashboard?.current_profile.pinned_channel_ref ?? null,
     }),
     [dashboard],
   )
@@ -480,6 +481,7 @@ function toFormPayload(form: FormState): FormPayload {
     bio: form.bio,
     username: form.username,
     profilePhotoAssetId: form.profilePhotoAssetId,
+    pinnedChannelRef: form.pinnedChannelRef,
     profileAudioAction: form.profileAudioAction,
     profileAudioAssetId: form.profileAudioAssetId,
     stories: form.stories,

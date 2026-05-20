@@ -28,6 +28,7 @@ class AccountUpdateProfileDesiredState(BaseModel):
     bio: str | None = None
     username: str | None = None
     photo_asset_id: str | None = None
+    pinned_channel_ref: str | None = None
 
 
 class AccountUpdateProfileAudioDesiredState(BaseModel):

@@ -208,18 +208,14 @@ class WorkspaceSafetyPolicy(Base):
     )
     mode: Mapped[str] = mapped_column(String(32), nullable=False, default="balanced")
     delay_multiplier: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-    typing_chars_per_minute_min: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=100
-    )
-    typing_chars_per_minute_max: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=150
-    )
+    typing_chars_per_minute_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    typing_chars_per_minute_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     profile_view_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.7)
     scroll_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.3)
     typo_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.05)
     message_deletion_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.02)
-    quiet_hours_local_start: Mapped[int | None] = mapped_column(Integer, nullable=True, default=120)
-    quiet_hours_local_end: Mapped[int | None] = mapped_column(Integer, nullable=True, default=360)
+    quiet_hours_local_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quiet_hours_local_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     require_warmup_before_commenting: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
@@ -264,6 +260,36 @@ class AccountGgrScore(Base):
         DateTime(timezone=True), nullable=True
     )
     last_calculated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class AccountBehaviorProfile(Base):
+    __tablename__ = "account_behavior_profile"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "account_id", name="uq_account_behavior_profile_ws_account"
+        ),
+        Index("ix_account_behavior_profile_workspace_id", "workspace_id"),
+        Index("ix_account_behavior_profile_account_id", "account_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    typing_speed_baseline_cpm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    typo_rate_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    profile_view_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    scroll_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    message_deletion_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
+    action_sequence_seed: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_randomization_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

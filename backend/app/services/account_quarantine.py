@@ -6,8 +6,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import WorkspaceSafetyPolicy, new_id, utc_now
-from app.models_account_quarantine import AccountQuarantine, QUARANTINE_REASONS
+from app.models import AccountQuarantine, QUARANTINE_REASONS, WorkspaceSafetyPolicy, new_id, utc_now
 from app.services.workspace_safety_policy import get_workspace_safety_policy
 
 
@@ -44,7 +43,7 @@ def create_quarantine(
     metadata: dict[str, Any] | None = None,
 ) -> AccountQuarantine:
     if reason not in QUARANTINE_REASONS:
-        raise ValueError(f"unsupported quarantine reason: {reason}")
+        raise ValueError(f"quarantine reason is not supported: {reason}")
     if duration_hours <= 0:
         raise ValueError("duration_hours must be positive")
 

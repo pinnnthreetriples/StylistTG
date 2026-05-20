@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -19,7 +19,7 @@ def get_active_quarantine(
     *,
     account_id: str,
     workspace_id: str,
-    now=None,
+    now: datetime | None = None,
 ) -> AccountQuarantine | None:
     check_time = now or utc_now()
     return session.execute(

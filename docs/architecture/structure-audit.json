@@ -1106,7 +1106,8 @@
         "__future__",
         "datetime",
         "pydantic",
-        "typing"
+        "typing",
+        "uuid"
       ],
       "path": "backend/app/contracts/safety_gate.py"
     },

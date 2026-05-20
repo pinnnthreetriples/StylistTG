@@ -2393,6 +2393,93 @@
         }
       }
     },
+    "/api/accounts/{account_id}/safety-gate": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Safety Gate",
+        "operationId": "get_account_safety_gate_api_accounts__account_id__safety_gate_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "intent",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "editing",
+                "warmup",
+                "commenting"
+              ],
+              "type": "string",
+              "title": "Intent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyGateVerdict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/risk": {
       "get": {
         "tags": [
@@ -23485,6 +23572,122 @@
           "refreshed_at"
         ],
         "title": "RuntimeRefreshRead"
+      },
+      "SafetyGateReason": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "proxy_unhealthy",
+              "no_warmup",
+              "warmup_incomplete",
+              "age_too_low",
+              "flood_wait_streak",
+              "fraud_score_high",
+              "ggr_too_low",
+              "status_degraded",
+              "profile_incomplete",
+              "active_quarantine",
+              "cross_module_overload",
+              "terminal_status",
+              "ip_change_cooldown"
+            ],
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "warning",
+              "blocked"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "SafetyGateReason"
+      },
+      "SafetyGateVerdict": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "editing",
+              "warmup",
+              "commenting"
+            ],
+            "title": "Intent"
+          },
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warning",
+              "blocked"
+            ],
+            "title": "Severity"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/SafetyGateReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "ggr_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ggr Score"
+          },
+          "checked_at": {
+            "type": "string",
+            "title": "Checked At"
+          },
+          "cache_ttl_seconds": {
+            "type": "integer",
+            "title": "Cache Ttl Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "intent",
+          "eligible",
+          "severity",
+          "reasons",
+          "ggr_score",
+          "checked_at",
+          "cache_ttl_seconds"
+        ],
+        "title": "SafetyGateVerdict"
       },
       "SensitiveAuditEventPageRead": {
         "properties": {

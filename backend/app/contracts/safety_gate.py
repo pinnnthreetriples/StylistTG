@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer, field_validator
 
@@ -10,6 +11,24 @@ WorkspaceSafetyMode = Literal["conservative", "balanced", "aggressive"]
 MinuteOfDay = Annotated[int, Field(ge=0, le=1439)]
 Probability = Annotated[float, Field(ge=0.0, le=1.0)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
+SafetyGateIntent = Literal["editing", "warmup", "commenting"]
+SafetyGateReasonCode = Literal[
+    "proxy_unhealthy",
+    "no_warmup",
+    "warmup_incomplete",
+    "age_too_low",
+    "flood_wait_streak",
+    "fraud_score_high",
+    "ggr_too_low",
+    "status_degraded",
+    "profile_incomplete",
+    "active_quarantine",
+    "cross_module_overload",
+    "terminal_status",
+    "ip_change_cooldown",
+]
+SafetyGateReasonSeverity = Literal["warning", "blocked"]
+SafetyGateVerdictSeverity = Literal["ok", "warning", "blocked"]
 
 
 def _serialize_utc_datetime(value: datetime) -> str:
@@ -88,8 +107,34 @@ class WorkspaceSafetyPolicyUpdate(BaseModel):
         return value
 
 
+class SafetyGateReason(BaseModel):
+    code: SafetyGateReasonCode
+    severity: SafetyGateReasonSeverity
+    message: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SafetyGateVerdict(BaseModel):
+    account_id: UUID
+    intent: SafetyGateIntent
+    eligible: bool
+    severity: SafetyGateVerdictSeverity
+    reasons: list[SafetyGateReason]
+    ggr_score: float | None
+    checked_at: datetime
+    cache_ttl_seconds: int
+
+    @field_serializer("checked_at")
+    def _serialize_checked_at(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
+
+
 __all__ = [
     "WorkspaceSafetyMode",
     "WorkspaceSafetyPolicyRead",
     "WorkspaceSafetyPolicyUpdate",
+    "SafetyGateIntent",
+    "SafetyGateReason",
+    "SafetyGateReasonCode",
+    "SafetyGateVerdict",
 ]

@@ -500,6 +500,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/safety-gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Safety Gate */
+        get: operations["get_account_safety_gate_api_accounts__account_id__safety_gate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/risk": {
         parameters: {
             query?: never;
@@ -5696,6 +5713,53 @@ export interface components {
              */
             refreshed_at: string;
         };
+        /** SafetyGateReason */
+        SafetyGateReason: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "proxy_unhealthy" | "no_warmup" | "warmup_incomplete" | "age_too_low" | "flood_wait_streak" | "fraud_score_high" | "ggr_too_low" | "status_degraded" | "profile_incomplete" | "active_quarantine" | "cross_module_overload" | "terminal_status" | "ip_change_cooldown";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "warning" | "blocked";
+            /** Message */
+            message: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** SafetyGateVerdict */
+        SafetyGateVerdict: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Intent
+             * @enum {string}
+             */
+            intent: "editing" | "warmup" | "commenting";
+            /** Eligible */
+            eligible: boolean;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "ok" | "warning" | "blocked";
+            /** Reasons */
+            reasons: components["schemas"]["SafetyGateReason"][];
+            /** Ggr Score */
+            ggr_score: number | null;
+            /** Checked At */
+            checked_at: string;
+            /** Cache Ttl Seconds */
+            cache_ttl_seconds: number;
+        };
         /** SensitiveAuditEventPageRead */
         SensitiveAuditEventPageRead: {
             /** Items */
@@ -8249,6 +8313,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionGateRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_safety_gate_api_accounts__account_id__safety_gate_get: {
+        parameters: {
+            query: {
+                intent: "editing" | "warmup" | "commenting";
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyGateVerdict"];
                 };
             };
             /** @description Bad Request */

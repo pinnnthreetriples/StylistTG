@@ -3313,6 +3313,95 @@
         }
       }
     },
+    "/api/accounts/{account_id}/status-observations": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "List Account Status Observations",
+        "operationId": "list_account_status_observations_api_accounts__account_id__status_observations_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountStatusObservationRead"
+                  },
+                  "title": "Response List Account Status Observations Api Accounts  Account Id  Status Observations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/behavior-profile": {
       "get": {
         "tags": [
@@ -15610,6 +15699,94 @@
           "source"
         ],
         "title": "AccountSafetySummaryRead"
+      },
+      "AccountStatusObservationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "observed_at": {
+            "type": "string",
+            "title": "Observed At"
+          },
+          "proxy_healthy": {
+            "type": "boolean",
+            "title": "Proxy Healthy"
+          },
+          "proxy_ip_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Ip Hash"
+          },
+          "tdlib_authorized": {
+            "type": "boolean",
+            "title": "Tdlib Authorized"
+          },
+          "device_model_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Model Hash"
+          },
+          "consecutive_failures": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Consecutive Failures"
+          },
+          "auto_action_taken": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "paused",
+                  "quarantine",
+                  "cooldown",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Action Taken"
+          },
+          "details_json": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details Json"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "account_id",
+          "observed_at",
+          "proxy_healthy",
+          "tdlib_authorized",
+          "consecutive_failures"
+        ],
+        "title": "AccountStatusObservationRead"
       },
       "AccountUpdateCreate": {
         "properties": {

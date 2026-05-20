@@ -276,6 +276,42 @@ class AccountQuarantine(Base):
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
 
+ACCOUNT_STATUS_AUTO_ACTIONS = ("paused", "quarantine", "cooldown", "none")
+
+
+class AccountStatusObservation(Base):
+    __tablename__ = "account_status_observations"
+    __table_args__ = (
+        CheckConstraint(
+            "auto_action_taken IS NULL OR auto_action_taken IN ('paused', 'quarantine', 'cooldown', 'none')",
+            name="ck_account_status_observations_auto_action",
+        ),
+        Index(
+            "ix_account_status_observations_account_observed",
+            "account_id",
+            "observed_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    proxy_healthy: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    proxy_ip_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tdlib_authorized: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    device_model_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    auto_action_taken: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    details_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+
 class AccountGgrScore(Base):
     __tablename__ = "account_ggr_scores"
     __table_args__ = (

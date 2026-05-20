@@ -14,6 +14,29 @@ class QuarantineNotFound(LookupError):
     pass
 
 
+class AccountQuarantineService:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def open_quarantine(
+        self,
+        *,
+        account_id: str,
+        workspace_id: str,
+        reason: str,
+        duration_hours: int,
+        metadata: dict[str, Any] | None = None,
+    ) -> AccountQuarantine:
+        return create_quarantine(
+            self._session,
+            account_id=account_id,
+            workspace_id=workspace_id,
+            reason=reason,
+            duration_hours=duration_hours,
+            metadata=metadata,
+        )
+
+
 def get_active_quarantine(
     session: Session,
     *,

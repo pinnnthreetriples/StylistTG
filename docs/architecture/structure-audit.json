@@ -154,6 +154,7 @@
       "backend/app/contracts/__init__.py": [],
       "backend/app/contracts/account_status.py": [],
       "backend/app/contracts/accounts.py": [],
+      "backend/app/contracts/cross_module_load.py": [],
       "backend/app/contracts/ggr.py": [],
       "backend/app/contracts/human_behavior.py": [],
       "backend/app/contracts/jobs.py": [],
@@ -995,6 +996,16 @@
         "typing"
       ],
       "path": "backend/app/contracts/accounts.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/cross_module_load.py"
     },
     {
       "forbidden_imports": [],

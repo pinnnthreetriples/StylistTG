@@ -9,6 +9,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     DateTime,
     ForeignKey,
     Float,
@@ -310,6 +311,45 @@ class AccountStatusObservation(Base):
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     auto_action_taken: Mapped[str | None] = mapped_column(String(32), nullable=True)
     details_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+
+class CrossModuleLoadBucket(Base):
+    __tablename__ = "cross_module_load_buckets"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "account_id",
+            "bucket_start",
+            name="uq_cross_module_load_buckets_ws_account_bucket",
+        ),
+        Index("ix_cross_module_load_buckets_bucket_start", "bucket_start"),
+        Index(
+            "ix_cross_module_load_buckets_account_bucket_start",
+            "account_id",
+            "bucket_start",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+    )
+    bucket_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    warmup_actions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    commenting_actions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    editing_actions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    other_actions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_actions: Mapped[int] = mapped_column(
+        Integer,
+        Computed(
+            "warmup_actions + commenting_actions + editing_actions + other_actions",
+            persisted=True,
+        ),
+        nullable=False,
+    )
 
 
 class AccountGgrScore(Base):

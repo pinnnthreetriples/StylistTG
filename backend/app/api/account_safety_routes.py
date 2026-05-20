@@ -21,7 +21,12 @@ from app.schemas import (
     AccountValidityCheckRequest,
     ActionGateRead,
 )
+from app.contracts.safety_gate import SafetyGateIntent, SafetyGateVerdict
 from app.services.account_batch_safety import build_account_batch_safety_preview
+from app.services.account_safety_gate import (
+    AccountSafetyGateAccountNotFound,
+    evaluate as evaluate_safety_gate,
+)
 from app.services.account_cooldowns import list_active_account_cooldowns
 from app.services.account_risk import (
     build_account_readiness_risk,
@@ -148,6 +153,30 @@ def get_account_action_gate(
             error_code="ACTION_GATE_INVALID",
             error_class="validation",
             message=message,
+        ) from exc
+
+
+@router.get("/{account_id}/safety-gate", response_model=SafetyGateVerdict)
+def get_account_safety_gate(
+    account_id: str,
+    intent: SafetyGateIntent = Query(...),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    require_account_in_workspace(session, account_id, auth)
+    try:
+        return evaluate_safety_gate(
+            session,
+            workspace_id=auth.workspace_id,
+            account_id=account_id,
+            intent=intent,
+        )
+    except AccountSafetyGateAccountNotFound as exc:
+        raise AppError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="ACCOUNT_NOT_FOUND",
+            error_class="not_found",
+            message="account not found",
         ) from exc
 
 

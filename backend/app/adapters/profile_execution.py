@@ -76,6 +76,21 @@ class MockProfileExecutionAdapter:
                 return
 
             if step_type == "set_pinned_channel":
+                channel_ref = (payload.get("pinned_channel_ref") or "").strip()
+                mock_fail_channel = payload_json.get("mock_fail_pinned_channel")
+                if mock_fail_channel and channel_ref == mock_fail_channel:
+                    yield {
+                        "event": "step_failed",
+                        **event,
+                        "error_code": "pinned_channel_not_found",
+                        "error_class": "PinnedChannelResolutionError",
+                        "result_payload": {"message": f"channel {channel_ref} not found"},
+                    }
+                    yield {"event": "runtime_failed", "error_class": "PinnedChannelResolutionError"}
+                    return
+                if channel_ref.startswith("@"):
+                    resolved_id = hash(channel_ref) % 10**12
+                    payload = {**payload, "_resolved_chat_id": resolved_id}
                 yield {
                     "event": "step_succeeded",
                     **event,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -79,9 +80,7 @@ class AccountEditingPolicy:
             blocking_errors.append("stories are disabled")
         if desired_state.get("stories") and self._stories_live_execution_blocked(config):
             blocking_errors.append("stories live TDLib execution is not enabled")
-        blocking_errors.extend(
-            self._cross_workspace_channel_ref_errors(account=account, desired_state=desired_state)
-        )
+        blocking_errors.extend(self._invalid_channel_ref_errors(desired_state=desired_state))
         blocking_errors.extend(
             self._preview_blocking_safety_errors(safety_fields["safety_blockers"])
         )
@@ -248,17 +247,17 @@ class AccountEditingPolicy:
         }
         return [blocker for blocker in blockers if blocker not in capability_only_blockers]
 
-    def _cross_workspace_channel_ref_errors(
-        self, *, account: Account, desired_state: dict[str, Any]
-    ) -> list[str]:
+    # TODO Phase 2.5: после реализации workspace-channels registry проверять что channel разрешён для workspace (Task 18 / future)
+    def _invalid_channel_ref_errors(self, *, desired_state: dict[str, Any]) -> list[str]:
         profile = cast(dict[str, Any], desired_state.get("profile") or {})
-        channel_ref = profile.get("pinned_channel_ref")
+        channel_ref = (profile.get("pinned_channel_ref") or "").strip()
         if not channel_ref:
             return []
-        other = self._repo.get_account(account_id=channel_ref)
-        if other is not None and other.workspace_id != account.workspace_id:
-            return ["cross_workspace_channel_ref"]
-        return []
+        username_re = re.compile(r"^@[A-Za-z][A-Za-z0-9_]{3,31}$")
+        numeric_re = re.compile(r"^-100\d+$")
+        if username_re.match(channel_ref) or numeric_re.match(channel_ref):
+            return []
+        return ["invalid_channel_ref"]
 
     def _profile_audio_title(self, filename: str | None) -> str:
         if not filename:

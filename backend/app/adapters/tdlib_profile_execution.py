@@ -49,9 +49,12 @@ def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
         return {"@type": "setUsername", "username": payload.get("username") or ""}
     if step_type == "set_pinned_channel":
         channel_ref = payload.get("pinned_channel_ref") or ""
-        if channel_ref:
-            chat_id = int(channel_ref) if channel_ref.lstrip("-").isdigit() else 0
-            return {"@type": "setPersonalChat", "chat_id": chat_id}
+        if not channel_ref:
+            return {"@type": "setPersonalChat", "chat_id": 0}
+        if channel_ref.startswith("@"):
+            return {"@type": "searchPublicChat", "username": channel_ref.lstrip("@")}
+        if channel_ref.lstrip("-").isdigit():
+            return {"@type": "setPersonalChat", "chat_id": int(channel_ref)}
         return {"@type": "setPersonalChat", "chat_id": 0}
     if step_type == "set_profile_photo":
         return {
@@ -248,6 +251,32 @@ class TdlibProfileExecutionAdapter:
                                 "telegram_file_id": str(uploaded_profile_audio_file_id),
                                 "temporary_message_id": str(uploaded_file.get("message_id") or ""),
                             },
+                        }
+                        continue
+                    if step["step_type"] == "set_pinned_channel":
+                        pinned_result = _execute_set_pinned_channel(client, step, self._config)
+                        if pinned_result.get("failed"):
+                            yield {
+                                "event": "step_failed",
+                                **event,
+                                "error_code": pinned_result["error_code"],
+                                "error_class": "PinnedChannelResolutionError",
+                                "result_payload": {
+                                    "message": pinned_result["error_message"],
+                                },
+                            }
+                            yield {
+                                "event": "runtime_failed",
+                                "error_class": "PinnedChannelResolutionError",
+                                "error_code": pinned_result["error_code"],
+                            }
+                            return
+                        yield {
+                            "event": "step_succeeded",
+                            **event,
+                            "verification_attempted": False,
+                            "verification_result": None,
+                            "result_payload": {"applied": step["payload"]},
                         }
                         continue
                     query = map_step_to_tdlib_query(step)
@@ -469,6 +498,59 @@ def _checked_send_query(
     mapped = map_tdlib_error(response)
     error_code = _profile_tdlib_error_code(response, mapped.recovery_marker)
     raise TdlibProfileQueryError(mapped.error or "TDLib query failed", error_code=error_code)
+
+
+def _execute_set_pinned_channel(
+    client: TdlibClient, step: dict[str, Any], config: Settings
+) -> dict[str, Any]:
+    payload = step["payload"]
+    channel_ref = (payload.get("pinned_channel_ref") or "").strip()
+    if not channel_ref:
+        _checked_send_query(
+            client, {"@type": "setPersonalChat", "chat_id": 0}, config.tdlib_auth_timeout_seconds
+        )
+        return {"ok": True}
+    if channel_ref.startswith("@"):
+        username = channel_ref.lstrip("@")
+        if not username:
+            return {
+                "failed": True,
+                "error_code": "invalid_channel_ref",
+                "error_message": "empty username after @",
+            }
+        search_query = {"@type": "searchPublicChat", "username": username}
+        search_response = client.send_query(search_query, config.tdlib_auth_timeout_seconds)
+        if search_response.get("@type") == "error" or search_response.get("@type") != "chat":
+            return {
+                "failed": True,
+                "error_code": "pinned_channel_not_found",
+                "error_message": f"channel {channel_ref} not found",
+            }
+        chat_id = search_response.get("id")
+        if not chat_id:
+            return {
+                "failed": True,
+                "error_code": "pinned_channel_not_found",
+                "error_message": f"channel {channel_ref} not found",
+            }
+        _checked_send_query(
+            client,
+            {"@type": "setPersonalChat", "chat_id": int(chat_id)},
+            config.tdlib_auth_timeout_seconds,
+        )
+        return {"ok": True}
+    if channel_ref.lstrip("-").isdigit():
+        _checked_send_query(
+            client,
+            {"@type": "setPersonalChat", "chat_id": int(channel_ref)},
+            config.tdlib_auth_timeout_seconds,
+        )
+        return {"ok": True}
+    return {
+        "failed": True,
+        "error_code": "invalid_channel_ref",
+        "error_message": f"invalid channel reference: {channel_ref}",
+    }
 
 
 def _profile_tdlib_error_code(response: dict[str, Any], recovery_marker: str | None) -> str:

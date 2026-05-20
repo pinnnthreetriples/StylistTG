@@ -123,7 +123,7 @@ export function QuarantineStateBanner({
   )
 }
 
-export function formatQuarantineUntil(value: string): string {
+function formatQuarantineUntil(value: string): string {
   return new Date(value).toLocaleString('ru-RU', {
     hour: '2-digit',
     minute: '2-digit',

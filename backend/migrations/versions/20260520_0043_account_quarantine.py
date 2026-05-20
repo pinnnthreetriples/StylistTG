@@ -18,26 +18,16 @@ branch_labels = None
 depends_on = None
 
 UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
-QUARANTINE_REASON = sa.Enum(
-    "flood_wait",
-    "status_degraded",
-    "manual",
-    "bought_rest_period",
-    "fraud_high",
-    name="account_quarantine_reason",
-)
 METADATA_JSON = sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    QUARANTINE_REASON.create(bind, checkfirst=True)
     op.create_table(
         "account_quarantines",
         sa.Column("id", UUID_STRING, nullable=False),
         sa.Column("workspace_id", UUID_STRING, nullable=False),
         sa.Column("account_id", UUID_STRING, nullable=False),
-        sa.Column("reason", QUARANTINE_REASON, nullable=False),
+        sa.Column("reason", sa.String(length=64), nullable=False),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("until", sa.DateTime(timezone=True), nullable=False),
         sa.Column("released_at", sa.DateTime(timezone=True), nullable=True),
@@ -47,6 +37,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["account_id"], ["account.id"]),
         sa.ForeignKeyConstraint(["released_by_user_id"], ["app_user.id"]),
         sa.PrimaryKeyConstraint("id"),
+        sa.CheckConstraint(
+            "reason IN ('flood_wait', 'status_degraded', 'manual', "
+            "'bought_rest_period', 'fraud_high')",
+            name="ck_account_quarantines_reason",
+        ),
     )
     op.create_index(
         "ix_account_quarantines_ws_account_until",
@@ -58,4 +53,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_account_quarantines_ws_account_until", table_name="account_quarantines")
     op.drop_table("account_quarantines")
-    QUARANTINE_REASON.drop(op.get_bind(), checkfirst=True)

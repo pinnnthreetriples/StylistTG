@@ -208,18 +208,14 @@ class WorkspaceSafetyPolicy(Base):
     )
     mode: Mapped[str] = mapped_column(String(32), nullable=False, default="balanced")
     delay_multiplier: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-    typing_chars_per_minute_min: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=100
-    )
-    typing_chars_per_minute_max: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=150
-    )
+    typing_chars_per_minute_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    typing_chars_per_minute_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     profile_view_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.7)
     scroll_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.3)
     typo_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.05)
     message_deletion_probability: Mapped[float] = mapped_column(Float, nullable=False, default=0.02)
-    quiet_hours_local_start: Mapped[int | None] = mapped_column(Integer, nullable=True, default=120)
-    quiet_hours_local_end: Mapped[int | None] = mapped_column(Integer, nullable=True, default=360)
+    quiet_hours_local_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quiet_hours_local_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     require_warmup_before_commenting: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
@@ -287,7 +283,7 @@ class AccountBehaviorProfile(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False
     )
     account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
-    typing_speed_baseline_cpm: Mapped[int] = mapped_column(Integer, nullable=False)
+    typing_speed_baseline_cpm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     typo_rate_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     profile_view_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     scroll_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)

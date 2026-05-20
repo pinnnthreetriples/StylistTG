@@ -22,6 +22,7 @@ from app.services.human_behavior.behavior_profile import (
     get_or_create_baseline,
     randomize_for_session,
 )
+from app.services.workspace_safety_policy import create_workspace_safety_policy
 from app.services.human_behavior.typing_emulator import emit_typing
 from app.services.human_behavior.typo_generator import maybe_typo
 from app.services.human_behavior.decoy_actions import run_before_send
@@ -80,15 +81,51 @@ class TestRandomizeForSession:
         rng = _seeded_rng(99)
         sp = randomize_for_session(baseline, rng=rng)
 
-        # typing speed should be within 10% of baseline
-        lo = baseline.typing_speed_baseline_cpm * 0.9
-        hi = baseline.typing_speed_baseline_cpm * 1.1
-        assert lo <= sp.typing_speed_cpm <= hi
+        if baseline.typing_speed_baseline_cpm is not None:
+            lo = baseline.typing_speed_baseline_cpm * 0.9
+            hi = baseline.typing_speed_baseline_cpm * 1.1
+            assert lo <= sp.typing_speed_cpm <= hi
+        else:
+            assert sp.typing_speed_cpm is None
 
         # typo rate
         lo_t = baseline.typo_rate_baseline * 0.9
         hi_t = baseline.typo_rate_baseline * 1.1
         assert lo_t <= sp.typo_rate <= hi_t or sp.typo_rate == 0.0
+
+
+class TestBaselineFromPolicy:
+    """2b. get_or_create_baseline derives ranges from WorkspaceSafetyPolicy."""
+
+    def test_policy_conservative_derives_typing_range(self):
+        session = _make_session()
+        account = _ensure_account(session)
+        create_workspace_safety_policy(session, workspace_id=WORKSPACE_ID, mode="conservative")
+        session.commit()
+
+        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
+        assert baseline.typing_speed_baseline_cpm is not None
+        assert 40 <= baseline.typing_speed_baseline_cpm <= 60
+
+    def test_policy_aggressive_disables_typing(self):
+        session = _make_session()
+        account = _ensure_account(session)
+        create_workspace_safety_policy(session, workspace_id=WORKSPACE_ID, mode="aggressive")
+        session.commit()
+
+        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
+        assert baseline.typing_speed_baseline_cpm is None
+
+    def test_aggressive_preset_disables_typing(self):
+        session = _make_session()
+        account = _ensure_account(session)
+
+        baseline = get_or_create_baseline(
+            session, account.id, WORKSPACE_ID, preset="aggressive", rng=_seeded_rng(42)
+        )
+        assert baseline.typing_speed_baseline_cpm is None
+        sp = randomize_for_session(baseline, rng=_seeded_rng(99))
+        assert sp.typing_speed_cpm is None
 
 
 class TestTypingEmulator:

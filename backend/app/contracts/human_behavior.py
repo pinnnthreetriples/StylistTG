@@ -15,7 +15,7 @@ class BehaviorProfileRead(BaseModel):
     id: str
     account_id: str
     workspace_id: str
-    typing_speed_baseline_cpm: int
+    typing_speed_baseline_cpm: int | None = None
     typo_rate_baseline: float = Field(ge=0.0, le=1.0)
     profile_view_probability_baseline: float = Field(ge=0.0, le=1.0)
     scroll_probability_baseline: float = Field(ge=0.0, le=1.0)

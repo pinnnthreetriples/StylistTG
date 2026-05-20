@@ -123,8 +123,11 @@ def create_workspace_safety_policy(
         workspace_id=workspace_id,
         created_at=now,
         updated_at=now,
-        **values,
     )
+    # Use setattr so explicit None values (e.g. aggressive typing_chars_per_minute)
+    # are not silently replaced by column defaults during flush.
+    for key, value in values.items():
+        setattr(policy, key, value)
     session.add(policy)
     session.flush()
     return policy

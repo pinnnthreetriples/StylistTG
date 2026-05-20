@@ -1994,6 +1994,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/safety-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Safety Policy */
+        get: operations["get_safety_policy_api_safety_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Safety Policy */
+        patch: operations["patch_safety_policy_api_safety_policy_patch"];
+        trace?: never;
+    };
     "/api/settings/execution-policy": {
         parameters: {
             query?: never;
@@ -5897,6 +5915,91 @@ export interface components {
             tdlib: {
                 [key: string]: unknown;
             };
+        };
+        /** WorkspaceSafetyPolicyRead */
+        WorkspaceSafetyPolicyRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "conservative" | "balanced" | "aggressive";
+            /** Delay Multiplier */
+            delay_multiplier: number;
+            /** Typing Chars Per Minute Min */
+            typing_chars_per_minute_min: number | null;
+            /** Typing Chars Per Minute Max */
+            typing_chars_per_minute_max: number | null;
+            /** Profile View Probability */
+            profile_view_probability: number;
+            /** Scroll Probability */
+            scroll_probability: number;
+            /** Typo Probability */
+            typo_probability: number;
+            /** Message Deletion Probability */
+            message_deletion_probability: number;
+            /** Quiet Hours Local Start */
+            quiet_hours_local_start: number | null;
+            /** Quiet Hours Local End */
+            quiet_hours_local_end: number | null;
+            /** Require Warmup Before Commenting */
+            require_warmup_before_commenting: boolean;
+            /** Min Warmup Days */
+            min_warmup_days: number;
+            /** Require Healthy Proxy */
+            require_healthy_proxy: boolean;
+            /** Min Account Age Hours */
+            min_account_age_hours: number;
+            /** Auto Pause On Flood Wait Count */
+            auto_pause_on_flood_wait_count: number;
+            /** Auto Pause On Deleted Comments Count */
+            auto_pause_on_deleted_comments_count: number;
+            /** Quarantine Hours On Flood Wait */
+            quarantine_hours_on_flood_wait: number;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** WorkspaceSafetyPolicyUpdate */
+        WorkspaceSafetyPolicyUpdate: {
+            /** Mode */
+            mode?: ("conservative" | "balanced" | "aggressive") | null;
+            /** Delay Multiplier */
+            delay_multiplier?: number | null;
+            /** Typing Chars Per Minute Min */
+            typing_chars_per_minute_min?: number | null;
+            /** Typing Chars Per Minute Max */
+            typing_chars_per_minute_max?: number | null;
+            /** Profile View Probability */
+            profile_view_probability?: number | null;
+            /** Scroll Probability */
+            scroll_probability?: number | null;
+            /** Typo Probability */
+            typo_probability?: number | null;
+            /** Message Deletion Probability */
+            message_deletion_probability?: number | null;
+            /** Quiet Hours Local Start */
+            quiet_hours_local_start?: number | null;
+            /** Quiet Hours Local End */
+            quiet_hours_local_end?: number | null;
+            /** Require Warmup Before Commenting */
+            require_warmup_before_commenting?: boolean | null;
+            /** Min Warmup Days */
+            min_warmup_days?: number | null;
+            /** Require Healthy Proxy */
+            require_healthy_proxy?: boolean | null;
+            /** Min Account Age Hours */
+            min_account_age_hours?: number | null;
+            /** Auto Pause On Flood Wait Count */
+            auto_pause_on_flood_wait_count?: number | null;
+            /** Auto Pause On Deleted Comments Count */
+            auto_pause_on_deleted_comments_count?: number | null;
+            /** Quarantine Hours On Flood Wait */
+            quarantine_hours_on_flood_wait?: number | null;
         };
         /** FieldErrorRead */
         FieldErrorRead: {
@@ -13983,6 +14086,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountOperationLogPageRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_safety_policy_api_safety_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSafetyPolicyRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    patch_safety_policy_api_safety_policy_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSafetyPolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSafetyPolicyRead"];
                 };
             };
             /** @description Bad Request */

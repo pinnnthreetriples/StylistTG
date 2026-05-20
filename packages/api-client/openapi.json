@@ -10413,6 +10413,128 @@
         }
       }
     },
+    "/api/safety-policy": {
+      "get": {
+        "tags": [
+          "safety-policy"
+        ],
+        "summary": "Get Safety Policy",
+        "operationId": "get_safety_policy_api_safety_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSafetyPolicyRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "safety-policy"
+        ],
+        "summary": "Patch Safety Policy",
+        "operationId": "patch_safety_policy_api_safety_policy_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSafetyPolicyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSafetyPolicyRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settings/execution-policy": {
       "get": {
         "tags": [
@@ -23675,6 +23797,391 @@
           "tdlib"
         ],
         "title": "WorkerDiagnosticsRead"
+      },
+      "WorkspaceSafetyPolicyRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "title": "Workspace Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ],
+            "title": "Mode"
+          },
+          "delay_multiplier": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Delay Multiplier"
+          },
+          "typing_chars_per_minute_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Typing Chars Per Minute Min"
+          },
+          "typing_chars_per_minute_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Typing Chars Per Minute Max"
+          },
+          "profile_view_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Profile View Probability"
+          },
+          "scroll_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Scroll Probability"
+          },
+          "typo_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Typo Probability"
+          },
+          "message_deletion_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Message Deletion Probability"
+          },
+          "quiet_hours_local_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours Local Start"
+          },
+          "quiet_hours_local_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours Local End"
+          },
+          "require_warmup_before_commenting": {
+            "type": "boolean",
+            "title": "Require Warmup Before Commenting"
+          },
+          "min_warmup_days": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Min Warmup Days"
+          },
+          "require_healthy_proxy": {
+            "type": "boolean",
+            "title": "Require Healthy Proxy"
+          },
+          "min_account_age_hours": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Min Account Age Hours"
+          },
+          "auto_pause_on_flood_wait_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Auto Pause On Flood Wait Count"
+          },
+          "auto_pause_on_deleted_comments_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Auto Pause On Deleted Comments Count"
+          },
+          "quarantine_hours_on_flood_wait": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Quarantine Hours On Flood Wait"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "mode",
+          "delay_multiplier",
+          "typing_chars_per_minute_min",
+          "typing_chars_per_minute_max",
+          "profile_view_probability",
+          "scroll_probability",
+          "typo_probability",
+          "message_deletion_probability",
+          "quiet_hours_local_start",
+          "quiet_hours_local_end",
+          "require_warmup_before_commenting",
+          "min_warmup_days",
+          "require_healthy_proxy",
+          "min_account_age_hours",
+          "auto_pause_on_flood_wait_count",
+          "auto_pause_on_deleted_comments_count",
+          "quarantine_hours_on_flood_wait",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WorkspaceSafetyPolicyRead"
+      },
+      "WorkspaceSafetyPolicyUpdate": {
+        "properties": {
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "conservative",
+                  "balanced",
+                  "aggressive"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "delay_multiplier": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delay Multiplier"
+          },
+          "typing_chars_per_minute_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Typing Chars Per Minute Min"
+          },
+          "typing_chars_per_minute_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Typing Chars Per Minute Max"
+          },
+          "profile_view_probability": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile View Probability"
+          },
+          "scroll_probability": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scroll Probability"
+          },
+          "typo_probability": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Typo Probability"
+          },
+          "message_deletion_probability": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Deletion Probability"
+          },
+          "quiet_hours_local_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours Local Start"
+          },
+          "quiet_hours_local_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours Local End"
+          },
+          "require_warmup_before_commenting": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Require Warmup Before Commenting"
+          },
+          "min_warmup_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Warmup Days"
+          },
+          "require_healthy_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Require Healthy Proxy"
+          },
+          "min_account_age_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Account Age Hours"
+          },
+          "auto_pause_on_flood_wait_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Pause On Flood Wait Count"
+          },
+          "auto_pause_on_deleted_comments_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Pause On Deleted Comments Count"
+          },
+          "quarantine_hours_on_flood_wait": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quarantine Hours On Flood Wait"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WorkspaceSafetyPolicyUpdate"
       },
       "FieldErrorRead": {
         "properties": {

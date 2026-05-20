@@ -47,6 +47,7 @@ import {
   fetchGlobalOperationLogs as fetchTypedGlobalOperationLogs,
   fetchHealth as fetchTypedHealth,
   fetchCurrentUser as fetchTypedCurrentUser,
+  fetchWorkspaceSafetyPolicy as fetchTypedWorkspaceSafetyPolicy,
   fetchJob as fetchTypedJob,
   fetchJobSteps as fetchTypedJobSteps,
   fetchLatestJob as fetchTypedLatestJob,
@@ -63,6 +64,7 @@ import {
   runAccountValidityCheck as runTypedAccountValidityCheck,
   saveAccountProxy as saveTypedAccountProxy,
   updateExecutionPolicy as updateTypedExecutionPolicy,
+  updateWorkspaceSafetyPolicy as updateTypedWorkspaceSafetyPolicy,
   type AccountListItem,
   type AccountReadinessRisk,
   type AccountReadinessRiskSummary,
@@ -91,6 +93,8 @@ import {
   type AccountImportBatchValidate,
   type AccountImportBatchConfirm,
   type CurrentUser,
+  type WorkspaceSafetyPolicy,
+  type WorkspaceSafetyPolicyUpdate,
   type StoryDraftRead,
 } from '@stylisttg/api-client'
 
@@ -166,6 +170,8 @@ export type {
   AccountImportBatchValidate,
   AccountImportBatchConfirm,
   CurrentUser,
+  WorkspaceSafetyPolicy,
+  WorkspaceSafetyPolicyUpdate,
 }
 
 export type JobDetail = {
@@ -539,6 +545,14 @@ export function fetchExecutionPolicy(): Promise<ExecutionPolicy> {
 export function updateExecutionPolicy(update: number | ExecutionPolicyUpdate): Promise<ExecutionPolicy> {
   const body = typeof update === 'number' ? { profile_job_cooldown_seconds: update } : update
   return updateTypedExecutionPolicy(typedClient, body) as Promise<ExecutionPolicy>
+}
+
+export function fetchWorkspaceSafetyPolicy(): Promise<WorkspaceSafetyPolicy> {
+  return fetchTypedWorkspaceSafetyPolicy(typedClient)
+}
+
+export function updateWorkspaceSafetyPolicy(update: WorkspaceSafetyPolicyUpdate): Promise<WorkspaceSafetyPolicy> {
+  return updateTypedWorkspaceSafetyPolicy(typedClient, update)
 }
 
 export function fetchStoryDrafts(accountId: string): Promise<StoryDraftRead[]> {

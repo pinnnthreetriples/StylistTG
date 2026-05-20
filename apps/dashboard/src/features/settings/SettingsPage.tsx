@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { AnimatedPage } from '@/components/ui/AnimatedPage'
 import {
   auditEventsQueryOptions,
+  currentUserQueryOptions,
   frontendDiagnosticsQueryOptions,
   globalOperationLogsQueryOptions,
   settingsBundleQueryOptions,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/queries'
 import { compactOperationLogLabel, type OperationLog } from '@/lib/operationLogs'
 import { getLiveStatus } from '@/lib/liveStatus'
+import { SafetyPolicyPanel } from '@/features/settings/SafetyPolicyPanel'
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds} сек`
@@ -21,8 +23,13 @@ function formatDuration(seconds: number): string {
   return `${Math.round(seconds / 60)} минут`
 }
 
-export function SettingsPage() {
+type SettingsPageProps = {
+  includeSafetyPolicy?: boolean
+}
+
+export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps) {
   const settingsQuery = useQuery(settingsBundleQueryOptions())
+  const currentUserQuery = useQuery(currentUserQueryOptions())
   const auditEventsQuery = useQuery(auditEventsQueryOptions(12))
   const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
   const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
@@ -83,6 +90,10 @@ export function SettingsPage() {
             </p>
           </div>
         </SectionCard>
+
+        {includeSafetyPolicy ? (
+          <SafetyPolicyPanel currentUserRole={currentUserQuery.data?.role} />
+        ) : null}
 
         {/* Паузы безопасности */}
         <SectionCard title="Паузы безопасности" description="Минимальные интервалы между операциями для защиты аккаунтов.">

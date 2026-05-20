@@ -9,6 +9,7 @@ from app.contracts import accounts as _account_contracts
 from app.contracts import jobs as _job_contracts
 from app.contracts import neuro_commenting as _neuro_commenting_contracts
 from app.contracts import safety as _safety_contracts
+from app.contracts import safety_gate as _safety_gate_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
 ProfileAudioAction = _account_contracts.ProfileAudioAction
@@ -23,6 +24,8 @@ AccountSafetyRead = _safety_contracts.AccountSafetyRead
 AccountSafetyReasonRead = _safety_contracts.AccountSafetyReasonRead
 AccountSafetySummaryRead = _safety_contracts.AccountSafetySummaryRead
 AccountValidityCheckRead = _safety_contracts.AccountValidityCheckRead
+WorkspaceSafetyPolicyRead = _safety_gate_contracts.WorkspaceSafetyPolicyRead
+WorkspaceSafetyPolicyUpdate = _safety_gate_contracts.WorkspaceSafetyPolicyUpdate
 NeuroAccountStatsPageRead = _neuro_commenting_contracts.NeuroAccountStatsPageRead
 NeuroAccountStatsRead = _neuro_commenting_contracts.NeuroAccountStatsRead
 NeuroAttemptPageRead = _neuro_commenting_contracts.NeuroAttemptPageRead

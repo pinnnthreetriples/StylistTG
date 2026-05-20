@@ -132,9 +132,7 @@ def get_or_create_baseline(
         typo_rate_baseline=round(r.uniform(*typo_range), 4),
         profile_view_probability_baseline=round(r.uniform(*pvp_range), 4),
         scroll_probability_baseline=round(r.uniform(*sp_range), 4),
-        message_deletion_probability_baseline=round(
-            r.uniform(*mdp_range), 4
-        ),
+        message_deletion_probability_baseline=round(r.uniform(*mdp_range), 4),
         action_sequence_seed=r.randint(0, 2**31 - 1),
         created_at=utc_now(),
         updated_at=utc_now(),

@@ -41,6 +41,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Accounts
     ("GET", "/api/accounts", "viewer", False),
     ("POST", "/api/accounts", "operator", True),
+    ("GET", "/api/accounts/{account_id}/status-observations", "viewer", False),
     # Me
     ("GET", "/api/me", "viewer", False),
     # Diagnostics

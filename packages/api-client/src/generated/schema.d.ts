@@ -672,6 +672,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/status-observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Account Status Observations */
+        get: operations["list_account_status_observations_api_accounts__account_id__status_observations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/behavior-profile": {
         parameters: {
             query?: never;
@@ -3351,6 +3368,33 @@ export interface components {
             last_checked_at: string;
             /** Source */
             source: string;
+        };
+        /** AccountStatusObservationRead */
+        AccountStatusObservationRead: {
+            /** Id */
+            id: string;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Observed At */
+            observed_at: string;
+            /** Proxy Healthy */
+            proxy_healthy: boolean;
+            /** Proxy Ip Hash */
+            proxy_ip_hash?: string | null;
+            /** Tdlib Authorized */
+            tdlib_authorized: boolean;
+            /** Device Model Hash */
+            device_model_hash?: string | null;
+            /** Consecutive Failures */
+            consecutive_failures: number;
+            /** Auto Action Taken */
+            auto_action_taken?: ("paused" | "quarantine" | "cooldown" | "none") | null;
+            /** Details Json */
+            details_json?: {
+                [key: string]: unknown;
+            };
         };
         /** AccountUpdateCreate */
         AccountUpdateCreate: {
@@ -8823,6 +8867,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountQuarantineRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_account_status_observations_api_accounts__account_id__status_observations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusObservationRead"][];
                 };
             };
             /** @description Bad Request */

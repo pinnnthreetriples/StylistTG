@@ -154,6 +154,7 @@
       "backend/app/contracts/__init__.py": [],
       "backend/app/contracts/account_status.py": [],
       "backend/app/contracts/accounts.py": [],
+      "backend/app/contracts/bought_onboarding.py": [],
       "backend/app/contracts/cross_module_load.py": [],
       "backend/app/contracts/ggr.py": [],
       "backend/app/contracts/human_behavior.py": [],
@@ -337,6 +338,8 @@
     },
     {
       "files": [
+        "apps/dashboard/src/modules/shared/BoughtAccountOnboardingWizard.test.tsx",
+        "apps/dashboard/src/modules/shared/BoughtAccountOnboardingWizard.tsx",
         "apps/dashboard/src/modules/shared/GGRBadge.test.tsx",
         "apps/dashboard/src/modules/shared/GGRBadge.tsx",
         "apps/dashboard/src/modules/shared/QuarantineStateBanner.test.tsx",
@@ -996,6 +999,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/accounts.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": true,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing"
+      ],
+      "path": "backend/app/contracts/bought_onboarding.py"
     },
     {
       "forbidden_imports": [],

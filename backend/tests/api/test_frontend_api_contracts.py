@@ -127,7 +127,6 @@ def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
         "username": "kingblackburn",
         "phone_number": "+15550102000",
         "telegram_user_id": "777000",
-        "origin": "imported",
         "account_state": "execution_usable",
         "runtime_health": "ready",
         "reauth_required": False,

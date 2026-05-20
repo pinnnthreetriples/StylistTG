@@ -1,7 +1,7 @@
 """Add account origin and bought onboarding state.
 
 Revision ID: 20260520_0046
-Revises: 20260520_0043
+Revises: 20260520_0045
 Create Date: 2026-05-20
 """
 
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "20260520_0046"
-down_revision = "20260520_0043"
+down_revision = "20260520_0045"
 branch_labels = None
 depends_on = None
 

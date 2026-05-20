@@ -689,6 +689,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/bought-onboarding/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Account Bought Onboarding */
+        post: operations["start_account_bought_onboarding_api_accounts__account_id__bought_onboarding_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/bought-onboarding/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Bought Onboarding Status */
+        get: operations["get_account_bought_onboarding_status_api_accounts__account_id__bought_onboarding_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/behavior-profile": {
         parameters: {
             query?: never;
@@ -2690,6 +2724,12 @@ export interface components {
             external_ref: string;
             /** Telegram User Id */
             telegram_user_id?: string | null;
+            /**
+             * Origin
+             * @default imported
+             * @enum {string}
+             */
+            origin: "imported" | "bought" | "created";
         };
         /** AccountDeletionPlannedActionRead */
         AccountDeletionPlannedActionRead: {
@@ -2912,6 +2952,11 @@ export interface components {
             phone_number: string;
             /** Telegram User Id */
             telegram_user_id: string | null;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
             /** Runtime Health */
@@ -3141,6 +3186,11 @@ export interface components {
             telegram_user_id: string | null;
             /** Auth Source */
             auth_source: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
             /** Created At */
@@ -3964,6 +4014,26 @@ export interface components {
         Body_post_story_video_api_assets_story_video_post: {
             /** File */
             file: string;
+        };
+        /** BoughtOnboardingStatusRead */
+        BoughtOnboardingStatusRead: {
+            /** Account Id */
+            account_id: string;
+            /**
+             * Current Step
+             * @enum {string}
+             */
+            current_step: "enable_2fa" | "terminate_other_sessions" | "rest_period" | "ggr_precheck" | "completed";
+            /** Completion Percent */
+            completion_percent: number;
+            /** Started At */
+            started_at: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Details Json */
+            details_json?: {
+                [key: string]: unknown;
+            };
         };
         /** CurrentUserRead */
         CurrentUserRead: {
@@ -8929,6 +8999,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountStatusObservationRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_account_bought_onboarding_api_accounts__account_id__bought_onboarding_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoughtOnboardingStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_bought_onboarding_status_api_accounts__account_id__bought_onboarding_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoughtOnboardingStatusRead"];
                 };
             };
             /** @description Bad Request */

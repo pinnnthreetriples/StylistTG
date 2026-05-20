@@ -5,9 +5,12 @@ import type { AccountRisk } from '@/features/accounts/accountRisk'
 import type { AccountListItem } from '@/lib/api'
 import { accountStatus, maskPhone } from '@/lib/accounts'
 import { labelRiskLevelShort, labelRuntimeHealth, labelProxyStatus, runtimeHealthTone } from '@/lib/uiLabels'
+import { GGRBadge, type GgrBucket } from '@/modules/shared/GGRBadge'
 
 export type AccountTableRow = AccountListItem & {
   risk?: AccountRisk
+  ggr_score?: number
+  ggr_bucket?: GgrBucket
 }
 
 const columnHelper = createColumnHelper<AccountTableRow>()
@@ -81,6 +84,16 @@ export const accountColumns = [
         />
       ) : (
         <Badge tone="gray">Неизвестно</Badge>
+      ),
+  }),
+  columnHelper.accessor((account) => account.ggr_score ?? 0, {
+    id: 'ggr',
+    header: 'GGR',
+    cell: ({ row }) =>
+      row.original.ggr_score != null && row.original.ggr_bucket ? (
+        <GGRBadge score={row.original.ggr_score} bucket={row.original.ggr_bucket} />
+      ) : (
+        <Badge tone="gray">—</Badge>
       ),
   }),
   columnHelper.display({

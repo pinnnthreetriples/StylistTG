@@ -215,6 +215,7 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("POST", "/api/accounts/{account_id}/export-requests"),
     ("GET", "/api/accounts/{account_id}/export-requests"),
     ("GET", "/api/accounts/{account_id}/export-requests/{request_id}"),
+    ("GET", "/api/accounts/{account_id}/ggr"),
     ("GET", "/api/accounts/{account_id}/proxy"),
     ("PUT", "/api/accounts/{account_id}/proxy"),
     ("DELETE", "/api/accounts/{account_id}/proxy"),

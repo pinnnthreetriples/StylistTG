@@ -568,6 +568,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/ggr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Ggr */
+        get: operations["get_account_ggr_api_accounts__account_id__ggr_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/proxy-summary": {
         parameters: {
             query?: never;
@@ -4148,6 +4165,52 @@ export interface components {
              * @default dry_run
              */
             reaper_mode: string;
+        };
+        /** GgrBreakdownRead */
+        GgrBreakdownRead: {
+            /** Age */
+            age: number;
+            /** Origin */
+            origin: number;
+            /** History */
+            history: number;
+            /** Proxy */
+            proxy: number;
+            /** Fingerprint */
+            fingerprint: number;
+            /** Ip Change */
+            ip_change: number;
+            /** Session Anomaly */
+            session_anomaly: number;
+            /** Warmup */
+            warmup: number;
+            /** Profile */
+            profile: number;
+        };
+        /** GgrScoreRead */
+        GgrScoreRead: {
+            /** Id */
+            id: string;
+            /** Account Id */
+            account_id: string;
+            /** Score */
+            score: number;
+            /**
+             * Bucket
+             * @enum {string}
+             */
+            bucket: "strong" | "medium" | "weak";
+            breakdown: components["schemas"]["GgrBreakdownRead"];
+            /** Previous Score */
+            previous_score?: number | null;
+            /** Last Calculated At */
+            last_calculated_at?: string | null;
+            /** Next Calculation At */
+            next_calculation_at?: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -8171,6 +8234,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountValidityCheckRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_ggr_api_accounts__account_id__ggr_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GgrScoreRead"];
                 };
             };
             /** @description Bad Request */

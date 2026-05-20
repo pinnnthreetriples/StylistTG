@@ -1,4 +1,6 @@
 export { dashboardApiClient } from './api'
 export { GGRBadge } from './GGRBadge'
 export type { GgrBucket } from './GGRBadge'
+export { BoughtAccountOnboardingWizard } from './BoughtAccountOnboardingWizard'
+export type { BoughtOnboardingStatus, BoughtOnboardingStep } from './BoughtAccountOnboardingWizard'
 export { buildJobMetrics } from './jobs'

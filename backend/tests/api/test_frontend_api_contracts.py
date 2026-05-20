@@ -218,6 +218,7 @@ def test_accounts_list_returns_profile_summary() -> None:
         "username": "kkk4n44",
         "phone_number": "+15550102000",
         "telegram_user_id": "777000",
+        "origin": "imported",
         "account_state": "execution_usable",
         "runtime_health": "ready",
         "is_execution_usable": True,

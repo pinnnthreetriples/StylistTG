@@ -1,3 +1,5 @@
+from typing import Literal, cast
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -24,6 +26,7 @@ from app.services.profile_photo_state import (
 from app.services.warmup import batch_active_warmups_for_accounts, warmup_operation_policy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+AccountOrigin = Literal["imported", "bought", "created"]
 
 
 @router.post("", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
@@ -37,6 +40,7 @@ def post_account(
             session,
             external_ref=payload.external_ref,
             telegram_user_id=payload.telegram_user_id,
+            origin=payload.origin,
             workspace_id=auth.workspace_id,
             actor_user_id=auth.user_id,
         )
@@ -109,6 +113,7 @@ def account_list_item(session: Session, account: Account) -> AccountListItemRead
         username=username,
         phone_number=account.external_ref,
         telegram_user_id=account.telegram_user_id,
+        origin=_account_origin(account),
         account_state=account.account_state,
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
@@ -154,6 +159,7 @@ def _account_list_item_batched(
         username=username,
         phone_number=account.external_ref,
         telegram_user_id=account.telegram_user_id,
+        origin=_account_origin(account),
         account_state=account.account_state,
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
@@ -166,3 +172,7 @@ def _account_list_item_batched(
 
 def _is_test_dc_account(account: Account) -> bool:
     return account.external_ref.startswith("+999") or account.telegram_user_id == "mock-user"
+
+
+def _account_origin(account: Account) -> AccountOrigin:
+    return cast(AccountOrigin, account.origin)

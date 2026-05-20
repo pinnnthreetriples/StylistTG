@@ -11,6 +11,7 @@ const account: AccountListItem = {
   username: 'demo',
   phone_number: '+10000000000',
   telegram_user_id: null,
+  origin: 'imported',
   account_state: 'authorized',
   runtime_health: 'ready',
   is_execution_usable: true,

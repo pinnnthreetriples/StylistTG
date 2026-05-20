@@ -3402,6 +3402,152 @@
         }
       }
     },
+    "/api/accounts/{account_id}/bought-onboarding/start": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Start Account Bought Onboarding",
+        "operationId": "start_account_bought_onboarding_api_accounts__account_id__bought_onboarding_start_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoughtOnboardingStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/bought-onboarding/status": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Bought Onboarding Status",
+        "operationId": "get_account_bought_onboarding_status_api_accounts__account_id__bought_onboarding_status_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoughtOnboardingStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/behavior-profile": {
       "get": {
         "tags": [
@@ -13638,6 +13784,16 @@
               }
             ],
             "title": "Telegram User Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "imported",
+              "bought",
+              "created"
+            ],
+            "title": "Origin",
+            "default": "imported"
           }
         },
         "type": "object",
@@ -14358,6 +14514,15 @@
             ],
             "title": "Telegram User Id"
           },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "imported",
+              "bought",
+              "created"
+            ],
+            "title": "Origin"
+          },
           "account_state": {
             "type": "string",
             "title": "Account State"
@@ -14408,6 +14573,7 @@
           "username",
           "phone_number",
           "telegram_user_id",
+          "origin",
           "account_state",
           "runtime_health",
           "is_execution_usable",
@@ -15098,6 +15264,15 @@
             "type": "string",
             "title": "Auth Source"
           },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "imported",
+              "bought",
+              "created"
+            ],
+            "title": "Origin"
+          },
           "account_state": {
             "type": "string",
             "title": "Account State"
@@ -15117,6 +15292,7 @@
           "external_ref",
           "telegram_user_id",
           "auth_source",
+          "origin",
           "account_state",
           "created_at",
           "updated_at"
@@ -17588,6 +17764,66 @@
           "file"
         ],
         "title": "Body_post_story_video_api_assets_story_video_post"
+      },
+      "BoughtOnboardingStatusRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "current_step": {
+            "type": "string",
+            "enum": [
+              "enable_2fa",
+              "terminate_other_sessions",
+              "rest_period",
+              "ggr_precheck",
+              "completed"
+            ],
+            "title": "Current Step"
+          },
+          "completion_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Completion Percent"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "details_json": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details Json"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "current_step",
+          "completion_percent",
+          "started_at"
+        ],
+        "title": "BoughtOnboardingStatusRead"
       },
       "CurrentUserRead": {
         "properties": {

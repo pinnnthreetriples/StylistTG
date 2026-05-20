@@ -44,11 +44,17 @@ def seed_account(
     *,
     external_ref: str = "+15550102000",
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    origin: str = "imported",
     account_state: AccountState = AccountState.REGISTERED,
     runtime_health: str = "unknown",
     session_present: bool = False,
 ) -> Account:
-    account = create_account(session, external_ref=external_ref, workspace_id=workspace_id)
+    account = create_account(
+        session,
+        external_ref=external_ref,
+        workspace_id=workspace_id,
+        origin=origin,
+    )
     account.account_state = account_state
     account.runtime_state.runtime_health = runtime_health
     account.runtime_state.session_present = session_present

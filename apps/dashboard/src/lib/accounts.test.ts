@@ -20,6 +20,7 @@ function account(overrides: Partial<AccountListItem>): AccountListItem {
     username: 'kkk4n44',
     phone_number: '+573181581884',
     telegram_user_id: '8612542342',
+    origin: 'imported',
     account_state: 'execution_usable',
     runtime_health: 'ready',
     is_execution_usable: true,

@@ -11,9 +11,7 @@ from tools.test_analyzer import main
 def test_cli_multi_output_writes_json(tmp_path: Path) -> None:
     test_file = tmp_path / "test_ok.py"
     report_dir = tmp_path / "reports"
-    test_file.write_text(
-        "def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8"
-    )
+    test_file.write_text("def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8")
 
     main(
         [
@@ -32,9 +30,7 @@ def test_cli_multi_output_writes_json(tmp_path: Path) -> None:
 def test_cli_multi_output_creates_sarif(tmp_path: Path) -> None:
     test_file = tmp_path / "test_ok.py"
     report_dir = tmp_path / "reports"
-    test_file.write_text(
-        "def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8"
-    )
+    test_file.write_text("def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8")
 
     main(
         [
@@ -48,18 +44,14 @@ def test_cli_multi_output_creates_sarif(tmp_path: Path) -> None:
     )
 
     assert (
-        json.loads((report_dir / "test-quality.sarif").read_text(encoding="utf-8"))[
-            "version"
-        ]
+        json.loads((report_dir / "test-quality.sarif").read_text(encoding="utf-8"))["version"]
         == "2.1.0"
     )
 
 
 def test_cli_multi_output_rejects_single_output(tmp_path: Path) -> None:
     test_file = tmp_path / "test_ok.py"
-    test_file.write_text(
-        "def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8"
-    )
+    test_file.write_text("def test_fine():\n    assert len([1, 2]) == 2\n", encoding="utf-8")
 
     with pytest.raises(SystemExit):
         main(

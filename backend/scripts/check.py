@@ -9,6 +9,7 @@ Usage:
     python scripts/check.py --only mutation
     python scripts/check.py --nightly  # run nightly-heavy local profiles
 
+CI installs narrow quality extras per job. Local pre-push expects the full dev environment.
 Run the standard gate before every push. Nightly-heavy checks are opt-in only.
 Exit code reflects worst single check (0 = all pass, 1 = any fail, 2 = setup error).
 """

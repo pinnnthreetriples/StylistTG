@@ -17,6 +17,8 @@ It requires these jobs to pass:
 - `duplication`: jscpd JSON reports for backend app and tests.
 - `contract-security`: narrow hard contract subset for security-sensitive API contract regressions.
 
+CI installs narrow backend dependency extras per job. Local developer setup keeps using the `dev` extra for the full quality toolchain.
+
 ## Backend PR pytest profile
 
 Required PR command shape:

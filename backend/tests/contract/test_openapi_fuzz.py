@@ -30,19 +30,20 @@ from __future__ import annotations
 import os
 
 import pytest
-import schemathesis
 from hypothesis import HealthCheck, settings as hypothesis_settings
-from schemathesis.checks import CHECKS, load_all_checks
 
 from app.main import app
+
+schemathesis = pytest.importorskip("schemathesis")
+schemathesis_checks = pytest.importorskip("schemathesis.checks")
 
 
 # Load the OpenAPI schema directly from the FastAPI ASGI app.
 schema = schemathesis.openapi.from_asgi("/openapi.json", app)
-load_all_checks()
+schemathesis_checks.load_all_checks()
 
-_POSITIVE_DATA_ACCEPTANCE = CHECKS.get_one("positive_data_acceptance")
-_UNSUPPORTED_METHOD = CHECKS.get_one("unsupported_method")
+_POSITIVE_DATA_ACCEPTANCE = schemathesis_checks.CHECKS.get_one("positive_data_acceptance")
+_UNSUPPORTED_METHOD = schemathesis_checks.CHECKS.get_one("unsupported_method")
 _FILE_UPLOAD_PATHS = {
     "/api/assets/profile-audio",
     "/api/assets/profile-photo",

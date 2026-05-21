@@ -152,7 +152,6 @@ jobs:
             backend/reports/slow-tests.json
             backend/reports/fixture-audit.json
             backend/reports/pytest-runtime-summary.txt
-            backend/reports/pytest.log
         if: always()
 
   audit:

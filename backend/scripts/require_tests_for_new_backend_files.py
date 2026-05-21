@@ -19,7 +19,7 @@ APP_ROOT = Path("backend/app")
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Require backend tests when new production Python files are added."
+        description="Require backend tests when new production Python files are added.",
     )
     parser.add_argument("--base", default="origin/main", help="Base git ref for diff")
     args = parser.parse_args(argv)
@@ -38,10 +38,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  test: {path}")
         return 0
 
-    print("New backend production files require corresponding backend test changes:", file=sys.stderr)
+    print(
+        "New backend production files require corresponding backend test changes:",
+        file=sys.stderr,
+    )
     for path in added_prod_files:
         print(f"  - {path}", file=sys.stderr)
-    print("Add or update backend/tests/**, or justify an explicit exemption in this script.", file=sys.stderr)
+    print(
+        "Add or update backend/tests/**, or justify an explicit exemption in this script.",
+        file=sys.stderr,
+    )
     return 1
 
 

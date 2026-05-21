@@ -70,13 +70,11 @@ def _git_changed_paths(base: str, *, diff_filter: str, pathspec: str) -> list[Pa
 
 
 def _is_required_production_file(path: Path) -> bool:
-    if not _is_under(path, APP_ROOT):
-        return False
-    if any(str(path).endswith(suffix) for suffix in EXCLUDED_NAME_SUFFIXES):
-        return False
-    if any(part in EXCLUDED_PATH_PARTS for part in path.parts):
-        return False
-    return True
+    return (
+        _is_under(path, APP_ROOT)
+        and not any(str(path).endswith(suffix) for suffix in EXCLUDED_NAME_SUFFIXES)
+        and not any(part in EXCLUDED_PATH_PARTS for part in path.parts)
+    )
 
 
 def _is_under(path: Path, root: Path) -> bool:

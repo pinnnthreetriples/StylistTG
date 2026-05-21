@@ -99,6 +99,34 @@ def test_happy_path_intents_are_ok(db_session, intent) -> None:
     }
 
 
+@pytest.mark.parametrize("intent", ["editing", "warmup", "commenting"])
+@pytest.mark.parametrize("terminal_status", ["banned", "deleted", "suspended"])
+def test_terminal_status_blocks_all_intents(db_session, intent, terminal_status) -> None:
+    account = _ready_account(db_session)
+    account.terminal_status = terminal_status
+    db_session.commit()
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent=intent,
+    )
+
+    reason = next(reason for reason in verdict.reasons if reason.code == "terminal_status")
+    assert {
+        "eligible": verdict.eligible,
+        "severity": verdict.severity,
+        "reason_severity": reason.severity,
+        "metadata": reason.metadata,
+    } == {
+        "eligible": False,
+        "severity": "blocked",
+        "reason_severity": "blocked",
+        "metadata": {"status": terminal_status},
+    }
+
+
 def test_cache_miss_writes_verdict(db_session) -> None:
     account = _ready_account(db_session)
     cache = InMemorySafetyGateCache()
@@ -135,6 +163,40 @@ def test_cache_hit_uses_cached_verdict_without_recompute(db_session) -> None:
     )
 
     assert second == first
+
+
+def test_terminal_status_change_invalidates_cached_allow_verdict(db_session) -> None:
+    account = _ready_account(db_session)
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache)
+    gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    account.terminal_status = "banned"
+    db_session.commit()
+    second = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    reason = next(reason for reason in second.reasons if reason.code == "terminal_status")
+    assert {
+        "eligible": second.eligible,
+        "severity": second.severity,
+        "reason_metadata": reason.metadata,
+        "cache_size": cache.size,
+    } == {
+        "eligible": False,
+        "severity": "blocked",
+        "reason_metadata": {"status": "banned"},
+        "cache_size": 2,
+    }
 
 
 def test_policy_updated_at_changes_cache_key(db_session) -> None:
@@ -425,7 +487,7 @@ def _setup_cross_module_overload(db_session, account) -> None:
 
 
 def _setup_terminal_status(db_session, account) -> None:
-    account.account_state = AccountState.DISABLED
+    account.terminal_status = "banned"
     db_session.commit()
 
 

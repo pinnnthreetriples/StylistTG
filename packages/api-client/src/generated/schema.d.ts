@@ -3010,6 +3010,11 @@ export interface components {
             origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
+            /**
+             * Terminal Status
+             * @enum {string}
+             */
+            terminal_status: "none" | "banned" | "deleted" | "suspended";
             /** Runtime Health */
             runtime_health: string;
             /** Is Execution Usable */
@@ -3244,6 +3249,11 @@ export interface components {
             origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
+            /**
+             * Terminal Status
+             * @enum {string}
+             */
+            terminal_status: "none" | "banned" | "deleted" | "suspended";
             /** Created At */
             created_at: string;
             /** Updated At */

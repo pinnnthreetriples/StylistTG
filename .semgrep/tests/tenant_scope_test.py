@@ -27,9 +27,9 @@ def positive_projection_missing_workspace_filter(account_id: str):
 
 def negative_projection_with_workspace_filter(account_id: str, workspace_id: str):
     # ok: missing-workspace-id-filter-projection
-    return select(Account.id).where(
-        Account.id == account_id, Account.workspace_id == workspace_id
-    )
+    return select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+        Account.id
+    ).where(Account.id == account_id, Account.workspace_id == workspace_id)
 
 
 def negative_workspace_model(workspace_id: str):

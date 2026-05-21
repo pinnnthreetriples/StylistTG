@@ -24,7 +24,9 @@ def get_account_dashboard_bundle(
     )
     target_workspace_id = workspace_id or DEFAULT_LOCAL_WORKSPACE_ID
     statement = (
-        select(Account)
+        select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+            Account
+        )
         .where(Account.id == account_id, Account.workspace_id == target_workspace_id)
         .options(*load_options)
     )
@@ -37,7 +39,9 @@ def get_latest_job_for_account(
     """Get the most recent job for an account in a single query."""
     target_workspace_id = workspace_id or DEFAULT_LOCAL_WORKSPACE_ID
     statement = (
-        select(Job)
+        select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+            Job
+        )
         .where(Job.account_id == account_id, Job.workspace_id == target_workspace_id)
         .order_by(Job.queued_at.desc())
         .limit(1)

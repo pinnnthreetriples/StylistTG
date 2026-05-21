@@ -115,6 +115,7 @@ branch = true
 source = ["app", "tools"]
 omit = [
   "app/scripts/*",          # CLI smoke utilities, not production runtime
+  "app/tools/live_*",       # manual/live operational utilities
   "app/tdlib_job.py",       # legacy worker entry, deprecated
   "tools/test_analyzer/__main__.py",
   "*/__pycache__/*",
@@ -178,11 +179,9 @@ addopts = [
   "--strict-config",
   "--tb=short",
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
-  # Schemathesis contract fuzz lives in tests/contract/ behind the `contract`
-  # marker. It currently surfaces a large backlog of OpenAPI ↔ handler drift;
-  # excluded from the default suite so the hard gate stays usable, and run as
-  # a dedicated soft job (`pytest -m contract`) in CI.
-  "-m", "not contract",
+  # Default local/PR profile: keep live, integration, slow, and contract-fuzz tests
+  # out of the fast suite. Nightly/manual workflows override this with explicit -m.
+  "-m", "not contract and not live and not integration and not slow",
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
 # Anything new = build red until either fixed or explicitly ignored with justification.
@@ -196,14 +195,17 @@ filterwarnings = [
   "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 markers = [
-  "unit: isolated unit-level tests — no HTTP or external services; may use in-memory SQLite",
+  "unit: isolated unit-level tests — no HTTP, DB, network, or external services",
   "api: FastAPI endpoint tests via TestClient",
   "security: auth, role, workspace isolation and PII tests",
+  "worker: RQ/background-worker tests with deterministic queues and no live services",
+  "architecture: structural tests for boundaries, imports, and layering",
+  "property: Hypothesis/property-based tests; heavier cases run in nightly when marked slow",
+  "contract: API/OpenAPI/client contract tests and Schemathesis fuzz",
+  "slow: expensive tests that should normally run only in nightly/full CI",
+  "integration: integration tests requiring real service boundaries or non-trivial infrastructure",
+  "live: live environment smoke or verification tests that require external services",
   "postgres: requires real PostgreSQL",
   "redis: requires real Redis",
-  "contract: API/OpenAPI/client contract tests",
-  "slow: expensive tests that should normally run only in nightly/full CI",
-  "integration: feature-gated integration tests that require real TDLib credentials and library",
-  "live: live environment smoke or verification tests that require external services",
   "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
 ]

@@ -176,7 +176,7 @@ def _maybe_hydrate_rate_limits() -> None:
     )
 
     try:
-        redis_client = Redis.from_url(settings.redis_url)
+        redis_client = cast(Any, Redis).from_url(settings.redis_url)
         if not redis_has_rate_limit_counters(redis_client):
             with SessionLocal() as session:
                 hydrate_redis_from_db(session, redis_client)

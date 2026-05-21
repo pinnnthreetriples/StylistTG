@@ -24,13 +24,18 @@ from app.modules.warmup.events import write_warmup_event
 from app.services.account_quarantine import AccountQuarantineService, get_active_quarantine
 
 AutoAction = Literal["paused", "quarantine", "cooldown", "none"]
+TerminalStatus = Literal["banned", "deleted"]
 
 IP_CHANGE_COOLDOWN_MINUTES = 30
 STICKY_IP_MAX_DISTINCT_HASHES = 3
 CONSECUTIVE_FAILURE_THRESHOLD = 3  # TODO: move into WorkspaceSafetyPolicy.
+TERMINAL_AUTH_FAILURE_THRESHOLD = 5
 
 _AUTHORIZED_STATES = {AccountState.AUTHORIZED_READY.value, AccountState.EXECUTION_USABLE.value}
 _HEALTHY_PROXY_STATUSES = {"ok", "tcp_working", "tdlib_working"}
+_BANNED_TDLIB_ERROR_MARKERS = {"USER_DEACTIVATED_BAN", "AUTH_KEY_UNREGISTERED"}
+_DELETED_TDLIB_ERROR_MARKERS = {"USER_DEACTIVATED"}
+_AUTH_ERROR_CLASSES = {"AUTH", "AUTH_STATE", "AUTHORIZATION", "TDLIB_AUTH"}
 _AUTO_PAUSE_WARMUP_STATUSES = [
     WarmupStatus.VALIDATING.value,
     WarmupStatus.SCHEDULED.value,
@@ -44,6 +49,8 @@ class AccountStatusProbeResult:
     proxy_host: str | None
     tdlib_authorized: bool
     device_model: str | None
+    error_code: str | None = None
+    error_class: str | None = None
 
 
 class AccountStatusProbe(Protocol):
@@ -128,6 +135,10 @@ class AccountStatusMonitor:
             "proxy_host_present": probe_result.proxy_host is not None,
             "threshold": CONSECUTIVE_FAILURE_THRESHOLD,
         }
+        if probe_result.error_code:
+            details["last_error_code"] = probe_result.error_code
+        if probe_result.error_class:
+            details["last_error_class"] = probe_result.error_class
         auto_action_taken: AutoAction = "none"
 
         if _changed(previous.proxy_ip_hash if previous else None, proxy_ip_hash):
@@ -163,6 +174,24 @@ class AccountStatusMonitor:
         )
         session.add(observation)
         session.flush()
+
+        terminal_status = _terminal_status_from_probe(
+            probe_result,
+            consecutive_failures=consecutive_failures,
+        )
+        if terminal_status is not None and account.terminal_status == "none":
+            account.terminal_status = terminal_status
+            _auto_pause_account(
+                session, account_id=account_id, workspace_id=workspace_id, now=timestamp
+            )
+            if observation.auto_action_taken == "none":
+                observation.auto_action_taken = "paused"
+            observation.details_json = {
+                **observation.details_json,
+                "terminal_status": terminal_status,
+                "terminal_status_reason": "tdlib_auth_error",
+                "auto_pause": "terminal_status",
+            }
 
         if (
             _distinct_proxy_hashes_last_hour(
@@ -289,6 +318,35 @@ def _crossed_failure_threshold(
         previous_failures < CONSECUTIVE_FAILURE_THRESHOLD
         and consecutive_failures >= CONSECUTIVE_FAILURE_THRESHOLD
     )
+
+
+def _terminal_status_from_probe(
+    probe_result: AccountStatusProbeResult,
+    *,
+    consecutive_failures: int,
+) -> TerminalStatus | None:
+    error_code = _normalize_error_token(probe_result.error_code)
+    if any(marker in error_code for marker in _BANNED_TDLIB_ERROR_MARKERS):
+        return "banned"
+    if any(marker in error_code for marker in _DELETED_TDLIB_ERROR_MARKERS):
+        return "deleted"
+    if consecutive_failures >= TERMINAL_AUTH_FAILURE_THRESHOLD and _is_auth_class_error(
+        probe_result
+    ):
+        return "banned"
+    return None
+
+
+def _is_auth_class_error(probe_result: AccountStatusProbeResult) -> bool:
+    error_class = _normalize_error_token(probe_result.error_class)
+    if error_class in _AUTH_ERROR_CLASSES or "AUTH" in error_class:
+        return True
+    error_code = _normalize_error_token(probe_result.error_code)
+    return "AUTH" in error_code
+
+
+def _normalize_error_token(value: str | None) -> str:
+    return (value or "").strip().upper()
 
 
 def _auto_pause_account(

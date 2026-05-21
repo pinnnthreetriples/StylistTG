@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -26,6 +26,11 @@ from app.services.neuro_commenting.rate_limiter import (
     build_rate_limit_counter_metadata_key,
     parse_rate_limit_counter_key,
 )
+
+
+def _empty_scope_counts() -> dict[str, int]:
+    return {}
+
 
 SCOPE_KEY_WINDOW_SECONDS: dict[str, int] = {
     "comments_per_hour": 3600,
@@ -41,7 +46,7 @@ class FlushReport:
     total_keys_scanned: int = 0
     upserted: int = 0
     expired_deleted: int = 0
-    per_scope_counts: dict[str, int] = field(default_factory=dict)
+    per_scope_counts: dict[str, int] = field(default_factory=_empty_scope_counts)
 
 
 @dataclass
@@ -49,7 +54,7 @@ class HydrateReport:
     total_rows_loaded: int = 0
     keys_set: int = 0
     keys_skipped_warm: int = 0
-    per_scope_counts: dict[str, int] = field(default_factory=dict)
+    per_scope_counts: dict[str, int] = field(default_factory=_empty_scope_counts)
 
 
 DEFAULT_SCOPE_KEYS = ("comments_per_minute", "comments_per_hour", "comments_per_day")
@@ -80,13 +85,6 @@ def _window_start_from_number(window_number: int, window_seconds: int) -> dateti
     """Convert window number back to window_start datetime."""
     timestamp = window_number * window_seconds
     return datetime.fromtimestamp(timestamp, tz=UTC)
-
-
-def _current_window_number(scope_key: str, now: datetime | None = None) -> int:
-    """Get the current window number for a scope_key."""
-    ts = (now or utc_now()).timestamp()
-    window_seconds = _window_seconds_for_scope_key(scope_key)
-    return int(ts // window_seconds)
 
 
 def redis_has_rate_limit_counters(redis: Any) -> bool:
@@ -256,11 +254,14 @@ def _delete_expired(
     for scope_key in scope_keys:
         window_seconds = _window_seconds_for_scope_key(scope_key)
         cutoff = now - timedelta(seconds=window_seconds * 2)
-        result = session.execute(
-            delete(RateLimitPersistentCounter).where(
-                RateLimitPersistentCounter.scope_key == scope_key,
-                RateLimitPersistentCounter.window_start < cutoff,
-            )
+        result = cast(
+            Any,
+            session.execute(
+                delete(RateLimitPersistentCounter).where(
+                    RateLimitPersistentCounter.scope_key == scope_key,
+                    RateLimitPersistentCounter.window_start < cutoff,
+                )
+            ),
         )
         total_deleted += int(result.rowcount or 0)
     return total_deleted

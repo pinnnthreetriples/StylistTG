@@ -63,7 +63,7 @@ def rate_limit_flush_tick() -> dict[str, object]:
 
     from app.services.rate_limit_persistence import flush_redis_to_db
 
-    redis_client = Redis.from_url(settings.redis_url)
+    redis_client = cast(Any, Redis).from_url(settings.redis_url)
     with SessionLocal() as session:
         report = flush_redis_to_db(session, redis_client)
         session.commit()

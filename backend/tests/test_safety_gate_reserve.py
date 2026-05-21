@@ -141,6 +141,7 @@ class TestReserve:
         assert result.account_id == "acc-1"
         assert result.intent == "commenting"
         assert len(result.reservation_id) == 32  # hex UUID
+        redis.eval.assert_called_once()
 
     def test_reserve_fails_at_limit(self) -> None:
         redis = MagicMock()
@@ -150,6 +151,7 @@ class TestReserve:
 
         assert result.reserved is False
         assert result.current_count == 3
+        redis.eval.assert_called_once()
 
     def test_reserve_custom_max_concurrent(self) -> None:
         redis = MagicMock()
@@ -159,6 +161,7 @@ class TestReserve:
 
         assert result.reserved is True
         assert result.max_concurrent == 5
+        redis.eval.assert_called_once()
 
     def test_reserve_fail_open_on_redis_error(self) -> None:
         from redis.exceptions import RedisError
@@ -169,6 +172,7 @@ class TestReserve:
         result = reserve(redis, account_id="acc-1", intent="commenting")
 
         assert result.reserved is True  # fail-open
+        redis.eval.assert_called_once()
 
     def test_reserve_passes_correct_keys_and_args(self) -> None:
         redis = MagicMock()
@@ -198,6 +202,7 @@ class TestReserve:
 
         assert r1.reserved is True
         assert r2.reserved is False
+        assert redis.eval.call_count == 2
 
 
 class TestRelease:
@@ -216,6 +221,7 @@ class TestRelease:
         result = release(redis, reservation=reservation)
 
         assert result is True
+        redis.eval.assert_called_once()
 
     def test_release_not_reserved_returns_false(self) -> None:
         redis = MagicMock()
@@ -248,6 +254,7 @@ class TestRelease:
         result = release(redis, reservation=reservation)
 
         assert result is False
+        redis.eval.assert_called_once()
 
     def test_release_fail_on_redis_error(self) -> None:
         from redis.exceptions import RedisError
@@ -266,6 +273,7 @@ class TestRelease:
         result = release(redis, reservation=reservation)
 
         assert result is False
+        redis.eval.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -292,6 +300,7 @@ def test_sender_gate_concurrency_blocks_at_limit(db_session) -> None:
     assert result.status == "skipped"
     assert result.error_code == "GATE_CONCURRENCY_LIMIT"
     assert fake_sender.calls == 0
+    redis_mock.eval.assert_called_once()
 
 
 @freeze_time(_FROZEN_NOW)

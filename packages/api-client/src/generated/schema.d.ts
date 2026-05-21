@@ -706,6 +706,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/quarantine/admin-override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Override Account Quarantine */
+        post: operations["admin_override_account_quarantine_api_accounts__account_id__quarantine_admin_override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/terminal-status/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Account Terminal Status */
+        post: operations["clear_account_terminal_status_api_accounts__account_id__terminal_status_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/status-observations": {
         parameters: {
             query?: never;
@@ -2390,6 +2424,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/feature-flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Workspace Feature Flags */
+        patch: operations["patch_workspace_feature_flags_api_workspaces__workspace_id__feature_flags_patch"];
+        trace?: never;
+    };
     "/api/workers/queues": {
         parameters: {
             query?: never;
@@ -2993,6 +3044,11 @@ export interface components {
             origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
+            /**
+             * Terminal Status
+             * @enum {string}
+             */
+            terminal_status: "none" | "banned" | "deleted" | "suspended";
             /** Runtime Health */
             runtime_health: string;
             /** Is Execution Usable */
@@ -3227,6 +3283,11 @@ export interface components {
             origin: "imported" | "bought" | "created";
             /** Account State */
             account_state: string;
+            /**
+             * Terminal Status
+             * @enum {string}
+             */
+            terminal_status: "none" | "banned" | "deleted" | "suspended";
             /** Created At */
             created_at: string;
             /** Updated At */
@@ -3692,6 +3753,11 @@ export interface components {
             reasons: components["schemas"]["AccountReadinessRiskReasonRead"][];
             /** Required Override Reason */
             required_override_reason: boolean;
+        };
+        /** AdminReasonRequest */
+        AdminReasonRequest: {
+            /** Reason */
+            reason: string;
         };
         /** AssetRead */
         AssetRead: {
@@ -5984,6 +6050,15 @@ export interface components {
             /** Failed At */
             failed_at: string | null;
         };
+        /** TerminalStatusClearRead */
+        TerminalStatusClearRead: {
+            /** Account Id */
+            account_id: string;
+            /** Previous Terminal Status */
+            previous_terminal_status: string;
+            /** Terminal Status */
+            terminal_status: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -6313,6 +6388,30 @@ export interface components {
             tdlib: {
                 [key: string]: unknown;
             };
+        };
+        /** WorkspaceFeatureFlagsUpdate */
+        WorkspaceFeatureFlagsUpdate: {
+            /** Safety Pipeline V2 Enabled */
+            safety_pipeline_v2_enabled: boolean;
+        };
+        /** WorkspaceRead */
+        WorkspaceRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Status */
+            status: string;
+            /** Safety Pipeline V2 Enabled */
+            safety_pipeline_v2_enabled: boolean;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
         };
         /** WorkspaceSafetyPolicyRead */
         WorkspaceSafetyPolicyRead: {
@@ -9164,6 +9263,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountQuarantineRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_override_account_quarantine_api_accounts__account_id__quarantine_admin_override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountQuarantineRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_account_terminal_status_api_accounts__account_id__terminal_status_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalStatusClearRead"];
                 };
             };
             /** @description Bad Request */
@@ -16184,6 +16411,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    patch_workspace_feature_flags_api_workspaces__workspace_id__feature_flags_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceFeatureFlagsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

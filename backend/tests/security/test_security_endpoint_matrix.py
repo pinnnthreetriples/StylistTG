@@ -55,6 +55,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Workspace safety policy
     ("GET", "/api/safety-policy", "admin", False),
     ("PATCH", "/api/safety-policy", "admin", True),
+    ("PATCH", "/api/workspaces/{workspace_id}/feature-flags", "admin", True),
     # Auth runtime mode
     ("GET", "/api/auth/runtime-mode", "viewer", False),
     ("PATCH", "/api/auth/runtime-mode", "admin", True),
@@ -222,6 +223,8 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/accounts/{account_id}/behavior-profile"),
     ("GET", "/api/accounts/{account_id}/quarantine"),
     ("POST", "/api/accounts/{account_id}/quarantine/release"),
+    ("POST", "/api/accounts/{account_id}/quarantine/admin-override"),
+    ("POST", "/api/accounts/{account_id}/terminal-status/clear"),
     ("POST", "/api/accounts/{account_id}/bought-onboarding/start"),
     ("GET", "/api/accounts/{account_id}/bought-onboarding/status"),
     ("GET", "/api/accounts/{account_id}/proxy"),
@@ -369,6 +372,7 @@ def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
         "attempt_id": "00000000-0000-4000-8000-000000000105",
         "limit_id": "00000000-0000-4000-8000-000000000106",
         "rule_id": "00000000-0000-4000-8000-000000000107",
+        "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
     }
     if "{account_id}" in path:
         account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")

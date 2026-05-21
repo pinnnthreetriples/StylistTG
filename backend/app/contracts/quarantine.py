@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer, field_validator
 
 QuarantineReason = Literal[
     "flood_wait",
@@ -47,4 +47,30 @@ class ReleaseRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-__all__ = ["AccountQuarantineRead", "QuarantineReason", "ReleaseRequest"]
+class AdminReasonRequest(BaseModel):
+    reason: Annotated[str, Field(min_length=10, max_length=1000)]
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("reason")
+    @classmethod
+    def _reason_must_be_substantive(cls, value: str) -> str:
+        reason = value.strip()
+        if len(reason) < 10:
+            raise ValueError("reason must be at least 10 characters")
+        return reason
+
+
+class TerminalStatusClearRead(BaseModel):
+    account_id: str
+    previous_terminal_status: str
+    terminal_status: str
+
+
+__all__ = [
+    "AccountQuarantineRead",
+    "AdminReasonRequest",
+    "QuarantineReason",
+    "ReleaseRequest",
+    "TerminalStatusClearRead",
+]

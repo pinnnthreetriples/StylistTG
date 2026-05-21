@@ -23,6 +23,11 @@ from app.services.idempotency_keys import (
     generate as generate_idempotency_key,
     reserve_in_redis,
 )
+from app.services.safety_gate_reserve import (
+    SafetyGateReservation,
+    release as release_gate_reservation,
+    reserve as reserve_gate_slot,
+)
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.account_health_service import AccountHealthService
 from app.services.neuro_commenting.account_selector import DefaultAccountReadinessProvider
@@ -149,6 +154,7 @@ class SenderService:
         self._analytics = analytics or AnalyticsService()
         self._limiter = limiter
         self._redis_client = redis_client
+        self._gate_reservation: SafetyGateReservation | None = None
 
     def prepare_send(
         self, *, campaign: NeuroCommentCampaign, comment: NeuroCommentGeneratedComment
@@ -265,11 +271,13 @@ class SenderService:
         except TelegramCommentSendError as exc:
             if exc.error_code == "FLOOD_WAIT":
                 self._rollback_reservation(reservation)
+                self._release_gate_reservation()
                 self._mark_send_error(
                     session, workspace_id=workspace_id, attempt=attempt, error=exc
                 )
             else:
                 self._rollback_reservation(reservation)
+                self._release_gate_reservation()
                 attempt.error_code = exc.error_code
                 attempt.error_message = str(exc)[:300]
             return attempt
@@ -311,6 +319,7 @@ class SenderService:
             message="manual neuro-comment sent",
             data={"attempt_id": attempt.id},
         )
+        self._release_gate_reservation()
         return attempt
 
     def send_comment(
@@ -532,6 +541,27 @@ class SenderService:
     ) -> bool:
         verdict = _evaluate_commenting_gate(session, workspace_id=workspace_id, context=context)
         if verdict is None or verdict.severity != "blocked":
+            # Attempt atomic gate reserve if redis available
+            self._gate_reservation = self._try_gate_reserve(context)
+            if self._gate_reservation is not None and not self._gate_reservation.reserved:
+                context.attempt.status = NeuroAttemptStatus.SKIPPED.value
+                context.attempt.error_code = "GATE_CONCURRENCY_LIMIT"
+                context.attempt.error_message = "Account concurrency limit reached."
+                self._analytics.write_event(
+                    session,
+                    workspace_id=workspace_id,
+                    campaign_id=context.campaign.id,
+                    account_id=context.attempt.account_id,
+                    target_id=context.attempt.target_id,
+                    observed_post_id=context.attempt.observed_post_id,
+                    generated_comment_id=context.comment.id,
+                    attempt_id=context.attempt.id,
+                    event_type="neuro_comment_send_blocked_by_gate_concurrency",
+                    event_level=NeuroEventLevel.WARNING,
+                    message="neuro-comment send blocked by gate concurrency limit",
+                    data={"current_count": self._gate_reservation.current_count},
+                )
+                return True
             return False
         context.attempt.status = NeuroAttemptStatus.SKIPPED.value
         context.attempt.error_code = "ACCOUNT_SAFETY_BLOCKED"
@@ -576,6 +606,26 @@ class SenderService:
             is_published=False,
         )
         session.add(event)
+
+    def _try_gate_reserve(self, context: _SendContext) -> SafetyGateReservation | None:
+        """Attempt atomic gate reserve if redis_client is available."""
+        if self._redis_client is None:
+            return None
+        account_id = context.attempt.account_id or context.comment.account_id
+        if account_id is None:
+            return None
+        return reserve_gate_slot(
+            self._redis_client,
+            account_id=account_id,
+            intent="commenting",
+        )
+
+    def _release_gate_reservation(self) -> None:
+        """Release gate reservation slot if one was acquired."""
+        if self._gate_reservation is not None and self._gate_reservation.reserved:
+            if self._redis_client is not None:
+                release_gate_reservation(self._redis_client, reservation=self._gate_reservation)
+            self._gate_reservation = None
 
     def _comment_sender(self) -> TelegramCommentSender:
         if self._sender is None:

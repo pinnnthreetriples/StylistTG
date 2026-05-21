@@ -87,6 +87,7 @@ async def lifespan(_app: FastAPI):
         reaper_task = asyncio.create_task(_stale_job_reaper_loop())
     if settings.warmup_scheduler_enabled and settings.warmup_workers_enabled:
         warmup_ticker_task = asyncio.create_task(_warmup_scheduler_loop())
+    await asyncio.to_thread(_maybe_hydrate_rate_limits)
     try:
         yield
     finally:
@@ -163,6 +164,25 @@ async def _warmup_scheduler_loop() -> None:
                 "warmup_scheduler_error",
                 error_class=exc.__class__.__name__,
             )
+
+
+def _maybe_hydrate_rate_limits() -> None:
+    """Hydrate rate-limit counters from Postgres if Redis is empty (post-FLUSHALL recovery)."""
+    from redis import Redis
+
+    from app.services.rate_limit_persistence import hydrate_redis_from_db
+
+    try:
+        redis_client = Redis.from_url(settings.redis_url)
+        if redis_client.dbsize() == 0:
+            with SessionLocal() as session:
+                hydrate_redis_from_db(session, redis_client)
+            log_event("rate_limit_hydrate_completed", source="startup")
+    except Exception as exc:
+        log_event(
+            "rate_limit_hydrate_error",
+            error_class=exc.__class__.__name__,
+        )
 
 
 def _configured_cors_origins() -> list[str]:

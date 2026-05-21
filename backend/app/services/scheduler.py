@@ -14,6 +14,7 @@ from app.services.worker_plane import SCHEDULER_QUEUE_NAME
 
 ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
 RETENTION_TICK_SECONDS = 86_400
+RATE_LIMIT_FLUSH_TICK_SECONDS = 60
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
         planned_ticks={
             "account_status_monitor": ACCOUNT_STATUS_MONITOR_TICK_SECONDS,
             "retention": RETENTION_TICK_SECONDS,
+            "rate_limit_flush": RATE_LIMIT_FLUSH_TICK_SECONDS,
         },
     )
 
@@ -51,6 +53,19 @@ def account_status_monitor_tick() -> int:
         observations = run_account_status_monitor_tick(session)
         session.commit()
         return len(observations)
+
+
+def rate_limit_flush_tick() -> dict[str, object]:
+    """Flush rate-limit counters from Redis to Postgres (persistence fallback)."""
+    from redis import Redis
+
+    from app.services.rate_limit_persistence import flush_redis_to_db
+
+    redis_client = Redis.from_url(settings.redis_url)
+    with SessionLocal() as session:
+        report = flush_redis_to_db(session, redis_client)
+        session.commit()
+    return {"scopes": report.per_scope_counts, "upserted": report.upserted}
 
 
 def schedule_bought_onboarding_action(

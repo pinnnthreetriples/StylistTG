@@ -94,6 +94,47 @@ end
 return {1, "", 0}
 """
 
+RATE_LIMIT_COUNTER_SCAN_PATTERN = "neuro:*:limit:*"
+
+
+@dataclass(frozen=True)
+class RateLimitCounterKey:
+    workspace_id: str
+    scope_type: str
+    scope_id: str
+    scope_key: str
+    window_number: int
+
+
+def parse_rate_limit_counter_key(key: str) -> RateLimitCounterKey | None:
+    parts = key.split(":")
+    if len(parts) != 7:
+        return None
+    if parts[0] != "neuro" or parts[2] != "limit":
+        return None
+    try:
+        window_number = int(parts[6])
+    except ValueError:
+        return None
+    return RateLimitCounterKey(
+        workspace_id=parts[1],
+        scope_type=parts[3],
+        scope_id=parts[4],
+        scope_key=parts[5],
+        window_number=window_number,
+    )
+
+
+def build_rate_limit_counter_key(
+    *,
+    workspace_id: str,
+    scope_type: str,
+    scope_id: str,
+    scope_key: str,
+    window_number: int,
+) -> str:
+    return f"neuro:{workspace_id}:limit:{scope_type}:{scope_id}:{scope_key}:{window_number}"
+
 
 @dataclass(frozen=True)
 class RateLimitScope:
@@ -444,9 +485,12 @@ class NeuroCommentRateLimiter:
 
     def _limit_key(self, scope: RateLimitScope, limit: dict[str, Any]) -> str:
         window = int(time.time() // int(limit["window_seconds"]))
-        return (
-            f"neuro:{scope.workspace_id}:limit:{limit['scope_type']}:{limit['scope_id']}:"
-            f"{limit['limit_type']}:{window}"
+        return build_rate_limit_counter_key(
+            workspace_id=scope.workspace_id,
+            scope_type=str(limit["scope_type"]),
+            scope_id=str(limit["scope_id"]),
+            scope_key=str(limit["limit_type"]),
+            window_number=window,
         )
 
     def _parallel_key(self, scope: RateLimitScope, limit: dict[str, Any]) -> str:

@@ -13,6 +13,7 @@ from app.services.account_status_monitor import run_account_status_monitor_tick
 from app.services.worker_plane import SCHEDULER_QUEUE_NAME
 
 ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
+RETENTION_TICK_SECONDS = 86_400
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,10 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
         enabled=config.scheduler_enabled,
         mode="report_only" if not config.scheduler_enabled else "safe_enqueue",
         planned_queues=["scheduler_jobs", "maintenance_jobs"],
-        planned_ticks={"account_status_monitor": ACCOUNT_STATUS_MONITOR_TICK_SECONDS},
+        planned_ticks={
+            "account_status_monitor": ACCOUNT_STATUS_MONITOR_TICK_SECONDS,
+            "retention": RETENTION_TICK_SECONDS,
+        },
     )
 
 

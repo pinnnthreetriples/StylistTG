@@ -36,6 +36,23 @@ class AccountQuarantineService:
             metadata=metadata,
         )
 
+    @staticmethod
+    def admin_override_release(
+        session: Session,
+        *,
+        workspace_id: str,
+        account_id: str,
+        actor_user_id: str,
+        reason: str,
+    ) -> AccountQuarantine:
+        return admin_override_release(
+            session,
+            workspace_id=workspace_id,
+            account_id=account_id,
+            actor_user_id=actor_user_id,
+            reason=reason,
+        )
+
 
 def get_active_quarantine(
     session: Session,
@@ -51,6 +68,22 @@ def get_active_quarantine(
         .where(AccountQuarantine.account_id == account_id)
         .where(AccountQuarantine.released_at.is_(None))
         .where(AccountQuarantine.until > check_time)
+        .order_by(AccountQuarantine.until.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def get_unreleased_quarantine(
+    session: Session,
+    *,
+    account_id: str,
+    workspace_id: str,
+) -> AccountQuarantine | None:
+    return session.execute(
+        select(AccountQuarantine)
+        .where(AccountQuarantine.workspace_id == workspace_id)
+        .where(AccountQuarantine.account_id == account_id)
+        .where(AccountQuarantine.released_at.is_(None))
         .order_by(AccountQuarantine.until.desc())
         .limit(1)
     ).scalar_one_or_none()
@@ -106,6 +139,32 @@ def release_quarantine(
     metadata = dict(row.metadata_json or {})
     if reason:
         metadata["release_reason"] = reason
+    row.metadata_json = metadata
+    session.flush()
+    return row
+
+
+def admin_override_release(
+    session: Session,
+    *,
+    workspace_id: str,
+    account_id: str,
+    actor_user_id: str,
+    reason: str,
+) -> AccountQuarantine:
+    if len(reason.strip()) < 10:
+        raise ValueError("reason must be at least 10 characters")
+
+    row = get_active_quarantine(session, account_id=account_id, workspace_id=workspace_id)
+    if row is None:
+        raise QuarantineNotFound(account_id)
+
+    now = utc_now()
+    row.released_at = now
+    row.released_by_user_id = actor_user_id
+    metadata = dict(row.metadata_json or {})
+    metadata["admin_override_release_reason"] = reason.strip()
+    metadata["admin_override_released_at"] = now.isoformat()
     row.metadata_json = metadata
     session.flush()
     return row

@@ -35,6 +35,18 @@ def admin_client(app_client):
     return app_client
 
 
+def _open_test_quarantine(db_session, account, source_attempt_id: str):
+    quarantine = handle_flood_wait(
+        db_session,
+        account_id=account.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        flood_wait_seconds=120,
+        source_attempt_id=source_attempt_id,
+    )
+    db_session.commit()
+    return quarantine
+
+
 def test_handle_flood_wait_creates_default_24h_quarantine(db_session) -> None:
     account = seed_account(db_session)
 
@@ -162,6 +174,145 @@ def test_release_endpoint_sets_release_fields_and_audit(admin_client, db_session
     assert event.account_id == account.id
     assert event.metadata_json["before"]["id"] == quarantine.id
     assert event.metadata_json["after"]["released_by_user_id"] == DEFAULT_LOCAL_USER_ID
+
+
+def test_admin_override_release_releases_unexpired_quarantine_and_audits(
+    admin_client, db_session
+) -> None:
+    account = seed_account(db_session)
+    quarantine = handle_flood_wait(
+        db_session,
+        account_id=account.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        flood_wait_seconds=120,
+        source_attempt_id="attempt-admin-1",
+    )
+    quarantine.until = utc_now() + timedelta(hours=6)
+    db_session.commit()
+
+    response = admin_client.post(
+        f"/api/accounts/{account.id}/quarantine/admin-override",
+        json={"reason": "mistaken flood wait release"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == quarantine.id
+    assert payload["released_at"] is not None
+    assert payload["released_by_user_id"] == DEFAULT_LOCAL_USER_ID
+    assert payload["metadata_json"]["admin_override_release_reason"] == (
+        "mistaken flood wait release"
+    )
+
+    db_session.refresh(quarantine)
+    assert quarantine.released_at is not None
+    assert quarantine.metadata_json["admin_override_release_reason"] == (
+        "mistaken flood wait release"
+    )
+
+    event = db_session.query(SensitiveAuditEvent).one()
+    assert event.action == "quarantine.admin_override_released"
+    assert event.account_id == account.id
+    assert event.reason == "mistaken flood wait release"
+    assert event.metadata_json["before"]["id"] == quarantine.id
+    assert event.metadata_json["after"]["released_by_user_id"] == DEFAULT_LOCAL_USER_ID
+
+
+def test_admin_override_release_expired_quarantine_returns_404(admin_client, db_session) -> None:
+    account = seed_account(db_session)
+    quarantine = handle_flood_wait(
+        db_session,
+        account_id=account.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        flood_wait_seconds=120,
+        source_attempt_id="attempt-admin-expired",
+    )
+    quarantine.until = utc_now() - timedelta(minutes=5)
+    db_session.commit()
+
+    response = admin_client.post(
+        f"/api/accounts/{account.id}/quarantine/admin-override",
+        json={"reason": "mistaken flood wait release"},
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert "detail" in body or "error_code" in body
+
+
+def test_admin_override_release_no_active_quarantine_returns_404(admin_client, db_session) -> None:
+    account = seed_account(db_session)
+
+    response = admin_client.post(
+        f"/api/accounts/{account.id}/quarantine/admin-override",
+        json={"reason": "mistaken flood wait release"},
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert "message" in body or "detail" in body
+
+
+def test_admin_override_release_non_admin_returns_403(app_client, db_session) -> None:
+    app.dependency_overrides[get_current_auth_context] = lambda: _auth("operator")
+    account = seed_account(db_session)
+    _open_test_quarantine(db_session, account, "attempt-admin-2")
+
+    response = app_client.post(
+        f"/api/accounts/{account.id}/quarantine/admin-override",
+        json={"reason": "mistaken flood wait release"},
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert "detail" in body or "error_code" in body
+
+
+def test_admin_override_release_short_reason_returns_422(admin_client, db_session) -> None:
+    account = seed_account(db_session)
+    _open_test_quarantine(db_session, account, "attempt-admin-3")
+
+    response = admin_client.post(
+        f"/api/accounts/{account.id}/quarantine/admin-override",
+        json={"reason": "too short"},
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["field_errors"]
+
+
+def test_admin_override_release_cross_tenant_returns_404(app_client, db_session) -> None:
+    workspace_a, workspace_b = seed_two_workspaces(db_session)
+    app.dependency_overrides[get_current_auth_context] = lambda: _auth(
+        "admin", workspace_id=workspace_a
+    )
+    account_b = seed_account(
+        db_session,
+        external_ref="+15550108888",
+        workspace_id=workspace_b,
+    )
+    db_session.add(
+        AccountQuarantine(
+            id=new_id(),
+            workspace_id=workspace_b,
+            account_id=account_b.id,
+            reason="manual",
+            started_at=utc_now(),
+            until=utc_now() + timedelta(hours=24),
+            metadata_json={},
+        )
+    )
+    db_session.commit()
+
+    response = app_client.post(
+        f"/api/accounts/{account_b.id}/quarantine/admin-override",
+        json={"reason": "mistaken flood wait release"},
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert "detail" in body or "error_code" in body
 
 
 def test_release_endpoint_non_admin_returns_403(app_client, db_session) -> None:

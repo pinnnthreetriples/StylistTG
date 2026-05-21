@@ -39,7 +39,9 @@ Testing levels, suite profiles, tooling, and run cadence for StylistTG.
 
 ## CI telemetry
 
-The `backend-tests` job now uploads lightweight artifacts only:
+The `backend-tests` job writes a temporary `pytest.log` inside the job workspace so `slow-tests.json` can be generated, but the raw log is not uploaded as a PR artifact.
+
+Uploaded lightweight artifacts:
 
 - `coverage.json`
 - `coverage.xml`
@@ -48,7 +50,6 @@ The `backend-tests` job now uploads lightweight artifacts only:
 - `slow-tests.json`
 - `fixture-audit.json`
 - `pytest-runtime-summary.txt`
-- `pytest.log`
 
 `slow-tests.json` is informational in this phase. Hard thresholds should be added only after a stable baseline is collected.
 
@@ -56,9 +57,9 @@ The `backend-tests` job now uploads lightweight artifacts only:
 
 `.github/workflows/nightly-backend-quality.yml` runs non-required heavy checks:
 
-- `slow or property`
-- contract fuzz with larger example budget
-- PostgreSQL-marked parity tests with a service container
+- `slow or property` against migrated local Postgres/Redis services
+- contract fuzz with larger example budget against a migrated local Postgres schema
+- PostgreSQL-marked parity tests with a service container and migrated schema
 - selected mutation profile through `scripts/check.py --only mutation` as a soft job
 
 Promote a nightly check to required only after the backlog is empty, runtime is stable, and failures are actionable.

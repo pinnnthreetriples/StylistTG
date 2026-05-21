@@ -12444,6 +12444,89 @@
         }
       }
     },
+    "/api/workspaces/{workspace_id}/feature-flags": {
+      "patch": {
+        "tags": [
+          "workspaces"
+        ],
+        "summary": "Patch Workspace Feature Flags",
+        "operationId": "patch_workspace_feature_flags_api_workspaces__workspace_id__feature_flags_patch",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceFeatureFlagsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workers/queues": {
       "get": {
         "tags": [
@@ -25241,6 +25324,68 @@
           "tdlib"
         ],
         "title": "WorkerDiagnosticsRead"
+      },
+      "WorkspaceFeatureFlagsUpdate": {
+        "properties": {
+          "safety_pipeline_v2_enabled": {
+            "type": "boolean",
+            "title": "Safety Pipeline V2 Enabled"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "safety_pipeline_v2_enabled"
+        ],
+        "title": "WorkspaceFeatureFlagsUpdate"
+      },
+      "WorkspaceRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "owner_user_id": {
+            "type": "string",
+            "title": "Owner User Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "safety_pipeline_v2_enabled": {
+            "type": "boolean",
+            "title": "Safety Pipeline V2 Enabled"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "owner_user_id",
+          "status",
+          "safety_pipeline_v2_enabled",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WorkspaceRead"
       },
       "WorkspaceSafetyPolicyRead": {
         "properties": {

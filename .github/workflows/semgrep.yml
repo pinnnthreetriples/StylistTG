@@ -39,6 +39,8 @@ jobs:
           baseline_args=()
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             baseline_args=(--baseline-commit "origin/${{ github.base_ref }}")
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ] && ! [[ "${{ github.event.before }}" =~ ^0+$ ]]; then
+            baseline_args=(--baseline-commit "${{ github.event.before }}")
           fi
           semgrep scan \
             --config p/ci \

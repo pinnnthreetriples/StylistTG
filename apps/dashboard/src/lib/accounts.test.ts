@@ -28,6 +28,7 @@ function account(overrides: Partial<AccountListItem>): AccountListItem {
     profile_photo_asset_id: null,
     updated_at: '2026-04-25T10:00:00Z',
     ...overrides,
+    terminal_status: overrides.terminal_status ?? 'none',
   }
 }
 

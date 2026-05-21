@@ -12,6 +12,7 @@ from app.schemas import (
     AccountListItemRead,
     AccountRead,
     AccountWarmupInfoRead,
+    TerminalStatus,
 )
 from app.services.accounts import create_account, list_accounts as list_accounts_service
 from app.services.auth_context import (
@@ -115,7 +116,7 @@ def account_list_item(session: Session, account: Account) -> AccountListItemRead
         telegram_user_id=account.telegram_user_id,
         origin=_account_origin(account),
         account_state=account.account_state,
-        terminal_status=account.terminal_status,
+        terminal_status=_terminal_status(account),
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
         is_test_dc=_is_test_dc_account(account),
@@ -162,7 +163,7 @@ def _account_list_item_batched(
         telegram_user_id=account.telegram_user_id,
         origin=_account_origin(account),
         account_state=account.account_state,
-        terminal_status=account.terminal_status,
+        terminal_status=_terminal_status(account),
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
         is_test_dc=_is_test_dc_account(account),
@@ -178,3 +179,7 @@ def _is_test_dc_account(account: Account) -> bool:
 
 def _account_origin(account: Account) -> AccountOrigin:
     return cast(AccountOrigin, account.origin)
+
+
+def _terminal_status(account: Account) -> TerminalStatus:
+    return cast(TerminalStatus, account.terminal_status)

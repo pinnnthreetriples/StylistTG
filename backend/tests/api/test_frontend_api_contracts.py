@@ -220,6 +220,7 @@ def test_accounts_list_returns_profile_summary() -> None:
         "telegram_user_id": "777000",
         "origin": "imported",
         "account_state": "execution_usable",
+        "terminal_status": "none",
         "runtime_health": "ready",
         "is_execution_usable": True,
         "is_test_dc": False,

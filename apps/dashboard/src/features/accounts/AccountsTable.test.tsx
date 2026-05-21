@@ -13,6 +13,7 @@ const account: AccountListItem = {
   telegram_user_id: null,
   origin: 'imported',
   account_state: 'authorized',
+  terminal_status: 'none',
   runtime_health: 'ready',
   is_execution_usable: true,
   is_test_dc: true,

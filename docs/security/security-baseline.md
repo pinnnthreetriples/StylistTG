@@ -3,8 +3,9 @@
 ## Enabled Checks
 
 - CI: backend, frontend, OpenAPI, Docker build, dependency audit, and tests.
-- Test Quality: backend lint/format, coverage, test analyzer, pip-audit, soft
-  Pyright/Schemathesis, and duplicate detection.
+- Test Quality: backend lint/format, coverage, full-suite and changed-tests
+  test analyzer, hard Pyright, pip-audit, soft Schemathesis fuzzing, hard
+  contract-security, and duplicate detection.
 - Semgrep: static analysis with repository custom rules.
 - CodeQL: GitHub CodeQL Default Setup for Python and JavaScript/TypeScript code
   scanning. Do not add an advanced CodeQL workflow while Default Setup is

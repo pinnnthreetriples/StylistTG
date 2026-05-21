@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import ast
 
 from ..models import (
     AnalyzerConfig,
@@ -133,7 +134,7 @@ class AmbiguousStatusCode(Rule):
         issues: list[Issue] = []
         for func in get_test_functions(ctx.tree):
             src = func_source(func, ctx.lines)
-            if re.search(r"status_code\s+in\s+\{", src) or re.search(r"status_code\s+in\s+\[", src):
+            if any(_is_status_code_membership(node) for node in ast.walk(func)):
                 if "# contract:" not in src and "# expected:" not in src:
                     issues.append(
                         Issue(
@@ -144,12 +145,26 @@ class AmbiguousStatusCode(Rule):
                             line=func.lineno,
                             message=(
                                 f"Test `{func.name}` uses status_code in"
-                                " {...} without contract comment"
+                                " collection without contract comment"
                             ),
                             recommendation="Add # contract: comment explaining valid status codes",
                         )
                     )
         return issues
+
+
+def _is_status_code_membership(node: ast.AST) -> bool:
+    if not (
+        isinstance(node, ast.Compare)
+        and len(node.ops) == 1
+        and isinstance(node.ops[0], ast.In)
+        and len(node.comparators) == 1
+        and isinstance(node.comparators[0], (ast.List, ast.Set, ast.Tuple))
+    ):
+        return False
+
+    left = node.left
+    return isinstance(left, ast.Attribute) and left.attr == "status_code"
 
 
 class LiveTestWithoutEnvGuard(Rule):

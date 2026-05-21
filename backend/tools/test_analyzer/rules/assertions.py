@@ -7,12 +7,14 @@ import ast
 from ..models import (
     AnalyzerConfig,
     FileContext,
+    FunctionNode,
     Issue,
     Rule,
     Severity,
     count_asserts,
     func_source,
     get_test_functions,
+    has_marker,
 )
 
 
@@ -185,3 +187,92 @@ class ManualExceptionCatch(Rule):
                                     )
                                     break
         return issues
+
+
+class PytestRaisesWithoutMatch(Rule):
+    id = "TQA007"
+    type = "assertions"
+    default_severity = Severity.WARNING
+
+    def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
+        issues: list[Issue] = []
+        for func in get_test_functions(ctx.tree):
+            if not _is_unit_or_security_test(ctx, func):
+                continue
+            for node in ast.walk(func):
+                if isinstance(node, ast.Call) and _is_pytest_raises_call(node):
+                    if not any(keyword.arg == "match" for keyword in node.keywords):
+                        issues.append(
+                            Issue(
+                                rule_id=self.id,
+                                rule_type=self.type,
+                                severity=self.default_severity,
+                                file=ctx.relative_path,
+                                line=node.lineno,
+                                message="pytest.raises() in unit/security test lacks match=",
+                                recommendation=(
+                                    "Add match= to verify the expected exception message"
+                                ),
+                            )
+                        )
+        return issues
+
+
+class BroadExcept(Rule):
+    id = "TQA008"
+    type = "assertions"
+    default_severity = Severity.WARNING
+
+    def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
+        issues: list[Issue] = []
+        for func in get_test_functions(ctx.tree):
+            for node in ast.walk(func):
+                if isinstance(node, ast.Try):
+                    for handler in node.handlers:
+                        if _is_broad_except(handler.type):
+                            issues.append(
+                                Issue(
+                                    rule_id=self.id,
+                                    rule_type=self.type,
+                                    severity=self.default_severity,
+                                    file=ctx.relative_path,
+                                    line=handler.lineno,
+                                    message="Test uses broad or bare except",
+                                    recommendation="Catch the specific exception type under test",
+                                )
+                            )
+        return issues
+
+
+def _is_unit_or_security_test(ctx: FileContext, func: FunctionNode) -> bool:
+    if has_marker(func, "unit") or has_marker(func, "security"):
+        return True
+
+    path = ctx.relative_path.lower().replace("\\", "/")
+    parts = path.split("/")
+    filename = parts[-1] if parts else path
+    return (
+        "unit" in parts
+        or "security" in parts
+        or filename.startswith("test_security")
+        or filename.startswith("security_")
+    )
+
+
+def _is_pytest_raises_call(node: ast.Call) -> bool:
+    return (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "raises"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "pytest"
+    )
+
+
+def _is_broad_except(handler_type: ast.expr | None) -> bool:
+    if handler_type is None:
+        return True
+    if isinstance(handler_type, ast.Name):
+        return handler_type.id in {"Exception", "BaseException"}
+    if isinstance(handler_type, ast.Tuple):
+        return any(_is_broad_except(elt) for elt in handler_type.elts)
+    return False

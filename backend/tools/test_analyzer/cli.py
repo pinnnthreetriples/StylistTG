@@ -58,6 +58,18 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
         "good": "with pytest.raises(ValueError):\n    func()",
         "suppress": '# test-analyzer: disable=TQA006 reason="needs else branch"',
     },
+    "TQA007": {
+        "summary": "pytest.raises in unit/security tests should assert match=",
+        "bad": "with pytest.raises(ValueError):\n    validate_token(token)",
+        "good": "with pytest.raises(ValueError, match='invalid token'):\n    validate_token(token)",
+        "suppress": '# test-analyzer: disable=TQA007 reason="message not stable"',
+    },
+    "TQA008": {
+        "summary": "Broad or bare except in tests can hide unexpected failures",
+        "bad": "try:\n    func()\nexcept Exception:\n    pass",
+        "good": "try:\n    func()\nexcept ValueError:\n    pass",
+        "suppress": '# test-analyzer: disable=TQA008 reason="deliberate fallback coverage"',
+    },
     "TQA010": {
         "summary": "Flaky test — uses sleep()",
         "bad": "time.sleep(2); assert service.ready()",
@@ -134,8 +146,13 @@ def _get_changed_files(ref: str) -> list[Path]:
         for line in result.stdout.strip().splitlines():
             p = Path(line)
             if p.name.startswith("test_") or p.name.endswith("_test.py"):
-                if p.exists():
-                    files.append(p)
+                candidates = [p]
+                cwd_name = Path.cwd().name
+                if p.parts and p.parts[0] == cwd_name:
+                    candidates.append(Path(*p.parts[1:]))
+                existing = next((candidate for candidate in candidates if candidate.exists()), None)
+                if existing is not None:
+                    files.append(existing)
         return files
     except (subprocess.CalledProcessError, FileNotFoundError):
         return []

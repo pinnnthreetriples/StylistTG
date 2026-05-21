@@ -6,7 +6,9 @@ from ..models import Rule
 from .assertions import (
     AssertSelfEquality,
     AssertTrue,
+    BroadExcept,
     ManualExceptionCatch,
+    PytestRaisesWithoutMatch,
     TooManyAssertions,
     UnittestAssertTrue,
     ZeroAssertions,
@@ -42,6 +44,8 @@ ALL_RULES: list[Rule] = [
     TooManyAssertions(),
     UnittestAssertTrue(),
     ManualExceptionCatch(),
+    PytestRaisesWithoutMatch(),
+    BroadExcept(),
     # Flaky
     TimeSleep(),
     RandomWithoutSeed(),

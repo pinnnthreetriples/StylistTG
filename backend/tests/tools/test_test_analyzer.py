@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from tools.test_analyzer import cli as analyzer_cli
 from tools.test_analyzer import (
     Analyzer,
     AnalyzerConfig,
@@ -35,20 +36,21 @@ from tools.test_analyzer import (
 # ---------------------------------------------------------------------------
 
 
-def _analyze_source(source: str, config: AnalyzerConfig | None = None) -> list[Issue]:
+def _analyze_source(
+    source: str,
+    config: AnalyzerConfig | None = None,
+    relative_path: str = "test_sample.py",
+) -> list[Issue]:
     """Analyze a source string and return issues."""
     cfg = config or AnalyzerConfig()
     analyzer = Analyzer(cfg)
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", prefix="test_", delete=False) as f:
-        f.write(source)
-        f.flush()
-        path = Path(f.name)
-
-    try:
-        issues = analyzer.analyze_file(path, path.parent)
-    finally:
-        path.unlink(missing_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        base_dir = Path(tmp)
+        path = base_dir / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(source, encoding="utf-8")
+        issues = analyzer.analyze_file(path, base_dir)
 
     return issues
 
@@ -188,6 +190,111 @@ def test_tqa006_manual_exception_catch() -> None:
 
 
 # ---------------------------------------------------------------------------
+# TQA007: pytest.raises without match= in focused tests
+# ---------------------------------------------------------------------------
+
+
+def test_tqa007_pytest_raises_without_match_in_security_path() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source, relative_path="tests/security/test_tokens.py")
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_with_match_no_issue() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError, match="invalid token"):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source, relative_path="tests/security/test_tokens.py")
+    tqa007 = [i for i in issues if i.rule_id == "TQA007"]
+    assert tqa007 == []
+
+
+def test_tqa007_pytest_raises_without_match_outside_focused_tests_no_issue() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        def test_legacy_error():
+            with pytest.raises(ValueError):
+                parse_legacy_value("bad")
+    """)
+    issues = _analyze_source(source, relative_path="tests/integration/test_legacy.py")
+    tqa007 = [i for i in issues if i.rule_id == "TQA007"]
+    assert tqa007 == []
+
+
+def test_tqa007_pytest_raises_without_match_with_security_marker() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        @pytest.mark.security
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+# ---------------------------------------------------------------------------
+# TQA008: broad/bare except
+# ---------------------------------------------------------------------------
+
+
+def test_tqa008_bare_except() -> None:
+    source = textwrap.dedent("""\
+        def test_fallback():
+            try:
+                load_config()
+            except:
+                result = "fallback"
+            assert result == "fallback"
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA008" in rule_ids
+
+
+def test_tqa008_broad_exception_except() -> None:
+    source = textwrap.dedent("""\
+        def test_fallback():
+            try:
+                load_config()
+            except Exception:
+                result = "fallback"
+            assert result == "fallback"
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA008" in rule_ids
+
+
+def test_tqa008_specific_except_no_issue() -> None:
+    source = textwrap.dedent("""\
+        def test_fallback():
+            try:
+                load_config()
+            except ValueError:
+                result = "fallback"
+            assert result == "fallback"
+    """)
+    issues = _analyze_source(source)
+    tqa008 = [i for i in issues if i.rule_id == "TQA008"]
+    assert tqa008 == []
+
+
+# ---------------------------------------------------------------------------
 # TQA020: Mock without assert_called
 # ---------------------------------------------------------------------------
 
@@ -255,6 +362,22 @@ def test_stg001_overrides_with_finally_no_issue() -> None:
     issues = _analyze_source(source)
     stg001 = [i for i in issues if i.rule_id == "STG001"]
     assert stg001 == []
+
+
+# ---------------------------------------------------------------------------
+# STG004: ambiguous status code
+# ---------------------------------------------------------------------------
+
+
+def test_stg004_status_code_tuple_without_contract() -> None:
+    source = textwrap.dedent("""\
+        def test_create_or_conflict():
+            response = client.post("/items")
+            assert response.status_code in (201, 409)
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "STG004" in rule_ids
 
 
 # ---------------------------------------------------------------------------
@@ -708,3 +831,25 @@ def test_changed_mode_analyzes_changed_test_file(
 
     code = main(["--path", str(tmp_path), "--changed", "origin/main"])
     assert code == 1  # TQA001 (zero assertions) is CRITICAL
+
+
+def test_changed_file_paths_strip_current_directory_prefix(
+    tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+) -> None:
+    """Git reports repo-root paths even when CI runs from backend/."""
+
+    backend = tmp_path / "backend"
+    test_file = backend / "tests" / "test_changed.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_fine():\n    assert True\n", encoding="utf-8")
+
+    class Result:
+        stdout = "backend/tests/test_changed.py\n"
+
+    monkeypatch.chdir(backend)
+    monkeypatch.setattr(
+        "tools.test_analyzer.cli.subprocess.run",
+        lambda *args, **kwargs: Result(),
+    )
+
+    assert analyzer_cli._get_changed_files("origin/main") == [Path("tests/test_changed.py")]

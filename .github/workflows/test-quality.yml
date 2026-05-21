@@ -85,6 +85,8 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -151,6 +153,18 @@ jobs:
               --severity INFO \
               --fail-on-severity CRITICAL
           cat reports/test-analyzer-time.txt | tee -a reports/pytest-runtime-summary.txt
+      - name: Run changed-tests quality analyzer
+        run: |
+          /usr/bin/time -f "changed_test_analyzer_seconds=%e" -o reports/changed-test-analyzer-time.txt \
+            uv run python -m tools.test_analyzer \
+              --path tests \
+              --changed origin/${{ github.base_ref }} \
+              --coverage reports/coverage.json \
+              --format sarif,json \
+              --output-dir reports/changed-tests \
+              --severity INFO \
+              --fail-on-severity WARNING
+          cat reports/changed-test-analyzer-time.txt | tee -a reports/pytest-runtime-summary.txt
       - name: Upload backend test reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -160,6 +174,8 @@ jobs:
             backend/reports/coverage.xml
             backend/reports/test-quality.sarif
             backend/reports/test-quality.json
+            backend/reports/changed-tests/test-quality.sarif
+            backend/reports/changed-tests/test-quality.json
             backend/reports/slow-tests.json
             backend/reports/fixture-audit.json
             backend/reports/pytest-runtime-summary.txt

@@ -12,12 +12,12 @@ It requires these jobs to pass:
 
 - `lint-format`: ruff check, ruff format check, and test requirement gate for new backend production files.
 - `typecheck`: scoped Pyright check and full strict Pyright report.
-- `backend-tests`: pytest PR profile, coverage JSON/XML, branch coverage, package coverage gate, one-pass test analyzer SARIF/JSON, slow-test report, fixture audit, and runtime telemetry summary.
-- `audit`: pip-audit.
+- `backend-tests`: pytest PR profile, coverage JSON/XML, branch coverage, package coverage gate, full-suite and changed-tests analyzer SARIF/JSON, slow-test report, fixture audit, and runtime telemetry summary.
+- `audit`: pip-audit over the broad quality toolchain extras.
 - `duplication`: jscpd JSON reports for backend app and tests.
 - `contract-security`: narrow hard contract subset for security-sensitive API contract regressions.
 
-CI installs narrow backend dependency extras per job. Local developer setup keeps using the `dev` extra for the full quality toolchain.
+CI installs narrow backend dependency extras per job, except `audit`, which intentionally installs the broad quality extra set so `pip-audit` does not lose coverage compared with the previous `dev` environment. Local developer setup keeps using the `dev` extra for the full quality toolchain.
 
 ## Backend PR pytest profile
 
@@ -58,6 +58,8 @@ PR jobs should upload only machine-readable lightweight artifacts:
 - `coverage.xml`
 - `test-quality.sarif`
 - `test-quality.json`
+- `changed-tests/test-quality.sarif`
+- `changed-tests/test-quality.json`
 - `slow-tests.json`
 - `fixture-audit.json`
 - `pytest-runtime-summary.txt`
@@ -67,7 +69,7 @@ Do not upload HTML coverage/jscpd reports in every PR. Generate heavy HTML only 
 
 ## Runtime telemetry policy
 
-`pytest-runtime-summary.txt` is the first place to check after any suite or CI change. It should include `pytest_total_seconds`, `slow_report_seconds`, `fixture_audit_seconds`, `coverage_gate_seconds`, and `test_analyzer_seconds`.
+`pytest-runtime-summary.txt` is the first place to check after any suite or CI change. It should include `pytest_total_seconds`, `slow_report_seconds`, `fixture_audit_seconds`, `coverage_gate_seconds`, `test_analyzer_seconds`, and `changed_test_analyzer_seconds`.
 
 Use this file to decide whether the next optimization belongs in pytest collection/execution, coverage, analyzer, fixture audit, or artifact handling.
 

@@ -1,0 +1,187 @@
+name: Nightly Backend Quality
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.10.9"
+
+jobs:
+  slow-and-property:
+    name: slow-property-heavy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+      - name: Run slow and property tests
+        run: |
+          mkdir -p reports
+          set +e
+          uv run pytest tests \
+            -m "slow or property" \
+            -p no:randomly \
+            --tb=short \
+            --durations=50 --durations-min=0.5 \
+            --junit-xml=reports/nightly-slow-property-junit.xml \
+            -q
+          rc=$?
+          if [ "$rc" -eq 5 ]; then
+            echo "No slow/property tests selected."
+            exit 0
+          fi
+          exit "$rc"
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+      - name: Upload slow/property reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-slow-property-reports
+          path: backend/reports/nightly-slow-property-junit.xml
+
+  contract-fuzz:
+    name: contract-fuzz-nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+      - name: Run contract fuzz
+        run: |
+          mkdir -p reports
+          uv run pytest tests/contract/ -m contract \
+            -p no:randomly \
+            --tb=short -q \
+            --junit-xml=reports/nightly-contract-junit.xml
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+          SCHEMATHESIS_MAX_EXAMPLES: "100"
+      - name: Upload contract reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-contract-reports
+          path: backend/reports/nightly-contract-junit.xml
+
+  postgres-parity:
+    name: postgres-parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stylisttg
+          POSTGRES_PASSWORD: stylisttg
+          POSTGRES_DB: stylisttg_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+      - name: Run postgres-marked tests
+        run: |
+          mkdir -p reports
+          set +e
+          uv run pytest tests \
+            -m postgres \
+            -p no:randomly \
+            --tb=short \
+            --junit-xml=reports/nightly-postgres-junit.xml \
+            -q
+          rc=$?
+          if [ "$rc" -eq 5 ]; then
+            echo "No postgres tests selected."
+            exit 0
+          fi
+          exit "$rc"
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+          DATABASE_URL: postgresql+psycopg://stylisttg:stylisttg@localhost:5432/stylisttg_test
+      - name: Upload postgres reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-postgres-reports
+          path: backend/reports/nightly-postgres-junit.xml
+
+  mutation-selected:
+    name: mutation-selected-soft
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+      - name: Run selected mutation profile
+        run: |
+          mkdir -p reports
+          uv run python scripts/check.py --only mutation | tee reports/nightly-mutation.txt
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-mutation-reports
+          path: backend/reports/nightly-mutation.txt

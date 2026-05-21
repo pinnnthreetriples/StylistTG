@@ -118,6 +118,10 @@ class FakePipeline:
         self.commands.append(("delete", keys))
         return self
 
+    def set(self, key: str, value: str, ex: int | None = None):
+        self.commands.append(("set", key, value, ex))
+        return self
+
     def execute(self):
         results = []
         for command in self.commands:
@@ -129,6 +133,8 @@ class FakePipeline:
                 results.append(self.redis.expire(command[1], command[2], nx=command[3]))
             elif command[0] == "delete":
                 results.append(self.redis.delete(*command[1]))
+            elif command[0] == "set":
+                results.append(self.redis.set(command[1], command[2], ex=command[3]))
         return results
 
 
@@ -169,6 +175,33 @@ def test_reserve_allows_under_limit_and_commit_consumes_capacity() -> None:
     assert reservation.reservation_id is not None
     assert denied.allowed is False
     assert denied.reason == "account comments_per_hour limit exceeded"
+
+
+def test_reserve_writes_counter_window_metadata() -> None:
+    redis = FakeRedis()
+    limiter = NeuroCommentRateLimiter(
+        redis_client=redis,
+        limits=[
+            {
+                "scope_type": "account",
+                "scope_id": "account-1",
+                "limit_type": "comments_per_hour",
+                "max_value": 1,
+                "window_seconds": 120,
+            }
+        ],
+    )
+
+    limiter.reserve(_scope())
+    metadata_keys = [
+        key
+        for key in redis.values
+        if key.startswith("neuro:workspace-1:limit_meta:account:account-1:comments_per_hour:")
+    ]
+
+    assert len(metadata_keys) == 1
+    assert redis.values[metadata_keys[0]] == "120"
+    assert redis.ttls[metadata_keys[0]] == 240
 
 
 def test_rollback_restores_capacity_and_is_idempotent() -> None:

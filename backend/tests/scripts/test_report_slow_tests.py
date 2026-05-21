@@ -60,6 +60,10 @@ def test_parse_pytest_durations_sorts_slowest_first() -> None:
     assert parse_pytest_durations(log_text)[0].nodeid == "tests/test_example.py::test_slow"
 
 
+def test_parse_pytest_durations_ignores_invalid_lines() -> None:
+    assert parse_pytest_durations("not a pytest duration line") == []
+
+
 def test_build_report_counts_thresholds() -> None:
     report = build_report(
         [

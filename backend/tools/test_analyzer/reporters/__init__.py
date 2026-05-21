@@ -15,7 +15,7 @@ class TextReporter:
             sev = issue.severity.name
             lines.append(
                 f"[{sev}] {issue.file}:{issue.line} | {issue.rule_id} | "
-                f"{issue.rule_type} | {issue.message} \u2192 {issue.recommendation}"
+                f"{issue.rule_type} | {issue.message} -> {issue.recommendation}"
             )
         return "\n".join(lines)
 

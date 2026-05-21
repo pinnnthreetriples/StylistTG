@@ -2180,3 +2180,37 @@ class Asset(Base):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class RateLimitPersistentCounter(Base):
+    __tablename__ = "rate_limit_persistent_counters"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "scope_type",
+            "scope_id",
+            "scope_key",
+            "window_start",
+            name="uq_rate_limit_persistent_counters_scope_window",
+        ),
+        Index(
+            "ix_rate_limit_persistent_counters_scope",
+            "workspace_id",
+            "scope_type",
+            "scope_id",
+            "scope_key",
+            "window_start",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    scope_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    scope_id: Mapped[str] = mapped_column(UUIDString, nullable=False)
+    scope_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    window_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -63,6 +63,41 @@ class TdlibClientFactory(Protocol):
     def create(self, account_id: str) -> TdlibClient: ...
 
 
+def search_chat_messages(
+    client: TdlibClient,
+    *,
+    chat_id: int,
+    random_id: int | None = None,
+    limit: int = 10,
+    timeout_seconds: float = 10.0,
+) -> list[JsonDict]:
+    """Fetch recent chat history and optionally filter messages by TDLib random_id."""
+    fetch_limit = 50 if random_id is not None else max(1, limit)
+    response = client.send_query(
+        {
+            "@type": "getChatHistory",
+            "chat_id": chat_id,
+            "from_message_id": 0,
+            "offset": 0,
+            "limit": fetch_limit,
+            "only_local": False,
+        },
+        timeout_seconds,
+    )
+    if response.get("@type") == "error":
+        raise RuntimeError(str(response.get("message") or "TDLib query failed"))
+
+    raw_messages = response.get("messages")
+    messages: list[JsonDict] = []
+    if isinstance(raw_messages, list):
+        for raw_message in cast(list[Any], raw_messages):
+            if isinstance(raw_message, dict):
+                messages.append(cast(JsonDict, raw_message))
+    if random_id is not None:
+        messages = [message for message in messages if message.get("random_id") == random_id]
+    return messages[: max(1, limit)]
+
+
 class RealTdJsonClient:
     def __init__(self, library: ctypes.CDLL) -> None:
         self._library = library

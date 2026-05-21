@@ -45,9 +45,7 @@ def build_report(
             "reported_tests": len(entries),
             "thresholds_seconds": list(thresholds),
             "over_threshold": {
-                str(threshold): sum(
-                    1 for entry in entries if entry.duration_seconds > threshold
-                )
+                str(threshold): sum(1 for entry in entries if entry.duration_seconds > threshold)
                 for threshold in thresholds
             },
         },
@@ -59,12 +57,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build a JSON report from pytest --durations output."
     )
-    parser.add_argument(
-        "--log", required=True, help="Path to captured pytest stdout/stderr log"
-    )
-    parser.add_argument(
-        "--output", required=True, help="Path to write slow-tests JSON report"
-    )
+    parser.add_argument("--log", required=True, help="Path to captured pytest stdout/stderr log")
+    parser.add_argument("--output", required=True, help="Path to write slow-tests JSON report")
     parser.add_argument(
         "--threshold",
         dest="thresholds",
@@ -83,9 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     report = build_report(parse_pytest_durations(log_text), thresholds)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    output_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     return 0
 
 

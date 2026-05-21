@@ -342,7 +342,9 @@ def recalculate_due_scores(session: Session, workspace_id: str, *, limit: int = 
 
     recalculated = 0
     for ggr_row in due_rows:
-        account_stmt = select(Account).where(Account.id == ggr_row.account_id)
+        account_stmt = select(Account).where(
+            Account.id == ggr_row.account_id, Account.workspace_id == workspace_id
+        )
         account = session.execute(account_stmt).scalar_one_or_none()
         if account is None:
             continue

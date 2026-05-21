@@ -20,17 +20,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.13"
           cache: pip
       - name: Install Semgrep CE
         run: python -m pip install semgrep
+      - name: Test custom Semgrep rules
+        run: |
+          mkdir -p .semgrep/tenant-scope-test-config
+          cp .semgrep/tenant_scope.yaml .semgrep/tenant-scope-test-config/tenant_scope.yaml
+          cp .semgrep/tests/tenant_scope_test.py .semgrep/tenant-scope-test-config/tenant_scope.py
+          semgrep --test .semgrep/tenant-scope-test-config
       - name: Run Semgrep
         run: |
+          baseline_args=()
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            baseline_args=(--baseline-commit "origin/${{ github.base_ref }}")
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ] && ! [[ "${{ github.event.before }}" =~ ^0+$ ]]; then
+            baseline_args=(--baseline-commit "${{ github.event.before }}")
+          fi
           semgrep scan \
             --config p/ci \
             --config .semgrep/stylisttg.yml \
+            --config .semgrep/tenant_scope.yaml \
+            "${baseline_args[@]}" \
             --error \
             --sarif \
             --output semgrep.sarif \

@@ -8,12 +8,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
+  UV_VERSION: "0.10.9"
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -22,6 +27,7 @@ jobs:
   test-quality-pr:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend
@@ -41,45 +47,45 @@ jobs:
         working-directory: .
         run: npm ci --ignore-scripts
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-
-      - name: Install dependencies
-        run: pip install -e ".[dev]"
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
 
       - name: Prepare reports directory
         run: mkdir -p reports
 
       # ----- Hard gates (fail the build) --------------------------------------
       - name: Ruff lint
-        run: python -m ruff check . --output-format=github
+        run: uv run ruff check . --output-format=github
 
       - name: Ruff format check
-        run: python -m ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Pyright scoped type check
-        run: python -m pyright app/api app/services app/schemas.py app/config.py app/workers
+        run: uv run pyright app/api app/services app/schemas.py app/config.py app/workers
 
       - name: Run tests with coverage (random order, parallel)
         run: |
-          python -m pytest tests \
+          uv run pytest tests \
             -n auto --dist=loadscope \
             --cov=app --cov=tools --cov-branch --cov-context=test \
             --cov-report=json:reports/coverage.json \
             --cov-report=html:reports/htmlcov \
             --cov-report=xml:reports/coverage.xml \
             --cov-report=term-missing:skip-covered \
+            --durations=20 --durations-min=1.0 \
             -q
         env:
           APP_ENV: test
           AUTH_MODE: local
 
       - name: Per-package coverage gate
-        run: python scripts/coverage_gate.py
+        run: uv run python scripts/coverage_gate.py
 
       - name: Run test quality analyzer (strict, fails on any issue)
         run: |
-          python -m tools.test_analyzer \
+          uv run python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format sarif \
@@ -88,7 +94,7 @@ jobs:
 
       - name: Run test quality analyzer (JSON)
         run: |
-          python -m tools.test_analyzer \
+          uv run python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
             --format json \
@@ -101,21 +107,21 @@ jobs:
       # Full Pyright remains soft while the strict backlog is being drained.
       # The scoped hard gate above protects the production backend surface.
       - name: Pyright full strict report (soft)
-        run: python -m pyright
+        run: uv run pyright
         continue-on-error: true
 
       # pip-audit: scans the installed environment for known CVEs.
       # --skip-editable: don't try to audit our own editable install.
       # Plain mode (no --strict) returns exit 1 only on real CVEs.
       - name: pip-audit
-        run: python -m pip_audit --skip-editable --progress-spinner=off
+        run: uv run python -m pip_audit --skip-editable --progress-spinner=off
 
       # Schemathesis OpenAPI contract fuzz. Currently surfaces a backlog of
       # schema ↔ handler drift; soft until the backlog is drained. Generated
       # report is uploaded as a CI artifact for triage.
       - name: Schemathesis OpenAPI fuzz (soft)
         run: |
-          python -m pytest tests/contract/ -m contract \
+          uv run pytest tests/contract/ -m contract \
             -p no:randomly \
             --tb=short -q \
             --junit-xml=reports/schemathesis-junit.xml \

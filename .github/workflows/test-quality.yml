@@ -4,8 +4,9 @@ on:
   pull_request:
     paths:
       - "backend/**"
-  push:
-    branches: [main]
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/test-quality.yml"
   workflow_dispatch:
 
 concurrency:

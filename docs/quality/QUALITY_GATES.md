@@ -15,6 +15,7 @@ It requires these jobs to pass:
 - `backend-tests`: pytest PR profile, coverage JSON/XML, branch coverage, package coverage gate, one-pass test analyzer SARIF/JSON, slow-test report, fixture audit, and runtime telemetry summary.
 - `audit`: pip-audit.
 - `duplication`: jscpd JSON reports for backend app and tests.
+- `contract-security`: narrow hard contract subset for security-sensitive API contract regressions.
 
 ## Backend PR pytest profile
 
@@ -41,7 +42,7 @@ PYTEST_DIST=worksteal
 
 | Check | Workflow | Purpose |
 |---|---|---|
-| Contract fuzz soft PR signal | `Test Quality / contract-fuzz` | OpenAPI/Schemathesis drift visibility without blocking required path |
+| Contract fuzz soft PR signal | `Test Quality / contract-fuzz` | Broad OpenAPI/Schemathesis drift visibility without blocking required path |
 | Pytest Benchmark | `Pytest Benchmark` | Manual xdist runtime comparison before changing PR runtime |
 | Nightly Backend Quality | `Nightly Backend Quality` | slow/property/contract/postgres/mutation checks |
 | Complexity | existing soft workflow | complexity debt visibility |

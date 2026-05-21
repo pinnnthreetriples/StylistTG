@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.config import settings
+from app.main import app
+
+
+@pytest.mark.contract
+@pytest.mark.security
+def test_mutating_operator_api_requires_operator_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "auth_mode", "local")
+    monkeypatch.setattr(settings, "operator_api_token", "contract-token")
+
+    with TestClient(app) as client:
+        response = client.patch("/api/auth/runtime-mode", json={"tdlib_use_test_dc": False})
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "operator token is required"}

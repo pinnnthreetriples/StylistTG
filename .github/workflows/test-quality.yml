@@ -251,6 +251,48 @@ jobs:
           path: backend/reports/schemathesis-junit.xml
         if: always()
 
+  contract-security:
+    name: contract-security
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install locked backend contract dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
+      - name: Run hard security contract subset
+        run: |
+          uv run pytest tests/contract/security -m contract \
+            -p no:randomly \
+            --tb=short \
+            --junit-xml=reports/contract-security-junit.xml \
+            -q
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+
+      - name: Upload contract security report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: contract-security-reports
+          path: backend/reports/contract-security-junit.xml
+        if: always()
+
   test-quality-pr:
     name: test-quality-pr
     if: always() && github.event_name == 'pull_request'
@@ -260,6 +302,7 @@ jobs:
       - backend-tests
       - audit
       - duplication
+      - contract-security
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -270,8 +313,10 @@ jobs:
           echo "backend-tests: ${{ needs.backend-tests.result }}"
           echo "audit:         ${{ needs.audit.result }}"
           echo "duplication:   ${{ needs.duplication.result }}"
+          echo "contract-security: ${{ needs.contract-security.result }}"
           test "${{ needs.lint-format.result }}" = "success"
           test "${{ needs.typecheck.result }}" = "success"
           test "${{ needs.backend-tests.result }}" = "success"
           test "${{ needs.audit.result }}" = "success"
           test "${{ needs.duplication.result }}" = "success"
+          test "${{ needs.contract-security.result }}" = "success"

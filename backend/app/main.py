@@ -47,6 +47,7 @@ from app.api.story_capabilities import router as story_capabilities_router
 from app.api.story_posts import router as story_posts_router
 from app.api.telegram_auth import router as telegram_auth_router
 from app.api.tdlib_runtime import router as tdlib_runtime_router
+from app.api.workspace_feature_flags_routes import router as workspace_feature_flags_router
 from app.api.workers import router as workers_router
 from app.config import settings
 from app.db import SessionLocal
@@ -214,6 +215,7 @@ app.include_router(story_capabilities_router)
 app.include_router(story_posts_router)
 app.include_router(telegram_auth_router)
 app.include_router(tdlib_runtime_router)
+app.include_router(workspace_feature_flags_router)
 app.include_router(workers_router)
 for module_router in iter_routers():
     app.include_router(module_router)

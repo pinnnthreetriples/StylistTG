@@ -10,6 +10,7 @@ from app.models import (
     WorkspaceSafetyPolicy,
 )
 from app.services.auth_context import AuthContext, get_current_auth_context
+from app.services.workspace_safety_policy import compute_diff
 
 
 def _auth(role: str = "admin") -> AuthContext:
@@ -118,6 +119,35 @@ def test_patch_invalid_mode_returns_422(admin_client) -> None:
     assert "detail" in body or "error_code" in body
 
 
+def test_compute_diff_only_returns_changed_public_policy_fields() -> None:
+    old = {
+        "id": "policy-1",
+        "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
+        "mode": "balanced",
+        "delay_multiplier": 1.0,
+        "require_healthy_proxy": True,
+        "updated_at": "2026-05-21T00:00:00Z",
+    }
+    new = {
+        **old,
+        "delay_multiplier": 1.25,
+        "require_healthy_proxy": False,
+        "updated_at": "2026-05-21T00:01:00Z",
+    }
+
+    assert compute_diff(old, new) == {
+        "changed_fields": ["delay_multiplier", "require_healthy_proxy"],
+        "old": {
+            "delay_multiplier": 1.0,
+            "require_healthy_proxy": True,
+        },
+        "new": {
+            "delay_multiplier": 1.25,
+            "require_healthy_proxy": False,
+        },
+    }
+
+
 def test_patch_records_sensitive_audit_event(admin_client, db_session) -> None:
     response = admin_client.patch("/api/safety-policy", json={"mode": "conservative"})
 
@@ -127,4 +157,4 @@ def test_patch_records_sensitive_audit_event(admin_client, db_session) -> None:
     assert event.actor_user_id == DEFAULT_LOCAL_USER_ID
     assert event.action == "workspace_safety_policy.updated"
     assert event.entity_type == "workspace_safety_policy"
-    assert event.metadata_json["new_mode"] == "conservative"
+    assert event.metadata_json["new"]["mode"] == "conservative"

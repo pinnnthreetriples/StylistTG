@@ -170,11 +170,14 @@ def _maybe_hydrate_rate_limits() -> None:
     """Hydrate rate-limit counters from Postgres if Redis is empty (post-FLUSHALL recovery)."""
     from redis import Redis
 
-    from app.services.rate_limit_persistence import hydrate_redis_from_db
+    from app.services.rate_limit_persistence import (
+        hydrate_redis_from_db,
+        redis_has_rate_limit_counters,
+    )
 
     try:
         redis_client = Redis.from_url(settings.redis_url)
-        if redis_client.dbsize() == 0:
+        if not redis_has_rate_limit_counters(redis_client):
             with SessionLocal() as session:
                 hydrate_redis_from_db(session, redis_client)
             log_event("rate_limit_hydrate_completed", source="startup")

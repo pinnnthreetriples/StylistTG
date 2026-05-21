@@ -23,6 +23,7 @@ from app.models import RateLimitPersistentCounter, new_id, utc_now
 from app.services.neuro_commenting.rate_limiter import (
     RATE_LIMIT_COUNTER_SCAN_PATTERN,
     build_rate_limit_counter_key,
+    build_rate_limit_counter_metadata_key,
     parse_rate_limit_counter_key,
 )
 
@@ -49,6 +50,9 @@ class HydrateReport:
     keys_set: int = 0
     keys_skipped_warm: int = 0
     per_scope_counts: dict[str, int] = field(default_factory=dict)
+
+
+DEFAULT_SCOPE_KEYS = ("comments_per_minute", "comments_per_hour", "comments_per_day")
 
 
 def _window_seconds_for_scope_key(scope_key: str) -> int:
@@ -85,11 +89,29 @@ def _current_window_number(scope_key: str, now: datetime | None = None) -> int:
     return int(ts // window_seconds)
 
 
+def redis_has_rate_limit_counters(redis: Any) -> bool:
+    cursor: int | bytes | str = 0
+    while True:
+        cursor, keys = redis.scan(cursor=cursor, match=RATE_LIMIT_COUNTER_SCAN_PATTERN, count=100)
+        if keys:
+            return True
+        if _scan_finished(cursor):
+            return False
+
+
+def _scan_finished(cursor: int | bytes | str) -> bool:
+    if isinstance(cursor, bytes):
+        cursor = cursor.decode()
+    if isinstance(cursor, str):
+        return cursor == "0"
+    return cursor == 0
+
+
 def flush_redis_to_db(
     session: Session,
     redis: Any,
     *,
-    scope_keys: tuple[str, ...] | list[str] = ("comments_per_hour", "comments_per_day"),
+    scope_keys: tuple[str, ...] | list[str] = DEFAULT_SCOPE_KEYS,
     now: datetime | None = None,
 ) -> FlushReport:
     """SCAN Redis ratelimit keys -> bulk UPSERT into rate_limit_persistent_counters."""
@@ -116,7 +138,7 @@ def flush_redis_to_db(
             if count <= 0:
                 continue
 
-            window_seconds = _window_seconds_for_scope_key(parsed["scope_key"])
+            window_seconds = _window_seconds_for_counter(redis, parsed)
             window_start = _window_start_from_number(parsed["window_number"], window_seconds)
 
             rows_to_upsert.append(
@@ -126,6 +148,7 @@ def flush_redis_to_db(
                     "scope_type": parsed["scope_type"],
                     "scope_id": parsed["scope_id"],
                     "scope_key": parsed["scope_key"],
+                    "window_seconds": window_seconds,
                     "window_start": window_start,
                     "count": count,
                     "updated_at": current_time,
@@ -135,7 +158,7 @@ def flush_redis_to_db(
                 report.per_scope_counts.get(parsed["scope_key"], 0) + 1
             )
 
-        if not cursor:
+        if _scan_finished(cursor):
             break
 
     if rows_to_upsert:
@@ -165,6 +188,7 @@ def _bulk_upsert(session: Session, rows: list[dict[str, Any]]) -> None:
             ],
             set_={
                 "count": insert_stmt.excluded.count,
+                "window_seconds": insert_stmt.excluded.window_seconds,
                 "updated_at": insert_stmt.excluded.updated_at,
             },
         )
@@ -186,6 +210,7 @@ def _bulk_upsert(session: Session, rows: list[dict[str, Any]]) -> None:
         )
         if existing is not None:
             existing.count = row["count"]
+            existing.window_seconds = row["window_seconds"]
             existing.updated_at = row["updated_at"]
         else:
             session.add(RateLimitPersistentCounter(**row))
@@ -198,6 +223,27 @@ def _insert_for_session(session: Session):
     if dialect_name == "sqlite":
         return sqlite_insert
     return None
+
+
+def _window_seconds_for_counter(redis: Any, parsed: dict[str, Any]) -> int:
+    metadata_key = build_rate_limit_counter_metadata_key(
+        workspace_id=parsed["workspace_id"],
+        scope_type=parsed["scope_type"],
+        scope_id=parsed["scope_id"],
+        scope_key=parsed["scope_key"],
+        window_number=parsed["window_number"],
+    )
+    raw_window_seconds = redis.get(metadata_key)
+    if raw_window_seconds is not None:
+        try:
+            if isinstance(raw_window_seconds, bytes):
+                raw_window_seconds = raw_window_seconds.decode()
+            window_seconds = int(raw_window_seconds)
+            if window_seconds > 0:
+                return window_seconds
+        except ValueError:
+            pass
+    return _window_seconds_for_scope_key(parsed["scope_key"])
 
 
 def _delete_expired(
@@ -242,7 +288,7 @@ def hydrate_redis_from_db(
     report.total_rows_loaded = len(rows)
 
     for row in rows:
-        window_seconds = _window_seconds_for_scope_key(row.scope_key)
+        window_seconds = int(row.window_seconds or _window_seconds_for_scope_key(row.scope_key))
         ws = row.window_start
         if ws.tzinfo is None:
             ws = ws.replace(tzinfo=UTC)
@@ -267,6 +313,14 @@ def hydrate_redis_from_db(
             continue
 
         redis.set(redis_key, str(row.count), ex=remaining_seconds)
+        metadata_key = build_rate_limit_counter_metadata_key(
+            workspace_id=row.workspace_id,
+            scope_type=row.scope_type,
+            scope_id=row.scope_id,
+            scope_key=row.scope_key,
+            window_number=window_number,
+        )
+        redis.set(metadata_key, str(window_seconds), ex=remaining_seconds)
         report.keys_set += 1
         report.per_scope_counts[row.scope_key] = report.per_scope_counts.get(row.scope_key, 0) + 1
 
@@ -278,4 +332,5 @@ __all__ = [
     "HydrateReport",
     "flush_redis_to_db",
     "hydrate_redis_from_db",
+    "redis_has_rate_limit_counters",
 ]

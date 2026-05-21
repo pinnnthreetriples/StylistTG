@@ -3,19 +3,33 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from importlib import import_module
 from time import perf_counter
 
 from freezegun import freeze_time
+from sqlalchemy.dialects import postgresql
 
 from app.config import Settings
 from app.models import RateLimitPersistentCounter, new_id
+from app.services.neuro_commenting.rate_limiter import build_rate_limit_counter_metadata_key
 from app.services.rate_limit_persistence import (
     _parse_limit_key,
     _window_start_from_number,
     flush_redis_to_db,
     hydrate_redis_from_db,
+    redis_has_rate_limit_counters,
 )
-from app.services.scheduler import RATE_LIMIT_FLUSH_TICK_SECONDS, scheduler_report
+from app.services.scheduler import (
+    RATE_LIMIT_FLUSH_JOB_ID_PREFIX,
+    RATE_LIMIT_FLUSH_TICK_SECONDS,
+    enqueue_rate_limit_flush_tick,
+    rate_limit_flush_tick,
+    scheduler_report,
+)
+
+rate_limit_migration = import_module(
+    "migrations.versions.20260521_0050_rate_limit_persistent_counters"
+)
 
 _FROZEN_NOW = "2026-05-21T12:00:00+00:00"
 _FROZEN_DT = datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC)
@@ -62,6 +76,22 @@ class FakeRedis:
         return fnmatch.fnmatch(key, pattern)
 
 
+class PagedScanRedis:
+    def __init__(self, pages: dict[int, tuple[int, list[bytes]]]) -> None:
+        self.pages = pages
+
+    def scan(self, cursor: int = 0, match: str = "*", count: int = 100) -> tuple[int, list[bytes]]:
+        return self.pages[cursor]
+
+
+class FakeQueue:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def enqueue_call(self, **kwargs) -> None:
+        self.calls.append(kwargs)
+
+
 def _make_redis_key(
     workspace_id: str,
     scope_type: str,
@@ -76,6 +106,60 @@ def test_scheduler_report_registers_rate_limit_flush_tick():
     report = scheduler_report(Settings(_env_file=None))
 
     assert report.planned_ticks["rate_limit_flush"] == RATE_LIMIT_FLUSH_TICK_SECONDS
+
+
+def test_enqueue_rate_limit_flush_tick_uses_scheduler_queue_and_minute_bucket(monkeypatch):
+    queue = FakeQueue()
+    seen_queues: list[str] = []
+
+    def fake_get_queue(name: str) -> FakeQueue:
+        seen_queues.append(name)
+        return queue
+
+    monkeypatch.setattr("app.job_queue.rq.get_queue", fake_get_queue)
+
+    assert enqueue_rate_limit_flush_tick(now=(RATE_LIMIT_FLUSH_TICK_SECONDS * 123) + 9) is True
+
+    assert seen_queues == ["scheduler_jobs"]
+    assert queue.calls == [
+        {
+            "func": rate_limit_flush_tick,
+            "job_id": f"{RATE_LIMIT_FLUSH_JOB_ID_PREFIX}-123",
+            "unique": True,
+        }
+    ]
+
+
+def test_migration_uses_postgres_uuid_for_workspace_fk():
+    dialect_type = rate_limit_migration.UUID_STRING.dialect_impl(postgresql.dialect())
+
+    assert dialect_type.__class__.__name__ == "PGUuid"
+
+
+def test_redis_has_rate_limit_counters_ignores_unrelated_keys():
+    redis = FakeRedis()
+    redis.set("rq:queue:scheduler_jobs", "1")
+
+    assert redis_has_rate_limit_counters(redis) is False
+
+
+def test_redis_has_rate_limit_counters_detects_limit_key():
+    redis = FakeRedis()
+    redis.set("rq:queue:scheduler_jobs", "1")
+    redis.set("neuro:ws:limit:account:acc:comments_per_hour:1", "1")
+
+    assert redis_has_rate_limit_counters(redis) is True
+
+
+def test_redis_has_rate_limit_counters_scans_later_pages():
+    redis = PagedScanRedis(
+        {
+            0: (1, []),
+            1: (0, [b"neuro:ws:limit:account:acc:comments_per_hour:1"]),
+        }
+    )
+
+    assert redis_has_rate_limit_counters(redis) is True
 
 
 @freeze_time(_FROZEN_NOW)
@@ -159,6 +243,7 @@ def test_hydrate_empty_redis_from_db(db_session):
                 scope_type="account",
                 scope_id=f"acc-{i:036d}",
                 scope_key="comments_per_hour",
+                window_seconds=window_seconds,
                 window_start=window_start,
                 count=i + 1,
                 updated_at=_FROZEN_DT,
@@ -200,6 +285,7 @@ def test_hydrate_skip_warm_redis(db_session):
             scope_type="account",
             scope_id=_ACCOUNT_ID,
             scope_key="comments_per_hour",
+            window_seconds=window_seconds,
             window_start=window_start,
             count=5,
             updated_at=_FROZEN_DT,
@@ -250,6 +336,7 @@ def test_retention_deletes_expired_rows(db_session):
             scope_type="account",
             scope_id=_ACCOUNT_ID,
             scope_key="comments_per_hour",
+            window_seconds=window_seconds,
             window_start=old_window_start,
             count=99,
             updated_at=old_window_start,
@@ -332,6 +419,104 @@ def test_flush_daily_scope(db_session):
     )
     assert row is not None
     assert row.count == 42
+
+
+@freeze_time(_FROZEN_NOW)
+def test_flush_minute_scope_by_default(db_session):
+    redis = FakeRedis()
+    window_seconds = 60
+    window_number = int(_FROZEN_DT.timestamp() // window_seconds)
+    key = _make_redis_key(
+        _WORKSPACE_ID, "account", _ACCOUNT_ID, "comments_per_minute", window_number
+    )
+    redis.set(key, "2")
+
+    report = flush_redis_to_db(db_session, redis, now=_FROZEN_DT)
+    db_session.commit()
+
+    assert report.upserted == 1
+    row = (
+        db_session.query(RateLimitPersistentCounter)
+        .filter_by(scope_key="comments_per_minute")
+        .one()
+    )
+    assert row.window_seconds == 60
+
+
+@freeze_time(_FROZEN_NOW)
+def test_flush_uses_counter_metadata_window_seconds(db_session):
+    redis = FakeRedis()
+    window_seconds = 120
+    window_number = int(_FROZEN_DT.timestamp() // window_seconds)
+    key = _make_redis_key(_WORKSPACE_ID, "account", _ACCOUNT_ID, "comments_per_hour", window_number)
+    metadata_key = build_rate_limit_counter_metadata_key(
+        workspace_id=_WORKSPACE_ID,
+        scope_type="account",
+        scope_id=_ACCOUNT_ID,
+        scope_key="comments_per_hour",
+        window_number=window_number,
+    )
+    redis.set(key, "4")
+    redis.set(metadata_key, str(window_seconds))
+
+    report = flush_redis_to_db(db_session, redis, now=_FROZEN_DT)
+    db_session.commit()
+
+    assert report.upserted == 1
+    row = (
+        db_session.query(RateLimitPersistentCounter).filter_by(scope_key="comments_per_hour").one()
+    )
+    assert row.window_seconds == window_seconds
+
+
+@freeze_time(_FROZEN_NOW)
+def test_hydrate_uses_persisted_window_seconds(db_session):
+    redis = FakeRedis()
+    window_seconds = 120
+    window_number = int(_FROZEN_DT.timestamp() // window_seconds)
+    window_start = _window_start_from_number(window_number, window_seconds)
+    db_session.add(
+        RateLimitPersistentCounter(
+            id=new_id(),
+            workspace_id=_WORKSPACE_ID,
+            scope_type="account",
+            scope_id=_ACCOUNT_ID,
+            scope_key="comments_per_hour",
+            window_seconds=window_seconds,
+            window_start=window_start,
+            count=3,
+            updated_at=_FROZEN_DT,
+        )
+    )
+    db_session.commit()
+
+    report = hydrate_redis_from_db(db_session, redis, now=_FROZEN_DT)
+
+    assert report.keys_set == 1
+    key = _make_redis_key(_WORKSPACE_ID, "account", _ACCOUNT_ID, "comments_per_hour", window_number)
+    assert redis.get(key) == b"3"
+    assert 0 < redis.ttl(key) <= window_seconds
+    metadata_key = build_rate_limit_counter_metadata_key(
+        workspace_id=_WORKSPACE_ID,
+        scope_type="account",
+        scope_id=_ACCOUNT_ID,
+        scope_key="comments_per_hour",
+        window_number=window_number,
+    )
+    assert redis.get(metadata_key) == b"120"
+    assert 0 < redis.ttl(metadata_key) <= window_seconds
+
+    db_session.query(RateLimitPersistentCounter).delete()
+    db_session.commit()
+
+    flush_redis_to_db(db_session, redis, now=_FROZEN_DT)
+    db_session.commit()
+    restored = db_session.query(RateLimitPersistentCounter).one()
+    restored_window_start = restored.window_start
+    if restored_window_start.tzinfo is None:
+        restored_window_start = restored_window_start.replace(tzinfo=UTC)
+    assert restored.window_seconds == window_seconds
+    assert restored_window_start == window_start
 
 
 @freeze_time(_FROZEN_NOW)

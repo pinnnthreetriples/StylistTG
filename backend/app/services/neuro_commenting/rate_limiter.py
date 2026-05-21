@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field
 import json
 import time
@@ -134,6 +135,17 @@ def build_rate_limit_counter_key(
     window_number: int,
 ) -> str:
     return f"neuro:{workspace_id}:limit:{scope_type}:{scope_id}:{scope_key}:{window_number}"
+
+
+def build_rate_limit_counter_metadata_key(
+    *,
+    workspace_id: str,
+    scope_type: str,
+    scope_id: str,
+    scope_key: str,
+    window_number: int,
+) -> str:
+    return f"neuro:{workspace_id}:limit_meta:{scope_type}:{scope_id}:{scope_key}:{window_number}"
 
 
 @dataclass(frozen=True)
@@ -276,6 +288,7 @@ class NeuroCommentRateLimiter:
                     reason=self._denied_reason(denied_name),
                     retry_after_seconds=max(1, int(result[2] or 1)),
                 )
+            self._write_counter_metadata(redis, counter_limits, window_counter_keys)
             return RateLimitReservation(
                 reservation_id=reservation_id,
                 allowed=True,
@@ -492,6 +505,26 @@ class NeuroCommentRateLimiter:
             scope_key=str(limit["limit_type"]),
             window_number=window,
         )
+
+    def _write_counter_metadata(
+        self, redis: Any, limits: list[dict[str, Any]], counter_keys: list[str]
+    ) -> None:
+        with suppress(RedisError, AttributeError):
+            pipeline = redis.pipeline()
+            for limit, counter_key in zip(limits, counter_keys, strict=True):
+                parsed = parse_rate_limit_counter_key(counter_key)
+                if parsed is None:
+                    continue
+                window_seconds = int(limit["window_seconds"])
+                metadata_key = build_rate_limit_counter_metadata_key(
+                    workspace_id=parsed.workspace_id,
+                    scope_type=parsed.scope_type,
+                    scope_id=parsed.scope_id,
+                    scope_key=parsed.scope_key,
+                    window_number=parsed.window_number,
+                )
+                pipeline.set(metadata_key, str(window_seconds), ex=max(1, window_seconds * 2))
+            pipeline.execute()
 
     def _parallel_key(self, scope: RateLimitScope, limit: dict[str, Any]) -> str:
         return f"neuro:{scope.workspace_id}:parallel:{limit['scope_type']}:{limit['scope_id']}"

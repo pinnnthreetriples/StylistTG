@@ -10,6 +10,7 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
+UUID_STRING = sa.String(36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
 
 revision = "20260521_0050"
 down_revision = "20260520_0049"
@@ -20,11 +21,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "rate_limit_persistent_counters",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("workspace_id", sa.String(36), sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", UUID_STRING, primary_key=True),
+        sa.Column("workspace_id", UUID_STRING, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column("scope_type", sa.String(32), nullable=False),
-        sa.Column("scope_id", sa.String(36), nullable=False),
+        sa.Column("scope_id", UUID_STRING, nullable=False),
         sa.Column("scope_key", sa.String(64), nullable=False),
+        sa.Column("window_seconds", sa.Integer(), nullable=False, server_default="3600"),
         sa.Column("window_start", sa.DateTime(timezone=True), nullable=False),
         sa.Column("count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column(

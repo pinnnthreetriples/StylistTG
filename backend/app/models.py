@@ -2210,6 +2210,7 @@ class RateLimitPersistentCounter(Base):
     scope_type: Mapped[str] = mapped_column(String(32), nullable=False)
     scope_id: Mapped[str] = mapped_column(UUIDString, nullable=False)
     scope_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    window_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

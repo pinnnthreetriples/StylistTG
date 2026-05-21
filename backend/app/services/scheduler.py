@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import time
 from typing import Any, cast
 
 from redis.exceptions import RedisError
@@ -15,6 +16,7 @@ from app.services.worker_plane import SCHEDULER_QUEUE_NAME
 ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
 RETENTION_TICK_SECONDS = 86_400
 RATE_LIMIT_FLUSH_TICK_SECONDS = 60
+RATE_LIMIT_FLUSH_JOB_ID_PREFIX = "rate-limit-flush"
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,30 @@ def rate_limit_flush_tick() -> dict[str, object]:
         report = flush_redis_to_db(session, redis_client)
         session.commit()
     return {"scopes": report.per_scope_counts, "upserted": report.upserted}
+
+
+def enqueue_rate_limit_flush_tick(*, now: float | None = None) -> bool:
+    """Enqueue one rate-limit flush job for the current scheduler minute bucket."""
+    from app.job_queue.rq import get_queue
+
+    bucket = int((time.time() if now is None else now) // RATE_LIMIT_FLUSH_TICK_SECONDS)
+    job_id = f"{RATE_LIMIT_FLUSH_JOB_ID_PREFIX}-{bucket}"
+    queue = get_queue(SCHEDULER_QUEUE_NAME)
+    try:
+        cast(Any, queue).enqueue_call(
+            func=rate_limit_flush_tick,
+            job_id=job_id,
+            unique=True,
+        )
+    except RedisError:
+        log_warn(
+            "rate_limit_flush_enqueue_failed",
+            queue_name=SCHEDULER_QUEUE_NAME,
+            job_id=job_id,
+            error_class="RedisError",
+        )
+        return False
+    return True
 
 
 def schedule_bought_onboarding_action(

@@ -129,11 +129,12 @@ class LiveReadinessService:
                 "selected account runtime is ready",
                 "selected account must be execution_usable with ready runtime and session",
             )
+        for campaign_account in active_accounts:
             _append_account_safety_gate_check(
                 session,
                 checks,
                 workspace_id=workspace_id,
-                account_id=selected.account_id,
+                account_id=campaign_account.account_id,
             )
         targets, _total = repository.list_targets(
             session, campaign_id=campaign.id, page=1, limit=100
@@ -282,7 +283,7 @@ def _append_account_safety_gate_check(
             _Check(
                 "account_safety_blocked",
                 "blocker",
-                "selected account is blocked by account safety gate",
+                "campaign account is blocked by account safety gate",
                 details,
             )
         )
@@ -291,7 +292,7 @@ def _append_account_safety_gate_check(
         _Check(
             "account_safety_warning",
             "warning",
-            "selected account has account safety gate warnings",
+            "campaign account has account safety gate warnings",
             details,
         )
     )

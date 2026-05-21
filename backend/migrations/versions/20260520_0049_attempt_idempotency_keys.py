@@ -38,7 +38,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "neuro_comment_events",
-        sa.Column("is_published", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("is_published", sa.Boolean(), nullable=False, server_default=sa.text("false")),
     )
     op.create_index(
         "ix_neuro_comment_events_unpublished",

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import delete
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -71,7 +72,7 @@ def _delete_older_than(
     statement = delete(model).where(column < cutoff)
     if require_released:
         statement = statement.where(AccountQuarantine.released_at.is_not(None))
-    result = session.execute(statement)
+    result = cast(CursorResult[Any], session.execute(statement))
     return int(result.rowcount or 0)
 
 

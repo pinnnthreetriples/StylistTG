@@ -32,6 +32,7 @@ class TdlibTelegramCommentSender:
         discussion_chat_id: str,
         reply_to_message_id: str,
         text: str,
+        random_id: int | None = None,
     ) -> SentCommentResult:
         try:
             chat_id = _require_int_id(discussion_chat_id, error_code="CHAT_NOT_FOUND")

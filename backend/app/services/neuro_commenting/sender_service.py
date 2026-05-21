@@ -12,11 +12,17 @@ from app.models import (
     NeuroCommentAttempt,
     NeuroCommentCampaign,
     NeuroCommentCampaignAccount,
+    NeuroCommentEvent,
     NeuroCommentGeneratedComment,
     NeuroCommentObservedPost,
     NeuroCommentTarget,
 )
 from app.services.account_safety_gate import evaluate as evaluate_safety_gate
+from app.services.idempotency_keys import (
+    IdempotencyConflict,
+    generate as generate_idempotency_key,
+    reserve_in_redis,
+)
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.account_health_service import AccountHealthService
 from app.services.neuro_commenting.account_selector import DefaultAccountReadinessProvider
@@ -88,6 +94,7 @@ class TelegramCommentSender(Protocol):
         discussion_chat_id: str,
         reply_to_message_id: str,
         text: str,
+        random_id: int | None = None,
     ) -> SentCommentResult: ...
 
 
@@ -103,6 +110,7 @@ class FakeTelegramCommentSender:
         self.calls = 0
         self.last_discussion_chat_id: str | None = None
         self.last_reply_to_message_id: str | None = None
+        self.last_random_id: int | None = None
 
     def send_comment(
         self,
@@ -111,11 +119,13 @@ class FakeTelegramCommentSender:
         discussion_chat_id: str,
         reply_to_message_id: str,
         text: str,
+        random_id: int | None = None,
     ) -> SentCommentResult:
         _ = (account_id, text)
         self.calls += 1
         self.last_discussion_chat_id = discussion_chat_id
         self.last_reply_to_message_id = reply_to_message_id
+        self.last_random_id = random_id
         if self._error is not None:
             raise self._error
         return SentCommentResult(
@@ -220,7 +230,17 @@ class SenderService:
             or context.comment.edited_text
             or context.comment.generated_text
         )
+        idem = generate_idempotency_key(attempt.id)
+        attempt.idempotency_key = idem.key
         attempt.status = NeuroAttemptStatus.SENDING.value
+        session.flush()
+
+        redis_client = self._redis_client
+        if redis_client is not None and not reserve_in_redis(
+            redis_client, key=idem.key, attempt_id=attempt.id
+        ):
+            raise IdempotencyConflict("idempotency_key collision")
+
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,
@@ -232,7 +252,7 @@ class SenderService:
             attempt_id=attempt.id,
             event_type="comment_send_started",
             message="manual neuro-comment send started",
-            data={},
+            data={"idempotency_key": idem.key},
         )
         try:
             result = self._comment_sender().send_comment(
@@ -240,11 +260,23 @@ class SenderService:
                 discussion_chat_id=str(discussion_chat_id),
                 reply_to_message_id=str(context.observed_post.discussion_message_id),
                 text=final_text,
+                random_id=idem.random_id_hash,
             )
         except TelegramCommentSendError as exc:
-            self._rollback_reservation(reservation)
-            self._mark_send_error(session, workspace_id=workspace_id, attempt=attempt, error=exc)
+            if exc.error_code == "FLOOD_WAIT":
+                self._rollback_reservation(reservation)
+                self._mark_send_error(
+                    session, workspace_id=workspace_id, attempt=attempt, error=exc
+                )
+            else:
+                self._rollback_reservation(reservation)
+                attempt.error_code = exc.error_code
+                attempt.error_message = str(exc)[:300]
             return attempt
+        try:
+            attempt.external_message_id_provisional = int(result.telegram_message_id)
+        except (TypeError, ValueError):
+            pass
         self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value
         attempt.telegram_message_id = result.telegram_message_id
@@ -259,6 +291,13 @@ class SenderService:
             telegram_message_id=result.telegram_message_id,
         )
         context.target.last_commented_at = result.sent_at
+        self._write_outbox_event(
+            session,
+            workspace_id=workspace_id,
+            context=context,
+            event_type="comment_sent_provisional",
+            data={"attempt_id": attempt.id, "idempotency_key": idem.key},
+        )
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,
@@ -512,6 +551,31 @@ class SenderService:
             data={"reasons": [reason.code for reason in verdict.reasons]},
         )
         return True
+
+    def _write_outbox_event(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        context: _SendContext,
+        event_type: str,
+        data: dict[str, Any],
+    ) -> None:
+        event = NeuroCommentEvent(
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=context.attempt.account_id,
+            target_id=context.attempt.target_id,
+            observed_post_id=context.attempt.observed_post_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=context.attempt.id,
+            event_type=event_type,
+            event_level="info",
+            message=f"outbox: {event_type}",
+            data_json=data,
+            is_published=False,
+        )
+        session.add(event)
 
     def _comment_sender(self) -> TelegramCommentSender:
         if self._sender is None:

@@ -1439,6 +1439,10 @@ class NeuroCommentAttempt(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    idempotency_key: Mapped[str | None] = mapped_column(UUIDString, nullable=True, unique=True)
+    external_message_id_provisional: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
@@ -1477,6 +1481,7 @@ class NeuroCommentEvent(Base):
     event_level: Mapped[str] = mapped_column(String(32), nullable=False, default="info")
     message: Mapped[str] = mapped_column(Text, nullable=False)
     data_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

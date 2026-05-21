@@ -1,119 +1,72 @@
 # Test Strategy
 
-Testing levels, scope, tooling, and run cadence for StylistTG.
+Testing levels, suite profiles, tooling, and run cadence for StylistTG.
 
-## Testing Layers
+## Backend suite profiles
+
+| Profile | Purpose | Command | Required |
+|---|---|---|---|
+| PR | Fast deterministic backend gate | `pytest tests -m "not contract and not live and not integration and not slow"` | yes, through `Test Quality / test-quality-pr` |
+| Benchmark | Empirical xdist mode selection | `.github/workflows/pytest-benchmark.yml` matrix | no |
+| Nightly | Heavy regression detection | `.github/workflows/nightly-backend-quality.yml` | no |
+| Live/manual | Real TDLib/Telegram/S3 validation | `pytest -m live` with explicit secrets | no |
+
+`PYTEST_PROFILE=pr` is the default CI profile. It excludes `contract`, `live`, `integration`, and `slow` markers while keeping strict coverage and branch coverage. The benchmark workflow is the only place where `-n/--dist` mode should be changed experimentally before promoting a new mode into `test-quality.yml`.
+
+## Testing layers
 
 | Layer | Scope | Tool | Run | Marker |
 |---|---|---|---|---|
-| Unit | Pure business logic, validators, redaction, phone hints | pytest / vitest | PR | `unit` |
-| Service | DB + services, no HTTP layer | pytest + SQLite | PR | — |
+| Unit | Pure business logic, validators, redaction, phone hints | pytest | PR | `unit` |
 | API | FastAPI endpoints, auth, roles, workspace scoping | pytest + TestClient | PR | `api` |
 | Security | Auth/role matrix, workspace isolation, PII, secrets | pytest + TestClient | PR | `security` |
-| Contract | OpenAPI drift, API-client wrapper correctness, deeper OpenAPI fuzz | npm check:api / vitest / Schemathesis | PR / nightly | `contract` |
-| Integration | PostgreSQL, Redis, RQ, storage | pytest markers | PR / nightly | `postgres`, `redis`, `integration` |
-| Browser smoke | Critical UI flows | Playwright | PR | — |
-| Live/manual | TDLib, Telegram, S3, staging | pytest live / manual | manual only | `live` |
+| Worker | RQ/background-job behavior with deterministic fakes | pytest | PR/nightly | `worker` |
+| Architecture | import boundaries, layering, quality constraints | pytest/static checks | PR | `architecture` |
+| Property | Hypothesis/property-based checks | pytest + Hypothesis | PR/nightly | `property` |
+| Contract | OpenAPI drift, API-client wrapper correctness, Schemathesis | pytest/npm | soft PR/nightly | `contract` |
+| Integration | PostgreSQL, Redis, RQ, storage | pytest markers | nightly/manual | `postgres`, `redis`, `integration` |
+| Live/manual | TDLib, Telegram, S3, staging | pytest live/manual | manual only | `live` |
 
-## What Each Level Covers
+## Required test rules
 
-- **Unit** — `secret_redaction`, `phone_hints`, `import_validation`, `plan`, `step_policy`, config validators, storage key normalization. No DB, no HTTP, no external services.
-- **Service** — `auth_batches`, `accounts`, `jobs`, `assets`, `dashboard`, `story_drafts`, `tenant_scope`. Uses in-memory SQLite via `db_session` fixture.
-- **API** — Endpoint request/response contracts, status codes, error shapes, pagination, auth dependency presence, and schema-invalid request rejection for fuzz-discovered regressions. Uses `TestClient` with overridden session.
-- **Security** — Role/auth matrix (no-auth/viewer/operator/admin), cross-workspace isolation, PII visibility per role, secret redaction in logs and errors.
-- **Contract** — `npm run check:api` verifies OpenAPI spec matches live backend export. Vitest tests verify `@stylisttg/api-client` wrapper behavior with mocked fetch. PR CI keeps Schemathesis soft and shallow; the nightly reliability workflow increases Schemathesis examples and stores reports for triage.
-- **Integration** — Tests that require real PostgreSQL or Redis (marked `postgres`/`redis`). Run in CI with service containers.
-- **Browser smoke** — Playwright tests against the built frontend. Verifies critical flows render and interact correctly.
-- **Live** — TDLib / Telegram API calls against real infrastructure. **Never run in normal PR CI.**
+- One test should validate one behavior. Split monster tests or parametrize them.
+- Use strict assertions only: `assert`, `assertEqual`, `assertRaises`, `pytest.raises`.
+- Use `pytest.mark.parametrize` instead of copy-paste test bodies.
+- Mock only real boundaries: I/O, network, DB, time, queues, cloud clients.
+- No `sleep()` in PR tests. Use fake clocks, injected state, events, or direct assertions.
+- No shared mutable state between tests. Prefer function-scoped fixtures.
+- DB-heavy tests must stay explicit and measurable through `fixture-audit.json`.
 
-## Commands
+## CI telemetry
 
-### Backend
+The `backend-tests` job now uploads lightweight artifacts only:
 
-```bash
-cd backend
+- `coverage.json`
+- `coverage.xml`
+- `test-quality.sarif`
+- `test-quality.json`
+- `slow-tests.json`
+- `fixture-audit.json`
+- `pytest-runtime-summary.txt`
+- `pytest.log`
 
-# All tests (fast, SQLite)
-python -m pytest
+`slow-tests.json` is informational in this phase. Hard thresholds should be added only after a stable baseline is collected.
 
-# By marker
-python -m pytest -m unit
-python -m pytest -m api
-python -m pytest -m security
-python -m pytest -m "not live"
+## Nightly Backend Quality
 
-# With coverage
-python -m pytest --cov=app --cov-report=term-missing
+`.github/workflows/nightly-backend-quality.yml` runs non-required heavy checks:
 
-# Hard coverage gates, including critical-file floors for pure/security modules
-python scripts/coverage_gate.py
+- `slow or property`
+- contract fuzz with larger example budget
+- PostgreSQL-marked parity tests with a service container
+- selected mutation profile through `scripts/check.py --only mutation` as a soft job
 
-# Parallel (requires pytest-xdist)
-python -m pytest -n auto
+Promote a nightly check to required only after the backlog is empty, runtime is stable, and failures are actionable.
 
-# Nightly-style reliability profiles
-python scripts/check.py --only nightly-randomized
-python scripts/check.py --only mutation
+## Tests that must not run in normal PR
 
-# Single test
-python -m pytest tests/test_auth_service.py::test_name -q
-
-# Lint
-python -m ruff check .
-```
-
-### Frontend
-
-```bash
-# All workspace tests
-npm test
-
-# API-client only
-npm --workspace @stylisttg/api-client test
-
-# Lint + typecheck + build
-npm run lint
-npm run typecheck
-npm run build
-npm run coverage
-
-# OpenAPI drift check
-npm run check:api
-
-# Browser QA
-npm run qa:browser
-```
-
-## When to Run
-
-| Trigger | What runs |
-|---|---|
-| Every PR | backend lint/format, pytest coverage (non-live), coverage gate, test analyzer, Pyright, pip-audit, alembic upgrade, migration smoke, compileall, backend Docker build, frontend npm audit/OpenAPI drift/lint/test/coverage/build, Semgrep, Gitleaks, Trivy |
-| Soft PR signal | Xenon complexity report for backend `app`, `tools`, and `scripts` |
-| Path-filtered PR | Browser QA for dashboard/browser-related changes |
-| Nightly/manual reliability workflow | randomized backend tests across fixed seeds, flaky rerun detection, scoped mutation testing, deeper Schemathesis fuzz, jscpd HTML/JSON reports |
-| Manual live validation | Live TDLib/Telegram/S3 tests (requires explicit secrets, feature flags, and operator approval) |
-
-## Nightly Reliability Suite
-
-`.github/workflows/nightly-test-reliability.yml` is scheduled nightly and can be run with `workflow_dispatch`. It is intentionally not a PR trigger, so normal PR gates stay fast.
-
-Hard:
-
-- Backend randomized reliability runs `pytest-randomly` with seeds `101`, `202`, and `303`; any failing seed fails the job. JUnit files and `reports/randomized-summary.json` are uploaded.
-
-Soft/reporting:
-
-- Flaky detection runs pytest with `pytest-rerunfailures`, writes `reports/flaky-report.json`, and warns when a test passes only after rerun.
-- Mutation testing uses `mutmut` against the scoped pure modules in `pyproject.toml`, writes `reports/mutation-report.json`, and reports killed/survived/timeout/incompetent/not-checked mutants without blocking survived mutants yet. Mutation infrastructure failures, missing scores, and not-checked-only runs are hard failures even in the soft nightly job.
-- Contract fuzz runs the existing Schemathesis test with a higher nightly `SCHEMATHESIS_MAX_EXAMPLES` value, a migrated local PostgreSQL schema, and a step timeout.
-- jscpd emits HTML/JSON reports for backend app, backend tests, and frontend `apps`/`packages` without changing the ordinary thresholds.
-
-Promote a soft nightly check to hard only after its baseline is clean for several consecutive nightly runs, the owning team has triaged remaining candidates, and the expected runtime is stable enough not to create noisy failures.
-
-## Tests That Must Not Run in Normal PR
-
-- `pytest -m live` — requires real TDLib library, Telegram credentials, external network
-- Any test that calls `Telegram API`, `S3`, or external HTTP endpoints
-- Tests gated behind `TDLIB_LIVE_ENABLED`, `STORIES_TDLIB_LIVE_ENABLED`, etc.
-- Nightly randomized/flaky jobs also set live/storage env vars to safe local values and run `-m "not live and not contract"`; Schemathesis runs in its own soft contract fuzz job.
+- `pytest -m live`
+- tests requiring real TDLib, Telegram, S3, Redis, or PostgreSQL unless isolated behind a dedicated marker/profile
+- manual operational smoke scripts
+- mutation testing
+- heavy Schemathesis/property fuzzing

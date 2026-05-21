@@ -166,6 +166,7 @@ class TestReserveInRedis:
         redis.set.return_value = None
         result = reserve_in_redis(redis, key="test-key", attempt_id="att-1")
         assert result is False
+        redis.set.assert_called_once()
 
     def test_reserve_custom_ttl(self) -> None:
         redis = MagicMock()
@@ -187,12 +188,14 @@ class TestLookupAttemptId:
         redis.get.return_value = None
         result = lookup_attempt_id(redis, key="missing")
         assert result is None
+        redis.get.assert_called_once_with("attempt:idem:missing")
 
     def test_lookup_string_value(self) -> None:
         redis = MagicMock()
         redis.get.return_value = "attempt-str"
         result = lookup_attempt_id(redis, key="str-key")
         assert result == "attempt-str"
+        redis.get.assert_called_once_with("attempt:idem:str-key")
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +220,7 @@ def test_sender_happy_path_sets_idempotency_and_sends(db_session) -> None:
     assert result.external_message_id_provisional == 12345
     assert fake_sender.last_random_id is not None
     assert fake_sender.last_random_id == derive_random_id(result.idempotency_key)
+    redis_mock.set.assert_called_once()
 
 
 @freeze_time(_FROZEN_NOW)
@@ -233,6 +237,7 @@ def test_non_flood_error_leaves_sending_status(db_session) -> None:
     assert result.status == "sending"
     assert result.idempotency_key is not None
     assert result.error_code == "TDLIB_UNKNOWN_ERROR"
+    redis_mock.set.assert_called_once()
 
 
 @freeze_time(_FROZEN_NOW)
@@ -248,6 +253,7 @@ def test_redis_collision_raises_idempotency_conflict(db_session) -> None:
 
     assert attempt.status == "sending"
     assert attempt.idempotency_key is not None
+    redis_mock.set.assert_called_once()
 
 
 @freeze_time(_FROZEN_NOW)
@@ -273,3 +279,4 @@ def test_outbox_event_written_with_is_published_false(db_session) -> None:
     event = outbox_events[0]
     assert event.is_published is False
     assert event.data_json["idempotency_key"] == attempt.idempotency_key
+    redis_mock.set.assert_called_once()

@@ -213,10 +213,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     parser.add_argument(
         "--fail-on-severity",
         choices=["INFO", "WARNING", "CRITICAL"],
-        help=(
-            "Minimum severity that makes the process exit non-zero. "
-            "Defaults to --severity."
-        ),
+        help=("Minimum severity that makes the process exit non-zero. Defaults to --severity."),
     )
     parser.add_argument("--baseline", help="Path to baseline JSON file")
     parser.add_argument("--config", help="Path to test-quality.toml config")

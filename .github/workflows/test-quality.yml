@@ -21,8 +21,8 @@ env:
   NODE_VERSION: "20"
   UV_VERSION: "0.10.9"
   PYTEST_PROFILE: pr
-  PYTEST_WORKERS: auto
-  PYTEST_DIST: loadscope
+  PYTEST_WORKERS: "2"
+  PYTEST_DIST: worksteal
 
 jobs:
   lint-format:
@@ -139,7 +139,8 @@ jobs:
             --coverage reports/coverage.json \
             --format sarif,json \
             --output-dir reports \
-            --severity INFO
+            --severity INFO \
+            --fail-on-severity CRITICAL
       - name: Upload backend test reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

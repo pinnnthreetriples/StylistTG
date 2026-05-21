@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -10,6 +11,26 @@ from app.models import DEFAULT_LOCAL_WORKSPACE_ID, WorkspaceSafetyPolicy, new_id
 from app.services.workspaces import ensure_default_workspace
 
 WorkspaceSafetyMode = Literal["conservative", "balanced", "aggressive"]
+PUBLIC_POLICY_FIELDS = (
+    "mode",
+    "delay_multiplier",
+    "typing_chars_per_minute_min",
+    "typing_chars_per_minute_max",
+    "profile_view_probability",
+    "scroll_probability",
+    "typo_probability",
+    "message_deletion_probability",
+    "quiet_hours_local_start",
+    "quiet_hours_local_end",
+    "require_warmup_before_commenting",
+    "min_warmup_days",
+    "require_healthy_proxy",
+    "min_account_age_hours",
+    "auto_pause_on_flood_wait_count",
+    "auto_pause_on_deleted_comments_count",
+    "quarantine_hours_on_flood_wait",
+)
+_MISSING = object()
 
 
 @dataclass(frozen=True)
@@ -94,6 +115,38 @@ def apply_preset_defaults(mode: WorkspaceSafetyMode) -> dict[str, Any]:
     return PRESET_DEFAULTS[mode].as_update(mode=mode)
 
 
+def policy_public_snapshot(policy: WorkspaceSafetyPolicy | Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        field: value
+        for field in PUBLIC_POLICY_FIELDS
+        if (value := _policy_value(policy, field)) is not _MISSING
+    }
+
+
+def compute_diff(
+    old: WorkspaceSafetyPolicy | Mapping[str, Any],
+    new: WorkspaceSafetyPolicy | Mapping[str, Any],
+) -> dict[str, Any]:
+    old_values = policy_public_snapshot(old)
+    new_values = policy_public_snapshot(new)
+    changed_fields = [
+        field
+        for field in PUBLIC_POLICY_FIELDS
+        if field in old_values and field in new_values and old_values[field] != new_values[field]
+    ]
+    return {
+        "changed_fields": changed_fields,
+        "old": {field: old_values[field] for field in changed_fields},
+        "new": {field: new_values[field] for field in changed_fields},
+    }
+
+
+def _policy_value(policy: WorkspaceSafetyPolicy | Mapping[str, Any], field: str) -> Any:
+    if isinstance(policy, Mapping):
+        return policy.get(field, _MISSING)
+    return getattr(policy, field, _MISSING)
+
+
 def get_workspace_safety_policy(
     session: Session,
     *,
@@ -149,9 +202,16 @@ def update_workspace_safety_policy(
     if mode is not None:
         update_values.update(apply_preset_defaults(mode))
     update_values.update(explicit_values)
-    update_values["updated_at"] = utc_now()
 
-    for key, value in update_values.items():
+    changed_values = {
+        key: value
+        for key, value in update_values.items()
+        if _policy_value(policy, key) is _MISSING or getattr(policy, key) != value
+    }
+    if changed_values:
+        changed_values["updated_at"] = utc_now()
+
+    for key, value in changed_values.items():
         setattr(policy, key, value)
     session.flush()
     return policy
@@ -168,9 +228,12 @@ def delete_workspace_safety_policy(session: Session, *, workspace_id: str) -> bo
 
 __all__ = [
     "PRESET_DEFAULTS",
+    "PUBLIC_POLICY_FIELDS",
     "apply_preset_defaults",
+    "compute_diff",
     "create_workspace_safety_policy",
     "delete_workspace_safety_policy",
     "get_workspace_safety_policy",
+    "policy_public_snapshot",
     "update_workspace_safety_policy",
 ]

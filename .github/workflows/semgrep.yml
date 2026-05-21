@@ -30,7 +30,8 @@ jobs:
         run: |
           mkdir -p .semgrep/tenant-scope-test-config
           cp .semgrep/tenant_scope.yaml .semgrep/tenant-scope-test-config/tenant_scope.yaml
-          semgrep test --config .semgrep/tenant-scope-test-config .semgrep/tests
+          cp .semgrep/tests/tenant_scope_test.py .semgrep/tenant-scope-test-config/tenant_scope.py
+          semgrep test --config .semgrep/tenant-scope-test-config
       - name: Run Semgrep
         run: |
           semgrep scan \

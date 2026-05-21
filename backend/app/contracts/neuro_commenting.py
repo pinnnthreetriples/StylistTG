@@ -474,6 +474,8 @@ class NeuroAttemptRead(BaseModel):
     reserved_limit_at: datetime | None
     sent_at: datetime | None
     failed_at: datetime | None
+    idempotency_key: str | None = None
+    external_message_id_provisional: int | None = None
     created_at: datetime
     updated_at: datetime
 

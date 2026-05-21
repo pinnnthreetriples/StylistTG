@@ -4715,6 +4715,10 @@ export interface components {
             sent_at: string | null;
             /** Failed At */
             failed_at: string | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** External Message Id Provisional */
+            external_message_id_provisional?: number | null;
             /** Created At */
             created_at: string | null;
             /** Updated At */

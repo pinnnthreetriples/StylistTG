@@ -20222,6 +20222,28 @@
             ],
             "title": "Failed At"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "external_message_id_provisional": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Message Id Provisional"
+          },
           "created_at": {
             "anyOf": [
               {

@@ -90,7 +90,7 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
     },
     "STG001": {
         "summary": "dependency_overrides modified without try/finally cleanup",
-        "bad": "app.dependency_overrides[dep] = mock\nclient.get(...)",
+        "bad": "app.dependency_overrides[dep] = mock\nclient.get(...) ",
         "good": (
             "try:\n    app.dependency_overrides[dep] = mock\n"
             "    ...\nfinally:\n    app.dependency_overrides.pop(dep)"
@@ -208,7 +208,15 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
         "--severity",
         choices=["INFO", "WARNING", "CRITICAL"],
         default="INFO",
-        help="Minimum severity to report",
+        help="Minimum severity to include in reports",
+    )
+    parser.add_argument(
+        "--fail-on-severity",
+        choices=["INFO", "WARNING", "CRITICAL"],
+        help=(
+            "Minimum severity that makes the process exit non-zero. "
+            "Defaults to --severity."
+        ),
     )
     parser.add_argument("--baseline", help="Path to baseline JSON file")
     parser.add_argument("--config", help="Path to test-quality.toml config")
@@ -284,16 +292,18 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
         print(f"Error during analysis: {e}", file=sys.stderr)
         return 2
 
-    min_severity = Severity.from_str(args.severity)
-    issues = [i for i in issues if i.severity >= min_severity]
-
     if args.baseline:
         baseline = load_baseline(Path(args.baseline))
         issues = filter_by_baseline(issues, baseline)
 
+    report_min_severity = Severity.from_str(args.severity)
+    fail_min_severity = Severity.from_str(args.fail_on_severity or args.severity)
+    reported_issues = [i for i in issues if i.severity >= report_min_severity]
+    failing_issues = [i for i in issues if i.severity >= fail_min_severity]
+
     try:
         _write_reports(
-            issues=issues,
+            issues=reported_issues,
             formats=args.format,
             output=args.output,
             output_dir=args.output_dir,
@@ -301,4 +311,4 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     except ValueError as exc:
         parser.error(str(exc))
 
-    return 1 if issues else 0
+    return 1 if failing_issues else 0

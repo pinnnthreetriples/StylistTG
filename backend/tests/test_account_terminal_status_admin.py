@@ -28,14 +28,6 @@ def admin_client(app_client):
     return app_client
 
 
-@pytest.fixture()
-def terminal_status_column(db_session):
-    db_session.execute(
-        text("ALTER TABLE account ADD COLUMN terminal_status VARCHAR(32) NOT NULL DEFAULT 'none'")
-    )
-    db_session.commit()
-
-
 def _set_terminal_status(db_session, account_id: str, status: str) -> None:
     db_session.execute(
         text("UPDATE account SET terminal_status = :status WHERE id = :account_id"),
@@ -53,9 +45,7 @@ def _terminal_status(db_session, account_id: str) -> str:
     )
 
 
-def test_clear_terminal_status_banned_to_none_and_audits(
-    admin_client, db_session, terminal_status_column
-) -> None:
+def test_clear_terminal_status_banned_to_none_and_audits(admin_client, db_session) -> None:
     account = seed_account(db_session)
     _set_terminal_status(db_session, account.id, "banned")
 
@@ -81,9 +71,7 @@ def test_clear_terminal_status_banned_to_none_and_audits(
     assert event.metadata_json["terminal_status"] == "none"
 
 
-def test_clear_terminal_status_none_returns_409(
-    admin_client, db_session, terminal_status_column
-) -> None:
+def test_clear_terminal_status_none_returns_409(admin_client, db_session) -> None:
     account = seed_account(db_session)
 
     response = admin_client.post(
@@ -96,9 +84,7 @@ def test_clear_terminal_status_none_returns_409(
     assert body["error_code"] == "TERMINAL_STATUS_ALREADY_NONE"
 
 
-def test_clear_terminal_status_non_admin_returns_403(
-    app_client, db_session, terminal_status_column
-) -> None:
+def test_clear_terminal_status_non_admin_returns_403(app_client, db_session) -> None:
     app.dependency_overrides[get_current_auth_context] = lambda: _auth("operator")
     account = seed_account(db_session)
     _set_terminal_status(db_session, account.id, "banned")
@@ -113,9 +99,7 @@ def test_clear_terminal_status_non_admin_returns_403(
     assert body["error_code"] == "ROLE_FORBIDDEN"
 
 
-def test_clear_terminal_status_short_reason_returns_422(
-    admin_client, db_session, terminal_status_column
-) -> None:
+def test_clear_terminal_status_short_reason_returns_422(admin_client, db_session) -> None:
     account = seed_account(db_session)
     _set_terminal_status(db_session, account.id, "banned")
 
@@ -129,9 +113,7 @@ def test_clear_terminal_status_short_reason_returns_422(
     assert body["field_errors"]
 
 
-def test_clear_terminal_status_cross_tenant_returns_404(
-    app_client, db_session, terminal_status_column
-) -> None:
+def test_clear_terminal_status_cross_tenant_returns_404(app_client, db_session) -> None:
     workspace_a, workspace_b = seed_two_workspaces(db_session)
     app.dependency_overrides[get_current_auth_context] = lambda: _auth(
         "admin", workspace_id=workspace_a

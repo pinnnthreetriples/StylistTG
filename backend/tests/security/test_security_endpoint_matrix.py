@@ -223,6 +223,8 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/accounts/{account_id}/behavior-profile"),
     ("GET", "/api/accounts/{account_id}/quarantine"),
     ("POST", "/api/accounts/{account_id}/quarantine/release"),
+    ("POST", "/api/accounts/{account_id}/quarantine/admin-override"),
+    ("POST", "/api/accounts/{account_id}/terminal-status/clear"),
     ("POST", "/api/accounts/{account_id}/bought-onboarding/start"),
     ("GET", "/api/accounts/{account_id}/bought-onboarding/status"),
     ("GET", "/api/accounts/{account_id}/proxy"),

@@ -115,6 +115,28 @@ def test_legacy_shim_blocks_missing_warmup_for_commenting(db_session) -> None:
     assert {reason.code for reason in verdict.reasons} == {"no_warmup"}
 
 
+def test_legacy_shim_does_not_block_editing_without_proxy(db_session) -> None:
+    account = seed_account(
+        db_session,
+        external_ref=f"+1555010{new_id()[:4]}",
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        account_state=AccountState.EXECUTION_USABLE,
+        runtime_health="ready",
+        session_present=True,
+    )
+    db_session.commit()
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="editing",
+    )
+
+    assert verdict.eligible is True
+    assert {reason.code for reason in verdict.reasons} == set()
+
+
 def _ready_account(db_session):
     account = seed_account(
         db_session,

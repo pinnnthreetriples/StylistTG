@@ -100,7 +100,7 @@ class AccountSafetyGate:
     ) -> SafetyGateVerdict:
         account = _account(session, workspace_id=workspace_id, account_id=account_id)
         reasons: list[SafetyGateReason] = []
-        if not _proxy_healthy(account):
+        if intent in {"commenting", "warmup"} and not _proxy_healthy(account):
             reasons.append(_proxy_reason("blocked", account))
         if intent == "commenting" and _latest_warmup(session, account=account) is None:
             reasons.append(_reason("no_warmup", "blocked", "Account has no warmup session."))

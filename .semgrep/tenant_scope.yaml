@@ -63,6 +63,11 @@ rules:
       - metavariable-regex:
           metavariable: $MODEL
           regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
+      - pattern-not: select($MODEL).where(...)
+      - pattern-not: select($MODEL).filter(...)
+      - pattern-not: $SESSION.query($MODEL).where(...)
+      - pattern-not: $SESSION.query($MODEL).filter(...)
+      - pattern-not: $SESSION.query($MODEL).filter_by(...)
       - pattern-not: select($MODEL.$FIELD).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
       - pattern-not: select($MODEL.$FIELD).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
       - pattern-not: select($MODEL.$FIELD, ...).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)

@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     account_deletion_log_retention_days: int = 90
     account_deletion_allow_hard_delete: bool = False
     account_deletion_dry_run_default: bool = True
+    safety_retention_days_default: int = 90
+    safety_retention_days_observations: int = 30
+    safety_retention_days_load_buckets: int = 14
     scheduler_enabled: bool = False
     reaper_enabled: bool = False
     reaper_mode: str = "dry_run"

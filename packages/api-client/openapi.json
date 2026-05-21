@@ -14687,6 +14687,16 @@
             "type": "string",
             "title": "Account State"
           },
+          "terminal_status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "banned",
+              "deleted",
+              "suspended"
+            ],
+            "title": "Terminal Status"
+          },
           "runtime_health": {
             "type": "string",
             "title": "Runtime Health"
@@ -14735,6 +14745,7 @@
           "telegram_user_id",
           "origin",
           "account_state",
+          "terminal_status",
           "runtime_health",
           "is_execution_usable",
           "is_test_dc",
@@ -15437,6 +15448,16 @@
             "type": "string",
             "title": "Account State"
           },
+          "terminal_status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "banned",
+              "deleted",
+              "suspended"
+            ],
+            "title": "Terminal Status"
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -15454,6 +15475,7 @@
           "auth_source",
           "origin",
           "account_state",
+          "terminal_status",
           "created_at",
           "updated_at"
         ],

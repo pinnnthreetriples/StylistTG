@@ -179,9 +179,6 @@ addopts = [
   "--strict-config",
   "--tb=short",
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
-  # Default local/PR profile: keep live, integration, slow, and contract-fuzz tests
-  # out of the fast suite. Nightly/manual workflows override this with explicit -m.
-  "-m", "not contract and not live and not integration and not slow",
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
 # Anything new = build red until either fixed or explicitly ignored with justification.

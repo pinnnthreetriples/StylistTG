@@ -2,11 +2,6 @@ name: Pytest Benchmark
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/pytest-benchmark.yml"
-      - "backend/pyproject.toml"
-      - "backend/tests/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

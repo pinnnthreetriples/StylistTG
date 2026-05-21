@@ -7,11 +7,13 @@ Testing levels, suite profiles, tooling, and run cadence for StylistTG.
 | Profile | Purpose | Command | Required |
 |---|---|---|---|
 | PR | Fast deterministic backend gate | `pytest tests -m "not contract and not live and not integration and not slow"` | yes, through `Test Quality / test-quality-pr` |
-| Benchmark | Empirical xdist mode selection | `.github/workflows/pytest-benchmark.yml` matrix | no |
+| Benchmark | Manual empirical xdist mode selection | `.github/workflows/pytest-benchmark.yml` | no |
 | Nightly | Heavy regression detection | `.github/workflows/nightly-backend-quality.yml` | no |
 | Live/manual | Real TDLib/Telegram/S3 validation | `pytest -m live` with explicit secrets | no |
 
-`PYTEST_PROFILE=pr` is the default CI profile. It excludes `contract`, `live`, `integration`, and `slow` markers while keeping strict coverage and branch coverage. The benchmark workflow is the only place where `-n/--dist` mode should be changed experimentally before promoting a new mode into `test-quality.yml`.
+`PYTEST_PROFILE=pr` is a CI workflow convention, not a global pytest default. `pyproject.toml` keeps strict pytest defaults only; PR, nightly, benchmark, integration and live profiles must pass their marker expressions explicitly. This prevents a plain local `pytest` run from silently hiding slow, integration, live, or contract-marked tests.
+
+The benchmark workflow is manual-only. Use it when changing suite structure, xdist settings, coverage mode, or fixture behavior. Promote a benchmark-selected mode into `test-quality.yml` only after repeated data shows a clear win.
 
 ## Testing layers
 
@@ -50,6 +52,14 @@ Uploaded lightweight artifacts:
 - `slow-tests.json`
 - `fixture-audit.json`
 - `pytest-runtime-summary.txt`
+
+`pytest-runtime-summary.txt` includes:
+
+- `pytest_total_seconds`
+- `slow_report_seconds`
+- `fixture_audit_seconds`
+- `coverage_gate_seconds`
+- `test_analyzer_seconds`
 
 `slow-tests.json` is informational in this phase. Hard thresholds should be added only after a stable baseline is collected.
 

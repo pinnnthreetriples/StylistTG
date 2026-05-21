@@ -1,0 +1,83 @@
+name: Pytest Benchmark
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/pytest-benchmark.yml"
+      - "backend/pyproject.toml"
+      - "backend/tests/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.10.9"
+
+jobs:
+  benchmark:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: xdist-auto-loadscope
+            workers: auto
+            dist: loadscope
+          - label: xdist-auto-worksteal
+            workers: auto
+            dist: worksteal
+          - label: xdist-4-worksteal
+            workers: "4"
+            dist: worksteal
+          - label: xdist-2-worksteal
+            workers: "2"
+            dist: worksteal
+          - label: xdist-4-loadfile
+            workers: "4"
+            dist: loadfile
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra dev
+      - name: Prepare reports directory
+        run: mkdir -p reports
+      - name: Benchmark pytest xdist mode
+        run: |
+          set -o pipefail
+          echo "workers=${{ matrix.workers }}" | tee reports/pytest-benchmark-${{ matrix.label }}.txt
+          echo "dist=${{ matrix.dist }}" | tee -a reports/pytest-benchmark-${{ matrix.label }}.txt
+          /usr/bin/time -f "pytest_total_seconds=%e" -o reports/pytest-benchmark-time-${{ matrix.label }}.txt \
+            uv run pytest tests \
+              -n "${{ matrix.workers }}" --dist="${{ matrix.dist }}" \
+              -m "not contract and not live and not integration and not slow" \
+              --durations=25 --durations-min=0.5 \
+              --tb=short -q 2>&1 | tee -a reports/pytest-benchmark-${{ matrix.label }}.txt
+          cat reports/pytest-benchmark-time-${{ matrix.label }}.txt | tee -a reports/pytest-benchmark-${{ matrix.label }}.txt
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pytest-benchmark-${{ matrix.label }}
+          path: |
+            backend/reports/pytest-benchmark-${{ matrix.label }}.txt
+            backend/reports/pytest-benchmark-time-${{ matrix.label }}.txt

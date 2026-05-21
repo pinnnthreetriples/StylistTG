@@ -12,6 +12,17 @@ from .models import AnalyzerConfig, Issue, Severity
 from .reporters import JsonReporter, SarifReporter, TextReporter
 from .rules import ALL_RULES
 
+REPORTERS = {
+    "text": TextReporter,
+    "json": JsonReporter,
+    "sarif": SarifReporter,
+}
+REPORT_FILENAMES = {
+    "text": "test-quality.txt",
+    "json": "test-quality.json",
+    "sarif": "test-quality.sarif",
+}
+
 RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
     "TQA001": {
         "summary": "Test function has zero assertions",
@@ -24,13 +35,13 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
         "suppress": '# test-analyzer: disable=TQA001 reason="side-effect-only test"',
     },
     "TQA002": {
-        "summary": "assert True / assertEqual(True, ...) \u2014 always passes",
+        "summary": "assert True / assertEqual(True, ...) — always passes",
         "bad": "def test_ok():\n    assert True",
         "good": "def test_ok():\n    assert result == expected",
         "suppress": '# test-analyzer: disable=TQA002 reason="placeholder"',
     },
     "TQA003": {
-        "summary": "Self-equality assertion (assert x == x) \u2014 always passes",
+        "summary": "Self-equality assertion (assert x == x) — always passes",
         "bad": "assert resp == resp",
         "good": "assert resp == expected_resp",
         "suppress": '# test-analyzer: disable=TQA003 reason="identity check"',
@@ -48,9 +59,9 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
         "suppress": '# test-analyzer: disable=TQA006 reason="needs else branch"',
     },
     "TQA010": {
-        "summary": "Flaky test \u2014 uses sleep()",
+        "summary": "Flaky test — uses sleep()",
         "bad": "time.sleep(2); assert service.ready()",
-        "good": "Use polling/retry or mock time",
+        "good": "Use freezegun, a mocked clock, or deterministic state injection",
         "suppress": '# test-analyzer: disable=TQA010 reason="integration timing"',
     },
     "TQA012": {
@@ -75,11 +86,11 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
         "summary": "Uncovered branches detected from coverage report",
         "bad": "Source file has branches not exercised by any test",
         "good": "Add parametrized tests for uncovered branches",
-        "suppress": "N/A \u2014 coverage-derived, not suppressible inline",
+        "suppress": "N/A — coverage-derived, not suppressible inline",
     },
     "STG001": {
         "summary": "dependency_overrides modified without try/finally cleanup",
-        "bad": "app.dependency_overrides[dep] = mock\nclient.get(...)",
+        "bad": "app.dependency_overrides[dep] = mock\nclient.get(...) ",
         "good": (
             "try:\n    app.dependency_overrides[dep] = mock\n"
             "    ...\nfinally:\n    app.dependency_overrides.pop(dep)"
@@ -130,6 +141,52 @@ def _get_changed_files(ref: str) -> list[Path]:
         return []
 
 
+def _parse_formats(raw: str) -> list[str]:
+    formats = [item.strip().lower() for item in raw.split(",") if item.strip()]
+    if not formats:
+        msg = "--format must include at least one format"
+        raise argparse.ArgumentTypeError(msg)
+    invalid = [item for item in formats if item not in REPORTERS]
+    if invalid:
+        msg = f"unknown report format(s): {', '.join(invalid)}"
+        raise argparse.ArgumentTypeError(msg)
+    unique_formats: list[str] = []
+    for item in formats:
+        if item not in unique_formats:
+            unique_formats.append(item)
+    return unique_formats
+
+
+def _write_reports(
+    *,
+    issues: list[Issue],
+    formats: list[str],
+    output: str | None,
+    output_dir: str | None,
+) -> None:
+    if len(formats) > 1 and output:
+        msg = "--output cannot be used with multiple --format values; use --output-dir"
+        raise ValueError(msg)
+
+    for format_name in formats:
+        reporter = REPORTERS[format_name]()
+        report = reporter.report(issues)
+        out_path: Path | None = None
+        if output:
+            out_path = Path(output)
+        elif output_dir:
+            out_path = Path(output_dir) / REPORT_FILENAMES[format_name]
+
+        if out_path:
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(report, encoding="utf-8")
+        elif len(formats) == 1:
+            print(report)
+        else:
+            print(f"== {format_name} ==")
+            print(report)
+
+
 def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     parser = argparse.ArgumentParser(
         prog="test-quality-analyzer",
@@ -138,16 +195,25 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
     parser.add_argument("--path", help="Path to test file or directory")
     parser.add_argument(
         "--format",
-        choices=["text", "json", "sarif"],
-        default="text",
-        help="Output format",
+        type=_parse_formats,
+        default=["text"],
+        help="Output format: text, json, sarif, or comma-separated list such as sarif,json",
     )
-    parser.add_argument("--output", help="Output file path (stdout if omitted)")
+    parser.add_argument("--output", help="Output file path for a single format (stdout if omitted)")
+    parser.add_argument(
+        "--output-dir",
+        help="Directory for multi-format output using stable test-quality.* filenames",
+    )
     parser.add_argument(
         "--severity",
         choices=["INFO", "WARNING", "CRITICAL"],
         default="INFO",
-        help="Minimum severity to report",
+        help="Minimum severity to include in reports",
+    )
+    parser.add_argument(
+        "--fail-on-severity",
+        choices=["INFO", "WARNING", "CRITICAL"],
+        help=("Minimum severity that makes the process exit non-zero. Defaults to --severity."),
     )
     parser.add_argument("--baseline", help="Path to baseline JSON file")
     parser.add_argument("--config", help="Path to test-quality.toml config")
@@ -165,12 +231,10 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
 
     args = parser.parse_args(argv)
 
-    # --explain mode
     if args.explain:
         rule_id = args.explain.upper()
         info = RULE_EXPLANATIONS.get(rule_id)
         if not info:
-            # Try to find rule in ALL_RULES
             found = next((r for r in ALL_RULES if r.id == rule_id), None)
             if found:
                 print(f"Rule: {found.id}")
@@ -183,44 +247,37 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
             return 0
         print(f"Rule: {rule_id}")
         print(f"Summary: {info['summary']}")
-        print("\n\u2717 Bad:")
+        print("\n✗ Bad:")
         print(f"  {info['bad']}")
-        print("\n\u2713 Good:")
+        print("\n✓ Good:")
         print(f"  {info['good']}")
         print("\nSuppress:")
         print(f"  {info['suppress']}")
         return 0
 
-    # --path is required for analysis mode
     if not args.path:
         parser.error("--path is required (or use --explain RULE_ID)")
 
-    # Load config
     config_path = Path(args.config) if args.config else Path("test-quality.toml")
     if config_path.exists():
         config = AnalyzerConfig.from_toml(config_path)
     else:
         config = AnalyzerConfig()
 
-    # Resolve path
     target = Path(args.path)
     if not target.exists():
         print(f"Error: path '{args.path}' does not exist", file=sys.stderr)
         return 2
 
-    # Base directory for relative paths
     base_dir = target if target.is_dir() else target.parent
 
-    # Load coverage data
     coverage_data = None
     if args.coverage:
         coverage_data = load_coverage_context(Path(args.coverage))
 
-    # Run analysis
     analyzer = Analyzer(config, coverage_data=coverage_data)
     try:
         if args.changed:
-            # Analyze only changed test files
             changed_files = _get_changed_files(args.changed)
             issues: list[Issue] = []
             for f in changed_files:
@@ -232,30 +289,23 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
         print(f"Error during analysis: {e}", file=sys.stderr)
         return 2
 
-    # Filter by severity
-    min_severity = Severity.from_str(args.severity)
-    issues = [i for i in issues if i.severity >= min_severity]
-
-    # Apply baseline
     if args.baseline:
         baseline = load_baseline(Path(args.baseline))
         issues = filter_by_baseline(issues, baseline)
 
-    # Report
-    reporters = {
-        "text": TextReporter(),
-        "json": JsonReporter(),
-        "sarif": SarifReporter(),
-    }
-    reporter = reporters[args.format]
-    output = reporter.report(issues)
+    report_min_severity = Severity.from_str(args.severity)
+    fail_min_severity = Severity.from_str(args.fail_on_severity or args.severity)
+    reported_issues = [i for i in issues if i.severity >= report_min_severity]
+    failing_issues = [i for i in issues if i.severity >= fail_min_severity]
 
-    if args.output:
-        out_path = Path(args.output)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(output, encoding="utf-8")
-    else:
-        print(output)
+    try:
+        _write_reports(
+            issues=reported_issues,
+            formats=args.format,
+            output=args.output,
+            output_dir=args.output_dir,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
 
-    # Exit code: strict — any issue at or above the requested severity fails
-    return 1 if issues else 0
+    return 1 if failing_issues else 0

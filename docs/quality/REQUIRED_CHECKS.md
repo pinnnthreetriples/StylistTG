@@ -1,19 +1,10 @@
 # Required Checks
 
-This repository keeps branch-protection changes in GitHub settings, not in code.
-Use this page as the checklist for `main` branch protection.
+Branch-protection changes live in GitHub settings. This file is the checklist for `main` branch protection.
 
-## Current Required Checks
+## Required on `main`
 
-The current `main` branch protection requires:
-
-- `Backend (Python 3.12)`
-- `Frontend`
-- `Browser QA`
-
-## Recommended Required Checks
-
-After the quality/security gate expansion, require:
+Keep these checks required:
 
 - `Backend (Python 3.12)`
 - `Frontend`
@@ -24,13 +15,25 @@ After the quality/security gate expansion, require:
 - `Trivy / Trivy filesystem`
 - `Trivy / Trivy backend image`
 
-Keep `Complexity / Xenon complexity (soft)` optional until the project promotes the
-Xenon threshold to a hard gate.
+## Do not require
 
-## Rationale
+- `Test Quality / contract-fuzz`
+- `Pytest Benchmark / *`
+- `Nightly Backend Quality / *`
+- `Complexity / Xenon complexity (soft)`
 
-- Backend and Frontend are the existing CI merge blockers.
-- Browser QA is path-filtered but should stay required so dashboard/browser PRs cannot skip it silently.
-- Test Quality carries backend coverage, analyzer, jscpd, and slow quality signals.
-- Semgrep, Secrets Scan, and Trivy are security gates and should block production-bound changes.
-- Complexity is intentionally soft in this PR to avoid production refactors just to satisfy a new metric.
+## Why `test-quality-pr` stays the required aggregator
+
+`test-quality-pr` hides implementation-level job reshuffling from branch protection. The workflow can parallelize or rename internal jobs while GitHub branch protection continues to wait for one stable required status.
+
+The aggregator currently requires:
+
+```text
+lint-format
+typecheck
+backend-tests
+audit
+duplication
+```
+
+It intentionally does not require contract fuzz, benchmark, nightly, mutation, or live checks.

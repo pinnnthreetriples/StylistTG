@@ -3,8 +3,8 @@ tests = ["tests"]
 source = ["app"]
 
 [pytest]
-external_markers = ["live", "integration", "redis", "postgres", "slow"]
-unit_markers = ["unit", "api", "security", "contract"]
+external_markers = ["live", "integration", "redis", "postgres", "slow", "contract"]
+unit_markers = ["unit", "api", "security", "worker", "architecture", "property", "contract"]
 
 [thresholds]
 max_assertions_per_test = 12
@@ -12,18 +12,31 @@ duplicate_min_lines = 10
 duplicate_similarity = 0.90
 
 [severity]
-zero_assertions = "CRITICAL"
-assert_true = "CRITICAL"
-dependency_overrides_without_finally = "CRITICAL"
-external_resource_without_marker = "CRITICAL"
-api_4xx_without_error_code = "WARNING"
-god_test = "WARNING"
-duplicate_setup = "INFO"
-missing_edge_case = "WARNING"
+TQA001 = "CRITICAL"
+TQA002 = "CRITICAL"
+TQA010 = "CRITICAL"
+TQA013 = "CRITICAL"
+STG001 = "CRITICAL"
+STG003 = "WARNING"
+STG004 = "INFO"
+STG005 = "CRITICAL"
+STG010 = "CRITICAL"
+TQA004 = "WARNING"
+TQA030 = "INFO"
+TQA040 = "INFO"
 
 [project_rules]
-fastapi_error_code_required = true
-dependency_overrides_must_use_app_client = true
-tdlib_live_tests_require_env_skip = true
-s3_stubber_must_use_context_manager = true
-rbac_matrix_completeness = true
+STG001 = true
+STG002 = true
+STG003 = true
+STG004 = true
+STG005 = true
+STG006 = true
+STG007 = true
+STG008 = true
+STG009 = true
+STG010 = true
+TQA010 = true
+TQA013 = true
+TQA020 = true
+TQA040 = true

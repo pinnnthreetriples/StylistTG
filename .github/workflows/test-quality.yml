@@ -20,6 +20,9 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
   UV_VERSION: "0.10.9"
+  PYTEST_PROFILE: pr
+  PYTEST_WORKERS: "2"
+  PYTEST_DIST: worksteal
 
 jobs:
   lint-format:
@@ -94,37 +97,50 @@ jobs:
         run: mkdir -p reports
       - name: Run tests with coverage
         run: |
-          uv run pytest tests \
-            -n auto --dist=loadscope \
-            --cov=app --cov=tools --cov-branch --cov-context=test \
-            --cov-report=json:reports/coverage.json \
-            --cov-report=xml:reports/coverage.xml \
-            --cov-report=term-missing:skip-covered \
-            --durations=20 --durations-min=1.0 \
-            -q
+          set -o pipefail
+          {
+            echo "pytest_profile=${PYTEST_PROFILE}"
+            echo "pytest_workers=${PYTEST_WORKERS}"
+            echo "pytest_dist=${PYTEST_DIST}"
+          } | tee reports/pytest-runtime-summary.txt
+          /usr/bin/time -f "pytest_total_seconds=%e" -o reports/pytest-time.txt \
+            uv run pytest tests \
+              -n "${PYTEST_WORKERS}" --dist="${PYTEST_DIST}" \
+              -m "not contract and not live and not integration and not slow" \
+              --cov=app --cov=tools --cov-branch --cov-context=test \
+              --cov-report=json:reports/coverage.json \
+              --cov-report=xml:reports/coverage.xml \
+              --cov-report=term-missing:skip-covered \
+              --durations=50 --durations-min=0.5 \
+              -q 2>&1 | tee reports/pytest.log
+          cat reports/pytest-time.txt | tee -a reports/pytest-runtime-summary.txt
         env:
           APP_ENV: test
           AUTH_MODE: local
+      - name: Build slow-test report
+        if: always()
+        run: |
+          uv run python scripts/report_slow_tests.py \
+            --log reports/pytest.log \
+            --output reports/slow-tests.json \
+            --threshold 3 \
+            --threshold 5 \
+            --threshold 10
+      - name: Audit fixture usage
+        if: always()
+        run: uv run python scripts/test_fixture_audit.py --path tests --output reports/fixture-audit.json
+        continue-on-error: true
       - name: Per-package coverage gate
         run: uv run python scripts/coverage_gate.py
-      - name: Run test quality analyzer SARIF
+      - name: Run test quality analyzer
         run: |
           uv run python -m tools.test_analyzer \
             --path tests \
             --coverage reports/coverage.json \
-            --format sarif \
-            --output reports/test-quality.sarif \
-            --severity INFO
-      - name: Run test quality analyzer JSON
-        run: |
-          uv run python -m tools.test_analyzer \
-            --path tests \
-            --coverage reports/coverage.json \
-            --format json \
-            --output reports/test-quality.json \
-            --severity INFO
-        if: always()
-        continue-on-error: true
+            --format sarif,json \
+            --output-dir reports \
+            --severity INFO \
+            --fail-on-severity CRITICAL
       - name: Upload backend test reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -134,6 +150,9 @@ jobs:
             backend/reports/coverage.xml
             backend/reports/test-quality.sarif
             backend/reports/test-quality.json
+            backend/reports/slow-tests.json
+            backend/reports/fixture-audit.json
+            backend/reports/pytest-runtime-summary.txt
         if: always()
 
   audit:

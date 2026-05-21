@@ -6,40 +6,19 @@ Mandatory and optional checks before merging StylistTG PRs.
 
 The required aggregator is:
 
-```text
-Test Quality / test-quality-pr
-```
+`Test Quality / test-quality-pr`
 
 It requires these jobs to pass:
 
-```text
-lint-format
-  ruff check
-  ruff format --check
-  require tests for new backend/app files
-
-typecheck
-  pyright scoped backend surface
-  pyright full strict report
-
-backend-tests
-  pytest PR profile
-  coverage.py JSON/XML
-  branch coverage
-  package coverage gate
-  one-pass test analyzer SARIF+JSON
-  slow-test report artifact
-  fixture audit artifact
-
-audit
-  pip-audit
-
-duplication
-  jscpd backend/app JSON
-  jscpd backend/tests JSON
-```
+- `lint-format`: ruff check, ruff format check, and test requirement gate for new backend production files.
+- `typecheck`: scoped Pyright check and full strict Pyright report.
+- `backend-tests`: pytest PR profile, coverage JSON/XML, branch coverage, package coverage gate, one-pass test analyzer SARIF/JSON, slow-test report, fixture audit, and runtime telemetry summary.
+- `audit`: pip-audit.
+- `duplication`: jscpd JSON reports for backend app and tests.
 
 ## Backend PR pytest profile
+
+Required PR command shape:
 
 ```bash
 PYTEST_PROFILE=pr
@@ -49,19 +28,21 @@ pytest tests \
   --cov=app --cov=tools --cov-branch --cov-context=test
 ```
 
-Current default until benchmark proves otherwise:
+Current required PR mode:
 
 ```text
-PYTEST_WORKERS=auto
-PYTEST_DIST=loadscope
+PYTEST_WORKERS=2
+PYTEST_DIST=worksteal
 ```
+
+`pyproject.toml` does not define the PR marker expression globally. Required, nightly, benchmark, integration, and live workflows must pass their marker profiles explicitly.
 
 ## Optional/non-required checks
 
 | Check | Workflow | Purpose |
 |---|---|---|
 | Contract fuzz soft PR signal | `Test Quality / contract-fuzz` | OpenAPI/Schemathesis drift visibility without blocking required path |
-| Pytest Benchmark | `Pytest Benchmark` | Compare xdist runtime modes before changing PR runtime |
+| Pytest Benchmark | `Pytest Benchmark` | Manual xdist runtime comparison before changing PR runtime |
 | Nightly Backend Quality | `Nightly Backend Quality` | slow/property/contract/postgres/mutation checks |
 | Complexity | existing soft workflow | complexity debt visibility |
 
@@ -69,17 +50,22 @@ PYTEST_DIST=loadscope
 
 PR jobs should upload only machine-readable lightweight artifacts:
 
-```text
-coverage.json
-coverage.xml
-test-quality.sarif
-test-quality.json
-slow-tests.json
-fixture-audit.json
-jscpd-report.json
-```
+- `coverage.json`
+- `coverage.xml`
+- `test-quality.sarif`
+- `test-quality.json`
+- `slow-tests.json`
+- `fixture-audit.json`
+- `pytest-runtime-summary.txt`
+- `jscpd-report.json`
 
 Do not upload HTML coverage/jscpd reports in every PR. Generate heavy HTML only in nightly/manual workflows.
+
+## Runtime telemetry policy
+
+`pytest-runtime-summary.txt` is the first place to check after any suite or CI change. It should include `pytest_total_seconds`, `slow_report_seconds`, `fixture_audit_seconds`, `coverage_gate_seconds`, and `test_analyzer_seconds`.
+
+Use this file to decide whether the next optimization belongs in pytest collection/execution, coverage, analyzer, fixture audit, or artifact handling.
 
 ## Promotion rules
 

@@ -63,7 +63,9 @@ def _is_test(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     return node.name.startswith("test_")
 
 
-def _function_source(node: ast.FunctionDef | ast.AsyncFunctionDef, lines: list[str]) -> str:
+def _function_source(
+    node: ast.FunctionDef | ast.AsyncFunctionDef, lines: list[str]
+) -> str:
     start = node.lineno - 1
     end = node.end_lineno or node.lineno
     return "\n".join(lines[start:end])
@@ -82,7 +84,8 @@ def audit_file(path: Path, root: Path) -> dict[str, Any]:
     fixtures = [
         node
         for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _is_fixture(node)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and _is_fixture(node)
     ]
 
     fixture_usage: Counter[str] = Counter()
@@ -131,7 +134,9 @@ def build_report(root: Path) -> dict[str, Any]:
             "db_heavy_tests": sum(
                 len(file_report["db_heavy_tests"]) for file_report in files
             ),
-            "schema_tests": sum(len(file_report["schema_tests"]) for file_report in files),
+            "schema_tests": sum(
+                len(file_report["schema_tests"]) for file_report in files
+            ),
         },
         "files_by_fixture": {
             key: sorted(value) for key, value in sorted(files_by_fixture.items())
@@ -145,14 +150,18 @@ def main(argv: list[str] | None = None) -> int:
         description="Audit pytest fixture usage without importing the app."
     )
     parser.add_argument("--path", default="tests", help="Test root to audit")
-    parser.add_argument("--output", required=True, help="Path to write fixture audit JSON")
+    parser.add_argument(
+        "--output", required=True, help="Path to write fixture audit JSON"
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.path)
     report = build_report(root)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+    )
     return 0
 
 

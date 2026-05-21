@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 import time
 from typing import Any, cast
@@ -17,6 +17,8 @@ ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
 RETENTION_TICK_SECONDS = 86_400
 RATE_LIMIT_FLUSH_TICK_SECONDS = 60
 RATE_LIMIT_FLUSH_JOB_ID_PREFIX = "rate-limit-flush"
+RECONCILE_STUCK_TICK_SECONDS = 120
+RECONCILE_STUCK_JOB_ID_PREFIX = "reconcile-stuck-attempts"
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,7 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
             "account_status_monitor": ACCOUNT_STATUS_MONITOR_TICK_SECONDS,
             "retention": RETENTION_TICK_SECONDS,
             "rate_limit_flush": RATE_LIMIT_FLUSH_TICK_SECONDS,
+            "reconcile_stuck_attempts": RECONCILE_STUCK_TICK_SECONDS,
         },
     )
 
@@ -70,6 +73,17 @@ def rate_limit_flush_tick() -> dict[str, object]:
     return {"scopes": report.per_scope_counts, "upserted": report.upserted}
 
 
+def reconcile_stuck_tick() -> dict[str, object]:
+    """Reconcile stuck NeuroCommenting attempts via TDLib message lookup."""
+    from app.models import utc_now
+    from app.services.reconcile_stuck_attempts import RuntimeTdlibSearchClient, run_reconcile_tick
+
+    with SessionLocal() as session:
+        report = run_reconcile_tick(session, RuntimeTdlibSearchClient(), now=utc_now())
+        session.commit()
+    return cast(dict[str, object], asdict(report))
+
+
 def enqueue_rate_limit_flush_tick(*, now: float | None = None) -> bool:
     """Enqueue one rate-limit flush job for the current scheduler minute bucket."""
     from app.job_queue.rq import get_queue
@@ -86,6 +100,30 @@ def enqueue_rate_limit_flush_tick(*, now: float | None = None) -> bool:
     except RedisError:
         log_warn(
             "rate_limit_flush_enqueue_failed",
+            queue_name=SCHEDULER_QUEUE_NAME,
+            job_id=job_id,
+            error_class="RedisError",
+        )
+        return False
+    return True
+
+
+def enqueue_reconcile_stuck_tick(*, now: float | None = None) -> bool:
+    """Enqueue one stuck-attempt reconcile job for the current two-minute bucket."""
+    from app.job_queue.rq import get_queue
+
+    bucket = int((time.time() if now is None else now) // RECONCILE_STUCK_TICK_SECONDS)
+    job_id = f"{RECONCILE_STUCK_JOB_ID_PREFIX}-{bucket}"
+    queue = get_queue(SCHEDULER_QUEUE_NAME)
+    try:
+        cast(Any, queue).enqueue_call(
+            func=reconcile_stuck_tick,
+            job_id=job_id,
+            unique=True,
+        )
+    except RedisError:
+        log_warn(
+            "reconcile_stuck_enqueue_failed",
             queue_name=SCHEDULER_QUEUE_NAME,
             job_id=job_id,
             error_class="RedisError",

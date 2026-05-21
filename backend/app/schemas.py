@@ -164,6 +164,29 @@ class CurrentUserRead(BaseModel):
     auth_source: str
 
 
+class WorkspaceRead(BaseModel):
+    id: str
+    name: str
+    slug: str
+    owner_user_id: str
+    status: str
+    safety_pipeline_v2_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
+
+
+class WorkspaceFeatureFlagsUpdate(BaseModel):
+    safety_pipeline_v2_enabled: StrictBool
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AccountRead(BaseModel):
     id: str
     external_ref: str

@@ -20,6 +20,7 @@ from app.models import (
     WarmupSession,
     WarmupStatus,
     WarmupStrategy,
+    Workspace,
     new_id,
     utc_now,
 )
@@ -302,6 +303,8 @@ def _ready_account(
     policy.require_healthy_proxy = True
     policy.require_warmup_before_commenting = True
     policy.auto_pause_on_flood_wait_count = 3
+    workspace = db_session.get(Workspace, workspace_id)
+    workspace.safety_pipeline_v2_enabled = True
     db_session.add(
         AccountProxy(
             account_id=account.id,

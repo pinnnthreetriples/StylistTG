@@ -36,13 +36,18 @@ def parse_pytest_durations(log_text: str) -> list[SlowTestEntry]:
     return sorted(entries, key=lambda item: item.duration_seconds, reverse=True)
 
 
-def build_report(entries: list[SlowTestEntry], thresholds: tuple[float, ...]) -> dict[str, object]:
+def build_report(
+    entries: list[SlowTestEntry],
+    thresholds: tuple[float, ...],
+) -> dict[str, object]:
     return {
         "summary": {
             "reported_tests": len(entries),
             "thresholds_seconds": list(thresholds),
             "over_threshold": {
-                str(threshold): sum(1 for entry in entries if entry.duration_seconds > threshold)
+                str(threshold): sum(
+                    1 for entry in entries if entry.duration_seconds > threshold
+                )
                 for threshold in thresholds
             },
         },
@@ -51,7 +56,9 @@ def build_report(entries: list[SlowTestEntry], thresholds: tuple[float, ...]) ->
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a JSON report from pytest --durations output.")
+    parser = argparse.ArgumentParser(
+        description="Build a JSON report from pytest --durations output."
+    )
     parser.add_argument("--log", required=True, help="Path to captured pytest stdout/stderr log")
     parser.add_argument("--output", required=True, help="Path to write slow-tests JSON report")
     parser.add_argument(

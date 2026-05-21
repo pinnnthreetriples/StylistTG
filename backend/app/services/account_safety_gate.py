@@ -27,6 +27,7 @@ from app.services.account_profile_completeness import evaluate as evaluate_profi
 from app.services.account_quarantine import get_active_quarantine
 from app.services.cross_module_load_tracker import current_load, evaluate_threshold
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
+from app.services.feature_flags import is_safety_pipeline_v2_enabled
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
 from app.services.safety_gate_cache import (
     InMemorySafetyGateCache,
@@ -65,6 +66,14 @@ class AccountSafetyGate:
         account_id: str,
         intent: SafetyGateIntent,
     ) -> SafetyGateVerdict:
+        if not is_safety_pipeline_v2_enabled(session, workspace_id):
+            return self._legacy_shim_verdict(
+                session,
+                workspace_id=workspace_id,
+                account_id=account_id,
+                intent=intent,
+            )
+
         policy = _policy(session, workspace_id=workspace_id)
         cache_key = _cache_key(account_id=account_id, intent=intent, policy=policy)
         cached = self._cache.get(cache_key)
@@ -80,6 +89,44 @@ class AccountSafetyGate:
         )
         self._cache.set(cache_key, verdict.model_dump_json(), ttl_seconds=CACHE_TTL_SECONDS)
         return verdict
+
+    def _legacy_shim_verdict(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        account_id: str,
+        intent: SafetyGateIntent,
+    ) -> SafetyGateVerdict:
+        account = _account(session, workspace_id=workspace_id, account_id=account_id)
+        reasons: list[SafetyGateReason] = []
+        if not _proxy_healthy(account):
+            reasons.append(_proxy_reason("blocked", account))
+        if intent == "commenting" and _latest_warmup(session, account=account) is None:
+            reasons.append(_reason("no_warmup", "blocked", "Account has no warmup session."))
+        quarantine = get_active_quarantine(
+            session, account_id=account.id, workspace_id=account.workspace_id
+        )
+        if quarantine is not None:
+            reasons.append(
+                _reason(
+                    "active_quarantine",
+                    "blocked",
+                    "Account has an active quarantine.",
+                    {"quarantine_id": quarantine.id, "reason": quarantine.reason},
+                )
+            )
+        severity = _aggregate_severity(reasons)
+        return SafetyGateVerdict(
+            account_id=UUID(account.id),
+            intent=intent,
+            eligible=severity != "blocked",
+            severity=severity,
+            reasons=reasons,
+            ggr_score=None,
+            checked_at=utc_now(),
+            cache_ttl_seconds=CACHE_TTL_SECONDS,
+        )
 
     def _compute_verdict(
         self,

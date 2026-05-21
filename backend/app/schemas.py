@@ -15,6 +15,8 @@ from app.contracts import bought_onboarding as _bought_onboarding_contracts
 from app.contracts import human_behavior as _human_behavior_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
+TerminalStatus = Literal["none", "banned", "deleted", "suspended"]
+
 ProfileAudioAction = _account_contracts.ProfileAudioAction
 ProfilePreviewRead = _account_contracts.ProfilePreviewRead
 ProfilePreviewStepRead = _account_contracts.ProfilePreviewStepRead
@@ -162,6 +164,29 @@ class CurrentUserRead(BaseModel):
     auth_source: str
 
 
+class WorkspaceRead(BaseModel):
+    id: str
+    name: str
+    slug: str
+    owner_user_id: str
+    status: str
+    safety_pipeline_v2_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
+
+
+class WorkspaceFeatureFlagsUpdate(BaseModel):
+    safety_pipeline_v2_enabled: StrictBool
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AccountRead(BaseModel):
     id: str
     external_ref: str
@@ -169,6 +194,7 @@ class AccountRead(BaseModel):
     auth_source: str
     origin: Literal["imported", "bought", "created"]
     account_state: str
+    terminal_status: TerminalStatus
     created_at: datetime
     updated_at: datetime
 
@@ -187,6 +213,7 @@ class AccountListItemRead(BaseModel):
     telegram_user_id: str | None
     origin: Literal["imported", "bought", "created"]
     account_state: str
+    terminal_status: TerminalStatus
     runtime_health: str
     is_execution_usable: bool
     is_test_dc: bool

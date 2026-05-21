@@ -64,6 +64,7 @@ def _seed_usable_account(db_session, *, host: str = "10.0.0.1"):
 @freeze_time(_FROZEN_NOW)
 def test_ip_change_creates_short_cooldown_observation(db_session) -> None:
     account = _seed_usable_account(db_session)
+    assert account.terminal_status == "none"
     monitor = AccountStatusMonitor(
         probe=_Probe(
             [
@@ -90,6 +91,113 @@ def test_ip_change_creates_short_cooldown_observation(db_session) -> None:
         "cooldown": True,
         "reason": "ip_change_detected",
     }
+
+
+@freeze_time(_FROZEN_NOW)
+def test_tdlib_ban_errors_mark_account_banned(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    monitor = AccountStatusMonitor(
+        probe=_Probe(
+            [
+                AccountStatusProbeResult(
+                    True,
+                    "10.0.0.1",
+                    False,
+                    "Pixel 7",
+                    error_code="USER_DEACTIVATED_BAN",
+                    error_class="auth_state",
+                ),
+            ]
+        )
+    )
+
+    observation = monitor.observe_account(
+        db_session, account_id=account.id, workspace_id=account.workspace_id
+    )
+
+    db_session.refresh(account)
+    assert {
+        "terminal_status": account.terminal_status,
+        "auto_action_taken": observation.auto_action_taken,
+        "terminal_status_reason": observation.details_json["terminal_status_reason"],
+    } == {
+        "terminal_status": "banned",
+        "auto_action_taken": "paused",
+        "terminal_status_reason": "tdlib_auth_error",
+    }
+
+
+@freeze_time(_FROZEN_NOW)
+def test_tdlib_user_deactivated_marks_account_deleted(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    monitor = AccountStatusMonitor(
+        probe=_Probe(
+            [
+                AccountStatusProbeResult(
+                    True,
+                    "10.0.0.1",
+                    False,
+                    "Pixel 7",
+                    error_code="USER_DEACTIVATED",
+                    error_class="auth_state",
+                ),
+            ]
+        )
+    )
+
+    monitor.observe_account(db_session, account_id=account.id, workspace_id=account.workspace_id)
+
+    db_session.refresh(account)
+    assert account.terminal_status == "deleted"
+
+
+@freeze_time(_FROZEN_NOW)
+def test_auth_class_consecutive_failures_mark_account_banned(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    monitor = AccountStatusMonitor(
+        probe=_Probe(
+            [
+                AccountStatusProbeResult(
+                    True,
+                    "10.0.0.1",
+                    False,
+                    "Pixel 7",
+                    error_code="AUTH_KEY_DUPLICATED",
+                    error_class="auth_state",
+                )
+                for _ in range(5)
+            ]
+        )
+    )
+
+    for _ in range(5):
+        observation = monitor.observe_account(
+            db_session, account_id=account.id, workspace_id=account.workspace_id
+        )
+
+    db_session.refresh(account)
+    assert {
+        "terminal_status": account.terminal_status,
+        "consecutive_failures": observation.consecutive_failures,
+    } == {
+        "terminal_status": "banned",
+        "consecutive_failures": 5,
+    }
+
+
+@freeze_time(_FROZEN_NOW)
+def test_terminal_status_does_not_auto_revert_after_auth_recovers(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    account.terminal_status = "banned"
+    db_session.commit()
+    monitor = AccountStatusMonitor(
+        probe=_Probe([AccountStatusProbeResult(True, "10.0.0.1", True, "Pixel 7")])
+    )
+
+    monitor.observe_account(db_session, account_id=account.id, workspace_id=account.workspace_id)
+
+    db_session.refresh(account)
+    assert account.terminal_status == "banned"
 
 
 @freeze_time(_FROZEN_NOW)

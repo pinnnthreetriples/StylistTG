@@ -8,7 +8,9 @@ from app.schemas import WorkspaceSafetyPolicyRead, WorkspaceSafetyPolicyUpdate
 from app.services.auth_context import AuthContext, require_role
 from app.services.sensitive_audit import record_sensitive_audit_event
 from app.services.workspace_safety_policy import (
+    compute_diff,
     get_workspace_safety_policy,
+    policy_public_snapshot,
     update_workspace_safety_policy,
 )
 
@@ -41,27 +43,25 @@ def patch_safety_policy(
         workspace_id=auth.workspace_id,
         create_if_missing=True,
     )
-    previous_mode = previous.mode if previous is not None else None
+    previous_snapshot = policy_public_snapshot(previous) if previous is not None else {}
     values = payload.model_dump(exclude_unset=True)
     policy = update_workspace_safety_policy(
         session,
         workspace_id=auth.workspace_id,
         values=values,
     )
-    record_sensitive_audit_event(
-        session,
-        workspace_id=auth.workspace_id,
-        actor_user_id=auth.user_id,
-        action="workspace_safety_policy.updated",
-        entity_type="workspace_safety_policy",
-        entity_id=policy.id,
-        ip=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-        metadata={
-            "previous_mode": previous_mode,
-            "new_mode": policy.mode,
-            "updated_fields": sorted(values),
-        },
-    )
+    diff = compute_diff(previous_snapshot, policy)
+    if diff["changed_fields"]:
+        record_sensitive_audit_event(
+            session,
+            workspace_id=auth.workspace_id,
+            actor_user_id=auth.user_id,
+            action="workspace_safety_policy.updated",
+            entity_type="workspace_safety_policy",
+            entity_id=policy.id,
+            ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata=diff,
+        )
     session.commit()
     return policy

@@ -106,6 +106,9 @@ class Workspace(Base):
         UUIDString, ForeignKey("app_user.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default=WorkspaceStatus.ACTIVE)
+    safety_pipeline_v2_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
@@ -705,6 +708,10 @@ class Account(Base):
             "origin IN ('imported','bought','created')",
             name="ck_accounts_origin_valid",
         ),
+        CheckConstraint(
+            "terminal_status IN ('none','banned','deleted','suspended')",
+            name="ck_accounts_terminal_status_valid",
+        ),
         Index("ix_account_workspace_updated", "workspace_id", "updated_at"),
     )
 
@@ -721,6 +728,9 @@ class Account(Base):
     )
     account_state: Mapped[str] = mapped_column(
         String(64), nullable=False, default=AccountState.REGISTERED
+    )
+    terminal_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="none", server_default="none"
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

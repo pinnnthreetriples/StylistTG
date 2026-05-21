@@ -27,6 +27,7 @@ from app.services.account_profile_completeness import evaluate as evaluate_profi
 from app.services.account_quarantine import get_active_quarantine
 from app.services.cross_module_load_tracker import current_load, evaluate_threshold
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
+from app.services.feature_flags import is_safety_pipeline_v2_enabled
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
 from app.services.safety_gate_cache import (
     InMemorySafetyGateCache,
@@ -65,8 +66,24 @@ class AccountSafetyGate:
         account_id: str,
         intent: SafetyGateIntent,
     ) -> SafetyGateVerdict:
+        if not is_safety_pipeline_v2_enabled(session, workspace_id):
+            return self._legacy_shim_verdict(
+                session,
+                workspace_id=workspace_id,
+                account_id=account_id,
+                intent=intent,
+            )
+
         policy = _policy(session, workspace_id=workspace_id)
-        cache_key = _cache_key(account_id=account_id, intent=intent, policy=policy)
+        terminal_status = _account_terminal_status(
+            session, workspace_id=workspace_id, account_id=account_id
+        )
+        cache_key = _cache_key(
+            account_id=account_id,
+            intent=intent,
+            policy=policy,
+            terminal_status=terminal_status,
+        )
         cached = self._cache.get(cache_key)
         if cached is not None:
             return SafetyGateVerdict.model_validate_json(cached)
@@ -80,6 +97,44 @@ class AccountSafetyGate:
         )
         self._cache.set(cache_key, verdict.model_dump_json(), ttl_seconds=CACHE_TTL_SECONDS)
         return verdict
+
+    def _legacy_shim_verdict(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        account_id: str,
+        intent: SafetyGateIntent,
+    ) -> SafetyGateVerdict:
+        account = _account(session, workspace_id=workspace_id, account_id=account_id)
+        reasons: list[SafetyGateReason] = []
+        if intent in {"commenting", "warmup"} and not _proxy_healthy(account):
+            reasons.append(_proxy_reason("blocked", account))
+        if intent == "commenting" and _latest_warmup(session, account=account) is None:
+            reasons.append(_reason("no_warmup", "blocked", "Account has no warmup session."))
+        quarantine = get_active_quarantine(
+            session, account_id=account.id, workspace_id=account.workspace_id
+        )
+        if quarantine is not None:
+            reasons.append(
+                _reason(
+                    "active_quarantine",
+                    "blocked",
+                    "Account has an active quarantine.",
+                    {"quarantine_id": quarantine.id, "reason": quarantine.reason},
+                )
+            )
+        severity = _aggregate_severity(reasons)
+        return SafetyGateVerdict(
+            account_id=UUID(account.id),
+            intent=intent,
+            eligible=severity != "blocked",
+            severity=severity,
+            reasons=reasons,
+            ggr_score=None,
+            checked_at=utc_now(),
+            cache_ttl_seconds=CACHE_TTL_SECONDS,
+        )
 
     def _compute_verdict(
         self,
@@ -107,6 +162,9 @@ class AccountSafetyGate:
             reasons.extend(_editing_reasons(account=account))
         else:
             raise ValueError(f"unsupported safety gate intent: {intent}")
+
+        if account.terminal_status != "none":
+            reasons.append(_terminal_reason(account))
 
         quarantine = get_active_quarantine(
             session, account_id=account.id, workspace_id=account.workspace_id
@@ -252,7 +310,7 @@ def _commenting_reasons(
                 {"score": profile.score},
             )
         )
-    if account.account_state in _TERMINAL_ACCOUNT_STATES:
+    if account.terminal_status == "none" and account.account_state in _TERMINAL_ACCOUNT_STATES:
         reasons.append(_terminal_reason(account))
     return reasons
 
@@ -261,7 +319,7 @@ def _warmup_reasons(account: Account, policy: WorkspaceSafetyPolicy) -> list[Saf
     reasons: list[SafetyGateReason] = []
     if policy.require_healthy_proxy and not _proxy_healthy(account):
         reasons.append(_proxy_reason("blocked", account))
-    if account.account_state in _TERMINAL_ACCOUNT_STATES:
+    if account.terminal_status == "none" and account.account_state in _TERMINAL_ACCOUNT_STATES:
         reasons.append(_terminal_reason(account))
     # TODO Phase 2.5 Task 27: replace cache-only path with Lua reserve+verdict for sender preflight atomicity.
     # Warmup isolation conflict check will be wired when a dedicated conflict service exists.
@@ -272,7 +330,7 @@ def _editing_reasons(account: Account) -> list[SafetyGateReason]:
     reasons: list[SafetyGateReason] = []
     if not _proxy_healthy(account):
         reasons.append(_proxy_reason("warning", account))
-    if account.account_state in _CRITICAL_ACCOUNT_STATES:
+    if account.terminal_status == "none" and account.account_state in _CRITICAL_ACCOUNT_STATES:
         reasons.append(_terminal_reason(account))
     return reasons
 
@@ -307,11 +365,28 @@ def _account(session: Session, *, workspace_id: str, account_id: str) -> Account
     return account
 
 
-def _cache_key(*, account_id: str, intent: SafetyGateIntent, policy: WorkspaceSafetyPolicy) -> str:
+def _account_terminal_status(session: Session, *, workspace_id: str, account_id: str) -> str:
+    terminal_status = session.scalar(
+        select(Account.terminal_status)
+        .where(Account.workspace_id == workspace_id)
+        .where(Account.id == account_id)
+    )
+    if terminal_status is None:
+        raise AccountSafetyGateAccountNotFound("account not found")
+    return str(terminal_status)
+
+
+def _cache_key(
+    *,
+    account_id: str,
+    intent: SafetyGateIntent,
+    policy: WorkspaceSafetyPolicy,
+    terminal_status: str,
+) -> str:
     updated_at = policy.updated_at
     if updated_at.tzinfo is None:
         updated_at = updated_at.replace(tzinfo=UTC)
-    return f"safety:gate:{account_id}:{intent}:{updated_at.isoformat()}"
+    return f"safety:gate:{account_id}:{intent}:{updated_at.isoformat()}:{terminal_status}"
 
 
 def _default_cache() -> SafetyGateCache:
@@ -345,11 +420,15 @@ def _proxy_reason(severity: Literal["warning", "blocked"], account: Account) -> 
 
 
 def _terminal_reason(account: Account) -> SafetyGateReason:
+    metadata_key = "status" if account.terminal_status != "none" else "account_state"
+    metadata_value = (
+        account.terminal_status if account.terminal_status != "none" else account.account_state
+    )
     return _reason(
         "terminal_status",
         "blocked",
         "Account status blocks safety-gated actions.",
-        {"account_state": account.account_state},
+        {metadata_key: metadata_value},
     )
 
 

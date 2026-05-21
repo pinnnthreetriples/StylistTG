@@ -10,6 +10,7 @@ import { useCallback } from 'react'
 
 import { AccountHeader } from '@/components/dashboard/accountWorkspace/AccountHeader'
 import { ProfileCompletenessBar } from '@/modules/shared/ProfileCompletenessBar'
+import { SafetyGateBanner } from '@/modules/shared/SafetyGateBanner'
 import { WarmupIsolationBanner } from '@/modules/warmup'
 import { DashboardActionBar } from '@/components/dashboard/DashboardActionBar'
 import { ErrorBanner } from '@/components/dashboard/ErrorBanner'
@@ -213,6 +214,7 @@ export function AccountDashboardView({
 
       {accountId ? (
         <div className="mx-auto grid max-w-6xl gap-3 px-4 pt-3 sm:px-6">
+          <SafetyGateBanner accountId={accountId} intent="commenting" />
           <ProfileCompletenessBar accountId={accountId} />
           <WarmupIsolationBanner accountId={accountId} />
         </div>

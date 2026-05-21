@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { buildCampaignAccountPayload, type AccountFormState } from '../formPayloads'
 import { useAddCampaignAccount, useNeuroCampaignAccounts, useRemoveCampaignAccount } from '../hooks'
 import type { NeuroCampaignAccountCreate } from '../types'
+import { SafetyGateBanner } from '@/modules/shared/SafetyGateBanner'
 
 export function AccountsSection({ campaignId }: { campaignId: string }) {
   const accountsQuery = useNeuroCampaignAccounts(campaignId)
@@ -79,22 +80,27 @@ export function AccountsSection({ campaignId }: { campaignId: string }) {
       ) : (
         <div className="space-y-1.5">
           {accounts.map((account) => (
-            <div key={account.id} className="flex items-center justify-between rounded border border-gray-100 px-3 py-2 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">{account.account_id}</span>
-                <span className="ml-2 text-xs text-gray-400">
-                  w:{account.rotation_weight} o:{account.rotation_order}
-                </span>
+            <div key={account.id} className="rounded border border-gray-100 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-medium text-gray-700">{account.account_id}</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    w:{account.rotation_weight} o:{account.rotation_order}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Trash2 className="size-3.5" />}
+                  onClick={() => removeAccount.mutate(account.account_id)}
+                  disabled={isMutating}
+                >
+                  Удалить
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<Trash2 className="size-3.5" />}
-                onClick={() => removeAccount.mutate(account.account_id)}
-                disabled={isMutating}
-              >
-                Удалить
-              </Button>
+              <div className="mt-2">
+                <SafetyGateBanner accountId={account.account_id} intent="commenting" />
+              </div>
             </div>
           ))}
         </div>

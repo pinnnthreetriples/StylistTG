@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from sqlalchemy.orm import Session, object_session
 
 from app.config import Settings, settings
+from app.contracts.safety_gate import SafetyGateVerdict
 from app.models import (
     NeuroCommentAttempt,
     NeuroCommentCampaign,
@@ -15,6 +16,7 @@ from app.models import (
     NeuroCommentObservedPost,
     NeuroCommentTarget,
 )
+from app.services.account_safety_gate import evaluate as evaluate_safety_gate
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.account_health_service import AccountHealthService
 from app.services.neuro_commenting.account_selector import DefaultAccountReadinessProvider
@@ -174,6 +176,8 @@ class SenderService:
                 "TDLib neuro-comment sending is disabled.",
                 error_code="NEURO_COMMENT_SEND_DISABLED",
             )
+        if self._block_by_safety_gate(session, workspace_id=workspace_id, context=context):
+            return attempt
         if context.target is not None:
             decision = ChannelRulesPolicy().check_target_allowed(
                 session, workspace_id=workspace_id, target=context.target
@@ -477,6 +481,37 @@ class SenderService:
                 "account runtime is not ready",
                 error_code="ACCOUNT_RUNTIME_NOT_READY",
             )
+        verdict = _evaluate_commenting_gate(session, workspace_id=workspace_id, context=context)
+        if verdict is not None and verdict.severity == "blocked":
+            raise NeuroConflictError(
+                "account safety gate blocked send",
+                error_code="ACCOUNT_SAFETY_BLOCKED",
+            )
+
+    def _block_by_safety_gate(
+        self, session: Session, *, workspace_id: str, context: _SendContext
+    ) -> bool:
+        verdict = _evaluate_commenting_gate(session, workspace_id=workspace_id, context=context)
+        if verdict is None or verdict.severity != "blocked":
+            return False
+        context.attempt.status = NeuroAttemptStatus.SKIPPED.value
+        context.attempt.error_code = "ACCOUNT_SAFETY_BLOCKED"
+        context.attempt.error_message = "; ".join(reason.code for reason in verdict.reasons)
+        self._analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=context.attempt.account_id,
+            target_id=context.attempt.target_id,
+            observed_post_id=context.attempt.observed_post_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=context.attempt.id,
+            event_type="neuro_comment_send_blocked_by_gate",
+            event_level=NeuroEventLevel.WARNING,
+            message="neuro-comment send blocked by account safety gate",
+            data={"reasons": [reason.code for reason in verdict.reasons]},
+        )
+        return True
 
     def _comment_sender(self) -> TelegramCommentSender:
         if self._sender is None:
@@ -729,3 +764,17 @@ def _campaign_account_or_none(
     if account_id is None:
         return None
     return repository.get_campaign_account(session, campaign_id=campaign_id, account_id=account_id)
+
+
+def _evaluate_commenting_gate(
+    session: Session, *, workspace_id: str, context: _SendContext
+) -> SafetyGateVerdict | None:
+    account_id = context.attempt.account_id or context.comment.account_id
+    if account_id is None:
+        return None
+    return evaluate_safety_gate(
+        session,
+        workspace_id=workspace_id,
+        account_id=account_id,
+        intent="commenting",
+    )

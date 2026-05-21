@@ -5,6 +5,7 @@ import {
   fetchAccountOperationLogs,
   fetchAccountProxy,
   fetchAccountSafety,
+  fetchAccountSafetyGate,
   fetchAccountSafetySummary,
   fetchAccountRisk,
   fetchAccountRiskSummary,
@@ -42,6 +43,7 @@ import {
   fetchStoryDrafts,
   updateWorkspaceSafetyPolicy,
 } from '@/lib/api'
+import type { SafetyGateIntent } from '@/lib/api'
 import type { AccountSafetySummary } from '@/lib/accountSafety'
 import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
 import { fetchAuthRuntimeMode, fetchAuthState } from '@/modules/auth'
@@ -53,6 +55,7 @@ export const queryKeys = {
     root: ['accountSafety'] as const,
     summary: ['accountSafety', 'summary'] as const,
     account: (accountId: string) => ['accountSafety', accountId] as const,
+    gate: (accountId: string, intent: SafetyGateIntent) => ['accountSafety', accountId, 'gate', intent] as const,
     checks: (accountId: string) => ['accountSafety', accountId, 'checks'] as const,
     batchPreview: (operation: string, accountIds: string[]) =>
       ['accountSafety', 'batchPreview', operation, [...accountIds].sort().join(',')] as const,
@@ -311,6 +314,15 @@ export function accountSafetyQueryOptions(accountId: string) {
   return queryOptions({
     queryKey: queryKeys.accountSafety.account(accountId),
     queryFn: () => fetchAccountSafety(accountId),
+  })
+}
+
+export function accountSafetyGateQueryOptions(accountId: string, intent: SafetyGateIntent) {
+  return queryOptions({
+    queryKey: queryKeys.accountSafety.gate(accountId, intent),
+    queryFn: () => fetchAccountSafetyGate(accountId, intent),
+    enabled: Boolean(accountId),
+    staleTime: 30_000,
   })
 }
 

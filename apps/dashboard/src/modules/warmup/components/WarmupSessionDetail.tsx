@@ -2,6 +2,8 @@ import { Alert, Badge, Button, SectionCard } from '@stylisttg/ui'
 import { PauseCircle, PlayCircle, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 
+import { SafetyGateBanner } from '@/modules/shared/SafetyGateBanner'
+
 import {
   usePauseWarmupSession,
   useResumeWarmupSession,
@@ -57,6 +59,7 @@ export function WarmupSessionDetail({
 
   return (
     <div className="grid gap-4">
+      <SafetyGateBanner accountId={session.account_id} intent="warmup" />
       <WarmupIsolationBanner accountId={session.account_id} />
       <SectionCard title="Открытая сессия" description="Что происходит сейчас и когда система сможет сделать следующий шаг.">
         <div className="grid gap-3">

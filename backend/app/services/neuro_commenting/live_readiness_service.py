@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from dataclasses import field
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from app.contracts.neuro_commenting import (
     NeuroLiveReadinessRead,
 )
 from app.models import Account, NeuroCommentGeneratedComment
+from app.services.account_safety_gate import evaluate as evaluate_safety_gate
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.account_selector import AccountSelector
 from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
@@ -25,11 +27,16 @@ from app.services.neuro_commenting.enums import (
 Severity = Literal["info", "warning", "blocker"]
 
 
+def _empty_details() -> dict[str, Any]:
+    return {}
+
+
 @dataclass(frozen=True)
 class _Check:
     code: str
     severity: Severity
     message: str
+    details: dict[str, Any] = field(default_factory=_empty_details)
 
 
 class LiveReadinessService:
@@ -122,6 +129,12 @@ class LiveReadinessService:
                 "selected account runtime is ready",
                 "selected account must be execution_usable with ready runtime and session",
             )
+            _append_account_safety_gate_check(
+                session,
+                checks,
+                workspace_id=workspace_id,
+                account_id=selected.account_id,
+            )
         targets, _total = repository.list_targets(
             session, campaign_id=campaign.id, page=1, limit=100
         )
@@ -196,7 +209,10 @@ class LiveReadinessService:
         )
         read_checks = [
             NeuroLiveReadinessCheckRead(
-                code=check.code, severity=check.severity, message=check.message
+                code=check.code,
+                severity=check.severity,
+                message=check.message,
+                details=check.details,
             )
             for check in checks
         ]
@@ -242,3 +258,40 @@ def _approved_unresolved_count(session: Session, *, campaign_id: str) -> int:
         if observed is None or not observed.discussion_message_id:
             count += 1
     return count
+
+
+def _append_account_safety_gate_check(
+    session: Session,
+    checks: list[_Check],
+    *,
+    workspace_id: str,
+    account_id: str,
+) -> None:
+    verdict = evaluate_safety_gate(
+        session,
+        workspace_id=workspace_id,
+        account_id=account_id,
+        intent="commenting",
+    )
+    if verdict.severity == "ok":
+        return
+    reasons = [reason.model_dump(mode="json") for reason in verdict.reasons]
+    details = {"referenced_account_id": account_id, "reasons": reasons}
+    if verdict.severity == "blocked":
+        checks.append(
+            _Check(
+                "account_safety_blocked",
+                "blocker",
+                "selected account is blocked by account safety gate",
+                details,
+            )
+        )
+        return
+    checks.append(
+        _Check(
+            "account_safety_warning",
+            "warning",
+            "selected account has account safety gate warnings",
+            details,
+        )
+    )

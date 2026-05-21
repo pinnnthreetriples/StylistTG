@@ -36,6 +36,8 @@ export type ActionGate = Schema<'ActionGateRead'>
 export type SensitiveAuditEventPage = Schema<'SensitiveAuditEventPageRead'>
 export type AccountSafety = Schema<'AccountSafetyRead'>
 export type AccountSafetySummary = Schema<'AccountSafetySummaryRead'>
+export type SafetyGateVerdict = Schema<'SafetyGateVerdict'>
+export type SafetyGateIntent = SafetyGateVerdict['intent']
 export type AccountValidityCheck = Schema<'AccountValidityCheckRead'>
 export type AccountOperationCooldown = Schema<'AccountOperationCooldownRead'>
 export type AccountProxy = Schema<'AccountProxyRead'>
@@ -811,6 +813,19 @@ export async function fetchActionGate(client: StylistTgClient, accountId: string
       params: { path: { account_id: accountId }, query: { action_type: actionType } },
     }),
     'account action gate',
+  )
+}
+
+export async function fetchAccountSafetyGate(
+  client: StylistTgClient,
+  accountId: string,
+  intent: SafetyGateIntent,
+): Promise<SafetyGateVerdict> {
+  return unwrap(
+    client.openapi.GET('/api/accounts/{account_id}/safety-gate', {
+      params: { path: { account_id: accountId }, query: { intent } },
+    }),
+    'account safety gate',
   )
 }
 

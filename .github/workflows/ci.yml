@@ -77,6 +77,8 @@ jobs:
       TDLIB_API_HASH: ""
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
@@ -88,6 +90,9 @@ jobs:
       - name: Alembic heads
         working-directory: backend
         run: uv run alembic heads
+      - name: Migration safety lint
+        working-directory: backend
+        run: uv run python -m tools.migration_lint --base origin/main
       - name: Alembic upgrade
         working-directory: backend
         run: uv run alembic upgrade head

@@ -547,6 +547,7 @@ class NeuroLiveReadinessCheckRead(BaseModel):
     code: str
     severity: Literal["info", "warning", "blocker"]
     message: str
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class NeuroLiveReadinessRead(BaseModel):

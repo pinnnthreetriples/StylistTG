@@ -44,6 +44,7 @@ from app.models import (
     WarmupStatus,
     utc_now,
 )
+from app.services.account_safety_gate import evaluate as evaluate_safety_gate
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.worker import handle_warmup_step_failure
@@ -157,6 +158,13 @@ def _process_one_dispatch(
         return False
 
     is_live = warmup_session.execution_mode in _LIVE_EXECUTION_MODES
+    if _pause_if_blocked_by_safety_gate(
+        session,
+        warmup_session=warmup_session,
+        now=now,
+        worker_id=worker_id,
+    ):
+        return True
     if is_live and not adapter.is_available():
         warmup_session.next_micro_session_at = _schedule_within_day(
             now, warmup_session.timezone, rng=rng
@@ -421,6 +429,36 @@ def _process_one_dispatch(
 
     warmup_session.next_step_at = warmup_session.next_micro_session_at
     warmup_session.updated_at = now
+    session.flush()
+    return True
+
+
+def _pause_if_blocked_by_safety_gate(
+    session: Session,
+    *,
+    warmup_session: WarmupSession,
+    now: datetime,
+    worker_id: str,
+) -> bool:
+    verdict = evaluate_safety_gate(
+        session,
+        workspace_id=warmup_session.workspace_id,
+        account_id=warmup_session.account_id,
+        intent="warmup",
+    )
+    if verdict.severity != "blocked":
+        return False
+    warmup_session.status = WarmupStatus.PAUSED_RISK.value
+    warmup_session.next_micro_session_at = None
+    warmup_session.next_step_at = None
+    warmup_session.worker_id = worker_id
+    warmup_session.updated_at = now
+    write_warmup_event(
+        session,
+        warmup_session,
+        "warmup_dispatch_blocked_by_gate",
+        {"reasons": [reason.model_dump(mode="json") for reason in verdict.reasons]},
+    )
     session.flush()
     return True
 

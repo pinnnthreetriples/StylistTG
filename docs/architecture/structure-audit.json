@@ -347,6 +347,8 @@
         "apps/dashboard/src/modules/shared/ProfileCompletenessBar.tsx",
         "apps/dashboard/src/modules/shared/QuarantineStateBanner.test.tsx",
         "apps/dashboard/src/modules/shared/QuarantineStateBanner.tsx",
+        "apps/dashboard/src/modules/shared/SafetyGateBanner.test.tsx",
+        "apps/dashboard/src/modules/shared/SafetyGateBanner.tsx",
         "apps/dashboard/src/modules/shared/api.ts",
         "apps/dashboard/src/modules/shared/index.ts",
         "apps/dashboard/src/modules/shared/jobs.ts"

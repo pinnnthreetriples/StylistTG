@@ -28,6 +28,7 @@ from app.modules.account_editing.planner import (
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.repository import AccountEditingRepository
 from app.modules.warmup import service as warmup_service
+from app.services.account_safety_gate import evaluate as evaluate_safety_gate
 from app.services.dashboard import job_summary
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.operation_logs import log_operation
@@ -211,6 +212,28 @@ def build_account_update_preview(
         desired_state=desired_state,
         config=config,
     )
+    gate_verdict = evaluate_safety_gate(
+        session,
+        workspace_id=account.workspace_id,
+        account_id=account_id,
+        intent="editing",
+    )
+    if gate_verdict.severity == "blocked":
+        blocking_errors.append(
+            "safety_gate_blocked: " + "; ".join(reason.code for reason in gate_verdict.reasons)
+        )
+        safety_fields["safety_gate"] = {
+            "severity": gate_verdict.severity,
+            "reasons": [reason.model_dump(mode="json") for reason in gate_verdict.reasons],
+        }
+    elif gate_verdict.severity == "warning":
+        warnings.append(
+            "safety_gate_warning: " + "; ".join(reason.code for reason in gate_verdict.reasons)
+        )
+        safety_fields["safety_gate"] = {
+            "severity": gate_verdict.severity,
+            "reasons": [reason.model_dump(mode="json") for reason in gate_verdict.reasons],
+        }
 
     return {
         "can_create_job": not blocking_errors,

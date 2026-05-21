@@ -40,6 +40,7 @@ import {
   fetchAccountRuntimeDiagnostics as fetchTypedAccountRuntimeDiagnostics,
   fetchAccounts as fetchTypedAccounts,
   fetchAccountSafety as fetchTypedAccountSafety,
+  fetchAccountSafetyGate as fetchTypedAccountSafetyGate,
   fetchAccountSafetySummary as fetchTypedAccountSafetySummary,
   fetchAccountValidityChecks as fetchTypedAccountValidityChecks,
   fetchDashboard as fetchTypedDashboard,
@@ -79,6 +80,8 @@ import {
   type QueueDescriptor,
   type RetryPolicy,
   type AccountSafetyOverride as SafetyOverride,
+  type SafetyGateIntent,
+  type SafetyGateVerdict,
   type ProfileCompletenessReport,
   type DashboardProfile as DashboardResponse,
   type JobSummary,
@@ -149,6 +152,8 @@ export type {
   RuntimeRefresh,
   Readiness,
   SafetyOverride,
+  SafetyGateIntent,
+  SafetyGateVerdict,
   ProfileCompletenessReport,
   StoryDraftRead,
   AccountReadinessRisk,
@@ -302,6 +307,13 @@ export function fetchAccountSafetySummary(): Promise<AccountSafetySummary[]> {
 
 export function fetchAccountSafety(accountId: string): Promise<AccountSafety> {
   return fetchTypedAccountSafety(typedClient, accountId) as Promise<AccountSafety>
+}
+
+export function fetchAccountSafetyGate(
+  accountId: string,
+  intent: SafetyGateIntent,
+): Promise<SafetyGateVerdict> {
+  return fetchTypedAccountSafetyGate(typedClient, accountId, intent)
 }
 
 export function fetchAccountRiskSummary(): Promise<AccountReadinessRiskSummary> {

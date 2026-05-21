@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from app.models import (
     DEFAULT_LOCAL_WORKSPACE_ID,
     AccountState,
@@ -16,6 +18,18 @@ from app.services.neuro_commenting.campaign_service import CampaignService
 from app.services.neuro_commenting.live_readiness_service import LiveReadinessService
 from app.services.neuro_commenting.target_service import TargetService
 from tests.helpers.factories import seed_account, seed_two_workspaces
+
+
+@pytest.fixture(autouse=True)
+def _allow_account_safety_gate(monkeypatch):
+    def ok_gate(session, *, workspace_id: str, account_id: str, intent: str):
+        _ = (session, workspace_id, account_id, intent)
+        return SimpleNamespace(severity="ok", reasons=[])
+
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.live_readiness_service.evaluate_safety_gate",
+        ok_gate,
+    )
 
 
 def _config(*, send_enabled: bool = True) -> SimpleNamespace:

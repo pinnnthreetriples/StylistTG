@@ -22143,6 +22143,11 @@
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
           }
         },
         "type": "object",

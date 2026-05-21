@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from app.config import settings
 from app.services.neuro_commenting import rate_limiter
 from app.models import (
@@ -31,6 +33,18 @@ from app.services.neuro_commenting.tdlib_comment_sender import TdlibTelegramComm
 from app.services.neuro_commenting.target_service import TargetService
 from tests.helpers.factories import seed_account
 from tests.test_neuro_commenting_rate_limiter import FakeRedis
+
+
+@pytest.fixture(autouse=True)
+def _allow_account_safety_gate(monkeypatch):
+    def ok_gate(session, *, workspace_id: str, account_id: str, intent: str):
+        _ = (session, workspace_id, account_id, intent)
+        return SimpleNamespace(severity="ok", reasons=[])
+
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.sender_service.evaluate_safety_gate",
+        ok_gate,
+    )
 
 
 class DenyExceededLimiter:

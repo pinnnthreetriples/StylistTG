@@ -5277,6 +5277,10 @@ export interface components {
             severity: "info" | "warning" | "blocker";
             /** Message */
             message: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
         };
         /** NeuroLiveReadinessRead */
         NeuroLiveReadinessRead: {

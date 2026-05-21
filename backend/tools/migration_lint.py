@@ -31,9 +31,13 @@ class MigrationIssue:
         return f"{self.path}:{self.line}: {self.severity}: {self.message}"
 
 
+def _empty_migration_issues() -> list[MigrationIssue]:
+    return []
+
+
 @dataclass
 class MigrationReport:
-    issues: list[MigrationIssue] = field(default_factory=list)
+    issues: list[MigrationIssue] = field(default_factory=_empty_migration_issues)
 
     @property
     def has_errors(self) -> bool:

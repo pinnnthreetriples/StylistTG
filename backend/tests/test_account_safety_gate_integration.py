@@ -72,6 +72,61 @@ def test_live_readiness_blocks_when_gate_reports_incomplete_warmup(db_session, m
     }
 
 
+def test_live_readiness_blocks_when_non_selected_active_account_gate_blocks(
+    db_session, monkeypatch
+) -> None:
+    first_account, campaign, _target = _ready_campaign(db_session)
+    blocked_account = seed_account(
+        db_session,
+        external_ref="+15550117002",
+        account_state=AccountState.EXECUTION_USABLE,
+        runtime_health="ready",
+        session_present=True,
+    )
+    CampaignAccountService().add_account(
+        db_session,
+        campaign_id=campaign.id,
+        account_id=blocked_account.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        actor_user_id="user-1",
+        rotation_order=10,
+    )
+    db_session.commit()
+    gate_calls: list[str] = []
+
+    def fake_gate(session, *, workspace_id: str, account_id: str, intent: str):
+        assert (workspace_id, intent) == (DEFAULT_LOCAL_WORKSPACE_ID, "commenting")
+        gate_calls.append(account_id)
+        if account_id == blocked_account.id:
+            return _verdict(account_id, intent="commenting", code="active_quarantine")
+        return _ok_verdict(account_id, intent="commenting")
+
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.live_readiness_service.evaluate_safety_gate",
+        fake_gate,
+        raising=False,
+    )
+
+    readiness = LiveReadinessService(config=_config(), limiter_ready=True).check(
+        db_session,
+        campaign_id=campaign.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    gate_check = next(check for check in readiness.checks if check.code == "account_safety_blocked")
+    assert {
+        "ready": readiness.ready,
+        "gate_calls": set(gate_calls),
+        "referenced_account_id": gate_check.details["referenced_account_id"],
+        "reason_codes": [reason["code"] for reason in gate_check.details["reasons"]],
+    } == {
+        "ready": False,
+        "gate_calls": {first_account.id, blocked_account.id},
+        "referenced_account_id": blocked_account.id,
+        "reason_codes": ["active_quarantine"],
+    }
+
+
 def test_sender_preflight_blocks_before_send_when_gate_blocks(db_session, monkeypatch) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
     sender = FakeTelegramCommentSender()
@@ -242,6 +297,19 @@ def _verdict(account_id: str, *, intent: str, code: str) -> SafetyGateVerdict:
                 metadata={"source": "test"},
             )
         ],
+        ggr_score=8.0,
+        checked_at=utc_now(),
+        cache_ttl_seconds=60,
+    )
+
+
+def _ok_verdict(account_id: str, *, intent: str) -> SafetyGateVerdict:
+    return SafetyGateVerdict(
+        account_id=account_id,
+        intent=intent,
+        eligible=True,
+        severity="ok",
+        reasons=[],
         ggr_score=8.0,
         checked_at=utc_now(),
         cache_ttl_seconds=60,

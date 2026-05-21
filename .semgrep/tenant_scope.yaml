@@ -1,0 +1,99 @@
+rules:
+  - id: missing-workspace-id-filter
+    languages:
+      - python
+    severity: ERROR
+    message: Tenant-scoped ORM queries must include a workspace_id predicate.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-639: Authorization Bypass Through User-Controlled Key"
+    patterns:
+      - pattern-either:
+          - pattern: select($MODEL).where(...)
+          - pattern: select($MODEL).filter(...)
+          - pattern: $SESSION.query($MODEL).where(...)
+          - pattern: $SESSION.query($MODEL).filter(...)
+          - pattern: $SESSION.query($MODEL).filter_by(...)
+      - metavariable-regex:
+          metavariable: $MODEL
+          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
+      - pattern-not: select($MODEL).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: select($MODEL).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL).filter_by(..., workspace_id=$WORKSPACE_ID, ...)
+  - id: missing-workspace-id-filter-projection
+    languages:
+      - python
+    severity: ERROR
+    message: Tenant-scoped ORM projections must include a workspace_id predicate.
+    metadata:
+      category: security
+      technology:
+        - python
+      cwe:
+        - "CWE-639: Authorization Bypass Through User-Controlled Key"
+    patterns:
+      - pattern-either:
+          - pattern: select($MODEL.$FIELD).where(...)
+          - pattern: select($MODEL.$FIELD, ...).where(...)
+          - pattern: select($MODEL.$FIELD).filter(...)
+          - pattern: select($MODEL.$FIELD, ...).filter(...)
+          - pattern: $SESSION.query($MODEL.$FIELD).where(...)
+          - pattern: $SESSION.query($MODEL.$FIELD, ...).where(...)
+          - pattern: $SESSION.query($MODEL.$FIELD).filter(...)
+          - pattern: $SESSION.query($MODEL.$FIELD, ...).filter(...)
+          - pattern: $SESSION.query($MODEL.$FIELD).filter_by(...)
+          - pattern: $SESSION.query($MODEL.$FIELD, ...).filter_by(...)
+      - metavariable-regex:
+          metavariable: $MODEL
+          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
+      - pattern-not: select($MODEL.$FIELD).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL.$FIELD).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: select($MODEL.$FIELD, ...).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL.$FIELD, ...).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL.$FIELD).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL.$FIELD).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL.$FIELD, ...).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL.$FIELD, ...).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: select($MODEL.$FIELD).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL.$FIELD).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: select($MODEL.$FIELD, ...).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: select($MODEL.$FIELD, ...).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL.$FIELD).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL.$FIELD).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: select($MODEL.$FIELD, ...).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: select($MODEL.$FIELD, ...).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD, ...).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD, ...).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD, ...).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD, ...).where(...).where($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD, ...).filter(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD, ...).filter(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD, ...).filter(...).filter($MODEL.workspace_id == $WORKSPACE_ID, ...)
+      - pattern-not-inside: $SESSION.query($MODEL.$FIELD, ...).filter(...).filter($WORKSPACE_ID == $MODEL.workspace_id, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD).filter_by(..., workspace_id=$WORKSPACE_ID, ...)
+      - pattern-not: $SESSION.query($MODEL.$FIELD, ...).filter_by(..., workspace_id=$WORKSPACE_ID, ...)

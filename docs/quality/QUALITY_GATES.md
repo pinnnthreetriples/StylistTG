@@ -43,6 +43,7 @@ PYTEST_DIST=worksteal
 | Check | Workflow | Purpose |
 |---|---|---|
 | Contract fuzz soft PR signal | `Test Quality / contract-fuzz` | Broad OpenAPI/Schemathesis drift visibility without blocking required path |
+| Trivy tdlib image | `Trivy / Trivy tdlib image` | TDLib image CRITICAL vulnerability gate; recommended required after first green run |
 | Pytest Benchmark | `Pytest Benchmark` | Manual xdist runtime comparison before changing PR runtime |
 | Nightly Backend Quality | `Nightly Backend Quality` | slow/property/contract/postgres/mutation checks |
 | Complexity | existing soft workflow | complexity debt visibility |

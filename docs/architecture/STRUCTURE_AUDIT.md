@@ -17,7 +17,7 @@ Status legend:
 | Backend modules | GREEN | `app.modules.registry` registers `auth`, `account_editing`, and `warmup`; `_template` is documentation-only and unregistered. | Low. Canonical ownership is explicit. | Keep using `docs/architecture/new-module-checklist.md` for new modules. |
 | Runtime roles | GREEN | `backend/app/runtime/roles.py` covers all production queues; `api` and `reaper` consume no queues; reserved queues have dedicated roles. | Low. Role enforcement is optional but test-covered. | Keep role ownership narrow as reserved queues become active runtime work. |
 | Architecture enforcement | GREEN | `backend/tests/architecture` covers storage, auth, FastAPI, wrappers, workflows, runtime, and module template boundaries. | Low. Regex/AST helper duplication can create maintenance cost. | Consolidate architecture-test helpers later. |
-| Security baseline | GREEN | CI, Test Quality, Semgrep, Secret Scan, SBOM, Container Scan, Trivy, Complexity, Gitleaks config, and security docs exist. | Low. Branch protection remains a GitHub setting outside the repo. | Keep docs aligned with repository settings. |
+| Security baseline | GREEN | CI, Test Quality, Semgrep, Secrets Scan, SBOM, Trivy, Complexity, Gitleaks config, and security docs exist. | Low. Branch protection remains a GitHub setting outside the repo. | Keep docs aligned with repository settings. |
 | Frontend modules | YELLOW | `apps/dashboard/src/modules` contains `account-editing`, `auth`, `warmup`, `shared`, and stronger `moduleBoundaries.test.ts`; `frontend-ownership-audit.md` records migrated and deferred surfaces. | Medium. New UI work can bypass module ownership. | Continue Phase 23-style small ownership moves. |
 | Storage/contracts | YELLOW | `backend/app/contracts` exists for low-risk shared DTOs; `app.schemas.py` remains a compatibility re-export/global DTO layer. | Medium. Remaining DTO and ORM boundaries are still transitional. | Continue shared-contract extraction before any `app.models.py` split. |
 | Legacy wrappers | YELLOW | API/service/worker wrappers remain import-compatible and now have `legacy-wrapper-deprecation-plan.md`, `legacy-wrappers.json`, and audit tests. | Low while tests prevent module imports of wrappers. | Advance wrapper stages only in dedicated PRs. |
@@ -101,9 +101,9 @@ The current Docker/process model still uses a shared backend image with role-spe
 | Test Quality | GREEN | `.github/workflows/test-quality.yml` | Low | Keep strict analyzer green. |
 | Semgrep | GREEN | `.github/workflows/semgrep.yml` | Low | Maintain custom rules as architecture changes. |
 | CodeQL | GREEN | `docs/security/security-baseline.md` documents CodeQL Default Setup. | Low | Do not reintroduce conflicting advanced workflow while Default Setup is enabled. |
-| Secret Scan | GREEN | `.github/workflows/secret-scan.yml`, `.gitleaks.toml` | Low | Keep allowlists narrow. |
+| Secrets Scan | GREEN | `.github/workflows/secrets.yml`, `.gitleaks.toml` | Low | Keep allowlists narrow. |
 | SBOM | GREEN | `.github/workflows/sbom.yml` | Low | Keep artifact names stable. |
-| Container Scan / Trivy | GREEN | `.github/workflows/container-scan.yml`, `.github/workflows/trivy.yml` | Low | CRITICAL remains merge-blocking; HIGH report-only unless policy changes. |
+| Trivy | GREEN | `.github/workflows/trivy.yml` | Low | Filesystem HIGH/CRITICAL and image CRITICAL remain merge-blocking; image HIGH remains report-only unless policy changes. |
 | Complexity | GREEN | `.github/workflows/complexity.yml` | Low | Keep threshold updates explicit. |
 | Dependabot | GREEN | `.github/dependabot.yml` exists in this snapshot. | Low | Review update cadence as dependencies grow. |
 

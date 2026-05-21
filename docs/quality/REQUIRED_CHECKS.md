@@ -15,6 +15,10 @@ Keep these checks required:
 - `Trivy / Trivy filesystem`
 - `Trivy / Trivy backend image`
 
+Recommended after the first green canonical run:
+
+- `Trivy / Trivy tdlib image`
+
 ## Do not require
 
 - `Test Quality / contract-fuzz`

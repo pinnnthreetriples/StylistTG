@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -72,3 +73,59 @@ jobs:
         with:
           name: trivy-backend-report
           path: trivy-backend.sarif
+
+      - name: Upload backend Trivy SARIF
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        if: always() && hashFiles('trivy-backend.sarif') != ''
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+  tdlib-image:
+    name: Trivy tdlib image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Build tdlib Docker image
+        run: docker build -f backend/Dockerfile.tdlib -t stylisttg-tdlib:${{ github.sha }} .
+
+      - name: Prepare Trivy install path
+        run: mkdir -p "$HOME/.local/bin"
+
+      - name: Trivy tdlib CRITICAL gate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: stylisttg-tdlib:${{ github.sha }}
+          scanners: vuln
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+          format: table
+
+      - name: Trivy tdlib HIGH/CRITICAL report
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        if: always()
+        continue-on-error: true
+        with:
+          image-ref: stylisttg-tdlib:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-tdlib.sarif
+
+      - name: Upload tdlib Trivy artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && hashFiles('trivy-tdlib.sarif') != ''
+        with:
+          name: trivy-tdlib-report
+          path: trivy-tdlib.sarif
+
+      - name: Upload tdlib Trivy SARIF
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        if: always() && hashFiles('trivy-tdlib.sarif') != ''
+        with:
+          sarif_file: trivy-tdlib.sarif
+          category: trivy-tdlib

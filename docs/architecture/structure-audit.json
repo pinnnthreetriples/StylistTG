@@ -255,7 +255,7 @@
     },
     {
       "area": "security",
-      "evidence": "CI, Test Quality, Semgrep, Secret Scan, SBOM, Container Scan, Trivy, Complexity, Gitleaks config, and security docs exist.",
+      "evidence": "CI, Test Quality, Semgrep, Secrets Scan, SBOM, Trivy, Complexity, Gitleaks config, and security docs exist.",
       "finding": "Security baseline workflows and documentation are present.",
       "id": "STRUCTURE-007",
       "recommendation": "Keep security docs in sync with GitHub branch protection and workflow policy changes.",
@@ -935,11 +935,6 @@
     },
     {
       "exists": true,
-      "name": "Container Scan",
-      "path": ".github/workflows/container-scan.yml"
-    },
-    {
-      "exists": true,
       "name": "Dependabot",
       "path": ".github/dependabot.yml"
     },
@@ -955,8 +950,8 @@
     },
     {
       "exists": true,
-      "name": "Secret Scan",
-      "path": ".github/workflows/secret-scan.yml"
+      "name": "Secrets Scan",
+      "path": ".github/workflows/secrets.yml"
     },
     {
       "exists": true,

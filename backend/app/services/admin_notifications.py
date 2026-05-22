@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
 from app.contracts.notifications import (
     NotificationDeliveryResult,
@@ -68,7 +70,7 @@ def deliver(
     session: Session,
     payload: NotificationPayload,
     *,
-    channels: list[NotificationChannel],
+    channels: Sequence[NotificationChannel],
 ) -> list[NotificationDeliveryResult]:
     results: list[NotificationDeliveryResult] = []
     for channel in channels:
@@ -227,5 +229,6 @@ def _proxy_outage(
     ]
 
 
-def _count(session: Session, statement) -> int:
-    return int(session.execute(statement).scalar_one() or 0)
+def _count(session: Session, statement: Select[tuple[int]]) -> int:
+    value = session.scalar(statement)
+    return int(value or 0)

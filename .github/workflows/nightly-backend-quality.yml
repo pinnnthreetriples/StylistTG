@@ -82,6 +82,7 @@ jobs:
           mkdir -p reports
           set +e
           uv run pytest tests \
+            --ignore=tests/contract \
             -m "slow or property" \
             -p no:randomly \
             --tb=short \
@@ -197,6 +198,7 @@ jobs:
           mkdir -p reports
           set +e
           uv run pytest tests \
+            --ignore=tests/contract \
             -m postgres \
             -p no:randomly \
             --tb=short \

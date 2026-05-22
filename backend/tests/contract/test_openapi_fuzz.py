@@ -30,12 +30,11 @@ from __future__ import annotations
 import os
 
 import pytest
+import schemathesis
+import schemathesis.checks as schemathesis_checks
 from hypothesis import HealthCheck, settings as hypothesis_settings
 
 from app.main import app
-
-schemathesis = pytest.importorskip("schemathesis")
-schemathesis_checks = pytest.importorskip("schemathesis.checks")
 
 
 # Load the OpenAPI schema directly from the FastAPI ASGI app.

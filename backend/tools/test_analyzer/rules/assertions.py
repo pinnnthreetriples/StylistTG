@@ -14,8 +14,10 @@ from ..models import (
     count_asserts,
     func_source,
     get_test_functions,
-    has_marker,
 )
+
+
+_TQA007_SCOPE_MARKERS = {"unit", "security"}
 
 
 class ZeroAssertions(Rule):
@@ -245,10 +247,18 @@ class BroadExcept(Rule):
 
 
 def _is_unit_or_security_test(ctx: FileContext, func: FunctionNode) -> bool:
-    if has_marker(func, "unit") or has_marker(func, "security"):
+    if (
+        _decorators_have_scope_marker(func.decorator_list)
+        or _enclosing_class_has_scope_marker(ctx.tree, func)
+        or _module_has_scope_marker(ctx.tree)
+    ):
         return True
 
-    path = ctx.relative_path.lower().replace("\\", "/")
+    return _path_is_unit_or_security(ctx.relative_path)
+
+
+def _path_is_unit_or_security(relative_path: str) -> bool:
+    path = relative_path.lower().replace("\\", "/")
     parts = path.split("/")
     filename = parts[-1] if parts else path
     return (
@@ -256,6 +266,67 @@ def _is_unit_or_security_test(ctx: FileContext, func: FunctionNode) -> bool:
         or "security" in parts
         or filename.startswith("test_security")
         or filename.startswith("security_")
+    )
+
+
+def _decorators_have_scope_marker(decorators: list[ast.expr]) -> bool:
+    return any(_expr_has_scope_marker(decorator) for decorator in decorators)
+
+
+def _enclosing_class_has_scope_marker(tree: ast.AST, func: FunctionNode) -> bool:
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        if not _decorators_have_scope_marker(node.decorator_list):
+            continue
+        if any(child is func for child in ast.walk(node)):
+            return True
+    return False
+
+
+def _module_has_scope_marker(tree: ast.AST) -> bool:
+    if not isinstance(tree, ast.Module):
+        return False
+
+    for stmt in tree.body:
+        if isinstance(stmt, ast.Assign):
+            if any(_is_pytestmark_target(target) for target in stmt.targets):
+                if _expr_has_scope_marker(stmt.value):
+                    return True
+        elif isinstance(stmt, ast.AnnAssign) and _is_pytestmark_target(stmt.target):
+            if _expr_has_scope_marker(stmt.value):
+                return True
+    return False
+
+
+def _is_pytestmark_target(target: ast.expr) -> bool:
+    return isinstance(target, ast.Name) and target.id == "pytestmark"
+
+
+def _expr_has_scope_marker(expr: ast.AST | None) -> bool:
+    if expr is None:
+        return False
+    if isinstance(expr, ast.Call):
+        return _expr_has_scope_marker(expr.func)
+    if isinstance(expr, (ast.List, ast.Tuple)):
+        return any(_expr_has_scope_marker(elt) for elt in expr.elts)
+    return _pytest_mark_name(expr) in _TQA007_SCOPE_MARKERS
+
+
+def _pytest_mark_name(expr: ast.AST) -> str | None:
+    if not isinstance(expr, ast.Attribute):
+        return None
+    if not _is_pytest_mark_namespace(expr.value):
+        return None
+    return expr.attr
+
+
+def _is_pytest_mark_namespace(expr: ast.AST) -> bool:
+    return (
+        isinstance(expr, ast.Attribute)
+        and expr.attr == "mark"
+        and isinstance(expr.value, ast.Name)
+        and expr.value.id == "pytest"
     )
 
 

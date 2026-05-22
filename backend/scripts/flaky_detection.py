@@ -16,6 +16,11 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RERUN_RE = re.compile(r"\bRERUN\b\s+([^\s]+::[^\s]+)")
 FLAKY_JUNIT_TAGS = {"flakyFailure", "flakyError"}
+CONTRACT_TESTS_IGNORE = "--ignore=tests/contract"
+
+
+def _whole_tree_pytest_args() -> list[str]:
+    return ["tests", CONTRACT_TESTS_IGNORE]
 
 
 def _candidate_ids_from_output(output: str) -> set[str]:
@@ -67,7 +72,7 @@ def main() -> int:
         sys.executable,
         "-m",
         "pytest",
-        "tests",
+        *_whole_tree_pytest_args(),
         "-n",
         "auto",
         "--dist=loadscope",

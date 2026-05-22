@@ -107,6 +107,7 @@ jobs:
           } | tee reports/pytest-runtime-summary.txt
           /usr/bin/time -f "pytest_total_seconds=%e" -o reports/pytest-time.txt \
             uv run pytest tests \
+              --ignore=tests/contract \
               -n "${PYTEST_WORKERS}" --dist="${PYTEST_DIST}" \
               -m "not contract and not live and not integration and not slow" \
               --cov=app --cov=tools --cov-branch --cov-context=test \

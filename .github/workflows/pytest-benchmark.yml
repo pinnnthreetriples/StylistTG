@@ -60,6 +60,7 @@ jobs:
           echo "dist=${{ matrix.dist }}" | tee -a reports/pytest-benchmark-${{ matrix.label }}.txt
           /usr/bin/time -f "pytest_total_seconds=%e" -o reports/pytest-benchmark-time-${{ matrix.label }}.txt \
             uv run pytest tests \
+              --ignore=tests/contract \
               -n "${{ matrix.workers }}" --dist="${{ matrix.dist }}" \
               -m "not contract and not live and not integration and not slow" \
               --durations=25 --durations-min=0.5 \

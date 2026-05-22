@@ -56,12 +56,20 @@ def test_requested_profile_fields_returns_only_requested_profile_keys() -> None:
 
 
 @pytest.mark.unit
-def test_requested_profile_fields_ignores_missing_or_non_mapping_profile() -> None:
+@pytest.mark.parametrize(
+    "desired_state",
+    [
+        {},
+        {"profile": None},
+        {"profile": ["name"]},
+    ],
+)
+def test_requested_profile_fields_ignores_missing_or_non_mapping_profile(
+    desired_state: dict[str, object],
+) -> None:
     policy = _policy()
 
-    assert policy.requested_profile_fields({}) == set()
-    assert policy.requested_profile_fields({"profile": None}) == set()
-    assert policy.requested_profile_fields({"profile": ["name"]}) == set()
+    assert policy.requested_profile_fields(desired_state) == set()
 
 
 @pytest.mark.unit

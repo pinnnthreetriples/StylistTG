@@ -247,6 +247,140 @@ def test_tqa007_pytest_raises_without_match_with_security_marker() -> None:
     assert "TQA007" in rule_ids
 
 
+def test_tqa007_pytest_raises_without_match_with_unit_marker() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        @pytest.mark.unit
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_module_unit_pytestmark() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        pytestmark = pytest.mark.unit
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_module_security_pytestmark() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        pytestmark = pytest.mark.security
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_module_security_pytestmark_list() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        pytestmark = [pytest.mark.slow, pytest.mark.security]
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_module_unit_pytestmark_tuple() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        pytestmark = (pytest.mark.unit, pytest.mark.slow)
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_class_unit_marker() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        @pytest.mark.unit
+        class TestTokens:
+            def test_rejects_bad_token(self):
+                with pytest.raises(ValueError):
+                    validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_without_match_with_class_security_marker() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        @pytest.mark.security
+        class TestTokens:
+            def test_rejects_bad_token(self):
+                with pytest.raises(ValueError):
+                    validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "TQA007" in rule_ids
+
+
+def test_tqa007_pytest_raises_with_match_in_module_scope_no_issue() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        pytestmark = pytest.mark.security
+
+        def test_rejects_bad_token():
+            with pytest.raises(ValueError, match="invalid token"):
+                validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    tqa007 = [i for i in issues if i.rule_id == "TQA007"]
+    assert tqa007 == []
+
+
+def test_tqa007_pytest_raises_with_match_in_class_scope_no_issue() -> None:
+    source = textwrap.dedent("""\
+        import pytest
+
+        @pytest.mark.security
+        class TestTokens:
+            def test_rejects_bad_token(self):
+                with pytest.raises(ValueError, match="invalid token"):
+                    validate_token("bad")
+    """)
+    issues = _analyze_source(source)
+    tqa007 = [i for i in issues if i.rule_id == "TQA007"]
+    assert tqa007 == []
+
+
 # ---------------------------------------------------------------------------
 # TQA008: broad/bare except
 # ---------------------------------------------------------------------------

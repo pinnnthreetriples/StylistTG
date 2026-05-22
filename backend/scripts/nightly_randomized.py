@@ -14,6 +14,11 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SEEDS = ("101", "202", "303")
+CONTRACT_TESTS_IGNORE = "--ignore=tests/contract"
+
+
+def _whole_tree_pytest_args() -> list[str]:
+    return ["tests", CONTRACT_TESTS_IGNORE]
 
 
 def _run_seed(
@@ -24,7 +29,7 @@ def _run_seed(
         sys.executable,
         "-m",
         "pytest",
-        "tests",
+        *_whole_tree_pytest_args(),
         "-n",
         "auto",
         "--dist=loadscope",

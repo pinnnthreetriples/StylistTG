@@ -1,6 +1,6 @@
 ---
-name: StylistTG agent anchor
-description: Canonical mex source anchor. Keep root AGENTS.md and CLAUDE.md in sync.
+name: StylistTG Claude Code anchor
+description: Root Claude Code entrypoint. Keep in sync with AGENTS.md and .mex/AGENTS.md.
 last_updated: 2026-05-22
 ---
 
@@ -18,9 +18,9 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - Use package @stylisttg/ui for dashboard product UI when an equivalent exists.
 - When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
 
-## Agent skills
+## Agent Skills
 
-Use only StylistTG project skills from `.agents/skills` in this section. Global skills are configured in the Codex home `AGENTS.md` and do not need to be repeated here.
+Use only StylistTG project skills from `.claude/skills` in this section. Global Claude skills are configured in `C:\Users\user\.claude\CLAUDE.md`.
 
 ### Setup and Context
 

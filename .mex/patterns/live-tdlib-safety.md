@@ -10,7 +10,7 @@ edges:
   - .mex/context/security.md
   - .mex/context/warmup.md
   - docs/runbooks/live-validation.md
-last_updated: 2026-05-10
+last_updated: 2026-05-22
 ---
 
 # Live TDLib Safety

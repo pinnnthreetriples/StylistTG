@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 import ast
+import re
 
 from ..models import (
     AnalyzerConfig,
@@ -110,7 +110,7 @@ class API4xxWithoutErrorCode(Rule):
             src = func_source(func, ctx.lines)
             four_xx = re.findall(r"status_code\s*==\s*(4\d{2})", src)
             if four_xx:
-                if "error_code" not in src and ".json()" not in src and ".text" not in src:
+                if not self._asserts_error_body(func):
                     issues.append(
                         Issue(
                             rule_id=self.id,
@@ -123,6 +123,13 @@ class API4xxWithoutErrorCode(Rule):
                         )
                     )
         return issues
+
+    @staticmethod
+    def _asserts_error_body(func: ast.FunctionDef) -> bool:
+        for node in ast.walk(func):
+            if isinstance(node, ast.Assert) and _contains_error_body_check(node.test):
+                return True
+        return False
 
 
 class AmbiguousStatusCode(Rule):
@@ -165,6 +172,19 @@ def _is_status_code_membership(node: ast.AST) -> bool:
 
     left = node.left
     return isinstance(left, ast.Attribute) and left.attr == "status_code"
+
+
+def _contains_error_body_check(node: ast.AST) -> bool:
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
+            if child.func.attr == "json":
+                return True
+        if isinstance(child, ast.Attribute) and child.attr == "text":
+            return True
+        if isinstance(child, ast.Constant) and isinstance(child.value, str):
+            if "error_code" in child.value or child.value == "detail":
+                return True
+    return False
 
 
 class LiveTestWithoutEnvGuard(Rule):

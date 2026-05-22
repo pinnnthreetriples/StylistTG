@@ -2,6 +2,7 @@
 
 # test-analyzer: disable-file=STG001 reason="test samples intentionally contain dependency_overrides patterns"
 # test-analyzer: disable-file=STG002 reason="test samples intentionally contain TestClient(app) + dependency_overrides patterns"
+# test-analyzer: disable-file=STG003 reason="test samples intentionally contain 4xx-without-body snippets for rule verification"
 # test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification"
 # test-analyzer: disable-file=STG006 reason="test samples intentionally contain Stubber literal strings for rule verification"
 # test-analyzer: disable-file=META001 reason="test fixture literal contains disable=RULE without reason= to verify META001 rule fires"
@@ -499,6 +500,34 @@ def test_stg001_overrides_with_finally_no_issue() -> None:
 
 
 # ---------------------------------------------------------------------------
+# STG003: 4xx status assertions need error body checks
+# ---------------------------------------------------------------------------
+
+
+def test_stg003_status_code_with_diagnostic_text_message_still_flags() -> None:
+    source = textwrap.dedent("""\
+        def test_unauthorized():
+            response = client.patch("/settings")
+            assert response.status_code == 401, response.text
+    """)
+    issues = _analyze_source(source)
+    rule_ids = [i.rule_id for i in issues]
+    assert "STG003" in rule_ids
+
+
+def test_stg003_status_code_with_json_detail_no_issue() -> None:
+    source = textwrap.dedent("""\
+        def test_unauthorized():
+            response = client.patch("/settings")
+            assert response.status_code == 401
+            assert response.json() == {"detail": "operator token is required"}
+    """)
+    issues = _analyze_source(source)
+    stg003 = [i for i in issues if i.rule_id == "STG003"]
+    assert stg003 == []
+
+
+# ---------------------------------------------------------------------------
 # STG004: ambiguous status code
 # ---------------------------------------------------------------------------
 
@@ -947,7 +976,14 @@ def test_changed_mode_fails_when_ref_cannot_be_resolved(tmp_path: Path) -> None:
     test_file = tmp_path / "test_ok.py"
     test_file.write_text("def test_fine():\n    assert 1 == 1\n")
 
-    code = main(["--path", str(tmp_path), "--changed", "HEAD~999"])
+    code = main(
+        [
+            "--path",
+            str(tmp_path),
+            "--changed",
+            "refs/remotes/origin/__missing_changed_test_base__",
+        ]
+    )
     assert code == 2
 
 

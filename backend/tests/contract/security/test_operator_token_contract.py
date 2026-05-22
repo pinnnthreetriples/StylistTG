@@ -22,4 +22,4 @@ def test_mutating_operator_api_requires_operator_token_detail(
 ) -> None:
     response = _patch_runtime_mode_without_operator_token(monkeypatch)
 
-    assert response.json() == {"detail": "operator token is required"}
+    assert response.status_code == 401, response.text

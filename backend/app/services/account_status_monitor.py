@@ -21,6 +21,7 @@ from app.models import (
     utc_now,
 )
 from app.modules.warmup.events import write_warmup_event
+from app.observability.safety_metrics import safety_metrics
 from app.services.account_quarantine import AccountQuarantineService, get_active_quarantine
 
 AutoAction = Literal["paused", "quarantine", "cooldown", "none"]
@@ -137,6 +138,8 @@ class AccountStatusMonitor:
         }
         if probe_result.error_code:
             details["last_error_code"] = probe_result.error_code
+            if "FLOOD_WAIT" in probe_result.error_code.upper():
+                safety_metrics.flood_wait(workspace_id=workspace_id, account_id=account_id)
         if probe_result.error_class:
             details["last_error_class"] = probe_result.error_class
         auto_action_taken: AutoAction = "none"

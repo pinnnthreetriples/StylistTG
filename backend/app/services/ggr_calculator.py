@@ -39,6 +39,7 @@ from app.models import (
     new_id,
     utc_now,
 )
+from app.observability.safety_metrics import safety_metrics
 
 # ---------------------------------------------------------------------------
 # Weights (must sum to 1.0)
@@ -269,6 +270,7 @@ def calculate_ggr(
         ggr_row.updated_at = now
 
     session.flush()
+    safety_metrics.ggr_score(workspace_id=workspace_id, bucket=bucket, score=smoothed_score)
     return ggr_row
 
 

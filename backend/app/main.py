@@ -5,12 +5,18 @@ from collections.abc import Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, suppress
 from typing import Any, cast
 
+import app.platform_bootstrap  # noqa: F401
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute
+
+try:
+    from prometheus_client import make_asgi_app
+except ImportError:  # pragma: no cover - OpenAPI export can run before optional deps sync.
+    make_asgi_app = None
 from starlette.types import ExceptionHandler
 
 from app.api.auth import router as auth_router
@@ -60,6 +66,7 @@ from app.errors import (
 from app.logging_utils import configure_logging, generate_request_id, log_event, log_request
 from app.modules.registry import iter_routers
 from app.observability import init_api_observability
+from app.observability.safety_metrics import safety_metrics
 from app.schemas import ApiErrorRead, ReadinessRead
 from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics
@@ -193,6 +200,8 @@ def _configured_cors_origins() -> list[str]:
 
 
 app = FastAPI(title="StylistTG API", lifespan=lifespan)
+if settings.metrics_enabled and make_asgi_app is not None:
+    app.mount("/metrics", make_asgi_app(registry=safety_metrics.registry))
 if _configured_cors_origins():
     app.add_middleware(
         CORSMiddleware,
@@ -362,6 +371,24 @@ app.openapi = custom_openapi
 
 
 @app.middleware("http")
+async def metrics_scrape_guard_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    if request.url.path.startswith("/metrics"):
+        if not settings.metrics_enabled:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Not Found"}
+            )
+        internal_header = request.headers.get("X-Internal-Scrape", "").strip().lower()
+        if not settings.metrics_allow_public and internal_header not in {"1", "true", "yes"}:
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={"detail": "metrics scrape requires internal authorization"},
+            )
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def static_route_method_guard_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
@@ -379,7 +406,7 @@ async def static_route_method_guard_middleware(
 async def operator_guard_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
-    if request.url.path in {"/health", "/ready"}:
+    if request.url.path in {"/health", "/ready"} or request.url.path.startswith("/metrics"):
         return await call_next(request)
     if settings.enforce_localhost_only and not _is_local_client(request):
         return JSONResponse(

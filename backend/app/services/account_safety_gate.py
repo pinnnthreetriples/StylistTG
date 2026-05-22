@@ -29,6 +29,7 @@ from app.services.cross_module_load_tracker import current_load, evaluate_thresh
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
 from app.services.feature_flags import is_safety_pipeline_v2_enabled
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
+from app.observability.safety_metrics import SafetyMetrics, safety_metrics
 from app.services.safety_gate_cache import (
     InMemorySafetyGateCache,
     NullSafetyGateCache,
@@ -55,8 +56,14 @@ class AccountSafetyGateAccountNotFound(LookupError):
 
 
 class AccountSafetyGate:
-    def __init__(self, *, cache: SafetyGateCache | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        cache: SafetyGateCache | None = None,
+        metrics: SafetyMetrics | None = None,
+    ) -> None:
         self._cache = cache if cache is not None else _default_cache()
+        self._metrics = metrics or safety_metrics
 
     def evaluate(
         self,
@@ -67,12 +74,15 @@ class AccountSafetyGate:
         intent: SafetyGateIntent,
     ) -> SafetyGateVerdict:
         if not is_safety_pipeline_v2_enabled(session, workspace_id):
-            return self._legacy_shim_verdict(
-                session,
-                workspace_id=workspace_id,
-                account_id=account_id,
-                intent=intent,
-            )
+            with self._metrics.gate_evaluate_duration(intent=intent, cache_hit=False):
+                verdict = self._legacy_shim_verdict(
+                    session,
+                    workspace_id=workspace_id,
+                    account_id=account_id,
+                    intent=intent,
+                )
+            self._record_blocked_verdict(workspace_id=workspace_id, verdict=verdict)
+            return verdict
 
         policy = _policy(session, workspace_id=workspace_id)
         terminal_status = _account_terminal_status(
@@ -86,17 +96,38 @@ class AccountSafetyGate:
         )
         cached = self._cache.get(cache_key)
         if cached is not None:
-            return SafetyGateVerdict.model_validate_json(cached)
+            with self._metrics.gate_evaluate_duration(intent=intent, cache_hit=True):
+                verdict = SafetyGateVerdict.model_validate_json(cached)
+            self._record_blocked_verdict(workspace_id=workspace_id, verdict=verdict)
+            return verdict
 
-        verdict = self._compute_verdict(
-            session,
-            workspace_id=workspace_id,
-            account_id=account_id,
-            intent=intent,
-            policy=policy,
-        )
+        with self._metrics.gate_evaluate_duration(intent=intent, cache_hit=False):
+            verdict = self._compute_verdict(
+                session,
+                workspace_id=workspace_id,
+                account_id=account_id,
+                intent=intent,
+                policy=policy,
+            )
         self._cache.set(cache_key, verdict.model_dump_json(), ttl_seconds=CACHE_TTL_SECONDS)
+        self._record_blocked_verdict(workspace_id=workspace_id, verdict=verdict)
         return verdict
+
+    def _record_blocked_verdict(
+        self,
+        *,
+        workspace_id: str,
+        verdict: SafetyGateVerdict,
+    ) -> None:
+        if verdict.severity != "blocked":
+            return
+        for reason in verdict.reasons:
+            if reason.severity == "blocked":
+                self._metrics.gate_blocked(
+                    workspace_id=workspace_id,
+                    intent=verdict.intent,
+                    reason=reason.code,
+                )
 
     def _legacy_shim_verdict(
         self,
@@ -207,6 +238,10 @@ class AccountSafetyGate:
             load = current_load(session, workspace_id=account.workspace_id, account_id=account.id)
             load_verdict = evaluate_threshold(load, _cross_module_safety_mode(policy))
             if load_verdict != "ok":
+                self._metrics.cross_module_overload(
+                    workspace_id=workspace_id,
+                    severity=load_verdict,
+                )
                 reasons.append(
                     _reason(
                         "cross_module_overload",

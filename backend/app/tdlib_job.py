@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import app.platform_bootstrap  # noqa: F401
 import argparse
 import json
 from pathlib import Path

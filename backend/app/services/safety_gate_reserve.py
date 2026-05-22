@@ -18,6 +18,7 @@ from redis import Redis
 from redis.exceptions import RedisError
 
 from app.config import settings
+from app.observability.safety_metrics import safety_metrics
 
 GATE_RESERVE_TTL_SECONDS = 120
 GATE_MAX_CONCURRENT_DEFAULT = 3
@@ -121,6 +122,7 @@ def reserve(
         current_count = int(result[1])
     except RedisError:
         # Fail-open: if Redis is down, allow the operation
+        safety_metrics.reserve_outcome(outcome="RESERVED")
         return SafetyGateReservation(
             reservation_id=reservation_id,
             account_id=account_id,
@@ -130,6 +132,7 @@ def reserve(
             max_concurrent=max_concurrent,
         )
 
+    safety_metrics.reserve_outcome(outcome="RESERVED" if reserved else "RATE_BLOCKED")
     return SafetyGateReservation(
         reservation_id=reservation_id,
         account_id=account_id,

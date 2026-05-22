@@ -942,13 +942,13 @@ def test_explain_rule_without_detailed_explanation(capsys) -> None:
     assert "STG003" in out
 
 
-def test_changed_mode_no_crash(tmp_path: Path) -> None:
-    """--changed mode with a ref doesn't crash (may find 0 files)."""
+def test_changed_mode_fails_when_ref_cannot_be_resolved(tmp_path: Path) -> None:
+    """--changed mode fails closed when git cannot resolve the base ref."""
     test_file = tmp_path / "test_ok.py"
     test_file.write_text("def test_fine():\n    assert 1 == 1\n")
-    # Use a non-existent ref — _get_changed_files will return []
+
     code = main(["--path", str(tmp_path), "--changed", "HEAD~999"])
-    assert code == 0
+    assert code == 2
 
 
 def test_changed_mode_analyzes_changed_test_file(

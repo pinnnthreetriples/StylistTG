@@ -154,8 +154,13 @@ def _get_changed_files(ref: str) -> list[Path]:
                 if existing is not None:
                     files.append(existing)
         return files
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    except FileNotFoundError as exc:
+        msg = "git executable not available for changed-tests analysis"
+        raise RuntimeError(msg) from exc
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.strip() if exc.stderr else f"exit code {exc.returncode}"
+        msg = f"unable to compute changed files against {ref!r}: {detail}"
+        raise RuntimeError(msg) from exc
 
 
 def _parse_formats(raw: str) -> list[str]:

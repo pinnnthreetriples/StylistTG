@@ -25,11 +25,17 @@ Required PR command shape:
 
 ```bash
 PYTEST_PROFILE=pr
+uv sync --locked --extra test
 pytest tests \
+  --ignore=tests/contract \
   -n "$PYTEST_WORKERS" --dist="$PYTEST_DIST" \
   -m "not contract and not live and not integration and not slow" \
   --cov=app --cov=tools --cov-branch --cov-context=test
 ```
+
+The PR test profile installs the `test` extra only. It must ignore
+`tests/contract` at collection time because contract modules import
+Schemathesis from the separate `contract` extra before marker deselection.
 
 Current required PR mode:
 

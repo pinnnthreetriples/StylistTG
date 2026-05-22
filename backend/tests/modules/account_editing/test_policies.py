@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from app.config import Settings
@@ -18,7 +20,7 @@ from conftest import seed_audio_asset
 from tests.helpers.factories import seed_account_with_profile
 
 
-def _policy(db_session) -> AccountEditingPolicy:
+def _policy(db_session=None) -> AccountEditingPolicy:
     return AccountEditingPolicy(db_session)
 
 
@@ -26,28 +28,56 @@ def _normalized_profile(**profile):
     return normalize_account_update_desired_state({"profile": profile})
 
 
-def test_requested_profile_fields_returns_only_requested_profile_keys(db_session) -> None:
+def _account_with_profile(
+    *,
+    first_name: str = "Old",
+    last_name: str = "",
+    bio: str | None = None,
+    username: str | None = None,
+    pinned_channel_ref: str | None = None,
+):
+    return SimpleNamespace(
+        id="account-1",
+        profile_state=SimpleNamespace(
+            first_name=first_name,
+            last_name=last_name,
+            bio=bio,
+            username=username,
+        ),
+        pinned_channel_ref=pinned_channel_ref,
+    )
+
+
+@pytest.mark.unit
+def test_requested_profile_fields_returns_only_requested_profile_keys() -> None:
     desired_state = {"profile": {"name": "Stylist TG", "username": None}, "stories": []}
 
-    assert _policy(db_session).requested_profile_fields(desired_state) == {"name", "username"}
+    assert _policy().requested_profile_fields(desired_state) == {"name", "username"}
 
 
-def test_requested_profile_fields_ignores_missing_or_non_mapping_profile(db_session) -> None:
-    policy = _policy(db_session)
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "desired_state",
+    [
+        {},
+        {"profile": None},
+        {"profile": ["name"]},
+    ],
+)
+def test_requested_profile_fields_ignores_missing_or_non_mapping_profile(
+    desired_state: dict[str, object],
+) -> None:
+    policy = _policy()
 
-    assert policy.requested_profile_fields({}) == set()
-    assert policy.requested_profile_fields({"profile": None}) == set()
-    assert policy.requested_profile_fields({"profile": ["name"]}) == set()
+    assert policy.requested_profile_fields(desired_state) == set()
 
 
-def test_changed_profile_step_types_detects_name_change(db_session) -> None:
-    account = seed_account_with_profile(db_session)
-    account.profile_state.first_name = "Old"
-    account.profile_state.last_name = ""
-    db_session.commit()
+@pytest.mark.unit
+def test_changed_profile_step_types_detects_name_change() -> None:
+    account = _account_with_profile(first_name="Old", last_name="")
     desired_state = _normalized_profile(name="New")
 
-    steps = _policy(db_session).changed_profile_step_types(
+    steps = _policy().changed_profile_step_types(
         account=account,
         desired_state=desired_state,
         requested_profile_fields={"name"},
@@ -56,11 +86,12 @@ def test_changed_profile_step_types_detects_name_change(db_session) -> None:
     assert steps == {"set_name"}
 
 
-def test_changed_profile_step_types_detects_bio_change(db_session) -> None:
-    account = seed_account_with_profile(db_session)
+@pytest.mark.unit
+def test_changed_profile_step_types_detects_bio_change() -> None:
+    account = _account_with_profile()
     desired_state = _normalized_profile(bio="Updated bio")
 
-    steps = _policy(db_session).changed_profile_step_types(
+    steps = _policy().changed_profile_step_types(
         account=account,
         desired_state=desired_state,
         requested_profile_fields={"bio"},
@@ -69,11 +100,12 @@ def test_changed_profile_step_types_detects_bio_change(db_session) -> None:
     assert steps == {"set_bio"}
 
 
-def test_changed_profile_step_types_detects_username_change(db_session) -> None:
-    account = seed_account_with_profile(db_session, index=9)
+@pytest.mark.unit
+def test_changed_profile_step_types_detects_username_change() -> None:
+    account = _account_with_profile(username="oldusername")
     desired_state = _normalized_profile(username="newusername")
 
-    steps = _policy(db_session).changed_profile_step_types(
+    steps = _policy().changed_profile_step_types(
         account=account,
         desired_state=desired_state,
         requested_profile_fields={"username"},
@@ -82,10 +114,11 @@ def test_changed_profile_step_types_detects_username_change(db_session) -> None:
     assert steps == {"set_username"}
 
 
-def test_changed_profile_step_types_skips_photo_when_asset_matches(db_session, monkeypatch) -> None:
-    account = seed_account_with_profile(db_session)
+@pytest.mark.unit
+def test_changed_profile_step_types_skips_photo_when_asset_matches(monkeypatch) -> None:
+    account = _account_with_profile()
     desired_state = _normalized_profile(photo_asset_id="asset-new")
-    policy = _policy(db_session)
+    policy = _policy()
 
     monkeypatch.setattr(
         policy._repo, "latest_applied_profile_photo_asset_id", lambda _: "asset-new"
@@ -100,12 +133,11 @@ def test_changed_profile_step_types_skips_photo_when_asset_matches(db_session, m
     )
 
 
-def test_changed_profile_step_types_detects_photo_when_asset_differs(
-    db_session, monkeypatch
-) -> None:
-    account = seed_account_with_profile(db_session)
+@pytest.mark.unit
+def test_changed_profile_step_types_detects_photo_when_asset_differs(monkeypatch) -> None:
+    account = _account_with_profile()
     desired_state = _normalized_profile(photo_asset_id="asset-new")
-    policy = _policy(db_session)
+    policy = _policy()
 
     monkeypatch.setattr(
         policy._repo, "latest_applied_profile_photo_asset_id", lambda _: "asset-old"
@@ -117,16 +149,12 @@ def test_changed_profile_step_types_detects_photo_when_asset_differs(
     ) == {"set_profile_photo"}
 
 
-def test_changed_profile_step_types_does_not_update_empty_matching_fields(db_session) -> None:
-    account = seed_account_with_profile(db_session)
-    account.profile_state.first_name = ""
-    account.profile_state.last_name = ""
-    account.profile_state.bio = None
-    account.profile_state.username = None
-    db_session.commit()
+@pytest.mark.unit
+def test_changed_profile_step_types_does_not_update_empty_matching_fields() -> None:
+    account = _account_with_profile(first_name="", last_name="", bio=None, username=None)
     desired_state = _normalized_profile(name="", bio="", username="")
 
-    steps = _policy(db_session).changed_profile_step_types(
+    steps = _policy().changed_profile_step_types(
         account=account,
         desired_state=desired_state,
         requested_profile_fields={"name", "bio", "username"},

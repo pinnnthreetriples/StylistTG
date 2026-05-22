@@ -60,4 +60,4 @@ cd backend; python -m app.workers.run_worker --queues neuro_comment_jobs --role 
 - Do not run API replicas as live workers.
 - Do not attach TDLib session storage to roles that do not require it.
 - Do not add queues without runtime role metadata and tests.
-- Do not treat HIGH container scan findings as merge blockers unless policy changes; CRITICAL findings block merge.
+- Do not treat HIGH Trivy image findings as merge blockers unless policy changes; CRITICAL image findings block merge.

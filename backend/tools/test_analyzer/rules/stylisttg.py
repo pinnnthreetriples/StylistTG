@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 import re
 
 from ..models import (
     AnalyzerConfig,
     FileContext,
+    FunctionNode,
     Issue,
     Rule,
     Severity,
@@ -109,7 +111,7 @@ class API4xxWithoutErrorCode(Rule):
             src = func_source(func, ctx.lines)
             four_xx = re.findall(r"status_code\s*==\s*(4\d{2})", src)
             if four_xx:
-                if "error_code" not in src and ".json()" not in src and ".text" not in src:
+                if not self._asserts_error_body(func):
                     issues.append(
                         Issue(
                             rule_id=self.id,
@@ -123,6 +125,13 @@ class API4xxWithoutErrorCode(Rule):
                     )
         return issues
 
+    @staticmethod
+    def _asserts_error_body(func: FunctionNode) -> bool:
+        for node in ast.walk(func):
+            if isinstance(node, ast.Assert) and _contains_error_body_check(node.test):
+                return True
+        return False
+
 
 class AmbiguousStatusCode(Rule):
     id = "STG004"
@@ -133,7 +142,7 @@ class AmbiguousStatusCode(Rule):
         issues: list[Issue] = []
         for func in get_test_functions(ctx.tree):
             src = func_source(func, ctx.lines)
-            if re.search(r"status_code\s+in\s+\{", src) or re.search(r"status_code\s+in\s+\[", src):
+            if any(_is_status_code_membership(node) for node in ast.walk(func)):
                 if "# contract:" not in src and "# expected:" not in src:
                     issues.append(
                         Issue(
@@ -144,12 +153,39 @@ class AmbiguousStatusCode(Rule):
                             line=func.lineno,
                             message=(
                                 f"Test `{func.name}` uses status_code in"
-                                " {...} without contract comment"
+                                " collection without contract comment"
                             ),
                             recommendation="Add # contract: comment explaining valid status codes",
                         )
                     )
         return issues
+
+
+def _is_status_code_membership(node: ast.AST) -> bool:
+    if not (
+        isinstance(node, ast.Compare)
+        and len(node.ops) == 1
+        and isinstance(node.ops[0], ast.In)
+        and len(node.comparators) == 1
+        and isinstance(node.comparators[0], (ast.List, ast.Set, ast.Tuple))
+    ):
+        return False
+
+    left = node.left
+    return isinstance(left, ast.Attribute) and left.attr == "status_code"
+
+
+def _contains_error_body_check(node: ast.AST) -> bool:
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
+            if child.func.attr == "json":
+                return True
+        if isinstance(child, ast.Attribute) and child.attr == "text":
+            return True
+        if isinstance(child, ast.Constant) and isinstance(child.value, str):
+            if "error_code" in child.value or child.value == "detail":
+                return True
+    return False
 
 
 class LiveTestWithoutEnvGuard(Rule):

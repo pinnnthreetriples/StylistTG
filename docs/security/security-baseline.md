@@ -3,26 +3,28 @@
 ## Enabled Checks
 
 - CI: backend, frontend, OpenAPI, Docker build, dependency audit, and tests.
-- Test Quality: backend lint/format, coverage, test analyzer, pip-audit, soft
-  Pyright/Schemathesis, and duplicate detection.
+- Test Quality: backend lint/format, coverage, full-suite and changed-tests
+  test analyzer, hard Pyright, pip-audit, soft Schemathesis fuzzing, hard
+  contract-security, and duplicate detection.
 - Semgrep: static analysis with repository custom rules.
 - CodeQL: GitHub CodeQL Default Setup for Python and JavaScript/TypeScript code
   scanning. Do not add an advanced CodeQL workflow while Default Setup is
   enabled for this repository.
-- Secret Scan: Gitleaks with redacted output.
+- Secrets Scan: Gitleaks PR diff with redacted SARIF output.
 - SBOM: Syft SPDX JSON artifacts for backend, frontend/root workspace, and the
   backend container image.
-- Container Scan: Trivy scan of the backend Docker image.
+- Trivy: filesystem plus backend and TDLib image scans.
 
 ## Merge Blocking
 
-CI, Test Quality hard gates, Semgrep, CodeQL Default Setup failures, Secret Scan
-findings, and Trivy CRITICAL image vulnerabilities should block merge. SBOM
+CI, Test Quality hard gates, Semgrep, CodeQL Default Setup failures, Secrets Scan
+findings, Trivy filesystem HIGH/CRITICAL findings, and Trivy CRITICAL image
+vulnerabilities should block merge. SBOM
 generation is an artifact gate: generation failures block merge, but SBOM
 contents are triaged separately unless another scanner flags a blocking issue.
 
-Trivy HIGH findings are reported for triage but do not block during this
-baseline phase. Promote HIGH to blocking only after the backlog is reviewed.
+Trivy image HIGH findings are reported for triage but do not block during this
+baseline phase. Promote image HIGH to blocking only after the backlog is reviewed.
 
 ## Triage
 
@@ -61,8 +63,8 @@ Require these checks on `main` when GitHub branch protection is available:
 - Test Quality
 - Semgrep
 - CodeQL Default Setup
-- Secret Scan
+- Secrets Scan
 - SBOM
-- Container Scan
+- Trivy
 
 This repository does not encode branch protection settings in code.

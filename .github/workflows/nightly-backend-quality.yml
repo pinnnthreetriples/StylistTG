@@ -74,7 +74,7 @@ jobs:
       - name: Install locked backend dependencies
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
-          uv sync --locked --extra dev
+          uv sync --locked --extra test
       - name: Prepare database
         run: uv run python -m alembic upgrade head
       - name: Run slow and property tests
@@ -82,6 +82,7 @@ jobs:
           mkdir -p reports
           set +e
           uv run pytest tests \
+            --ignore=tests/contract \
             -m "slow or property" \
             -p no:randomly \
             --tb=short \
@@ -140,7 +141,7 @@ jobs:
       - name: Install locked backend dependencies
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
-          uv sync --locked --extra dev
+          uv sync --locked --extra contract
       - name: Prepare contract database
         run: uv run python -m alembic upgrade head
       - name: Run contract fuzz
@@ -189,7 +190,7 @@ jobs:
       - name: Install locked backend dependencies
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
-          uv sync --locked --extra dev
+          uv sync --locked --extra test
       - name: Prepare postgres database
         run: uv run python -m alembic upgrade head
       - name: Run postgres-marked tests
@@ -197,6 +198,7 @@ jobs:
           mkdir -p reports
           set +e
           uv run pytest tests \
+            --ignore=tests/contract \
             -m postgres \
             -p no:randomly \
             --tb=short \
@@ -232,7 +234,7 @@ jobs:
       - name: Install locked backend dependencies
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
-          uv sync --locked --extra dev
+          uv sync --locked --extra mutation --extra test
       - name: Run selected mutation profile
         run: |
           mkdir -p reports

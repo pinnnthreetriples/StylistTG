@@ -15,6 +15,10 @@ Keep these checks required:
 - `Trivy / Trivy filesystem`
 - `Trivy / Trivy backend image`
 
+Recommended after the first green canonical run:
+
+- `Trivy / Trivy tdlib image`
+
 ## Do not require
 
 - `Test Quality / contract-fuzz`
@@ -34,6 +38,10 @@ typecheck
 backend-tests
 audit
 duplication
+contract-security
 ```
 
-It intentionally does not require contract fuzz, benchmark, nightly, mutation, or live checks.
+`contract-security` is a narrow hard subset for security-sensitive API contract regressions.
+`contract-fuzz` remains soft because it covers broader fuzzing and may be too noisy or expensive for every required PR path.
+
+The aggregator intentionally does not require broad contract fuzz, benchmark, nightly, mutation, or live checks.

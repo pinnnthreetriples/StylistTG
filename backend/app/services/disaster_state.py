@@ -40,7 +40,12 @@ def evaluate_disaster_state(
     sample_account_ids = list(
         session.scalars(
             select(AccountQuarantine.account_id)
-            .where(*active_recent_filter)
+            .where(
+                AccountQuarantine.workspace_id == workspace_id,
+                AccountQuarantine.released_at.is_(None),
+                AccountQuarantine.started_at >= cutoff,
+                AccountQuarantine.until > now,
+            )
             .order_by(AccountQuarantine.started_at.desc(), AccountQuarantine.account_id)
             .limit(5)
         )

@@ -10,6 +10,8 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
+from app.observability.safety_metrics import safety_metrics
+
 
 @dataclass(frozen=True)
 class TypingFragment:
@@ -32,36 +34,42 @@ def emit_typing(
     Returns a list of 5–15 typing fragments with micro-pauses.
     Total typing duration ≈ len(text) * 60 / cpm.
     """
-    if not text or cpm <= 0:
-        return []
+    try:
+        if not text or cpm <= 0:
+            safety_metrics.typing_emit(outcome="success")
+            return []
 
-    r = rng or random.Random()
+        r = rng or random.Random()
 
-    total_duration = len(text) * 60.0 / cpm
-    num_fragments = r.randint(5, 15)
+        total_duration = len(text) * 60.0 / cpm
+        num_fragments = r.randint(5, 15)
 
-    # Distribute characters across fragments randomly
-    char_counts = _distribute(len(text), num_fragments, r)
+        # Distribute characters across fragments randomly
+        char_counts = _distribute(len(text), num_fragments, r)
 
-    # Distribute duration proportionally to char counts
-    fragments: list[TypingFragment] = []
-    chars_so_far = 0
-    for i, chars in enumerate(char_counts):
-        frac = chars / len(text) if len(text) > 0 else 1.0 / num_fragments
-        frag_duration = total_duration * frac
-        # Micro-pause: 50–300ms between fragments, 0 for the last
-        pause = r.uniform(0.05, 0.30) if i < len(char_counts) - 1 else 0.0
-        fragments.append(
-            TypingFragment(
-                fragment_index=i,
-                chars_in_fragment=chars,
-                duration_seconds=frag_duration,
-                pause_after_seconds=pause,
+        # Distribute duration proportionally to char counts
+        fragments: list[TypingFragment] = []
+        chars_so_far = 0
+        for i, chars in enumerate(char_counts):
+            frac = chars / len(text) if len(text) > 0 else 1.0 / num_fragments
+            frag_duration = total_duration * frac
+            # Micro-pause: 50–300ms between fragments, 0 for the last
+            pause = r.uniform(0.05, 0.30) if i < len(char_counts) - 1 else 0.0
+            fragments.append(
+                TypingFragment(
+                    fragment_index=i,
+                    chars_in_fragment=chars,
+                    duration_seconds=frag_duration,
+                    pause_after_seconds=pause,
+                )
             )
-        )
-        chars_so_far += chars
+            chars_so_far += chars
 
-    return fragments
+        safety_metrics.typing_emit(outcome="success")
+        return fragments
+    except Exception:
+        safety_metrics.typing_emit(outcome="error")
+        raise
 
 
 def total_duration(fragments: list[TypingFragment]) -> float:

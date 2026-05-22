@@ -160,6 +160,7 @@
       "backend/app/contracts/human_behavior.py": [],
       "backend/app/contracts/jobs.py": [],
       "backend/app/contracts/neuro_commenting.py": [],
+      "backend/app/contracts/notifications.py": [],
       "backend/app/contracts/profile_completeness.py": [],
       "backend/app/contracts/quarantine.py": [],
       "backend/app/contracts/safety.py": [],
@@ -1062,6 +1063,18 @@
         "typing"
       ],
       "path": "backend/app/contracts/neuro_commenting.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": false,
+      "imports": [
+        "__future__",
+        "datetime",
+        "pydantic",
+        "typing",
+        "uuid"
+      ],
+      "path": "backend/app/contracts/notifications.py"
     },
     {
       "forbidden_imports": [],

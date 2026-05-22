@@ -8,6 +8,7 @@ import re
 from ..models import (
     AnalyzerConfig,
     FileContext,
+    FunctionNode,
     Issue,
     Rule,
     Severity,
@@ -125,7 +126,7 @@ class API4xxWithoutErrorCode(Rule):
         return issues
 
     @staticmethod
-    def _asserts_error_body(func: ast.FunctionDef) -> bool:
+    def _asserts_error_body(func: FunctionNode) -> bool:
         for node in ast.walk(func):
             if isinstance(node, ast.Assert) and _contains_error_body_check(node.test):
                 return True

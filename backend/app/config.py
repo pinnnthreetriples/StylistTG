@@ -162,6 +162,8 @@ class Settings(BaseSettings):
     better_stack_worker_dsn: SecretStr | None = None
     sentry_environment: str | None = None
     sentry_release: str | None = None
+    metrics_enabled: bool = True
+    metrics_allow_public: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

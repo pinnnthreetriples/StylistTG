@@ -23,6 +23,7 @@ from app.services.idempotency_keys import (
     generate as generate_idempotency_key,
     reserve_in_redis,
 )
+from app.observability.safety_metrics import safety_metrics
 from app.services.safety_gate_reserve import (
     SafetyGateReservation,
     release as release_gate_reservation,
@@ -261,13 +262,14 @@ class SenderService:
             data={"idempotency_key": idem.key},
         )
         try:
-            result = self._comment_sender().send_comment(
-                account_id=str(attempt.account_id),
-                discussion_chat_id=str(discussion_chat_id),
-                reply_to_message_id=str(context.observed_post.discussion_message_id),
-                text=final_text,
-                random_id=idem.random_id_hash,
-            )
+            with safety_metrics.attempt_send_duration(strategy=attempt.send_strategy):
+                result = self._comment_sender().send_comment(
+                    account_id=str(attempt.account_id),
+                    discussion_chat_id=str(discussion_chat_id),
+                    reply_to_message_id=str(context.observed_post.discussion_message_id),
+                    text=final_text,
+                    random_id=idem.random_id_hash,
+                )
         except TelegramCommentSendError as exc:
             if exc.error_code == "FLOOD_WAIT":
                 self._rollback_reservation(reservation)

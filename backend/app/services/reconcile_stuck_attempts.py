@@ -17,6 +17,7 @@ from app.models import (
     NeuroCommentObservedPost,
     NeuroCommentTarget,
 )
+from app.observability.safety_metrics import safety_metrics
 from app.services.idempotency_keys import derive_random_id
 from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
 
@@ -96,6 +97,7 @@ def run_reconcile_tick(
         workspace_id = context.workspace_id
         if not attempt.idempotency_key:
             report.skipped_no_idem_key += 1
+            safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="skipped")
             log_event(
                 "attempt_reconcile_skipped_no_idempotency_key",
                 workspace_id=workspace_id,
@@ -109,6 +111,7 @@ def run_reconcile_tick(
         if account_id is None or chat_id is None:
             _mark_lost(attempt, now)
             report.resolved_failed += 1
+            safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="failed")
             log_event(
                 "attempt_reconciled_failed",
                 workspace_id=workspace_id,
@@ -147,6 +150,7 @@ def run_reconcile_tick(
             attempt.error_code = None
             attempt.error_message = None
             report.resolved_sent += 1
+            safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="sent")
             log_event(
                 "attempt_reconciled_sent",
                 workspace_id=workspace_id,
@@ -157,6 +161,7 @@ def run_reconcile_tick(
         else:
             _mark_lost(attempt, now)
             report.resolved_failed += 1
+            safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="failed")
             log_event(
                 "attempt_reconciled_failed",
                 workspace_id=workspace_id,

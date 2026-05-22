@@ -5,6 +5,7 @@ description = "FastAPI backend for StylistTG Telegram profile jobs."
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.124.0",
+  "starlette>=1.0.1",
   "uvicorn[standard]>=0.38.0",
   "rq>=2.6.0",
   "redis>=7.1.0",

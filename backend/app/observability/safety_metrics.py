@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, nullcontext
 import hashlib
 from typing import Any, ContextManager, Literal
 
-import app.platform_bootstrap  # noqa: F401
+from app.platform_bootstrap import patch_windows_platform_probe
 
 try:
-    from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, REGISTRY
+    import prometheus_client as _prometheus_client
 except ImportError:  # pragma: no cover - keeps OpenAPI export importable before deps sync.
-    CollectorRegistry = Any  # type: ignore[misc, assignment]
-    Counter = Gauge = Histogram = None  # type: ignore[assignment]
-    REGISTRY = None
+    _prometheus_client = None
 
 from app.config import settings
+
+patch_windows_platform_probe()
 
 
 ReserveOutcome = Literal["RESERVED", "STALE", "BLOCKED", "WARNING", "RATE_BLOCKED"]
@@ -29,94 +29,101 @@ class SafetyMetrics:
     def __init__(
         self,
         *,
-        registry: CollectorRegistry = REGISTRY,
+        registry: Any = None,
         enabled: bool | None = None,
     ) -> None:
-        self.registry = registry
+        self.registry = (
+            registry
+            if registry is not None
+            else (_prometheus_client.REGISTRY if _prometheus_client is not None else None)
+        )
         self.enabled = (
             settings.metrics_enabled if enabled is None else enabled
-        ) and REGISTRY is not None
+        ) and _prometheus_client is not None
         if not self.enabled:
             return
 
-        self._gate_blocks = Counter(
+        client = _prometheus_client
+        assert client is not None
+
+        self._gate_blocks = client.Counter(
             "safety_gate_blocks_total",
             "Safety gate blocked verdicts by workspace, intent, and reason.",
             ("workspace_id", "intent", "reason"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._gate_evaluate_duration = Histogram(
+        self._gate_evaluate_duration = client.Histogram(
             "safety_gate_evaluate_duration_seconds",
             "Safety gate evaluation latency.",
             ("intent", "cache_hit"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._quarantine_active = Gauge(
+        self._quarantine_active = client.Gauge(
             "quarantine_active",
             "Active account quarantines by workspace and reason.",
             ("workspace_id", "reason"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._account_total = Gauge(
+        self._account_total = client.Gauge(
             "account_total",
             "Total accounts by workspace for safety SLO denominators.",
             ("workspace_id",),
-            registry=registry,
+            registry=self.registry,
         )
-        self._quarantine_opened = Counter(
+        self._quarantine_opened = client.Counter(
             "quarantine_opened_total",
             "Opened account quarantines by workspace and reason.",
             ("workspace_id", "reason"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._quarantine_released = Counter(
+        self._quarantine_released = client.Counter(
             "quarantine_released_total",
             "Released account quarantines by workspace, reason, and release mode.",
             ("workspace_id", "reason", "mode"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._ggr_score = Histogram(
+        self._ggr_score = client.Histogram(
             "ggr_score",
             "GGR account survivability score.",
             ("workspace_id", "bucket"),
             buckets=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-            registry=registry,
+            registry=self.registry,
         )
-        self._flood_wait = Counter(
+        self._flood_wait = client.Counter(
             "flood_wait_total",
             "Observed Telegram FLOOD_WAIT events by workspace and account hash.",
             ("workspace_id", "account_id_hash"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._attempt_send_duration = Histogram(
+        self._attempt_send_duration = client.Histogram(
             "attempt_send_duration_seconds",
             "Telegram send attempt duration by strategy.",
             ("strategy",),
-            registry=registry,
+            registry=self.registry,
         )
-        self._reserve_outcomes = Counter(
+        self._reserve_outcomes = client.Counter(
             "safety_gate_reserve_outcomes_total",
             "Safety gate reserve outcomes.",
             ("outcome",),
-            registry=registry,
+            registry=self.registry,
         )
-        self._typing_emit = Counter(
+        self._typing_emit = client.Counter(
             "human_behavior_typing_emit_total",
             "Human behavior typing emit outcomes.",
             ("outcome",),
-            registry=registry,
+            registry=self.registry,
         )
-        self._cross_module_overload = Counter(
+        self._cross_module_overload = client.Counter(
             "cross_module_overload_total",
             "Cross-module overload events by workspace and severity.",
             ("workspace_id", "severity"),
-            registry=registry,
+            registry=self.registry,
         )
-        self._attempts_stuck = Counter(
+        self._attempts_stuck = client.Counter(
             "attempts_stuck_total",
             "Stuck send attempts reconciled by workspace and resolution.",
             ("workspace_id", "resolution"),
-            registry=registry,
+            registry=self.registry,
         )
 
     def gate_blocked(self, *, workspace_id: str, intent: str, reason: str) -> None:
@@ -206,7 +213,7 @@ class SafetyMetrics:
         return hashlib.sha256(account_id.encode("utf-8")).hexdigest()[:8]
 
     @contextmanager
-    def _timer(self, histogram: Any) -> Iterator[None]:
+    def _timer(self, histogram: Any) -> Generator[None, None, None]:
         with histogram.time():
             yield
 

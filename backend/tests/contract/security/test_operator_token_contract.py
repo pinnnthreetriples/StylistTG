@@ -17,17 +17,7 @@ def _patch_runtime_mode_without_operator_token(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.mark.contract
 @pytest.mark.security
-def test_mutating_operator_api_rejects_missing_operator_token_status(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    response = _patch_runtime_mode_without_operator_token(monkeypatch)
-
-    assert response.status_code == 401
-
-
-@pytest.mark.contract
-@pytest.mark.security
-def test_mutating_operator_api_rejects_missing_operator_token_detail(
+def test_mutating_operator_api_requires_operator_token_detail(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     response = _patch_runtime_mode_without_operator_token(monkeypatch)

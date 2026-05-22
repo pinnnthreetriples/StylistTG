@@ -6347,6 +6347,58 @@
         }
       }
     },
+    "/api/dashboard/disaster-state": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Disaster State",
+        "operationId": "get_disaster_state_api_dashboard_disaster_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisasterState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard/profile/{account_id}": {
       "get": {
         "tags": [
@@ -18950,6 +19002,66 @@
           "tdlib"
         ],
         "title": "DiagnosticsRead"
+      },
+      "DisasterState": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "is_disaster": {
+            "type": "boolean",
+            "title": "Is Disaster"
+          },
+          "quarantined_count": {
+            "type": "integer",
+            "title": "Quarantined Count"
+          },
+          "total_accounts": {
+            "type": "integer",
+            "title": "Total Accounts"
+          },
+          "quarantined_fraction": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Quarantined Fraction"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold",
+            "default": 0.5
+          },
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours",
+            "default": 1
+          },
+          "detected_at": {
+            "type": "string",
+            "title": "Detected At"
+          },
+          "sample_quarantined_account_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Sample Quarantined Account Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "is_disaster",
+          "quarantined_count",
+          "total_accounts",
+          "quarantined_fraction",
+          "detected_at",
+          "sample_quarantined_account_ids"
+        ],
+        "title": "DisasterState"
       },
       "ExecutionPolicyRead": {
         "properties": {

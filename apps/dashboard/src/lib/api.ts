@@ -44,6 +44,7 @@ import {
   fetchAccountSafetySummary as fetchTypedAccountSafetySummary,
   fetchAccountValidityChecks as fetchTypedAccountValidityChecks,
   fetchDashboard as fetchTypedDashboard,
+  fetchDisasterState as fetchTypedDisasterState,
   fetchExecutionPolicy as fetchTypedExecutionPolicy,
   fetchFrontendDiagnosticsSummary as fetchTypedFrontendDiagnosticsSummary,
   fetchGlobalOperationLogs as fetchTypedGlobalOperationLogs,
@@ -84,6 +85,7 @@ import {
   type SafetyGateVerdict,
   type ProfileCompletenessReport,
   type DashboardProfile as DashboardResponse,
+  type DisasterState,
   type JobSummary,
   type RuntimeRefresh,
   type Readiness,
@@ -155,6 +157,7 @@ export type {
   SafetyGateIntent,
   SafetyGateVerdict,
   ProfileCompletenessReport,
+  DisasterState,
   StoryDraftRead,
   AccountReadinessRisk,
   AccountReadinessRiskSummary,
@@ -295,6 +298,10 @@ export function storyDraftReadToPayload(draft: StoryDraftRead): StoryDraftPayloa
 
 export function fetchDashboard(accountId: string): Promise<DashboardResponse> {
   return fetchTypedDashboard(typedClient, accountId)
+}
+
+export function fetchDisasterState(): Promise<DisasterState> {
+  return fetchTypedDisasterState(typedClient)
 }
 
 export function fetchAccounts(): Promise<AccountListItem[]> {

@@ -49,6 +49,7 @@ export type AccountOperationLogPage = Schema<'AccountOperationLogPageRead'>
 export type AccountProxyInput = Schema<'AccountProxyUpsert'>
 export type ProfileCompletenessReport = Schema<'ProfileCompletenessReport'>
 export type DashboardProfile = Schema<'DashboardProfileRead'>
+export type DisasterState = Schema<'DisasterState'>
 export type DiagnosticsRead = Schema<'DiagnosticsRead'>
 export type Readiness = Schema<'ReadinessRead'>
 export type FrontendDiagnosticsSummary = Schema<'FrontendDiagnosticsSummaryRead'>
@@ -698,6 +699,10 @@ export async function fetchDashboard(client: StylistTgClient, accountId: string)
     }),
     'dashboard profile',
   )
+}
+
+export async function fetchDisasterState(client: StylistTgClient): Promise<DisasterState> {
+  return unwrap(client.openapi.GET('/api/dashboard/disaster-state'), 'dashboard disaster state')
 }
 
 export async function fetchAccountSafetySummary(client: StylistTgClient): Promise<AccountSafetySummary[]> {

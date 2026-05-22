@@ -38,14 +38,13 @@ def evaluate_disaster_state(
     )
     fraction = round(quarantined_count / total, 4) if total else 0.0
     sample_account_ids = list(
-        session.scalars(
-            select(AccountQuarantine.account_id)
-            .where(
-                AccountQuarantine.workspace_id == workspace_id,
-                AccountQuarantine.released_at.is_(None),
-                AccountQuarantine.started_at >= cutoff,
-                AccountQuarantine.until > now,
-            )
+        row.account_id
+        for row in session.scalars(
+            select(AccountQuarantine)
+            .where(AccountQuarantine.workspace_id == workspace_id)
+            .where(AccountQuarantine.released_at.is_(None))
+            .where(AccountQuarantine.started_at >= cutoff)
+            .where(AccountQuarantine.until > now)
             .order_by(AccountQuarantine.started_at.desc(), AccountQuarantine.account_id)
             .limit(5)
         )

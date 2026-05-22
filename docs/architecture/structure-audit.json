@@ -1027,9 +1027,9 @@
       "has_explicit_all": false,
       "imports": [
         "__future__",
+        "app.contracts.types",
         "datetime",
-        "pydantic",
-        "uuid"
+        "pydantic"
       ],
       "path": "backend/app/contracts/disaster_state.py"
     },

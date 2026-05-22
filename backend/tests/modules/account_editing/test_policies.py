@@ -48,12 +48,14 @@ def _account_with_profile(
     )
 
 
+@pytest.mark.unit
 def test_requested_profile_fields_returns_only_requested_profile_keys() -> None:
     desired_state = {"profile": {"name": "Stylist TG", "username": None}, "stories": []}
 
     assert _policy().requested_profile_fields(desired_state) == {"name", "username"}
 
 
+@pytest.mark.unit
 def test_requested_profile_fields_ignores_missing_or_non_mapping_profile() -> None:
     policy = _policy()
 
@@ -62,6 +64,7 @@ def test_requested_profile_fields_ignores_missing_or_non_mapping_profile() -> No
     assert policy.requested_profile_fields({"profile": ["name"]}) == set()
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_detects_name_change() -> None:
     account = _account_with_profile(first_name="Old", last_name="")
     desired_state = _normalized_profile(name="New")
@@ -75,6 +78,7 @@ def test_changed_profile_step_types_detects_name_change() -> None:
     assert steps == {"set_name"}
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_detects_bio_change() -> None:
     account = _account_with_profile()
     desired_state = _normalized_profile(bio="Updated bio")
@@ -88,6 +92,7 @@ def test_changed_profile_step_types_detects_bio_change() -> None:
     assert steps == {"set_bio"}
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_detects_username_change() -> None:
     account = _account_with_profile(username="oldusername")
     desired_state = _normalized_profile(username="newusername")
@@ -101,6 +106,7 @@ def test_changed_profile_step_types_detects_username_change() -> None:
     assert steps == {"set_username"}
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_skips_photo_when_asset_matches(monkeypatch) -> None:
     account = _account_with_profile()
     desired_state = _normalized_profile(photo_asset_id="asset-new")
@@ -119,6 +125,7 @@ def test_changed_profile_step_types_skips_photo_when_asset_matches(monkeypatch) 
     )
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_detects_photo_when_asset_differs(monkeypatch) -> None:
     account = _account_with_profile()
     desired_state = _normalized_profile(photo_asset_id="asset-new")
@@ -134,6 +141,7 @@ def test_changed_profile_step_types_detects_photo_when_asset_differs(monkeypatch
     ) == {"set_profile_photo"}
 
 
+@pytest.mark.unit
 def test_changed_profile_step_types_does_not_update_empty_matching_fields() -> None:
     account = _account_with_profile(first_name="", last_name="", bio=None, username=None)
     desired_state = _normalized_profile(name="", bio="", username="")

@@ -69,6 +69,26 @@ def _payload() -> NotificationPayload:
     )
 
 
+def _set_notification_webhook(db_session, url: str = "https://hooks.example.test/admin") -> None:
+    ensure_default_workspace(db_session)
+    workspace = db_session.get(Workspace, DEFAULT_LOCAL_WORKSPACE_ID)
+    workspace.notification_webhook_url = url
+
+
+def _webhook_channel(handler) -> WebhookNotifier:
+    transport = httpx.MockTransport(handler)
+    return WebhookNotifier(client=httpx.Client(transport=transport))
+
+
+def _override_auth_role(role: str) -> None:
+    app.dependency_overrides[get_current_auth_context] = lambda: AuthContext(
+        user_id=DEFAULT_LOCAL_USER_ID,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        role=role,
+        auth_source="test",
+    )
+
+
 @freeze_time(_FROZEN_NOW)
 def test_quarantine_epidemic_trigger_emits_warning_payload(db_session) -> None:
     account_ids = _seed_accounts(db_session, 100)
@@ -205,9 +225,7 @@ def test_deduplication_detects_same_workspace_trigger_within_one_hour(db_session
 
 @freeze_time(_FROZEN_NOW)
 def test_webhook_delivery_200_records_success_and_log_entry(db_session) -> None:
-    ensure_default_workspace(db_session)
-    workspace = db_session.get(Workspace, DEFAULT_LOCAL_WORKSPACE_ID)
-    workspace.notification_webhook_url = "https://hooks.example.test/admin"
+    _set_notification_webhook(db_session)
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -217,7 +235,7 @@ def test_webhook_delivery_200_records_success_and_log_entry(db_session) -> None:
     result = deliver(
         db_session,
         _payload(),
-        channels=[WebhookNotifier(client=httpx.Client(transport=httpx.MockTransport(handler)))],
+        channels=[_webhook_channel(handler)],
     )
 
     assert result[0].channel == "webhook"
@@ -229,9 +247,7 @@ def test_webhook_delivery_200_records_success_and_log_entry(db_session) -> None:
 
 @freeze_time(_FROZEN_NOW)
 def test_webhook_timeout_records_failure_and_log_entry(db_session) -> None:
-    ensure_default_workspace(db_session)
-    workspace = db_session.get(Workspace, DEFAULT_LOCAL_WORKSPACE_ID)
-    workspace.notification_webhook_url = "https://hooks.example.test/admin"
+    _set_notification_webhook(db_session)
 
     def handler(_request: httpx.Request) -> httpx.Response:
         raise httpx.TimeoutException("timed out")
@@ -239,7 +255,7 @@ def test_webhook_timeout_records_failure_and_log_entry(db_session) -> None:
     result = deliver(
         db_session,
         _payload(),
-        channels=[WebhookNotifier(client=httpx.Client(transport=httpx.MockTransport(handler)))],
+        channels=[_webhook_channel(handler)],
     )
 
     assert result[0].channel == "webhook"
@@ -290,7 +306,7 @@ def test_patch_notification_settings_admin_updates_webhook_and_audits(
 
 def test_patch_notification_settings_non_admin_returns_403(app_client, db_session) -> None:
     ensure_default_workspace(db_session)
-    app.dependency_overrides[get_current_auth_context] = lambda: _auth("operator")
+    _override_auth_role("operator")
 
     response = app_client.patch(
         f"/api/workspaces/{DEFAULT_LOCAL_WORKSPACE_ID}/notification-settings",
@@ -324,26 +340,21 @@ def test_scheduler_report_registers_admin_notification_tick() -> None:
 def test_enqueue_admin_notification_tick_uses_scheduler_queue_and_five_minute_bucket(
     monkeypatch,
 ) -> None:
-    class FakeQueue:
-        def __init__(self) -> None:
-            self.calls: list[dict[str, object]] = []
-
-        def enqueue_call(self, **kwargs) -> None:
-            self.calls.append(kwargs)
-
-    queue = FakeQueue()
+    calls: list[dict[str, object]] = []
     seen_queues: list[str] = []
 
-    def fake_get_queue(name: str) -> FakeQueue:
+    def fake_get_queue(name: str):
         seen_queues.append(name)
-        return queue
+        return type(
+            "FakeQueue", (), {"enqueue_call": lambda _self, **kwargs: calls.append(kwargs)}
+        )()
 
     monkeypatch.setattr("app.job_queue.rq.get_queue", fake_get_queue)
 
     assert enqueue_admin_notification_tick(now=(NOTIFICATION_COLLECTION_TICK_SECONDS * 42) + 10)
 
     assert seen_queues == ["scheduler_jobs"]
-    assert queue.calls == [
+    assert calls == [
         {
             "func": admin_notification_tick,
             "job_id": f"{ADMIN_NOTIFICATION_JOB_ID_PREFIX}-42",

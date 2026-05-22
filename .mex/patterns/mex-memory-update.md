@@ -9,7 +9,7 @@ edges:
   - .mex/ROUTER.md
   - .mex/context/decisions.md
   - .mex/patterns/INDEX.md
-last_updated: 2026-05-10
+last_updated: 2026-05-22
 ---
 
 # mex Memory Update

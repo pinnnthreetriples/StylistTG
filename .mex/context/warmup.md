@@ -10,7 +10,7 @@ edges:
   - .mex/context/workers.md
   - .mex/context/security.md
   - docs/runbooks/account-preparation.md
-last_updated: 2026-05-15
+last_updated: 2026-05-22
 ---
 
 # Account Preparation / Warmup

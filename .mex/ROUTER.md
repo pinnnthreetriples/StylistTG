@@ -6,7 +6,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/INDEX.md
-last_updated: 2026-05-18
+last_updated: 2026-05-22
 ---
 
 # StylistTG Memory Router
@@ -66,7 +66,7 @@ Always check `.mex/patterns/INDEX.md` for a matching task pattern before editing
 
 ## Source-of-truth rules
 
-- Root `AGENTS.md` and `.mex/AGENTS.md` must stay synchronized.
+- `.mex/AGENTS.md` is the canonical agent anchor; root `AGENTS.md` and root `CLAUDE.md` are tool-facing copies and must stay synchronized.
 - `.mex` stores compact memory and task patterns, not raw secrets, logs, TDLib sessions, or full generated artifacts.
 - Detailed canonical documentation remains in `docs/`; `.mex` should link or summarize instead of duplicating large runbooks.
 - Decisions are append-only in `.mex/context/decisions.md`; mark superseded decisions instead of deleting history.

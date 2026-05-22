@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/security.md
   - .mex/context/workers.md
-last_updated: 2026-05-18
+last_updated: 2026-05-22
 ---
 
 # Backend

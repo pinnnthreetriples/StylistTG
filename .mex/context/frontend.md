@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/frontend-module-change.md
-last_updated: 2026-05-15
+last_updated: 2026-05-22
 ---
 
 # Frontend

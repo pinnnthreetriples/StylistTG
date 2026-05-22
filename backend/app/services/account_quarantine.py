@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import AccountQuarantine, QUARANTINE_REASONS, WorkspaceSafetyPolicy, new_id, utc_now
+from app.models import Account
+from app.observability.safety_metrics import safety_metrics
 from app.services.workspace_safety_policy import get_workspace_safety_policy
 
 
@@ -115,6 +117,8 @@ def create_quarantine(
     )
     session.add(row)
     session.flush()
+    safety_metrics.quarantine_opened(workspace_id=workspace_id, reason=reason)
+    _refresh_quarantine_active(session, workspace_id=workspace_id, reason=reason)
     return row
 
 
@@ -141,6 +145,12 @@ def release_quarantine(
         metadata["release_reason"] = reason
     row.metadata_json = metadata
     session.flush()
+    safety_metrics.quarantine_released(
+        workspace_id=workspace_id,
+        reason=row.reason,
+        mode="manual",
+    )
+    _refresh_quarantine_active(session, workspace_id=workspace_id, reason=row.reason)
     return row
 
 
@@ -167,6 +177,12 @@ def admin_override_release(
     metadata["admin_override_released_at"] = now.isoformat()
     row.metadata_json = metadata
     session.flush()
+    safety_metrics.quarantine_released(
+        workspace_id=workspace_id,
+        reason=row.reason,
+        mode="admin_override",
+    )
+    _refresh_quarantine_active(session, workspace_id=workspace_id, reason=row.reason)
     return row
 
 
@@ -205,4 +221,27 @@ def handle_flood_wait(
             "original_flood_wait_seconds": flood_wait_seconds,
             "source_attempt_id": source_attempt_id,
         },
+    )
+
+
+def _refresh_quarantine_active(session: Session, *, workspace_id: str, reason: str) -> None:
+    active_count = int(
+        session.scalar(
+            select(func.count(AccountQuarantine.id))
+            .where(AccountQuarantine.workspace_id == workspace_id)
+            .where(AccountQuarantine.reason == reason)
+            .where(AccountQuarantine.released_at.is_(None))
+            .where(AccountQuarantine.until > utc_now())
+        )
+        or 0
+    )
+    account_count = int(
+        session.scalar(select(func.count(Account.id)).where(Account.workspace_id == workspace_id))
+        or 0
+    )
+    safety_metrics.account_total(workspace_id=workspace_id, value=account_count)
+    safety_metrics.quarantine_active(
+        workspace_id=workspace_id,
+        reason=reason,
+        value=active_count,
     )

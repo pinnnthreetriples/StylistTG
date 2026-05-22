@@ -4,8 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
+from app.platform_bootstrap import patch_windows_platform_probe
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.logging_utils import configure_logging
+
+patch_windows_platform_probe()
 
 
 def main() -> int:

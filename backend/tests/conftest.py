@@ -6,7 +6,9 @@ import os
 from pathlib import Path
 import re
 
+import app.platform_bootstrap  # noqa: F401
 import pytest
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool

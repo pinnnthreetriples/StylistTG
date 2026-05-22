@@ -17,6 +17,7 @@ permissions:
   contents: read
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
   UV_VERSION: "0.10.9"
@@ -288,6 +289,10 @@ jobs:
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
           uv sync --locked --extra contract
+
+      - name: Verify contract tooling imports
+        run: |
+          uv run python -c "import schemathesis; import schemathesis.checks"
 
       - name: Prepare reports directory
         run: mkdir -p reports

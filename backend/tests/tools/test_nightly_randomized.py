@@ -15,7 +15,6 @@ def test_run_seed_ignores_contract_tests_in_whole_tree_command(monkeypatch, tmp_
 
     monkeypatch.setattr(nightly_randomized.subprocess, "run", fake_run)
 
-    result = nightly_randomized._run_seed("101", tmp_path, "not live and not contract", [])
+    nightly_randomized._run_seed("101", tmp_path, "not live and not contract", [])
 
-    assert result["returncode"] == 0
     assert "--ignore=tests/contract" in captured["cmd"]

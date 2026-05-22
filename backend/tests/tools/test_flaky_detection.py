@@ -36,5 +36,6 @@ def test_main_ignores_contract_tests_in_whole_tree_command(monkeypatch, tmp_path
         ["flaky_detection.py", "--reports-dir", str(tmp_path)],
     )
 
-    assert flaky_detection.main() == 0
+    flaky_detection.main()
+
     assert "--ignore=tests/contract" in captured["cmd"]

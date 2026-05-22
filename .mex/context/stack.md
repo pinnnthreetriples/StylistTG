@@ -10,7 +10,7 @@ edges:
   - .mex/context/setup.md
   - .mex/context/backend.md
   - .mex/context/frontend.md
-last_updated: 2026-05-10
+last_updated: 2026-05-22
 ---
 
 # Stack

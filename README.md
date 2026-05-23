@@ -50,6 +50,14 @@ Still intentionally limited:
 - Automatic asset migration from local storage to S3/R2/MinIO.
 - Complex preset/platform layer.
 
+## Account Safety Pipeline
+
+StylistTG protects Telegram accounts from avoidable blocks through a 6-layer pipeline:
+WorkspaceSafetyPolicy -> GGR Calculator -> AccountQuarantine -> AccountStatusMonitor ->
+CrossModuleLoadTracker -> AccountSafetyGate. Gate checks are integrated into editing,
+warmup, and commenting modules as required preflight checks. Details:
+[docs/modules/account-safety-pipeline.md](docs/modules/account-safety-pipeline.md).
+
 ## Local Development
 
 Recommended one-command launcher on Windows:

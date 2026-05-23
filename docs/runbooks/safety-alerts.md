@@ -64,7 +64,7 @@ groups:
           (
             sum by (workspace_id) (quarantine_active)
             /
-            clamp_min(sum by (workspace_id) (total_accounts), 1)
+            clamp_min(sum by (workspace_id) (account_total), 1)
           ) > 0.1
         for: 1h
         labels:

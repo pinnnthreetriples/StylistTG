@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from difflib import unified_diff
+import re
 
 from sqlalchemy.orm import Session
 
 from app.models import NeuroCommentAttempt, NeuroCommentGeneratedComment, new_id
+from app.services.secret_redaction import redact_text
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroAttemptStatus,
@@ -12,6 +15,11 @@ from app.services.neuro_commenting.enums import (
     NeuroSafetyStatus,
 )
 from app.services.neuro_commenting import repository
+
+_EMAIL_RE = re.compile(r"\b[\w.-]+@[\w.-]+\.\w{2,}\b")
+_PHONE_RE = re.compile(r"\+?\d[\d\s\-()]{7,}\d")
+_MAX_AUDIT_DIFF_CHARS = 4096
+_TRUNCATED_MARKER = "\n[TRUNCATED]"
 
 
 class ApprovalService:
@@ -95,6 +103,14 @@ class ApprovalService:
             message="generated comment approved and send attempt prepared",
             data={"actor_user_id": actor_user_id, "auto_send": False},
         )
+        _maybe_audit_edit(
+            self._analytics,
+            session,
+            comment=comment,
+            attempt_id=attempt.id,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
         return comment, attempt
 
     def reject_comment(
@@ -125,3 +141,56 @@ class ApprovalService:
             data={"actor_user_id": actor_user_id},
         )
         return comment
+
+
+def _maybe_audit_edit(
+    analytics: AnalyticsService,
+    session: Session,
+    *,
+    comment: NeuroCommentGeneratedComment,
+    attempt_id: str,
+    workspace_id: str,
+    actor_user_id: str | None,
+) -> None:
+    edited_text = comment.edited_text
+    if edited_text is None or edited_text == comment.generated_text:
+        return
+    diff_lines = list(
+        unified_diff(
+            comment.generated_text.splitlines(),
+            edited_text.splitlines(),
+            fromfile="generated",
+            tofile="edited",
+            lineterm="",
+            n=3,
+        )
+    )
+    analytics.write_event(
+        session,
+        workspace_id=workspace_id,
+        campaign_id=comment.campaign_id,
+        account_id=comment.account_id,
+        target_id=comment.target_id,
+        observed_post_id=comment.observed_post_id,
+        generated_comment_id=comment.id,
+        attempt_id=attempt_id,
+        event_type="comment_edited_on_approve",
+        message="generated comment edited during approval",
+        data={
+            "diff": _redact_diff("\n".join(diff_lines)),
+            "user_id": actor_user_id,
+            "generated_length": len(comment.generated_text),
+            "edited_length": len(edited_text),
+            "diff_lines": len(diff_lines),
+        },
+    )
+
+
+def _redact_diff(diff: str) -> str:
+    redacted = redact_text(diff)
+    redacted = _EMAIL_RE.sub("[REDACTED_EMAIL]", redacted)
+    redacted = _PHONE_RE.sub("[REDACTED_PHONE]", redacted)
+    if len(redacted) <= _MAX_AUDIT_DIFF_CHARS:
+        return redacted
+    budget = _MAX_AUDIT_DIFF_CHARS - len(_TRUNCATED_MARKER)
+    return redacted[:budget].rstrip() + _TRUNCATED_MARKER

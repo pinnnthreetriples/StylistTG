@@ -214,6 +214,51 @@ def test_proxy_api_does_not_return_password() -> None:
     assert "password" not in payload
 
 
+def test_proxy_check_keeps_known_not_configured_error_safe() -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550103005")
+        account_id = account.id
+        session.commit()
+
+    override_app_session(session_factory)
+    client = TestClient(app)
+
+    response = client.post(f"/api/accounts/{account_id}/proxy/check")
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "PROXY_NOT_CONFIGURED"
+    assert response.json()["message"] == "proxy not configured"
+
+
+def test_proxy_check_hides_unknown_value_error_text(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        account = create_account(session, external_ref="+15550103006")
+        account_id = account.id
+        session.commit()
+
+    def _raise_internal_error(*_args, **_kwargs):
+        raise ValueError("socket failed for proxy password secret")
+
+    override_app_session(session_factory)
+    monkeypatch.setattr("app.api.account_proxy_routes.check_account_proxy", _raise_internal_error)
+    client = TestClient(app)
+
+    response = client.post(f"/api/accounts/{account_id}/proxy/check")
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "PROXY_CHECK_FAILED"
+    assert response.json()["message"] == "Proxy check failed"
+    assert "secret" not in response.text
+
+
 def test_account_safety_blocked_by_reauth_required(db_session) -> None:
     from app.services.account_safety import build_account_safety
 
@@ -365,6 +410,36 @@ def test_account_validity_check_tdlib_mode_is_safe_unsupported_without_live_acti
         }
     else:
         assert response.json()["error_code"] == "TDLIB_READONLY_CHECK_NOT_ENABLED"
+
+
+def test_account_validity_check_hides_unknown_value_error_text(monkeypatch) -> None:
+    session_factory, engine = create_sqlite_test_session_factory()
+    Base.metadata.create_all(engine)
+    with session_factory() as session:
+        account = _ready_account(session, "+15550102025")
+        account_id = account.id
+        session.commit()
+
+    def _raise_internal_error(*_args, **_kwargs):
+        raise ValueError("tdlib runtime leaked /home/app/.tdlib/session")
+
+    override_app_session(session_factory)
+    monkeypatch.setattr(
+        "app.api.account_safety_routes.run_account_validity_check", _raise_internal_error
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        f"/api/accounts/{account_id}/validity-check", json={"mode": "db_snapshot"}
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "VALIDITY_CHECK_FAILED"
+    assert response.json()["message"] == "Account validity check failed"
+    assert "tdlib" not in response.text
+    assert ".tdlib" not in response.text
 
 
 def test_account_validity_tdlib_readonly_adapter_returns_valid_and_does_not_write(

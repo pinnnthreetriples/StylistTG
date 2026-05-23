@@ -96,7 +96,7 @@ class AccountSafetyGate:
             return verdict
 
         policy = _policy(session, workspace_id=workspace_id)
-        terminal_status = _account_terminal_status(
+        terminal_status, safety_grace_period_until = _account_cache_state(
             session, workspace_id=workspace_id, account_id=account_id
         )
         cache_key = _cache_key(
@@ -104,6 +104,7 @@ class AccountSafetyGate:
             intent=intent,
             policy=policy,
             terminal_status=terminal_status,
+            safety_grace_period_until=safety_grace_period_until,
         )
         cached = self._cache.get(cache_key)
         if cached is not None:
@@ -220,6 +221,7 @@ class AccountSafetyGate:
         policy: WorkspaceSafetyPolicy,
     ) -> SafetyGateVerdict:
         account = _account(session, workspace_id=workspace_id, account_id=account_id)
+        effective_mode = _effective_safety_mode(account, policy, utc_now())
         reasons: list[SafetyGateReason] = []
         ggr = get_ggr_score(session, account_id, workspace_id) or calculate_ggr(
             session, account, workspace_id
@@ -279,7 +281,9 @@ class AccountSafetyGate:
 
         if intent == "commenting":
             load = current_load(session, workspace_id=account.workspace_id, account_id=account.id)
-            load_verdict = evaluate_threshold(load, _cross_module_safety_mode(policy))
+            load_verdict = evaluate_threshold(
+                load, _cross_module_safety_mode(policy, effective_mode)
+            )
             if load_verdict != "ok":
                 self._metrics.cross_module_overload(
                     workspace_id=workspace_id,
@@ -420,10 +424,26 @@ def _policy(session: Session, *, workspace_id: str) -> WorkspaceSafetyPolicy:
     return policy
 
 
-def _cross_module_safety_mode(policy: WorkspaceSafetyPolicy) -> CrossModuleSafetyMode:
-    if policy.mode not in {"conservative", "balanced", "aggressive"}:
-        raise ValueError(f"unsupported workspace safety policy mode: {policy.mode}")
-    return cast(CrossModuleSafetyMode, policy.mode)
+def _effective_safety_mode(
+    account: Account,
+    policy: WorkspaceSafetyPolicy,
+    now: datetime,
+) -> str:
+    if policy.mode != "conservative" or account.safety_grace_period_until is None:
+        return policy.mode
+    if _as_utc(account.safety_grace_period_until) > _as_utc(now):
+        return "balanced"
+    return policy.mode
+
+
+def _cross_module_safety_mode(
+    policy: WorkspaceSafetyPolicy,
+    effective_mode: str | None = None,
+) -> CrossModuleSafetyMode:
+    mode = effective_mode or policy.mode
+    if mode not in {"conservative", "balanced", "aggressive"}:
+        raise ValueError(f"unsupported workspace safety policy mode: {mode}")
+    return cast(CrossModuleSafetyMode, mode)
 
 
 def _account(session: Session, *, workspace_id: str, account_id: str) -> Account:
@@ -443,15 +463,22 @@ def _account(session: Session, *, workspace_id: str, account_id: str) -> Account
     return account
 
 
-def _account_terminal_status(session: Session, *, workspace_id: str, account_id: str) -> str:
-    terminal_status = session.scalar(
-        select(Account.terminal_status)
+def _account_cache_state(
+    session: Session,
+    *,
+    workspace_id: str,
+    account_id: str,
+) -> tuple[str, datetime | None]:
+    row = session.execute(
+        select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+            Account.terminal_status, Account.safety_grace_period_until
+        )
         .where(Account.workspace_id == workspace_id)
         .where(Account.id == account_id)
-    )
-    if terminal_status is None:
+    ).one_or_none()
+    if row is None:
         raise AccountSafetyGateAccountNotFound("account not found")
-    return str(terminal_status)
+    return str(row[0]), row[1]
 
 
 def _cache_key(
@@ -460,11 +487,19 @@ def _cache_key(
     intent: SafetyGateIntent,
     policy: WorkspaceSafetyPolicy,
     terminal_status: str,
+    safety_grace_period_until: datetime | None,
 ) -> str:
     updated_at = policy.updated_at
     if updated_at.tzinfo is None:
         updated_at = updated_at.replace(tzinfo=UTC)
-    return f"safety:gate:{account_id}:{intent}:{updated_at.isoformat()}:{terminal_status}"
+    grace_key = (
+        _as_utc(safety_grace_period_until).isoformat()
+        if safety_grace_period_until is not None
+        else "none"
+    )
+    return (
+        f"safety:gate:{account_id}:{intent}:{updated_at.isoformat()}:{terminal_status}:{grace_key}"
+    )
 
 
 def _stale_cache_key(*, account_id: str, intent: SafetyGateIntent) -> str:

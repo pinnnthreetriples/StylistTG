@@ -1,5 +1,13 @@
 ## Summary
 
+## Linked Issue
+- Closes #
+
+## Board
+- [ ] Linked issue/card is in `In Progress` or `Review`
+- [ ] Project fields are set or unchanged intentionally (`Priority`, `Type`, `Area`)
+- [ ] This PR is small enough for focused review, or split/follow-up issues are linked
+
 ## Risk Area
 - [ ] Auth / roles
 - [ ] Workspace isolation
@@ -64,3 +72,7 @@
 ## Validation
 
 ## Not Run
+
+## Residual Risk / Follow-up
+- [ ] No follow-up needed
+- [ ] Follow-up issue(s) linked above

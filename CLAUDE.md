@@ -1,7 +1,7 @@
 ---
-name: StylistTG Claude Code anchor
-description: Root Claude Code entrypoint. Keep in sync with AGENTS.md and .mex/AGENTS.md.
-last_updated: 2026-05-22
+name: StylistTG agent anchor
+description: Shared agent entrypoint. Keep in sync with .mex/AGENTS.md and CLAUDE.md.
+last_updated: 2026-05-23
 ---
 
 # StylistTG
@@ -17,10 +17,11 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - Make minimal, surgical changes and verify with targeted checks.
 - Use package @stylisttg/ui for dashboard product UI when an equivalent exists.
 - When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
+- Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
 
-## Agent Skills
+## Agent skills
 
-Use only StylistTG project skills from `.claude/skills` in this section. Global Claude skills are configured in `C:\Users\user\.claude\CLAUDE.md`.
+Use only StylistTG project skills from the active agent runtime's project skill directory in this section. Global skills are configured outside this repository and do not need to be repeated here.
 
 ### Setup and Context
 
@@ -43,6 +44,7 @@ Use only StylistTG project skills from `.claude/skills` in this section. Global 
 ### Project Skill Configuration
 
 - Issue tracker: GitHub Issues for the origin repository; see `docs/agents/issue-tracker.md`.
+- Project board workflow: `docs/agents/project-board.md`.
 - Triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; see `docs/agents/triage-labels.md`.
 - Domain docs: `.mex/ROUTER.md` is the entrypoint; `.mex/context/` and `.mex/patterns/` are the domain source of truth; see `docs/agents/domain.md`.
 

@@ -1,0 +1,117 @@
+name: Agent-ready task
+description: Create a scoped, verifiable task for an AI coding agent or human implementer.
+title: "[agent] "
+labels:
+  - ready-for-agent
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for work that should be picked up from the StylistTG Development board.
+        Keep the task small enough for one focused PR when possible.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One concrete outcome. What should be true after this task?
+      placeholder: "Fix ... so that ..."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Files, modules, workflows, or behavior the implementer may change.
+      placeholder: |
+        - backend/app/...
+        - apps/dashboard/src/...
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Adjacent work that must not be included.
+      placeholder: |
+        - No broad refactors.
+        - No dependency upgrades.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable pass/fail criteria.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Exact commands or checks expected before review.
+      placeholder: |
+        ```powershell
+        rtk npm run typecheck
+        cd backend; rtk python -m pytest -q ...
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety constraints
+      description: Secrets, live TDLib, destructive commands, package installs, deploys, or external side effects.
+      value: |
+        - Do not read `.env*`, logs, `backend/tdlib/`, runtime artifacts, or secrets.
+        - Do not run live TDLib/Telegram behavior without explicit operator approval.
+        - Ask before package installs, file deletion, git push, deploys, or production-like operations.
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - security
+        - bug
+        - feature
+        - refactor
+        - docs
+        - deps
+        - chore
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - backend
+        - frontend
+        - infra
+        - security
+        - docs
+        - repo
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Links, context, screenshots, known risks, or related issues.
+    validations:
+      required: false

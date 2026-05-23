@@ -84,6 +84,8 @@ jobs:
           uv run pytest tests \
             --ignore=tests/contract \
             -m "slow or property" \
+            --run-property \
+            --hypothesis-show-statistics \
             -p no:randomly \
             --tb=short \
             --durations=50 --durations-min=0.5 \

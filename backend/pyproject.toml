@@ -222,7 +222,6 @@ strict_markers = true
 xfail_strict = true
 addopts = [
   "-ra",                          # show summary for all (incl. skipped/xfailed)
-  "--benchmark-disable",          # opt in with --benchmark-enable / nightly workflow
   "--strict-markers",
   "--strict-config",
   "--tb=short",

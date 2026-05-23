@@ -225,6 +225,115 @@ def test_policy_updated_at_changes_cache_key(db_session) -> None:
     assert cache.size == 2
 
 
+def test_cold_call_first_cache_miss_computes_and_tracks_budget(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+
+    verdict = AccountSafetyGate(cache=cache, redis_client=redis).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert verdict.severity == "ok"
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 1
+    assert redis.expirations[f"gate:cold:{account.id}:commenting"] == 60
+    assert cache.size == 2
+
+
+def test_cold_call_budget_exceeded_returns_stale_verdict(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache, redis_client=redis)
+    first = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.updated_at = utc_now() + timedelta(minutes=1)
+    db_session.commit()
+
+    second = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert second == first
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 2
+
+
+def test_cache_hit_does_not_increment_cold_call_budget(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache, redis_client=redis)
+
+    gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+    gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 1
+
+
+def test_cold_call_budget_exceeded_without_stale_fails_closed(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis(values={f"gate:cold:{account.id}:commenting": 1})
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache(), redis_client=redis).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert verdict.eligible is False
+    assert verdict.severity == "blocked"
+    assert verdict.reasons[0].metadata["budget"] == "cold_call"
+
+
+def test_cold_call_throttle_logs_metric_event(db_session, monkeypatch) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis(values={f"gate:cold:{account.id}:commenting": 1})
+    events: list[dict[str, str]] = []
+
+    def _capture(event: str, **fields: str) -> None:
+        events.append({"event": event, **fields})
+
+    monkeypatch.setattr("app.services.account_safety_gate.log_event", _capture)
+
+    AccountSafetyGate(cache=InMemorySafetyGateCache(), redis_client=redis).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert events == [
+        {
+            "event": "safety_gate_cold_call_throttled_total",
+            "intent": "commenting",
+        }
+    ]
+
+
 def test_api_tenant_isolation_returns_404(viewer_client, db_session) -> None:
     _workspace_a, workspace_b = seed_two_workspaces(db_session)
     account = _ready_account(db_session, workspace_id=workspace_b, external_ref="+15550109901")
@@ -511,3 +620,16 @@ _REASON_SETUPS = {
     "terminal_status": _setup_terminal_status,
     "ip_change_cooldown": _setup_ip_change_cooldown,
 }
+
+
+class _FakeColdCallRedis:
+    def __init__(self, *, values: dict[str, int] | None = None) -> None:
+        self.values = dict(values or {})
+        self.expirations: dict[str, int] = {}
+
+    def incr(self, key: str) -> int:
+        self.values[key] = self.values.get(key, 0) + 1
+        return self.values[key]
+
+    def expire(self, key: str, seconds: int) -> None:
+        self.expirations[key] = seconds

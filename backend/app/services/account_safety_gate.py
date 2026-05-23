@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
+from redis import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import settings
 from app.contracts.safety_gate import (
     SafetyGateIntent,
     SafetyGateReason,
@@ -29,6 +32,7 @@ from app.services.cross_module_load_tracker import current_load, evaluate_thresh
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
 from app.services.feature_flags import is_safety_pipeline_v2_enabled
 from app.services.ggr_calculator import calculate_ggr, get_ggr_score
+from app.logging_utils import log_event
 from app.services.safety_gate_cache import (
     InMemorySafetyGateCache,
     NullSafetyGateCache,
@@ -38,6 +42,8 @@ from app.services.safety_gate_cache import (
 from app.services.workspace_safety_policy import get_workspace_safety_policy
 
 CACHE_TTL_SECONDS = 60
+STALE_CACHE_TTL_SECONDS = 300
+COLD_CALL_BUDGET_PER_MINUTE = 1
 _HEALTHY_PROXY_STATUSES = {"ok", "tcp_working", "tdlib_working"}
 _TERMINAL_ACCOUNT_STATES = {
     AccountState.DISABLED.value,
@@ -55,8 +61,18 @@ class AccountSafetyGateAccountNotFound(LookupError):
 
 
 class AccountSafetyGate:
-    def __init__(self, *, cache: SafetyGateCache | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        cache: SafetyGateCache | None = None,
+        redis_client: Any | None = None,
+    ) -> None:
         self._cache = cache if cache is not None else _default_cache()
+        self.redis = (
+            redis_client
+            if redis_client is not None
+            else (_default_redis() if cache is None else None)
+        )
 
     def evaluate(
         self,
@@ -88,6 +104,14 @@ class AccountSafetyGate:
         if cached is not None:
             return SafetyGateVerdict.model_validate_json(cached)
 
+        stale_key = _stale_cache_key(account_id=account_id, intent=intent)
+        if not self._enforce_cold_call_budget(account_id, intent):
+            log_event("safety_gate_cold_call_throttled_total", intent=intent)
+            stale = self._cache.get(stale_key)
+            if stale is not None:
+                return SafetyGateVerdict.model_validate_json(stale)
+            return _fail_closed_verdict(account_id=account_id, intent=intent)
+
         verdict = self._compute_verdict(
             session,
             workspace_id=workspace_id,
@@ -96,7 +120,26 @@ class AccountSafetyGate:
             policy=policy,
         )
         self._cache.set(cache_key, verdict.model_dump_json(), ttl_seconds=CACHE_TTL_SECONDS)
+        if self.redis is not None:
+            self._cache.set(
+                stale_key,
+                verdict.model_dump_json(),
+                ttl_seconds=STALE_CACHE_TTL_SECONDS,
+            )
         return verdict
+
+    def _enforce_cold_call_budget(self, account_id: str, intent: str) -> bool:
+        """Return True when one cold evaluate call is still allowed this minute."""
+        if self.redis is None:
+            return True
+        key = f"gate:cold:{account_id}:{intent}"
+        try:
+            count = int(self.redis.incr(key))
+            if count == 1:
+                self.redis.expire(key, 60)
+        except RedisError:
+            return True
+        return count <= COLD_CALL_BUDGET_PER_MINUTE
 
     def _legacy_shim_verdict(
         self,
@@ -389,11 +432,42 @@ def _cache_key(
     return f"safety:gate:{account_id}:{intent}:{updated_at.isoformat()}:{terminal_status}"
 
 
+def _stale_cache_key(*, account_id: str, intent: SafetyGateIntent) -> str:
+    return f"safety:gate:stale:{account_id}:{intent}"
+
+
 def _default_cache() -> SafetyGateCache:
     try:
         return RedisSafetyGateCache.from_settings()
     except Exception:
         return NullSafetyGateCache()
+
+
+def _default_redis() -> Any | None:
+    try:
+        return cast(Any, Redis).from_url(settings.redis_url)
+    except Exception:
+        return None
+
+
+def _fail_closed_verdict(*, account_id: str, intent: SafetyGateIntent) -> SafetyGateVerdict:
+    return SafetyGateVerdict(
+        account_id=UUID(account_id),
+        intent=intent,
+        eligible=False,
+        severity="blocked",
+        reasons=[
+            _reason(
+                "cross_module_overload",
+                "blocked",
+                "Safety gate cold-call budget exceeded.",
+                {"budget": "cold_call"},
+            )
+        ],
+        ggr_score=None,
+        checked_at=utc_now(),
+        cache_ttl_seconds=0,
+    )
 
 
 def _reason(
@@ -512,6 +586,7 @@ def _as_utc(value: datetime) -> datetime:
 __all__ = [
     "AccountSafetyGate",
     "AccountSafetyGateAccountNotFound",
+    "COLD_CALL_BUDGET_PER_MINUTE",
     "InMemorySafetyGateCache",
     "evaluate",
 ]

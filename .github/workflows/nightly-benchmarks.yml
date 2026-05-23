@@ -1,0 +1,78 @@
+name: Nightly Benchmarks
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.10.9"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - "6379:6379"
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install uv==${{ env.UV_VERSION }}
+          uv sync --locked --extra test
+      - name: Run safety gate performance budget
+        run: |
+          uv run pytest tests/benchmarks/ \
+            -p no:randomly \
+            --benchmark-enable \
+            --benchmark-only \
+            --benchmark-storage=file://./benchmark_storage \
+            --benchmark-compare=tests/benchmarks/baselines/safety_gate_baseline.json \
+            --benchmark-compare-fail=mean:20%
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+          PROFILE_EXECUTION_ADAPTER: mock
+          STORIES_TDLIB_LIVE_ENABLED: "false"
+          QUEUE_INLINE_FALLBACK_ENABLED: "false"
+          TDLIB_API_ID: "0"
+          TDLIB_API_HASH: ""
+      - name: Report on regression
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create perf-regression \
+            --description "Performance benchmark regression" \
+            --color d73a4a \
+            --force || true
+          gh issue create \
+            --title "perf-regression: AccountSafetyGate nightly benchmark" \
+            --label "perf-regression" \
+            --body "Nightly AccountSafetyGate benchmark regressed or failed: ${RUN_URL}"

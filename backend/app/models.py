@@ -739,6 +739,11 @@ class Account(Base):
             name="ck_accounts_terminal_status_valid",
         ),
         Index("ix_account_workspace_updated", "workspace_id", "updated_at"),
+        Index(
+            "ix_accounts_safety_grace_until",
+            "safety_grace_period_until",
+            postgresql_where=text("safety_grace_period_until IS NOT NULL"),
+        ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
@@ -757,6 +762,9 @@ class Account(Base):
     )
     terminal_status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="none", server_default="none"
+    )
+    safety_grace_period_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

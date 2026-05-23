@@ -5,6 +5,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def _final_docker_stage(dockerfile: str) -> str:
+    last_stage_index = dockerfile.rfind("\nFROM ")
+    if last_stage_index == -1:
+        assert dockerfile.startswith("FROM ")
+        return dockerfile
+    return dockerfile[last_stage_index + 1 :]
+
+
 def test_dockerignore_excludes_secrets_storage_and_tdlib_runtime_data() -> None:
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
 
@@ -26,7 +34,7 @@ def test_dockerignore_excludes_secrets_storage_and_tdlib_runtime_data() -> None:
 def test_dockerfile_defaults_to_web_command_and_non_root_user() -> None:
     dockerfile = (ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "FROM python:3.12-slim" in dockerfile
+    assert "FROM python:3.12-slim AS runtime" in dockerfile
     assert "USER stylisttg" in dockerfile
     assert "EXPOSE 8000" in dockerfile
     assert "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}" in dockerfile
@@ -48,6 +56,20 @@ def test_tdlib_dockerfile_bakes_library_but_keeps_live_disabled() -> None:
     assert (
         "app.workers.run_worker --queues auth_jobs,profile_jobs,media_jobs,story_jobs" in dockerfile
     )
+
+
+def test_dockerfiles_keep_uv_out_of_final_runtime_images() -> None:
+    for dockerfile_name in ("Dockerfile", "Dockerfile.tdlib"):
+        dockerfile = (ROOT / "backend" / dockerfile_name).read_text(encoding="utf-8")
+        final_stage = _final_docker_stage(dockerfile)
+
+        assert "FROM python:3.12-slim AS dependencies" in dockerfile
+        assert "python -m pip install uv==0.10.9" in dockerfile
+        assert "uv sync --locked --no-dev" in dockerfile
+        assert "COPY --from=dependencies /app/.venv ./.venv" in final_stage
+        assert "uv sync" not in final_stage
+        assert "pip install uv" not in final_stage
+        assert "uv==0.10.9" not in final_stage
 
 
 def test_render_template_keeps_worker_mock_and_secrets_unsynced() -> None:

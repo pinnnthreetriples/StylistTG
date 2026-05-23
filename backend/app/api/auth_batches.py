@@ -74,7 +74,7 @@ def validate_phones(
         return validate_batch_phones(
             session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id
         )
-    except ValueError as exc:
+    except ValueError:
         raise AppError(
             status_code=status.HTTP_400_BAD_REQUEST,
             error_code="AUTH_BATCH_VALIDATION_FAILED",

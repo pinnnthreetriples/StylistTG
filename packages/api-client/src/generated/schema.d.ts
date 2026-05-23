@@ -2441,6 +2441,23 @@ export interface paths {
         patch: operations["patch_workspace_feature_flags_api_workspaces__workspace_id__feature_flags_patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/notification-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Workspace Notification Settings */
+        patch: operations["patch_workspace_notification_settings_api_workspaces__workspace_id__notification_settings_patch"];
+        trace?: never;
+    };
     "/api/workers/queues": {
         parameters: {
             query?: never;
@@ -6398,6 +6415,11 @@ export interface components {
             /** Safety Pipeline V2 Enabled */
             safety_pipeline_v2_enabled: boolean;
         };
+        /** WorkspaceNotificationSettingsUpdate */
+        WorkspaceNotificationSettingsUpdate: {
+            /** Notification Webhook Url */
+            notification_webhook_url?: string | null;
+        };
         /** WorkspaceRead */
         WorkspaceRead: {
             /** Id */
@@ -6412,6 +6434,8 @@ export interface components {
             status: string;
             /** Safety Pipeline V2 Enabled */
             safety_pipeline_v2_enabled: boolean;
+            /** Notification Webhook Url */
+            notification_webhook_url?: string | null;
             /** Created At */
             created_at: string;
             /** Updated At */
@@ -16431,6 +16455,70 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkspaceFeatureFlagsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_workspace_notification_settings_api_workspaces__workspace_id__notification_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceNotificationSettingsUpdate"];
             };
         };
         responses: {

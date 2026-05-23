@@ -171,6 +171,7 @@ class WorkspaceRead(BaseModel):
     owner_user_id: str
     status: str
     safety_pipeline_v2_enabled: bool
+    notification_webhook_url: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -185,6 +186,21 @@ class WorkspaceFeatureFlagsUpdate(BaseModel):
     safety_pipeline_v2_enabled: StrictBool
 
     model_config = ConfigDict(extra="forbid")
+
+
+class WorkspaceNotificationSettingsUpdate(BaseModel):
+    notification_webhook_url: str | None = Field(default=None, max_length=512)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("notification_webhook_url")
+    @classmethod
+    def _validate_https_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not value.startswith("https://"):
+            raise ValueError("notification_webhook_url must be an HTTPS URL")
+        return value
 
 
 class AccountRead(BaseModel):

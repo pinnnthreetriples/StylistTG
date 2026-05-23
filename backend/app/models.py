@@ -229,6 +229,11 @@ class WorkspaceSafetyPolicy(Base):
             "mode in ('conservative', 'balanced', 'aggressive')",
             name="ck_workspace_safety_policy_mode",
         ),
+        CheckConstraint(
+            "consecutive_failure_threshold IS NULL OR "
+            "consecutive_failure_threshold BETWEEN 1 AND 20",
+            name="ck_workspace_safety_policy_consecutive_failure_threshold",
+        ),
         Index("ix_workspace_safety_policy_workspace_id", "workspace_id"),
     )
 
@@ -257,6 +262,9 @@ class WorkspaceSafetyPolicy(Base):
         Integer, nullable=False, default=5
     )
     quarantine_hours_on_flood_wait: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
+    consecutive_failure_threshold: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, server_default=None
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

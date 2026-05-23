@@ -101,6 +101,68 @@ def test_happy_path_intents_are_ok(db_session, intent) -> None:
     }
 
 
+def test_status_degraded_uses_workspace_failure_threshold(db_session) -> None:
+    account = _ready_account(db_session)
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.consecutive_failure_threshold = 5
+    db_session.add(
+        AccountStatusObservation(
+            id=new_id(),
+            workspace_id=account.workspace_id,
+            account_id=account.id,
+            observed_at=utc_now(),
+            proxy_healthy=False,
+            tdlib_authorized=True,
+            consecutive_failures=4,
+            auto_action_taken="none",
+            details_json={"reason": "below_policy_threshold"},
+        )
+    )
+    db_session.commit()
+
+    below_threshold = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    db_session.query(AccountStatusObservation).filter(
+        AccountStatusObservation.account_id == account.id
+    ).delete()
+    db_session.add(
+        AccountStatusObservation(
+            id=new_id(),
+            workspace_id=account.workspace_id,
+            account_id=account.id,
+            observed_at=utc_now(),
+            proxy_healthy=False,
+            tdlib_authorized=True,
+            consecutive_failures=5,
+            auto_action_taken="none",
+            details_json={"reason": "at_policy_threshold"},
+        )
+    )
+    db_session.commit()
+    at_threshold = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    status_reason = next(
+        reason for reason in at_threshold.reasons if reason.code == "status_degraded"
+    )
+    assert "status_degraded" not in {reason.code for reason in below_threshold.reasons}
+    assert status_reason.metadata == {
+        "consecutive_failures": 5,
+        "consecutive_failure_threshold": 5,
+    }
+
+
 @pytest.mark.parametrize("intent", ["editing", "warmup", "commenting"])
 @pytest.mark.parametrize("terminal_status", ["banned", "deleted", "suspended"])
 def test_terminal_status_blocks_all_intents(db_session, intent, terminal_status) -> None:

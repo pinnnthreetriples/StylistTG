@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from freezegun import freeze_time
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -17,6 +17,7 @@ from app.models import (
     AccountProxy,
     AccountRuntimeState,
     AccountState,
+    AccountStatusObservation,
     User,
     WarmupSession,
     WarmupStrategy,
@@ -29,10 +30,13 @@ from app.services.ggr_calculator import (
     RECALC_INTERVAL,
     _age_score,
     _apply_smoothing,
+    _fingerprint_score,
     _origin_score,
     _history_score,
+    _ip_change_score,
     _profile_score,
     _proxy_score,
+    _session_anomaly_score,
     _warmup_score,
     backfill_ggr_scores,
     calculate_ggr,
@@ -123,6 +127,33 @@ def _make_account(
     return acct
 
 
+def _add_observation(
+    session: Session,
+    account: Account,
+    *,
+    observed_at: datetime = _NOW,
+    device_model_hash: str | None = None,
+    proxy_ip_hash: str | None = None,
+    consecutive_failures: int = 0,
+    workspace_id: str | None = None,
+) -> None:
+    session.add(
+        AccountStatusObservation(
+            workspace_id=workspace_id or account.workspace_id,
+            account_id=account.id,
+            observed_at=observed_at,
+            proxy_healthy=True,
+            proxy_ip_hash=proxy_ip_hash,
+            tdlib_authorized=True,
+            device_model_hash=device_model_hash,
+            consecutive_failures=consecutive_failures,
+            auto_action_taken="none",
+            details_json={},
+        )
+    )
+    session.commit()
+
+
 @pytest.fixture()
 def account(session: Session, workspace: Workspace) -> Account:
     return _make_account(session, workspace.id)
@@ -200,13 +231,108 @@ class TestComponentScoring:
         )
         assert _age_score(acct) == 1.0
 
-    def test_origin_score_hardcoded(self, session: Session, workspace: Workspace):
-        acct = _make_account(session, workspace.id, external_ref="+7999000014")
-        assert _origin_score(session, acct) == 0.7
+    @pytest.mark.parametrize(
+        ("origin", "expected"),
+        [
+            ("created", 1.0),
+            ("imported", 0.7),
+            ("bought", 0.4),
+            ("legacy", 0.7),
+        ],
+    )
+    def test_origin_score_maps_account_origin(
+        self, session: Session, workspace: Workspace, origin: str, expected: float
+    ):
+        acct = _make_account(session, workspace.id, external_ref=f"+7999000014-{origin}")
+        acct.origin = origin
+        assert _origin_score(session, acct) == expected
 
     def test_history_score_hardcoded(self, session: Session, workspace: Workspace):
         acct = _make_account(session, workspace.id, external_ref="+7999000015")
         assert _history_score(session, acct) == 1.0
+
+    @pytest.mark.parametrize(
+        ("hashes", "expected"),
+        [
+            ([], 0.5),
+            (["device-a"], 1.0),
+            (["device-a", "device-b"], 0.6),
+            (["device-a", "device-b", "device-c"], 0.2),
+        ],
+    )
+    def test_fingerprint_score_counts_distinct_recent_device_hashes(
+        self, session: Session, workspace: Workspace, hashes: list[str], expected: float
+    ):
+        acct = _make_account(session, workspace.id, external_ref=f"+799900010{len(hashes)}")
+        for device_hash in hashes:
+            _add_observation(session, acct, device_model_hash=device_hash)
+
+        assert _fingerprint_score(session, acct) == expected
+
+    @pytest.mark.parametrize(
+        ("hashes", "expected"),
+        [
+            ([], 0.5),
+            (["ip-a"], 1.0),
+            (["ip-a", "ip-b"], 0.7),
+            (["ip-a", "ip-b", "ip-c"], 0.4),
+            (["ip-a", "ip-b", "ip-c", "ip-d"], 0.1),
+        ],
+    )
+    def test_ip_change_score_counts_distinct_recent_proxy_hashes(
+        self, session: Session, workspace: Workspace, hashes: list[str], expected: float
+    ):
+        acct = _make_account(session, workspace.id, external_ref=f"+799900011{len(hashes)}")
+        for proxy_hash in hashes:
+            _add_observation(session, acct, proxy_ip_hash=proxy_hash)
+
+        assert _ip_change_score(session, acct) == expected
+
+    @pytest.mark.parametrize(
+        ("failures", "expected"),
+        [
+            (None, 0.5),
+            (0, 1.0),
+            (2, 0.7),
+            (4, 0.4),
+            (5, 0.1),
+        ],
+    )
+    def test_session_anomaly_score_uses_latest_consecutive_failures(
+        self, session: Session, workspace: Workspace, failures: int | None, expected: float
+    ):
+        acct = _make_account(session, workspace.id, external_ref=f"+799900012{failures}")
+        if failures is not None:
+            _add_observation(
+                session,
+                acct,
+                observed_at=_NOW - timedelta(hours=1),
+                consecutive_failures=0,
+            )
+            _add_observation(session, acct, consecutive_failures=failures)
+
+        assert _session_anomaly_score(session, acct) == expected
+
+    def test_status_observation_scores_are_workspace_scoped(
+        self, session: Session, workspace: Workspace
+    ):
+        acct = _make_account(session, workspace.id, external_ref="+7999000129")
+        foreign_workspace = _make_workspace(session, name="Foreign")
+        _add_observation(
+            session,
+            acct,
+            device_model_hash="foreign",
+            proxy_ip_hash="foreign",
+            consecutive_failures=5,
+            workspace_id=foreign_workspace.id,
+        )
+
+        actual = {
+            "fingerprint": _fingerprint_score(session, acct),
+            "ip_change": _ip_change_score(session, acct),
+            "session_anomaly": _session_anomaly_score(session, acct),
+        }
+        assert actual == {"fingerprint": 0.5, "ip_change": 0.5, "session_anomaly": 0.5}
 
 
 # ---------------------------------------------------------------------------
@@ -382,6 +508,69 @@ class TestRecalcOnDemand:
         expected_next = ggr.last_calculated_at + RECALC_INTERVAL
         diff = abs((ggr.next_calculation_at - expected_next).total_seconds())
         assert diff < 1.0
+
+    def test_calculate_ggr_query_budget_includes_observation_inputs(
+        self, session: Session, workspace: Workspace
+    ):
+        acct = _make_account(session, workspace.id, external_ref="+7999000040")
+        session.add(
+            AccountProxy(
+                account_id=acct.id,
+                proxy_type="socks5",
+                host="1.2.3.4",
+                port=1080,
+                status="tcp_working",
+            )
+        )
+        session.add(
+            AccountProfileState(
+                account_id=acct.id,
+                first_name="X",
+                bio="hello",
+                profile_photo_asset_id="abc",
+            )
+        )
+        strategy = WarmupStrategy(
+            id=new_id(),
+            workspace_id=workspace.id,
+            name="query-budget-strategy",
+            execution_mode="passive",
+        )
+        session.add(strategy)
+        session.flush()
+        session.add(
+            WarmupSession(
+                id=new_id(),
+                workspace_id=workspace.id,
+                account_id=acct.id,
+                strategy_id=strategy.id,
+                status="completed",
+                current_day=0,
+                duration_days=7,
+                cadence_hours=6,
+            )
+        )
+        _add_observation(
+            session,
+            acct,
+            device_model_hash="device-a",
+            proxy_ip_hash="ip-a",
+            consecutive_failures=0,
+        )
+
+        statements: list[str] = []
+        engine = session.get_bind()
+
+        def _track_statement(conn, cursor, statement, parameters, context, executemany):
+            statements.append(statement)
+
+        event.listen(engine, "before_cursor_execute", _track_statement)
+        try:
+            calculate_ggr(session, acct, workspace.id, force=True)
+        finally:
+            event.remove(engine, "before_cursor_execute", _track_statement)
+
+        assert len(statements) <= 9
 
 
 # ---------------------------------------------------------------------------

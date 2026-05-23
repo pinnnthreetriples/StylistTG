@@ -11,6 +11,7 @@ WorkspaceSafetyMode = Literal["conservative", "balanced", "aggressive"]
 MinuteOfDay = Annotated[int, Field(ge=0, le=1439)]
 Probability = Annotated[float, Field(ge=0.0, le=1.0)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
+ConsecutiveFailureThreshold = Annotated[int, Field(ge=1, le=20)]
 SafetyGateIntent = Literal["editing", "warmup", "commenting"]
 SafetyGateReasonCode = Literal[
     "proxy_unhealthy",
@@ -57,6 +58,7 @@ class WorkspaceSafetyPolicyRead(BaseModel):
     auto_pause_on_flood_wait_count: NonNegativeInt
     auto_pause_on_deleted_comments_count: NonNegativeInt
     quarantine_hours_on_flood_wait: NonNegativeInt
+    consecutive_failure_threshold: ConsecutiveFailureThreshold | None
     created_at: datetime
     updated_at: datetime
 
@@ -85,6 +87,7 @@ class WorkspaceSafetyPolicyUpdate(BaseModel):
     auto_pause_on_flood_wait_count: NonNegativeInt | None = None
     auto_pause_on_deleted_comments_count: NonNegativeInt | None = None
     quarantine_hours_on_flood_wait: NonNegativeInt | None = None
+    consecutive_failure_threshold: ConsecutiveFailureThreshold | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -98,6 +101,7 @@ class WorkspaceSafetyPolicyUpdate(BaseModel):
         "auto_pause_on_flood_wait_count",
         "auto_pause_on_deleted_comments_count",
         "quarantine_hours_on_flood_wait",
+        "consecutive_failure_threshold",
         mode="before",
     )
     @classmethod

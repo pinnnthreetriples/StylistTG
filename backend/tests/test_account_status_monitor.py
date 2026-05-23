@@ -12,6 +12,7 @@ from app.models import (
     DEFAULT_LOCAL_USER_ID,
     NeuroCommentEvent,
     WarmupStatus,
+    WorkspaceSafetyPolicy,
 )
 from app.main import app
 from app.services.account_status_monitor import (
@@ -276,6 +277,104 @@ def test_consecutive_failures_auto_pause_warmup_and_never_auto_resume(db_session
         "warmup_status": WarmupStatus.PAUSED_RISK.value,
         "event_type": "account_auto_paused",
         "event_account_id": account.id,
+    }
+
+
+@freeze_time(_FROZEN_NOW)
+def test_consecutive_failures_threshold_comes_from_workspace_policy(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    db_session.add(
+        WorkspaceSafetyPolicy(
+            workspace_id=account.workspace_id,
+            consecutive_failure_threshold=5,
+        )
+    )
+    strategy = seed_warmup_strategy(db_session)
+    warmup = seed_warmup_session(
+        db_session,
+        account=account,
+        strategy=strategy,
+        status=WarmupStatus.ACTIVE.value,
+        now=_FROZEN_NOW,
+    )
+    monitor = AccountStatusMonitor(
+        probe=_Probe(
+            [AccountStatusProbeResult(False, "10.0.0.1", True, "Pixel 7") for _ in range(5)]
+        )
+    )
+
+    for _ in range(4):
+        observation = monitor.observe_account(
+            db_session, account_id=account.id, workspace_id=account.workspace_id
+        )
+    db_session.refresh(warmup)
+    before_threshold = {
+        "warmup_status": warmup.status,
+        "consecutive_failures": observation.consecutive_failures,
+        "threshold": observation.details_json["threshold"],
+    }
+
+    observation = monitor.observe_account(
+        db_session, account_id=account.id, workspace_id=account.workspace_id
+    )
+    db_session.refresh(warmup)
+    event = db_session.query(NeuroCommentEvent).one()
+
+    assert before_threshold == {
+        "warmup_status": WarmupStatus.ACTIVE.value,
+        "consecutive_failures": 4,
+        "threshold": 5,
+    }
+    assert {
+        "warmup_status": warmup.status,
+        "consecutive_failures": observation.consecutive_failures,
+        "event_failures": event.data_json["consecutive_failures"],
+        "event_threshold": event.data_json["consecutive_failure_threshold"],
+    } == {
+        "warmup_status": WarmupStatus.PAUSED_RISK.value,
+        "consecutive_failures": 5,
+        "event_failures": 5,
+        "event_threshold": 5,
+    }
+
+
+@freeze_time(_FROZEN_NOW)
+def test_terminal_auth_pause_records_actual_failures_and_policy_threshold(db_session) -> None:
+    account = _seed_usable_account(db_session)
+    db_session.add(
+        WorkspaceSafetyPolicy(
+            workspace_id=account.workspace_id,
+            consecutive_failure_threshold=20,
+        )
+    )
+    monitor = AccountStatusMonitor(
+        probe=_Probe(
+            [
+                AccountStatusProbeResult(
+                    True,
+                    "10.0.0.1",
+                    False,
+                    "Pixel 7",
+                    error_code="AUTH_KEY_DUPLICATED",
+                    error_class="auth_state",
+                )
+                for _ in range(5)
+            ]
+        )
+    )
+
+    for _ in range(5):
+        monitor.observe_account(
+            db_session, account_id=account.id, workspace_id=account.workspace_id
+        )
+
+    event = db_session.query(NeuroCommentEvent).one()
+    assert event.data_json == {
+        "source": "account_status_monitor",
+        "consecutive_failures": 5,
+        "consecutive_failure_threshold": 20,
+        "paused_warmup_session_ids": [],
+        "paused_campaign_accounts": 0,
     }
 
 

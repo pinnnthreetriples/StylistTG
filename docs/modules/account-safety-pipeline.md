@@ -60,6 +60,7 @@ Configuration:
 | `auto_pause_on_flood_wait_count` | Flood-wait count threshold in the last 24h for commenting gate. |
 | `auto_pause_on_deleted_comments_count` | Reserved policy field for deleted-comment auto-pausing. |
 | `quarantine_hours_on_flood_wait` | Duration for flood-wait quarantine; defaults to 24h in presets. |
+| `consecutive_failure_threshold` | Optional AccountStatusMonitor auto-pause threshold; NULL uses service default 3. |
 
 Code: `backend/app/services/workspace_safety_policy.py`, `backend/app/contracts/safety_gate.py`, `backend/app/api/account_safety_policy_routes.py`.
 
@@ -67,11 +68,11 @@ Code: `backend/app/services/workspace_safety_policy.py`, `backend/app/contracts/
 
 Purpose: computes a 1.0-10.0 GramGPT Rating for account survivability and stores a bucketed score.
 
-Inputs: account age, account proxy status, latest warmup session, profile completeness, and currently stubbed signals for origin/history/fingerprint/IP/session anomaly.
+Inputs: account age, account origin, account proxy status, latest warmup session, profile completeness, recent status observations for fingerprint/IP/session anomaly, and a placeholder SpamBlock-history component.
 
 Outputs: `account_ggr_scores.score`, `bucket`, `breakdown_json`, `last_calculated_at`, and `next_calculation_at`.
 
-Configuration: no workspace policy knobs today; recalculates every 6 hours and smooths changes by at most 1.0 point per cycle.
+Configuration: no workspace policy knobs for GGR weights today; recalculates every 6 hours and smooths changes by at most 1.0 point per cycle.
 
 Code: `backend/app/services/ggr_calculator.py`, `backend/app/api/account_ggr_routes.py`.
 
@@ -101,7 +102,7 @@ Configuration:
 | --- | ---: | --- |
 | `IP_CHANGE_COOLDOWN_MINUTES` | 30 | Gate warning window after proxy hash change. |
 | `STICKY_IP_MAX_DISTINCT_HASHES` | 3 | More than 3 distinct proxy hashes in 1h opens status-degraded quarantine. |
-| `CONSECUTIVE_FAILURE_THRESHOLD` | 3 | Auto-pause threshold for repeated status failures. |
+| `WorkspaceSafetyPolicy.consecutive_failure_threshold` | default 3 | Auto-pause threshold for repeated status failures. |
 | `TERMINAL_AUTH_FAILURE_THRESHOLD` | 5 | Repeated auth-class failures mark terminal status. |
 
 Code: `backend/app/services/account_status_monitor.py`.
@@ -160,12 +161,12 @@ Current weights:
 | Component | Weight | Current source |
 | --- | ---: | --- |
 | `age` | 0.20 | `account.created_at`; 0.0 under 1 day, 0.5 under 7 days, 0.8 under 30 days, 1.0 after 30 days. |
-| `origin` | 0.10 | Stubbed at 0.7 until `account.origin` integration. |
-| `history` | 0.15 | Stubbed at 1.0 until SpamBlock history exists. |
+| `origin` | 0.10 | `account.origin`; created => 1.0, imported/legacy fallback => 0.7, bought => 0.4. |
+| `history` | 0.15 | Stubbed at 1.0; requires SpamBlock log infrastructure, not on the current roadmap. |
 | `proxy` | 0.15 | `AccountProxy.status`; healthy `tcp_working`/`tdlib_working` => 1.0, failed => 0.0, unknown/missing => 0.5. |
-| `fingerprint` | 0.10 | Stubbed at 0.5 until status-observation fingerprint integration. |
-| `ip_change` | 0.10 | Stubbed at 1.0 until status-observation IP integration. |
-| `session_anomaly` | 0.10 | Stubbed at 1.0 until status-observation anomaly integration. |
+| `fingerprint` | 0.10 | Distinct non-null `AccountStatusObservation.device_model_hash` values over 24h: 0 => 0.5, 1 => 1.0, 2 => 0.6, 3+ => 0.2. |
+| `ip_change` | 0.10 | Distinct non-null `AccountStatusObservation.proxy_ip_hash` values over 24h: 0 => 0.5, 1 => 1.0, 2 => 0.7, 3 => 0.4, 4+ => 0.1. |
+| `session_anomaly` | 0.10 | Latest `AccountStatusObservation.consecutive_failures`: no observation => 0.5, 0 => 1.0, 1-2 => 0.7, 3-4 => 0.4, 5+ => 0.1. |
 | `warmup` | 0.05 | Latest warmup: completed => 1.0, active/scheduled/validating => 0.5, none/other => 0.0. |
 | `profile` | 0.05 | Filled first name, last name, bio, photo asset count divided by 4. |
 
@@ -275,4 +276,4 @@ Key metrics:
 | Task 18 audit | `run_terminate_other_sessions` without `tdlib_client` silently skips real TDLib call. | medium |
 | Task 17 audit | Module docstring is absent; non-PostgreSQL fallback is not race-safe. | low |
 
-Additional current-code limitation: several GGR inputs remain stubs in `backend/app/services/ggr_calculator.py`, so the documented formula is exact, but not all formula components are fully integrated with live source tables yet.
+Additional current-code limitation: GGR `history` remains stubbed at 1.0 until SpamBlock log infrastructure exists; that infrastructure is not on the current roadmap.

@@ -23,13 +23,16 @@ from app.models import (
 from app.modules.warmup.events import write_warmup_event
 from app.observability.safety_metrics import safety_metrics
 from app.services.account_quarantine import AccountQuarantineService, get_active_quarantine
+from app.services.workspace_safety_policy import (
+    get_consecutive_failure_threshold,
+    get_workspace_safety_policy,
+)
 
 AutoAction = Literal["paused", "quarantine", "cooldown", "none"]
 TerminalStatus = Literal["banned", "deleted"]
 
 IP_CHANGE_COOLDOWN_MINUTES = 30
 STICKY_IP_MAX_DISTINCT_HASHES = 3
-CONSECUTIVE_FAILURE_THRESHOLD = 3  # TODO: move into WorkspaceSafetyPolicy.
 TERMINAL_AUTH_FAILURE_THRESHOLD = 5
 
 _AUTHORIZED_STATES = {AccountState.AUTHORIZED_READY.value, AccountState.EXECUTION_USABLE.value}
@@ -127,6 +130,12 @@ class AccountStatusMonitor:
     ) -> AccountStatusObservation:
         timestamp = now or utc_now()
         account = account or _get_account(session, account_id=account_id, workspace_id=workspace_id)
+        policy = get_workspace_safety_policy(
+            session, workspace_id=workspace_id, create_if_missing=True
+        )
+        if policy is None:
+            raise RuntimeError("workspace safety policy was not created")
+        consecutive_failure_threshold = get_consecutive_failure_threshold(policy)
         previous = _latest_observation(session, account_id=account_id, workspace_id=workspace_id)
         probe_result = self._probe.check(account)
         proxy_ip_hash = self.hash_proxy_host(probe_result.proxy_host)
@@ -134,7 +143,7 @@ class AccountStatusMonitor:
         consecutive_failures = _next_consecutive_failures(previous, probe_result)
         details: dict[str, object] = {
             "proxy_host_present": probe_result.proxy_host is not None,
-            "threshold": CONSECUTIVE_FAILURE_THRESHOLD,
+            "threshold": consecutive_failure_threshold,
         }
         if probe_result.error_code:
             details["last_error_code"] = probe_result.error_code
@@ -185,7 +194,12 @@ class AccountStatusMonitor:
         if terminal_status is not None and account.terminal_status == "none":
             account.terminal_status = terminal_status
             _auto_pause_account(
-                session, account_id=account_id, workspace_id=workspace_id, now=timestamp
+                session,
+                account_id=account_id,
+                workspace_id=workspace_id,
+                now=timestamp,
+                consecutive_failures=consecutive_failures,
+                consecutive_failure_threshold=consecutive_failure_threshold,
             )
             if observation.auto_action_taken == "none":
                 observation.auto_action_taken = "paused"
@@ -221,9 +235,18 @@ class AccountStatusMonitor:
             observation.auto_action_taken = "quarantine"
             observation.details_json = {**observation.details_json, "reason": "sticky_ip_violation"}
 
-        if _crossed_failure_threshold(previous, consecutive_failures):
+        if _crossed_failure_threshold(
+            previous,
+            consecutive_failures,
+            threshold=consecutive_failure_threshold,
+        ):
             _auto_pause_account(
-                session, account_id=account_id, workspace_id=workspace_id, now=timestamp
+                session,
+                account_id=account_id,
+                workspace_id=workspace_id,
+                now=timestamp,
+                consecutive_failures=consecutive_failures,
+                consecutive_failure_threshold=consecutive_failure_threshold,
             )
             if observation.auto_action_taken == "none":
                 observation.auto_action_taken = "paused"
@@ -315,12 +338,11 @@ def _distinct_proxy_hashes_last_hour(
 def _crossed_failure_threshold(
     previous: AccountStatusObservation | None,
     consecutive_failures: int,
+    *,
+    threshold: int,
 ) -> bool:
     previous_failures = previous.consecutive_failures if previous is not None else 0
-    return (
-        previous_failures < CONSECUTIVE_FAILURE_THRESHOLD
-        and consecutive_failures >= CONSECUTIVE_FAILURE_THRESHOLD
-    )
+    return previous_failures < threshold and consecutive_failures >= threshold
 
 
 def _terminal_status_from_probe(
@@ -358,6 +380,8 @@ def _auto_pause_account(
     account_id: str,
     workspace_id: str,
     now: datetime,
+    consecutive_failures: int,
+    consecutive_failure_threshold: int,
 ) -> None:
     paused_warmups: list[str] = []
     warmups = session.execute(
@@ -402,7 +426,8 @@ def _auto_pause_account(
             message="Account auto-paused after repeated status monitor failures",
             data_json={
                 "source": "account_status_monitor",
-                "consecutive_failures": CONSECUTIVE_FAILURE_THRESHOLD,
+                "consecutive_failures": consecutive_failures,
+                "consecutive_failure_threshold": consecutive_failure_threshold,
                 "paused_warmup_session_ids": paused_warmups,
                 "paused_campaign_accounts": paused_campaign_accounts,
             },

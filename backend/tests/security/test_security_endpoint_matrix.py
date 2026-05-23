@@ -58,6 +58,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/safety-policy", "admin", False),
     ("PATCH", "/api/safety-policy", "admin", True),
     ("PATCH", "/api/workspaces/{workspace_id}/feature-flags", "admin", True),
+    ("PATCH", "/api/workspaces/{workspace_id}/notification-settings", "admin", True),
     # Auth runtime mode
     ("GET", "/api/auth/runtime-mode", "viewer", False),
     ("PATCH", "/api/auth/runtime-mode", "admin", True),

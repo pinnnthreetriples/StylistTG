@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.errors import AppError
 from app.models import Workspace
-from app.schemas import WorkspaceFeatureFlagsUpdate, WorkspaceRead
+from app.schemas import (
+    WorkspaceFeatureFlagsUpdate,
+    WorkspaceNotificationSettingsUpdate,
+    WorkspaceRead,
+)
 from app.services.auth_context import AuthContext, require_role
 from app.services.sensitive_audit import record_sensitive_audit_event
 
@@ -35,6 +39,35 @@ def patch_workspace_feature_flags(
         metadata={
             "flag": "safety_pipeline_v2_enabled",
             "new_value": payload.safety_pipeline_v2_enabled,
+        },
+    )
+    session.commit()
+    session.refresh(workspace)
+    return workspace
+
+
+@router.patch("/{workspace_id}/notification-settings", response_model=WorkspaceRead)
+def patch_workspace_notification_settings(
+    workspace_id: str,
+    payload: WorkspaceNotificationSettingsUpdate,
+    request: Request,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_role("admin")),
+):
+    workspace = _workspace_for_auth(session, workspace_id=workspace_id, auth=auth)
+    workspace.notification_webhook_url = payload.notification_webhook_url
+    record_sensitive_audit_event(
+        session,
+        workspace_id=auth.workspace_id,
+        actor_user_id=auth.user_id,
+        action="workspace.notification_webhook_url.updated",
+        entity_type="workspace",
+        entity_id=workspace.id,
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "field": "notification_webhook_url",
+            "new_value_set": payload.notification_webhook_url is not None,
         },
     )
     session.commit()

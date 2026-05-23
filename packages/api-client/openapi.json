@@ -12745,6 +12745,89 @@
         }
       }
     },
+    "/api/workspaces/{workspace_id}/notification-settings": {
+      "patch": {
+        "tags": [
+          "workspaces"
+        ],
+        "summary": "Patch Workspace Notification Settings",
+        "operationId": "patch_workspace_notification_settings_api_workspaces__workspace_id__notification_settings_patch",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceNotificationSettingsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workers/queues": {
       "get": {
         "tags": [
@@ -25700,6 +25783,25 @@
         ],
         "title": "WorkspaceFeatureFlagsUpdate"
       },
+      "WorkspaceNotificationSettingsUpdate": {
+        "properties": {
+          "notification_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notification Webhook Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WorkspaceNotificationSettingsUpdate"
+      },
       "WorkspaceRead": {
         "properties": {
           "id": {
@@ -25725,6 +25827,17 @@
           "safety_pipeline_v2_enabled": {
             "type": "boolean",
             "title": "Safety Pipeline V2 Enabled"
+          },
+          "notification_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notification Webhook Url"
           },
           "created_at": {
             "type": "string",

@@ -10,10 +10,15 @@ from redis.exceptions import RedisError
 from app.config import Settings, settings
 from app.db import SessionLocal
 from app.logging_utils import log_warn
+from app.models import utc_now
+from app.services.admin_notifications import collect_triggers, deliver, is_recently_notified
 from app.services.account_status_monitor import run_account_status_monitor_tick
+from app.services.notification_channels import EmailNotifier, WebhookNotifier
 from app.services.worker_plane import SCHEDULER_QUEUE_NAME
 
 ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
+NOTIFICATION_COLLECTION_TICK_SECONDS = 300
+ADMIN_NOTIFICATION_JOB_ID_PREFIX = "admin-notification"
 RETENTION_TICK_SECONDS = 86_400
 RATE_LIMIT_FLUSH_TICK_SECONDS = 60
 RATE_LIMIT_FLUSH_JOB_ID_PREFIX = "rate-limit-flush"
@@ -46,6 +51,7 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
         planned_queues=["scheduler_jobs", "maintenance_jobs"],
         planned_ticks={
             "account_status_monitor": ACCOUNT_STATUS_MONITOR_TICK_SECONDS,
+            "admin_notifications": NOTIFICATION_COLLECTION_TICK_SECONDS,
             "retention": RETENTION_TICK_SECONDS,
             "rate_limit_flush": RATE_LIMIT_FLUSH_TICK_SECONDS,
             "reconcile_stuck_attempts": RECONCILE_STUCK_TICK_SECONDS,
@@ -58,6 +64,50 @@ def account_status_monitor_tick() -> int:
         observations = run_account_status_monitor_tick(session)
         session.commit()
         return len(observations)
+
+
+def admin_notification_tick() -> dict[str, int]:
+    with SessionLocal() as session:
+        payloads = collect_triggers(session, now=utc_now())
+        delivered = 0
+        skipped = 0
+        channels = [EmailNotifier(), WebhookNotifier()]
+        for payload in payloads:
+            if is_recently_notified(
+                session,
+                workspace_id=str(payload.workspace_id),
+                trigger_code=payload.trigger_code,
+            ):
+                skipped += 1
+                continue
+            deliver(session, payload, channels=channels)
+            delivered += 1
+        session.commit()
+        return {"delivered": delivered, "skipped": skipped, "candidates": len(payloads)}
+
+
+def enqueue_admin_notification_tick(*, now: float | None = None) -> bool:
+    """Enqueue one admin notification job for the current five-minute bucket."""
+    from app.job_queue.rq import get_queue
+
+    bucket = int((time.time() if now is None else now) // NOTIFICATION_COLLECTION_TICK_SECONDS)
+    job_id = f"{ADMIN_NOTIFICATION_JOB_ID_PREFIX}-{bucket}"
+    queue = get_queue(SCHEDULER_QUEUE_NAME)
+    try:
+        cast(Any, queue).enqueue_call(
+            func=admin_notification_tick,
+            job_id=job_id,
+            unique=True,
+        )
+    except RedisError:
+        log_warn(
+            "admin_notification_enqueue_failed",
+            queue_name=SCHEDULER_QUEUE_NAME,
+            job_id=job_id,
+            error_class="RedisError",
+        )
+        return False
+    return True
 
 
 def rate_limit_flush_tick() -> dict[str, object]:
@@ -75,7 +125,6 @@ def rate_limit_flush_tick() -> dict[str, object]:
 
 def reconcile_stuck_tick() -> dict[str, object]:
     """Reconcile stuck NeuroCommenting attempts via TDLib message lookup."""
-    from app.models import utc_now
     from app.services.reconcile_stuck_attempts import RuntimeTdlibSearchClient, run_reconcile_tick
 
     with SessionLocal() as session:

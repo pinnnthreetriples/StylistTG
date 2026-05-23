@@ -191,10 +191,13 @@ def test_auth_batch_validate_phones_hides_internal_validation_errors(
     monkeypatch.setattr("app.api.auth_batches.validate_batch_phones", _raise_internal_error)
     client = TestClient(app, raise_server_exceptions=False)
 
-    response = client.post(
-        "/api/auth-batches/validate-phones",
-        json={"items": [{"phone_number": "+15550102000"}]},
-    )
+    try:
+        response = client.post(
+            "/api/auth-batches/validate-phones",
+            json={"items": [{"phone_number": "+15550102000"}]},
+        )
+    finally:
+        app.dependency_overrides.pop(get_session, None)
 
     assert response.status_code == 400
     assert response.json()["error_code"] == "AUTH_BATCH_VALIDATION_FAILED"

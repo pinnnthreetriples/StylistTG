@@ -25992,6 +25992,19 @@
             "minimum": 0.0,
             "title": "Quarantine Hours On Flood Wait"
           },
+          "consecutive_failure_threshold": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 20.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consecutive Failure Threshold"
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -26022,6 +26035,7 @@
           "auto_pause_on_flood_wait_count",
           "auto_pause_on_deleted_comments_count",
           "quarantine_hours_on_flood_wait",
+          "consecutive_failure_threshold",
           "created_at",
           "updated_at"
         ],
@@ -26240,6 +26254,19 @@
               }
             ],
             "title": "Quarantine Hours On Flood Wait"
+          },
+          "consecutive_failure_threshold": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 20.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consecutive Failure Threshold"
           }
         },
         "additionalProperties": false,

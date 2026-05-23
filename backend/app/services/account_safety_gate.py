@@ -40,6 +40,7 @@ from app.services.safety_gate_cache import (
     SafetyGateCache,
 )
 from app.services.workspace_safety_policy import get_workspace_safety_policy
+from app.services.workspace_safety_policy import get_consecutive_failure_threshold
 
 CACHE_TTL_SECONDS = 60
 STALE_CACHE_TTL_SECONDS = 300
@@ -269,13 +270,17 @@ class AccountSafetyGate:
                         {"observed_at": status.observed_at.isoformat()},
                     )
                 )
-            if _is_status_degraded(status):
+            consecutive_failure_threshold = get_consecutive_failure_threshold(policy)
+            if _is_status_degraded(status, threshold=consecutive_failure_threshold):
                 reasons.append(
                     _reason(
                         "status_degraded",
                         "warning",
                         "Recent account status observations are degraded.",
-                        {"consecutive_failures": status.consecutive_failures},
+                        {
+                            "consecutive_failures": status.consecutive_failures,
+                            "consecutive_failure_threshold": consecutive_failure_threshold,
+                        },
                     )
                 )
 
@@ -403,7 +408,6 @@ def _warmup_reasons(account: Account, policy: WorkspaceSafetyPolicy) -> list[Saf
         reasons.append(_proxy_reason("blocked", account))
     if account.terminal_status == "none" and account.account_state in _TERMINAL_ACCOUNT_STATES:
         reasons.append(_terminal_reason(account))
-    # TODO Phase 2.5 Task 27: replace cache-only path with Lua reserve+verdict for sender preflight atomicity.
     # Warmup isolation conflict check will be wired when a dedicated conflict service exists.
     return reasons
 
@@ -635,8 +639,11 @@ def _latest_status(session: Session, *, account: Account) -> AccountStatusObserv
     ).scalar_one_or_none()
 
 
-def _is_status_degraded(status: AccountStatusObservation) -> bool:
-    return status.consecutive_failures >= 3 or status.auto_action_taken in {"paused", "quarantine"}
+def _is_status_degraded(status: AccountStatusObservation, *, threshold: int) -> bool:
+    return status.consecutive_failures >= threshold or status.auto_action_taken in {
+        "paused",
+        "quarantine",
+    }
 
 
 def _aggregate_severity(reasons: list[SafetyGateReason]) -> Literal["ok", "warning", "blocked"]:

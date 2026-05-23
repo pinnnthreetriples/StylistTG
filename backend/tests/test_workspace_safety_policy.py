@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.main import app
 from app.models import (
@@ -11,6 +12,7 @@ from app.models import (
 )
 from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.workspace_safety_policy import compute_diff
+from app.services.workspace_safety_policy import get_consecutive_failure_threshold
 
 
 def _auth(role: str = "admin") -> AuthContext:
@@ -40,9 +42,11 @@ def test_get_creates_balanced_default_when_missing(admin_client, db_session) -> 
     assert payload["typing_chars_per_minute_max"] == 150
     assert payload["quiet_hours_local_start"] == 120
     assert payload["quiet_hours_local_end"] == 360
+    assert payload["consecutive_failure_threshold"] is None
 
     row = db_session.query(WorkspaceSafetyPolicy).one()
     assert row.mode == "balanced"
+    assert get_consecutive_failure_threshold(row) == 3
 
 
 _CONSERVATIVE_EXPECTED = {
@@ -119,6 +123,31 @@ def test_patch_invalid_mode_returns_422(admin_client) -> None:
     assert "detail" in body or "error_code" in body
 
 
+@pytest.mark.parametrize("value", [0, 21])
+def test_patch_invalid_consecutive_failure_threshold_returns_422(admin_client, value) -> None:
+    response = admin_client.patch(
+        "/api/safety-policy", json={"consecutive_failure_threshold": value}
+    )
+
+    assert response.status_code == 422
+    assert "detail" in response.json() or "error_code" in response.json()
+
+
+@pytest.mark.parametrize("value", [0, 21])
+def test_consecutive_failure_threshold_db_constraint_rejects_invalid_values(
+    db_session, value
+) -> None:
+    db_session.add(
+        WorkspaceSafetyPolicy(
+            workspace_id=f"invalid-threshold-{value}",
+            consecutive_failure_threshold=value,
+        )
+    )
+
+    with pytest.raises(IntegrityError, match="consecutive_failure_threshold"):
+        db_session.flush()
+
+
 def test_compute_diff_only_returns_changed_public_policy_fields() -> None:
     old = {
         "id": "policy-1",
@@ -149,7 +178,10 @@ def test_compute_diff_only_returns_changed_public_policy_fields() -> None:
 
 
 def test_patch_records_sensitive_audit_event(admin_client, db_session) -> None:
-    response = admin_client.patch("/api/safety-policy", json={"mode": "conservative"})
+    response = admin_client.patch(
+        "/api/safety-policy",
+        json={"mode": "conservative", "consecutive_failure_threshold": 5},
+    )
 
     assert response.status_code == 200
     event = db_session.query(SensitiveAuditEvent).one()
@@ -158,3 +190,4 @@ def test_patch_records_sensitive_audit_event(admin_client, db_session) -> None:
     assert event.action == "workspace_safety_policy.updated"
     assert event.entity_type == "workspace_safety_policy"
     assert event.metadata_json["new"]["mode"] == "conservative"
+    assert event.metadata_json["new"]["consecutive_failure_threshold"] == 5

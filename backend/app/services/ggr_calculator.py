@@ -7,19 +7,16 @@ Phase 2 Task 11 — partial wiring.
 
 Live signals (read from DB):
   - age_score: account.created_at
+  - origin_score: account.origin
   - proxy_score: account_proxy status
+  - fingerprint_score: account_status_observations.device_model_hash
+  - ip_change_score: account_status_observations.proxy_ip_hash
+  - session_anomaly_score: latest account_status_observations.consecutive_failures
   - warmup_score: latest WarmupSession
   - profile_score: AccountProfileState
 
-Stub signals (hardcoded until corresponding tasks land):
-  - origin_score: always 0.7 (imported) — TODO Task 18 bought-account flow
+Remaining stub signal:
   - history_score: always 1.0 — TODO integration with SpamBlock log
-  - fingerprint_score: always 0.5 — TODO Task 15 AccountStatusMonitor
-  - ip_change_score: always 1.0 — TODO Task 15
-  - session_anomaly_score: always 1.0 — TODO Task 15
-
-After Task 15 and Task 18 stub functions should be rewritten to read from
-account_status_observations and account.origin respectively.
 """
 
 from __future__ import annotations
@@ -35,6 +32,7 @@ from app.models import (
     AccountGgrScore,
     AccountProfileState,
     AccountProxy,
+    AccountStatusObservation,
     WarmupSession,
     new_id,
     utc_now,
@@ -86,15 +84,15 @@ def _age_score(account: Account) -> float:
     return 1.0
 
 
-# TODO Phase 1.5 Task 18: read account.origin once column lands
 def _origin_score(session: Session, account: Account) -> float:
-    """Score based on account origin type. Hardcoded 0.7 (imported) until Task 18."""
-    return 0.7
+    """Score based on account origin type."""
+    mapping = {"created": 1.0, "imported": 0.7, "bought": 0.4}
+    return mapping.get(account.origin, 0.7)
 
 
-# TODO: integrate with SpamBlock log once it exists
+# TODO: requires SpamBlock log infrastructure; not on the current roadmap.
 def _history_score(session: Session, account: Account) -> float:
-    """Score based on spamblock history. Hardcoded 1.0 until spamblock log lands."""
+    """Score based on spamblock history. Hardcoded 1.0 until spamblock log infrastructure lands."""
     return 1.0
 
 
@@ -111,22 +109,104 @@ def _proxy_score(session: Session, account: Account) -> float:
     return 0.5
 
 
-# TODO Task 15: read from AccountStatusMonitor once it lands
 def _fingerprint_score(session: Session, account: Account) -> float:
-    """Score based on device fingerprint stability. Hardcoded 0.5 until Task 15."""
-    return 0.5
+    """Score based on device fingerprint stability over the last 24 hours."""
+    scores = _status_observation_component_scores(_status_observations(session, account))
+    return scores["fingerprint"]
 
 
-# TODO Task 15: read from account_status_observations
+def _fingerprint_score_from_count(unique_hashes: int) -> float:
+    if unique_hashes == 0:
+        return 0.5
+    if unique_hashes == 1:
+        return 1.0
+    if unique_hashes == 2:
+        return 0.6
+    return 0.2
+
+
 def _ip_change_score(session: Session, account: Account) -> float:
-    """Score based on IP changes. Hardcoded 1.0 (no changes assumption) until Task 15."""
-    return 1.0
+    """Score based on proxy IP stability over the last 24 hours."""
+    scores = _status_observation_component_scores(_status_observations(session, account))
+    return scores["ip_change"]
 
 
-# TODO Task 15: read from account_status_observations
+def _ip_change_score_from_count(unique_hashes: int) -> float:
+    if unique_hashes == 0:
+        return 0.5
+    if unique_hashes == 1:
+        return 1.0
+    if unique_hashes == 2:
+        return 0.7
+    if unique_hashes == 3:
+        return 0.4
+    return 0.1
+
+
 def _session_anomaly_score(session: Session, account: Account) -> float:
-    """Score based on session anomalies. Hardcoded 1.0 until Task 15."""
-    return 1.0
+    """Score based on latest account status consecutive failures."""
+    scores = _status_observation_component_scores(_status_observations(session, account))
+    return scores["session_anomaly"]
+
+
+def _session_anomaly_score_from_failures(latest: int | None) -> float:
+    if latest is None:
+        return 0.5
+    if latest == 0:
+        return 1.0
+    if latest <= 2:
+        return 0.7
+    if latest <= 4:
+        return 0.4
+    return 0.1
+
+
+def _status_observations(
+    session: Session,
+    account: Account,
+    *,
+    limit: int = 100,
+) -> list[AccountStatusObservation]:
+    return list(
+        session.execute(
+            select(AccountStatusObservation)
+            .where(AccountStatusObservation.workspace_id == account.workspace_id)
+            .where(AccountStatusObservation.account_id == account.id)
+            .order_by(AccountStatusObservation.observed_at.desc())
+            .limit(limit)
+        ).scalars()
+    )
+
+
+def _status_observation_component_scores(
+    observations: list[AccountStatusObservation],
+) -> dict[str, float]:
+    window_start = utc_now() - timedelta(hours=24)
+    recent = [
+        observation
+        for observation in observations
+        if _as_utc(observation.observed_at) >= window_start
+    ]
+    device_hashes = {
+        observation.device_model_hash
+        for observation in recent
+        if observation.device_model_hash is not None
+    }
+    proxy_hashes = {
+        observation.proxy_ip_hash for observation in recent if observation.proxy_ip_hash is not None
+    }
+    latest_failures = observations[0].consecutive_failures if observations else None
+    return {
+        "fingerprint": _fingerprint_score_from_count(len(device_hashes)),
+        "ip_change": _ip_change_score_from_count(len(proxy_hashes)),
+        "session_anomaly": _session_anomaly_score_from_failures(latest_failures),
+    }
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _warmup_score(session: Session, account: Account) -> float:
@@ -175,8 +255,12 @@ _SESSION_COMPONENT_FUNCTIONS: dict[str, Any] = {
 def compute_components(session: Session, account: Account) -> dict[str, float]:
     """Compute all component scores for an account."""
     result: dict[str, float] = {"age": _age_score(account)}
+    status_scores = _status_observation_component_scores(_status_observations(session, account))
     for key, fn in _SESSION_COMPONENT_FUNCTIONS.items():
+        if key in status_scores:
+            continue
         result[key] = fn(session, account)
+    result.update(status_scores)
     return result
 
 

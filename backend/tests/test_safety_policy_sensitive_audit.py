@@ -50,6 +50,23 @@ def test_patch_one_field_records_sensitive_audit_diff(admin_client, db_session) 
     }
 
 
+def test_patch_consecutive_failure_threshold_records_sensitive_audit_diff(
+    admin_client, db_session
+) -> None:
+    response = admin_client.patch(
+        "/api/safety-policy",
+        json={"consecutive_failure_threshold": 5},
+    )
+
+    assert response.status_code == 200
+    event = db_session.query(SensitiveAuditEvent).one()
+    assert event.metadata_json == {
+        "changed_fields": ["consecutive_failure_threshold"],
+        "old": {"consecutive_failure_threshold": None},
+        "new": {"consecutive_failure_threshold": 5},
+    }
+
+
 def test_patch_multiple_fields_records_sensitive_audit_diff(admin_client, db_session) -> None:
     response = admin_client.patch("/api/safety-policy", json={"mode": "conservative"})
 

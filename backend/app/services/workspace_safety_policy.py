@@ -29,8 +29,10 @@ PUBLIC_POLICY_FIELDS = (
     "auto_pause_on_flood_wait_count",
     "auto_pause_on_deleted_comments_count",
     "quarantine_hours_on_flood_wait",
+    "consecutive_failure_threshold",
 )
 _MISSING = object()
+DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD = 3
 
 
 @dataclass(frozen=True)
@@ -226,6 +228,10 @@ def delete_workspace_safety_policy(session: Session, *, workspace_id: str) -> bo
     return True
 
 
+def get_consecutive_failure_threshold(policy: WorkspaceSafetyPolicy) -> int:
+    return policy.consecutive_failure_threshold or DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD
+
+
 __all__ = [
     "PRESET_DEFAULTS",
     "PUBLIC_POLICY_FIELDS",
@@ -233,6 +239,7 @@ __all__ = [
     "compute_diff",
     "create_workspace_safety_policy",
     "delete_workspace_safety_policy",
+    "get_consecutive_failure_threshold",
     "get_workspace_safety_policy",
     "policy_public_snapshot",
     "update_workspace_safety_policy",

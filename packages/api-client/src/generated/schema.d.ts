@@ -6531,6 +6531,8 @@ export interface components {
             auto_pause_on_deleted_comments_count: number;
             /** Quarantine Hours On Flood Wait */
             quarantine_hours_on_flood_wait: number;
+            /** Consecutive Failure Threshold */
+            consecutive_failure_threshold: number | null;
             /** Created At */
             created_at: string;
             /** Updated At */
@@ -6572,6 +6574,8 @@ export interface components {
             auto_pause_on_deleted_comments_count?: number | null;
             /** Quarantine Hours On Flood Wait */
             quarantine_hours_on_flood_wait?: number | null;
+            /** Consecutive Failure Threshold */
+            consecutive_failure_threshold?: number | null;
         };
         /** FieldErrorRead */
         FieldErrorRead: {

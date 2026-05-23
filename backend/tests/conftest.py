@@ -33,6 +33,29 @@ from app.models import (
 from app.services.database import dispose_sqlite_test_engines
 from tests.helpers.factories import seed_job as seed_job  # noqa: F401, PLC0414  # re-export
 
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-property",
+        action="store_true",
+        default=False,
+        help="Run tests marked property.",
+    )
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    if config.getoption("--run-property", default=False):
+        return
+
+    skip_property = pytest.mark.skip(reason="needs --run-property")
+    for item in items:
+        if "property" in item.keywords:
+            item.add_marker(skip_property)
+
+
 # ---------------------------------------------------------------------------
 # PII / secret leak detection (autouse)
 # ---------------------------------------------------------------------------

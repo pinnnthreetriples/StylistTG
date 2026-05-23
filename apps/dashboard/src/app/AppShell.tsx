@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react'
 
 import { primaryNavigation } from '@/app/navigation'
 import { useSupabaseAuth } from '@/features/auth/SupabaseAuthContext'
+import { DisasterModeBanner } from '@/features/home/DisasterModeBanner'
 import { useCurrentUser } from '@/hooks/queries/useCurrentUser'
 import { getLiveStatus } from '@/lib/liveStatus'
 import { frontendDiagnosticsQueryOptions, workerDiagnosticsQueryOptions } from '@/lib/queries'
@@ -122,6 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        <DisasterModeBanner />
         <main>{children}</main>
       </div>
 

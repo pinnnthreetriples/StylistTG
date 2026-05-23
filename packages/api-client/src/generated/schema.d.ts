@@ -1271,6 +1271,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/disaster-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Disaster State */
+        get: operations["get_disaster_state_api_dashboard_disaster_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/profile/{account_id}": {
         parameters: {
             query?: never;
@@ -4316,6 +4333,36 @@ export interface components {
             redis: string;
             /** Tdlib */
             tdlib: string;
+        };
+        /** DisasterState */
+        DisasterState: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Is Disaster */
+            is_disaster: boolean;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Total Accounts */
+            total_accounts: number;
+            /** Quarantined Fraction */
+            quarantined_fraction: number;
+            /**
+             * Threshold
+             * @default 0.5
+             */
+            threshold: number;
+            /**
+             * Window Hours
+             * @default 1
+             */
+            window_hours: number;
+            /** Detected At */
+            detected_at: string;
+            /** Sample Quarantined Account Ids */
+            sample_quarantined_account_ids: string[];
         };
         /** ExecutionPolicyRead */
         ExecutionPolicyRead: {
@@ -11582,6 +11629,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_disaster_state_api_dashboard_disaster_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisasterState"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
                 };
             };
         };

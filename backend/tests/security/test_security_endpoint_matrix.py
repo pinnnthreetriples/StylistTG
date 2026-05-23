@@ -47,6 +47,8 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Diagnostics
     ("GET", "/diagnostics/runtime", "admin", False),
     ("GET", "/diagnostics/live-preflight", "admin", False),
+    # Dashboard
+    ("GET", "/api/dashboard/disaster-state", "viewer", False),
     # Workers
     ("GET", "/api/workers/diagnostics", "admin", False),
     # Settings

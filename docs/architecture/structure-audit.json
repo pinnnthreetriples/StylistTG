@@ -156,6 +156,7 @@
       "backend/app/contracts/accounts.py": [],
       "backend/app/contracts/bought_onboarding.py": [],
       "backend/app/contracts/cross_module_load.py": [],
+      "backend/app/contracts/disaster_state.py": [],
       "backend/app/contracts/ggr.py": [],
       "backend/app/contracts/human_behavior.py": [],
       "backend/app/contracts/jobs.py": [],
@@ -390,7 +391,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 42,
-        "apps/dashboard/src/features": 44,
+        "apps/dashboard/src/features": 46,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 56
       },
@@ -1021,6 +1022,17 @@
         "typing"
       ],
       "path": "backend/app/contracts/cross_module_load.py"
+    },
+    {
+      "forbidden_imports": [],
+      "has_explicit_all": false,
+      "imports": [
+        "__future__",
+        "app.contracts.types",
+        "datetime",
+        "pydantic"
+      ],
+      "path": "backend/app/contracts/disaster_state.py"
     },
     {
       "forbidden_imports": [],

@@ -470,7 +470,9 @@ def _account_cache_state(
     account_id: str,
 ) -> tuple[str, datetime | None]:
     row = session.execute(
-        select(Account.terminal_status, Account.safety_grace_period_until)
+        select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+            Account.terminal_status, Account.safety_grace_period_until
+        )
         .where(Account.workspace_id == workspace_id)
         .where(Account.id == account_id)
     ).one_or_none()

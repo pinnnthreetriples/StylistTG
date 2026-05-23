@@ -29,6 +29,7 @@ import {
   previewAccountBatchSafety,
   fetchAccounts,
   fetchDashboard,
+  fetchDisasterState,
   fetchJob,
   fetchJobSteps,
   fetchLatestJob,
@@ -111,6 +112,7 @@ export const queryKeys = {
   },
   dashboard: {
     root: ['dashboard'] as const,
+    disasterState: ['dashboard', 'disasterState'] as const,
     account: (accountId: string) => ['dashboard', accountId] as const,
     profile: (accountId: string) => ['dashboard', accountId, 'profile'] as const,
     jobs: (accountId: string) => ['dashboard', accountId, 'jobs'] as const,
@@ -174,6 +176,14 @@ export function accountsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.accounts,
     queryFn: fetchAccounts,
+  })
+}
+
+export function disasterStateQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.dashboard.disasterState,
+    queryFn: fetchDisasterState,
+    refetchInterval: 60_000,
   })
 }
 

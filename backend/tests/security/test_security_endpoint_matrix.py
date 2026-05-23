@@ -47,6 +47,8 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Diagnostics
     ("GET", "/diagnostics/runtime", "admin", False),
     ("GET", "/diagnostics/live-preflight", "admin", False),
+    # Dashboard
+    ("GET", "/api/dashboard/disaster-state", "viewer", False),
     # Workers
     ("GET", "/api/workers/diagnostics", "admin", False),
     # Settings
@@ -56,6 +58,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/safety-policy", "admin", False),
     ("PATCH", "/api/safety-policy", "admin", True),
     ("PATCH", "/api/workspaces/{workspace_id}/feature-flags", "admin", True),
+    ("PATCH", "/api/workspaces/{workspace_id}/notification-settings", "admin", True),
     # Auth runtime mode
     ("GET", "/api/auth/runtime-mode", "viewer", False),
     ("PATCH", "/api/auth/runtime-mode", "admin", True),

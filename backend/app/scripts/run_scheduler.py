@@ -6,6 +6,7 @@ import time
 
 from app.services.scheduler import (
     RATE_LIMIT_FLUSH_TICK_SECONDS,
+    enqueue_admin_notification_tick,
     enqueue_rate_limit_flush_tick,
     enqueue_reconcile_stuck_tick,
     scheduler_report,
@@ -14,6 +15,7 @@ from app.services.scheduler import (
 
 def _enqueue_once() -> dict[str, object]:
     return {
+        "admin_notification_enqueued": enqueue_admin_notification_tick(),
         "rate_limit_flush_enqueued": enqueue_rate_limit_flush_tick(),
         "reconcile_stuck_enqueued": enqueue_reconcile_stuck_tick(),
         "report": scheduler_report().to_dict(),

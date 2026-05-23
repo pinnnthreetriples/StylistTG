@@ -109,6 +109,7 @@ class Workspace(Base):
     safety_pipeline_v2_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
+    notification_webhook_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
@@ -193,6 +194,31 @@ class SensitiveAuditEvent(Base):
     risk_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AdminNotificationLog(Base):
+    __tablename__ = "admin_notification_log"
+    __table_args__ = (
+        Index(
+            "ix_admin_notification_log_ws_trigger_time",
+            "workspace_id",
+            "trigger_code",
+            "triggered_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False
+    )
+    trigger_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict, server_default=text("'{}'")
+    )
+    delivered_channels: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
 
 
 class WorkspaceSafetyPolicy(Base):

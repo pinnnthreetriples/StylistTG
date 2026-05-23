@@ -1271,6 +1271,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/disaster-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Disaster State */
+        get: operations["get_disaster_state_api_dashboard_disaster_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/profile/{account_id}": {
         parameters: {
             query?: never;
@@ -2439,6 +2456,23 @@ export interface paths {
         head?: never;
         /** Patch Workspace Feature Flags */
         patch: operations["patch_workspace_feature_flags_api_workspaces__workspace_id__feature_flags_patch"];
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/notification-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Workspace Notification Settings */
+        patch: operations["patch_workspace_notification_settings_api_workspaces__workspace_id__notification_settings_patch"];
         trace?: never;
     };
     "/api/workers/queues": {
@@ -4299,6 +4333,36 @@ export interface components {
             redis: string;
             /** Tdlib */
             tdlib: string;
+        };
+        /** DisasterState */
+        DisasterState: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Is Disaster */
+            is_disaster: boolean;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Total Accounts */
+            total_accounts: number;
+            /** Quarantined Fraction */
+            quarantined_fraction: number;
+            /**
+             * Threshold
+             * @default 0.5
+             */
+            threshold: number;
+            /**
+             * Window Hours
+             * @default 1
+             */
+            window_hours: number;
+            /** Detected At */
+            detected_at: string;
+            /** Sample Quarantined Account Ids */
+            sample_quarantined_account_ids: string[];
         };
         /** ExecutionPolicyRead */
         ExecutionPolicyRead: {
@@ -6398,6 +6462,11 @@ export interface components {
             /** Safety Pipeline V2 Enabled */
             safety_pipeline_v2_enabled: boolean;
         };
+        /** WorkspaceNotificationSettingsUpdate */
+        WorkspaceNotificationSettingsUpdate: {
+            /** Notification Webhook Url */
+            notification_webhook_url?: string | null;
+        };
         /** WorkspaceRead */
         WorkspaceRead: {
             /** Id */
@@ -6412,6 +6481,8 @@ export interface components {
             status: string;
             /** Safety Pipeline V2 Enabled */
             safety_pipeline_v2_enabled: boolean;
+            /** Notification Webhook Url */
+            notification_webhook_url?: string | null;
             /** Created At */
             created_at: string;
             /** Updated At */
@@ -11562,6 +11633,55 @@ export interface operations {
             };
         };
     };
+    get_disaster_state_api_dashboard_disaster_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisasterState"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
     get_dashboard_profile_api_dashboard_profile__account_id__get: {
         parameters: {
             query?: never;
@@ -16431,6 +16551,70 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkspaceFeatureFlagsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_workspace_notification_settings_api_workspaces__workspace_id__notification_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceNotificationSettingsUpdate"];
             };
         };
         responses: {

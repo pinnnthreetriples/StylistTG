@@ -227,6 +227,89 @@ def test_policy_updated_at_changes_cache_key(db_session) -> None:
     assert cache.size == 2
 
 
+def test_active_grace_period_uses_balanced_mode_for_conservative_policy(db_session) -> None:
+    account = _ready_account(db_session)
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.mode = "conservative"
+    account.safety_grace_period_until = utc_now() + timedelta(minutes=5)
+    _add_cross_module_actions(db_session, account, actions=12)
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert "cross_module_overload" not in {reason.code for reason in verdict.reasons}
+
+
+def test_expired_grace_period_invalidates_cached_balanced_verdict(db_session) -> None:
+    account = _ready_account(db_session)
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.mode = "conservative"
+    account.safety_grace_period_until = utc_now() + timedelta(minutes=5)
+    _add_cross_module_actions(db_session, account, actions=12)
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache)
+    first = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+    account.safety_grace_period_until = utc_now() - timedelta(minutes=1)
+    db_session.commit()
+
+    second = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert {
+        "first": {reason.code for reason in first.reasons},
+        "second": {reason.code for reason in second.reasons},
+        "cache_size": cache.size,
+    } == {
+        "first": set(),
+        "second": {"cross_module_overload"},
+        "cache_size": 2,
+    }
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected_overload"),
+    [("balanced", True), ("aggressive", False)],
+)
+def test_active_grace_period_does_not_override_balanced_or_aggressive_policy(
+    db_session, mode, expected_overload
+) -> None:
+    account = _ready_account(db_session)
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.mode = mode
+    account.safety_grace_period_until = utc_now() + timedelta(minutes=5)
+    _add_cross_module_actions(db_session, account, actions=25)
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert ("cross_module_overload" in {reason.code for reason in verdict.reasons}) is (
+        expected_overload
+    )
+
+
 def test_cold_call_first_cache_miss_computes_and_tracks_budget(db_session) -> None:
     account = _ready_account(db_session)
     redis = _FakeColdCallRedis()
@@ -586,13 +669,17 @@ def _setup_active_quarantine(db_session, account) -> None:
 
 
 def _setup_cross_module_overload(db_session, account) -> None:
+    _add_cross_module_actions(db_session, account, actions=25)
+
+
+def _add_cross_module_actions(db_session, account, *, actions: int) -> None:
     db_session.add(
         CrossModuleLoadBucket(
             id=new_id(),
             workspace_id=account.workspace_id,
             account_id=account.id,
             bucket_start=utc_now().replace(minute=0, second=0, microsecond=0),
-            commenting_actions=25,
+            commenting_actions=actions,
         )
     )
     db_session.commit()

@@ -16,30 +16,55 @@ interface AvatarBlockProps {
   onClearPhoto: () => void
 }
 
-function safePhotoPreviewUrl(photoPreviewUrl: string | null): string | null {
+type SafePhotoPreviewUrl = string & { readonly __safePhotoPreviewUrl: unique symbol }
+
+const ASSET_CONTENT_PATH_PATTERN = /^\/api\/assets\/([^/]+)\/content$/
+const ASSET_ID_PATTERN = /^[A-Za-z0-9._~-]+$/
+
+function safePhotoPreviewUrl(photoPreviewUrl: string | null): SafePhotoPreviewUrl | null {
   const candidate = photoPreviewUrl?.trim()
   if (!candidate || candidate.startsWith('//') || /[<>\s]/.test(candidate)) return null
-  if (candidate.startsWith('/')) return candidate
 
   try {
-    const baseUrl = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
-    const parsed = new URL(candidate, baseUrl)
-    if (parsed.protocol === 'blob:') return candidate
+    const baseOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
+    const blobUrl = safeBlobPreviewUrl(candidate, baseOrigin)
+    if (blobUrl) return blobUrl
+
+    const parsed = new URL(candidate, baseOrigin)
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
-    const allowedOrigins = new Set([baseUrl])
+    const assetPath = safeAssetContentPath(parsed.pathname)
+    if (!assetPath) return null
+
+    const allowedOrigins = new Set([baseOrigin])
     const apiBaseUrl = getApiBaseUrl()
-    if (apiBaseUrl) allowedOrigins.add(new URL(apiBaseUrl, baseUrl).origin)
-    if (
-      allowedOrigins.has(parsed.origin) &&
-      (parsed.pathname.startsWith('/api/assets/') || parsed.origin === baseUrl)
-    ) {
-      return candidate
-    }
+    if (apiBaseUrl) allowedOrigins.add(new URL(apiBaseUrl, baseOrigin).origin)
+    if (!allowedOrigins.has(parsed.origin)) return null
+    return (candidate.startsWith('/') ? assetPath : `${parsed.origin}${assetPath}`) as SafePhotoPreviewUrl
   } catch {
     return null
   }
 
   return null
+}
+
+function safeAssetContentPath(pathname: string): string | null {
+  const match = ASSET_CONTENT_PATH_PATTERN.exec(pathname)
+  if (!match) return null
+  const assetId = decodeURIComponent(match[1])
+  if (!ASSET_ID_PATTERN.test(assetId)) return null
+  return `/api/assets/${encodeURIComponent(assetId)}/content`
+}
+
+function safeBlobPreviewUrl(candidate: string, baseOrigin: string): SafePhotoPreviewUrl | null {
+  if (!candidate.startsWith('blob:')) return null
+  const parsed = new URL(candidate)
+  if (parsed.protocol !== 'blob:') return null
+  const innerUrl = new URL(parsed.pathname)
+  if (innerUrl.origin !== baseOrigin) return null
+
+  const blobId = decodeURIComponent(innerUrl.pathname.replace(/^\/+/, ''))
+  if (!ASSET_ID_PATTERN.test(blobId)) return null
+  return `blob:${innerUrl.origin}/${encodeURIComponent(blobId)}` as SafePhotoPreviewUrl
 }
 
 export function AvatarBlock({

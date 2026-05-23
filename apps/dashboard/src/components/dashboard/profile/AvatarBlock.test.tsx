@@ -48,10 +48,16 @@ describe('AvatarBlock', () => {
   })
 
   test('falls back to initials for unsafe preview URLs', () => {
-    const html = renderAvatar('javascript:alert(1)')
+    for (const unsafeUrl of [
+      'javascript:alert(1)',
+      'http://localhost/settings',
+      'blob:http://evil.test/avatar',
+    ]) {
+      const html = renderAvatar(unsafeUrl)
 
-    expect(html).not.toContain('<img')
-    expect(html).not.toContain('javascript:alert')
-    expect(html).toContain('A')
+      expect(html).not.toContain('<img')
+      expect(html).not.toContain(unsafeUrl)
+      expect(html).toContain('A')
+    }
   })
 })

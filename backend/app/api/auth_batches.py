@@ -80,7 +80,7 @@ def validate_phones(
             error_code="AUTH_BATCH_VALIDATION_FAILED",
             error_class="validation",
             message="Auth batch phone validation failed",
-        ) from exc
+        ) from None
 
 
 @router.post(

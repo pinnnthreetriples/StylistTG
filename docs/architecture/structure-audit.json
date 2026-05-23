@@ -390,7 +390,7 @@
     {
       "files": [],
       "global_file_counts": {
-        "apps/dashboard/src/components": 42,
+        "apps/dashboard/src/components": 43,
         "apps/dashboard/src/features": 46,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 56

@@ -252,11 +252,18 @@ def post_account_validity_check(
                 error_class="not_found",
                 message=message,
             ) from exc
+        if message == "unsupported validity check mode":
+            raise AppError(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                error_code="VALIDITY_CHECK_INVALID_MODE",
+                error_class="validation",
+                message=message,
+            ) from exc
         raise AppError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error_code="VALIDITY_CHECK_INVALID_MODE",
-            error_class="validation",
-            message=message,
+            error_code="VALIDITY_CHECK_FAILED",
+            error_class="safety_check",
+            message="Account validity check failed",
         ) from exc
 
 

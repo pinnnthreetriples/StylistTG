@@ -177,6 +177,31 @@ def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid(
     assert payload["invalid_items"][0]["input"] == "bad-phone"
 
 
+def test_auth_batch_validate_phones_hides_internal_validation_errors(
+    session_factory, monkeypatch
+) -> None:
+    def _override():
+        with session_factory() as session:
+            yield session
+
+    def _raise_internal_error(*_args, **_kwargs):
+        raise ValueError("tdlib path C:\\secret\\tdjson.dll leaked")
+
+    app.dependency_overrides[get_session] = _override
+    monkeypatch.setattr("app.api.auth_batches.validate_batch_phones", _raise_internal_error)
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/api/auth-batches/validate-phones",
+        json={"items": [{"phone_number": "+15550102000"}]},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "AUTH_BATCH_VALIDATION_FAILED"
+    assert "secret" not in response.text
+    assert "tdjson.dll" not in response.text
+
+
 def test_auth_batch_create_is_idempotent_and_creates_pending_accounts(
     session_factory, client
 ) -> None:

@@ -4,6 +4,7 @@
 
 import { Camera, Loader2, Trash2 } from 'lucide-react'
 import { composeDisplayName, syncStateLabels, type CurrentProfile } from '@/lib/dashboard'
+import { getApiBaseUrl } from '@/lib/config'
 
 interface AvatarBlockProps {
   photoPreviewUrl: string | null
@@ -15,6 +16,32 @@ interface AvatarBlockProps {
   onClearPhoto: () => void
 }
 
+function safePhotoPreviewUrl(photoPreviewUrl: string | null): string | null {
+  const candidate = photoPreviewUrl?.trim()
+  if (!candidate || candidate.startsWith('//') || /[<>\s]/.test(candidate)) return null
+  if (candidate.startsWith('/')) return candidate
+
+  try {
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
+    const parsed = new URL(candidate, baseUrl)
+    if (parsed.protocol === 'blob:') return candidate
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    const allowedOrigins = new Set([baseUrl])
+    const apiBaseUrl = getApiBaseUrl()
+    if (apiBaseUrl) allowedOrigins.add(new URL(apiBaseUrl, baseUrl).origin)
+    if (
+      allowedOrigins.has(parsed.origin) &&
+      (parsed.pathname.startsWith('/api/assets/') || parsed.origin === baseUrl)
+    ) {
+      return candidate
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
 export function AvatarBlock({
   photoPreviewUrl,
   hasSelectedPhoto,
@@ -24,16 +51,18 @@ export function AvatarBlock({
   onChoosePhoto,
   onClearPhoto,
 }: AvatarBlockProps) {
+  const previewUrl = safePhotoPreviewUrl(photoPreviewUrl)
+
   return (
     <div className="flex-shrink-0 flex flex-col items-center">
       {/* ── Avatar ring ── */}
       <div className="relative mb-3 group cursor-pointer" onClick={onChoosePhoto}>
         <div className="rounded-full">
-          {photoPreviewUrl ? (
+          {previewUrl ? (
             <img
               alt="Предпросмотр фото профиля"
               className="size-32 rounded-full object-cover shadow-sm border border-gray-100"
-              src={photoPreviewUrl}
+              src={previewUrl}
             />
           ) : (
             <div className="flex size-32 items-center justify-center rounded-full bg-gradient-to-br from-navy-400 via-navy-300 to-tangerine-300 text-5xl font-bold text-white shadow-sm">

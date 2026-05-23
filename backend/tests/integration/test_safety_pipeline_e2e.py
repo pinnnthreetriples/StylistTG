@@ -20,9 +20,7 @@ from app.models import (
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
     SensitiveAuditEvent,
-    WarmupSession,
     WarmupStatus,
-    WarmupStrategy,
     Workspace,
     new_id,
     utc_now,
@@ -46,18 +44,11 @@ from app.services.neuro_commenting.target_service import TargetService
 from app.services.workspace_safety_policy import get_workspace_safety_policy
 from tests._fakes.fake_tdlib_runtime import FakeTdlibRuntime
 from tests.helpers.factories import seed_account
+from tests.helpers.warmup import seed_warmup_session, seed_warmup_strategy
 
 
 WORKSPACE = DEFAULT_LOCAL_WORKSPACE_ID
 _FROZEN_NOW = datetime(2026, 5, 23, 10, 0, tzinfo=UTC)
-
-
-class _Probe:
-    def __init__(self, results: list[AccountStatusProbeResult]) -> None:
-        self._results = results
-
-    def check(self, account) -> AccountStatusProbeResult:
-        return self._results.pop(0)
 
 
 def _auth(role: str = "admin") -> AuthContext:
@@ -131,44 +122,37 @@ def _ready_account(
 
 
 def _make_warmup(db_session, account, *, status: str, current_day: int) -> None:
-    strategy = WarmupStrategy(
-        id=new_id(),
+    strategy = seed_warmup_strategy(
+        db_session,
         workspace_id=account.workspace_id,
-        name=f"safety-e2e-{new_id()[:6]}",
-        tier_limits_json={},
-        target_channels_json=[],
         duration_days=14,
     )
-    db_session.add(strategy)
-    db_session.flush()
-    db_session.add(
-        WarmupSession(
-            id=new_id(),
-            workspace_id=account.workspace_id,
-            account_id=account.id,
-            strategy_id=strategy.id,
-            status=status,
-            current_day=current_day,
-            duration_days=14,
-            completed_at=utc_now() if status == WarmupStatus.COMPLETED.value else None,
-        )
+    warmup = seed_warmup_session(
+        db_session,
+        account=account,
+        strategy=strategy,
+        workspace_id=account.workspace_id,
+        now=_FROZEN_NOW,
+        status=status,
     )
+    warmup.current_day = current_day
+    warmup.duration_days = 14
+    warmup.completed_at = utc_now() if status == WarmupStatus.COMPLETED.value else None
 
 
 def _make_ggr(db_session, account, *, score: float, bucket: str) -> None:
     db_session.query(AccountGgrScore).filter(AccountGgrScore.account_id == account.id).delete()
-    db_session.add(
-        AccountGgrScore(
-            id=new_id(),
-            workspace_id=account.workspace_id,
-            account_id=account.id,
-            score=score,
-            bucket=bucket,
-            breakdown_json={"fraud_score": 0.1},
-            last_calculated_at=utc_now(),
-            next_calculation_at=utc_now() + timedelta(hours=6),
-        )
-    )
+    row = {
+        "id": new_id(),
+        "workspace_id": account.workspace_id,
+        "account_id": account.id,
+        "score": score,
+        "bucket": bucket,
+        "breakdown_json": {"fraud_score": 0.1},
+        "last_calculated_at": utc_now(),
+        "next_calculation_at": utc_now() + timedelta(hours=6),
+    }
+    db_session.add(AccountGgrScore(**row))
 
 
 def _campaign_with_target(db_session, account, *, name: str):
@@ -251,6 +235,18 @@ def _gate(db_session, account):
     )
 
 
+def _status_probe(results: list[AccountStatusProbeResult]) -> SimpleNamespace:
+    return SimpleNamespace(check=lambda _account: results.pop(0))
+
+
+def _observe_statuses(db_session, account, results: list[AccountStatusProbeResult]) -> None:
+    monitor = AccountStatusMonitor(probe=_status_probe(results))
+    for _result in results.copy():
+        monitor.observe_account(
+            db_session, account_id=account.id, workspace_id=account.workspace_id
+        )
+
+
 @freeze_time(_FROZEN_NOW)
 def test_live_readiness_blocks_unwarmed_account_through_gate(db_session) -> None:
     account = _ready_account(db_session, external_ref="+15550380001", with_warmup=False)
@@ -263,15 +259,12 @@ def test_live_readiness_blocks_unwarmed_account_through_gate(db_session) -> None
     )
 
     gate_check = next(check for check in readiness.checks if check.code == "account_safety_blocked")
-    assert {
-        "ready": readiness.ready,
-        "severity": gate_check.severity,
-        "reason_codes": [reason["code"] for reason in gate_check.details["reasons"]],
-    } == {
-        "ready": False,
-        "severity": "blocker",
-        "reason_codes": ["no_warmup"],
-    }
+    reason_codes = tuple(reason["code"] for reason in gate_check.details["reasons"])
+    assert (readiness.ready, gate_check.severity, reason_codes) == (
+        False,
+        "blocker",
+        ("no_warmup",),
+    )
 
 
 @freeze_time(_FROZEN_NOW)
@@ -280,21 +273,17 @@ def test_status_monitor_auto_pauses_campaign_and_sender_gate_blocks(db_session) 
     _campaign, _target, attempt = _approved_attempt_from_fake_tdlib(
         db_session, account, name="Auto Pause E2E"
     )
-    monitor = AccountStatusMonitor(
-        probe=_Probe(
-            [
-                AccountStatusProbeResult(False, "10.0.0.1", True, "Pixel 7"),
-                AccountStatusProbeResult(False, "10.0.0.2", True, "Pixel 7"),
-                AccountStatusProbeResult(False, "10.0.0.3", True, "Pixel 7"),
-                AccountStatusProbeResult(False, "10.0.0.4", True, "Pixel 7"),
-            ]
-        )
+    _observe_statuses(
+        db_session,
+        account,
+        [
+            AccountStatusProbeResult(False, "10.0.0.1", True, "Pixel 7"),
+            AccountStatusProbeResult(False, "10.0.0.2", True, "Pixel 7"),
+            AccountStatusProbeResult(False, "10.0.0.3", True, "Pixel 7"),
+            AccountStatusProbeResult(False, "10.0.0.4", True, "Pixel 7"),
+        ],
     )
 
-    for _ in range(4):
-        monitor.observe_account(
-            db_session, account_id=account.id, workspace_id=account.workspace_id
-        )
     campaign_account = (
         db_session.query(NeuroCommentCampaignAccount)
         .filter_by(campaign_id=attempt.campaign_id, account_id=attempt.account_id)
@@ -451,17 +440,15 @@ def test_cross_module_load_warns_at_balanced_threshold_then_blocks(db_session) -
 @freeze_time(_FROZEN_NOW)
 def test_ip_change_cooldown_warns_then_expires_to_ok(db_session) -> None:
     account = _ready_account(db_session, external_ref="+15550380006")
-    monitor = AccountStatusMonitor(
-        probe=_Probe(
-            [
-                AccountStatusProbeResult(True, "10.0.0.1", True, "Pixel 7"),
-                AccountStatusProbeResult(True, "10.0.0.2", True, "Pixel 7"),
-            ]
-        )
+    _observe_statuses(
+        db_session,
+        account,
+        [
+            AccountStatusProbeResult(True, "10.0.0.1", True, "Pixel 7"),
+            AccountStatusProbeResult(True, "10.0.0.2", True, "Pixel 7"),
+        ],
     )
 
-    monitor.observe_account(db_session, account_id=account.id, workspace_id=account.workspace_id)
-    monitor.observe_account(db_session, account_id=account.id, workspace_id=account.workspace_id)
     warning = _gate(db_session, account)
     latest = (
         db_session.query(AccountStatusObservation)

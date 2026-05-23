@@ -175,6 +175,7 @@ def test_auth_batch_validate_phones_reports_duplicates_existing_and_invalid(
     assert payload["duplicates"][0]["phone_number"] == "+15550102000"
     assert payload["existing_accounts"][0]["phone_number"] == "+15550102000"
     assert payload["invalid_items"][0]["input"] == "bad-phone"
+    assert payload["invalid_items"][0]["error"] == "invalid phone number"
 
 
 def test_auth_batch_validate_phones_hides_internal_validation_errors(
@@ -467,6 +468,7 @@ def test_auth_batch_retry_rejects_terminal_batch_item(session_factory, client) -
     response = client.post(f"/api/auth-batches/{batch_id}/items/{item_id}/retry")
 
     assert response.status_code == 409
+    assert response.json()["error_code"] == "AUTH_BATCH_STATE_CONFLICT"
     with session_factory() as session:
         item = session.get(AuthBatchItem, item_id)
         assert item is not None

@@ -3,7 +3,7 @@ tests = ["tests"]
 source = ["app"]
 
 [pytest]
-external_markers = ["live", "integration", "redis", "postgres", "slow", "contract"]
+external_markers = ["live", "integration", "redis", "postgres", "slow", "contract", "benchmark"]
 unit_markers = ["unit", "api", "security", "worker", "architecture", "property", "contract"]
 
 [thresholds]

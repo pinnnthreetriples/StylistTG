@@ -58,6 +58,12 @@ class SafetyMetrics:
             ("intent", "cache_hit"),
             registry=self.registry,
         )
+        self._gate_cold_call_throttled = client.Counter(
+            "safety_gate_cold_call_throttled_total",
+            "Safety gate cold evaluate calls throttled by intent.",
+            ("intent",),
+            registry=self.registry,
+        )
         self._quarantine_active = client.Gauge(
             "quarantine_active",
             "Active account quarantines by workspace and reason.",
@@ -140,6 +146,11 @@ class SafetyMetrics:
                 cache_hit=str(cache_hit).lower(),
             )
         )
+
+    def cold_call_throttled(self, *, intent: str) -> None:
+        if not self.enabled:
+            return
+        self._gate_cold_call_throttled.labels(intent=intent).inc()
 
     def quarantine_active(self, *, workspace_id: str, reason: str, value: int) -> None:
         if not self.enabled:

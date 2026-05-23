@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from prometheus_client import CollectorRegistry
 
 from app.contracts.safety_gate import SafetyGateReason, SafetyGateVerdict
 from app.main import app
@@ -24,6 +25,7 @@ from app.models import (
     new_id,
     utc_now,
 )
+from app.observability.safety_metrics import SafetyMetrics
 from app.services.account_safety_gate import AccountSafetyGate, InMemorySafetyGateCache
 from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.workspace_safety_policy import get_workspace_safety_policy
@@ -223,6 +225,116 @@ def test_policy_updated_at_changes_cache_key(db_session) -> None:
     )
 
     assert cache.size == 2
+
+
+def test_cold_call_first_cache_miss_computes_and_tracks_budget(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+
+    verdict = AccountSafetyGate(cache=cache, redis_client=redis).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert verdict.severity == "ok"
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 1
+    assert redis.expirations[f"gate:cold:{account.id}:commenting"] == 60
+    assert cache.size == 2
+
+
+def test_cold_call_budget_exceeded_returns_stale_verdict(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache, redis_client=redis)
+    first = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+    policy = get_workspace_safety_policy(
+        db_session, workspace_id=account.workspace_id, create_if_missing=True
+    )
+    policy.updated_at = utc_now() + timedelta(minutes=1)
+    db_session.commit()
+
+    second = gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert second == first
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 2
+
+
+def test_cache_hit_does_not_increment_cold_call_budget(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis()
+    cache = InMemorySafetyGateCache()
+    gate = AccountSafetyGate(cache=cache, redis_client=redis)
+
+    gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+    gate.evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert redis.values[f"gate:cold:{account.id}:commenting"] == 1
+
+
+def test_cold_call_budget_exceeded_without_stale_fails_closed(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis(values={f"gate:cold:{account.id}:commenting": 1})
+
+    verdict = AccountSafetyGate(cache=InMemorySafetyGateCache(), redis_client=redis).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert verdict.eligible is False
+    assert verdict.severity == "blocked"
+    assert verdict.reasons[0].metadata["budget"] == "cold_call"
+
+
+def test_cold_call_throttle_increments_metric(db_session) -> None:
+    account = _ready_account(db_session)
+    redis = _FakeColdCallRedis(values={f"gate:cold:{account.id}:commenting": 1})
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    AccountSafetyGate(
+        cache=InMemorySafetyGateCache(),
+        redis_client=redis,
+        metrics=metrics,
+    ).evaluate(
+        db_session,
+        workspace_id=account.workspace_id,
+        account_id=account.id,
+        intent="commenting",
+    )
+
+    assert (
+        registry.get_sample_value(
+            "safety_gate_cold_call_throttled_total",
+            {"intent": "commenting"},
+        )
+        == 1.0
+    )
 
 
 def test_api_tenant_isolation_returns_404(viewer_client, db_session) -> None:
@@ -511,3 +623,16 @@ _REASON_SETUPS = {
     "terminal_status": _setup_terminal_status,
     "ip_change_cooldown": _setup_ip_change_cooldown,
 }
+
+
+class _FakeColdCallRedis:
+    def __init__(self, *, values: dict[str, int] | None = None) -> None:
+        self.values = dict(values or {})
+        self.expirations: dict[str, int] = {}
+
+    def incr(self, key: str) -> int:
+        self.values[key] = self.values.get(key, 0) + 1
+        return self.values[key]
+
+    def expire(self, key: str, seconds: int) -> None:
+        self.expirations[key] = seconds

@@ -57,6 +57,21 @@ def test_gate_evaluate_duration_context_records_histogram_count() -> None:
     )
 
 
+def test_cold_call_throttled_increments_counter() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.cold_call_throttled(intent="commenting")
+
+    assert (
+        registry.get_sample_value(
+            "safety_gate_cold_call_throttled_total",
+            {"intent": "commenting"},
+        )
+        == 1.0
+    )
+
+
 def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     registry = CollectorRegistry()
     metrics = SafetyMetrics(registry=registry, enabled=False)
@@ -64,12 +79,14 @@ def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     metrics.gate_blocked(workspace_id="workspace-1", intent="commenting", reason="ggr_too_low")
     with metrics.gate_evaluate_duration(intent="commenting", cache_hit=False):
         pass
+    metrics.cold_call_throttled(intent="commenting")
     metrics.flood_wait(workspace_id="workspace-1", account_id="account-raw-id")
 
     payload = generate_latest(registry).decode("utf-8")
     assert "safety_gate_blocks_total" not in payload
     assert "account_total" not in payload
     assert "safety_gate_evaluate_duration_seconds" not in payload
+    assert "safety_gate_cold_call_throttled_total" not in payload
     assert "flood_wait_total" not in payload
 
 

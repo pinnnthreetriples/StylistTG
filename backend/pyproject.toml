@@ -35,6 +35,7 @@ typecheck = [
 
 test = [
   "pytest>=9.0.3",
+  "pytest-benchmark>=5.2.0",
   "pytest-cov>=6.0.0",
   "pytest-xdist>=3.6.0",
   "pytest-randomly>=3.16.0",
@@ -70,6 +71,7 @@ complexity = [
 
 dev = [
   "pytest>=9.0.3",
+  "pytest-benchmark>=5.2.0",
   "pytest-cov>=6.0.0",
   "pytest-xdist>=3.6.0",
   "pytest-randomly>=3.16.0",
@@ -249,5 +251,6 @@ markers = [
   "live: live environment smoke or verification tests that require external services",
   "postgres: requires real PostgreSQL",
   "redis: requires real Redis",
+  "benchmark: performance budget benchmarks; disabled by default and run in nightly/manual",
   "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
 ]

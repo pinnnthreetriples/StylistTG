@@ -115,6 +115,7 @@ jobs:
               --cov-report=json:reports/coverage.json \
               --cov-report=xml:reports/coverage.xml \
               --cov-report=term-missing:skip-covered \
+              --benchmark-disable \
               --durations=50 --durations-min=0.5 \
               -q 2>&1 | tee reports/pytest.log
           cat reports/pytest-time.txt | tee -a reports/pytest-runtime-summary.txt

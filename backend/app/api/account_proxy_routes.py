@@ -25,6 +25,14 @@ from app.services.warmup import warmup_operation_policy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
+SAFE_PROXY_VALIDATION_MESSAGES = {
+    "proxy_credentials_key_required",
+    "proxy_credentials_crypto_unavailable",
+    "proxy_unsupported",
+    "proxy_host_required",
+    "proxy_port_invalid",
+}
+
 
 @router.get("/proxy-summary", response_model=list[AccountProxySummaryRead])
 def get_accounts_proxy_summary(
@@ -104,10 +112,10 @@ def post_account_proxy_check(
     try:
         return check_account_proxy(session, account_id, workspace_id=auth.workspace_id)
     except ValueError as exc:
-        raise _proxy_error(exc) from exc
+        raise _proxy_error(exc, operation="check") from exc
 
 
-def _proxy_error(exc: ValueError) -> AppError:
+def _proxy_error(exc: ValueError, *, operation: str = "operation") -> AppError:
     message = str(exc)
     if message == "account not found":
         return AppError(
@@ -123,12 +131,18 @@ def _proxy_error(exc: ValueError) -> AppError:
             error_class="not_found",
             message=message,
         )
-    code = message.upper()
+    if message in SAFE_PROXY_VALIDATION_MESSAGES:
+        return AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code=message.upper(),
+            error_class="proxy",
+            message=message,
+        )
     return AppError(
         status_code=status.HTTP_400_BAD_REQUEST,
-        error_code=code,
+        error_code="PROXY_CHECK_FAILED" if operation == "check" else "PROXY_OPERATION_FAILED",
         error_class="proxy",
-        message=message,
+        message="Proxy check failed" if operation == "check" else "Proxy operation failed",
     )
 
 

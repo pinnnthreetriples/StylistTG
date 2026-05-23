@@ -75,16 +75,30 @@ def test_sentry_event_sanitizer_preserves_breadcrumb_data() -> None:
 
 def test_sentry_event_sanitizer_redacts_tdjson_library_paths_in_text() -> None:
     event = {
-        "message": ("failed to load /usr/local/lib/libtdjson.so and C:\\Tools\\tdlib\\tdjson.dll")
+        "message": (
+            "failed to load /usr/local/lib/libtdjson.so, "
+            "C:\\Tools\\tdlib\\tdjson.dll and /opt/tdlib/libtdjson.dylib"
+        )
     }
 
     sanitized = sanitize_sentry_event(event)
 
     assert sanitized is not None
     assert "libtdjson.so" not in sanitized["message"]
+    assert "libtdjson.dylib" not in sanitized["message"]
     assert "tdjson.dll" not in sanitized["message"]
     assert "/usr/local/lib" not in sanitized["message"]
+    assert "/opt/tdlib" not in sanitized["message"]
     assert "C:\\Tools\\tdlib" not in sanitized["message"]
+
+
+def test_sentry_event_sanitizer_handles_long_non_matching_path_text() -> None:
+    message = "load failed " + "/".join(["not-tdjson"] * 5000)
+
+    sanitized = sanitize_sentry_event({"message": message})
+
+    assert sanitized is not None
+    assert sanitized["message"] == message
 
 
 def test_sentry_event_sanitizer_does_not_redact_common_status_keys() -> None:

@@ -70,9 +70,17 @@ def validate_phones(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    return validate_batch_phones(
-        session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id
-    )
+    try:
+        return validate_batch_phones(
+            session, [_phone_input(item) for item in payload.items], workspace_id=auth.workspace_id
+        )
+    except ValueError:
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="AUTH_BATCH_VALIDATION_FAILED",
+            error_class="validation",
+            message="Auth batch phone validation failed",
+        ) from None
 
 
 @router.post(

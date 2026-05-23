@@ -11,9 +11,8 @@ BeforeSend = Callable[[dict[str, Any], Any], dict[str, Any] | None]
 
 _initialized = False
 
-TDJSON_LIBRARY_PATTERN = re.compile(
-    r"(?i)(?:[A-Za-z]:)?(?:[/\\][^\s,;:\"']+)*[/\\]?(?:lib)?tdjson\.(?:dll|so|dylib)\b"
-)
+TDJSON_LIBRARY_NAMES = ("tdjson.dll", "libtdjson.so", "libtdjson.dylib")
+TDJSON_PATH_TOKEN_SEPARATORS = frozenset(" \t\r\n,;\"'")
 
 SENSITIVE_HEADER_NAMES = {
     "authorization",
@@ -213,8 +212,34 @@ def _is_sensitive_event_key(key: str) -> bool:
 
 def _redact_observability_text(value: str) -> str:
     redacted = redact_text(value)
-    redacted = TDJSON_LIBRARY_PATTERN.sub("***", redacted)
+    redacted = _redact_tdjson_library_paths(redacted)
     return redacted
+
+
+def _redact_tdjson_library_paths(value: str) -> str:
+    parts: list[str] = []
+    token_start = 0
+    for index, char in enumerate(value):
+        if char not in TDJSON_PATH_TOKEN_SEPARATORS:
+            continue
+        if token_start < index:
+            parts.append(_redact_tdjson_path_token(value[token_start:index]))
+        parts.append(char)
+        token_start = index + 1
+    if token_start < len(value):
+        parts.append(_redact_tdjson_path_token(value[token_start:]))
+    return "".join(parts)
+
+
+def _redact_tdjson_path_token(token: str) -> str:
+    suffix = ""
+    while token and token[-1] in ":.)]}":
+        suffix = token[-1] + suffix
+        token = token[:-1]
+    normalized = token.replace("\\", "/").lower()
+    if any(normalized.endswith(library_name) for library_name in TDJSON_LIBRARY_NAMES):
+        return f"***{suffix}"
+    return f"{token}{suffix}"
 
 
 def _key_words(key: str) -> list[str]:

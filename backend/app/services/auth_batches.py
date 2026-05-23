@@ -68,9 +68,14 @@ def validate_batch_phones(
         raw = item.phone_number
         try:
             normalized = normalize_phone_number(raw)
-        except ValueError as exc:
+        except ValueError:
             invalid_items.append(
-                {"input": raw, "label": item.label, "position": position, "error": str(exc)}
+                {
+                    "input": raw,
+                    "label": item.label,
+                    "position": position,
+                    "error": "invalid phone number",
+                }
             )
             continue
 

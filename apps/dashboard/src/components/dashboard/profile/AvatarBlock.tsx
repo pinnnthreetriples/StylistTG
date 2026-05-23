@@ -4,6 +4,7 @@
 
 import { Camera, Loader2, Trash2 } from 'lucide-react'
 import { composeDisplayName, syncStateLabels, type CurrentProfile } from '@/lib/dashboard'
+import { getApiBaseUrl } from '@/lib/config'
 
 interface AvatarBlockProps {
   photoPreviewUrl: string | null
@@ -15,6 +16,57 @@ interface AvatarBlockProps {
   onClearPhoto: () => void
 }
 
+type SafePhotoPreviewUrl = string & { readonly __safePhotoPreviewUrl: unique symbol }
+
+const ASSET_CONTENT_PATH_PATTERN = /^\/api\/assets\/([^/]+)\/content$/
+const ASSET_ID_PATTERN = /^[A-Za-z0-9._~-]+$/
+
+function safePhotoPreviewUrl(photoPreviewUrl: string | null): SafePhotoPreviewUrl | null {
+  const candidate = photoPreviewUrl?.trim()
+  if (!candidate || candidate.startsWith('//') || /[<>\s]/.test(candidate)) return null
+
+  try {
+    const baseOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
+    const blobUrl = safeBlobPreviewUrl(candidate, baseOrigin)
+    if (blobUrl) return blobUrl
+
+    const parsed = new URL(candidate, baseOrigin)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    const assetPath = safeAssetContentPath(parsed.pathname)
+    if (!assetPath) return null
+
+    const allowedOrigins = new Set([baseOrigin])
+    const apiBaseUrl = getApiBaseUrl()
+    if (apiBaseUrl) allowedOrigins.add(new URL(apiBaseUrl, baseOrigin).origin)
+    if (!allowedOrigins.has(parsed.origin)) return null
+    return (candidate.startsWith('/') ? assetPath : `${parsed.origin}${assetPath}`) as SafePhotoPreviewUrl
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+function safeAssetContentPath(pathname: string): string | null {
+  const match = ASSET_CONTENT_PATH_PATTERN.exec(pathname)
+  if (!match) return null
+  const assetId = decodeURIComponent(match[1])
+  if (!ASSET_ID_PATTERN.test(assetId)) return null
+  return `/api/assets/${encodeURIComponent(assetId)}/content`
+}
+
+function safeBlobPreviewUrl(candidate: string, baseOrigin: string): SafePhotoPreviewUrl | null {
+  if (!candidate.startsWith('blob:')) return null
+  const parsed = new URL(candidate)
+  if (parsed.protocol !== 'blob:') return null
+  const innerUrl = new URL(parsed.pathname)
+  if (innerUrl.origin !== baseOrigin) return null
+
+  const blobId = decodeURIComponent(innerUrl.pathname.replace(/^\/+/, ''))
+  if (!ASSET_ID_PATTERN.test(blobId)) return null
+  return `blob:${innerUrl.origin}/${encodeURIComponent(blobId)}` as SafePhotoPreviewUrl
+}
+
 export function AvatarBlock({
   photoPreviewUrl,
   hasSelectedPhoto,
@@ -24,16 +76,18 @@ export function AvatarBlock({
   onChoosePhoto,
   onClearPhoto,
 }: AvatarBlockProps) {
+  const previewUrl = safePhotoPreviewUrl(photoPreviewUrl)
+
   return (
     <div className="flex-shrink-0 flex flex-col items-center">
       {/* ── Avatar ring ── */}
       <div className="relative mb-3 group cursor-pointer" onClick={onChoosePhoto}>
         <div className="rounded-full">
-          {photoPreviewUrl ? (
+          {previewUrl ? (
             <img
               alt="Предпросмотр фото профиля"
               className="size-32 rounded-full object-cover shadow-sm border border-gray-100"
-              src={photoPreviewUrl}
+              src={previewUrl}
             />
           ) : (
             <div className="flex size-32 items-center justify-center rounded-full bg-gradient-to-br from-navy-400 via-navy-300 to-tangerine-300 text-5xl font-bold text-white shadow-sm">

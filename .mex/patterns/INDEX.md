@@ -4,7 +4,7 @@ description: Lookup table for repeatable StylistTG task workflows.
 edges:
   - .mex/ROUTER.md
   - .mex/context/conventions.md
-last_updated: 2026-05-22
+last_updated: 2026-05-25
 ---
 
 # Pattern Index
@@ -19,5 +19,6 @@ last_updated: 2026-05-22
 | Touch live TDLib/Telegram or sensitive runtime boundaries | [live-tdlib-safety.md](live-tdlib-safety.md) |
 | Clean ignored/generated files | [safe-cleanup.md](safe-cleanup.md) |
 | Update mex memory scaffold | [mex-memory-update.md](mex-memory-update.md) |
+| Work with project board items | [board-workflow.md](board-workflow.md) |
 
 If no pattern matches, follow `.mex/ROUTER.md` and create a compact pattern only after the task reveals a repeatable workflow.

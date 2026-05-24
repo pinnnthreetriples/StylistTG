@@ -71,6 +71,89 @@ Every PR should include:
 
 Move the linked card to `Review` only after the PR is open and has verification notes.
 
+## Agent Session Protocol
+
+Agents must follow this sequence when working on board items. Full details and API commands are in `.mex/patterns/board-workflow.md`.
+
+### Session start
+
+1. Identify the target issue (from user instruction or by querying `Todo` items with `ready-for-agent`).
+2. Fetch the project item ID using the lookup query below.
+3. Move the item to `In Progress` using the status mutation below.
+4. Comment on the issue with branch name, intent, and scope.
+
+### During work
+
+- Reference `#<issue-number>` in commits and PR title.
+- Comment on the issue if scope changes or blockers appear.
+
+### Session end — PR opened
+
+1. Add verification results to the PR body.
+2. Link the issue with `Closes #N`.
+3. Move the item to `Review`.
+
+### Session end — no PR
+
+1. Comment on the issue: current state, branch, what was done, what remains.
+2. Leave the item in `In Progress`. Do not move back to `Todo` unless work is abandoned.
+
+### Session end — task fully complete
+
+1. Move to `Done` only after the PR is merged and the issue is closed.
+
+## GraphQL Mutations Reference
+
+### Lookup: fetch project item ID for an issue
+
+```powershell
+gh api graphql -f query='
+  query($login:String!, $projectNumber:Int!) {
+    user(login:$login) {
+      projectV2(number:$projectNumber) {
+        id
+        items(first:50) {
+          nodes {
+            id
+            content {
+              ... on Issue { number }
+              ... on PullRequest { number }
+            }
+          }
+        }
+        field(name:"Status") {
+          ... on ProjectV2SingleSelectField {
+            id
+            options { id name }
+          }
+        }
+      }
+    }
+  }
+' -f login='pinnnthreetriples' -F projectNumber=1
+```
+
+From the response, extract `projectId`, `itemId` (matching target issue number), `fieldId` (Status field), and `optionId` (desired status).
+
+### Mutation: update item status
+
+```powershell
+gh api graphql -f query='
+  mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!) {
+    updateProjectV2ItemFieldValue(input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { singleSelectOptionId: $optionId }
+    }) {
+      clientMutationId
+    }
+  }
+' -f projectId='<PROJECT_ID>' -f itemId='<ITEM_ID>' -f fieldId='<FIELD_ID>' -f optionId='<OPTION_ID>'
+```
+
+Always fetch IDs dynamically at session start. Do not hardcode across sessions. Verify the mutation took effect by re-querying.
+
 ## Safe Automation Expectations
 
 The project has GitHub Project workflows enabled for item add/close, linked PRs, and merged PRs. Agents should still verify status after actions because automations may lag.

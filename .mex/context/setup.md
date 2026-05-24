@@ -10,7 +10,7 @@ edges:
   - .mex/context/stack.md
   - .mex/context/workers.md
   - README.md
-last_updated: 2026-05-22
+last_updated: 2026-05-25
 ---
 
 # Setup

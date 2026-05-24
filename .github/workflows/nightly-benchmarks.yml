@@ -36,7 +36,7 @@ jobs:
         ports:
           - "5432:5432"
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -47,13 +47,23 @@ jobs:
           uv sync --locked --extra test
       - name: Run safety gate performance budget
         run: |
+          set +e
+          mkdir -p reports
           uv run pytest tests/benchmarks/ \
             -p no:randomly \
             --benchmark-enable \
             --benchmark-only \
             --benchmark-storage=file://./benchmark_storage \
-            --benchmark-compare=tests/benchmarks/baselines/safety_gate_baseline.json \
-            --benchmark-compare-fail=mean:20%
+            --benchmark-json=reports/safety_gate_benchmark.json \
+            2>&1 | tee reports/nightly-benchmark.log
+          pytest_status=${PIPESTATUS[0]}
+          if [ "$pytest_status" -ne 0 ]; then
+            echo "BENCHMARK_INFRA_FAILURE" | tee -a reports/nightly-benchmark.log
+            exit "$pytest_status"
+          fi
+          uv run python tools/check_benchmark_budget.py reports/safety_gate_benchmark.json \
+            2>&1 | tee -a reports/nightly-benchmark.log
+          exit ${PIPESTATUS[0]}
         env:
           APP_ENV: test
           AUTH_MODE: local
@@ -62,17 +72,43 @@ jobs:
           QUEUE_INLINE_FALLBACK_ENABLED: "false"
           TDLIB_API_ID: "0"
           TDLIB_API_HASH: ""
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: safety-gate-benchmark-report
+          path: |
+            backend/reports/nightly-benchmark.log
+            backend/reports/safety_gate_benchmark.json
       - name: Report on regression
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh label create perf-regression \
-            --description "Performance benchmark regression" \
+          if grep -q "BENCHMARK_BUDGET_EXCEEDED" reports/nightly-benchmark.log 2>/dev/null; then
+            title="perf-regression: AccountSafetyGate nightly benchmark"
+            label="perf-regression"
+            description="Performance benchmark regression"
+          else
+            title="benchmark-infra: AccountSafetyGate nightly benchmark failed"
+            label="benchmark-infra"
+            description="Benchmark infrastructure failure"
+          fi
+          {
+            echo "Nightly AccountSafetyGate benchmark failed: ${RUN_URL}"
+            echo
+            echo "Tail of benchmark log:"
+            echo
+            echo '```'
+            tail -n 80 reports/nightly-benchmark.log 2>/dev/null || echo "benchmark log unavailable"
+            echo '```'
+          } > reports/nightly-benchmark-issue.md
+          gh label create "$label" \
+            --description "$description" \
             --color d73a4a \
             --force || true
           gh issue create \
-            --title "perf-regression: AccountSafetyGate nightly benchmark" \
-            --label "perf-regression" \
-            --body "Nightly AccountSafetyGate benchmark regressed or failed: ${RUN_URL}"
+            --title "$title" \
+            --label "$label" \
+            --body-file reports/nightly-benchmark-issue.md

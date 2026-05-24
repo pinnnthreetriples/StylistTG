@@ -9,7 +9,7 @@ edges:
   - .mex/context/warmup.md
   - .mex/context/security.md
   - .mex/patterns/worker-queue-change.md
-last_updated: 2026-05-22
+last_updated: 2026-05-25
 ---
 
 # Warmup Change

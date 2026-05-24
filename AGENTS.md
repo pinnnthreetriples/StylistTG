@@ -1,7 +1,7 @@
 ---
 name: StylistTG agent anchor
 description: Shared agent entrypoint. Keep in sync with .mex/AGENTS.md and CLAUDE.md.
-last_updated: 2026-05-23
+last_updated: 2026-05-25
 ---
 
 # StylistTG
@@ -18,6 +18,7 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - Use package @stylisttg/ui for dashboard product UI when an equivalent exists.
 - When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
 - Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
+- When working on a board issue: follow `.mex/patterns/board-workflow.md` for status transitions — move to In Progress at session start, Review after PR with verification, Done only after merge.
 
 ## Agent skills
 
@@ -35,6 +36,7 @@ Use only StylistTG project skills from the active agent runtime's project skill 
 - `/diagnose`: Use for bugs, failures, regressions, or unclear broken behavior. Reproduce, minimize, hypothesize, instrument, fix, then add regression coverage.
 - `/prototype`: Use for throwaway experiments that answer a design, state, data-model, or UI question before committing to production code.
 - `/improve-codebase-architecture`: Use for architecture reviews, refactoring opportunities, testability improvements, or AI-navigability improvements.
+- `/git-guardrails-claude-code`: Use to set up hooks that block dangerous git commands (push, reset --hard, clean, branch -D) before execution.
 
 ### Product and Issue Workflow
 
@@ -74,3 +76,8 @@ cd backend; python -m ruff check .
 - `.mex/ROUTER.md` is the structured memory router and should be read first.
 - `AGENT_HANDOFF.md` is retained as a legacy/full handoff snapshot during migration.
 - Detailed docs remain in `docs/` and specs remain in `specs/`.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

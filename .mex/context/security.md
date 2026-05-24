@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - .mex/patterns/live-tdlib-safety.md
-last_updated: 2026-05-22
+last_updated: 2026-05-25
 ---
 
 # Security and Live Safety

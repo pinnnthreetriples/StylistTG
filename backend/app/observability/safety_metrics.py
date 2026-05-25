@@ -17,7 +17,15 @@ from app.config import settings
 patch_windows_platform_probe()
 
 
-ReserveOutcome = Literal["RESERVED", "STALE", "BLOCKED", "WARNING", "RATE_BLOCKED"]
+ReserveOutcome = Literal[
+    "RESERVED",
+    "STALE",
+    "BLOCKED",
+    "WARNING",
+    "RATE_BLOCKED",
+    "REDIS_UNAVAILABLE",  # Task 44 / F-301: gate fail-closed on Redis outage.
+]
+RedisOperation = Literal["reserve", "release", "cache_get", "cache_set"]
 TypingOutcome = Literal["success", "error", "timeout", "skipped"]
 OverloadSeverity = Literal["warning", "blocked"]
 AttemptResolution = Literal["sent", "failed", "skipped"]
@@ -131,6 +139,20 @@ class SafetyMetrics:
             ("workspace_id", "resolution"),
             registry=self.registry,
         )
+        # Task 44 / F-301 + F-305: Redis-degraded mode metrics.
+        self._redis_outage = client.Counter(
+            "safety_gate_redis_errors_total",
+            "Redis errors observed by safety-gate operations (fail-closed).",
+            ("operation",),
+            registry=self.registry,
+        )
+        self._redis_fail_open = client.Counter(
+            "safety_gate_redis_fail_open_total",
+            "Safety-gate fail-open paths taken under settings."
+            "safety_gate_redis_fail_open=true (dangerous).",
+            ("operation",),
+            registry=self.registry,
+        )
 
     def gate_blocked(self, *, workspace_id: str, intent: str, reason: str) -> None:
         if not self.enabled:
@@ -198,6 +220,18 @@ class SafetyMetrics:
         if not self.enabled:
             return
         self._reserve_outcomes.labels(outcome=outcome).inc()
+
+    def redis_outage(self, *, operation: RedisOperation | str) -> None:
+        """Record a Redis error in a safety-gate operation (fail-closed path)."""
+        if not self.enabled:
+            return
+        self._redis_outage.labels(operation=operation).inc()
+
+    def redis_fail_open(self, *, operation: RedisOperation | str) -> None:
+        """Record that we took the opt-in fail-open path under Redis outage."""
+        if not self.enabled:
+            return
+        self._redis_fail_open.labels(operation=operation).inc()
 
     def typing_emit(self, *, outcome: TypingOutcome | str) -> None:
         if not self.enabled:

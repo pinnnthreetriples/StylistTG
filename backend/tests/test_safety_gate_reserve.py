@@ -184,6 +184,7 @@ class TestReserve:
 
         assert result.reserved is False
         assert result.degraded is True
+        redis.eval.assert_called_once()
 
     def test_reserve_passes_correct_keys_and_args(self) -> None:
         redis = MagicMock()

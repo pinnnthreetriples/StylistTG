@@ -19,6 +19,12 @@ adjacent operational FKs with an explicit policy:
 ``sensitive_audit_event.account_id`` is a raw UUID column (no FK), so it is
 already account-deletion safe and not touched here.
 
+The existing FK constraint names vary depending on whether they were emitted
+by ``create_table()`` (auto-numbered) or by an explicit
+``op.create_foreign_key()`` call earlier in the history, so the migration
+reflects the live schema to find the current constraint name per (table,
+column) instead of hardcoding ``<table>_<column>_fkey``.
+
 Revision ID: 20260525_0054
 Revises: 20260523_0053
 Create Date: 2026-05-25
@@ -27,6 +33,7 @@ Create Date: 2026-05-25
 from __future__ import annotations
 
 from alembic import op
+from sqlalchemy import inspect
 
 revision = "20260525_0054"
 down_revision = "20260523_0053"
@@ -56,9 +63,15 @@ _FK_POLICIES: tuple[tuple[str, str, str], ...] = (
 )
 
 
-def _fk_name(table: str, column: str) -> str:
-    """Default Postgres FK naming for SQLAlchemy-emitted FKs without naming convention."""
-    return f"{table}_{column}_fkey"
+def _find_fk_name(bind, table: str, column: str) -> str | None:
+    """Return the existing FK constraint name on (table, column) -> account.id."""
+    inspector = inspect(bind)
+    for fk in inspector.get_foreign_keys(table):
+        if fk.get("referred_table") == "account" and column in (
+            fk.get("constrained_columns") or []
+        ):
+            return fk.get("name")
+    return None
 
 
 def upgrade() -> None:
@@ -70,10 +83,14 @@ def upgrade() -> None:
         return
 
     for table, column, policy in _FK_POLICIES:
-        constraint = _fk_name(table, column)
-        op.drop_constraint(constraint, table, type_="foreignkey")
+        existing = _find_fk_name(bind, table, column)
+        if existing is None:
+            # No prior FK to account.id on this column — skip rather than fail
+            # so the migration is resilient to schema drift between branches.
+            continue
+        op.drop_constraint(existing, table, type_="foreignkey")
         op.create_foreign_key(
-            constraint,
+            f"{table}_{column}_fkey",
             table,
             "account",
             [column],
@@ -88,10 +105,12 @@ def downgrade() -> None:
         return
 
     for table, column, _policy in _FK_POLICIES:
-        constraint = _fk_name(table, column)
-        op.drop_constraint(constraint, table, type_="foreignkey")
+        existing = _find_fk_name(bind, table, column)
+        if existing is None:
+            continue
+        op.drop_constraint(existing, table, type_="foreignkey")
         op.create_foreign_key(
-            constraint,
+            f"{table}_{column}_fkey",
             table,
             "account",
             [column],

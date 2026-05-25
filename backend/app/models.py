@@ -300,7 +300,10 @@ class AccountQuarantine(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     reason: Mapped[str] = mapped_column(String(64), nullable=False)
     started_at: Mapped[datetime] = mapped_column(
@@ -336,7 +339,10 @@ class AccountStatusObservation(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     observed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
@@ -372,7 +378,10 @@ class CrossModuleLoadBucket(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     bucket_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     warmup_actions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -407,7 +416,11 @@ class AccountGgrScore(Base):
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), nullable=False
     )
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     score: Mapped[float] = mapped_column(Float, nullable=False, default=5.0)
     bucket: Mapped[str] = mapped_column(String(16), nullable=False, default="medium")
     breakdown_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
@@ -438,7 +451,11 @@ class AccountBehaviorProfile(Base):
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), nullable=False
     )
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     typing_speed_baseline_cpm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     typo_rate_baseline: Mapped[float] = mapped_column(Float, nullable=False)
     profile_view_probability_baseline: Mapped[float] = mapped_column(Float, nullable=False)
@@ -842,7 +859,10 @@ class BoughtOnboardingState(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     current_step: Mapped[str] = mapped_column(String(64), nullable=False, default="enable_2fa")
     started_at: Mapped[datetime] = mapped_column(
@@ -864,7 +884,10 @@ class AccountLifecycleEvent(Base):
         UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
     actor_user_id: Mapped[str | None] = mapped_column(
@@ -1084,7 +1107,11 @@ class WarmupSession(Base):
     workspace_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("workspace.id"), nullable=False
     )
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     strategy_id: Mapped[str] = mapped_column(
         UUIDString, ForeignKey("warmup_strategy.id"), nullable=False
     )
@@ -1411,7 +1438,7 @@ class NeuroCommentGeneratedComment(Base):
         UUIDString, ForeignKey("neuro_comment_targets.id"), nullable=True
     )
     account_id: Mapped[str | None] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=True
+        UUIDString, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
     )
     observed_post_id: Mapped[str | None] = mapped_column(
         UUIDString, ForeignKey("neuro_comment_observed_posts.id"), nullable=True
@@ -1457,7 +1484,7 @@ class NeuroCommentAttempt(Base):
         UUIDString, ForeignKey("neuro_comment_generated_comments.id"), nullable=False
     )
     account_id: Mapped[str | None] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=True
+        UUIDString, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
     )
     target_id: Mapped[str | None] = mapped_column(
         UUIDString, ForeignKey("neuro_comment_targets.id"), nullable=True
@@ -1505,7 +1532,7 @@ class NeuroCommentEvent(Base):
         UUIDString, ForeignKey("neuro_comment_campaigns.id"), nullable=True
     )
     account_id: Mapped[str | None] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=True
+        UUIDString, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
     )
     target_id: Mapped[str | None] = mapped_column(
         UUIDString, ForeignKey("neuro_comment_targets.id"), nullable=True
@@ -1629,7 +1656,11 @@ class AccountAuthAttempt(Base):
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(UUIDString, ForeignKey("account.id"), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     external_ref: Mapped[str] = mapped_column(String(255), nullable=False)
     attempt_kind: Mapped[str] = mapped_column(String(64), nullable=False)
     outcome: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -2004,7 +2035,10 @@ class AccountSafetyOverride(Base):
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     operation: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
@@ -2037,7 +2071,10 @@ class AccountOperationLog(Base):
         index=True,
     )
     account_id: Mapped[str] = mapped_column(
-        UUIDString, ForeignKey("account.id"), nullable=False, index=True
+        UUIDString,
+        ForeignKey("account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     operation_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     operation_key: Mapped[str | None] = mapped_column(String(128), nullable=True)

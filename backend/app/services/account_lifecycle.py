@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,10 +10,23 @@ from sqlalchemy.orm import Session
 from app.config import Settings, settings
 from app.models import (
     Account,
+    AccountAuthAttempt,
+    AccountBehaviorProfile,
     AccountDeletionRequest,
     AccountExportRequest,
+    AccountGgrScore,
     AccountLifecycleEvent,
+    AccountOperationLog,
+    AccountQuarantine,
+    AccountSafetyOverride,
+    AccountStatusObservation,
     Asset,
+    BoughtOnboardingState,
+    CrossModuleLoadBucket,
+    NeuroCommentAttempt,
+    NeuroCommentEvent,
+    NeuroCommentGeneratedComment,
+    WarmupSession,
     new_id,
     utc_now,
 )
@@ -468,3 +481,100 @@ def _record_lifecycle_event(
 def _json_safe(payload: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = json.loads(json.dumps(payload, default=str))
     return result
+
+
+# ---------------------------------------------------------------------------
+# Hard delete cascade (Task 45 / F-E001)
+# ---------------------------------------------------------------------------
+
+# Tables whose rows must be deleted when the parent account is removed.
+# Mirror of migration 20260525_0054_account_safety_cascade — the DB-level
+# ON DELETE CASCADE handles this on Postgres; the explicit ORM delete here
+# guarantees portable behavior on SQLite (tests) and acts as defense in depth.
+# Each entry is (table_name, mapper class) so the report uses the on-disk
+# table name and pyright sees a concrete type for the FK column.
+_CASCADE_MODELS: tuple[tuple[str, Any], ...] = (
+    ("account_quarantines", AccountQuarantine),
+    ("account_status_observations", AccountStatusObservation),
+    ("cross_module_load_buckets", CrossModuleLoadBucket),
+    ("account_ggr_scores", AccountGgrScore),
+    ("account_behavior_profile", AccountBehaviorProfile),
+    ("bought_onboarding_state", BoughtOnboardingState),
+    ("account_safety_override", AccountSafetyOverride),
+    ("account_lifecycle_event", AccountLifecycleEvent),
+    ("account_operation_log", AccountOperationLog),
+    ("account_auth_attempt", AccountAuthAttempt),
+    ("warmup_session", WarmupSession),
+)
+
+# Tables whose account_id is nulled instead of deleted (audit/compliance).
+_SET_NULL_MODELS: tuple[tuple[str, Any], ...] = (
+    ("neuro_comment_attempts", NeuroCommentAttempt),
+    ("neuro_comment_events", NeuroCommentEvent),
+    ("neuro_comment_generated_comments", NeuroCommentGeneratedComment),
+)
+
+
+def hard_delete_account(
+    session: Session,
+    *,
+    account_id: str,
+    workspace_id: str,
+    actor_user_id: str | None,
+    reason: str,
+) -> dict[str, Any]:
+    """Hard-delete an account, applying the F-E001 cascade policy.
+
+    For tables in :data:`_CASCADE_MODELS` the related rows are deleted; for
+    tables in :data:`_SET_NULL_MODELS` ``account_id`` is set to ``NULL`` so
+    the audit history outlives the account. A ``sensitive_audit_event`` with
+    a pre-deletion snapshot is recorded *before* the account row is removed
+    (the audit row stores ``account_id`` as a plain UUID column, so the
+    reference survives the delete).
+
+    Returns a report with row counts per affected table for the runbook /
+    operator UI. Raises :class:`ValueError` if the account is not visible
+    under ``workspace_id`` (cross-tenant deletion is forbidden).
+    """
+    from sqlalchemy import delete, update
+    from sqlalchemy.engine import CursorResult
+
+    account = _account_or_raise(session, account_id, workspace_id)
+
+    cascade_counts: dict[str, int] = {}
+    for table_name, model in _CASCADE_MODELS:
+        result = session.execute(delete(model).where(model.account_id == account.id))
+        cursor = cast("CursorResult[Any]", result)
+        cascade_counts[table_name] = int(cursor.rowcount or 0)
+
+    set_null_counts: dict[str, int] = {}
+    for table_name, model in _SET_NULL_MODELS:
+        result = session.execute(
+            update(model).where(model.account_id == account.id).values(account_id=None)
+        )
+        cursor = cast("CursorResult[Any]", result)
+        set_null_counts[table_name] = int(cursor.rowcount or 0)
+
+    report: dict[str, Any] = {
+        "account_id": account.id,
+        "workspace_id": workspace_id,
+        "reason": reason,
+        "cascade_deleted": cascade_counts,
+        "set_null_updated": set_null_counts,
+    }
+
+    record_sensitive_audit_event(
+        session,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        action="account.deleted",
+        entity_type="account",
+        entity_id=account.id,
+        account_id=account.id,
+        reason=reason,
+        metadata=_json_safe(report),
+    )
+
+    session.delete(account)
+    session.commit()
+    return report

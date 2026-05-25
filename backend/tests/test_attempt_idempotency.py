@@ -224,7 +224,15 @@ def test_sender_happy_path_sets_idempotency_and_sends(db_session) -> None:
 
 
 @freeze_time(_FROZEN_NOW)
-def test_non_flood_error_leaves_sending_status(db_session) -> None:
+def test_non_flood_error_finalizes_attempt_as_failed(db_session) -> None:
+    """Task 43 (F-001): non-flood errors must finalize the attempt as FAILED.
+
+    Before the F-001 fix this test asserted ``status == "sending"`` — the buggy
+    behavior in which non-FLOOD_WAIT errors left the attempt stuck in SENDING
+    forever. The contract is now: any TelegramCommentSendError finalizes the
+    attempt (status=failed, failed_at set, _mark_send_error invoked) and
+    releases the gate + rate-limiter reservation.
+    """
     attempt = _setup_attempt(db_session)
     error = TelegramCommentSendError("TDLIB_UNKNOWN_ERROR", "connection reset")
     fake_sender = FakeTelegramCommentSender(error=error)
@@ -234,7 +242,8 @@ def test_non_flood_error_leaves_sending_status(db_session) -> None:
     service = SenderService(config=_TEST_CONFIG, sender=fake_sender, redis_client=redis_mock)
     result = service.send_attempt(db_session, attempt_id=attempt.id, workspace_id=_WS_ID)
 
-    assert result.status == "sending"
+    assert result.status == "failed"
+    assert result.failed_at is not None
     assert result.idempotency_key is not None
     assert result.error_code == "TDLIB_UNKNOWN_ERROR"
     redis_mock.set.assert_called_once()

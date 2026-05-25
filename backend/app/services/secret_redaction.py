@@ -48,6 +48,9 @@ _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(r"(?<!\w)\+?\d[\d\s\-().]{7,18}\d(?!\w)")
 _PHONE_MIN_DIGITS = 9
 _PHONE_MAX_DIGITS = 16
+# Real phone-segment groups are 1-5 digits; UUIDs (8-4-4-4-12) and other
+# dash-separated opaque IDs always exceed this in at least one group.
+_PHONE_GROUP_MAX_DIGITS = 5
 
 
 def redact_metadata(value: Any) -> Any:
@@ -96,8 +99,8 @@ def redact_pii(value: Any) -> Any:
                 result[key] = redact_pii(item)
         return result
     if isinstance(value, (list, tuple)):
-        items = cast(list[object], list(value))
-        return [redact_pii(item) for item in items]
+        sequence = cast("list[object] | tuple[object, ...]", value)
+        return [redact_pii(item) for item in sequence]
     if isinstance(value, str):
         return redact_text(value)
     return value
@@ -123,12 +126,18 @@ def _phone_substitution(match: re.Match[str]) -> str:
     if raw.startswith("+"):
         return REDACTED_PHONE
     # Otherwise require a phone-shaped separator (space, dot, paren) OR
-    # at least three dash-separated all-digit groups. This keeps the long
-    # all-digit segments of UUIDs and opaque IDs from being misclassified.
+    # dash-separated digit groups that look like a phone number layout.
+    # UUIDs (8-4-4-4-12) and opaque dash-separated IDs have at least one
+    # group longer than 5 digits, which is unrealistic for any real-world
+    # phone segment — that disqualifier is what keeps false positives down.
     if any(ch in raw for ch in " ()."):
         return REDACTED_PHONE
     groups = [g for g in raw.split("-") if g]
-    if len(groups) >= 3 and all(g.isdigit() for g in groups):
+    if (
+        len(groups) >= 3
+        and all(g.isdigit() for g in groups)
+        and all(1 <= len(g) <= _PHONE_GROUP_MAX_DIGITS for g in groups)
+    ):
         return REDACTED_PHONE
     return raw
 

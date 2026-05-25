@@ -82,6 +82,37 @@ class TestRedactPiiPatternBased:
         out = redact_pii({"id": "550e8400-e29b-41d4-a716-446655440000"})
         assert out["id"] == "550e8400-e29b-41d4-a716-446655440000"
 
+    def test_all_numeric_uuid_not_masked_as_phone(self) -> None:
+        """Tightening of the dash-segmented phone heuristic: any group longer
+        than 5 digits disqualifies a candidate as a phone number. This is
+        what stops `00000000-0000-4000-8000-000000000001` (a deterministic
+        UUID layout used in our test fixtures) being eaten by REDACTED_PHONE.
+        """
+        uuid_value = "00000000-0000-4000-8000-000000000001"
+        out = redact_pii({"note": f"correlation {uuid_value} for trace"})
+        assert uuid_value in out["note"]
+        assert REDACTED_PHONE not in out["note"]
+
+    def test_too_short_digit_run_not_masked(self) -> None:
+        # 8 digits inside punctuation context fall short of the phone
+        # min-digit threshold and exit the substitution unchanged.
+        out = redact_pii({"note": "12345678"})
+        assert out["note"] == "12345678"
+
+    def test_regex_match_with_too_few_digits_is_not_masked(self) -> None:
+        """`1.2.3.4.5` has 5 digits — the regex window matches because of
+        the separator-heavy layout, but `_phone_substitution` early-exits
+        via the digit-count guard so the value is preserved.
+        """
+        out = redact_pii({"note": "see 1.2.3.4.5 for details"})
+        assert "1.2.3.4.5" in out["note"]
+        assert REDACTED_PHONE not in out["note"]
+
+    def test_recursive_tuple_container(self) -> None:
+        # tuple containers must follow the same recursive masking as lists.
+        out = redact_pii(("alice@example.com", "no-email-here"))
+        assert out == [REDACTED_EMAIL, "no-email-here"]
+
     def test_multiple_pii_in_one_string(self) -> None:
         text = "alice@example.com and +1-202-555-0100 both leaked"
         out = redact_pii({"note": text})

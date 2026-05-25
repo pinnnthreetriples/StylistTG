@@ -10,6 +10,7 @@ from app.schemas import DiagnosticsRead, FrontendDiagnosticsSummaryRead, LivePre
 from app.services.auth_context import AuthContext, require_authenticated, require_role
 from app.services.frontend_diagnostics import build_frontend_diagnostics_summary
 from app.services.live_preflight import LivePreflightService
+from app.services.redis_client import redis_from_url
 from app.services.runtime_diagnostics import build_runtime_diagnostics
 
 router = APIRouter(prefix="/diagnostics", tags=["diagnostics"])
@@ -34,7 +35,7 @@ def runtime_diagnostics(_auth: AuthContext = Depends(require_role("admin"))):
 
 @router.get("/live-preflight", response_model=LivePreflightRead)
 def live_preflight(_auth: AuthContext = Depends(require_role("admin"))):
-    redis = cast(Redis, cast(Any, Redis).from_url(settings.redis_url))
+    redis = redis_from_url()
 
     def redis_ping() -> bool:
         return bool(cast(Any, redis).ping())

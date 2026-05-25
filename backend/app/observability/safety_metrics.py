@@ -153,6 +153,18 @@ class SafetyMetrics:
             ("operation",),
             registry=self.registry,
         )
+        self._db_pool_saturation = client.Gauge(
+            "db_pool_saturation_ratio",
+            "DB pool checked-out connections divided by configured pool size.",
+            ("pool",),
+            registry=self.registry,
+        )
+        self._redis_pool_saturation = client.Gauge(
+            "redis_pool_saturation_ratio",
+            "Redis pool in-use connections divided by max connections.",
+            ("pool",),
+            registry=self.registry,
+        )
 
     def gate_blocked(self, *, workspace_id: str, intent: str, reason: str) -> None:
         if not self.enabled:
@@ -232,6 +244,16 @@ class SafetyMetrics:
         if not self.enabled:
             return
         self._redis_fail_open.labels(operation=operation).inc()
+
+    def db_pool_saturation(self, *, pool: str, value: float) -> None:
+        if not self.enabled:
+            return
+        self._db_pool_saturation.labels(pool=pool).set(value)
+
+    def redis_pool_saturation(self, *, pool: str, value: float) -> None:
+        if not self.enabled:
+            return
+        self._redis_pool_saturation.labels(pool=pool).set(value)
 
     def typing_emit(self, *, outcome: TypingOutcome | str) -> None:
         if not self.enabled:

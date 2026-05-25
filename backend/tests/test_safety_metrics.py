@@ -72,6 +72,17 @@ def test_cold_call_throttled_increments_counter() -> None:
     )
 
 
+def test_pool_saturation_gauges_record_ratios() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.db_pool_saturation(pool="default", value=0.8)
+    metrics.redis_pool_saturation(pool="default", value=0.5)
+
+    assert registry.get_sample_value("db_pool_saturation_ratio", {"pool": "default"}) == 0.8
+    assert registry.get_sample_value("redis_pool_saturation_ratio", {"pool": "default"}) == 0.5
+
+
 def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     registry = CollectorRegistry()
     metrics = SafetyMetrics(registry=registry, enabled=False)
@@ -174,6 +185,7 @@ def test_alert_rules_yaml_is_valid_and_has_required_alerts() -> None:
         "GgrWeakBucketGrowth",
         "GateBlockBurst",
         "SendDurationSlow",
+        "DbPoolNearSaturation",
     } <= alerts
 
 

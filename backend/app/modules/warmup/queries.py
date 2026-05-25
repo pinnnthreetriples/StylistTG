@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from redis import Redis
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -20,6 +19,7 @@ from app.modules.warmup.contracts import (
 from app.modules.warmup.isolation import get_claim
 from app.modules.warmup.policies import warmup_operation_policy as _warmup_operation_policy
 from app.modules.warmup.readiness import validate_warmup_readiness
+from app.services.redis_client import redis_from_url
 
 
 def get_warmup_readiness(session: Session, *, workspace_id: str) -> WarmupReadinessRead:
@@ -144,9 +144,7 @@ def warmup_operation_policy(
 
 def _redis_connected() -> bool:
     try:
-        client = cast(
-            Redis, cast(Any, Redis).from_url(settings.redis_url, socket_connect_timeout=0.2)
-        )
+        client = redis_from_url(socket_connect_timeout=0.2)
         try:
             return bool(cast(Any, client).ping())
         finally:

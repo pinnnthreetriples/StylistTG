@@ -93,7 +93,7 @@ def _map_tdlib_send_error(response: dict[str, Any]) -> TelegramCommentSendError:
 def _require_int_id(value: str, *, error_code: str) -> int:
     try:
         return int(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         message = "Chat not found" if error_code == "CHAT_NOT_FOUND" else "Message not found"
         raise TelegramCommentSendError(error_code, message) from None
 

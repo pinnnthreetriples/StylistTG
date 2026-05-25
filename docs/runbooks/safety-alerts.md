@@ -119,6 +119,17 @@ groups:
           summary: "Send attempt p95 latency above 30s"
           description: "Strategy {{ $labels.strategy }} has attempt_send_duration_seconds p95 above 30s."
           runbook_url: "docs/runbooks/safety-alerts.md#senddurationslow"
+
+      - alert: DbPoolNearSaturation
+        expr: db_pool_saturation_ratio > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: safety-pipeline
+        annotations:
+          summary: "DB pool near saturation"
+          description: "DB pool {{ $labels.pool }} has checked-out connections above 80% for 5m."
+          runbook_url: "docs/runbooks/safety-alerts.md#dbpoolnearsaturation"
 ```
 
 ## QuarantineEpidemic
@@ -165,6 +176,15 @@ Severity: warning.
 4. Do not bypass TDLib/live execution gates. Latency alerts are not approval for live behavior changes.
 5. Roll back with `PATCH /api/workspaces/{workspace_id}/feature-flags` only when latency is caused by safety-pipeline reserve/gate behavior, not downstream Telegram or proxy latency.
 6. Recover when p95 is below 30s for 30m and queue depth returns to baseline.
+
+## DbPoolNearSaturation
+
+Severity: warning.
+
+1. Check API and worker replica counts against `DB_POOL_SIZE` and Postgres connection limits.
+2. Inspect slow queries and stuck transactions before increasing pool size.
+3. If saturation aligns with Redis/RQ backlog, scale workers carefully and keep TDLib/live gates unchanged.
+4. Recover when `db_pool_saturation_ratio` stays below 0.8 for 15m.
 
 ## SafetyGateRedisDegraded
 

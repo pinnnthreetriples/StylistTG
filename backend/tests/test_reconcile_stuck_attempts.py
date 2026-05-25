@@ -11,6 +11,7 @@ from sqlalchemy.dialects import postgresql
 from app.adapters.tdlib_auth import search_chat_messages
 from app.config import Settings
 from app.models import (
+    Account,
     AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,
     NeuroAttemptStatus,
@@ -31,7 +32,7 @@ from app.services.scheduler import (
     reconcile_stuck_tick,
     scheduler_report,
 )
-from tests.helpers.factories import seed_account
+from tests.helpers.factories import seed_account, seed_two_workspaces
 
 _FROZEN_NOW = "2026-05-22T12:00:00+00:00"
 _FROZEN_DT = datetime(2026, 5, 22, 12, 0, 0, tzinfo=UTC)
@@ -220,6 +221,63 @@ def test_reconcile_tdlib_error_keeps_attempt_sending(db_session) -> None:
     assert report.per_account_errors == {attempt.account_id: 1}
 
 
+@freeze_time(_FROZEN_NOW)
+def test_reconcile_fails_observed_post_campaign_mismatch_without_tdlib_call(db_session) -> None:
+    attempt = _seed_attempt(db_session, idempotency_key=str(uuid4()))
+    foreign_campaign = _campaign(db_session, workspace_id=seed_two_workspaces(db_session)[1])
+    observed = db_session.get(NeuroCommentObservedPost, attempt.observed_post_id)
+    observed.campaign_id = foreign_campaign.id
+    db_session.commit()
+    client = FakeSearchClient()
+
+    report = run_reconcile_tick(db_session, client, now=_FROZEN_DT + timedelta(minutes=10))
+    db_session.commit()
+    db_session.refresh(attempt)
+
+    assert report.resolved_failed == 1
+    assert attempt.status == NeuroAttemptStatus.FAILED.value
+    assert attempt.error_code == "tenant_invariant_violation"
+    assert client.calls == []
+
+
+@freeze_time(_FROZEN_NOW)
+def test_reconcile_fails_target_campaign_mismatch_without_tdlib_call(db_session) -> None:
+    attempt = _seed_attempt(db_session, idempotency_key=str(uuid4()))
+    foreign_campaign = _campaign(db_session, workspace_id=seed_two_workspaces(db_session)[1])
+    target = db_session.get(NeuroCommentTarget, attempt.target_id)
+    target.campaign_id = foreign_campaign.id
+    attempt.observed_post_id = None
+    attempt.updated_at = _FROZEN_DT - timedelta(minutes=10)
+    db_session.commit()
+    client = FakeSearchClient()
+
+    report = run_reconcile_tick(db_session, client, now=_FROZEN_DT + timedelta(minutes=10))
+    db_session.commit()
+    db_session.refresh(attempt)
+
+    assert report.resolved_failed == 1
+    assert attempt.error_code == "tenant_invariant_violation"
+    assert client.calls == []
+
+
+@freeze_time(_FROZEN_NOW)
+def test_reconcile_fails_account_workspace_mismatch_without_tdlib_call(db_session) -> None:
+    attempt = _seed_attempt(db_session, idempotency_key=str(uuid4()))
+    foreign_workspace = seed_two_workspaces(db_session)[1]
+    account = db_session.get(Account, attempt.account_id)
+    account.workspace_id = foreign_workspace
+    db_session.commit()
+    client = FakeSearchClient()
+
+    report = run_reconcile_tick(db_session, client, now=_FROZEN_DT + timedelta(minutes=10))
+    db_session.commit()
+    db_session.refresh(attempt)
+
+    assert report.resolved_failed == 1
+    assert attempt.error_code == "tenant_invariant_violation"
+    assert client.calls == []
+
+
 def test_reconcile_query_uses_for_update_skip_locked() -> None:
     class EmptyScalars:
         def all(self) -> list[object]:
@@ -245,6 +303,19 @@ def test_reconcile_query_uses_for_update_skip_locked() -> None:
     compiled = str(session.statement.compile(dialect=postgresql.dialect()))
     assert "FOR UPDATE" in compiled
     assert "SKIP LOCKED" in compiled
+
+
+def _campaign(db_session, *, workspace_id: str) -> NeuroCommentCampaign:
+    campaign = NeuroCommentCampaign(
+        id=new_id(),
+        workspace_id=workspace_id,
+        name=f"Foreign campaign {new_id()}",
+        status="running",
+        dry_run=False,
+    )
+    db_session.add(campaign)
+    db_session.flush()
+    return campaign
 
 
 def test_scheduler_report_registers_reconcile_stuck_tick() -> None:

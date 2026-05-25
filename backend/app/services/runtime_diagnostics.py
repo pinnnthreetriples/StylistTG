@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from redis import Redis
 from redis.exceptions import RedisError
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -12,6 +11,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.models import Job, JobStepResult
 from app.services.accounts import get_account
+from app.services.redis_client import redis_from_url
 
 
 def build_runtime_diagnostics() -> dict[str, Any]:
@@ -28,14 +28,7 @@ def build_runtime_diagnostics() -> dict[str, Any]:
         diagnostics["database"] = "down"
 
     try:
-        redis = cast(
-            Redis,
-            cast(Any, Redis).from_url(
-                settings.redis_url,
-                socket_connect_timeout=1,
-                socket_timeout=1,
-            ),
-        )
+        redis = redis_from_url(socket_connect_timeout=1, socket_timeout=1)
         cast(Any, redis).ping()
         diagnostics["redis"] = "ok"
     except RedisError:

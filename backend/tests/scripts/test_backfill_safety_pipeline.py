@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+
 from app.models import Account, AccountBehaviorProfile, AccountGgrScore, NeuroCommentEvent, new_id
+import scripts.backfill_safety_pipeline as backfill_module
 from scripts.backfill_safety_pipeline import (
     BALANCED_MESSAGE_DELETION_PROBABILITY,
     BALANCED_PROFILE_VIEW_PROBABILITY,
@@ -115,6 +118,54 @@ def test_backfill_is_idempotent_for_artifact_rows(db_session) -> None:
         "behavior_rows": 1,
         "event_rows": 1,
     }
+
+
+def test_backfill_upsert_ignores_stale_duplicate_plan(db_session, monkeypatch) -> None:
+    account = _seed_accounts(db_session, 1)[0]
+    run_backfill(
+        db_session,
+        workspace_id=account.workspace_id,
+        batch_size=10,
+        dry_run=False,
+        skip_existing=False,
+    )
+
+    monkeypatch.setattr(
+        backfill_module,
+        "_planned_actions",
+        lambda _session, _account: {"ggr_created", "behavior_created"},
+    )
+
+    second = run_backfill(
+        db_session,
+        workspace_id=account.workspace_id,
+        batch_size=10,
+        dry_run=False,
+        skip_existing=False,
+    )
+
+    assert {
+        "second_ggr": second.ggr_created,
+        "second_behavior": second.behavior_created,
+        "second_events": second.events_created,
+        "ggr_rows": _count(db_session, AccountGgrScore),
+        "behavior_rows": _count(db_session, AccountBehaviorProfile),
+        "event_rows": _count(db_session, NeuroCommentEvent),
+    } == {
+        "second_ggr": 0,
+        "second_behavior": 0,
+        "second_events": 0,
+        "ggr_rows": 1,
+        "behavior_rows": 1,
+        "event_rows": 1,
+    }
+
+
+def test_stable_seed_uses_sha256_not_python_hash() -> None:
+    account_id = "00000000-0000-4000-8000-000000000123"
+    expected = int(hashlib.sha256(account_id.encode("utf-8")).hexdigest()[:8], 16) % (2**31)
+
+    assert _stable_seed(account_id) == expected
 
 
 def test_backfill_skips_existing_partial_data(db_session) -> None:

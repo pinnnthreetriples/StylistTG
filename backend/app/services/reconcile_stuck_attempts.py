@@ -11,6 +11,7 @@ from app.adapters.tdlib_auth import search_chat_messages
 from app.config import Settings, settings
 from app.logging_utils import log_event, log_warn
 from app.models import (
+    Account,
     NeuroAttemptStatus,
     NeuroCommentAttempt,
     NeuroCommentCampaign,
@@ -95,6 +96,18 @@ def run_reconcile_tick(
     for attempt in attempts:
         context = _load_context(session, attempt)
         workspace_id = context.workspace_id
+        if context.tenant_violation:
+            _mark_tenant_violation(attempt, now)
+            report.resolved_failed += 1
+            safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="failed")
+            log_event(
+                "reconcile_workspace_mismatch",
+                workspace_id=workspace_id,
+                attempt_id=attempt.id,
+                account_id=attempt.account_id,
+                reason=context.tenant_violation,
+            )
+            continue
         if not attempt.idempotency_key:
             report.skipped_no_idem_key += 1
             safety_metrics.attempts_stuck(workspace_id=workspace_id, resolution="skipped")
@@ -178,22 +191,53 @@ class _AttemptContext:
     workspace_id: str | None
     observed_discussion_chat_id: str | None
     target_discussion_chat_id: str | None
+    tenant_violation: str | None = None
 
 
 def _load_context(session: Session, attempt: NeuroCommentAttempt) -> _AttemptContext:
-    campaign = session.get(NeuroCommentCampaign, attempt.campaign_id)
+    campaign = session.scalar(
+        select(NeuroCommentCampaign).where(NeuroCommentCampaign.id == attempt.campaign_id)
+    )
+    if campaign is None:
+        return _AttemptContext(None, None, None, "campaign_missing")
+
+    if attempt.account_id is not None:
+        account = session.scalar(
+            select(Account)
+            .where(Account.id == attempt.account_id)
+            .where(Account.workspace_id == campaign.workspace_id)
+        )
+        if account is None:
+            return _AttemptContext(campaign.workspace_id, None, None, "account_workspace_mismatch")
+
     observed = (
-        session.get(NeuroCommentObservedPost, attempt.observed_post_id)
+        session.scalar(
+            select(NeuroCommentObservedPost)
+            .where(NeuroCommentObservedPost.id == attempt.observed_post_id)
+            .where(NeuroCommentObservedPost.campaign_id == campaign.id)
+        )
         if attempt.observed_post_id is not None
         else None
     )
+    if attempt.observed_post_id is not None and observed is None:
+        return _AttemptContext(
+            campaign.workspace_id, None, None, "observed_post_workspace_mismatch"
+        )
+
     target = (
-        session.get(NeuroCommentTarget, attempt.target_id)
+        session.scalar(
+            select(NeuroCommentTarget)
+            .where(NeuroCommentTarget.id == attempt.target_id)
+            .where(NeuroCommentTarget.campaign_id == campaign.id)
+        )
         if attempt.target_id is not None
         else None
     )
+    if attempt.target_id is not None and target is None:
+        return _AttemptContext(campaign.workspace_id, None, None, "target_workspace_mismatch")
+
     return _AttemptContext(
-        workspace_id=campaign.workspace_id if campaign is not None else None,
+        workspace_id=campaign.workspace_id,
         observed_discussion_chat_id=observed.discussion_chat_id if observed is not None else None,
         target_discussion_chat_id=target.discussion_chat_id if target is not None else None,
     )
@@ -221,6 +265,16 @@ def _mark_lost(attempt: NeuroCommentAttempt, now: datetime) -> None:
         now = now.replace(tzinfo=UTC)
     attempt.status = NeuroAttemptStatus.FAILED.value
     attempt.error_code = "stuck_attempt_lost"
+    attempt.error_message = None
+    attempt.external_message_id_provisional = None
+    attempt.failed_at = now
+
+
+def _mark_tenant_violation(attempt: NeuroCommentAttempt, now: datetime) -> None:
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+    attempt.status = NeuroAttemptStatus.FAILED.value
+    attempt.error_code = "tenant_invariant_violation"
     attempt.error_message = None
     attempt.external_message_id_provisional = None
     attempt.failed_at = now

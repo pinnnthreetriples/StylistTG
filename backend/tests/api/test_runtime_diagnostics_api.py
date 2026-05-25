@@ -146,12 +146,13 @@ def test_runtime_diagnostics_uses_short_redis_timeouts(monkeypatch) -> None:
         def ping(self):
             return True
 
-    def fake_from_url(url, **kwargs):
-        captured_kwargs.update(kwargs)
+    def fake_redis_from_url(*, socket_connect_timeout, socket_timeout):
+        captured_kwargs["socket_connect_timeout"] = socket_connect_timeout
+        captured_kwargs["socket_timeout"] = socket_timeout
         return FakeRedis()
 
     monkeypatch.setattr("app.services.runtime_diagnostics.SessionLocal", FakeSession)
-    monkeypatch.setattr("app.services.runtime_diagnostics.Redis.from_url", fake_from_url)
+    monkeypatch.setattr("app.services.runtime_diagnostics.redis_from_url", fake_redis_from_url)
 
     diagnostics = build_runtime_diagnostics()
 

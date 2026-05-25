@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from redis import Redis
 from redis.exceptions import RedisError
 from rq import Queue, Worker
 from rq.exceptions import NoSuchJobError
@@ -12,6 +11,7 @@ from rq.job import Job
 from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
 from app.config import Settings, settings
+from app.services.redis_client import redis_from_url
 from app.services.tdlib_runtime import detect_tdlib_runtime
 
 AUTH_QUEUE_NAME = "auth_jobs"
@@ -122,13 +122,11 @@ def worker_diagnostics(config: Settings = settings) -> dict[str, Any]:
 def _redis_queue_snapshot(config: Settings) -> dict[str, Any]:
     queue_names = [descriptor.name for descriptor in queue_descriptors()]
     try:
-        connection = cast(
-            Redis,
-            cast(Any, Redis).from_url(
-                config.redis_url,
-                socket_connect_timeout=0.2,
-                socket_timeout=0.2,
-            ),
+        connection = redis_from_url(
+            config.redis_url,
+            config=config,
+            socket_connect_timeout=0.2,
+            socket_timeout=0.2,
         )
         cast(Any, connection).ping()
         workers = cast(list[Any], cast(Any, Worker).all(connection=connection))
@@ -156,7 +154,7 @@ def _redis_queue_snapshot(config: Settings) -> dict[str, Any]:
         }
 
 
-def _queue_snapshot(connection: Redis, queue_name: str) -> dict[str, Any]:
+def _queue_snapshot(connection: Any, queue_name: str) -> dict[str, Any]:
     try:
         queue = Queue(queue_name, connection=connection)
         return {
@@ -179,7 +177,7 @@ def _queue_snapshot(connection: Redis, queue_name: str) -> dict[str, Any]:
         }
 
 
-def _oldest_job_age_seconds(queue: Queue, connection: Redis) -> int | None:
+def _oldest_job_age_seconds(queue: Queue, connection: Any) -> int | None:
     job_ids = queue.get_job_ids(offset=0, length=1)
     if not job_ids:
         return None

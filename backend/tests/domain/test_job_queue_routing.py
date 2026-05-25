@@ -22,7 +22,7 @@ class FakeQueue:
 
 def test_profile_jobs_use_profile_queue(monkeypatch) -> None:
     queues: list[FakeQueue] = []
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(rq, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         rq,
         "Queue",
@@ -49,7 +49,7 @@ def test_account_update_enqueue_delegates_to_workflow_registry(monkeypatch) -> N
 
 def test_auth_batch_start_uses_auth_queue(monkeypatch) -> None:
     queues: list[FakeQueue] = []
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(rq, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         rq,
         "Queue",
@@ -77,7 +77,7 @@ def test_remove_job_from_queue_checks_profile_and_auth_queues(monkeypatch) -> No
         def fetch(job_id, connection):
             raise rq.NoSuchJobError
 
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(rq, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         rq,
         "Queue",
@@ -104,7 +104,7 @@ def test_enqueue_failure_logs_queue_and_job_without_secret_url(monkeypatch) -> N
         def enqueue_call(self, *, func, args, job_id=None, unique=False):
             raise RedisError("redis://:secret@example.test/0")
 
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(rq, "redis_from_url", lambda: object())
     monkeypatch.setattr(rq, "Queue", lambda name, connection: FailingQueue(name, connection))
     monkeypatch.setattr(rq, "log_warn", lambda event, **fields: events.append((event, fields)))
 
@@ -152,7 +152,7 @@ def test_warmup_dispatch_tick_redis_error_returns_false(monkeypatch) -> None:
 
 def test_neuro_generate_enqueue_dedupes_normal_and_not_forced(monkeypatch) -> None:
     queues: list[FakeQueue] = []
-    monkeypatch.setattr(rq.Redis, "from_url", lambda url: object())
+    monkeypatch.setattr(rq, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         rq,
         "Queue",

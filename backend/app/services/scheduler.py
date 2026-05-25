@@ -112,11 +112,10 @@ def enqueue_admin_notification_tick(*, now: float | None = None) -> bool:
 
 def rate_limit_flush_tick() -> dict[str, object]:
     """Flush rate-limit counters from Redis to Postgres (persistence fallback)."""
-    from redis import Redis
-
     from app.services.rate_limit_persistence import flush_redis_to_db
+    from app.services.redis_client import redis_from_url
 
-    redis_client = cast(Any, Redis).from_url(settings.redis_url)
+    redis_client = redis_from_url()
     with SessionLocal() as session:
         report = flush_redis_to_db(session, redis_client)
         session.commit()

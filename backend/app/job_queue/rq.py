@@ -3,16 +3,15 @@ from __future__ import annotations
 from typing import Any, cast
 from datetime import timedelta
 
-from redis import Redis
 from redis.exceptions import RedisError
 from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
-from app.config import settings
 from app.models import new_id
 from app.logging_utils import log_warn
+from app.services.redis_client import redis_from_url
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
 from app.workers.profile_jobs import run_profile_job
@@ -66,19 +65,19 @@ __all__ = [
 
 
 def get_profile_queue() -> Queue:
-    connection = cast(Any, Redis).from_url(settings.redis_url)
+    connection = redis_from_url()
     return Queue(PROFILE_QUEUE_NAME, connection=connection)
 
 
 def get_auth_queue() -> Queue:
-    connection = cast(Any, Redis).from_url(settings.redis_url)
+    connection = redis_from_url()
     return Queue(AUTH_QUEUE_NAME, connection=connection)
 
 
 def get_queue(queue_name: str) -> Queue:
     if queue_name not in PRODUCTION_QUEUE_NAMES:
         raise ValueError(f"unsupported queue: {queue_name}")
-    connection = cast(Any, Redis).from_url(settings.redis_url)
+    connection = redis_from_url()
     return Queue(queue_name, connection=connection)
 
 

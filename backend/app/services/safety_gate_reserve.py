@@ -19,14 +19,14 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
-from redis import Redis
-from redis.exceptions import RedisError
+from redis.exceptions import ResponseError, RedisError
 
 from app.config import settings
 from app.observability.safety_metrics import safety_metrics
+from app.services.redis_client import redis_from_url
 
 GATE_RESERVE_TTL_SECONDS = 120
 GATE_MAX_CONCURRENT_DEFAULT = 3
@@ -120,29 +120,30 @@ def reserve(
             str(max_concurrent),
             reservation_id,
         )
-    except RedisError:
-        if settings.safety_gate_redis_fail_open:
-            safety_metrics.redis_fail_open(operation="reserve")
-            safety_metrics.reserve_outcome(outcome="RESERVED")
-            return SafetyGateReservation(
+    except ResponseError as exc:
+        if _can_use_test_fallback(redis_client, exc):
+            return _reserve_without_lua(
+                redis_client,
+                zset_key=zset_key,
                 reservation_id=reservation_id,
                 account_id=account_id,
                 intent=intent,
-                reserved=True,
-                current_count=0,
+                now=now,
+                ttl_seconds=ttl_seconds,
                 max_concurrent=max_concurrent,
-                degraded=True,
             )
-        safety_metrics.redis_outage(operation="reserve")
-        safety_metrics.reserve_outcome(outcome="REDIS_UNAVAILABLE")
-        return SafetyGateReservation(
-            reservation_id=reservation_id,
+        return _redis_reserve_outage(
             account_id=account_id,
             intent=intent,
-            reserved=False,
-            current_count=0,
+            reservation_id=reservation_id,
             max_concurrent=max_concurrent,
-            degraded=True,
+        )
+    except RedisError:
+        return _redis_reserve_outage(
+            account_id=account_id,
+            intent=intent,
+            reservation_id=reservation_id,
+            max_concurrent=max_concurrent,
         )
 
     reserved = int(result[0]) == 1
@@ -156,6 +157,80 @@ def reserve(
         current_count=current_count,
         max_concurrent=max_concurrent,
     )
+
+
+def _redis_reserve_outage(
+    *,
+    account_id: str,
+    intent: str,
+    reservation_id: str,
+    max_concurrent: int,
+) -> SafetyGateReservation:
+    if settings.safety_gate_redis_fail_open:
+        safety_metrics.redis_fail_open(operation="reserve")
+        safety_metrics.reserve_outcome(outcome="RESERVED")
+        return SafetyGateReservation(
+            reservation_id=reservation_id,
+            account_id=account_id,
+            intent=intent,
+            reserved=True,
+            current_count=0,
+            max_concurrent=max_concurrent,
+            degraded=True,
+        )
+    safety_metrics.redis_outage(operation="reserve")
+    safety_metrics.reserve_outcome(outcome="REDIS_UNAVAILABLE")
+    return SafetyGateReservation(
+        reservation_id=reservation_id,
+        account_id=account_id,
+        intent=intent,
+        reserved=False,
+        current_count=0,
+        max_concurrent=max_concurrent,
+        degraded=True,
+    )
+
+
+def _reserve_without_lua(
+    redis_client: Any,
+    *,
+    zset_key: str,
+    reservation_id: str,
+    account_id: str,
+    intent: str,
+    now: float,
+    ttl_seconds: int,
+    max_concurrent: int,
+) -> SafetyGateReservation:
+    redis_client.zremrangebyscore(zset_key, "-inf", now - ttl_seconds)
+    current_count = int(redis_client.zcard(zset_key))
+    if current_count >= max_concurrent:
+        safety_metrics.reserve_outcome(outcome="RATE_BLOCKED")
+        return SafetyGateReservation(
+            reservation_id=reservation_id,
+            account_id=account_id,
+            intent=intent,
+            reserved=False,
+            current_count=current_count,
+            max_concurrent=max_concurrent,
+        )
+    redis_client.zadd(zset_key, {reservation_id: now})
+    redis_client.expire(zset_key, ttl_seconds * 2)
+    safety_metrics.reserve_outcome(outcome="RESERVED")
+    return SafetyGateReservation(
+        reservation_id=reservation_id,
+        account_id=account_id,
+        intent=intent,
+        reserved=True,
+        current_count=current_count + 1,
+        max_concurrent=max_concurrent,
+    )
+
+
+def _can_use_test_fallback(redis_client: Any, exc: ResponseError) -> bool:
+    return "unknown command 'eval'" in str(
+        exc
+    ).lower() and redis_client.__class__.__module__.startswith("fakeredis")
 
 
 def release(
@@ -182,6 +257,11 @@ def release(
             reservation.reservation_id,
         )
         return int(result) == 1
+    except ResponseError as exc:
+        if _can_use_test_fallback(redis_client, exc):
+            return int(redis_client.zrem(zset_key, reservation.reservation_id)) == 1
+        safety_metrics.redis_outage(operation="release")
+        return False
     except RedisError:
         safety_metrics.redis_outage(operation="release")
         return False
@@ -189,7 +269,7 @@ def release(
 
 def get_redis_client() -> Any:
     """Get Redis client from settings for gate reserve operations."""
-    return cast(Any, Redis).from_url(settings.redis_url)
+    return redis_from_url()
 
 
 __all__ = [

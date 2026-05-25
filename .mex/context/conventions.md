@@ -25,7 +25,7 @@ last_updated: 2026-05-25
 
 ## Backend
 
-- Python 3.12+ with type hints.
+- Python 3.14+ with type hints.
 - Use service-layer logic for business rules.
 - Keep route handlers thin.
 - Preserve workspace scoping.

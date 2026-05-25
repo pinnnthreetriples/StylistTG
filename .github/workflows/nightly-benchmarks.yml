@@ -14,7 +14,7 @@ permissions:
   issues: write
 
 env:
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.14"
   UV_VERSION: "0.10.9"
 
 jobs:

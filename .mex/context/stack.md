@@ -26,7 +26,7 @@ last_updated: 2026-05-25
 
 ## Backend
 
-- Python 3.12+.
+- Python 3.14+.
 - FastAPI.
 - SQLAlchemy and Alembic.
 - PostgreSQL.

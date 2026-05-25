@@ -19,6 +19,48 @@ SENSITIVE_FRAGMENTS = (
     "twofactorpassword",
 )
 
+# Audit B F-001: PII key fragments. Detected the same way as SENSITIVE_FRAGMENTS
+# (case-insensitive, separators stripped) but mapped to type-specific tokens so
+# downstream readers can distinguish a redacted email from a redacted secret.
+PII_EMAIL_KEY_FRAGMENTS = (
+    "email",
+    "contactemail",
+    "owneremail",
+    "useremail",
+    "actoremail",
+)
+
+PII_PHONE_KEY_FRAGMENTS = (
+    "phone",
+    "phonenumber",
+    "contactphone",
+    "tgphone",
+    "telephone",
+    "mobile",
+)
+
+REDACTED_EMAIL = "[REDACTED_EMAIL]"
+REDACTED_PHONE = "[REDACTED_PHONE]"
+
+# Free-text PII patterns. Conservative: phones require at least 9 digits to
+# avoid matching IDs/timestamps; bounded by non-word characters on both sides.
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
+_PHONE_RE = re.compile(r"(?<!\w)\+?\d[\d\s\-().]{7,18}\d(?!\w)")
+_PHONE_MIN_DIGITS = 9
+_PHONE_MAX_DIGITS = 16
+# Real phone-segment groups are 1-5 digits; UUIDs (8-4-4-4-12) and other
+# dash-separated opaque IDs always exceed this in at least one group.
+_PHONE_GROUP_MAX_DIGITS = 5
+# UUID-context detection. The phone regex can match the middle 4-4-4
+# digit run of a UUID like ``02ee73f6-8013-4684-9467-25bbff94ec4b`` (the
+# `8013-4684-9467` segment looks phone-shaped). We suppress such matches
+# when the surrounding characters resemble the rest of a UUID layout:
+# a hex run terminated by `-` on the left AND `-` followed by another hex
+# run on the right. Both sides must match — a one-sided UUID-ish run is
+# not enough to override a legitimate phone redaction.
+_UUID_CONTEXT_BEFORE_RE = re.compile(r"[0-9a-fA-F]+-$")
+_UUID_CONTEXT_AFTER_RE = re.compile(r"^-[0-9a-fA-F]+")
+
 
 def redact_metadata(value: Any) -> Any:
     if isinstance(value, Mapping):
@@ -35,8 +77,102 @@ def redact_metadata(value: Any) -> Any:
     return value
 
 
+def redact_pii(value: Any) -> Any:
+    """Recursively redact emails, phones, and credentials.
+
+    Supersedes :func:`redact_metadata` for any callsite that needs PII
+    coverage (audit log metadata, structured logging kwargs). Three layers:
+
+    1. **Key-based masking** — values for keys whose normalized form matches
+       an email/phone fragment are replaced with ``[REDACTED_EMAIL]`` /
+       ``[REDACTED_PHONE]``. Generic secret keys still mask with ``***``.
+    2. **Pattern-based masking** — emails and phone-like substrings inside
+       any string value are replaced with the same tokens.
+    3. **Recursive nesting** — applies to dict/list/tuple containers.
+
+    Non-string, non-container values pass through unchanged. Safe for
+    arbitrary metadata payloads typical of sensitive audit events.
+    """
+    if isinstance(value, Mapping):
+        mapping = cast(Mapping[object, object], value)
+        result: dict[object, Any] = {}
+        for key, item in mapping.items():
+            normalized = _normalize_key(key)
+            if any(fragment in normalized for fragment in PII_EMAIL_KEY_FRAGMENTS):
+                result[key] = REDACTED_EMAIL
+            elif any(fragment in normalized for fragment in PII_PHONE_KEY_FRAGMENTS):
+                result[key] = REDACTED_PHONE
+            elif is_sensitive_key(key):
+                result[key] = "***"
+            else:
+                result[key] = redact_pii(item)
+        return result
+    if isinstance(value, (list, tuple)):
+        sequence = cast("list[object] | tuple[object, ...]", value)
+        return [redact_pii(item) for item in sequence]
+    if isinstance(value, str):
+        return redact_text(value)
+    return value
+
+
 def redact_text(value: str) -> str:
-    return _redact_url_credentials(_redact_key_values(value))
+    return _redact_pii_patterns(_redact_url_credentials(_redact_key_values(value)))
+
+
+def _redact_pii_patterns(text: str) -> str:
+    """Apply free-text email/phone regex masking to ``text``."""
+    text = _EMAIL_RE.sub(REDACTED_EMAIL, text)
+    text = _PHONE_RE.sub(_phone_substitution, text)
+    return text
+
+
+def _phone_substitution(match: re.Match[str]) -> str:
+    raw = match.group(0)
+    digit_count = sum(1 for c in raw if c.isdigit())
+    if not (_PHONE_MIN_DIGITS <= digit_count <= _PHONE_MAX_DIGITS):
+        return raw
+    # E.164-style leading + is unambiguous; mask outright. UUIDs never
+    # contain `+`, so this branch can short-circuit the context check.
+    if raw.startswith("+"):
+        return REDACTED_PHONE
+    # Reject UUID middle segments before any of the phone-shape heuristics
+    # below can promote them to REDACTED_PHONE.
+    if _is_uuid_context(match):
+        return raw
+    # Otherwise require a phone-shaped separator (space, dot, paren) OR
+    # dash-separated digit groups that look like a phone number layout.
+    # UUIDs (8-4-4-4-12) and opaque dash-separated IDs have at least one
+    # group longer than 5 digits, which is unrealistic for any real-world
+    # phone segment — that disqualifier is what keeps false positives down.
+    if any(ch in raw for ch in " ()."):
+        return REDACTED_PHONE
+    groups = [g for g in raw.split("-") if g]
+    if (
+        len(groups) >= 3
+        and all(g.isdigit() for g in groups)
+        and all(1 <= len(g) <= _PHONE_GROUP_MAX_DIGITS for g in groups)
+    ):
+        return REDACTED_PHONE
+    return raw
+
+
+def _is_uuid_context(match: re.Match[str]) -> bool:
+    """Return True when ``match`` sits between two hex runs separated by `-`.
+
+    Used to suppress phone-shaped false positives on UUID middle segments
+    such as ``8013-4684-9467`` inside ``02ee73f6-8013-4684-9467-25bbff94ec4b``.
+    Both sides must look UUID-ish — a one-sided hex run is not enough to
+    override a legitimate phone redaction.
+    """
+    source = match.string
+    # 13 chars is enough to spot any 8/4/4/4/12 hex chunk + the trailing dash.
+    before = source[max(0, match.start() - 13) : match.start()]
+    after = source[match.end() : match.end() + 13]
+    return bool(_UUID_CONTEXT_BEFORE_RE.search(before) and _UUID_CONTEXT_AFTER_RE.match(after))
+
+
+def _normalize_key(key: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(key).lower())
 
 
 def _redact_key_values(text: str) -> str:
@@ -158,5 +294,5 @@ def _is_key_char(value: str) -> bool:
 
 
 def is_sensitive_key(key: object) -> bool:
-    normalized = re.sub(r"[^a-z0-9]", "", str(key).lower())
+    normalized = _normalize_key(key)
     return any(fragment.replace("_", "") in normalized for fragment in SENSITIVE_FRAGMENTS)

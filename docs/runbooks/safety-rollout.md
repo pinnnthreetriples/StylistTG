@@ -38,3 +38,39 @@ Set `safety_pipeline_v2_enabled=false` for affected workspaces through the admin
 Verify new safety-gate evaluations return only the legacy shim reasons: `proxy_unhealthy`,
 `active_quarantine`, and `no_warmup`. Keep existing audit events for traceability and document
 the rollback reason in the incident or release notes.
+
+## PII compliance — audit log content guarantees
+
+The sensitive audit log path (`record_sensitive_audit_event`) applies
+`secret_redaction.redact_pii()` to every payload before insert. Three
+layers cover GDPR-class data:
+
+1. **Key-based masking.** Values for any key whose normalized form matches
+   an email fragment (`email`, `contact_email`, `owner_email`, `user_email`,
+   `actor_email`) collapse to `[REDACTED_EMAIL]`. Phone-shaped keys
+   (`phone`, `phone_number`, `contact_phone`, `tg_phone`, `telephone`,
+   `mobile`) collapse to `[REDACTED_PHONE]`. Generic secret keys
+   (`password`, `token`, `api_hash`, `secret`, ...) keep the legacy `***`
+   token — distinct from PII so downstream operators can tell secrets
+   apart from contact data.
+2. **Pattern-based masking.** Any string value is scanned for free-text
+   email/phone substrings. Phone matches require either a leading `+`,
+   formatting punctuation (`space`, `.`, `(`, `)`), or three or more
+   dash-separated all-digit groups, so opaque IDs and UUID segments are
+   left alone. Reason text fields go through the same pipeline.
+3. **Recursive nesting.** Dict/list/tuple containers are walked, so
+   redaction applies at any depth in the metadata payload.
+
+Implications and limitations:
+
+- **Historical entries are not modified.** Backfilling already-stored
+  rows would invalidate the audit trail. Operators reviewing rows older
+  than this rollout must treat any plaintext email/phone as legitimate
+  evidence of the issue this rollout closes, not as a fresh leak.
+- **Best effort, not formal proof.** Phone heuristics are conservative
+  to avoid false positives on IDs/UUIDs; pathological formats (e.g. no
+  separators and no `+`) may slip through. Add new patterns or key
+  fragments here when observed.
+- **Out-of-audit-log callsites.** The same `redact_pii()` (or the
+  pattern-extended `redact_text()`) should wrap any new structured-log
+  emission that may receive caller-supplied free text.

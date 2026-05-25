@@ -9,7 +9,7 @@ Build a professional account preparation module for StylistTG with strategies, r
 
 ## Technical Context
 
-**Language/Version**: Python 3.12+ backend, TypeScript strict frontend  
+**Language/Version**: Python 3.14+ backend, TypeScript strict frontend  
 **Primary Dependencies**: FastAPI, SQLAlchemy 2, Alembic, Pydantic settings/schemas, RQ, Redis, React 19, TanStack Router/Query, Tailwind CSS v4, shadcn-style UI, lucide-react  
 **Storage**: PostgreSQL target with SQLite-compatible tests where existing project patterns allow; Redis for queue/locks only; Postgres is source of truth for sessions and idempotency  
 **Testing**: pytest/ruff for backend; Vitest, TypeScript, ESLint, Vite build for frontend; OpenAPI type generation/checks for contracts  

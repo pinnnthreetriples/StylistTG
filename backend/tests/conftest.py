@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+import importlib.util
 import logging
 import os
 from pathlib import Path
@@ -47,13 +48,26 @@ def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    if config.getoption("--run-property", default=False):
-        return
+    run_property = config.getoption("--run-property", default=False)
+
+    have_metrics = importlib.util.find_spec("prometheus_client") is not None
+    have_fakeredis = importlib.util.find_spec("fakeredis") is not None
 
     skip_property = pytest.mark.skip(reason="needs --run-property")
+    skip_metrics = pytest.mark.skip(
+        reason="prometheus_client not installed; run `pip install -e backend[dev]`"
+    )
+    skip_fakeredis = pytest.mark.skip(
+        reason="fakeredis not installed; run `pip install -e backend[dev]`"
+    )
+
     for item in items:
-        if "property" in item.keywords:
+        if not run_property and "property" in item.keywords:
             item.add_marker(skip_property)
+        if not have_metrics and "requires_metrics" in item.keywords:
+            item.add_marker(skip_metrics)
+        if not have_fakeredis and "requires_fakeredis" in item.keywords:
+            item.add_marker(skip_fakeredis)
 
 
 # ---------------------------------------------------------------------------

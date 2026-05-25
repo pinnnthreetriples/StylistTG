@@ -60,6 +60,10 @@ warmup, and commenting modules as required preflight checks. Details:
 
 ## Local Development
 
+For a step-by-step setup of Python and Node dependencies, security scanners,
+and optional system tools, see
+[docs/runbooks/dev-environment-setup.md](docs/runbooks/dev-environment-setup.md).
+
 Recommended one-command launcher on Windows:
 
 ```powershell

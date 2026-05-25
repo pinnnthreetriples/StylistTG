@@ -49,6 +49,12 @@ test = [
 audit = [
   "pip-audit>=2.9.0",
   "pre-commit>=4.0.0",
+  "bandit>=1.7.5",
+]
+
+security = [
+  "bandit>=1.7.5",
+  "pip-audit>=2.9.0",
 ]
 
 contract = [
@@ -87,6 +93,10 @@ dev = [
   "ruff>=0.14.0",
   "schemathesis>=4.18.0",
   "xenon>=0.9.3",
+  "bandit>=1.7.5",
+  "fakeredis>=2.23.0",
+  "faker>=20.0",
+  "vulture>=2.10",
 ]
 
 [tool.ruff]
@@ -253,4 +263,6 @@ markers = [
   "redis: requires real Redis",
   "benchmark: performance budget benchmarks; disabled by default and run in nightly/manual",
   "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
+  "requires_metrics: requires prometheus_client (skip when not installed)",
+  "requires_fakeredis: requires fakeredis package (skip when not installed)",
 ]

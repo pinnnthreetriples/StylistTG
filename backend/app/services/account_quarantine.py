@@ -106,13 +106,27 @@ def create_quarantine(
         raise ValueError("duration_hours must be positive")
 
     now = utc_now()
+    until = now + timedelta(hours=duration_hours)
+    existing = get_unreleased_quarantine(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+    )
+    if existing is not None:
+        existing.until = max(existing.until, until)
+        if metadata:
+            existing.metadata_json = {**dict(existing.metadata_json or {}), **metadata}
+        session.flush()
+        _refresh_quarantine_active(session, workspace_id=workspace_id, reason=existing.reason)
+        return existing
+
     row = AccountQuarantine(
         id=new_id(),
         workspace_id=workspace_id,
         account_id=account_id,
         reason=reason,
         started_at=now,
-        until=now + timedelta(hours=duration_hours),
+        until=until,
         metadata_json=metadata or {},
     )
     session.add(row)

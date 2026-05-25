@@ -18,6 +18,10 @@ from app.main import app
 from app.services.account_status_monitor import (
     AccountStatusMonitor,
     AccountStatusProbeResult,
+    STATUS_MONITOR_CHECKPOINT_KEY,
+    STATUS_MONITOR_LOCK_KEY,
+    run_account_status_monitor_tick,
+    _supports_skip_locked,
     is_in_ip_change_cooldown,
 )
 from app.services.auth_context import AuthContext, get_current_auth_context
@@ -35,6 +39,24 @@ class _Probe:
         return self._results.pop(0)
 
 
+class _StateStore:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    def set(self, name: str, value: str, *, nx: bool = False, ex: int | None = None):
+        if nx and name in self.values:
+            return False
+        self.values[name] = value
+        return True
+
+    def get(self, name: str):
+        return self.values.get(name)
+
+    def delete(self, name: str):
+        self.values.pop(name, None)
+        return 1
+
+
 def _auth(workspace_id: str) -> AuthContext:
     return AuthContext(
         user_id=DEFAULT_LOCAL_USER_ID,
@@ -44,9 +66,10 @@ def _auth(workspace_id: str) -> AuthContext:
     )
 
 
-def _seed_usable_account(db_session, *, host: str = "10.0.0.1"):
+def _seed_usable_account(db_session, *, host: str = "10.0.0.1", external_ref: str = "+15550102000"):
     account = seed_account(
         db_session,
+        external_ref=external_ref,
         account_state=AccountState.EXECUTION_USABLE,
         runtime_health="ready",
         session_present=True,
@@ -400,3 +423,53 @@ def test_status_observations_endpoint_is_workspace_scoped(app_client, db_session
         "id": observation.id,
         "account_id": account.id,
     }
+
+
+def test_status_monitor_tick_processes_batch_and_sets_checkpoint(db_session) -> None:
+    accounts = [
+        _seed_usable_account(db_session, external_ref=f"+15550103{index:03d}") for index in range(3)
+    ]
+    store = _StateStore()
+    sorted_ids = sorted(account.id for account in accounts)
+
+    report = run_account_status_monitor_tick(db_session, state_store=store, batch_size=2)
+
+    checkpoint = STATUS_MONITOR_CHECKPOINT_KEY.format(workspace_id=accounts[0].workspace_id)
+    assert report.processed_count == 2
+    assert len(report.observations) == 2
+    assert store.values[checkpoint] == sorted_ids[1]
+
+
+def test_status_monitor_tick_resumes_from_checkpoint_and_resets_when_exhausted(
+    db_session,
+) -> None:
+    accounts = [
+        _seed_usable_account(db_session, external_ref=f"+15550104{index:03d}") for index in range(3)
+    ]
+    sorted_ids = sorted(account.id for account in accounts)
+    store = _StateStore()
+    checkpoint = STATUS_MONITOR_CHECKPOINT_KEY.format(workspace_id=accounts[0].workspace_id)
+    store.values[checkpoint] = sorted_ids[1]
+
+    resumed = run_account_status_monitor_tick(db_session, state_store=store, batch_size=10)
+    exhausted = run_account_status_monitor_tick(db_session, state_store=store, batch_size=10)
+
+    assert resumed.processed_count == 1
+    assert store.values.get(checkpoint) is None
+    assert exhausted.processed_count == 0
+
+
+def test_status_monitor_tick_skips_when_lock_is_held(db_session) -> None:
+    _seed_usable_account(db_session, external_ref="+15550105000")
+    store = _StateStore()
+    store.values[STATUS_MONITOR_LOCK_KEY] = "other-tick"
+
+    report = run_account_status_monitor_tick(db_session, state_store=store, batch_size=10)
+
+    assert report.skipped_reason == "another tick in progress"
+    assert report.processed_count == 0
+    assert db_session.query(AccountStatusObservation).count() == 0
+
+
+def test_status_monitor_skip_locked_is_postgres_only_for_sqlite_tests(db_session) -> None:
+    assert _supports_skip_locked(db_session) is False

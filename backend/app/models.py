@@ -2030,10 +2030,20 @@ class AccountOperationCooldown(Base):
 class AccountSafetyOverride(Base):
     __tablename__ = "account_safety_override"
     __table_args__ = (
+        Index(
+            "ix_override_workspace_account_op_until",
+            "workspace_id",
+            "account_id",
+            "operation",
+            "allowed_until",
+        ),
         Index("ix_override_account_op_until", "account_id", "operation", "allowed_until"),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
     account_id: Mapped[str] = mapped_column(
         UUIDString,
         ForeignKey("account.id", ondelete="CASCADE"),

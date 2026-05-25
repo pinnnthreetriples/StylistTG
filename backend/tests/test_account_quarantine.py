@@ -15,6 +15,7 @@ from app.models import (
     utc_now,
 )
 from app.services.account_quarantine import handle_flood_wait, is_account_quarantined
+from app.services.account_quarantine import create_quarantine
 from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.workspaces import ensure_default_workspace
 from tests.helpers.factories import seed_account, seed_two_workspaces
@@ -45,6 +46,17 @@ def _open_test_quarantine(db_session, account, source_attempt_id: str):
     )
     db_session.commit()
     return quarantine
+
+
+def _create_manual_quarantine(db_session, account, *, duration_hours: int, metadata=None):
+    return create_quarantine(
+        db_session,
+        account_id=account.id,
+        workspace_id=account.workspace_id,
+        reason="manual",
+        duration_hours=duration_hours,
+        metadata=metadata,
+    )
 
 
 def test_handle_flood_wait_creates_default_24h_quarantine(db_session) -> None:
@@ -88,6 +100,65 @@ def test_handle_flood_wait_reads_policy_quarantine_hours(db_session) -> None:
 
     delta = quarantine.until - quarantine.started_at
     assert 5.9 * 3600 <= delta.total_seconds() <= 6.1 * 3600
+
+
+def test_create_quarantine_is_idempotent_for_unreleased_account(db_session) -> None:
+    account = seed_account(db_session)
+
+    first = _create_manual_quarantine(db_session, account, duration_hours=4)
+    second = _create_manual_quarantine(db_session, account, duration_hours=4)
+
+    rows = db_session.query(AccountQuarantine).filter_by(account_id=account.id).all()
+    assert second.id == first.id
+    assert len(rows) == 1
+
+
+def test_create_quarantine_extends_existing_until_for_longer_duplicate(db_session) -> None:
+    account = seed_account(db_session)
+    first = _create_manual_quarantine(db_session, account, duration_hours=1)
+    original_until = first.until
+
+    second = _create_manual_quarantine(db_session, account, duration_hours=8)
+
+    assert second.id == first.id
+    assert second.until > original_until
+
+
+def test_create_quarantine_does_not_shorten_existing_until(db_session) -> None:
+    account = seed_account(db_session)
+    first = _create_manual_quarantine(db_session, account, duration_hours=8)
+    original_until = first.until
+
+    second = _create_manual_quarantine(db_session, account, duration_hours=1)
+
+    assert second.id == first.id
+    assert second.until == original_until
+
+
+def test_create_quarantine_merges_metadata_for_duplicate(db_session) -> None:
+    account = seed_account(db_session)
+    first = _create_manual_quarantine(
+        db_session, account, duration_hours=4, metadata={"first": "kept"}
+    )
+
+    second = _create_manual_quarantine(
+        db_session, account, duration_hours=4, metadata={"second": "added"}
+    )
+
+    assert second.id == first.id
+    assert second.metadata_json == {"first": "kept", "second": "added"}
+
+
+def test_released_quarantine_allows_new_row(db_session) -> None:
+    account = seed_account(db_session)
+    first = _create_manual_quarantine(db_session, account, duration_hours=4)
+    first.released_at = utc_now()
+    db_session.flush()
+
+    second = _create_manual_quarantine(db_session, account, duration_hours=4)
+
+    assert second.id != first.id
+    assert db_session.query(AccountQuarantine).filter_by(account_id=account.id).count() == 2
 
 
 def test_is_account_quarantined_active_then_false_after_expiry(db_session) -> None:
@@ -279,6 +350,7 @@ def test_admin_override_release_short_reason_returns_422(admin_client, db_sessio
 
     assert response.status_code == 422
     body = response.json()
+    assert "error_code" in body or "detail" in body
     assert body["field_errors"]
 
 

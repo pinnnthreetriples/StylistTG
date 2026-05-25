@@ -630,7 +630,7 @@ def _max_retry_after_seconds(failed_actions: list[dict[str, Any]]) -> int | None
             continue
         try:
             values.append(max(0, int(raw)))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             continue
     return max(values) if values else None
 
@@ -655,7 +655,7 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
     for key, value in raw_items.items():
         try:
             plan[str(key)] = max(0, int(cast(Any, value)))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             continue
     return plan
 
@@ -670,7 +670,7 @@ def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:
     for key, value in raw_items.items():
         try:
             out[str(key)] = max(0, int(cast(Any, value)))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             continue
     return out
 

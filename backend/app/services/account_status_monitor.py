@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import hashlib
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -31,6 +31,10 @@ from app.services.workspace_safety_policy import (
 AutoAction = Literal["paused", "quarantine", "cooldown", "none"]
 TerminalStatus = Literal["banned", "deleted"]
 
+STATUS_MONITOR_BATCH_SIZE = 500
+STATUS_MONITOR_LOCK_KEY = "status_monitor:tick:running"
+STATUS_MONITOR_LOCK_SECONDS = 600
+STATUS_MONITOR_CHECKPOINT_KEY = "status_monitor:last_checkpoint:{workspace_id}"
 IP_CHANGE_COOLDOWN_MINUTES = 30
 STICKY_IP_MAX_DISTINCT_HASHES = 3
 TERMINAL_AUTH_FAILURE_THRESHOLD = 5
@@ -59,6 +63,21 @@ class AccountStatusProbeResult:
 
 class AccountStatusProbe(Protocol):
     def check(self, account: Account) -> AccountStatusProbeResult: ...
+
+
+class StatusMonitorStateStore(Protocol):
+    def set(self, name: str, value: str, *, nx: bool = False, ex: int | None = None) -> Any: ...
+
+    def get(self, name: str) -> Any: ...
+
+    def delete(self, name: str) -> Any: ...
+
+
+@dataclass(frozen=True)
+class StatusMonitorReport:
+    observations: list[AccountStatusObservation]
+    processed_count: int
+    skipped_reason: str | None = None
 
 
 class DatabaseSnapshotStatusProbe:
@@ -276,10 +295,136 @@ def is_in_ip_change_cooldown(
 def run_account_status_monitor_tick(
     session: Session,
     *,
+    state_store: StatusMonitorStateStore | None = None,
     workspace_id: str | None = None,
     now: datetime | None = None,
-) -> list[AccountStatusObservation]:
-    return AccountStatusMonitor().tick(session, workspace_id=workspace_id, now=now)
+    batch_size: int = STATUS_MONITOR_BATCH_SIZE,
+) -> StatusMonitorReport:
+    lock_acquired = False
+    lock_token = new_id()
+    if state_store is not None:
+        lock_acquired = bool(
+            state_store.set(
+                STATUS_MONITOR_LOCK_KEY,
+                lock_token,
+                nx=True,
+                ex=STATUS_MONITOR_LOCK_SECONDS,
+            )
+        )
+        if not lock_acquired:
+            return StatusMonitorReport(
+                observations=[],
+                processed_count=0,
+                skipped_reason="another tick in progress",
+            )
+
+    try:
+        monitor = AccountStatusMonitor()
+        observations: list[AccountStatusObservation] = []
+        for current_workspace_id in _status_monitor_workspace_ids(
+            session,
+            workspace_id=workspace_id,
+        ):
+            checkpoint_key = STATUS_MONITOR_CHECKPOINT_KEY.format(workspace_id=current_workspace_id)
+            last_account_id = (
+                _state_store_text(state_store.get(checkpoint_key)) if state_store else None
+            )
+            accounts = _status_monitor_accounts(
+                session,
+                workspace_id=current_workspace_id,
+                last_account_id=last_account_id,
+                limit=batch_size,
+            )
+            if not accounts:
+                if state_store is not None:
+                    state_store.delete(checkpoint_key)
+                continue
+
+            for account in accounts:
+                observations.append(
+                    monitor.observe_account(
+                        session,
+                        account_id=account.id,
+                        workspace_id=account.workspace_id,
+                        now=now,
+                        account=account,
+                    )
+                )
+            if state_store is not None:
+                state_store.set(checkpoint_key, accounts[-1].id)
+
+        return StatusMonitorReport(
+            observations=observations,
+            processed_count=len(observations),
+        )
+    finally:
+        if state_store is not None and lock_acquired:
+            _release_status_monitor_lock(state_store, lock_token)
+
+
+def _status_monitor_workspace_ids(
+    session: Session,
+    *,
+    workspace_id: str | None,
+) -> list[str]:
+    if workspace_id is not None:
+        return [workspace_id]
+    return list(
+        session.execute(
+            select(Account.workspace_id)
+            .where(Account.account_state != AccountState.DISABLED.value)
+            .distinct()
+            .order_by(Account.workspace_id)
+        ).scalars()
+    )
+
+
+def _status_monitor_accounts(
+    session: Session,
+    *,
+    workspace_id: str,
+    last_account_id: str | None,
+    limit: int,
+) -> list[Account]:
+    stmt = (
+        select(Account)
+        .where(Account.account_state != AccountState.DISABLED.value)
+        .where(Account.workspace_id == workspace_id)
+        .order_by(Account.id)
+        .limit(limit)
+    )
+    if last_account_id:
+        stmt = stmt.where(Account.id > last_account_id)
+    if _supports_skip_locked(session):
+        stmt = stmt.with_for_update(skip_locked=True)
+    return list(session.execute(stmt).scalars())
+
+
+def _supports_skip_locked(session: Session) -> bool:
+    return session.get_bind().dialect.name == "postgresql"
+
+
+def _state_store_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+def _release_status_monitor_lock(state_store: StatusMonitorStateStore, lock_token: str) -> None:
+    script = """
+    if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+    end
+    return 0
+    """
+    eval_fn = getattr(state_store, "eval", None)
+    if callable(eval_fn):
+        eval_fn(script, 1, STATUS_MONITOR_LOCK_KEY, lock_token)
+        return
+    if _state_store_text(state_store.get(STATUS_MONITOR_LOCK_KEY)) == lock_token:
+        state_store.delete(STATUS_MONITOR_LOCK_KEY)
 
 
 def _get_account(session: Session, *, account_id: str, workspace_id: str) -> Account:

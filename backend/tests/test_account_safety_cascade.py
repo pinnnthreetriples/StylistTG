@@ -102,6 +102,7 @@ def test_hard_delete_cascades_safety_pipeline_state(db_session) -> None:
             ),
             AccountSafetyOverride(
                 id=new_id(),
+                workspace_id=_ws(),
                 account_id=account.id,
                 operation="commenting",
                 reason="manual override",

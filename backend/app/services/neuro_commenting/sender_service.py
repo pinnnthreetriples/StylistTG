@@ -310,7 +310,7 @@ class SenderService:
                 self._release_gate_reservation()
         try:
             attempt.external_message_id_provisional = int(result.telegram_message_id)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             pass
         self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value

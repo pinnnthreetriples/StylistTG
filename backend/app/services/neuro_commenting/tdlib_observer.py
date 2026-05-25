@@ -165,7 +165,7 @@ def _resolve_target_chat(
 def _require_int_id(value: object) -> int:
     try:
         return int(str(value))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         raise NeuroRuntimeUnavailableError("chat not found", error_code="CHAT_NOT_FOUND") from None
 
 

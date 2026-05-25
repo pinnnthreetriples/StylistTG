@@ -93,6 +93,26 @@ class TestRedactPiiPatternBased:
         assert uuid_value in out["note"]
         assert REDACTED_PHONE not in out["note"]
 
+    def test_real_uuid_with_phone_shaped_middle_not_masked(self) -> None:
+        """Real `new_id()`-style UUIDs (e.g. `02ee73f6-8013-4684-9467-...`) put
+        a phone-shaped 4-4-4 digit run in the middle. The
+        ``_PHONE_GROUP_MAX_DIGITS`` guard does not catch that — every group
+        is ≤ 5 digits — so the redactor must instead detect the surrounding
+        hex-and-dash UUID context and leave the value untouched.
+        """
+        uuid_value = "02ee73f6-8013-4684-9467-25bbff94ec4b"
+        out = redact_pii({"audit_id": uuid_value})
+        assert out["audit_id"] == uuid_value
+
+    def test_phone_with_hex_chars_one_side_only_still_masked(self) -> None:
+        """Sanity guard for the UUID-context heuristic: a hex-and-dash
+        sequence on ONE side of a phone-shaped run is not enough to
+        suppress the redaction. Only matched two-sided UUID layouts win.
+        """
+        # Hex-dash run only before — the phone after must still be masked.
+        out = redact_pii({"note": "trace abcd123-555-123-4567 done"})
+        assert REDACTED_PHONE in out["note"]
+
     def test_too_short_digit_run_not_masked(self) -> None:
         # 8 digits inside punctuation context fall short of the phone
         # min-digit threshold and exit the substitution unchanged.

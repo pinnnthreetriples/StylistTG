@@ -51,6 +51,15 @@ _PHONE_MAX_DIGITS = 16
 # Real phone-segment groups are 1-5 digits; UUIDs (8-4-4-4-12) and other
 # dash-separated opaque IDs always exceed this in at least one group.
 _PHONE_GROUP_MAX_DIGITS = 5
+# UUID-context detection. The phone regex can match the middle 4-4-4
+# digit run of a UUID like ``02ee73f6-8013-4684-9467-25bbff94ec4b`` (the
+# `8013-4684-9467` segment looks phone-shaped). We suppress such matches
+# when the surrounding characters resemble the rest of a UUID layout:
+# a hex run terminated by `-` on the left AND `-` followed by another hex
+# run on the right. Both sides must match — a one-sided UUID-ish run is
+# not enough to override a legitimate phone redaction.
+_UUID_CONTEXT_BEFORE_RE = re.compile(r"[0-9a-fA-F]+-$")
+_UUID_CONTEXT_AFTER_RE = re.compile(r"^-[0-9a-fA-F]+")
 
 
 def redact_metadata(value: Any) -> Any:
@@ -122,9 +131,14 @@ def _phone_substitution(match: re.Match[str]) -> str:
     digit_count = sum(1 for c in raw if c.isdigit())
     if not (_PHONE_MIN_DIGITS <= digit_count <= _PHONE_MAX_DIGITS):
         return raw
-    # E.164-style leading + is unambiguous; mask outright.
+    # E.164-style leading + is unambiguous; mask outright. UUIDs never
+    # contain `+`, so this branch can short-circuit the context check.
     if raw.startswith("+"):
         return REDACTED_PHONE
+    # Reject UUID middle segments before any of the phone-shape heuristics
+    # below can promote them to REDACTED_PHONE.
+    if _is_uuid_context(match):
+        return raw
     # Otherwise require a phone-shaped separator (space, dot, paren) OR
     # dash-separated digit groups that look like a phone number layout.
     # UUIDs (8-4-4-4-12) and opaque dash-separated IDs have at least one
@@ -140,6 +154,21 @@ def _phone_substitution(match: re.Match[str]) -> str:
     ):
         return REDACTED_PHONE
     return raw
+
+
+def _is_uuid_context(match: re.Match[str]) -> bool:
+    """Return True when ``match`` sits between two hex runs separated by `-`.
+
+    Used to suppress phone-shaped false positives on UUID middle segments
+    such as ``8013-4684-9467`` inside ``02ee73f6-8013-4684-9467-25bbff94ec4b``.
+    Both sides must look UUID-ish — a one-sided hex run is not enough to
+    override a legitimate phone redaction.
+    """
+    source = match.string
+    # 13 chars is enough to spot any 8/4/4/4/12 hex chunk + the trailing dash.
+    before = source[max(0, match.start() - 13) : match.start()]
+    after = source[match.end() : match.end() + 13]
+    return bool(_UUID_CONTEXT_BEFORE_RE.search(before) and _UUID_CONTEXT_AFTER_RE.match(after))
 
 
 def _normalize_key(key: object) -> str:

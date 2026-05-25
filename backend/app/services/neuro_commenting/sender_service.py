@@ -261,6 +261,12 @@ class SenderService:
             message="manual neuro-comment send started",
             data={"idempotency_key": idem.key},
         )
+        # F-001/F-002 fix: every error path must release reservations AND
+        # finalize the attempt (status, failed_at, audit event). The original
+        # non-FLOOD_WAIT branch only set error_code/message and left status =
+        # SENDING forever; unexpected exceptions leaked both the rate-limiter
+        # reservation and the Redis gate slot until their TTL fired.
+        gate_released = False
         try:
             with safety_metrics.attempt_send_duration(strategy=attempt.send_strategy):
                 result = self._comment_sender().send_comment(
@@ -271,21 +277,40 @@ class SenderService:
                     random_id=idem.random_id_hash,
                 )
         except TelegramCommentSendError as exc:
-            if exc.error_code == "FLOOD_WAIT":
-                self._rollback_reservation(reservation)
-                self._release_gate_reservation()
-                self._mark_send_error(
-                    session, workspace_id=workspace_id, attempt=attempt, error=exc
-                )
-            else:
-                self._rollback_reservation(reservation)
-                self._release_gate_reservation()
-                attempt.error_code = exc.error_code
-                attempt.error_message = str(exc)[:300]
+            self._rollback_reservation(reservation)
+            self._release_gate_reservation()
+            gate_released = True
+            self._mark_send_error(session, workspace_id=workspace_id, attempt=attempt, error=exc)
             return attempt
+        except Exception as exc:  # noqa: BLE001 — catch-all required to release reservations
+            self._rollback_reservation(reservation)
+            self._release_gate_reservation()
+            gate_released = True
+            attempt.status = NeuroAttemptStatus.FAILED.value
+            attempt.failed_at = datetime.now(UTC)
+            attempt.error_code = "sender_unexpected_error"
+            attempt.error_message = f"{type(exc).__name__}: {exc}"[:300]
+            self._analytics.write_event(
+                session,
+                workspace_id=workspace_id,
+                campaign_id=context.campaign.id,
+                account_id=attempt.account_id,
+                target_id=attempt.target_id,
+                observed_post_id=attempt.observed_post_id,
+                generated_comment_id=context.comment.id,
+                attempt_id=attempt.id,
+                event_type="comment_send_unexpected_error",
+                event_level=NeuroEventLevel.ERROR,
+                message=f"{type(exc).__name__}: {str(exc)[:200]}",
+                data={"error_class": type(exc).__name__},
+            )
+            raise
+        finally:
+            if not gate_released:
+                self._release_gate_reservation()
         try:
             attempt.external_message_id_provisional = int(result.telegram_message_id)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
         self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value

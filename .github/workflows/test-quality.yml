@@ -18,7 +18,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.14"
   NODE_VERSION: "20"
   UV_VERSION: "0.10.9"
   PYTEST_PROFILE: pr
@@ -204,6 +204,11 @@ jobs:
           uv sync --locked --extra audit --extra lint --extra typecheck --extra test --extra contract --extra mutation --extra complexity
       - name: pip-audit
         run: uv run python -m pip_audit --skip-editable --progress-spinner=off
+      - name: Bandit (medium+ severity, non-blocking)
+        # Promote to a hard gate after the cleanup pass closes existing findings;
+        # see docs/runbooks/dev-environment-setup.md.
+        run: uv run python -m bandit -r app -ll -ii
+        continue-on-error: true
 
   duplication:
     name: duplication

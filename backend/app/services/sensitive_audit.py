@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import SensitiveAuditEvent, new_id, utc_now
-from app.services.secret_redaction import redact_metadata, redact_text
+from app.services.secret_redaction import redact_pii, redact_text
 
 
 def record_sensitive_audit_event(
@@ -45,7 +45,7 @@ def record_sensitive_audit_event(
         override_reason=redact_text(override_reason) if override_reason else None,
         risk_level=risk_level,
         risk_score=risk_score,
-        metadata_json=redact_metadata(metadata or {}),
+        metadata_json=redact_pii(metadata or {}),
         created_at=utc_now(),
     )
     session.add(event)

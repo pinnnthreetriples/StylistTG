@@ -6,7 +6,7 @@ Branch-protection changes live in GitHub settings. This file is the checklist fo
 
 Keep these checks required:
 
-- `Backend (Python 3.12)`
+- `Backend (Python 3.14)`
 - `Frontend`
 - `Browser QA`
 - `Test Quality / test-quality-pr`

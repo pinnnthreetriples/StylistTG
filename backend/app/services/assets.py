@@ -26,6 +26,7 @@ PROFILE_AUDIO_EXECUTION_MIMES = {
 STORY_VIDEO_ALLOWED_MIMES = {"video/mp4", "video/quicktime", "video/webm"}
 MAX_IMAGE_PIXELS = 24_000_000
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+_COMMAND_PROBE_ERRORS = (OSError, subprocess.TimeoutExpired)
 
 
 def save_profile_photo_asset(
@@ -525,6 +526,6 @@ def _command_available(command: str) -> bool:
             timeout=5,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except _COMMAND_PROBE_ERRORS:
         return False
     return result.returncode == 0

@@ -371,7 +371,9 @@ def _status_monitor_workspace_ids(
         return [workspace_id]
     return list(
         session.execute(
-            select(Account.workspace_id)
+            select(  # nosemgrep: missing-workspace-id-filter-projection -- Global workspace discovery; account processing is scoped per workspace below.
+                Account.workspace_id
+            )
             .where(Account.account_state != AccountState.DISABLED.value)
             .distinct()
             .order_by(Account.workspace_id)

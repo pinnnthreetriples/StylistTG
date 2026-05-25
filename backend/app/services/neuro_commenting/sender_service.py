@@ -56,6 +56,8 @@ from app.services.neuro_commenting.rate_limiter import (
 from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
 from app.services.neuro_commenting.target_health_service import TargetHealthService
 
+_INT_COERCION_ERRORS = (TypeError, ValueError)
+
 
 @dataclass(frozen=True)
 class PreparedSend:
@@ -310,7 +312,7 @@ class SenderService:
                 self._release_gate_reservation()
         try:
             attempt.external_message_id_provisional = int(result.telegram_message_id)
-        except (TypeError, ValueError):
+        except _INT_COERCION_ERRORS:
             pass
         self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value

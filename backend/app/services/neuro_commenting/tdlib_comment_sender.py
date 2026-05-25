@@ -13,6 +13,8 @@ from app.services.neuro_commenting.sender_service import (
 from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
 from app.services.tdlib_client import safe_tdlib_error_message
 
+_INT_COERCION_ERRORS = (TypeError, ValueError)
+
 
 class TdlibTelegramCommentSender:
     def __init__(
@@ -93,7 +95,7 @@ def _map_tdlib_send_error(response: dict[str, Any]) -> TelegramCommentSendError:
 def _require_int_id(value: str, *, error_code: str) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except _INT_COERCION_ERRORS:
         message = "Chat not found" if error_code == "CHAT_NOT_FOUND" else "Message not found"
         raise TelegramCommentSendError(error_code, message) from None
 

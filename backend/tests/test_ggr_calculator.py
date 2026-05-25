@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from freezegun import freeze_time
+from prometheus_client import CollectorRegistry
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -13,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import Base
 from app.models import (
     Account,
+    AccountGgrScore,
     AccountProfileState,
     AccountProxy,
     AccountRuntimeState,
@@ -26,6 +28,7 @@ from app.models import (
     new_id,
     DEFAULT_LOCAL_WORKSPACE_ID,
 )
+from app.observability.safety_metrics import SafetyMetrics
 from app.services.ggr_calculator import (
     RECALC_INTERVAL,
     _age_score,
@@ -571,6 +574,68 @@ class TestRecalcOnDemand:
             event.remove(engine, "before_cursor_execute", _track_statement)
 
         assert len(statements) <= 9
+
+    def test_calculate_ggr_records_weak_transitions_and_population(
+        self,
+        session: Session,
+        workspace: Workspace,
+        account: Account,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        registry = CollectorRegistry()
+        metrics = SafetyMetrics(registry=registry, enabled=True)
+        session.add(
+            AccountGgrScore(
+                id=new_id(),
+                workspace_id=workspace.id,
+                account_id=account.id,
+                score=4.5,
+                bucket="medium",
+                breakdown_json={},
+                last_calculated_at=_NOW - timedelta(hours=7),
+                next_calculation_at=_NOW - timedelta(hours=1),
+            )
+        )
+        session.commit()
+        monkeypatch.setattr("app.services.ggr_calculator.safety_metrics", metrics)
+        monkeypatch.setattr(
+            "app.services.ggr_calculator.compute_components",
+            lambda _session, _account: {key: 0.0 for key in _ALL_COMPONENTS},
+        )
+
+        calculate_ggr(session, account, workspace.id, force=True)
+        transition_count_after_entering_weak = registry.get_sample_value(
+            "weak_ggr_transitions_total",
+            {"workspace_id": workspace.id, "from_bucket": "medium"},
+        )
+        weak_population_after_entering_weak = registry.get_sample_value(
+            "weak_ggr_accounts_total",
+            {"workspace_id": workspace.id},
+        )
+
+        monkeypatch.setattr(
+            "app.services.ggr_calculator.compute_components",
+            lambda _session, _account: {key: 1.0 for key in _ALL_COMPONENTS},
+        )
+
+        calculate_ggr(session, account, workspace.id, force=True)
+
+        assert transition_count_after_entering_weak == 1.0
+        assert weak_population_after_entering_weak == 1.0
+        assert (
+            registry.get_sample_value(
+                "weak_ggr_transitions_total",
+                {"workspace_id": workspace.id, "from_bucket": "medium"},
+            )
+            == 1.0
+        )
+        assert (
+            registry.get_sample_value(
+                "weak_ggr_accounts_total",
+                {"workspace_id": workspace.id},
+            )
+            == 0.0
+        )
 
 
 # ---------------------------------------------------------------------------

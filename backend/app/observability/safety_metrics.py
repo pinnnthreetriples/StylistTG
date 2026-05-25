@@ -95,6 +95,18 @@ class SafetyMetrics:
             buckets=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
             registry=self.registry,
         )
+        self._weak_ggr_accounts = client.Gauge(
+            "weak_ggr_accounts_total",
+            "Total accounts currently in the weak GGR bucket.",
+            ("workspace_id",),
+            registry=self.registry,
+        )
+        self._weak_ggr_transitions = client.Counter(
+            "weak_ggr_transitions_total",
+            "Total transitions into the weak GGR bucket.",
+            ("workspace_id", "from_bucket"),
+            registry=self.registry,
+        )
         self._flood_wait = client.Counter(
             "flood_wait_total",
             "Observed Telegram FLOOD_WAIT events by workspace and account hash.",
@@ -180,6 +192,19 @@ class SafetyMetrics:
         if not self.enabled:
             return
         self._ggr_score.labels(workspace_id=workspace_id, bucket=bucket).observe(score)
+
+    def weak_ggr_accounts_total(self, *, workspace_id: str, value: int) -> None:
+        if not self.enabled:
+            return
+        self._weak_ggr_accounts.labels(workspace_id=workspace_id).set(value)
+
+    def weak_ggr_transition(self, *, workspace_id: str, from_bucket: str) -> None:
+        if not self.enabled:
+            return
+        self._weak_ggr_transitions.labels(
+            workspace_id=workspace_id,
+            from_bucket=from_bucket,
+        ).inc()
 
     def flood_wait(self, *, workspace_id: str, account_id: str) -> None:
         if not self.enabled:

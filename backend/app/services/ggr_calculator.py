@@ -24,7 +24,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -324,6 +324,7 @@ def calculate_ggr(
     raw_score = compute_score(components)
 
     previous_score = ggr_row.score if ggr_row else None
+    previous_bucket = ggr_row.bucket if ggr_row else None
     smoothed_score = _apply_smoothing(raw_score, previous_score)
     # Clamp to valid range
     smoothed_score = max(1.0, min(10.0, smoothed_score))
@@ -355,7 +356,30 @@ def calculate_ggr(
 
     session.flush()
     safety_metrics.ggr_score(workspace_id=workspace_id, bucket=bucket, score=smoothed_score)
+    if bucket != previous_bucket:
+        if bucket == "weak":
+            safety_metrics.weak_ggr_transition(
+                workspace_id=workspace_id,
+                from_bucket=previous_bucket or "none",
+            )
+        if bucket == "weak" or previous_bucket == "weak":
+            safety_metrics.weak_ggr_accounts_total(
+                workspace_id=workspace_id,
+                value=_weak_ggr_account_count(session, workspace_id),
+            )
     return ggr_row
+
+
+def _weak_ggr_account_count(session: Session, workspace_id: str) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(AccountGgrScore)
+        .where(
+            AccountGgrScore.workspace_id == workspace_id,
+            AccountGgrScore.bucket == "weak",
+        )
+    )
+    return int(session.execute(stmt).scalar_one())
 
 
 def get_ggr_score(

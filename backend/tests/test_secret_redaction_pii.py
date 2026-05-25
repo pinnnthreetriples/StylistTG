@@ -113,6 +113,15 @@ class TestRedactPiiPatternBased:
         out = redact_pii(("alice@example.com", "no-email-here"))
         assert out == [REDACTED_EMAIL, "no-email-here"]
 
+    def test_phone_with_parens_and_no_plus_prefix_is_masked(self) -> None:
+        """The space/paren/dot branch in `_phone_substitution` only runs for
+        candidates that do NOT begin with `+` (E.164 numbers exit earlier).
+        This 10-digit US format with parens exercises that path explicitly.
+        """
+        out = redact_pii({"note": "Call (202) 555-0100 to reach support"})
+        assert "(202) 555-0100" not in out["note"]
+        assert REDACTED_PHONE in out["note"]
+
     def test_multiple_pii_in_one_string(self) -> None:
         text = "alice@example.com and +1-202-555-0100 both leaked"
         out = redact_pii({"note": text})

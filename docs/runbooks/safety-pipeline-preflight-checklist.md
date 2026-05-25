@@ -133,7 +133,7 @@ timestamp in the release notes or rollout ticket.
   [#125](https://github.com/pinnnthreetriples/StylistTG/pull/125)).
 
   Follow [safety-alerts.md](safety-alerts.md). Confirm at least these rules are
-  active: `QuarantineEpidemic`, `GgrWeakBucketGrowth`, `GateBlockBurst`,
+  active: `QuarantineEpidemic`, `WeakGgrAccountsGrowth`, `GateBlockBurst`,
   `SendDurationSlow`.
 
   ```powershell

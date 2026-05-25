@@ -163,15 +163,27 @@ class TestReserve:
         assert result.max_concurrent == 5
         redis.eval.assert_called_once()
 
-    def test_reserve_fail_open_on_redis_error(self) -> None:
+    def test_reserve_fail_closed_on_redis_error_by_default(self) -> None:
+        """Task 44 / F-301: Redis outage must NOT grant the slot by default.
+
+        Previously the code fail-opened on RedisError, which lets duplicate
+        sends slip past the concurrency gate during a Redis partition. The
+        new contract: ``reserved=False, degraded=True``. Operators that
+        accept the risk can flip ``settings.safety_gate_redis_fail_open``.
+        """
+        from unittest.mock import patch as _patch
+
         from redis.exceptions import RedisError
 
         redis = MagicMock()
         redis.eval.side_effect = RedisError("connection lost")
 
-        result = reserve(redis, account_id="acc-1", intent="commenting")
+        with _patch("app.services.safety_gate_reserve.settings") as cfg:
+            cfg.safety_gate_redis_fail_open = False
+            result = reserve(redis, account_id="acc-1", intent="commenting")
 
-        assert result.reserved is True  # fail-open
+        assert result.reserved is False
+        assert result.degraded is True
         redis.eval.assert_called_once()
 
     def test_reserve_passes_correct_keys_and_args(self) -> None:
@@ -186,11 +198,13 @@ class TestReserve:
             ttl_seconds=300,
         )
 
+        # ZSET-based reserve uses a single key + 4 ARGV
+        # (now, ttl, max_concurrent, reservation_id) — see the docstring of
+        # _RESERVE_LUA in safety_gate_reserve.py.
         call_args = redis.eval.call_args
-        assert call_args[0][1] == 2  # numkeys
-        assert "safety:gate:concurrent:acc-42:commenting" in call_args[0][2]
-        assert call_args[0][4] == 7  # max_concurrent
-        assert call_args[0][6] == 300  # ttl_seconds
+        assert call_args[0][1] == 1  # numkeys
+        assert "safety:gate:reservations:v2:acc-42:commenting" in call_args[0][2]
+        assert call_args[0][4] == "120" or call_args[0][4] == "300"  # ttl_seconds
 
     def test_two_concurrent_reserves_max_one(self) -> None:
         """Simulate Lua behavior: first returns [1,1], second returns [0,1]."""

@@ -125,6 +125,10 @@ class Settings(BaseSettings):
     neuro_comment_tdlib_observer_enabled: bool = False
     neuro_comment_tdlib_send_enabled: bool = False
     neuro_comment_require_redis_limiter_for_send: bool = True
+    # Task 44 / F-301: fail-closed by default when Redis is unreachable. If
+    # an operator explicitly opts in to fail-open they must accept the
+    # documented concurrency-control loss (runbook safety-alerts.md).
+    safety_gate_redis_fail_open: bool = False
     neuro_comment_observe_post_limit: int = 20
     neuro_comment_rate_limiter_enabled: bool = True
     neuro_comment_rate_limiter_fail_closed: bool = True

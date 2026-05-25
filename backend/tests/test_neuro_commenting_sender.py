@@ -23,7 +23,7 @@ from app.services.neuro_commenting.approval_service import ApprovalService
 from app.services.neuro_commenting.campaign_account_service import CampaignAccountService
 from app.services.neuro_commenting.campaign_service import CampaignService
 from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
-from app.services.neuro_commenting.errors import NeuroConflictError
+from app.services.neuro_commenting.errors import NeuroConflictError, NeuroRuntimeDisabledError
 from app.services.neuro_commenting.sender_service import (
     FakeTelegramCommentSender,
     SenderService,
@@ -153,16 +153,13 @@ def test_approve_comment_is_idempotent(db_session) -> None:
 def test_manual_send_fails_closed_when_disabled(db_session) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
 
-    try:
+    with pytest.raises(NeuroRuntimeDisabledError) as exc_info:
         SenderService(config=settings).send_attempt(
             db_session,
             attempt_id=attempt.id,
             workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         )
-    except Exception as exc:
-        assert getattr(exc, "error_code", "") == "NEURO_COMMENT_SEND_DISABLED"
-    else:
-        raise AssertionError("manual send did not fail closed")
+    assert exc_info.value.error_code == "NEURO_COMMENT_SEND_DISABLED"
 
 
 def test_default_sender_uses_settings_redis_limiter_when_required(db_session, monkeypatch) -> None:
@@ -298,16 +295,13 @@ def test_manual_send_fails_if_discussion_message_id_is_missing(db_session) -> No
         },
     )()
 
-    try:
+    with pytest.raises(NeuroConflictError) as exc_info:
         SenderService(config=config, sender=FakeTelegramCommentSender()).send_attempt(
             db_session,
             attempt_id=attempt.id,
             workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         )
-    except Exception as exc:
-        assert getattr(exc, "error_code", "") == "DISCUSSION_MESSAGE_NOT_RESOLVED"
-    else:
-        raise AssertionError("manual send accepted unresolved discussion mapping")
+    assert exc_info.value.error_code == "DISCUSSION_MESSAGE_NOT_RESOLVED"
 
 
 def test_manual_send_prefers_observed_post_discussion_chat_id(db_session) -> None:

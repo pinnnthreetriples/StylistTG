@@ -195,20 +195,17 @@ class _AttemptContext:
 
 
 def _load_context(session: Session, attempt: NeuroCommentAttempt) -> _AttemptContext:
+    if attempt.account_id is None:
+        return _AttemptContext(None, None, None, "account_missing")
+
     campaign = session.scalar(
-        select(NeuroCommentCampaign).where(NeuroCommentCampaign.id == attempt.campaign_id)
+        select(NeuroCommentCampaign)
+        .join(Account, Account.id == attempt.account_id)
+        .where(NeuroCommentCampaign.id == attempt.campaign_id)
+        .where(NeuroCommentCampaign.workspace_id == Account.workspace_id)
     )
     if campaign is None:
-        return _AttemptContext(None, None, None, "campaign_missing")
-
-    if attempt.account_id is not None:
-        account = session.scalar(
-            select(Account)
-            .where(Account.id == attempt.account_id)
-            .where(Account.workspace_id == campaign.workspace_id)
-        )
-        if account is None:
-            return _AttemptContext(campaign.workspace_id, None, None, "account_workspace_mismatch")
+        return _AttemptContext(None, None, None, "campaign_account_workspace_mismatch")
 
     observed = (
         session.scalar(

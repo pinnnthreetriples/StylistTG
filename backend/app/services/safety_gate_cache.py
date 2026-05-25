@@ -43,7 +43,7 @@ class RedisSafetyGateCache:
 
     @classmethod
     def from_settings(cls) -> RedisSafetyGateCache:
-        return cls(cast(Redis, redis_from_url()))
+        return cls(redis_from_url())
 
     def get(self, key: str) -> str | None:
         try:

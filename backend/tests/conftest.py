@@ -34,6 +34,8 @@ from app.models import (
 from app.services.database import dispose_sqlite_test_engines
 from tests.helpers.factories import seed_job as seed_job  # noqa: F401, PLC0414  # re-export
 
+_LOG_MESSAGE_ERRORS = (TypeError, ValueError)
+
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
@@ -147,7 +149,7 @@ def _pii_leak_guard(
     for record in caplog.records:
         try:
             message = record.getMessage()
-        except (TypeError, ValueError):
+        except _LOG_MESSAGE_ERRORS:
             # Malformed log call (positional args don't match format string) —
             # not our concern here.
             continue

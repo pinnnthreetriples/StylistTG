@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import suppress
-from typing import cast
 
-from redis import Redis
 from rq import SimpleWorker
 
 from app.job_queue.rq import get_queue
@@ -30,7 +28,7 @@ def main() -> None:
             assert_runtime_role_allows_queue(args.role, queue_name)
         else:
             assert_queue_allowed(queue_name)
-    connection = cast(Redis, redis_from_url())
+    connection = redis_from_url()
     queues = [get_queue(queue_name) for queue_name in queue_names]
     worker = SimpleWorker(queues, connection=connection)
     try:

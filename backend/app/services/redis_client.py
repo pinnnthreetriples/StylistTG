@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 from redis import ConnectionPool, Redis
 from redis.backoff import ExponentialBackoff
+from redis.connection import Connection
 from redis.retry import Retry
 
 from app.config import Settings, settings
@@ -11,14 +13,17 @@ from app.observability.safety_metrics import safety_metrics
 
 
 class InstrumentedRedisConnectionPool(ConnectionPool):
-    def get_connection(self, *args: Any, **kwargs: Any):
-        connection = super().get_connection(*args, **kwargs)
+    def get_connection(
+        self, command_name: str | None = None, *keys: Any, **options: Any
+    ) -> Connection:
+        get_connection = cast(Callable[..., Connection], getattr(super(), "get_connection"))
+        connection = get_connection(command_name, *keys, **options)
         _record_pool_saturation(self)
         return connection
 
-    def release(self, connection):
+    def release(self, connection: Connection) -> None:
         try:
-            return super().release(connection)
+            super().release(connection)
         finally:
             _record_pool_saturation(self)
 
@@ -53,7 +58,11 @@ def redis_from_url(
     socket_timeout: float | None = None,
     socket_connect_timeout: float | None = None,
 ) -> Redis:
-    pool = InstrumentedRedisConnectionPool.from_url(
+    pool_from_url = cast(
+        Callable[..., InstrumentedRedisConnectionPool],
+        getattr(InstrumentedRedisConnectionPool, "from_url"),
+    )
+    pool = pool_from_url(
         url or config.redis_url,
         **redis_connection_kwargs(
             config,

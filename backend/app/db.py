@@ -9,6 +9,8 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from app.config import settings
 from app.observability.safety_metrics import safety_metrics
 
+_POOL_STAT_ERRORS = (AttributeError, TypeError, ValueError)
+
 
 class Base(DeclarativeBase):
     pass
@@ -40,7 +42,7 @@ def _record_db_pool_saturation(db_engine: Engine) -> None:
     try:
         size = int(pool.size())  # type: ignore[attr-defined]
         checked_out = int(pool.checkedout())  # type: ignore[attr-defined]
-    except (AttributeError, TypeError, ValueError):
+    except _POOL_STAT_ERRORS:
         return
     if size <= 0:
         return

@@ -337,7 +337,7 @@ CI:
   block, while HIGH/CRITICAL reports are uploaded for triage.
 - Complexity runs Xenon against `backend/app`, `backend/tools`, and `backend/scripts`
   as a soft reporting gate while the current complexity baseline is reviewed.
-- Branch protection for `main` currently requires `Backend (Python 3.12)`, `Frontend`,
+- Branch protection for `main` currently requires `Backend (Python 3.14)`, `Frontend`,
   and `Browser QA`. Recommended required checks are documented in
   [docs/quality/REQUIRED_CHECKS.md](docs/quality/REQUIRED_CHECKS.md).
 

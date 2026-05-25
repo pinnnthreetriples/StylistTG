@@ -6,7 +6,7 @@ scans without missing dependencies.
 
 ## Prerequisites
 
-- **Python 3.12** (matches `backend/pyproject.toml requires-python`).
+- **Python 3.14** (matches `backend/pyproject.toml requires-python`).
 - **Node.js 20+** with npm 11.
 - **Git**, **PowerShell 7+** (Windows) or **bash** (macOS/Linux).
 - **Docker Desktop** (optional, required for `migration_replay` against a

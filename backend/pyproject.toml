@@ -2,7 +2,7 @@
 name = "stylisttg-backend"
 version = "0.1.0"
 description = "FastAPI backend for StylistTG Telegram profile jobs."
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
   "fastapi>=0.124.0",
   "starlette>=1.0.1",
@@ -101,7 +101,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
@@ -161,7 +161,7 @@ exclude = [
   "dist",
   "migrations/versions",
 ]
-pythonVersion = "3.12"
+pythonVersion = "3.14"
 typeCheckingMode = "strict"
 
 [tool.setuptools.packages.find]

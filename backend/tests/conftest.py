@@ -147,7 +147,7 @@ def _pii_leak_guard(
     for record in caplog.records:
         try:
             message = record.getMessage()
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Malformed log call (positional args don't match format string) —
             # not our concern here.
             continue

@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS dependencies
+FROM python:3.14-slim-trixie AS dependencies
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -15,7 +15,7 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install uv==0.10.9 && \
     uv sync --locked --no-dev
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim-trixie AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -66,7 +66,7 @@ def _validate_json_metadata(
     if content:
         try:
             payload = json.loads(content.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
+        except UnicodeDecodeError, json.JSONDecodeError:
             return _unsupported("json_metadata_invalid", "JSON metadata is not valid.")
     username = _safe_hint(payload.get("username"))
     phone = phone_hint(payload.get("phone") or payload.get("phone_number"))

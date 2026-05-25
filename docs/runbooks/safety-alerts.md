@@ -168,6 +168,48 @@ Severity: warning.
 5. Roll back with `PATCH /api/workspaces/{workspace_id}/feature-flags` only when latency is caused by safety-pipeline reserve/gate behavior, not downstream Telegram or proxy latency.
 6. Recover when p95 is below 30s for 30m and queue depth returns to baseline.
 
+## SafetyGateRedisDegraded
+
+Severity ladder: warning when fail-open fires once or more; critical when
+the gate is fail-closed (`safety_gate_redis_errors_total{operation="reserve"}`)
+for sustained > 5 minutes.
+
+Alert expressions (Alertmanager):
+
+```yaml
+- alert: SafetyGateRedisFailOpenActive
+  expr: increase(safety_gate_redis_fail_open_total[5m]) > 0
+  for: 1m
+  labels:
+    severity: warning
+  annotations:
+    summary: Safety gate fail-open active (Redis unreachable)
+    runbook: docs/runbooks/safety-alerts.md#safetygateredisdegraded
+- alert: SafetyGateRedisOutage
+  expr: rate(safety_gate_redis_errors_total{operation="reserve"}[5m]) > 0
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: Safety gate reserve has been fail-closed > 5m
+    runbook: docs/runbooks/safety-alerts.md#safetygateredisdegraded
+```
+
+Operator response:
+
+1. Confirm Redis health (`redis-cli PING`, Memurai service, latency).
+2. If fail-closed: sends are correctly blocked. Treat as a sender outage —
+   restore Redis, then watch `safety_gate_reserve_outcomes_total{outcome=
+   "RESERVED"}` resume.
+3. If fail-open is active and you did not enable it: revoke
+   `SAFETY_GATE_REDIS_FAIL_OPEN`, redeploy, and audit recent sends for
+   duplicates (`telegram_message_id` collisions per account).
+4. **Never** enable fail-open during an unrelated outage to "get sends
+   moving" — the gate is the only line of defense against duplicates and
+   FloodWait amplification when Redis is partitioned.
+5. Recover when no fail-open events in 30m and reserve outcomes have
+   returned to baseline rate.
+
 ## Dashboard
 
 Import `docs/grafana/safety-pipeline.json` into Grafana with a Prometheus data source. Required checks:

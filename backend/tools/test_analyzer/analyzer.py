@@ -32,7 +32,7 @@ class Analyzer:
     def analyze_file(self, path: Path, base_dir: Path) -> list[Issue]:
         try:
             source = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
+        except UnicodeDecodeError, OSError:
             return []
 
         try:
@@ -165,5 +165,5 @@ def load_coverage_context(coverage_path: Path) -> dict[str, Any] | None:
         return None
     try:
         return json.loads(coverage_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError, OSError:
         return None

@@ -35,7 +35,7 @@ jobs:
               - '**/e2e/**'
 
   backend:
-    name: Backend (Python 3.12)
+    name: Backend (Python 3.14)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
@@ -81,7 +81,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - name: Install backend runtime dependencies
         working-directory: backend
         run: |
@@ -116,7 +116,7 @@ jobs:
           cache: npm
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - name: Install frontend dependencies
         run: npm ci
       - name: npm audit

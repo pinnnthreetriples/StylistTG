@@ -6,10 +6,18 @@ Closes the TOCTOU race window between evaluate() and send:
 - Sender calls reserve() → send → release()
 
 Task 22: Concurrency-safe gate through Lua.
+Task 44 (F-301, F-305, B F-004):
+- Default fail-closed on Redis outage; opt-in fail-open via
+  ``settings.safety_gate_redis_fail_open`` with explicit metric.
+- Replace INCR-based counter with a ZSET keyed by reservation timestamp so
+  expired reservations are cleaned up on every reserve call. This removes
+  the B F-004 counter inflation that happened when reservation keys
+  TTL-expired without their parallel counter being decremented.
 """
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Any, cast
 from uuid import uuid4
@@ -23,53 +31,39 @@ from app.observability.safety_metrics import safety_metrics
 GATE_RESERVE_TTL_SECONDS = 120
 GATE_MAX_CONCURRENT_DEFAULT = 3
 
+# ZSET-based reserve script.
+# - KEYS[1]   : zset key  ``safety:gate:reservations:{account}:{intent}``
+# - ARGV[1]   : now (unix seconds)
+# - ARGV[2]   : ttl_seconds
+# - ARGV[3]   : max_concurrent
+# - ARGV[4]   : reservation_id
+# - Returns {1, current_count} on success, {0, current_count} on limit reached.
+#
+# On each call the script first removes reservations whose timestamp is older
+# than ``now - ttl_seconds`` — this is what gives us TTL parity with the old
+# detail keys without needing a separate counter that could drift.
 _RESERVE_LUA = """
--- safety_gate_reserve_v1
--- KEYS[1] = concurrency counter key
--- KEYS[2] = reservation detail key
--- ARGV[1] = max_concurrent
--- ARGV[2] = reservation_id
--- ARGV[3] = ttl_seconds
--- Returns: {1, current_count} on success, {0, current_count} on limit reached
+local zset_key = KEYS[1]
+local now = tonumber(ARGV[1])
+local ttl = tonumber(ARGV[2])
+local max_concurrent = tonumber(ARGV[3])
+local reservation_id = ARGV[4]
 
-local counter_key = KEYS[1]
-local reservation_key = KEYS[2]
-local max_concurrent = tonumber(ARGV[1])
-local reservation_id = ARGV[2]
-local ttl = tonumber(ARGV[3])
-
-local current = tonumber(redis.call("GET", counter_key) or "0")
+redis.call('ZREMRANGEBYSCORE', zset_key, '-inf', now - ttl)
+local current = tonumber(redis.call('ZCARD', zset_key))
 if current >= max_concurrent then
   return {0, current}
 end
-
-redis.call("INCRBY", counter_key, 1)
-if redis.call("TTL", counter_key) < 0 then
-  redis.call("EXPIRE", counter_key, ttl * 2)
-end
-redis.call("SET", reservation_key, "active", "EX", ttl)
+redis.call('ZADD', zset_key, now, reservation_id)
+redis.call('EXPIRE', zset_key, ttl * 2)
 return {1, current + 1}
 """
 
 _RELEASE_LUA = """
--- safety_gate_release_v1
--- KEYS[1] = concurrency counter key
--- KEYS[2] = reservation detail key
--- Returns: 1 on success, 0 if reservation not found
-
-local counter_key = KEYS[1]
-local reservation_key = KEYS[2]
-
-local exists = redis.call("GET", reservation_key)
-if not exists then
-  return 0
-end
-redis.call("DEL", reservation_key)
-local current = tonumber(redis.call("GET", counter_key) or "0")
-if current > 0 then
-  redis.call("DECRBY", counter_key, 1)
-end
-return 1
+local zset_key = KEYS[1]
+local reservation_id = ARGV[1]
+local removed = redis.call('ZREM', zset_key, reservation_id)
+return removed
 """
 
 
@@ -81,14 +75,16 @@ class SafetyGateReservation:
     reserved: bool
     current_count: int
     max_concurrent: int
+    degraded: bool = False
+    """Set to ``True`` when the reservation was granted under the opt-in
+    fail-open path because Redis was unreachable. Sender code can branch on
+    this flag if it wants to add extra logging or refuse to proceed for very
+    high-risk intents."""
 
 
-def _counter_key(account_id: str, intent: str) -> str:
-    return f"safety:gate:concurrent:{account_id}:{intent}"
-
-
-def _reservation_key(account_id: str, reservation_id: str) -> str:
-    return f"safety:gate:reservation:{account_id}:{reservation_id}"
+def _zset_key(account_id: str, intent: str) -> str:
+    # Versioned prefix so deploys that change the script don't double-count.
+    return f"safety:gate:reservations:v2:{account_id}:{intent}"
 
 
 def reserve(
@@ -103,35 +99,54 @@ def reserve(
 
     Returns SafetyGateReservation with reserved=True on success,
     reserved=False if concurrency limit is reached.
+
+    On Redis failure: default ``fail-closed`` (``reserved=False``,
+    ``degraded=True``) so a Redis outage cannot bypass concurrency control
+    and produce duplicate sends. The operator can override per
+    ``settings.safety_gate_redis_fail_open=True`` — that path also emits
+    ``safety_gate_redis_fail_open_total`` so the override is visible.
     """
     reservation_id = uuid4().hex
-    counter_key = _counter_key(account_id, intent)
-    reservation_key = _reservation_key(account_id, reservation_id)
+    zset_key = _zset_key(account_id, intent)
+    now = time.time()
 
     try:
         result = redis_client.eval(
             _RESERVE_LUA,
-            2,
-            counter_key,
-            reservation_key,
-            max_concurrent,
+            1,
+            zset_key,
+            str(now),
+            str(ttl_seconds),
+            str(max_concurrent),
             reservation_id,
-            ttl_seconds,
         )
-        reserved = int(result[0]) == 1
-        current_count = int(result[1])
     except RedisError:
-        # Fail-open: if Redis is down, allow the operation
-        safety_metrics.reserve_outcome(outcome="RESERVED")
+        if settings.safety_gate_redis_fail_open:
+            safety_metrics.redis_fail_open(operation="reserve")
+            safety_metrics.reserve_outcome(outcome="RESERVED")
+            return SafetyGateReservation(
+                reservation_id=reservation_id,
+                account_id=account_id,
+                intent=intent,
+                reserved=True,
+                current_count=0,
+                max_concurrent=max_concurrent,
+                degraded=True,
+            )
+        safety_metrics.redis_outage(operation="reserve")
+        safety_metrics.reserve_outcome(outcome="REDIS_UNAVAILABLE")
         return SafetyGateReservation(
             reservation_id=reservation_id,
             account_id=account_id,
             intent=intent,
-            reserved=True,
+            reserved=False,
             current_count=0,
             max_concurrent=max_concurrent,
+            degraded=True,
         )
 
+    reserved = int(result[0]) == 1
+    current_count = int(result[1])
     safety_metrics.reserve_outcome(outcome="RESERVED" if reserved else "RATE_BLOCKED")
     return SafetyGateReservation(
         reservation_id=reservation_id,
@@ -151,23 +166,24 @@ def release(
     """Release a previously acquired reservation slot.
 
     Returns True if successfully released, False if reservation was already
-    expired or not found.
+    expired, not found, or the reservation was granted under fail-open
+    degraded mode (where Redis is presumed unreachable).
     """
-    if not reservation.reserved:
+    if not reservation.reserved or reservation.degraded:
         return False
 
-    counter_key = _counter_key(reservation.account_id, reservation.intent)
-    reservation_key = _reservation_key(reservation.account_id, reservation.reservation_id)
+    zset_key = _zset_key(reservation.account_id, reservation.intent)
 
     try:
         result = redis_client.eval(
             _RELEASE_LUA,
-            2,
-            counter_key,
-            reservation_key,
+            1,
+            zset_key,
+            reservation.reservation_id,
         )
         return int(result) == 1
     except RedisError:
+        safety_metrics.redis_outage(operation="release")
         return False
 
 

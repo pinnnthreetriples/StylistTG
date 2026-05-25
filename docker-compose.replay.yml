@@ -1,0 +1,25 @@
+# Disposable Postgres for migration replay (Task 46 / F-E002, F-E003, F-E006).
+#
+# Usage: see docs/runbooks/migration-safety.md#migration-replay-procedure.
+#
+# Listens on port 15432 to avoid colliding with the regular dev Postgres on
+# 5432 and never mounts a persistent volume — the container is meant to be
+# torn down with `docker compose -f docker-compose.replay.yml down -v` after
+# each replay run so the next run starts from a clean schema.
+
+services:
+  postgres-replay:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: replay
+      POSTGRES_USER: replay
+      POSTGRES_PASSWORD: replay
+    ports:
+      - "15432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U replay -d replay"]
+      interval: 1s
+      timeout: 3s
+      retries: 30

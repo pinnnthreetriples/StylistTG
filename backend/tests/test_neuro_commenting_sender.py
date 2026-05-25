@@ -13,6 +13,7 @@ from app.models import (
     NeuroCommentCampaignAccount,
     NeuroAttemptStatus,
     NeuroCommentAttempt,
+    NeuroCommentEvent,
     NeuroCommentGeneratedComment,
     NeuroCommentObservedPost,
     NeuroSafetyStatus,
@@ -426,6 +427,101 @@ def test_duplicate_sent_attempt_does_not_send_twice(db_session) -> None:
 
     assert sent.telegram_message_id == "already-sent"
     assert sender.calls == 0
+
+
+class _RaisingSender:
+    """Sender that raises an arbitrary, non-TelegramCommentSendError exception
+    to exercise the unexpected-exception cleanup path (F-002)."""
+
+    def __init__(self, exc: BaseException) -> None:
+        self._exc = exc
+        self.calls = 0
+
+    def send_comment(self, **_kwargs):
+        self.calls += 1
+        raise self._exc
+
+
+def _config_with_send_enabled():
+    return type(
+        "Config",
+        (),
+        {
+            "neuro_comment_tdlib_send_enabled": True,
+            "neuro_comment_require_redis_limiter_for_send": False,
+        },
+    )()
+
+
+def test_send_attempt_non_flood_error_marks_failed(db_session) -> None:
+    """F-001: non-FLOOD_WAIT TelegramCommentSendError must finalize the
+    attempt as FAILED via _mark_send_error (not leave it in SENDING)."""
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    sender = FakeTelegramCommentSender(error=TelegramCommentSendError("CHAT_NOT_FOUND"))
+
+    failed = SenderService(config=_config_with_send_enabled(), sender=sender).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+
+    assert failed.status == NeuroAttemptStatus.FAILED.value
+    assert failed.failed_at is not None
+    assert failed.error_code == "CHAT_NOT_FOUND"
+    assert failed.error_message  # non-empty
+    # And a NeuroCommentEvent was recorded (covers _mark_send_error wiring).
+    events = (
+        db_session.query(NeuroCommentEvent)
+        .filter_by(attempt_id=attempt.id, event_type="comment_send_failed")
+        .all()
+    )
+    assert len(events) == 1
+
+
+def test_send_attempt_unexpected_exception_releases_reservations(db_session) -> None:
+    """F-002: any non-TelegramCommentSendError exception must release the
+    rate-limiter reservation and gate slot before re-raising."""
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    sender = _RaisingSender(RuntimeError("adapter blew up"))
+
+    with pytest.raises(RuntimeError, match="adapter blew up"):
+        SenderService(config=_config_with_send_enabled(), sender=sender).send_attempt(
+            db_session,
+            attempt_id=attempt.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+    db_session.commit()
+
+    refreshed = db_session.get(NeuroCommentAttempt, attempt.id)
+    assert refreshed is not None
+    assert refreshed.status == NeuroAttemptStatus.FAILED.value
+    assert refreshed.failed_at is not None
+    assert refreshed.error_code == "sender_unexpected_error"
+    assert "RuntimeError" in (refreshed.error_message or "")
+    # Audit event with error level was written.
+    events = (
+        db_session.query(NeuroCommentEvent)
+        .filter_by(attempt_id=attempt.id, event_type="comment_send_unexpected_error")
+        .all()
+    )
+    assert len(events) == 1
+
+
+def test_send_attempt_unexpected_exception_re_raises(db_session) -> None:
+    """F-002: the unexpected exception must propagate so worker/scheduler
+    can escalate (sender does not silently swallow it)."""
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    sender = _RaisingSender(AttributeError("missing tdlib attr"))
+
+    with pytest.raises(AttributeError):
+        SenderService(config=_config_with_send_enabled(), sender=sender).send_attempt(
+            db_session,
+            attempt_id=attempt.id,
+            workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        )
+    # Sender was actually invoked (so the cleanup path ran).
+    assert sender.calls == 1
 
 
 def test_flood_wait_maps_to_attempt_status_and_cooldown(db_session) -> None:

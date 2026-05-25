@@ -19,6 +19,36 @@ SENSITIVE_FRAGMENTS = (
     "twofactorpassword",
 )
 
+# Audit B F-001: PII key fragments. Detected the same way as SENSITIVE_FRAGMENTS
+# (case-insensitive, separators stripped) but mapped to type-specific tokens so
+# downstream readers can distinguish a redacted email from a redacted secret.
+PII_EMAIL_KEY_FRAGMENTS = (
+    "email",
+    "contactemail",
+    "owneremail",
+    "useremail",
+    "actoremail",
+)
+
+PII_PHONE_KEY_FRAGMENTS = (
+    "phone",
+    "phonenumber",
+    "contactphone",
+    "tgphone",
+    "telephone",
+    "mobile",
+)
+
+REDACTED_EMAIL = "[REDACTED_EMAIL]"
+REDACTED_PHONE = "[REDACTED_PHONE]"
+
+# Free-text PII patterns. Conservative: phones require at least 9 digits to
+# avoid matching IDs/timestamps; bounded by non-word characters on both sides.
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
+_PHONE_RE = re.compile(r"(?<!\w)\+?\d[\d\s\-().]{7,18}\d(?!\w)")
+_PHONE_MIN_DIGITS = 9
+_PHONE_MAX_DIGITS = 16
+
 
 def redact_metadata(value: Any) -> Any:
     if isinstance(value, Mapping):
@@ -35,8 +65,76 @@ def redact_metadata(value: Any) -> Any:
     return value
 
 
+def redact_pii(value: Any) -> Any:
+    """Recursively redact emails, phones, and credentials.
+
+    Supersedes :func:`redact_metadata` for any callsite that needs PII
+    coverage (audit log metadata, structured logging kwargs). Three layers:
+
+    1. **Key-based masking** — values for keys whose normalized form matches
+       an email/phone fragment are replaced with ``[REDACTED_EMAIL]`` /
+       ``[REDACTED_PHONE]``. Generic secret keys still mask with ``***``.
+    2. **Pattern-based masking** — emails and phone-like substrings inside
+       any string value are replaced with the same tokens.
+    3. **Recursive nesting** — applies to dict/list/tuple containers.
+
+    Non-string, non-container values pass through unchanged. Safe for
+    arbitrary metadata payloads typical of sensitive audit events.
+    """
+    if isinstance(value, Mapping):
+        mapping = cast(Mapping[object, object], value)
+        result: dict[object, Any] = {}
+        for key, item in mapping.items():
+            normalized = _normalize_key(key)
+            if any(fragment in normalized for fragment in PII_EMAIL_KEY_FRAGMENTS):
+                result[key] = REDACTED_EMAIL
+            elif any(fragment in normalized for fragment in PII_PHONE_KEY_FRAGMENTS):
+                result[key] = REDACTED_PHONE
+            elif is_sensitive_key(key):
+                result[key] = "***"
+            else:
+                result[key] = redact_pii(item)
+        return result
+    if isinstance(value, (list, tuple)):
+        items = cast(list[object], list(value))
+        return [redact_pii(item) for item in items]
+    if isinstance(value, str):
+        return redact_text(value)
+    return value
+
+
 def redact_text(value: str) -> str:
-    return _redact_url_credentials(_redact_key_values(value))
+    return _redact_pii_patterns(_redact_url_credentials(_redact_key_values(value)))
+
+
+def _redact_pii_patterns(text: str) -> str:
+    """Apply free-text email/phone regex masking to ``text``."""
+    text = _EMAIL_RE.sub(REDACTED_EMAIL, text)
+    text = _PHONE_RE.sub(_phone_substitution, text)
+    return text
+
+
+def _phone_substitution(match: re.Match[str]) -> str:
+    raw = match.group(0)
+    digit_count = sum(1 for c in raw if c.isdigit())
+    if not (_PHONE_MIN_DIGITS <= digit_count <= _PHONE_MAX_DIGITS):
+        return raw
+    # E.164-style leading + is unambiguous; mask outright.
+    if raw.startswith("+"):
+        return REDACTED_PHONE
+    # Otherwise require a phone-shaped separator (space, dot, paren) OR
+    # at least three dash-separated all-digit groups. This keeps the long
+    # all-digit segments of UUIDs and opaque IDs from being misclassified.
+    if any(ch in raw for ch in " ()."):
+        return REDACTED_PHONE
+    groups = [g for g in raw.split("-") if g]
+    if len(groups) >= 3 and all(g.isdigit() for g in groups):
+        return REDACTED_PHONE
+    return raw
+
+
+def _normalize_key(key: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(key).lower())
 
 
 def _redact_key_values(text: str) -> str:
@@ -158,5 +256,5 @@ def _is_key_char(value: str) -> bool:
 
 
 def is_sensitive_key(key: object) -> bool:
-    normalized = re.sub(r"[^a-z0-9]", "", str(key).lower())
+    normalized = _normalize_key(key)
     return any(fragment.replace("_", "") in normalized for fragment in SENSITIVE_FRAGMENTS)

@@ -657,6 +657,7 @@ class NeuroChannelRuleCreate(BaseModel):
             raise ValueError("target_ref is required")
         return target_ref
 
+
 class NeuroCampaignStatsRead(BaseModel):
     campaign_id: str
     posts_seen: int

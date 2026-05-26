@@ -11,8 +11,7 @@ from tests.helpers.app import app_client as app_client_for_session
 
 def test_static_bulk_target_route_rejects_unsupported_method_with_405(app_client) -> None:
     response = app_client.delete(
-        "/api/neuro-commenting/campaigns/"
-        "e3e70682-c209-1cac-a29f-6fbed82c07cd/targets/bulk"
+        "/api/neuro-commenting/campaigns/e3e70682-c209-1cac-a29f-6fbed82c07cd/targets/bulk"
     )
 
     assert response.status_code == 405
@@ -21,9 +20,9 @@ def test_static_bulk_target_route_rejects_unsupported_method_with_405(app_client
 
 def test_channel_rule_create_schema_exposes_only_create_supported_rule_types() -> None:
     schema = app.openapi()
-    rule_type_schema = schema["components"]["schemas"]["NeuroChannelRuleCreate"][
-        "properties"
-    ]["rule_type"]
+    rule_type_schema = schema["components"]["schemas"]["NeuroChannelRuleCreate"]["properties"][
+        "rule_type"
+    ]
 
     assert rule_type_schema["enum"] == ["blacklist", "whitelist"]
 
@@ -64,9 +63,7 @@ def test_safety_policy_rejects_boolean_probability(app_client) -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["error_code"] == "REQUEST_VALIDATION_ERROR"
-    assert any(
-        error["field"] == "message_deletion_probability" for error in body["field_errors"]
-    )
+    assert any(error["field"] == "message_deletion_probability" for error in body["field_errors"])
 
 
 def test_safety_policy_allows_null_for_nullable_fields(app_client) -> None:
@@ -107,8 +104,7 @@ def test_notification_webhook_rejects_non_https_url() -> None:
     try:
         with app_client_for_session(session_factory, role="admin") as client:
             response = client.patch(
-                "/api/workspaces/00000000-0000-0000-0000-000000000001/"
-                "notification-settings",
+                "/api/workspaces/00000000-0000-0000-0000-000000000001/notification-settings",
                 json={"notification_webhook_url": "http://example.test/hook"},
             )
     finally:
@@ -117,6 +113,4 @@ def test_notification_webhook_rejects_non_https_url() -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["error_code"] == "REQUEST_VALIDATION_ERROR"
-    assert any(
-        error["field"] == "notification_webhook_url" for error in body["field_errors"]
-    )
+    assert any(error["field"] == "notification_webhook_url" for error in body["field_errors"])

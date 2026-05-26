@@ -262,9 +262,7 @@ _route_methods_cache: list[tuple[Pattern[str], tuple[int, int], set[str]]] | Non
 
 def _route_specificity(path_format: str) -> tuple[int, int]:
     static_segments = [
-        segment
-        for segment in path_format.split("/")
-        if segment and not segment.startswith("{")
+        segment for segment in path_format.split("/") if segment and not segment.startswith("{")
     ]
     return len(static_segments), sum(len(segment) for segment in static_segments)
 
@@ -279,9 +277,7 @@ def _route_methods_for_path(path: str) -> set[str] | None:
             methods = set(route.methods or set())
             if "GET" in methods:
                 methods.add("HEAD")
-            route_methods.append(
-                (route.path_regex, _route_specificity(route.path_format), methods)
-            )
+            route_methods.append((route.path_regex, _route_specificity(route.path_format), methods))
         _route_methods_cache = route_methods
 
     best_specificity: tuple[int, int] | None = None

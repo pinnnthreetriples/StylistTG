@@ -13,6 +13,7 @@ from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
 
 DISCUSSION_MESSAGE_NOT_RESOLVED = "DISCUSSION_MESSAGE_NOT_RESOLVED"
 TARGET_NO_DISCUSSION = "TARGET_NO_DISCUSSION"
+_INT_COERCION_ERRORS = (TypeError, ValueError)
 
 
 @dataclass(frozen=True)
@@ -168,5 +169,5 @@ def _ids_match(value: dict[str, Any], *, source_chat_id: str, source_message_id:
 def _require_int_id(value: object) -> int:
     try:
         return int(str(value))
-    except TypeError, ValueError:
+    except _INT_COERCION_ERRORS:
         raise NeuroRuntimeUnavailableError("chat not found", error_code="CHAT_NOT_FOUND") from None

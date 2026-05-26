@@ -43,6 +43,7 @@ def create_safety_override(
         raise ValueError(f"non-overridable blocker: {non_overridable[0]}")
     now = datetime.now(UTC)
     row = AccountSafetyOverride(
+        workspace_id=workspace_id,
         account_id=account_id,
         operation=operation,
         reason=reason.strip(),
@@ -72,12 +73,14 @@ def active_overrides_by_operation(
     session: Session,
     account_id: str,
     *,
+    workspace_id: str,
     now: datetime | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     now = now or datetime.now(UTC)
     rows = (
         session.execute(
             select(AccountSafetyOverride)
+            .where(AccountSafetyOverride.workspace_id == workspace_id)
             .where(AccountSafetyOverride.account_id == account_id)
             .where(AccountSafetyOverride.allowed_until > now)
             .order_by(AccountSafetyOverride.created_at.desc())
@@ -95,6 +98,7 @@ def batch_active_overrides_by_operation(
     session: Session,
     account_ids: list[str],
     *,
+    workspace_id: str,
     now: datetime | None = None,
 ) -> dict[str, dict[str, list[dict[str, Any]]]]:
     """Return {account_id: {operation: [overrides]}} for all accounts in one query."""
@@ -104,6 +108,7 @@ def batch_active_overrides_by_operation(
     rows = (
         session.execute(
             select(AccountSafetyOverride)
+            .where(AccountSafetyOverride.workspace_id == workspace_id)
             .where(AccountSafetyOverride.account_id.in_(account_ids))
             .where(AccountSafetyOverride.allowed_until > now)
             .order_by(AccountSafetyOverride.created_at.desc())

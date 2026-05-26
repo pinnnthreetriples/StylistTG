@@ -10,6 +10,8 @@ from app.services.neuro_commenting.errors import NeuroRuntimeUnavailableError
 from app.services.neuro_commenting.tdlib_helpers import checked_tdlib_query, dict_or_empty
 from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
 
+_INT_COERCION_ERRORS = (TypeError, ValueError)
+
 
 @dataclass(frozen=True)
 class ObservedTelegramPost:
@@ -165,7 +167,7 @@ def _resolve_target_chat(
 def _require_int_id(value: object) -> int:
     try:
         return int(str(value))
-    except TypeError, ValueError:
+    except _INT_COERCION_ERRORS:
         raise NeuroRuntimeUnavailableError("chat not found", error_code="CHAT_NOT_FOUND") from None
 
 

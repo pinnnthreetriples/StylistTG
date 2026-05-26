@@ -17,6 +17,9 @@ from .models import (
 )
 from .rules import ALL_RULES
 
+_SOURCE_READ_ERRORS = (UnicodeDecodeError, OSError)
+_COVERAGE_READ_ERRORS = (json.JSONDecodeError, OSError)
+
 
 class Analyzer:
     def __init__(
@@ -32,7 +35,7 @@ class Analyzer:
     def analyze_file(self, path: Path, base_dir: Path) -> list[Issue]:
         try:
             source = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError, OSError:
+        except _SOURCE_READ_ERRORS:
             return []
 
         try:
@@ -165,5 +168,5 @@ def load_coverage_context(coverage_path: Path) -> dict[str, Any] | None:
         return None
     try:
         return json.loads(coverage_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError, OSError:
+    except _COVERAGE_READ_ERRORS:
         return None

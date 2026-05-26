@@ -64,7 +64,12 @@ def build_account_safety_for_account(
         health["reasons"], capabilities, cooldowns_by_operation
     )
     last_validity_check = _latest_validity_check(session, account.id)
-    overrides = active_overrides_by_operation(session, account.id, now=checked_at)
+    overrides = active_overrides_by_operation(
+        session,
+        account.id,
+        workspace_id=account.workspace_id,
+        now=checked_at,
+    )
     return _build_safety_result(
         account,
         health=health,
@@ -95,7 +100,12 @@ def build_account_safety_summary(
     recent_failed_map = batch_recent_failed_steps(session, account_ids)
     succeeded_steps_map = batch_latest_succeeded_steps(session, account_ids)
     validity_map = _batch_latest_validity_checks(session, account_ids)
-    overrides_map = batch_active_overrides_by_operation(session, account_ids, now=checked_at)
+    overrides_map = batch_active_overrides_by_operation(
+        session,
+        account_ids,
+        workspace_id=workspace_id,
+        now=checked_at,
+    )
 
     results: list[dict[str, Any]] = []
     for account in accounts:

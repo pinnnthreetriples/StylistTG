@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 GENERATED_AT = "2026-05-17T00:00:00Z"
+_AST_PARSE_ERRORS = (SyntaxError, UnicodeDecodeError)
 
 MODULES_ROOT = Path("backend/app/modules")
 CONTRACTS_ROOT = Path("backend/app/contracts")
@@ -85,7 +86,7 @@ def _python_files(root: Path) -> list[Path]:
 def _parse_ast(path: Path) -> ast.Module | None:
     try:
         return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except SyntaxError, UnicodeDecodeError:
+    except _AST_PARSE_ERRORS:
         return None
 
 

@@ -12,6 +12,7 @@ from app.config import Settings, settings
 from app.services.phone_hints import phone_hint
 
 SUPPORTED_IMPORT_SOURCE_TYPES = {"tdlib-directory", "tdata", "session-file", "json-metadata"}
+_JSON_METADATA_ERRORS = (UnicodeDecodeError, json.JSONDecodeError)
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ def _validate_json_metadata(
     if content:
         try:
             payload = json.loads(content.decode("utf-8"))
-        except UnicodeDecodeError, json.JSONDecodeError:
+        except _JSON_METADATA_ERRORS:
             return _unsupported("json_metadata_invalid", "JSON metadata is not valid.")
     username = _safe_hint(payload.get("username"))
     phone = phone_hint(payload.get("phone") or payload.get("phone_number"))

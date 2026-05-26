@@ -4,10 +4,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.config import settings
+from app.config import Settings, settings
 from app.services.neuro_commenting import rate_limiter
 from app.models import (
     Account,
+    AccountBehaviorProfile,
     DEFAULT_LOCAL_WORKSPACE_ID,
     AccountState,
     NeuroCommentCampaignAccount,
@@ -70,6 +71,27 @@ class DenyExceededLimiter:
     def rollback(self, reservation):  # pragma: no cover - denied reservations are not rolled back
         _ = reservation
         raise AssertionError("rollback should not be called for denied reservation")
+
+
+class _RecordingBehaviorHook:
+    def __init__(self, order: list[str] | None = None) -> None:
+        self.order = order
+        self.calls = []
+
+    def before_send(self, **kwargs) -> None:
+        if self.order is not None:
+            self.order.append("behavior")
+        self.calls.append(kwargs)
+
+
+class _OrderingSender(FakeTelegramCommentSender):
+    def __init__(self, order: list[str], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._order = order
+
+    def send_comment(self, **kwargs):
+        self._order.append("send")
+        return super().send_comment(**kwargs)
 
 
 def _approved_comment_with_attempt(db_session):
@@ -162,6 +184,16 @@ def test_manual_send_fails_closed_when_disabled(db_session) -> None:
     assert exc_info.value.error_code == "NEURO_COMMENT_SEND_DISABLED"
 
 
+def test_behavior_emulator_live_send_flag_defaults_disabled() -> None:
+    assert settings.behavior_emulator_live_send_enabled is False
+
+
+def test_behavior_emulator_live_send_flag_reads_env(monkeypatch) -> None:
+    monkeypatch.setenv("BEHAVIOR_EMULATOR_LIVE_SEND_ENABLED", "true")
+
+    assert Settings().behavior_emulator_live_send_enabled is True
+
+
 def test_default_sender_uses_settings_redis_limiter_when_required(db_session, monkeypatch) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
     redis = FakeRedis()
@@ -248,6 +280,89 @@ def test_rate_limit_exceeded_denies_send_before_sender_call(db_session) -> None:
     assert result.status == NeuroAttemptStatus.SKIPPED.value
     assert result.error_code == "RATE_LIMIT_DENIED"
     assert result.error_message == "account comments_per_hour limit exceeded"
+
+
+def test_behavior_emulator_does_not_run_when_flag_absent(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    hook = _RecordingBehaviorHook()
+
+    SenderService(
+        config=_config_with_send_enabled(),
+        sender=FakeTelegramCommentSender(),
+        behavior_emulator_hook=hook,
+    ).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert hook.calls == []
+    assert (
+        db_session.query(AccountBehaviorProfile).filter_by(account_id=attempt.account_id).count()
+        == 0
+    )
+
+
+def test_behavior_emulator_prepares_plan_before_live_send_when_enabled(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    config = _config_with_send_enabled()
+    config.behavior_emulator_live_send_enabled = True
+    order: list[str] = []
+    hook = _RecordingBehaviorHook(order)
+    sender = _OrderingSender(order, telegram_message_id="telegram-behavior")
+
+    sent = SenderService(
+        config=config,
+        sender=sender,
+        behavior_emulator_hook=hook,
+    ).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    event = (
+        db_session.query(NeuroCommentEvent)
+        .filter_by(attempt_id=attempt.id, event_type="behavior_emulator_live_send_prepared")
+        .one()
+    )
+    profile = (
+        db_session.query(AccountBehaviorProfile).filter_by(account_id=attempt.account_id).one()
+    )
+    plan = hook.calls[0]["plan"]
+    assert sent.status == NeuroAttemptStatus.SENT.value
+    assert order == ["behavior", "send"]
+    assert sender.calls == 1
+    assert event.data_json["behavior_profile_id"] == profile.id
+    assert event.data_json["typing_fragment_count"] == len(plan.typing_fragments)
+    assert event.data_json["decoy_action_count"] == len(plan.decoy_actions)
+
+
+def test_behavior_emulator_not_run_when_rate_limit_denies_send(db_session) -> None:
+    _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
+    config = SimpleNamespace(
+        neuro_comment_tdlib_send_enabled=True,
+        neuro_comment_require_redis_limiter_for_send=True,
+        behavior_emulator_live_send_enabled=True,
+    )
+    hook = _RecordingBehaviorHook()
+    sender = FakeTelegramCommentSender()
+
+    result = SenderService(
+        config=config,
+        limiter=DenyExceededLimiter(),
+        sender=sender,
+        behavior_emulator_hook=hook,
+    ).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert result.status == NeuroAttemptStatus.SKIPPED.value
+    assert result.error_code == "RATE_LIMIT_DENIED"
+    assert hook.calls == []
+    assert sender.calls == 0
 
 
 def test_fake_sender_success_updates_attempt_and_counters(db_session) -> None:

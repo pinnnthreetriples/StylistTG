@@ -5,7 +5,11 @@ from types import SimpleNamespace
 
 from freezegun import freeze_time
 
+from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
+from app.config import Settings
 from app.main import app
+from app.modules.account_editing import service as account_editing_service
+from app.modules.warmup import dispatcher as warmup_dispatcher
 from app.models import (
     AccountGgrScore,
     AccountProfileState,
@@ -20,6 +24,7 @@ from app.models import (
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
     SensitiveAuditEvent,
+    WarmupExecutionMode,
     WarmupStatus,
     Workspace,
     new_id,
@@ -474,24 +479,112 @@ def test_ip_change_cooldown_warns_then_expires_to_ok(db_session) -> None:
 
 
 @freeze_time(_FROZEN_NOW)
-def test_pipeline_uses_account_safety_gate_at_least_five_times(db_session, monkeypatch) -> None:
+def test_pipeline_invokes_gate_through_real_workflows(app_client, db_session, monkeypatch) -> None:
     calls: list[tuple[str, str]] = []
-    original = AccountSafetyGate.evaluate
 
-    def counted(self, session, *, workspace_id: str, account_id: str, intent: str):
-        calls.append((account_id, intent))
-        return original(
-            self,
-            session,
-            workspace_id=workspace_id,
-            account_id=account_id,
-            intent=intent,
-        )
+    def counted(callsite: str):
+        def evaluate(session, *, workspace_id: str, account_id: str, intent: str):
+            calls.append((callsite, intent))
+            return AccountSafetyGate(cache=InMemorySafetyGateCache()).evaluate(
+                session,
+                workspace_id=workspace_id,
+                account_id=account_id,
+                intent=intent,
+            )
 
-    monkeypatch.setattr(AccountSafetyGate, "evaluate", counted)
-    account = _ready_account(db_session, external_ref="+15550380007")
+        return evaluate
 
-    for _ in range(5):
-        _gate(db_session, account)
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.live_readiness_service.evaluate_safety_gate",
+        counted("live_readiness"),
+    )
+    monkeypatch.setattr(
+        "app.services.neuro_commenting.sender_service.evaluate_safety_gate",
+        counted("sender"),
+    )
+    monkeypatch.setattr(
+        "app.modules.warmup.dispatcher.evaluate_safety_gate",
+        counted("warmup_dispatch"),
+    )
+    monkeypatch.setattr(
+        "app.modules.account_editing.service.evaluate_safety_gate",
+        counted("account_update"),
+    )
+    monkeypatch.setattr(
+        "app.api.account_safety_routes.evaluate_safety_gate",
+        counted("api"),
+    )
 
-    assert len(calls) >= 5
+    readiness_account = _ready_account(db_session, external_ref="+15550380007", with_warmup=False)
+    campaign, _target = _campaign_with_target(
+        db_session, readiness_account, name="Gate Readiness E2E"
+    )
+    LiveReadinessService(config=_send_config(), limiter_ready=True).check(
+        db_session,
+        campaign_id=campaign.id,
+        workspace_id=WORKSPACE,
+    )
+
+    sender_account = _ready_account(db_session, external_ref="+15550380008")
+    _campaign, _target, attempt = _approved_attempt_from_fake_tdlib(
+        db_session, sender_account, name="Gate Sender E2E"
+    )
+    SenderService(
+        config=_send_config(),
+        sender=FakeTelegramCommentSender(),
+    ).send_attempt(
+        db_session,
+        attempt_id=attempt.id,
+        workspace_id=WORKSPACE,
+    )
+
+    warmup_account = _ready_account(db_session, external_ref="+15550380009", with_warmup=False)
+    warmup_strategy = seed_warmup_strategy(
+        db_session,
+        workspace_id=WORKSPACE,
+        execution_mode=WarmupExecutionMode.SHADOW.value,
+        daily_action_limits={"1": {"feed_read": 1}},
+    )
+    warmup_session = seed_warmup_session(
+        db_session,
+        account=warmup_account,
+        strategy=warmup_strategy,
+        workspace_id=WORKSPACE,
+        now=_FROZEN_NOW,
+        status=WarmupStatus.ACTIVE.value,
+    )
+    warmup_session.next_micro_session_at = _FROZEN_NOW
+    db_session.commit()
+    warmup_dispatcher.process_due_warmup_dispatches(
+        db_session,
+        worker_id="gate-e2e",
+        now=_FROZEN_NOW,
+        workspace_id=WORKSPACE,
+        limit=1,
+        passive_adapter=MockWarmupTdlibAdapter(),
+    )
+
+    editing_account = _ready_account(db_session, external_ref="+15550380010")
+    account_editing_service.build_account_update_preview(
+        db_session,
+        account_id=editing_account.id,
+        desired_state={"profile": {"name": "Safety TG"}},
+        workspace_id=WORKSPACE,
+        config=Settings(profile_job_cooldown_seconds=0),
+    )
+
+    api_account = _ready_account(db_session, external_ref="+15550380011")
+    app.dependency_overrides[get_current_auth_context] = lambda: _auth("admin")
+    try:
+        response = app_client.get(f"/api/accounts/{api_account.id}/safety-gate?intent=commenting")
+    finally:
+        app.dependency_overrides.pop(get_current_auth_context, None)
+
+    assert response.status_code == 200
+    assert {
+        ("live_readiness", "commenting"),
+        ("sender", "commenting"),
+        ("warmup_dispatch", "warmup"),
+        ("account_update", "editing"),
+        ("api", "commenting"),
+    }.issubset(set(calls))

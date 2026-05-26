@@ -1,7 +1,8 @@
 """Decoy actions — pre-send noise that mimics real user behaviour.
 
-Stub version: records *what* would be called (getUser / getChat) without
-invoking TDLib.  The real integration happens in behavior_aware_sender.
+Records *what* would be called (getUser / getChat) without invoking
+TDLib. The live sender may consume this plan behind an explicit opt-in
+flag; this module never performs Telegram side effects itself.
 """
 
 from __future__ import annotations

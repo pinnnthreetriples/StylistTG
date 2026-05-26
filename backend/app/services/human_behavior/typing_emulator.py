@@ -1,8 +1,8 @@
 """Typing emulator — simulate realistic typing cadence.
 
-Testable stub version: returns a list of fragment timings without
-calling TDLib. The real integration (sendChatAction) happens in
-behavior_aware_sender (a separate task).
+Returns a list of fragment timings without calling TDLib. The live
+sender may consume this plan behind an explicit opt-in flag; this module
+never performs Telegram side effects itself.
 """
 
 from __future__ import annotations

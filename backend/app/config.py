@@ -132,6 +132,7 @@ class Settings(BaseSettings):
     neuro_comment_ai_temperature: float = 0.7
     neuro_comment_tdlib_observer_enabled: bool = False
     neuro_comment_tdlib_send_enabled: bool = False
+    behavior_emulator_live_send_enabled: bool = False
     neuro_comment_require_redis_limiter_for_send: bool = True
     # Task 44 / F-301: fail-closed by default when Redis is unreachable. If
     # an operator explicitly opts in to fail-open they must accept the

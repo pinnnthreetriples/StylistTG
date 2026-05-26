@@ -19,6 +19,16 @@ from app.models import (
     utc_now,
 )
 from app.services.account_safety_gate import evaluate as evaluate_safety_gate
+from app.services.human_behavior.behavior_profile import (
+    get_or_create_baseline,
+    randomize_for_session,
+)
+from app.services.human_behavior.decoy_actions import DecoyAction, run_before_send
+from app.services.human_behavior.typing_emulator import (
+    TypingFragment,
+    emit_typing,
+    total_duration,
+)
 from app.services.idempotency_keys import (
     IdempotencyConflict,
     generate as generate_idempotency_key,
@@ -82,6 +92,13 @@ class _SendContext:
     campaign_account: NeuroCommentCampaignAccount | None
 
 
+@dataclass(frozen=True)
+class BehaviorEmulatorSendPlan:
+    typing_fragments: tuple[TypingFragment, ...]
+    decoy_actions: tuple[DecoyAction, ...]
+    typing_duration_seconds: float
+
+
 class TelegramCommentSendError(RuntimeError):
     def __init__(
         self,
@@ -105,6 +122,29 @@ class TelegramCommentSender(Protocol):
         text: str,
         random_id: int | None = None,
     ) -> SentCommentResult: ...
+
+
+class BehaviorEmulatorBeforeSendHook(Protocol):
+    def before_send(
+        self,
+        *,
+        account_id: str,
+        discussion_chat_id: str,
+        reply_to_message_id: str,
+        plan: BehaviorEmulatorSendPlan,
+    ) -> None: ...
+
+
+class NoopBehaviorEmulatorBeforeSendHook:
+    def before_send(
+        self,
+        *,
+        account_id: str,
+        discussion_chat_id: str,
+        reply_to_message_id: str,
+        plan: BehaviorEmulatorSendPlan,
+    ) -> None:
+        _ = (account_id, discussion_chat_id, reply_to_message_id, plan)
 
 
 class FakeTelegramCommentSender:
@@ -152,12 +192,16 @@ class SenderService:
         analytics: AnalyticsService | None = None,
         limiter: Any | None = None,
         redis_client: Any | None = None,
+        behavior_emulator_hook: BehaviorEmulatorBeforeSendHook | None = None,
     ) -> None:
         self._config = config
         self._sender = sender
         self._analytics = analytics or AnalyticsService()
         self._limiter = limiter
         self._redis_client = redis_client
+        self._behavior_emulator_hook = (
+            behavior_emulator_hook or NoopBehaviorEmulatorBeforeSendHook()
+        )
         self._gate_reservation: SafetyGateReservation | None = None
 
     def prepare_send(
@@ -271,11 +315,20 @@ class SenderService:
         # reservation and the Redis gate slot until their TTL fired.
         gate_released = False
         try:
+            reply_to_message_id = str(context.observed_post.discussion_message_id)
+            self._prepare_behavior_emulator_before_send(
+                session,
+                workspace_id=workspace_id,
+                context=context,
+                discussion_chat_id=str(discussion_chat_id),
+                reply_to_message_id=reply_to_message_id,
+                final_text=final_text,
+            )
             with safety_metrics.attempt_send_duration(strategy=attempt.send_strategy):
                 result = self._comment_sender().send_comment(
                     account_id=str(attempt.account_id),
                     discussion_chat_id=str(discussion_chat_id),
-                    reply_to_message_id=str(context.observed_post.discussion_message_id),
+                    reply_to_message_id=reply_to_message_id,
                     text=final_text,
                     random_id=idem.random_id_hash,
                 )
@@ -661,6 +714,66 @@ class SenderService:
         if self._sender is None:
             self._sender = build_telegram_comment_sender(self._config)
         return self._sender
+
+    def _prepare_behavior_emulator_before_send(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        context: _SendContext,
+        discussion_chat_id: str,
+        reply_to_message_id: str,
+        final_text: str,
+    ) -> None:
+        if not getattr(self._config, "behavior_emulator_live_send_enabled", False):
+            return
+
+        account_id = context.attempt.account_id or context.comment.account_id
+        if account_id is None:
+            return
+
+        baseline = get_or_create_baseline(
+            session,
+            account_id=account_id,
+            workspace_id=workspace_id,
+        )
+        profile = randomize_for_session(baseline)
+        typing_fragments = (
+            emit_typing(final_text, profile.typing_speed_cpm)
+            if profile.typing_speed_cpm is not None
+            else []
+        )
+        decoy_actions = run_before_send(account_id, profile.profile_view_probability)
+        plan = BehaviorEmulatorSendPlan(
+            typing_fragments=tuple(typing_fragments),
+            decoy_actions=tuple(decoy_actions),
+            typing_duration_seconds=round(total_duration(typing_fragments), 3),
+        )
+        self._behavior_emulator_hook.before_send(
+            account_id=account_id,
+            discussion_chat_id=discussion_chat_id,
+            reply_to_message_id=reply_to_message_id,
+            plan=plan,
+        )
+        self._analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=account_id,
+            target_id=context.attempt.target_id,
+            observed_post_id=context.attempt.observed_post_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=context.attempt.id,
+            event_type="behavior_emulator_live_send_prepared",
+            message="behavior emulator send plan prepared",
+            data={
+                "behavior_profile_id": baseline.id,
+                "typing_fragment_count": len(typing_fragments),
+                "typing_duration_seconds": plan.typing_duration_seconds,
+                "decoy_action_count": len(decoy_actions),
+                "decoy_action_kinds": [action.kind for action in decoy_actions],
+            },
+        )
 
     def _validate_send(
         self,

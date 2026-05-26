@@ -21,6 +21,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.neuro_commenting.router",
+      "file": "backend/app/api/neuro_commenting.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.neuro_commenting",
+      "notes": "Preserves legacy router import path for /api/neuro-commenting.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.warmup.router",
       "file": "backend/app/api/warmup.py",
       "forbidden_importers": [

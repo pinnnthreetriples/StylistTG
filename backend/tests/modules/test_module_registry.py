@@ -1,6 +1,7 @@
 import pytest
 
 from app.contracts.queues import (
+    NEURO_COMMENT_QUEUE_NAME,
     PROFILE_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
     WARMUP_QUEUE_NAME,
@@ -23,6 +24,7 @@ def test_module_names_are_unique_and_expected_modules_exist() -> None:
     assert "auth" in names
     assert "account_editing" in names
     assert "warmup" in names
+    assert "neuro_commenting" in names
 
 
 def test_workflow_types_are_unique_and_expected_workflows_exist() -> None:
@@ -33,6 +35,11 @@ def test_workflow_types_are_unique_and_expected_workflows_exist() -> None:
     assert "account_update" in workflow_types
     assert "warmup_due_sessions" in workflow_types
     assert "warmup_dispatch_tick" in workflow_types
+    assert "neuro_generate_comment" in workflow_types
+    assert "neuro_observe_campaign" in workflow_types
+    assert "neuro_observe_target" in workflow_types
+    assert "neuro_refresh_target_metadata" in workflow_types
+    assert "neuro_send_attempt" in workflow_types
 
 
 def test_account_update_workflow_metadata_preserves_existing_contract() -> None:
@@ -53,6 +60,14 @@ def test_warmup_workflow_metadata_uses_no_arg_handlers() -> None:
     assert dispatch_tick.args_mode == WorkflowArgsMode.NONE
 
 
+def test_neuro_commenting_workflow_metadata_uses_stable_queue_and_handlers() -> None:
+    workflow = get_workflow_spec("neuro_generate_comment")
+
+    assert workflow.queue_name == NEURO_COMMENT_QUEUE_NAME
+    assert workflow.args_mode == WorkflowArgsMode.CUSTOM
+    assert workflow.handler_path == "app.modules.neuro_commenting.jobs:run_generate_comment"
+
+
 def test_unknown_workflow_type_raises_controlled_error() -> None:
     with pytest.raises(ValueError, match="Unknown workflow_type: missing"):
         get_workflow_spec("missing")
@@ -62,15 +77,18 @@ def test_router_paths_are_lazy_module_routes() -> None:
     assert iter_router_paths() == (
         "app.modules.account_editing.router:router",
         "app.modules.warmup.router:router",
+        "app.modules.neuro_commenting.router:router",
     )
 
 
 def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     account_router = resolve_router("app.modules.account_editing.router:router")
     warmup_router = resolve_router("app.modules.warmup.router:router")
+    neuro_router = resolve_router("app.modules.neuro_commenting.router:router")
 
     assert account_router.prefix == "/api/account-update"
     assert warmup_router.prefix == "/api/warmup"
+    assert neuro_router.prefix == "/api/neuro-commenting"
 
 
 def test_module_router_registration_does_not_duplicate_routes() -> None:

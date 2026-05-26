@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import AccountOperationCooldown, Job, JobStepResult, StepStatus
+from app.models import AccountOperationCooldown, Job, JobStepResult, StepStatus, utc_now
 
 OPERATION_KEYS = (
     "profile_update",
@@ -109,7 +109,7 @@ def _active_cooldown_rows(
 def active_cooldowns_by_operation(
     session: Session, account_id: str, *, now: datetime | None = None
 ) -> dict[str, list[dict[str, Any]]]:
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     rows = _active_cooldown_rows(session, account_id, now)
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for row in rows:
@@ -120,7 +120,7 @@ def active_cooldowns_by_operation(
 def list_active_account_cooldowns(
     session: Session, account_id: str, *, now: datetime | None = None
 ) -> list[dict[str, Any]]:
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     return [cooldown_to_dict(row) for row in _active_cooldown_rows(session, account_id, now)]
 
 
@@ -133,7 +133,7 @@ def create_cooldown_from_error(
     source_job_id: str | None = None,
     now: datetime | None = None,
 ) -> AccountOperationCooldown | None:
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     match = FLOOD_WAIT_RE.search(error_code)
     if not match:
         return None
@@ -160,7 +160,7 @@ def product_cooldowns_by_operation(
     config: Settings = settings,
     now: datetime | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for step_type, operation in STEP_OPERATION_MAP.items():
         seconds = product_cooldown_seconds(operation, config=config)
@@ -206,7 +206,7 @@ def cooldown_from_failed_step(
     error_code = step.error_code or ""
     match = FLOOD_WAIT_RE.search(error_code)
     operation = STEP_OPERATION_MAP.get(step.step_type, "profile_update")
-    started_at = step.finished_at or step.started_at or datetime.now(UTC)
+    started_at = step.finished_at or step.started_at or utc_now()
     if not match:
         if config.recent_failure_policy != "cooldown":
             return None
@@ -297,7 +297,7 @@ def batch_active_cooldowns_by_operation(
     now: datetime | None = None,
 ) -> dict[str, dict[str, list[dict[str, Any]]]]:
     """Return {account_id: {operation: [cooldowns]}} for all accounts in one query."""
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     if not account_ids:
         return {}
     rows = (
@@ -387,7 +387,7 @@ def product_cooldowns_from_steps(
     now: datetime | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Compute product cooldowns from pre-fetched succeeded steps (no DB calls)."""
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     result: dict[str, list[dict[str, Any]]] = {operation: [] for operation in OPERATION_KEYS}
     for step_type, operation in STEP_OPERATION_MAP.items():
         seconds = product_cooldown_seconds(operation, config=config)

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, timedelta
 from enum import StrEnum
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import Account, NeuroCommentCampaign, NeuroCommentCampaignAccount, new_id
+from app.models import Account, NeuroCommentCampaign, NeuroCommentCampaignAccount, new_id, utc_now
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroApprovalMode,
@@ -156,7 +156,7 @@ class CampaignService:
             if field in _MUTABLE_FIELDS:
                 setattr(campaign, field, value)
         campaign.auto_send_enabled = False
-        campaign.updated_at = datetime.now(UTC)
+        campaign.updated_at = utc_now()
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,
@@ -187,7 +187,7 @@ class CampaignService:
             raise ValueError("campaign status cannot be started")
         self._enforce_age_forced_preset(session, campaign)
         campaign.status = NeuroCampaignStatus.RUNNING.value
-        campaign.started_at = datetime.now(UTC)
+        campaign.started_at = utc_now()
         campaign.stopped_at = None
         campaign.auto_send_enabled = False
         self._analytics.write_event(
@@ -203,7 +203,7 @@ class CampaignService:
     def _enforce_age_forced_preset(self, session: Session, campaign: NeuroCommentCampaign) -> None:
         if campaign.safety_preset == "conservative":
             return
-        now = datetime.now(UTC)
+        now = utc_now()
         cutoff = now - timedelta(hours=_AGE_FORCED_CONSERVATIVE_HOURS)
         rows = (
             session.query(Account.id, Account.created_at)
@@ -265,7 +265,7 @@ class CampaignService:
         }:
             raise ValueError("campaign status cannot be stopped")
         campaign.status = NeuroCampaignStatus.STOPPED.value
-        campaign.stopped_at = datetime.now(UTC)
+        campaign.stopped_at = utc_now()
         campaign.auto_send_enabled = False
         self._analytics.write_event(
             session,

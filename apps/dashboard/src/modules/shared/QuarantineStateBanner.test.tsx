@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import { QuarantineStateBanner } from './QuarantineStateBanner'
+import { buildReleaseQuarantinePayload } from './quarantineReleasePayload'
 
 const activeQuarantine = {
   id: 'q-1',
@@ -31,5 +32,34 @@ describe('QuarantineStateBanner', () => {
     )
 
     expect(html).toBe('')
+  })
+
+  it('renders admin safety gate override checkbox and warning', () => {
+    const html = renderToStaticMarkup(
+      <QuarantineStateBanner
+        accountId="account-1"
+        initialQuarantine={activeQuarantine}
+        isAdmin
+        defaultReleaseModalOpen
+      />,
+    )
+
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain('Override safety gate block')
+    expect(html).toContain('24-hour safety gate override')
+  })
+
+  it('builds unchecked release payload without safety gate override', () => {
+    expect(buildReleaseQuarantinePayload('', false)).toEqual({
+      reason: null,
+      override_gate_block: false,
+    })
+  })
+
+  it('builds checked release payload with safety gate override', () => {
+    expect(buildReleaseQuarantinePayload('operator verified', true)).toEqual({
+      reason: 'operator verified',
+      override_gate_block: true,
+    })
   })
 })

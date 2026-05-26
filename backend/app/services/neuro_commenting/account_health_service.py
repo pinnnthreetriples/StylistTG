@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from app.models import NeuroCommentAccountStats, NeuroCommentCampaignAccount, new_id
+from app.models import NeuroCommentAccountStats, NeuroCommentCampaignAccount, new_id, utc_now
 from app.services.neuro_commenting import repository
 from app.services.neuro_commenting.enums import NeuroCampaignAccountStatus
 
@@ -20,7 +20,7 @@ class AccountHealthService:
     ) -> None:
         repository.require_campaign(session, campaign_id=campaign_id, workspace_id=workspace_id)
         campaign_account = self._campaign_account(session, campaign_id, account_id)
-        now = datetime.now(UTC)
+        now = utc_now()
         campaign_account.comments_sent += 1
         campaign_account.last_used_at = now
         campaign_account.last_error_code = None
@@ -41,7 +41,7 @@ class AccountHealthService:
     ) -> None:
         repository.require_campaign(session, campaign_id=campaign_id, workspace_id=workspace_id)
         campaign_account = self._campaign_account(session, campaign_id, account_id)
-        now = datetime.now(UTC)
+        now = utc_now()
         campaign_account.comments_failed += 1
         campaign_account.last_error_code = error_code
         stats = self._stats(session, campaign_id=campaign_id, account_id=account_id)
@@ -60,7 +60,7 @@ class AccountHealthService:
     ) -> None:
         repository.require_campaign(session, campaign_id=campaign_id, workspace_id=workspace_id)
         campaign_account = self._campaign_account(session, campaign_id, account_id)
-        now = datetime.now(UTC)
+        now = utc_now()
         campaign_account.status = NeuroCampaignAccountStatus.COOLDOWN.value
         campaign_account.cooldown_until = now + timedelta(seconds=max(1, flood_wait_seconds))
         campaign_account.last_error_code = "FLOOD_WAIT"

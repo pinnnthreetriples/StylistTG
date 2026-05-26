@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Protocol, cast
 
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from app.models import (
     AccountSafetySnapshot,
     AccountValidityCheckRun,
     new_id,
+    utc_now,
 )
 from app.services.accounts import get_account
 from app.services.account_cooldowns import ensure_cooldowns_from_recent_failures
@@ -41,7 +42,7 @@ def run_account_validity_check(
     if get_account(session, account_id) is None:
         raise ValueError("account not found")
 
-    started_at = datetime.now(UTC)
+    started_at = utc_now()
     run = AccountValidityCheckRun(
         id=new_id(),
         account_id=account_id,
@@ -54,7 +55,7 @@ def run_account_validity_check(
 
     if mode != "db_snapshot" and adapter is None:
         run.status = "unsupported"
-        run.finished_at = datetime.now(UTC)
+        run.finished_at = utc_now()
         run.error_code = "TDLIB_READONLY_CHECK_NOT_ENABLED"
         run.error_class = "safety_check"
         run.details_json = {
@@ -75,7 +76,7 @@ def run_account_validity_check(
         safety = build_account_safety(session, account_id)
         _upsert_safety_snapshot(session, safety)
         run.status = "completed"
-        run.finished_at = datetime.now(UTC)
+        run.finished_at = utc_now()
         run.result_json = _json_safe(
             {
                 **summarize_account_safety(safety),
@@ -105,7 +106,7 @@ def run_account_validity_check(
         raise
     except Exception:
         session.rollback()
-        failed_at = datetime.now(UTC)
+        failed_at = utc_now()
         run = AccountValidityCheckRun(
             id=run.id,
             account_id=account_id,
@@ -184,7 +185,7 @@ def validity_check_run_to_dict(run: AccountValidityCheckRun) -> dict[str, Any]:
 
 def _upsert_safety_snapshot(session: Session, safety: dict[str, Any]) -> None:
     snapshot = session.get(AccountSafetySnapshot, safety["account_id"])
-    now = datetime.now(UTC)
+    now = utc_now()
     payload: dict[str, Any] = {
         "health_status": safety["health_status"],
         "overall_risk_level": safety["overall_risk_level"],
@@ -218,7 +219,7 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
             runtime.runtime_health = str(result.get("runtime_health") or "ready")
             runtime.reauth_required = False
             runtime.session_present = True
-            runtime.authorized_last_confirmed_at = datetime.now(UTC)
+            runtime.authorized_last_confirmed_at = utc_now()
         account.telegram_user_id = result.get("telegram_user_id") or account.telegram_user_id
         raw_profile = result.get("profile")
         profile = cast(dict[str, Any], raw_profile) if isinstance(raw_profile, dict) else {}
@@ -236,7 +237,7 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
             )
             account.profile_state.username = profile.get("username", account.profile_state.username)
             account.profile_state.bio = profile.get("bio", account.profile_state.bio)
-            account.profile_state.synced_at = datetime.now(UTC)
+            account.profile_state.synced_at = utc_now()
     elif status == "reauth_required":
         account.account_state = AccountState.REAUTH_REQUIRED
         if runtime is not None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC
 from typing import Any, cast
 
 from redis.exceptions import RedisError
@@ -11,6 +11,7 @@ from rq.job import Job
 from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
 from app.config import Settings, settings
+from app.models import utc_now
 from app.services.redis_client import redis_from_url
 from app.services.tdlib_runtime import detect_tdlib_runtime
 
@@ -190,7 +191,7 @@ def _oldest_job_age_seconds(queue: Queue, connection: Any) -> int | None:
     enqueued_at = job.enqueued_at
     if enqueued_at.tzinfo is None:
         enqueued_at = enqueued_at.replace(tzinfo=UTC)
-    return max(0, int((datetime.now(UTC) - enqueued_at).total_seconds()))
+    return max(0, int((utc_now() - enqueued_at).total_seconds()))
 
 
 def assert_queue_allowed(queue_name: str) -> None:

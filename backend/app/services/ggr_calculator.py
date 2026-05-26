@@ -68,7 +68,7 @@ def _age_score(account: Account) -> float:
     """Score based on account age."""
     if not account.created_at:
         return 0.0
-    now = datetime.now(UTC)
+    now = utc_now()
     age = (
         now - account.created_at.replace(tzinfo=UTC)
         if account.created_at.tzinfo is None

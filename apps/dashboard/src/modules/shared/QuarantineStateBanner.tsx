@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 
 import { dashboardApiClient } from '@/lib/apiClient'
 
+import { buildReleaseQuarantinePayload } from './quarantineReleasePayload'
+
 export type AccountQuarantine = {
   id: string
   workspace_id: string
@@ -20,6 +22,7 @@ type QuarantineStateBannerProps = {
   isAdmin?: boolean
   compact?: boolean
   initialQuarantine?: AccountQuarantine | null
+  defaultReleaseModalOpen?: boolean
 }
 
 export function QuarantineStateBanner({
@@ -27,10 +30,12 @@ export function QuarantineStateBanner({
   isAdmin = false,
   compact = false,
   initialQuarantine,
+  defaultReleaseModalOpen = false,
 }: QuarantineStateBannerProps) {
   const [quarantine, setQuarantine] = useState<AccountQuarantine | null | undefined>(initialQuarantine)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(defaultReleaseModalOpen)
   const [reason, setReason] = useState('')
+  const [overrideGateBlock, setOverrideGateBlock] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,12 +68,13 @@ export function QuarantineStateBanner({
         `/api/accounts/${encodeURIComponent(accountId)}/quarantine/release`,
         {
           method: 'POST',
-          body: JSON.stringify({ reason: reason || null, override_gate_block: false }),
+          body: JSON.stringify(buildReleaseQuarantinePayload(reason, overrideGateBlock)),
         },
       )
       setQuarantine(released.released_at ? null : released)
       setIsModalOpen(false)
       setReason('')
+      setOverrideGateBlock(false)
     } catch {
       setError('Не удалось снять карантин')
     } finally {
@@ -108,9 +114,29 @@ export function QuarantineStateBanner({
               onChange={(event) => setReason(event.target.value)}
             />
           </label>
+          <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-700"
+              checked={overrideGateBlock}
+              onChange={(event) => setOverrideGateBlock(event.target.checked)}
+            />
+            <span>Override safety gate block for this release.</span>
+          </label>
+          <p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+            When checked, releasing quarantine also grants a 24-hour safety gate override. Use only after manual
+            operator verification.
+          </p>
           {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
           <div className="mt-3 flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setIsModalOpen(false)
+                setOverrideGateBlock(false)
+              }}
+            >
               Cancel
             </Button>
             <Button type="button" onClick={releaseEarly} disabled={isSubmitting}>

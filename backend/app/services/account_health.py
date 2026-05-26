@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Account, Job, JobState, JobStepResult
+from app.models import Account, Job, JobState, JobStepResult, utc_now
 
 PROFILE_SYNC_STALE_AFTER = timedelta(days=7)
 
@@ -126,10 +126,7 @@ def _collect_profile_reasons(profile: Any, reasons: list[dict[str, Any]]) -> Non
                 message="Профиль ещё не синхронизирован",
             )
         )
-    elif (
-        profile.synced_at
-        and _aware(profile.synced_at) < datetime.now(UTC) - PROFILE_SYNC_STALE_AFTER
-    ):
+    elif profile.synced_at and _aware(profile.synced_at) < utc_now() - PROFILE_SYNC_STALE_AFTER:
         reasons.append(
             build_reason(
                 "stale_profile_sync",

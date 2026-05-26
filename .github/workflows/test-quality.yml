@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "backend/**"
+      - "docs/architecture/STRUCTURE_AUDIT.md"
+      - "docs/architecture/architecture-debt-inventory.json"
+      - "docs/architecture/structure-audit.json"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/test-quality.yml"

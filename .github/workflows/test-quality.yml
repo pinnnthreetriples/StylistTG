@@ -7,7 +7,18 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/test-quality.yml"
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      contract_fuzz_profile:
+        description: "Contract fuzz profile"
+        type: choice
+        required: false
+        default: "full"
+        options:
+          - "fast"
+          - "full"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,6 +35,7 @@ env:
   PYTEST_PROFILE: pr
   PYTEST_WORKERS: "2"
   PYTEST_DIST: worksteal
+  CONTRACT_FUZZ_PROFILE: ${{ github.event_name == 'pull_request' && 'fast' || (github.event_name == 'workflow_dispatch' && inputs.contract_fuzz_profile || 'full') }}
 
 jobs:
   lint-format:
@@ -240,9 +252,9 @@ jobs:
 
   contract-fuzz:
     name: contract-fuzz
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
@@ -258,21 +270,47 @@ jobs:
           uv sync --locked --extra contract
       - name: Prepare reports directory
         run: mkdir -p reports
-      - name: Schemathesis OpenAPI fuzz soft
+      - name: Schemathesis OpenAPI fuzz
         run: |
+          if [ "${CONTRACT_FUZZ_PROFILE}" = "full" ]; then
+            export SCHEMATHESIS_MAX_EXAMPLES=5
+          else
+            export SCHEMATHESIS_MAX_EXAMPLES=1
+          fi
+          echo "contract_fuzz_profile=${CONTRACT_FUZZ_PROFILE}" | tee reports/contract-fuzz-runtime-summary.txt
+          echo "schemathesis_max_examples=${SCHEMATHESIS_MAX_EXAMPLES}" | tee -a reports/contract-fuzz-runtime-summary.txt
+          set -o pipefail
+          /usr/bin/time -f "contract_fuzz_total_seconds=%e" -o reports/contract-fuzz-time.txt \
           uv run pytest tests/contract/ -m contract \
             -p no:randomly \
+            --durations=50 --durations-min=0.5 \
             --tb=short -q \
-            --junit-xml=reports/schemathesis-junit.xml \
-            || true
+            --junit-xml=reports/schemathesis-junit.xml
+          cat reports/contract-fuzz-time.txt | tee -a reports/contract-fuzz-runtime-summary.txt
         env:
           APP_ENV: test
           AUTH_MODE: local
+          REDIS_SOCKET_CONNECT_TIMEOUT_SEC: "0.1"
+          REDIS_SOCKET_TIMEOUT_SEC: "0.1"
+          REDIS_RETRY_RETRIES: "0"
+      - name: Summarize contract fuzz report
+        if: always()
+        run: |
+          if [ -f reports/schemathesis-junit.xml ]; then
+            uv run python scripts/summarize_contract_fuzz.py \
+              --junit reports/schemathesis-junit.xml \
+              --output reports/contract-fuzz-summary.txt \
+              --top 20
+          fi
       - name: Upload contract fuzz report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: contract-fuzz-reports
-          path: backend/reports/schemathesis-junit.xml
+          path: |
+            backend/reports/schemathesis-junit.xml
+            backend/reports/contract-fuzz-runtime-summary.txt
+            backend/reports/contract-fuzz-time.txt
+            backend/reports/contract-fuzz-summary.txt
         if: always()
 
   contract-security:

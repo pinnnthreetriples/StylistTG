@@ -189,7 +189,11 @@ class WorkspaceFeatureFlagsUpdate(BaseModel):
 
 
 class WorkspaceNotificationSettingsUpdate(BaseModel):
-    notification_webhook_url: str | None = Field(default=None, max_length=512)
+    notification_webhook_url: str | None = Field(
+        default=None,
+        max_length=512,
+        pattern=r"^https://",
+    )
 
     model_config = ConfigDict(extra="forbid")
 

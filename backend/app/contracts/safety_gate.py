@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer, field_validator
+from pydantic.json_schema import SkipJsonSchema
 
 
 WorkspaceSafetyMode = Literal["conservative", "balanced", "aggressive"]
@@ -70,26 +71,62 @@ class WorkspaceSafetyPolicyRead(BaseModel):
 
 
 class WorkspaceSafetyPolicyUpdate(BaseModel):
-    mode: WorkspaceSafetyMode | None = None
-    delay_multiplier: Annotated[float, Field(gt=0.0)] | None = None
+    mode: WorkspaceSafetyMode | SkipJsonSchema[None] = None
+    delay_multiplier: Annotated[float, Field(gt=0.0)] | SkipJsonSchema[None] = None
     typing_chars_per_minute_min: NonNegativeInt | None = None
     typing_chars_per_minute_max: NonNegativeInt | None = None
-    profile_view_probability: Probability | None = None
-    scroll_probability: Probability | None = None
-    typo_probability: Probability | None = None
-    message_deletion_probability: Probability | None = None
+    profile_view_probability: Probability | SkipJsonSchema[None] = None
+    scroll_probability: Probability | SkipJsonSchema[None] = None
+    typo_probability: Probability | SkipJsonSchema[None] = None
+    message_deletion_probability: Probability | SkipJsonSchema[None] = None
     quiet_hours_local_start: MinuteOfDay | None = None
     quiet_hours_local_end: MinuteOfDay | None = None
-    require_warmup_before_commenting: StrictBool | None = None
-    min_warmup_days: NonNegativeInt | None = None
-    require_healthy_proxy: StrictBool | None = None
-    min_account_age_hours: NonNegativeInt | None = None
-    auto_pause_on_flood_wait_count: NonNegativeInt | None = None
-    auto_pause_on_deleted_comments_count: NonNegativeInt | None = None
-    quarantine_hours_on_flood_wait: NonNegativeInt | None = None
+    require_warmup_before_commenting: StrictBool | SkipJsonSchema[None] = None
+    min_warmup_days: NonNegativeInt | SkipJsonSchema[None] = None
+    require_healthy_proxy: StrictBool | SkipJsonSchema[None] = None
+    min_account_age_hours: NonNegativeInt | SkipJsonSchema[None] = None
+    auto_pause_on_flood_wait_count: NonNegativeInt | SkipJsonSchema[None] = None
+    auto_pause_on_deleted_comments_count: NonNegativeInt | SkipJsonSchema[None] = None
+    quarantine_hours_on_flood_wait: NonNegativeInt | SkipJsonSchema[None] = None
     consecutive_failure_threshold: ConsecutiveFailureThreshold | None = None
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator(
+        "mode",
+        "delay_multiplier",
+        "profile_view_probability",
+        "scroll_probability",
+        "typo_probability",
+        "message_deletion_probability",
+        "require_warmup_before_commenting",
+        "min_warmup_days",
+        "require_healthy_proxy",
+        "min_account_age_hours",
+        "auto_pause_on_flood_wait_count",
+        "auto_pause_on_deleted_comments_count",
+        "quarantine_hours_on_flood_wait",
+        mode="before",
+    )
+    @classmethod
+    def _reject_null_for_required_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field may not be null")
+        return value
+
+    @field_validator(
+        "delay_multiplier",
+        "profile_view_probability",
+        "scroll_probability",
+        "typo_probability",
+        "message_deletion_probability",
+        mode="before",
+    )
+    @classmethod
+    def _reject_bool_floats(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("boolean is not a valid number")
+        return value
 
     @field_validator(
         "typing_chars_per_minute_min",

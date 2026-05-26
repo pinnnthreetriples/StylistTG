@@ -4,6 +4,7 @@ import importlib
 import time
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, suppress
+from re import Pattern
 from typing import Any, cast
 
 from app.platform_bootstrap import patch_windows_platform_probe
@@ -256,24 +257,46 @@ for module_router in iter_routers():
     app.include_router(module_router)
 
 
-_static_route_methods_cache: dict[str, set[str]] | None = None
+_route_methods_cache: list[tuple[Pattern[str], tuple[int, int], set[str]]] | None = None
 
 
-def _static_route_methods() -> dict[str, set[str]]:
-    global _static_route_methods_cache
-    if _static_route_methods_cache is not None:
-        return _static_route_methods_cache
+def _route_specificity(path_format: str) -> tuple[int, int]:
+    static_segments = [
+        segment
+        for segment in path_format.split("/")
+        if segment and not segment.startswith("{")
+    ]
+    return len(static_segments), sum(len(segment) for segment in static_segments)
 
-    route_methods: dict[str, set[str]] = {}
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or "{" in route.path_format:
+
+def _route_methods_for_path(path: str) -> set[str] | None:
+    global _route_methods_cache
+    if _route_methods_cache is None:
+        route_methods: list[tuple[Pattern[str], tuple[int, int], set[str]]] = []
+        for route in app.routes:
+            if not isinstance(route, APIRoute):
+                continue
+            methods = set(route.methods or set())
+            if "GET" in methods:
+                methods.add("HEAD")
+            route_methods.append(
+                (route.path_regex, _route_specificity(route.path_format), methods)
+            )
+        _route_methods_cache = route_methods
+
+    best_specificity: tuple[int, int] | None = None
+    allowed_methods: set[str] = set()
+    for path_regex, specificity, methods in _route_methods_cache:
+        if path_regex.match(path) is None:
             continue
-        methods = set(route.methods or set())
-        if "GET" in methods:
-            methods.add("HEAD")
-        route_methods.setdefault(route.path_format, set()).update(methods)
-    _static_route_methods_cache = route_methods
-    return route_methods
+        if best_specificity is None or specificity > best_specificity:
+            best_specificity = specificity
+            allowed_methods = set(methods)
+        elif specificity == best_specificity:
+            allowed_methods.update(methods)
+    if best_specificity is None:
+        return None
+    return allowed_methods
 
 
 def _api_error_schema_components() -> dict[str, Any]:
@@ -395,7 +418,7 @@ async def metrics_scrape_guard_middleware(
 async def static_route_method_guard_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
-    allowed_methods = _static_route_methods().get(request.url.path)
+    allowed_methods = _route_methods_for_path(request.url.path)
     if allowed_methods is not None and request.method not in allowed_methods:
         return JSONResponse(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,

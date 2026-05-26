@@ -58,15 +58,15 @@ def test_channel_rule_create_accepts_blacklist() -> None:
     assert rule.rule_type == "blacklist"
 
 
-def test_channel_rule_create_rejects_auto_blacklist_suggested() -> None:
+def test_channel_rule_create_rejects_auto_blacklist_suggested_outside_create_enum() -> None:
     with pytest.raises(ValidationError) as exc_info:
         NeuroChannelRuleCreate(target_ref="@example", rule_type="auto_blacklist_suggested")
 
-    assert "feature_not_available: rule_type=auto_blacklist_suggested" in str(exc_info.value)
+    assert "Input should be 'blacklist' or 'whitelist'" in str(exc_info.value)
 
 
-def test_channel_rule_create_rejects_auto_whitelist_suggested() -> None:
+def test_channel_rule_create_rejects_auto_whitelist_suggested_outside_create_enum() -> None:
     with pytest.raises(ValidationError) as exc_info:
         NeuroChannelRuleCreate(target_ref="@example", rule_type="auto_whitelist_suggested")
 
-    assert "feature_not_available: rule_type=auto_whitelist_suggested" in str(exc_info.value)
+    assert "Input should be 'blacklist' or 'whitelist'" in str(exc_info.value)

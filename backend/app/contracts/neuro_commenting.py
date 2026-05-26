@@ -25,18 +25,13 @@ LimitType = Literal[
     "min_delay_between_comments",
     "max_parallel_attempts",
 ]
-ChannelRuleType = Literal[
-    "blacklist", "whitelist", "auto_blacklist_suggested", "auto_whitelist_suggested"
-]
+ChannelRuleType = Literal["blacklist", "whitelist"]
 SafetyPreset = Literal["conservative", "balanced", "aggressive"]
 
 # Phase 0 Task 1: enum values declared in DB/python enum but not yet implemented.
 # Reject at Create/Update boundary with feature_not_available marker.
 _DISABLED_CAMPAIGN_MODES: frozenset[str] = frozenset({"semantic_match"})
 _DISABLED_WORK_MODES: frozenset[str] = frozenset({"scheduled"})
-_DISABLED_CHANNEL_RULE_TYPES: frozenset[str] = frozenset(
-    {"auto_blacklist_suggested", "auto_whitelist_suggested"}
-)
 
 
 def _reject_disabled_value(value: object, *, disabled: frozenset[str], feature: str) -> object:
@@ -661,13 +656,6 @@ class NeuroChannelRuleCreate(BaseModel):
         if not target_ref:
             raise ValueError("target_ref is required")
         return target_ref
-
-    @field_validator("rule_type", mode="before")
-    @classmethod
-    def _reject_disabled_rule_type(cls, value: object) -> object:
-        return _reject_disabled_value(
-            value, disabled=_DISABLED_CHANNEL_RULE_TYPES, feature="rule_type"
-        )
 
 
 class NeuroCampaignStatsRead(BaseModel):

@@ -21652,9 +21652,7 @@
             "type": "string",
             "enum": [
               "blacklist",
-              "whitelist",
-              "auto_blacklist_suggested",
-              "auto_whitelist_suggested"
+              "whitelist"
             ],
             "title": "Rule Type"
           },
@@ -25789,7 +25787,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 512
+                "maxLength": 512,
+                "pattern": "^https://"
               },
               {
                 "type": "null"
@@ -26044,31 +26043,17 @@
       "WorkspaceSafetyPolicyUpdate": {
         "properties": {
           "mode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "conservative",
-                  "balanced",
-                  "aggressive"
-                ]
-              },
-              {
-                "type": "null"
-              }
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
             ],
             "title": "Mode"
           },
           "delay_multiplier": {
-            "anyOf": [
-              {
-                "type": "number",
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "exclusiveMinimum": 0.0,
             "title": "Delay Multiplier"
           },
           "typing_chars_per_minute_min": {
@@ -26096,55 +26081,27 @@
             "title": "Typing Chars Per Minute Max"
           },
           "profile_view_probability": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Profile View Probability"
           },
           "scroll_probability": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Scroll Probability"
           },
           "typo_probability": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Typo Probability"
           },
           "message_deletion_probability": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Message Deletion Probability"
           },
           "quiet_hours_local_start": {
@@ -26174,85 +26131,36 @@
             "title": "Quiet Hours Local End"
           },
           "require_warmup_before_commenting": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Require Warmup Before Commenting"
           },
           "min_warmup_days": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Min Warmup Days"
           },
           "require_healthy_proxy": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Require Healthy Proxy"
           },
           "min_account_age_hours": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Min Account Age Hours"
           },
           "auto_pause_on_flood_wait_count": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Auto Pause On Flood Wait Count"
           },
           "auto_pause_on_deleted_comments_count": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Auto Pause On Deleted Comments Count"
           },
           "quarantine_hours_on_flood_wait": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Quarantine Hours On Flood Wait"
           },
           "consecutive_failure_threshold": {

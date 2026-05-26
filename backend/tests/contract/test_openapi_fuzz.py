@@ -25,16 +25,26 @@ random strings that may match credential patterns by coincidence), this
 module uses the @pytest.mark.allow_pii_in_logs opt-out.
 """
 
+# test-analyzer: disable-file=STG007 reason="contract fuzz is not a rate-limit suite"
+
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 import pytest
 import schemathesis
 import schemathesis.checks as schemathesis_checks
 from hypothesis import HealthCheck, settings as hypothesis_settings
+from sqlalchemy.orm import Session
 
+from app.db import get_session
 from app.main import app
+
+
+class _ContractRedis:
+    def ping(self) -> bool:
+        return True
 
 
 # Load the OpenAPI schema directly from the FastAPI ASGI app.
@@ -66,13 +76,12 @@ _AMBIGUOUS_DYNAMIC_METHOD_PATHS = {
 
 
 # Schemathesis-specific Hypothesis settings:
-#   - max_examples kept LOW (5) — full suite has many endpoints; 5 × ~50 endpoints
-#     ≈ 250 generated cases per run. Higher counts add time without much value
-#     beyond catching the obvious 500s.
+#   - max_examples defaults to the fast PR profile (1). Scheduled/manual CI can
+#     raise SCHEMATHESIS_MAX_EXAMPLES for broader fuzzing.
 #   - deadline=None — xdist parallelism + ASGI startup spikes can blow defaults.
 #   - too_slow ignored for the same reason.
 _FUZZ_SETTINGS = hypothesis_settings(
-    max_examples=int(os.getenv("SCHEMATHESIS_MAX_EXAMPLES", "5")),
+    max_examples=int(os.getenv("SCHEMATHESIS_MAX_EXAMPLES", "1")),
     deadline=None,
     suppress_health_check=[
         HealthCheck.too_slow,
@@ -82,11 +91,37 @@ _FUZZ_SETTINGS = hypothesis_settings(
 )
 
 
+@pytest.fixture()
+def contract_app_overrides(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Apply deterministic app overrides before Schemathesis creates its client."""
+
+    monkeypatch.setattr("app.main._maybe_hydrate_rate_limits", lambda: None)
+    monkeypatch.setattr(
+        "app.main.build_runtime_diagnostics",
+        lambda: {"database": "ok", "redis": "ok"},
+    )
+    monkeypatch.setattr(
+        "app.api.diagnostics.build_runtime_diagnostics",
+        lambda: {"database": "ok", "redis": "ok", "tdlib": "not_configured"},
+    )
+    monkeypatch.setattr("app.api.diagnostics.redis_from_url", lambda: _ContractRedis())
+    monkeypatch.setattr("app.config.settings.auth_start_cooldown_seconds", 0)
+
+    def _override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = _override_session
+    try:
+        yield
+    finally:
+        app.dependency_overrides.clear()
+
+
 @pytest.mark.contract
 @pytest.mark.allow_pii_in_logs  # Schemathesis emits randomized strings that may match patterns.
 @schema.parametrize()
 @_FUZZ_SETTINGS
-def test_openapi_contract(case: schemathesis.Case, app_client, monkeypatch) -> None:
+def test_openapi_contract(case: schemathesis.Case, contract_app_overrides: None) -> None:
     """Fuzz a single endpoint operation with schema-valid inputs.
 
     Schemathesis explodes this parametrization across every (path, method) pair
@@ -98,12 +133,7 @@ def test_openapi_contract(case: schemathesis.Case, app_client, monkeypatch) -> N
     A failure here is the SUT's fault — either the OpenAPI schema lies about
     the response, or the handler crashes on an input that the schema accepts.
     """
-    monkeypatch.setattr(
-        "app.main.build_runtime_diagnostics",
-        lambda: {"database": "ok", "redis": "ok"},
-    )
-    monkeypatch.setattr("app.config.settings.auth_start_cooldown_seconds", 0)
-    assert app_client is not None
+    assert contract_app_overrides is None
 
     excluded_checks = []
     if case.path in _FILE_UPLOAD_PATHS | _BUSINESS_PRECONDITION_PATHS:

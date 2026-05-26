@@ -3,8 +3,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from app.contracts.queues import PRODUCTION_QUEUE_NAMES
 from app.runtime.roles import iter_runtime_roles
-from app.services.worker_plane import PRODUCTION_QUEUE_NAMES
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +40,7 @@ def test_runtime_roles_use_existing_queue_constants() -> None:
     allowed = set(PRODUCTION_QUEUE_NAMES)
 
     assert {queue for role in iter_runtime_roles() for queue in role.queues} <= allowed
-    assert "app.services.worker_plane" in _imports_for(APP_ROOT / "runtime" / "roles.py")
+    assert "app.contracts.queues" in _imports_for(APP_ROOT / "runtime" / "roles.py")
 
 
 def test_reserved_runtime_roles_are_split() -> None:

@@ -487,6 +487,7 @@
         "backend/app/contracts/disaster_state.py",
         "backend/app/contracts/jobs.py",
         "backend/app/contracts/notifications.py",
+        "backend/app/contracts/queues.py",
         "backend/app/contracts/types.py",
         "backend/app/models.py",
         "backend/app/schemas.py"
@@ -498,6 +499,7 @@
         "backend/app/contracts/disaster_state.py",
         "backend/app/contracts/jobs.py",
         "backend/app/contracts/notifications.py",
+        "backend/app/contracts/queues.py",
         "backend/app/contracts/types.py",
         "backend/app/models.py",
         "backend/app/schemas.py"
@@ -1066,6 +1068,7 @@
         "backend/tests/architecture/test_no_cross_module_internal_imports.py",
         "backend/tests/architecture/test_no_fastapi_in_domain.py",
         "backend/tests/architecture/test_no_sqlalchemy_models_in_api_contracts.py",
+        "backend/tests/architecture/test_registered_module_layer_boundaries.py",
         "backend/tests/architecture/test_runtime_boundaries.py",
         "backend/tests/architecture/test_shared_contracts_boundaries.py",
         "backend/tests/architecture/test_storage_boundaries.py",
@@ -1355,7 +1358,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-26T18:43:18Z",
+  "generated_at": "2026-05-26T19:58:02Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {

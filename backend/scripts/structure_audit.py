@@ -433,6 +433,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/contracts/disaster_state.py",
             "backend/app/contracts/jobs.py",
             "backend/app/contracts/notifications.py",
+            "backend/app/contracts/queues.py",
             "backend/app/contracts/types.py",
             "backend/app/models.py",
             "backend/app/schemas.py",
@@ -589,7 +590,7 @@ def _string_assignments(path: Path) -> dict[str, str]:
 
 
 def _workflow_specs(repo_root: Path) -> list[dict[str, Any]]:
-    constants = _string_assignments(repo_root / "backend/app/services/worker_plane.py")
+    constants = _string_assignments(repo_root / "backend/app/contracts/queues.py")
     workflows: list[dict[str, Any]] = []
     for module_file in sorted((repo_root / MODULES_ROOT).glob("*/module.py")):
         tree = _parse_ast(module_file)
@@ -680,7 +681,7 @@ def _audit_modules(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def _audit_runtime_roles(repo_root: Path) -> list[dict[str, Any]]:
-    worker_constants = _string_assignments(repo_root / "backend/app/services/worker_plane.py")
+    worker_constants = _string_assignments(repo_root / "backend/app/contracts/queues.py")
     roles_path = repo_root / "backend/app/runtime/roles.py"
     tree = _parse_ast(roles_path)
     roles: list[dict[str, Any]] = []
@@ -704,7 +705,7 @@ def _audit_runtime_roles(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def _audit_queues(repo_root: Path, runtime_roles: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    constants = _string_assignments(repo_root / "backend/app/services/worker_plane.py")
+    constants = _string_assignments(repo_root / "backend/app/contracts/queues.py")
     production_queues = sorted(
         value for key, value in constants.items() if key.endswith("_QUEUE_NAME")
     )

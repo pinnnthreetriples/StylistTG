@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from app.runtime.preflight import check_runtime_role
-from app.services.worker_plane import (
+from app.contracts.queues import (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
     MAINTENANCE_QUEUE_NAME,
     MEDIA_QUEUE_NAME,
     PROFILE_QUEUE_NAME,
     STORY_QUEUE_NAME,
 )
+from app.runtime.preflight import check_runtime_role
 
 
 def test_unknown_role_returns_safe_error_without_runtime_access() -> None:

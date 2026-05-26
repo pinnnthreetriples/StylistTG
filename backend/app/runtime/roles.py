@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.services.worker_plane import (
+from app.contracts.queues import (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
     AUTH_QUEUE_NAME,
     MAINTENANCE_QUEUE_NAME,

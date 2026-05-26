@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -8,16 +9,40 @@ APP_ROOT = Path("app")
 MODULES_ROOT = APP_ROOT / "modules"
 PUBLIC_SUBMODULES = {
     "contracts",
-    "context",
-    "dependencies",
     "events",
     "interfaces",
-    "jobs",
-    "module",
-    "router",
-    "service",
 }
 SHARED_MODULES = {"contracts", "registry"}
+
+
+@dataclass(frozen=True, slots=True)
+class CrossModuleFacadeException:
+    source: Path
+    imported_module: str
+    public_name: str
+    rationale: str
+
+
+DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_editing" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical routers.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "warmup" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical routers.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_editing" / "service.py",
+        imported_module="warmup",
+        public_name="service",
+        rationale="Temporary warmup-operation policy facade until account_safety owns this boundary.",
+    ),
+}
 
 
 def _python_files(root: Path) -> list[Path]:
@@ -28,14 +53,31 @@ def _module_name(path: Path) -> str:
     return ".".join(path.with_suffix("").parts)
 
 
+def _import_from_base(path: Path, node: ast.ImportFrom) -> str:
+    if node.level == 0:
+        return node.module or ""
+    module_parts = list(path.with_suffix("").parts)
+    if path.name == "__init__.py":
+        module_parts.pop()
+    else:
+        module_parts.pop()
+    if node.level > len(module_parts):
+        return node.module or ""
+    base_parts = module_parts[: len(module_parts) - node.level + 1]
+    if node.module:
+        base_parts.extend(node.module.split("."))
+    return ".".join(base_parts)
+
+
 def _imports(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     imports: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             imports.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            imports.append(node.module)
+        elif isinstance(node, ast.ImportFrom):
+            base = _import_from_base(path, node)
+            imports.extend(f"{base}.{alias.name}" for alias in node.names if base)
     return imports
 
 
@@ -47,27 +89,42 @@ def _feature_module_for(path: Path) -> str | None:
         return None
     if len(parts) <= index + 1:
         return None
+    if path.parent == MODULES_ROOT:
+        return None
     module = parts[index + 1]
     if module in SHARED_MODULES or module == "__pycache__":
         return None
     return module
 
 
-def _is_allowed_cross_module_import(imported: str, source_module: str) -> bool:
+def _cross_module_public_name(imported: str, source_module: str) -> tuple[str, str] | None:
     prefix = "app.modules."
     if not imported.startswith(prefix):
-        return True
+        return None
 
     remainder = imported[len(prefix) :]
     imported_module = remainder.split(".", 1)[0]
     if imported_module in SHARED_MODULES or imported_module == source_module:
-        return True
+        return None
 
     if "." not in remainder:
-        return True
+        return (imported_module, "<package>")
 
-    submodule = remainder.split(".", 2)[1]
-    return submodule in PUBLIC_SUBMODULES
+    public_name = remainder.split(".", 2)[1]
+    return (imported_module, public_name)
+
+
+def _is_allowed_cross_module_import(
+    *, source: Path, imported_module: str, public_name: str
+) -> bool:
+    if public_name in PUBLIC_SUBMODULES:
+        return True
+    return any(
+        exception.source == source
+        and exception.imported_module == imported_module
+        and exception.public_name == public_name
+        for exception in DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS
+    )
 
 
 def test_feature_modules_do_not_import_other_module_internals() -> None:
@@ -77,7 +134,13 @@ def test_feature_modules_do_not_import_other_module_internals() -> None:
         if source_module is None:
             continue
         for imported in _imports(source):
-            if _is_allowed_cross_module_import(imported, source_module):
+            cross_module = _cross_module_public_name(imported, source_module)
+            if cross_module is None:
+                continue
+            imported_module, public_name = cross_module
+            if _is_allowed_cross_module_import(
+                source=source, imported_module=imported_module, public_name=public_name
+            ):
                 continue
             violations.append(
                 "\n".join(
@@ -85,12 +148,30 @@ def test_feature_modules_do_not_import_other_module_internals() -> None:
                         "Illegal cross-module internal import detected:",
                         f"Source: {_module_name(source)}",
                         f"Imported: {imported}",
-                        "Allowed: app.modules.<module>, app.modules.<module>.contracts, "
-                        "app.modules.<module>.interfaces, app.modules.<module>.service, "
-                        "app.modules.<module>.jobs, app.modules.<module>.events",
+                        f"Public name: {public_name}",
+                        "Allowed by default: contracts, events, interfaces.",
+                        "Other facades require DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS.",
                     ]
                 )
             )
+
+    assert violations == []
+
+
+def test_documented_public_facade_exceptions_have_rationale_and_existing_source() -> None:
+    violations = [
+        str(exception)
+        for exception in DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS
+        if not exception.source.exists()
+        or len(exception.rationale) < 20
+        or not any(
+            imported == f"app.modules.{exception.imported_module}.{exception.public_name}"
+            or imported.startswith(
+                f"app.modules.{exception.imported_module}.{exception.public_name}."
+            )
+            for imported in _imports(exception.source)
+        )
+    ]
 
     assert violations == []
 

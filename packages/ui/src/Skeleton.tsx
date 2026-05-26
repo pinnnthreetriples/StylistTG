@@ -8,10 +8,10 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <div
       aria-hidden
+      data-slot="skeleton"
       className={cn(
         'rounded-md bg-muted',
         'bg-[length:240%_100%]',
-        'bg-muted   ',
         'animate-pulse',
         className,
       )}

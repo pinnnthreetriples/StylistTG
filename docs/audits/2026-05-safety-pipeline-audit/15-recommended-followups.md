@@ -1,5 +1,28 @@
 # Recommended Follow-up Issues
 
+> **Closure note — 2026-05-26.** Every P1, P2, and P3 follow-up below
+> has a merged PR. See
+> [`14-production-readiness-verdict.md#closure-log-2026-05-26`](14-production-readiness-verdict.md#closure-log-2026-05-26)
+> for the full task ↔ PR ↔ finding matrix. The verdict has been promoted
+> from `CONDITIONAL-GO` → `GO`. The draft bodies below are retained as
+> historical record of how each item was scoped before it shipped.
+
+| Item | Task | PR |
+| --- | --- | --- |
+| P1-1 sender cleanup | 43 | [#171](https://github.com/pinnnthreetriples/StylistTG/pull/171) |
+| P1-2 Redis-degraded | 44 | [#175](https://github.com/pinnnthreetriples/StylistTG/pull/175) |
+| P1-3 account deletion | 45 | [#174](https://github.com/pinnnthreetriples/StylistTG/pull/174) |
+| P1-4 migration replay | 46 | [#176](https://github.com/pinnnthreetriples/StylistTG/pull/176) |
+| P1-5 PII redaction | 47 | [#173](https://github.com/pinnnthreetriples/StylistTG/pull/173) |
+| P1-6 metrics dependency | 48 | [#170](https://github.com/pinnnthreetriples/StylistTG/pull/170) |
+| P2-1, P2-2 Grafana / GGR | 49 | [#178](https://github.com/pinnnthreetriples/StylistTG/pull/178) |
+| P2-3, P2-4, P2-5 quarantine / monitor / override | 50 | [#179](https://github.com/pinnnthreetriples/StylistTG/pull/179) |
+| P2-8, P2-9, P2-10 backfill / timeouts / reconcile | 51 | [#180](https://github.com/pinnnthreetriples/StylistTG/pull/180) |
+| P2-6, P2-7 E2E + behavior emulator | 52 | [#182](https://github.com/pinnnthreetriples/StylistTG/pull/182) |
+| P2-11, P3-1, P3-2 UI override + utc_now + client | 53 | [#181](https://github.com/pinnnthreetriples/StylistTG/pull/181) |
+
+---
+
 Draft issue bodies only. Do not create these automatically; operator should choose priority/order.
 
 ## P1 Follow-ups

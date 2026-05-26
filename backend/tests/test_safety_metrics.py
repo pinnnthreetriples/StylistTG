@@ -72,6 +72,17 @@ def test_cold_call_throttled_increments_counter() -> None:
     )
 
 
+def test_pool_saturation_gauges_record_ratios() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.db_pool_saturation(pool="default", value=0.8)
+    metrics.redis_pool_saturation(pool="default", value=0.5)
+
+    assert registry.get_sample_value("db_pool_saturation_ratio", {"pool": "default"}) == 0.8
+    assert registry.get_sample_value("redis_pool_saturation_ratio", {"pool": "default"}) == 0.5
+
+
 def test_weak_ggr_accounts_total_sets_workspace_gauge() -> None:
     registry = CollectorRegistry()
     metrics = SafetyMetrics(registry=registry, enabled=True)
@@ -125,6 +136,8 @@ def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     metrics.flood_wait(workspace_id="workspace-1", account_id="account-raw-id")
     metrics.weak_ggr_accounts_total(workspace_id="workspace-1", value=1)
     metrics.weak_ggr_transition(workspace_id="workspace-1", from_bucket="medium")
+    metrics.db_pool_saturation(pool="default", value=0.8)
+    metrics.redis_pool_saturation(pool="default", value=0.5)
 
     payload = generate_latest(registry).decode("utf-8")
     assert "safety_gate_blocks_total" not in payload
@@ -134,6 +147,8 @@ def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     assert "flood_wait_total" not in payload
     assert "weak_ggr_accounts_total" not in payload
     assert "weak_ggr_transitions_total" not in payload
+    assert "db_pool_saturation_ratio" not in payload
+    assert "redis_pool_saturation_ratio" not in payload
 
 
 def test_metrics_endpoint_allows_internal_scrape_header(app_client, monkeypatch) -> None:
@@ -220,6 +235,7 @@ def test_alert_rules_yaml_is_valid_and_has_required_alerts() -> None:
         "WeakGgrAccountsGrowth",
         "GateBlockBurst",
         "SendDurationSlow",
+        "DbPoolNearSaturation",
     } <= alerts
 
 

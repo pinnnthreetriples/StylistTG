@@ -3,14 +3,13 @@ from __future__ import annotations
 import json
 from typing import Any, cast
 
-from redis import Redis
-
 from app.config import settings
 from app.services.live_preflight import LivePreflightService
+from app.services.redis_client import redis_from_url
 
 
 def _redis_ping() -> bool:
-    return bool(cast(Any, Redis).from_url(settings.redis_url).ping())
+    return bool(cast(Any, redis_from_url()).ping())
 
 
 def main() -> int:

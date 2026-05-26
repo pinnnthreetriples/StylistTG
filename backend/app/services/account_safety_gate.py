@@ -4,12 +4,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, cast
 from uuid import UUID
 
-from redis import Redis
 from redis.exceptions import RedisError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.config import settings
 from app.contracts.safety_gate import (
     SafetyGateIntent,
     SafetyGateReason,
@@ -39,6 +37,7 @@ from app.services.safety_gate_cache import (
     RedisSafetyGateCache,
     SafetyGateCache,
 )
+from app.services.redis_client import redis_from_url
 from app.services.workspace_safety_policy import get_workspace_safety_policy
 from app.services.workspace_safety_policy import get_consecutive_failure_threshold
 
@@ -519,7 +518,7 @@ def _default_cache() -> SafetyGateCache:
 
 def _default_redis() -> Any | None:
     try:
-        return cast(Any, Redis).from_url(settings.redis_url)
+        return redis_from_url()
     except Exception:
         return None
 

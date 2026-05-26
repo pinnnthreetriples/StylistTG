@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import argparse
 import uuid
-from collections.abc import Callable
-from typing import Any, Protocol, cast
-
-from redis import Redis
+from typing import Protocol, cast
 
 from app.scripts.common import (
     CheckReport,
@@ -16,11 +13,11 @@ from app.scripts.common import (
     require_not_production,
     sanitized_url,
 )
+from app.services.redis_client import redis_from_url
 
 
 def _redis_from_url(url: str) -> RedisClient:
-    from_url = cast(Callable[[str], object], getattr(cast(Any, Redis), "from_url"))
-    return cast(RedisClient, from_url(url))
+    return cast(RedisClient, redis_from_url(url))
 
 
 class RedisClient(Protocol):

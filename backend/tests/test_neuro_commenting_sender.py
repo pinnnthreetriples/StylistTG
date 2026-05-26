@@ -165,7 +165,7 @@ def test_manual_send_fails_closed_when_disabled(db_session) -> None:
 def test_default_sender_uses_settings_redis_limiter_when_required(db_session, monkeypatch) -> None:
     _campaign, _target, _comment, attempt = _approved_comment_with_attempt(db_session)
     redis = FakeRedis()
-    monkeypatch.setattr(rate_limiter.Redis, "from_url", lambda redis_url: redis)
+    monkeypatch.setattr(rate_limiter, "redis_from_url", lambda: redis)
     config = SimpleNamespace(
         neuro_comment_tdlib_send_enabled=True,
         neuro_comment_require_redis_limiter_for_send=True,

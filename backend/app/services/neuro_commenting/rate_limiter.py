@@ -4,14 +4,14 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 import json
 import time
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
-from redis import Redis
 from redis.exceptions import RedisError
 
 from app.config import settings
 from app.models import NeuroCommentCampaign, NeuroCommentCampaignAccount, NeuroCommentTarget
+from app.services.redis_client import redis_from_url
 
 _RESERVE_SCRIPT = """
 -- reserve_limit_v2
@@ -363,7 +363,7 @@ class NeuroCommentRateLimiter:
 
     def _client(self) -> Any:
         if self._redis is None:
-            self._redis = cast(Any, Redis).from_url(settings.redis_url)
+            self._redis = redis_from_url()
         return self._redis
 
     def _matching_limits(self, scope: RateLimitScope) -> list[dict[str, Any]]:

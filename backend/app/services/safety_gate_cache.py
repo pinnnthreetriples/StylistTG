@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from redis import Redis
 from redis.exceptions import RedisError
 
-from app.config import settings
+from app.services.redis_client import redis_from_url
 
 
 class SafetyGateCache(Protocol):
@@ -43,7 +43,7 @@ class RedisSafetyGateCache:
 
     @classmethod
     def from_settings(cls) -> RedisSafetyGateCache:
-        return cls(cast(Redis, cast(Any, Redis).from_url(settings.redis_url)))
+        return cls(redis_from_url())
 
     def get(self, key: str) -> str | None:
         try:

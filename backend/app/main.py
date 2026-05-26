@@ -179,15 +179,14 @@ async def _warmup_scheduler_loop() -> None:
 
 def _maybe_hydrate_rate_limits() -> None:
     """Hydrate rate-limit counters from Postgres if Redis is empty (post-FLUSHALL recovery)."""
-    from redis import Redis
-
     from app.services.rate_limit_persistence import (
         hydrate_redis_from_db,
         redis_has_rate_limit_counters,
     )
+    from app.services.redis_client import redis_from_url
 
     try:
-        redis_client = cast(Any, Redis).from_url(settings.redis_url)
+        redis_client = redis_from_url()
         if not redis_has_rate_limit_counters(redis_client):
             with SessionLocal() as session:
                 hydrate_redis_from_db(session, redis_client)

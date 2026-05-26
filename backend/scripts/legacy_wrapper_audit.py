@@ -20,6 +20,54 @@ class WrapperSpec:
     notes: str
 
 
+_NEURO_COMMENTING_SERVICE_MODULES = (
+    "account_health_service",
+    "account_selector",
+    "ai_comment_generator",
+    "ai_provider_openai",
+    "analytics_service",
+    "approval_expirer",
+    "approval_service",
+    "campaign_account_service",
+    "campaign_service",
+    "channel_rules_service",
+    "discussion_resolver",
+    "enums",
+    "errors",
+    "limits_service",
+    "live_readiness_service",
+    "post_context_builder",
+    "post_detector",
+    "prompt_builder",
+    "prompt_presets",
+    "rate_limiter",
+    "repository",
+    "rules_policy",
+    "safety_policy",
+    "sender_service",
+    "target_health_service",
+    "target_service",
+    "tdlib_comment_sender",
+    "tdlib_helpers",
+    "tdlib_observer",
+    "tdlib_runtime",
+)
+
+
+def _neuro_commenting_service_wrapper(
+    module_name: str, *, canonical_module: str | None = None
+) -> WrapperSpec:
+    canonical = canonical_module or f"app.modules.neuro_commenting.{module_name}"
+    return WrapperSpec(
+        legacy_path=f"app.services.neuro_commenting.{module_name}",
+        file=f"backend/app/services/neuro_commenting/{module_name}.py",
+        canonical_owner=canonical,
+        allowed_importers=("tests", "external_compatibility"),
+        forbidden_importers=("backend/app/modules",),
+        notes="Preserves old neuro-commenting service imports while implementation is module-owned.",
+    )
+
+
 WRAPPERS = (
     WrapperSpec(
         legacy_path="app.api.account_update",
@@ -68,6 +116,21 @@ WRAPPERS = (
         allowed_importers=("tests", "external_compatibility", "backend/app/api"),
         forbidden_importers=("backend/app/modules",),
         notes="Preserves existing auth dependency imports and override keys.",
+    ),
+    WrapperSpec(
+        legacy_path="app.services.neuro_commenting",
+        file="backend/app/services/neuro_commenting/__init__.py",
+        canonical_owner="app.modules.neuro_commenting",
+        allowed_importers=("tests", "external_compatibility"),
+        forbidden_importers=("backend/app/modules",),
+        notes="Preserves old neuro-commenting package imports while implementation is module-owned.",
+    ),
+    *(
+        _neuro_commenting_service_wrapper(module_name)
+        for module_name in _NEURO_COMMENTING_SERVICE_MODULES
+    ),
+    _neuro_commenting_service_wrapper(
+        "jobs", canonical_module="app.modules.neuro_commenting.job_handlers"
     ),
     WrapperSpec(
         legacy_path="app.services.warmup",

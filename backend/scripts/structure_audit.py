@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from legacy_wrapper_audit import WRAPPERS as LEGACY_WRAPPERS
+
 _AST_PARSE_ERRORS = (SyntaxError, UnicodeDecodeError)
 REPORT_SCHEMA_VERSION = 2
 
@@ -20,23 +22,7 @@ DEFAULT_JSON_OUTPUT = Path("docs/architecture/structure-audit.json")
 DEFAULT_MARKDOWN_OUTPUT = Path("docs/architecture/STRUCTURE_AUDIT.md")
 DEFAULT_DEBT_OUTPUT = Path("docs/architecture/architecture-debt-inventory.json")
 
-WRAPPER_PATHS = (
-    "backend/app/api/account_update.py",
-    "backend/app/api/warmup.py",
-    "backend/app/services/account_update_jobs.py",
-    "backend/app/services/account_update_plan.py",
-    "backend/app/workers/account_update_jobs.py",
-    "backend/app/services/auth_context.py",
-    "backend/app/services/warmup.py",
-    "backend/app/services/warmup_worker.py",
-    "backend/app/services/warmup_dispatch.py",
-    "backend/app/services/warmup_isolation.py",
-    "backend/app/services/warmup_readiness.py",
-    "backend/app/services/warmup_p2p.py",
-    "backend/app/workers/warmup_jobs.py",
-    "backend/app/workers/warmup_dispatch_jobs.py",
-    "backend/app/api/neuro_commenting.py",
-)
+WRAPPER_PATHS = tuple(spec.file for spec in LEGACY_WRAPPERS)
 
 FORBIDDEN_CONTRACT_IMPORTS = (
     "app.models",
@@ -150,18 +136,6 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         phase="ongoing",
         removal_condition="n/a",
         rationale="Module metadata, registry, and non-runtime template support module governance.",
-    ),
-    OwnershipEntry(
-        id="debt-neuro-commenting",
-        category="unmanaged_feature_surface",
-        severity="high",
-        status="open",
-        owner="neuro_commenting",
-        paths=("backend/app/services/neuro_commenting/**",),
-        target_owner="app.modules.neuro_commenting",
-        phase="Phase 2D",
-        removal_condition="Service, repository, job, policy, and adapter implementations move behind app.modules.neuro_commenting or become behavior-free compatibility wrappers after reference audit.",
-        rationale="NeuroCommenting service, repository, job, AI/TDLib, and policy implementation files remain outside app.modules after the Phase 2C canonical router/contracts slice.",
     ),
     OwnershipEntry(
         id="debt-account-safety",
@@ -750,11 +724,12 @@ def _audit_legacy_wrappers(repo_root: Path) -> list[dict[str, Any]]:
     audit_doc = _read_text(repo_root, "docs/architecture/legacy-wrapper-audit.md")
     manifest_text = _read_text(repo_root, "docs/architecture/legacy-wrappers.json")
     wrappers: list[dict[str, Any]] = []
-    for wrapper in WRAPPER_PATHS:
+    for spec in LEGACY_WRAPPERS:
+        wrapper = spec.file
         path = repo_root / wrapper
         text = path.read_text(encoding="utf-8") if path.exists() else ""
         canonical_match = re.search(r"Canonical owner:\s*([^\n]+)", text)
-        import_path = wrapper.removeprefix("backend/").removesuffix(".py").replace("/", ".")
+        import_path = spec.legacy_path
         wrappers.append(
             {
                 "path": wrapper,

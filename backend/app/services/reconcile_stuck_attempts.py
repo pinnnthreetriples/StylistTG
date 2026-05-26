@@ -20,7 +20,7 @@ from app.models import (
 )
 from app.observability.safety_metrics import safety_metrics
 from app.services.idempotency_keys import derive_random_id
-from app.services.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
+from app.modules.neuro_commenting.tdlib_runtime import NeuroTdlibRuntime
 
 
 def _empty_account_errors() -> dict[str, int]:

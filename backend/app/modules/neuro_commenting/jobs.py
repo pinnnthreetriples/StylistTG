@@ -1,8 +1,9 @@
-"""Canonical neuro-commenting job handlers."""
+"""Canonical neuro-commenting workflow job facade."""
 
 from __future__ import annotations
 
-from app.services.neuro_commenting.jobs import (
+from app.modules.neuro_commenting.job_handlers import (
+    resolve_observed_post_discussion,
     run_generate_comment,
     run_observe_campaign,
     run_observe_target,
@@ -11,6 +12,7 @@ from app.services.neuro_commenting.jobs import (
 )
 
 __all__ = [
+    "resolve_observed_post_discussion",
     "run_generate_comment",
     "run_observe_campaign",
     "run_observe_target",

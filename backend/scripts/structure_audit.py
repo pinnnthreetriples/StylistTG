@@ -5,16 +5,20 @@ import ast
 import json
 import re
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-GENERATED_AT = "2026-05-17T00:00:00Z"
 _AST_PARSE_ERRORS = (SyntaxError, UnicodeDecodeError)
+REPORT_SCHEMA_VERSION = 2
 
 MODULES_ROOT = Path("backend/app/modules")
 CONTRACTS_ROOT = Path("backend/app/contracts")
 RUNTIME_ROOT = Path("backend/app/runtime")
 FRONTEND_MODULES_ROOT = Path("apps/dashboard/src/modules")
+DEFAULT_JSON_OUTPUT = Path("docs/architecture/structure-audit.json")
+DEFAULT_MARKDOWN_OUTPUT = Path("docs/architecture/STRUCTURE_AUDIT.md")
+DEFAULT_DEBT_OUTPUT = Path("docs/architecture/architecture-debt-inventory.json")
 
 WRAPPER_PATHS = (
     "backend/app/api/account_update.py",
@@ -66,6 +70,400 @@ class Finding:
     suggested_phase: str
 
 
+@dataclass(frozen=True)
+class OwnershipEntry:
+    id: str
+    category: str
+    severity: str
+    status: str
+    owner: str
+    paths: tuple[str, ...]
+    target_owner: str
+    phase: str
+    removal_condition: str
+    rationale: str
+
+
+OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
+    OwnershipEntry(
+        id="canonical-auth",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="auth",
+        paths=("backend/app/modules/auth/**",),
+        target_owner="app.modules.auth",
+        phase="complete",
+        removal_condition="n/a",
+        rationale="Authentication context and policy ownership is canonical.",
+    ),
+    OwnershipEntry(
+        id="canonical-account-editing",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="account_editing",
+        paths=("backend/app/modules/account_editing/**",),
+        target_owner="app.modules.account_editing",
+        phase="complete",
+        removal_condition="n/a",
+        rationale="Account editing runtime ownership is canonical.",
+    ),
+    OwnershipEntry(
+        id="canonical-warmup",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="warmup",
+        paths=("backend/app/modules/warmup/**",),
+        target_owner="app.modules.warmup",
+        phase="complete",
+        removal_condition="n/a",
+        rationale="Warmup/account-preparation ownership is canonical.",
+    ),
+    OwnershipEntry(
+        id="module-registry-and-template",
+        category="shared_platform_infrastructure",
+        severity="info",
+        status="accepted",
+        owner="modules-platform",
+        paths=(
+            "backend/app/modules/__init__.py",
+            "backend/app/modules/contracts.py",
+            "backend/app/modules/registry.py",
+            "backend/app/modules/_template/**",
+        ),
+        target_owner="app.modules",
+        phase="ongoing",
+        removal_condition="n/a",
+        rationale="Module metadata, registry, and non-runtime template support module governance.",
+    ),
+    OwnershipEntry(
+        id="debt-neuro-commenting",
+        category="unmanaged_feature_surface",
+        severity="high",
+        status="open",
+        owner="neuro_commenting",
+        paths=(
+            "backend/app/api/neuro_commenting.py",
+            "backend/app/services/neuro_commenting/**",
+            "backend/app/contracts/neuro_commenting.py",
+        ),
+        target_owner="app.modules.neuro_commenting",
+        phase="Phase 2",
+        removal_condition="Registered canonical neuro_commenting module owns router, contracts, service, repository, jobs, enqueue, policies, and adapters; legacy paths are wrappers-only or removed after reference audit.",
+        rationale="NeuroCommenting has API, service, repository, job, AI/TDLib, and DTO ownership outside app.modules.",
+    ),
+    OwnershipEntry(
+        id="debt-account-safety",
+        category="unmanaged_feature_surface",
+        severity="high",
+        status="open",
+        owner="account_safety",
+        paths=(
+            "backend/app/api/account_safety_routes.py",
+            "backend/app/api/safety_policy.py",
+            "backend/app/services/account_batch_safety.py",
+            "backend/app/services/account_safety.py",
+            "backend/app/services/account_safety_gate.py",
+            "backend/app/services/account_safety_overrides.py",
+            "backend/app/services/risk_gate.py",
+            "backend/app/services/safety_gate_cache.py",
+            "backend/app/services/safety_gate_reserve.py",
+            "backend/app/services/workspace_safety_policy.py",
+            "backend/app/contracts/safety.py",
+            "backend/app/contracts/safety_gate.py",
+            "backend/app/observability/safety_metrics.py",
+        ),
+        target_owner="app.modules.account_safety",
+        phase="Phase 3",
+        removal_condition="Account safety exposes public gate/readiness/override contracts and consumers use that boundary instead of internal services.",
+        rationale="Safety gate and override behavior is cross-feature policy code without a canonical module boundary.",
+    ),
+    OwnershipEntry(
+        id="debt-account-lifecycle",
+        category="unmanaged_feature_surface",
+        severity="medium",
+        status="open",
+        owner="account_lifecycle",
+        paths=(
+            "backend/app/api/account_lifecycle_routes.py",
+            "backend/app/services/account_lifecycle.py",
+            "backend/app/services/retention_worker.py",
+        ),
+        target_owner="app.modules.account_lifecycle",
+        phase="Phase 4",
+        removal_condition="Deletion/export flows are module-owned with preserved preview/request/export/audit semantics; legacy paths are wrappers-only or removed after reference audit.",
+        rationale="Lifecycle API and service ownership remains global while runtime role metadata already reserves account_lifecycle_jobs.",
+    ),
+    OwnershipEntry(
+        id="debt-account-legacy-surfaces",
+        category="unmanaged_feature_surface",
+        severity="medium",
+        status="open",
+        owner="account_platform",
+        paths=(
+            "backend/app/api/account_audit_routes.py",
+            "backend/app/api/account_compat_routes.py",
+            "backend/app/api/account_context.py",
+            "backend/app/api/account_ggr_routes.py",
+            "backend/app/api/account_imports.py",
+            "backend/app/api/account_jobs_routes.py",
+            "backend/app/api/account_profile_completeness_routes.py",
+            "backend/app/api/account_proxy_routes.py",
+            "backend/app/api/account_quarantine_routes.py",
+            "backend/app/api/account_runtime_routes.py",
+            "backend/app/api/account_status_routes.py",
+            "backend/app/api/accounts.py",
+            "backend/app/services/account_bundle.py",
+            "backend/app/services/account_capabilities.py",
+            "backend/app/services/account_cooldowns.py",
+            "backend/app/services/account_health.py",
+            "backend/app/services/account_imports.py",
+            "backend/app/services/account_profile_completeness.py",
+            "backend/app/services/account_quarantine.py",
+            "backend/app/services/account_risk.py",
+            "backend/app/services/account_status_monitor.py",
+            "backend/app/services/account_terminal_status.py",
+            "backend/app/services/account_validity.py",
+            "backend/app/services/accounts.py",
+            "backend/app/services/fraud_score.py",
+            "backend/app/services/ggr_calculator.py",
+            "backend/app/services/profile_audio_state.py",
+            "backend/app/services/profile_photo_state.py",
+            "backend/app/services/profile_sync.py",
+            "backend/app/services/proxy_accounts.py",
+            "backend/app/services/proxy_checks.py",
+            "backend/app/contracts/account_status.py",
+            "backend/app/contracts/accounts.py",
+            "backend/app/contracts/cross_module_load.py",
+            "backend/app/contracts/ggr.py",
+            "backend/app/contracts/profile_completeness.py",
+            "backend/app/contracts/quarantine.py",
+        ),
+        target_owner="future account modules or documented shared account platform",
+        phase="inventory-follow-up",
+        removal_condition="Each account-owned feature surface is either assigned to a canonical module or documented as shared platform infrastructure.",
+        rationale="Account-adjacent APIs, services, and DTOs are broad production feature surfaces outside canonical modules.",
+    ),
+    OwnershipEntry(
+        id="debt-story-surfaces",
+        category="unmanaged_feature_surface",
+        severity="medium",
+        status="open",
+        owner="story",
+        paths=(
+            "backend/app/api/story_*.py",
+            "backend/app/services/story_*.py",
+        ),
+        target_owner="app.modules.story or documented exception",
+        phase="inventory-follow-up",
+        removal_condition="Story draft/post/capability ownership is either module-owned or explicitly tracked as approved debt.",
+        rationale="Story feature code has API and service ownership outside app.modules.",
+    ),
+    OwnershipEntry(
+        id="debt-bought-onboarding",
+        category="unmanaged_feature_surface",
+        severity="medium",
+        status="open",
+        owner="bought_onboarding",
+        paths=(
+            "backend/app/api/bought_onboarding_routes.py",
+            "backend/app/services/bought_account_onboarding.py",
+            "backend/app/contracts/bought_onboarding.py",
+        ),
+        target_owner="app.modules.bought_onboarding or documented account platform",
+        phase="inventory-follow-up",
+        removal_condition="Bought-account onboarding is module-owned or explicitly retained as account platform debt.",
+        rationale="Onboarding feature paths are global production feature surfaces.",
+    ),
+    OwnershipEntry(
+        id="debt-human-behavior",
+        category="unmanaged_feature_surface",
+        severity="medium",
+        status="open",
+        owner="human_behavior",
+        paths=(
+            "backend/app/api/human_behavior_routes.py",
+            "backend/app/services/human_behavior/**",
+            "backend/app/contracts/human_behavior.py",
+        ),
+        target_owner="app.modules.human_behavior or documented shared policy boundary",
+        phase="inventory-follow-up",
+        removal_condition="Human-behavior policy/runtime surfaces are module-owned or explicitly classified as shared policy infrastructure.",
+        rationale="Human behavior emulation is feature logic outside app.modules.",
+    ),
+    OwnershipEntry(
+        id="compatibility-wrappers",
+        category="compatibility_wrapper",
+        severity="low",
+        status="accepted",
+        owner="compatibility",
+        paths=tuple(WRAPPER_PATHS),
+        target_owner="documented canonical module owners",
+        phase="wrapper-cleanup",
+        removal_condition="Remove only after import/reference audit proves no downstream users and replacement paths are stable.",
+        rationale="Known wrappers preserve public import compatibility and must remain behavior-free.",
+    ),
+    OwnershipEntry(
+        id="runtime-process-ownership",
+        category="runtime_process_ownership",
+        severity="info",
+        status="accepted",
+        owner="runtime",
+        paths=(
+            "backend/app/runtime/**",
+            "backend/app/workers/__init__.py",
+            "backend/app/workers/auth_batch_jobs.py",
+            "backend/app/workers/profile_jobs.py",
+            "backend/app/workers/run_worker.py",
+            "backend/app/workers/telegram_auth_jobs.py",
+            "backend/app/job_queue/**",
+            "backend/app/services/worker_plane.py",
+            "backend/app/services/scheduler.py",
+            "backend/app/services/stale_jobs.py",
+            "backend/app/services/production_reaper.py",
+            "backend/app/services/reconcile_stuck_attempts.py",
+        ),
+        target_owner="runtime roles and workflow registry",
+        phase="ongoing",
+        removal_condition="n/a",
+        rationale="Worker processes, queue declarations, and scheduling/reaper paths are execution infrastructure.",
+    ),
+    OwnershipEntry(
+        id="shared-platform-infrastructure",
+        category="shared_platform_infrastructure",
+        severity="info",
+        status="accepted",
+        owner="platform",
+        paths=(
+            "backend/app/__init__.py",
+            "backend/app/config.py",
+            "backend/app/db.py",
+            "backend/app/errors.py",
+            "backend/app/logging_utils.py",
+            "backend/app/main.py",
+            "backend/app/platform_bootstrap.py",
+            "backend/app/tdlib_job.py",
+            "backend/app/adapters/**",
+            "backend/app/storage/**",
+            "backend/app/observability/__init__.py",
+            "backend/app/observability/sentry.py",
+            "backend/app/scripts/**",
+            "backend/app/tools/**",
+            "backend/app/api/__init__.py",
+            "backend/app/api/auth.py",
+            "backend/app/api/auth_batches.py",
+            "backend/app/api/audit.py",
+            "backend/app/api/assets.py",
+            "backend/app/api/dashboard.py",
+            "backend/app/api/diagnostics.py",
+            "backend/app/api/jobs.py",
+            "backend/app/api/me.py",
+            "backend/app/api/operation_logs.py",
+            "backend/app/api/settings.py",
+            "backend/app/api/tdlib_runtime.py",
+            "backend/app/api/telegram_auth.py",
+            "backend/app/api/tenant_helpers.py",
+            "backend/app/api/workers.py",
+            "backend/app/api/workspace_feature_flags_routes.py",
+            "backend/app/services/admin_notifications.py",
+            "backend/app/services/asset_cleanup.py",
+            "backend/app/services/asset_storage.py",
+            "backend/app/services/assets.py",
+            "backend/app/services/audit_logs.py",
+            "backend/app/services/auth.py",
+            "backend/app/services/auth_batch_dispatcher.py",
+            "backend/app/services/auth_batch_errors.py",
+            "backend/app/services/auth_batch_recovery.py",
+            "backend/app/services/auth_batch_state.py",
+            "backend/app/services/auth_batch_tdlib.py",
+            "backend/app/services/auth_batches.py",
+            "backend/app/services/cross_module_load_tracker.py",
+            "backend/app/services/dashboard.py",
+            "backend/app/services/database.py",
+            "backend/app/services/disaster_state.py",
+            "backend/app/services/execution_policy.py",
+            "backend/app/services/feature_flags.py",
+            "backend/app/services/frontend_diagnostics.py",
+            "backend/app/services/idempotency_keys.py",
+            "backend/app/services/import_validation.py",
+            "backend/app/services/jobs.py",
+            "backend/app/services/journal.py",
+            "backend/app/services/limits.py",
+            "backend/app/services/live_preflight.py",
+            "backend/app/services/locks.py",
+            "backend/app/services/notification_channels/**",
+            "backend/app/services/operation_logs.py",
+            "backend/app/services/phone_hints.py",
+            "backend/app/services/plan.py",
+            "backend/app/services/rate_limit_persistence.py",
+            "backend/app/services/rate_limits.py",
+            "backend/app/services/recovery.py",
+            "backend/app/services/redis_client.py",
+            "backend/app/services/retry_policy.py",
+            "backend/app/services/runtime_diagnostics.py",
+            "backend/app/services/runtime_settings.py",
+            "backend/app/services/secret_redaction.py",
+            "backend/app/services/sensitive_audit.py",
+            "backend/app/services/step_policy.py",
+            "backend/app/services/step_registry.py",
+            "backend/app/services/supabase_jwt.py",
+            "backend/app/services/tdlib*.py",
+            "backend/app/services/telegram_auth_sessions.py",
+            "backend/app/services/tenant_scope.py",
+            "backend/app/services/__init__.py",
+            "backend/app/services/users.py",
+            "backend/app/services/workspace_onboarding.py",
+            "backend/app/services/workspaces.py",
+        ),
+        target_owner="shared platform/infrastructure",
+        phase="ongoing",
+        removal_condition="n/a",
+        rationale="Cross-cutting auth, storage, runtime, audit, notification, tenant, and operator support code is not a bounded feature module by itself.",
+    ),
+    OwnershipEntry(
+        id="shared-contracts-and-orm",
+        category="shared_platform_infrastructure",
+        severity="medium",
+        status="open",
+        owner="shared_contracts_storage",
+        paths=(
+            "backend/app/contracts/__init__.py",
+            "backend/app/contracts/disaster_state.py",
+            "backend/app/contracts/jobs.py",
+            "backend/app/contracts/notifications.py",
+            "backend/app/contracts/types.py",
+            "backend/app/models.py",
+            "backend/app/schemas.py",
+        ),
+        target_owner="shared contracts plus repositories/module-owned DTOs",
+        phase="inventory-follow-up",
+        removal_condition="DTO and ORM ownership is either module-owned, shared-contract-owned, or documented as compatibility debt.",
+        rationale="Global schemas and ORM models remain transitional shared ownership surfaces.",
+    ),
+    OwnershipEntry(
+        id="supporting-governance-evidence",
+        category="supporting_tool_test_documentation_frontend_evidence",
+        severity="info",
+        status="accepted",
+        owner="architecture-governance",
+        paths=(
+            "backend/scripts/**",
+            "backend/tests/**",
+            "docs/**",
+            "README.md",
+            ".mex/**",
+            "apps/dashboard/src/**",
+        ),
+        target_owner="governance/evidence/frontend ownership",
+        phase="ongoing",
+        removal_condition="n/a",
+        rationale="Supporting audit, tests, docs, memory, and frontend ownership evidence are tracked separately from backend production domains.",
+    ),
+)
+
+
 def _read_text(repo_root: Path, relative_path: str) -> str:
     path = repo_root / relative_path
     if not path.exists():
@@ -75,6 +473,33 @@ def _read_text(repo_root: Path, relative_path: str) -> str:
 
 def _relative(path: Path, repo_root: Path) -> str:
     return path.relative_to(repo_root).as_posix()
+
+
+def _utc_timestamp(now: datetime | None = None) -> str:
+    value = now or datetime.now(UTC)
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _entry_to_dict(entry: OwnershipEntry, repo_root: Path) -> dict[str, Any]:
+    existing_paths: list[str] = []
+    for pattern in entry.paths:
+        if any(character in pattern for character in "*?["):
+            existing_paths.extend(
+                _relative(path, repo_root)
+                for path in sorted(repo_root.glob(pattern))
+                if path.is_file() and "__pycache__" not in path.parts
+            )
+            continue
+        path = repo_root / pattern
+        if path.exists():
+            existing_paths.append(_relative(path, repo_root))
+    return {
+        **asdict(entry),
+        "paths": list(entry.paths),
+        "existing_paths": sorted(set(existing_paths)),
+    }
 
 
 def _python_files(root: Path) -> list[Path]:
@@ -423,6 +848,126 @@ def _audit_frontend_modules(repo_root: Path) -> list[dict[str, Any]]:
     return modules
 
 
+def _audit_supporting_surfaces(repo_root: Path) -> dict[str, Any]:
+    roots = {
+        "backend_scripts": "backend/scripts",
+        "backend_tests": "backend/tests",
+        "docs": "docs",
+        "mex_memory": ".mex",
+        "frontend": "apps/dashboard/src",
+    }
+    return {
+        name: {
+            "path": path,
+            "exists": (repo_root / path).exists(),
+            "file_count": len(
+                [
+                    item
+                    for item in (repo_root / path).rglob("*")
+                    if item.is_file() and "__pycache__" not in item.parts
+                ]
+            )
+            if (repo_root / path).exists()
+            else 0,
+        }
+        for name, path in roots.items()
+    }
+
+
+def _ownership_entries(repo_root: Path) -> list[dict[str, Any]]:
+    return [
+        _entry_to_dict(entry, repo_root)
+        for entry in sorted(OWNERSHIP_ENTRIES, key=lambda item: item.id)
+    ]
+
+
+def _backend_app_python_files(repo_root: Path) -> list[str]:
+    return [
+        _relative(path, repo_root)
+        for path in _python_files(repo_root / "backend/app")
+        if not path.name.endswith(".pyi")
+    ]
+
+
+def _untracked_backend_app_files(
+    repo_root: Path, entries: list[dict[str, Any]]
+) -> list[str]:
+    classified_paths = {
+        path
+        for entry in entries
+        for path in entry["existing_paths"]
+        if path.startswith("backend/app/")
+    }
+    return [
+        path
+        for path in _backend_app_python_files(repo_root)
+        if path not in classified_paths
+    ]
+
+
+def _overlapping_backend_app_files(entries: list[dict[str, Any]]) -> dict[str, list[str]]:
+    owners: dict[str, list[str]] = {}
+    for entry in entries:
+        for path in entry["existing_paths"]:
+            if not path.startswith("backend/app/"):
+                continue
+            owners.setdefault(path, []).append(entry["id"])
+    return {
+        path: sorted(entry_ids)
+        for path, entry_ids in sorted(owners.items())
+        if len(entry_ids) > 1
+    }
+
+
+def _ensure_report_outputs_exist(repo_root: Path, paths: tuple[Path, ...]) -> None:
+    for path in paths:
+        output = path if path.is_absolute() else repo_root / path
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if not output.exists():
+            output.write_text("", encoding="utf-8")
+
+
+def _debt_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    open_entries = [entry for entry in entries if entry["status"] == "open"]
+    unmanaged = [
+        entry for entry in open_entries if entry["category"] == "unmanaged_feature_surface"
+    ]
+    high_risk = [entry for entry in unmanaged if entry["severity"] == "high"]
+    return {
+        "open_count": len(open_entries),
+        "unmanaged_feature_surface_count": len(unmanaged),
+        "high_risk_unmanaged_feature_surface_count": len(high_risk),
+        "high_risk_unmanaged_feature_surfaces": [entry["id"] for entry in high_risk],
+    }
+
+
+def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    entries = _ownership_entries(repo_root)
+    return {
+        "schema_version": REPORT_SCHEMA_VERSION,
+        "generated_at": generated_at or _utc_timestamp(),
+        "scope": {
+            "production": "backend/app/**",
+            "supporting": [
+                "backend/scripts/**",
+                "backend/tests/**",
+                "docs/**",
+                "README.md",
+                ".mex/**",
+                "apps/dashboard/src/**",
+            ],
+            "classification_rule": "Every discovered zone is classified as canonical_feature_module, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence.",
+        },
+        "entries": entries,
+        "summary": _debt_summary(entries),
+        "overlapping_backend_app_python_files": _overlapping_backend_app_files(entries),
+        "untracked_backend_app_python_files": _untracked_backend_app_files(
+            repo_root, entries
+        ),
+    }
+
+
 def _audit_security_checks(repo_root: Path) -> list[dict[str, Any]]:
     workflow_map = {
         "CI": ".github/workflows/ci.yml",
@@ -525,20 +1070,33 @@ def _forbidden_runtime_claims(
     return {"workflows": forbidden_workflows, "queues": forbidden_queues}
 
 
+def _backend_overall_status(debt_inventory: dict[str, Any]) -> str:
+    if debt_inventory["summary"]["high_risk_unmanaged_feature_surface_count"]:
+        return "RED"
+    if debt_inventory["summary"]["unmanaged_feature_surface_count"]:
+        return "YELLOW"
+    return "GREEN"
+
+
 def _findings(
-    boundaries: dict[str, Any], forbidden_claims: dict[str, list[str]]
+    boundaries: dict[str, Any],
+    forbidden_claims: dict[str, list[str]],
+    debt_inventory: dict[str, Any],
 ) -> list[dict[str, str]]:
     findings = [
         Finding(
             id="STRUCTURE-001",
-            severity="info",
-            status="accepted",
+            severity="high",
+            status="open",
             area="backend-modules",
-            finding="Backend module registry has auth, account_editing, and warmup as canonical modules.",
-            evidence="app.modules.registry imports auth, account_editing, and warmup; _template remains documentation-only.",
-            risk="Low. The main feature module boundary is explicit and enforced by architecture tests.",
-            recommendation="Continue adding new product modules through the documented module checklist.",
-            suggested_phase="ongoing",
+            finding="Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
+            evidence=(
+                "app.modules.registry imports auth, account_editing, and warmup; "
+                f"open unmanaged feature surfaces: {', '.join(debt_inventory['summary']['high_risk_unmanaged_feature_surfaces'])}."
+            ),
+            risk="High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
+            recommendation="Complete Phase 0 guard, then migrate neuro_commenting, account_safety, and account_lifecycle in separate PRs.",
+            suggested_phase="Phase 0+",
         ),
         Finding(
             id="STRUCTURE-002",
@@ -606,13 +1164,24 @@ def _findings(
             recommendation="Keep security docs in sync with GitHub branch protection and workflow policy changes.",
             suggested_phase="ongoing",
         ),
+        Finding(
+            id="STRUCTURE-008",
+            severity="high",
+            status="open",
+            area="unmanaged-backend-surfaces",
+            finding="Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
+            evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
+            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support.",
+            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+            suggested_phase="Phase 0",
+        ),
     ]
     if any(boundaries["contracts_forbidden_imports"].values()) or any(
         boundaries["routers_importing_models"].values()
     ):
         findings.append(
             Finding(
-                id="STRUCTURE-008",
+                id="STRUCTURE-009",
                 severity="high",
                 status="open",
                 area="storage-contracts",
@@ -632,7 +1201,7 @@ def _findings(
     if forbidden_claims["workflows"] or forbidden_claims["queues"]:
         findings.append(
             Finding(
-                id="STRUCTURE-009",
+                id="STRUCTURE-010",
                 severity="high",
                 status="open",
                 area="workflow-runtime",
@@ -646,16 +1215,20 @@ def _findings(
     return [asdict(finding) for finding in sorted(findings, key=lambda finding: finding.id)]
 
 
-def build_report(repo_root: Path) -> dict[str, Any]:
+def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, Any]:
     repo_root = repo_root.resolve()
+    generated_at = generated_at or _utc_timestamp()
     modules = _audit_modules(repo_root)
     runtime_roles = _audit_runtime_roles(repo_root)
     queues = _audit_queues(repo_root, runtime_roles)
     workflows = _workflow_specs(repo_root)
     boundaries = _audit_boundaries(repo_root)
     forbidden_claims = _forbidden_runtime_claims(workflows, queues)
+    debt_inventory = build_debt_inventory(repo_root, generated_at)
     return {
-        "generated_at": GENERATED_AT,
+        "schema_version": REPORT_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "backend_overall_status": _backend_overall_status(debt_inventory),
         "modules": modules,
         "runtime_roles": runtime_roles,
         "queues": queues,
@@ -663,19 +1236,307 @@ def build_report(repo_root: Path) -> dict[str, Any]:
         "shared_contracts": _audit_shared_contracts(repo_root),
         "architecture_tests": _audit_architecture_tests(repo_root),
         "frontend_modules": _audit_frontend_modules(repo_root),
+        "supporting_surfaces": _audit_supporting_surfaces(repo_root),
         "security_checks": _audit_security_checks(repo_root),
-        "findings": _findings(boundaries, forbidden_claims),
+        "debt_inventory": debt_inventory,
+        "findings": _findings(boundaries, forbidden_claims, debt_inventory),
         "boundaries": boundaries,
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
-            "Phase 23 - Frontend feature ownership cleanup",
-            "Phase 24 - Shared contracts extraction",
-            "Phase 25 - Legacy wrappers deprecation plan",
-            "Phase 26 - Dedicated runtime roles for maintenance/media/story/lifecycle",
-            "Phase 27 - First new module: analytics read-only or broadcast preview-only",
+            "Phase 1 - Dependency Rule and dynamic fitness functions",
+            "Phase 2 - backend module neuro_commenting",
+            "Phase 3 - account_safety public boundary",
+            "Phase 4 - account_lifecycle module",
+            "Phase 5 - frontend/shared/deep-import cleanup",
         ],
     }
+
+
+def render_json_report(report: dict[str, Any]) -> str:
+    return json.dumps(report, indent=2, sort_keys=True) + "\n"
+
+
+def render_debt_inventory(report: dict[str, Any]) -> str:
+    return json.dumps(report["debt_inventory"], indent=2, sort_keys=True) + "\n"
+
+
+def _markdown_table(headers: tuple[str, ...], rows: list[tuple[Any, ...]]) -> str:
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(str(value).replace("\n", " ") for value in row) + " |")
+    return "\n".join(lines)
+
+
+def _status_for_entry(entry: dict[str, Any]) -> str:
+    if entry["category"] == "canonical_feature_module":
+        return "GREEN"
+    if entry["category"] == "unmanaged_feature_surface":
+        return "RED" if entry["severity"] == "high" else "YELLOW"
+    if entry["status"] == "open":
+        return "YELLOW"
+    return "GREEN"
+
+
+def render_markdown_report(report: dict[str, Any]) -> str:
+    debt_entries = report["debt_inventory"]["entries"]
+    modules = report["modules"]
+    runtime_roles = report["runtime_roles"]
+    findings = report["findings"]
+    high_debt = [
+        entry
+        for entry in debt_entries
+        if entry["category"] == "unmanaged_feature_surface" and entry["severity"] == "high"
+    ]
+    lines = [
+        "# Structure Audit",
+        "",
+        f"Generated snapshot: `{report['generated_at']}`",
+        "",
+        "This generated audit records the current compatibility-first modular monolith boundaries, the canonical module registry, runtime ownership, and tracked migration debt. The machine-readable companion reports are `docs/architecture/structure-audit.json` and `docs/architecture/architecture-debt-inventory.json`, both generated by `backend/scripts/structure_audit.py`.",
+        "",
+        "Status legend:",
+        "",
+        "- `GREEN`: structurally healthy and enforced by tests or static checks.",
+        "- `YELLOW`: transitional but acceptable with documented constraints.",
+        "- `RED`: structural risk or contradictory boundary that needs immediate follow-up.",
+        "",
+        "## 1. Executive Summary",
+        "",
+        _markdown_table(
+            ("Area", "Status", "Evidence", "Risk", "Recommended follow-up"),
+            [
+                (
+                    "Backend overall",
+                    report["backend_overall_status"],
+                    f"{len(high_debt)} high-risk unmanaged feature surfaces remain.",
+                    "Architecture audit must not claim overall GREEN while high-risk unmanaged domains remain.",
+                    "Complete Phase 0 guard, then migrate domains in separate PRs.",
+                ),
+                (
+                    "Backend modules",
+                    "YELLOW" if high_debt else "GREEN",
+                    "Registered modules: "
+                    + ", ".join(module["name"] for module in modules if module["registered"]),
+                    "Canonical ownership exists for migrated modules only.",
+                    "Continue with neuro_commenting, account_safety, then account_lifecycle.",
+                ),
+                (
+                    "Unmanaged feature debt",
+                    "RED" if high_debt else "YELLOW",
+                    ", ".join(entry["owner"] for entry in high_debt) or "No high-risk unmanaged debt.",
+                    "New feature behavior can bypass app.modules unless classified and guarded.",
+                    "Keep debt inventory exhaustive and CI-enforced.",
+                ),
+                (
+                    "Generated artifacts",
+                    "GREEN",
+                    "JSON, Markdown, and debt inventory render from one report pipeline.",
+                    "Low while drift tests compare committed artifacts to deterministic renderers.",
+                    "Run `python backend/scripts/structure_audit.py --check` after structural changes.",
+                ),
+                (
+                    "Frontend ownership",
+                    "YELLOW",
+                    "Frontend modules and global roots are tracked as supporting ownership evidence.",
+                    "Global dashboard roots can still own feature logic.",
+                    "Formalize shared/deep-import policy in a later PR.",
+                ),
+            ],
+        ),
+        "",
+        "## 2. Backend Module Registry",
+        "",
+        _markdown_table(
+            ("Module", "Registered", "Router", "Workflows", "Status"),
+            [
+                (
+                    module["name"],
+                    module["registered"],
+                    module["router_path"] or "none",
+                    ", ".join(str(workflow.get("workflow_type")) for workflow in module["workflows"])
+                    or "none",
+                    "GREEN" if module["registered"] or module["documentation_only"] else "YELLOW",
+                )
+                for module in modules
+            ],
+        ),
+        "",
+        "## 3. Ownership Inventory",
+        "",
+        _markdown_table(
+            ("ID", "Category", "Status", "Severity", "Owner", "Target owner", "Phase"),
+            [
+                (
+                    entry["id"],
+                    entry["category"],
+                    _status_for_entry(entry),
+                    entry["severity"],
+                    entry["owner"],
+                    entry["target_owner"],
+                    entry["phase"],
+                )
+                for entry in debt_entries
+            ],
+        ),
+        "",
+        "## 4. Required Unmanaged Domains",
+        "",
+        _markdown_table(
+            ("Domain", "Severity", "Current paths", "Target owner", "Removal condition"),
+            [
+                (
+                    entry["owner"],
+                    entry["severity"],
+                    "<br>".join(entry["paths"]),
+                    entry["target_owner"],
+                    entry["removal_condition"],
+                )
+                for entry in debt_entries
+                if entry["category"] == "unmanaged_feature_surface"
+            ],
+        ),
+        "",
+        "## 5. Runtime / Process Structure",
+        "",
+        _markdown_table(
+            ("Role", "Queues", "Live TDLib", "Notes"),
+            [
+                (
+                    role["name"],
+                    ", ".join(role.get("queues") or []) or "none",
+                    "Yes" if role.get("allows_live_tdlib") else "No",
+                    role.get("description") or "",
+                )
+                for role in runtime_roles
+            ],
+        ),
+        "",
+        "## 6. Architecture Guard Status",
+        "",
+        _markdown_table(
+            ("Guard", "Status", "Evidence"),
+            [
+                (
+                    "Untracked backend/app production files",
+                    "GREEN"
+                    if not report["debt_inventory"]["untracked_backend_app_python_files"]
+                    and not report["debt_inventory"]["overlapping_backend_app_python_files"]
+                    else "RED",
+                    ", ".join(
+                        [
+                            *report["debt_inventory"]["untracked_backend_app_python_files"],
+                            *report["debt_inventory"][
+                                "overlapping_backend_app_python_files"
+                            ].keys(),
+                        ]
+                    )
+                    or "All backend/app Python files are classified exactly once by the inventory.",
+                ),
+                (
+                    "Forbidden contract imports",
+                    "GREEN"
+                    if not any(report["boundaries"]["contracts_forbidden_imports"].values())
+                    else "RED",
+                    json.dumps(report["boundaries"]["contracts_forbidden_imports"], sort_keys=True),
+                ),
+                (
+                    "Routers importing ORM models",
+                    "GREEN"
+                    if not any(report["boundaries"]["routers_importing_models"].values())
+                    else "RED",
+                    json.dumps(report["boundaries"]["routers_importing_models"], sort_keys=True),
+                ),
+                (
+                    "Forbidden runtime claims",
+                    "GREEN"
+                    if report["forbidden_runtime_claims"] == {"queues": [], "workflows": []}
+                    else "RED",
+                    json.dumps(report["forbidden_runtime_claims"], sort_keys=True),
+                ),
+            ],
+        ),
+        "",
+        "## 7. Risk Register",
+        "",
+        _markdown_table(
+            ("ID", "Severity", "Status", "Area", "Finding", "Risk", "Recommendation"),
+            [
+                (
+                    finding["id"],
+                    finding["severity"],
+                    finding["status"],
+                    finding["area"],
+                    finding["finding"],
+                    finding["risk"],
+                    finding["recommendation"],
+                )
+                for finding in findings
+            ],
+        ),
+        "",
+        "## 8. Recommended Next Implementation Issues",
+        "",
+        _markdown_table(
+            ("Phase", "Scope"),
+            [(phase.split(" - ", 1)[0], phase.split(" - ", 1)[1]) for phase in report["recommended_next_phases"]],
+        ),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _display_path(path: Path, repo_root: Path) -> str:
+    try:
+        return path.relative_to(repo_root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def detect_report_drift(
+    repo_root: Path,
+    json_path: Path | None = None,
+    markdown_path: Path | None = None,
+    debt_path: Path | None = None,
+) -> list[str]:
+    repo_root = repo_root.resolve()
+    json_path = json_path or repo_root / DEFAULT_JSON_OUTPUT
+    markdown_path = markdown_path or repo_root / DEFAULT_MARKDOWN_OUTPUT
+    debt_path = debt_path or repo_root / DEFAULT_DEBT_OUTPUT
+    committed_report = _read_json(json_path)
+    expected_report = build_report(repo_root, generated_at=str(committed_report["generated_at"]))
+    drift: list[str] = []
+    if json_path.read_text(encoding="utf-8") != render_json_report(expected_report):
+        drift.append(_display_path(json_path, repo_root))
+    if markdown_path.read_text(encoding="utf-8") != render_markdown_report(expected_report):
+        drift.append(_display_path(markdown_path, repo_root))
+    if debt_path.read_text(encoding="utf-8") != render_debt_inventory(expected_report):
+        drift.append(_display_path(debt_path, repo_root))
+    return drift
+
+
+def write_report_artifacts(
+    repo_root: Path,
+    json_path: Path,
+    markdown_path: Path,
+    debt_path: Path,
+    generated_at: str | None = None,
+) -> None:
+    _ensure_report_outputs_exist(repo_root, (json_path, markdown_path, debt_path))
+    report = build_report(repo_root, generated_at=generated_at)
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    debt_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(render_json_report(report), encoding="utf-8")
+    markdown_path.write_text(render_markdown_report(report), encoding="utf-8")
+    debt_path.write_text(render_debt_inventory(report), encoding="utf-8")
 
 
 def main() -> None:
@@ -686,15 +1547,45 @@ def main() -> None:
         default=None,
         help="Output JSON path. Defaults to docs/architecture/structure-audit.json.",
     )
+    parser.add_argument(
+        "--markdown-output",
+        type=Path,
+        default=None,
+        help="Output Markdown path. Defaults to docs/architecture/STRUCTURE_AUDIT.md.",
+    )
+    parser.add_argument(
+        "--debt-output",
+        type=Path,
+        default=None,
+        help="Output debt inventory path. Defaults to docs/architecture/architecture-debt-inventory.json.",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Check committed JSON, Markdown, and debt inventory artifacts for drift.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
-    output = args.output or repo_root / "docs/architecture/structure-audit.json"
+    output = args.output or repo_root / DEFAULT_JSON_OUTPUT
+    markdown_output = args.markdown_output or repo_root / DEFAULT_MARKDOWN_OUTPUT
+    debt_output = args.debt_output or repo_root / DEFAULT_DEBT_OUTPUT
     if not output.is_absolute():
         output = repo_root / output
-    report = build_report(repo_root)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if not markdown_output.is_absolute():
+        markdown_output = repo_root / markdown_output
+    if not debt_output.is_absolute():
+        debt_output = repo_root / debt_output
+    if args.check:
+        drift = detect_report_drift(repo_root, output, markdown_output, debt_output)
+        if drift:
+            raise SystemExit(
+                "Structure audit artifacts are stale; regenerate them with "
+                "`python backend/scripts/structure_audit.py`: "
+                + ", ".join(drift)
+            )
+        return
+    write_report_artifacts(repo_root, output, markdown_output, debt_output)
 
 
 if __name__ == "__main__":

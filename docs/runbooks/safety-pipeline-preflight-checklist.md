@@ -34,6 +34,18 @@ preparing this checklist.
 | Task 31 admin alerts | PR [#125](https://github.com/pinnnthreetriples/StylistTG/pull/125) | workspace notification settings and alert escalation path |
 | Task 38 E2E scenarios | Issue [#141](https://github.com/pinnnthreetriples/StylistTG/issues/141), PR [#147](https://github.com/pinnnthreetriples/StylistTG/pull/147) | `backend/tests/integration/test_safety_pipeline_e2e.py` |
 | Task 39 operator docs | Issue [#142](https://github.com/pinnnthreetriples/StylistTG/issues/142), PR [#146](https://github.com/pinnnthreetriples/StylistTG/pull/146) | [account-safety-pipeline.md](../modules/account-safety-pipeline.md) |
+| Task 43 sender failure cleanup (F-001, F-002) | PR [#171](https://github.com/pinnnthreetriples/StylistTG/pull/171) | `backend/app/services/neuro_commenting/sender_service.py` finalization paths |
+| Task 44 Redis-degraded mode (F-301, F-305, B F-004) | PR [#175](https://github.com/pinnnthreetriples/StylistTG/pull/175) | `safety_gate_reserve.py` (fail-closed + ZSET), [safety-alerts.md](safety-alerts.md#safetygateredisdegraded) |
+| Task 45 account cascade (F-E001) | PR [#174](https://github.com/pinnnthreetriples/StylistTG/pull/174) | migration `20260525_0054`, [account-deletion-policy.md](account-deletion-policy.md), `hard_delete_account` |
+| Task 46 migration replay (F-E002/3/6) | PR [#176](https://github.com/pinnnthreetriples/StylistTG/pull/176) | `docker-compose.replay.yml`, `scripts/migration_replay.py`, [migration-safety.md](migration-safety.md#migration-replay-procedure) |
+| Task 47 PII redaction (B F-001) | PR [#173](https://github.com/pinnnthreetriples/StylistTG/pull/173) | `secret_redaction.redact_pii()` + UUID-context detection, [safety-rollout.md PII compliance](safety-rollout.md#pii-compliance--audit-log-content-guarantees) |
+| Task 48 dev env + tooling (F-041) | PR [#170](https://github.com/pinnnthreetriples/StylistTG/pull/170) | `backend/pyproject.toml [dev]` extras, [dev-environment-setup.md](dev-environment-setup.md) |
+| Task 49 observability fixes (F-302, F-304) | PR [#178](https://github.com/pinnnthreetriples/StylistTG/pull/178) | `account_total`, `weak_ggr_accounts_total`, `weak_ggr_transitions_total` metrics + dashboard validity test |
+| Task 50 safety state hardening (F-005/6, B F-002/3) | PR [#179](https://github.com/pinnnthreetriples/StylistTG/pull/179) | quarantine idempotency, monitor batching, `account_safety_override.workspace_id` |
+| Task 51 ops hardening (F-E004, F-306, B F-005, F-E005, F-004) | PR [#180](https://github.com/pinnnthreetriples/StylistTG/pull/180) | DB/Redis timeouts, deterministic backfill seed, reconcile workspace scope |
+| Task 52 E2E + behavior decision (F-042, F-008) | PR [#182](https://github.com/pinnnthreetriples/StylistTG/pull/182) | workflow-driven E2E asserts, behavior emulator scope doc |
+| Task 53 UI override + utc_now + client (F-006-001/3/4, F-007) | PR [#181](https://github.com/pinnnthreetriples/StylistTG/pull/181) | `QuarantineStateBanner` override checkbox, `utc_now()` sweep, generated OpenAPI client |
+| Python 3.14 upgrade | PR [#177](https://github.com/pinnnthreetriples/StylistTG/pull/177) | Dockerfiles, `pyproject.toml`, CI workflows, branch protection check name |
 
 ## 1. Pre-Deploy Verification
 
@@ -51,9 +63,13 @@ timestamp in the release notes or rollout ticket.
   python -m tools.migration_lint --base origin/main
   ```
 
-  Expected result: migrations `20260520_0034` through `20260522_0052` apply
+  Expected result: migrations `20260520_0034` through `20260525_0054` apply
   without blocking any statement for more than 5 seconds, and migration lint exits
-  successfully. If timing is unclear, repeat with database-side lock monitoring:
+  successfully. The `20260525_0054_account_safety_cascade` step (Task 45) is
+  FK-reflective — on a populated DB it issues one `ALTER TABLE … DROP CONSTRAINT
+  … ADD CONSTRAINT … ON DELETE …` per safety-pipeline FK and finishes in tens
+  of milliseconds. If timing is unclear, repeat with database-side lock
+  monitoring:
 
   ```sql
   select pid, wait_event_type, wait_event, query

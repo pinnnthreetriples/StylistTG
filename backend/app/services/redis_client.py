@@ -13,11 +13,9 @@ from app.observability.safety_metrics import safety_metrics
 
 
 class InstrumentedRedisConnectionPool(ConnectionPool):
-    def get_connection(
-        self, command_name: str | None = None, *keys: Any, **options: Any
-    ) -> Connection:
+    def get_connection(self, *keys: Any, **options: Any) -> Connection:
         get_connection = cast(Callable[..., Connection], getattr(super(), "get_connection"))
-        connection = get_connection(command_name, *keys, **options)
+        connection = get_connection(*keys, **options)
         _record_pool_saturation(self)
         return connection
 

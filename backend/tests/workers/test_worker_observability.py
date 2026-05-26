@@ -46,7 +46,7 @@ def test_worker_role_validation_is_optional(monkeypatch: pytest.MonkeyPatch) -> 
         lambda role, queue: calls.append((role, queue)),
     )
     monkeypatch.setattr(run_worker, "get_queue", lambda queue_name: queue_name)
-    monkeypatch.setattr(run_worker, "Redis", SimpleNamespace(from_url=lambda _url: object()))
+    monkeypatch.setattr(run_worker, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         run_worker,
         "SimpleWorker",
@@ -79,7 +79,7 @@ def test_worker_role_validation_accepts_matching_reserved_queue(
     )
     monkeypatch.setattr(run_worker, "init_worker_observability", lambda: None)
     monkeypatch.setattr(run_worker, "get_queue", lambda name: name)
-    monkeypatch.setattr(run_worker, "Redis", SimpleNamespace(from_url=lambda _url: object()))
+    monkeypatch.setattr(run_worker, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         run_worker,
         "SimpleWorker",
@@ -131,7 +131,7 @@ def test_worker_raw_queue_mode_still_accepts_grouped_reserved_queues(
         lambda role_name, queue_name: role_validations.append((role_name, queue_name)),
     )
     monkeypatch.setattr(run_worker, "get_queue", lambda name: name)
-    monkeypatch.setattr(run_worker, "Redis", SimpleNamespace(from_url=lambda _url: object()))
+    monkeypatch.setattr(run_worker, "redis_from_url", lambda: object())
     monkeypatch.setattr(
         run_worker,
         "SimpleWorker",

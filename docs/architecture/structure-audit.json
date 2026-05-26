@@ -1129,6 +1129,7 @@
         "__future__",
         "datetime",
         "pydantic",
+        "pydantic.json_schema",
         "typing",
         "uuid"
       ],

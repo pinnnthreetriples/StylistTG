@@ -86,7 +86,9 @@ def test_structure_audit_drift_check_detects_json_drift(tmp_path: Path) -> None:
     json_path = tmp_path / "structure-audit.json"
     markdown_path = tmp_path / "STRUCTURE_AUDIT.md"
     debt_path = tmp_path / "architecture-debt-inventory.json"
-    json_path.write_text(render_json_report({**expected, "backend_overall_status": "GREEN"}), encoding="utf-8")
+    json_path.write_text(
+        render_json_report({**expected, "backend_overall_status": "GREEN"}), encoding="utf-8"
+    )
     markdown_path.write_text(render_markdown_report(expected), encoding="utf-8")
     debt_path.write_text(render_debt_inventory(expected), encoding="utf-8")
 
@@ -160,9 +162,7 @@ def test_structure_audit_finding_ids_are_unique_and_sorted() -> None:
 def test_structure_audit_reports_required_unmanaged_domains() -> None:
     entries = _committed_report()["debt_inventory"]["entries"]
     owners = {
-        entry["owner"]
-        for entry in entries
-        if entry["category"] == "unmanaged_feature_surface"
+        entry["owner"] for entry in entries if entry["category"] == "unmanaged_feature_surface"
     }
 
     assert {"neuro_commenting", "account_safety", "account_lifecycle"}.issubset(owners)
@@ -170,9 +170,7 @@ def test_structure_audit_reports_required_unmanaged_domains() -> None:
 
 def test_structure_audit_phase_zero_debt_contract_is_exact() -> None:
     report = _committed_report()
-    entries = {
-        entry["id"]: entry for entry in report["debt_inventory"]["entries"]
-    }
+    entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
 
     assert report["backend_overall_status"] == "RED"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == [

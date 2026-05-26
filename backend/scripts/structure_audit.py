@@ -889,20 +889,14 @@ def _backend_app_python_files(repo_root: Path) -> list[str]:
     ]
 
 
-def _untracked_backend_app_files(
-    repo_root: Path, entries: list[dict[str, Any]]
-) -> list[str]:
+def _untracked_backend_app_files(repo_root: Path, entries: list[dict[str, Any]]) -> list[str]:
     classified_paths = {
         path
         for entry in entries
         for path in entry["existing_paths"]
         if path.startswith("backend/app/")
     }
-    return [
-        path
-        for path in _backend_app_python_files(repo_root)
-        if path not in classified_paths
-    ]
+    return [path for path in _backend_app_python_files(repo_root) if path not in classified_paths]
 
 
 def _overlapping_backend_app_files(entries: list[dict[str, Any]]) -> dict[str, list[str]]:
@@ -913,9 +907,7 @@ def _overlapping_backend_app_files(entries: list[dict[str, Any]]) -> dict[str, l
                 continue
             owners.setdefault(path, []).append(entry["id"])
     return {
-        path: sorted(entry_ids)
-        for path, entry_ids in sorted(owners.items())
-        if len(entry_ids) > 1
+        path: sorted(entry_ids) for path, entry_ids in sorted(owners.items()) if len(entry_ids) > 1
     }
 
 
@@ -962,9 +954,7 @@ def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> di
         "entries": entries,
         "summary": _debt_summary(entries),
         "overlapping_backend_app_python_files": _overlapping_backend_app_files(entries),
-        "untracked_backend_app_python_files": _untracked_backend_app_files(
-            repo_root, entries
-        ),
+        "untracked_backend_app_python_files": _untracked_backend_app_files(repo_root, entries),
     }
 
 
@@ -1327,7 +1317,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 (
                     "Unmanaged feature debt",
                     "RED" if high_debt else "YELLOW",
-                    ", ".join(entry["owner"] for entry in high_debt) or "No high-risk unmanaged debt.",
+                    ", ".join(entry["owner"] for entry in high_debt)
+                    or "No high-risk unmanaged debt.",
                     "New feature behavior can bypass app.modules unless classified and guarded.",
                     "Keep debt inventory exhaustive and CI-enforced.",
                 ),
@@ -1357,7 +1348,9 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     module["name"],
                     module["registered"],
                     module["router_path"] or "none",
-                    ", ".join(str(workflow.get("workflow_type")) for workflow in module["workflows"])
+                    ", ".join(
+                        str(workflow.get("workflow_type")) for workflow in module["workflows"]
+                    )
                     or "none",
                     "GREEN" if module["registered"] or module["documentation_only"] else "YELLOW",
                 )
@@ -1482,7 +1475,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         _markdown_table(
             ("Phase", "Scope"),
-            [(phase.split(" - ", 1)[0], phase.split(" - ", 1)[1]) for phase in report["recommended_next_phases"]],
+            [
+                (phase.split(" - ", 1)[0], phase.split(" - ", 1)[1])
+                for phase in report["recommended_next_phases"]
+            ],
         ),
         "",
     ]
@@ -1581,8 +1577,7 @@ def main() -> None:
         if drift:
             raise SystemExit(
                 "Structure audit artifacts are stale; regenerate them with "
-                "`python backend/scripts/structure_audit.py`: "
-                + ", ".join(drift)
+                "`python backend/scripts/structure_audit.py`: " + ", ".join(drift)
             )
         return
     write_report_artifacts(repo_root, output, markdown_output, debt_output)

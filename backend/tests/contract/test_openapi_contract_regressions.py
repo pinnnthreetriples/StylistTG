@@ -15,6 +15,7 @@ def test_static_bulk_target_route_rejects_unsupported_method_with_405(app_client
     )
 
     assert response.status_code == 405
+    assert response.json() == {"detail": "Method Not Allowed"}
     assert response.headers["allow"] == "POST"
 
 

@@ -371,7 +371,7 @@ class AnalyticsService:
         self, session: Session, *, workspace_id: str, target_refs: list[str]
     ) -> dict[str, str]:
         rows = (
-            session.query(NeuroCommentChannelRule.target_ref, NeuroCommentChannelRule.rule_type)
+            session.query(NeuroCommentChannelRule)
             .filter(
                 NeuroCommentChannelRule.workspace_id == workspace_id,
                 NeuroCommentChannelRule.target_ref.in_(target_refs),
@@ -381,8 +381,8 @@ class AnalyticsService:
             .all()
         )
         statuses: dict[str, str] = {}
-        for target_ref, rule_type in rows:
-            statuses.setdefault(target_ref, rule_type)
+        for rule in rows:
+            statuses.setdefault(rule.target_ref, rule.rule_type)
         return statuses
 
     def _rule_status(self, session: Session, *, workspace_id: str, target_ref: str) -> str:

@@ -2,12 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.roles import (
-    assert_runtime_role_allows_queue,
-    iter_runtime_roles,
-    queues_for_role,
-)
-from app.services.worker_plane import (
+from app.contracts.queues import (
     ACCOUNT_LIFECYCLE_QUEUE_NAME,
     MAINTENANCE_QUEUE_NAME,
     MEDIA_QUEUE_NAME,
@@ -15,6 +10,11 @@ from app.services.worker_plane import (
     PROFILE_QUEUE_NAME,
     STORY_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
+)
+from app.runtime.roles import (
+    assert_runtime_role_allows_queue,
+    iter_runtime_roles,
+    queues_for_role,
 )
 
 

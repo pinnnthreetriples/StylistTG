@@ -1,5 +1,10 @@
 import pytest
 
+from app.contracts.queues import (
+    PROFILE_QUEUE_NAME,
+    WARMUP_DISPATCH_QUEUE_NAME,
+    WARMUP_QUEUE_NAME,
+)
 from app.modules.contracts import WorkflowArgsMode
 from app.modules.registry import (
     get_workflow_spec,
@@ -8,11 +13,6 @@ from app.modules.registry import (
     iter_workflows,
     resolve_router,
 )
-from app.services.worker_plane import (
-    PROFILE_QUEUE_NAME,
-    WARMUP_DISPATCH_QUEUE_NAME,
-    WARMUP_QUEUE_NAME,
-)
 
 
 def test_module_names_are_unique_and_expected_modules_exist() -> None:
@@ -20,6 +20,7 @@ def test_module_names_are_unique_and_expected_modules_exist() -> None:
     names = [module.name for module in modules]
 
     assert len(names) == len(set(names))
+    assert "auth" in names
     assert "account_editing" in names
     assert "warmup" in names
 

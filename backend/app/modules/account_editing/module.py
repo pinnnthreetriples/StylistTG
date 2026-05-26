@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from app.contracts.queues import PROFILE_QUEUE_NAME
 from app.modules.contracts import FeatureModule, WorkflowArgsMode, WorkflowSpec
-from app.services.worker_plane import PROFILE_QUEUE_NAME
 
 
 module = FeatureModule(

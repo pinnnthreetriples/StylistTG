@@ -43,7 +43,7 @@ This audit records the dashboard ownership surfaces after the Phase 23 cleanup p
 | `apps/dashboard/src/modules/account-editing/*` | account-editing | `modules/account-editing` | active owner | public index `modules/account-editing` | Owns account update API, profile draft hook, labels, types, and mappers. |
 | `apps/dashboard/src/modules/auth/*` | auth | `modules/auth` | active owner | public index `modules/auth` | Owns auth API, batches, hooks, bootstrap, types, and pure labels. |
 | `apps/dashboard/src/modules/warmup/*` | warmup | `modules/warmup` | active owner | public index `modules/warmup` | Most mature module; no ownership changes in this PR. |
-| `apps/dashboard/src/modules/shared/*` | shared | `modules/shared` | started | public index `modules/shared` | Contains neutral shared API client glue only. |
+| `apps/dashboard/src/modules/shared/*` | shared | `modules/shared` | started | public index `modules/shared` | Owns feature-neutral UI/API helpers; must not import feature modules, and feature modules must use the public index except tracked legacy deep imports. |
 
 ## Deferred Moves
 

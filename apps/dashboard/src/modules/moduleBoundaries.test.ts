@@ -9,14 +9,27 @@ import authBatchesCompat from '../lib/authBatches.ts?raw'
 import authCompat from '../lib/auth.ts?raw'
 import dashboardCompat from '../lib/dashboard.ts?raw'
 
-const FEATURE_MODULES = ['account-editing', 'auth', 'warmup', 'neuro-commenting']
-const PUBLIC_MODULE_IMPORT_RE = /@\/modules\/(account-editing|auth|warmup|neuro-commenting)(\/(?!$|index(?:\.ts)?['"])[^'"]+)/
+const SHARED_MODULE = 'shared'
 const LEGACY_COMPAT_IMPORT_RE = /@\/(components\/auth|features\/auth|hooks\/use(AuthBootstrap|AuthFlow|ProfileDraft)|lib\/(auth|authBatches|dashboard))/
 const moduleSources = import.meta.glob('./**/*.{ts,tsx}', {
   query: '?raw',
   import: 'default',
   eager: true,
 }) as Record<string, string>
+const MODULE_NAMES = Array.from(
+  new Set(
+    Object.keys(moduleSources)
+      .map((path) => path.match(/^\.\/([^/]+)\//)?.[1])
+      .filter((moduleName): moduleName is string => Boolean(moduleName)),
+  ),
+).sort()
+const FEATURE_MODULES = MODULE_NAMES.filter((moduleName) => moduleName !== SHARED_MODULE)
+const LEGACY_DEEP_MODULE_IMPORTS = new Set([
+  './neuro-commenting/components/AccountsSection.tsx -> @/modules/shared/SafetyGateBanner',
+  './warmup/components/WarmupSessionDetail.tsx -> @/modules/shared/SafetyGateBanner',
+])
+const IMPORT_SPECIFIER_RE =
+  /(?:\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"])/g
 
 function readModule(moduleName: string): string {
   return Object.entries(moduleSources)
@@ -25,11 +38,57 @@ function readModule(moduleName: string): string {
     .join('\n')
 }
 
+function moduleImportKey(path: string, importSpecifier: string): string | null {
+  const aliasMatch = importSpecifier.match(/^@\/modules\/([^/]+)\/(.+)/)
+  if (aliasMatch) {
+    return `${path} -> @/modules/${aliasMatch[1]}/${aliasMatch[2]}`
+  }
+
+  if (!importSpecifier.startsWith('.')) {
+    return null
+  }
+
+  const importerParts = path.replace(/^\.\//, '').split('/')
+  importerParts.pop()
+  const resolvedParts = [...importerParts]
+  for (const part of importSpecifier.split('/')) {
+    if (part === '.' || part === '') continue
+    if (part === '..') {
+      resolvedParts.pop()
+      continue
+    }
+    resolvedParts.push(part)
+  }
+
+  const [targetModule, ...targetPath] = resolvedParts
+  if (!MODULE_NAMES.includes(targetModule) || targetPath.length === 0) {
+    return null
+  }
+  return `${path} -> @/modules/${targetModule}/${targetPath.join('/')}`
+}
+
+function deepModuleImportKeys(path: string, source: string): string[] {
+  return Array.from(source.matchAll(IMPORT_SPECIFIER_RE))
+    .map((match) => moduleImportKey(path, match[1] ?? match[2]))
+    .filter((key): key is string => key !== null)
+}
+
+function moduleNameFromImportKey(key: string): string {
+  const match = key.match(/ -> @\/modules\/([^/]+)\//)
+  if (!match) throw new Error(`Invalid module import key: ${key}`)
+  return match[1]
+}
+
 describe('frontend module boundaries', () => {
   it('requires public module indexes', () => {
-    for (const moduleName of FEATURE_MODULES) {
+    for (const moduleName of MODULE_NAMES) {
       expect(moduleSources[`./${moduleName}/index.ts`], moduleName).toBeDefined()
     }
+  })
+
+  it('discovers the active feature module set from source folders', () => {
+    expect(MODULE_NAMES).toContain(SHARED_MODULE)
+    expect(FEATURE_MODULES).toEqual(['account-editing', 'auth', 'neuro-commenting', 'warmup'])
   })
 
   it('keeps account-editing independent from warmup internals', () => {
@@ -60,9 +119,40 @@ describe('frontend module boundaries', () => {
     for (const moduleName of FEATURE_MODULES) {
       for (const [path, source] of Object.entries(moduleSources)) {
         if (!path.startsWith(`./${moduleName}/`)) continue
-        const violation = source.match(PUBLIC_MODULE_IMPORT_RE)
-        if (violation?.[1] && violation[1] !== moduleName) {
-          throw new Error(`${path} imports another feature module internals through ${violation[0]}`)
+        for (const importKey of deepModuleImportKeys(path, source)) {
+          const targetModule = moduleNameFromImportKey(importKey)
+          if (targetModule === moduleName) continue
+          if (!LEGACY_DEEP_MODULE_IMPORTS.has(importKey)) {
+            throw new Error(`${path} imports another module internals through ${importKey}`)
+          }
+        }
+      }
+    }
+  })
+
+  it('tracks the exact legacy deep imports until shared exports are cleaned up', () => {
+    const observed = new Set<string>()
+    for (const moduleName of FEATURE_MODULES) {
+      for (const [path, source] of Object.entries(moduleSources)) {
+        if (!path.startsWith(`./${moduleName}/`)) continue
+        for (const importKey of deepModuleImportKeys(path, source)) {
+          const targetModule = moduleNameFromImportKey(importKey)
+          if (targetModule === moduleName) continue
+          observed.add(importKey)
+        }
+      }
+    }
+
+    expect(Array.from(observed).sort()).toEqual(Array.from(LEGACY_DEEP_MODULE_IMPORTS).sort())
+  })
+
+  it('keeps shared module independent from feature modules', () => {
+    for (const [path, source] of Object.entries(moduleSources)) {
+      if (!path.startsWith(`./${SHARED_MODULE}/`)) continue
+      for (const importKey of deepModuleImportKeys(path, source)) {
+        const targetModule = moduleNameFromImportKey(importKey)
+        if (FEATURE_MODULES.includes(targetModule)) {
+          throw new Error(`${path} imports a feature module through ${importKey}`)
         }
       }
     }

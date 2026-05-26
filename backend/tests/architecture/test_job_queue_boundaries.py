@@ -3,12 +3,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from app.modules.registry import get_workflow_spec
-from app.services.worker_plane import (
+from app.contracts.queues import (
     PROFILE_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
     WARMUP_QUEUE_NAME,
 )
+from app.modules.registry import get_workflow_spec
 
 
 RQ_MODULE = Path("app/job_queue/rq.py")

@@ -5121,7 +5121,7 @@ export interface components {
              * Rule Type
              * @enum {string}
              */
-            rule_type: "blacklist" | "whitelist" | "auto_blacklist_suggested" | "auto_whitelist_suggested";
+            rule_type: "blacklist" | "whitelist";
             /** Reason */
             reason?: string | null;
         };
@@ -6540,40 +6540,43 @@ export interface components {
         };
         /** WorkspaceSafetyPolicyUpdate */
         WorkspaceSafetyPolicyUpdate: {
-            /** Mode */
-            mode?: ("conservative" | "balanced" | "aggressive") | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode?: "conservative" | "balanced" | "aggressive";
             /** Delay Multiplier */
-            delay_multiplier?: number | null;
+            delay_multiplier?: number;
             /** Typing Chars Per Minute Min */
             typing_chars_per_minute_min?: number | null;
             /** Typing Chars Per Minute Max */
             typing_chars_per_minute_max?: number | null;
             /** Profile View Probability */
-            profile_view_probability?: number | null;
+            profile_view_probability?: number;
             /** Scroll Probability */
-            scroll_probability?: number | null;
+            scroll_probability?: number;
             /** Typo Probability */
-            typo_probability?: number | null;
+            typo_probability?: number;
             /** Message Deletion Probability */
-            message_deletion_probability?: number | null;
+            message_deletion_probability?: number;
             /** Quiet Hours Local Start */
             quiet_hours_local_start?: number | null;
             /** Quiet Hours Local End */
             quiet_hours_local_end?: number | null;
             /** Require Warmup Before Commenting */
-            require_warmup_before_commenting?: boolean | null;
+            require_warmup_before_commenting?: boolean;
             /** Min Warmup Days */
-            min_warmup_days?: number | null;
+            min_warmup_days?: number;
             /** Require Healthy Proxy */
-            require_healthy_proxy?: boolean | null;
+            require_healthy_proxy?: boolean;
             /** Min Account Age Hours */
-            min_account_age_hours?: number | null;
+            min_account_age_hours?: number;
             /** Auto Pause On Flood Wait Count */
-            auto_pause_on_flood_wait_count?: number | null;
+            auto_pause_on_flood_wait_count?: number;
             /** Auto Pause On Deleted Comments Count */
-            auto_pause_on_deleted_comments_count?: number | null;
+            auto_pause_on_deleted_comments_count?: number;
             /** Quarantine Hours On Flood Wait */
-            quarantine_hours_on_flood_wait?: number | null;
+            quarantine_hours_on_flood_wait?: number;
             /** Consecutive Failure Threshold */
             consecutive_failure_threshold?: number | null;
         };

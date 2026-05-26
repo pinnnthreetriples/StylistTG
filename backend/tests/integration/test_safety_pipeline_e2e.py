@@ -479,9 +479,7 @@ def test_ip_change_cooldown_warns_then_expires_to_ok(db_session) -> None:
 
 
 @freeze_time(_FROZEN_NOW)
-def test_pipeline_invokes_gate_through_real_workflows(
-    app_client, db_session, monkeypatch
-) -> None:
+def test_pipeline_invokes_gate_through_real_workflows(app_client, db_session, monkeypatch) -> None:
     calls: list[tuple[str, str]] = []
 
     def counted(callsite: str):
@@ -517,9 +515,7 @@ def test_pipeline_invokes_gate_through_real_workflows(
         counted("api"),
     )
 
-    readiness_account = _ready_account(
-        db_session, external_ref="+15550380007", with_warmup=False
-    )
+    readiness_account = _ready_account(db_session, external_ref="+15550380007", with_warmup=False)
     campaign, _target = _campaign_with_target(
         db_session, readiness_account, name="Gate Readiness E2E"
     )
@@ -542,9 +538,7 @@ def test_pipeline_invokes_gate_through_real_workflows(
         workspace_id=WORKSPACE,
     )
 
-    warmup_account = _ready_account(
-        db_session, external_ref="+15550380009", with_warmup=False
-    )
+    warmup_account = _ready_account(db_session, external_ref="+15550380009", with_warmup=False)
     warmup_strategy = seed_warmup_strategy(
         db_session,
         workspace_id=WORKSPACE,
@@ -582,9 +576,7 @@ def test_pipeline_invokes_gate_through_real_workflows(
     api_account = _ready_account(db_session, external_ref="+15550380011")
     app.dependency_overrides[get_current_auth_context] = lambda: _auth("admin")
     try:
-        response = app_client.get(
-            f"/api/accounts/{api_account.id}/safety-gate?intent=commenting"
-        )
+        response = app_client.get(f"/api/accounts/{api_account.id}/safety-gate?intent=commenting")
     finally:
         app.dependency_overrides.pop(get_current_auth_context, None)
 

@@ -19,7 +19,7 @@ rules:
           - pattern: $SESSION.query($MODEL).filter_by(...)
       - metavariable-regex:
           metavariable: $MODEL
-          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
+          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountSafetyOverride|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
       - pattern-not: select($MODEL).where(..., $MODEL.workspace_id == $WORKSPACE_ID, ...)
       - pattern-not: select($MODEL).where(..., $WORKSPACE_ID == $MODEL.workspace_id, ...)
       - pattern-not-inside: select($MODEL).where(...).where($MODEL.workspace_id == $WORKSPACE_ID, ...)
@@ -62,7 +62,7 @@ rules:
           - pattern: $SESSION.query($MODEL.$FIELD, ...).filter_by(...)
       - metavariable-regex:
           metavariable: $MODEL
-          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
+          regex: "^(Account|AccountBehaviorProfile|AccountDeletionRequest|AccountExportRequest|AccountGgrScore|AccountImportBatch|AccountImportItem|AccountLifecycleEvent|AccountOperationLog|AccountQuarantine|AccountSafetyOverride|AccountStatusObservation|Asset|AuditLog|AuthBatch|BoughtOnboardingState|CrossModuleLoadBucket|IdempotencyKey|Job|JobExecutionEvent|NeuroCommentCampaign|NeuroCommentChannelRule|NeuroCommentEvent|SensitiveAuditEvent|TelegramAuthSession|UsageCounter|WarmupEvent|WarmupIsolationClaim|WarmupSession|WarmupStrategy|WarmupTaskRun|WarmupTrustedPeer|WorkspaceMember|WorkspacePlan|WorkspaceSafetyPolicy)$"
       - pattern-regex: "\\b(select|query)\\(\\s*[A-Z][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*"
       - metavariable-regex:
           metavariable: $FIELD

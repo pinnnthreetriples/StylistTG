@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from app.models import Account, Workspace
+from app.models import Account, AccountSafetyOverride, Workspace
 
 
 def positive_missing_workspace_filter(account_id: str):
@@ -35,3 +35,25 @@ def negative_projection_with_workspace_filter(account_id: str, workspace_id: str
 def negative_workspace_model(workspace_id: str):
     # ok: missing-workspace-id-filter
     return select(Workspace).where(Workspace.id == workspace_id)
+
+
+def positive_safety_override_missing_workspace_filter(account_id: str):
+    # ruleid: missing-workspace-id-filter
+    return select(AccountSafetyOverride).where(
+        AccountSafetyOverride.account_id == account_id
+    )
+
+
+def positive_safety_override_projection_missing_workspace_filter(account_id: str):
+    # ruleid: missing-workspace-id-filter-projection
+    return select(AccountSafetyOverride.id).where(
+        AccountSafetyOverride.account_id == account_id
+    )
+
+
+def negative_safety_override_with_workspace_filter(account_id: str, workspace_id: str):
+    # ok: missing-workspace-id-filter
+    return select(AccountSafetyOverride).where(
+        AccountSafetyOverride.account_id == account_id,
+        AccountSafetyOverride.workspace_id == workspace_id,
+    )

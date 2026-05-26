@@ -61,9 +61,9 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
 
 def account_status_monitor_tick() -> int:
     with SessionLocal() as session:
-        observations = run_account_status_monitor_tick(session)
+        report = run_account_status_monitor_tick(session)
         session.commit()
-        return len(observations)
+        return report.processed_count
 
 
 def admin_notification_tick() -> dict[str, int]:

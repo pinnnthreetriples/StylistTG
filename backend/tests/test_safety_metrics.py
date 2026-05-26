@@ -83,6 +83,48 @@ def test_pool_saturation_gauges_record_ratios() -> None:
     assert registry.get_sample_value("redis_pool_saturation_ratio", {"pool": "default"}) == 0.5
 
 
+def test_weak_ggr_accounts_total_sets_workspace_gauge() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.weak_ggr_accounts_total(workspace_id="workspace-1", value=3)
+
+    assert (
+        registry.get_sample_value(
+            "weak_ggr_accounts_total",
+            {"workspace_id": "workspace-1"},
+        )
+        == 3.0
+    )
+
+
+def test_weak_ggr_transition_increments_from_bucket_counter() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.weak_ggr_transition(workspace_id="workspace-1", from_bucket="medium")
+
+    assert (
+        registry.get_sample_value(
+            "weak_ggr_transitions_total",
+            {"workspace_id": "workspace-1", "from_bucket": "medium"},
+        )
+        == 1.0
+    )
+
+
+def test_weak_ggr_metrics_use_workspace_labels_without_account_id() -> None:
+    registry = CollectorRegistry()
+    metrics = SafetyMetrics(registry=registry, enabled=True)
+
+    metrics.weak_ggr_accounts_total(workspace_id="workspace-1", value=1)
+    metrics.weak_ggr_transition(workspace_id="workspace-1", from_bucket="strong")
+
+    payload = generate_latest(registry).decode("utf-8")
+    assert 'workspace_id="workspace-1"' in payload
+    assert "account_id" not in payload
+
+
 def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     registry = CollectorRegistry()
     metrics = SafetyMetrics(registry=registry, enabled=False)
@@ -92,6 +134,10 @@ def test_disabled_metrics_are_noop_with_empty_registry() -> None:
         pass
     metrics.cold_call_throttled(intent="commenting")
     metrics.flood_wait(workspace_id="workspace-1", account_id="account-raw-id")
+    metrics.weak_ggr_accounts_total(workspace_id="workspace-1", value=1)
+    metrics.weak_ggr_transition(workspace_id="workspace-1", from_bucket="medium")
+    metrics.db_pool_saturation(pool="default", value=0.8)
+    metrics.redis_pool_saturation(pool="default", value=0.5)
 
     payload = generate_latest(registry).decode("utf-8")
     assert "safety_gate_blocks_total" not in payload
@@ -99,6 +145,10 @@ def test_disabled_metrics_are_noop_with_empty_registry() -> None:
     assert "safety_gate_evaluate_duration_seconds" not in payload
     assert "safety_gate_cold_call_throttled_total" not in payload
     assert "flood_wait_total" not in payload
+    assert "weak_ggr_accounts_total" not in payload
+    assert "weak_ggr_transitions_total" not in payload
+    assert "db_pool_saturation_ratio" not in payload
+    assert "redis_pool_saturation_ratio" not in payload
 
 
 def test_metrics_endpoint_allows_internal_scrape_header(app_client, monkeypatch) -> None:
@@ -182,7 +232,7 @@ def test_alert_rules_yaml_is_valid_and_has_required_alerts() -> None:
 
     assert {
         "QuarantineEpidemic",
-        "GgrWeakBucketGrowth",
+        "WeakGgrAccountsGrowth",
         "GateBlockBurst",
         "SendDurationSlow",
         "DbPoolNearSaturation",

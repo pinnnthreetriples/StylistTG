@@ -30,6 +30,14 @@ WRAPPERS = (
         notes="Preserves legacy router import path for /api/account-update.",
     ),
     WrapperSpec(
+        legacy_path="app.api.neuro_commenting",
+        file="backend/app/api/neuro_commenting.py",
+        canonical_owner="app.modules.neuro_commenting.router",
+        allowed_importers=("tests", "external_compatibility"),
+        forbidden_importers=("backend/app/modules",),
+        notes="Preserves legacy router import path for /api/neuro-commenting.",
+    ),
+    WrapperSpec(
         legacy_path="app.api.warmup",
         file="backend/app/api/warmup.py",
         canonical_owner="app.modules.warmup.router",

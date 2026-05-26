@@ -48,7 +48,6 @@ from app.api.dashboard import router as dashboard_router
 from app.api.diagnostics import router as diagnostics_router
 from app.api.jobs import router as jobs_router
 from app.api.me import router as me_router
-from app.api.neuro_commenting import router as neuro_commenting_router
 from app.api.operation_logs import router as operation_logs_router
 from app.api.safety_policy import router as safety_policy_router
 from app.api.settings import router as settings_router
@@ -242,7 +241,6 @@ app.include_router(dashboard_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(me_router)
-app.include_router(neuro_commenting_router)
 app.include_router(operation_logs_router)
 app.include_router(safety_policy_router)
 app.include_router(settings_router)

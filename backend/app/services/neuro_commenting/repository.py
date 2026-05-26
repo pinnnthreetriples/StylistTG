@@ -460,6 +460,24 @@ def get_attempt_for_generated_comment(
     )
 
 
+def create_attempt_for_generated_comment(
+    session: Session, *, comment: NeuroCommentGeneratedComment
+) -> NeuroCommentAttempt:
+    from app.models import new_id
+
+    attempt = NeuroCommentAttempt(
+        id=new_id(),
+        campaign_id=comment.campaign_id,
+        generated_comment_id=comment.id,
+        account_id=comment.account_id,
+        target_id=comment.target_id,
+        observed_post_id=comment.observed_post_id,
+    )
+    session.add(attempt)
+    session.flush()
+    return attempt
+
+
 def list_events(
     session: Session,
     *,

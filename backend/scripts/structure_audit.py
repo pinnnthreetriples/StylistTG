@@ -35,6 +35,7 @@ WRAPPER_PATHS = (
     "backend/app/services/warmup_p2p.py",
     "backend/app/workers/warmup_jobs.py",
     "backend/app/workers/warmup_dispatch_jobs.py",
+    "backend/app/api/neuro_commenting.py",
 )
 
 FORBIDDEN_CONTRACT_IMPORTS = (
@@ -122,6 +123,18 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Warmup/account-preparation ownership is canonical.",
     ),
     OwnershipEntry(
+        id="canonical-neuro-commenting",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="neuro_commenting",
+        paths=("backend/app/modules/neuro_commenting/**",),
+        target_owner="app.modules.neuro_commenting",
+        phase="Phase 2C",
+        removal_condition="n/a",
+        rationale="Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
+    ),
+    OwnershipEntry(
         id="module-registry-and-template",
         category="shared_platform_infrastructure",
         severity="info",
@@ -144,15 +157,11 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         severity="high",
         status="open",
         owner="neuro_commenting",
-        paths=(
-            "backend/app/api/neuro_commenting.py",
-            "backend/app/services/neuro_commenting/**",
-            "backend/app/contracts/neuro_commenting.py",
-        ),
+        paths=("backend/app/services/neuro_commenting/**",),
         target_owner="app.modules.neuro_commenting",
-        phase="Phase 2",
-        removal_condition="Registered canonical neuro_commenting module owns router, contracts, service, repository, jobs, enqueue, policies, and adapters; legacy paths are wrappers-only or removed after reference audit.",
-        rationale="NeuroCommenting has API, service, repository, job, AI/TDLib, and DTO ownership outside app.modules.",
+        phase="Phase 2D",
+        removal_condition="Service, repository, job, policy, and adapter implementations move behind app.modules.neuro_commenting or become behavior-free compatibility wrappers after reference audit.",
+        rationale="NeuroCommenting service, repository, job, AI/TDLib, and policy implementation files remain outside app.modules after the Phase 2C canonical router/contracts slice.",
     ),
     OwnershipEntry(
         id="debt-account-safety",
@@ -432,6 +441,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/contracts/__init__.py",
             "backend/app/contracts/disaster_state.py",
             "backend/app/contracts/jobs.py",
+            "backend/app/contracts/neuro_commenting.py",
             "backend/app/contracts/notifications.py",
             "backend/app/contracts/queues.py",
             "backend/app/contracts/types.py",
@@ -1074,6 +1084,11 @@ def _findings(
     forbidden_claims: dict[str, list[str]],
     debt_inventory: dict[str, Any],
 ) -> list[dict[str, str]]:
+    canonical_modules = sorted(
+        entry["owner"]
+        for entry in debt_inventory["entries"]
+        if entry["category"] == "canonical_feature_module"
+    )
     findings = [
         Finding(
             id="STRUCTURE-001",
@@ -1082,7 +1097,7 @@ def _findings(
             area="backend-modules",
             finding="Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
             evidence=(
-                "app.modules.registry imports auth, account_editing, and warmup; "
+                f"app.modules.registry imports {', '.join(canonical_modules)}; "
                 f"open unmanaged feature surfaces: {', '.join(debt_inventory['summary']['high_risk_unmanaged_feature_surfaces'])}."
             ),
             risk="High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
@@ -1235,8 +1250,7 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
-            "Phase 1 - Dependency Rule and dynamic fitness functions",
-            "Phase 2 - backend module neuro_commenting",
+            "Phase 2D - neuro_commenting service/job/adapter cleanup",
             "Phase 3 - account_safety public boundary",
             "Phase 4 - account_lifecycle module",
             "Phase 5 - frontend/shared/deep-import cleanup",

@@ -4,7 +4,11 @@ import ast
 from pathlib import Path
 
 
-MODULE_ROOTS = (Path("app/modules/account_editing"), Path("app/modules/warmup"))
+MODULE_ROOTS = (
+    Path("app/modules/account_editing"),
+    Path("app/modules/neuro_commenting"),
+    Path("app/modules/warmup"),
+)
 ACCOUNT_EDITING_LEGACY_IMPORTS = (
     "app.services.account_update_jobs",
     "app.services.account_update_plan",
@@ -20,8 +24,10 @@ WARMUP_LEGACY_IMPORTS = (
     "app.workers.warmup_jobs",
     "app.workers.warmup_dispatch_jobs",
 )
+NEURO_COMMENTING_LEGACY_IMPORTS = ("app.api.neuro_commenting",)
 WRAPPER_PATHS = (
     Path("app/api/account_update.py"),
+    Path("app/api/neuro_commenting.py"),
     Path("app/api/warmup.py"),
     Path("app/services/account_update_jobs.py"),
     Path("app/services/account_update_plan.py"),
@@ -64,6 +70,7 @@ def _matches(imported: str, forbidden: str) -> bool:
 def test_modules_do_not_import_legacy_wrappers() -> None:
     forbidden_by_root = {
         Path("app/modules/account_editing"): ACCOUNT_EDITING_LEGACY_IMPORTS,
+        Path("app/modules/neuro_commenting"): NEURO_COMMENTING_LEGACY_IMPORTS,
         Path("app/modules/warmup"): WARMUP_LEGACY_IMPORTS,
     }
     violations: list[str] = []

@@ -37,12 +37,16 @@ def enqueue_workflow(
     resolved_args = args if args is not None else _default_args(spec.args_mode, job_id)
 
     try:
+        enqueue_call_kwargs: dict[str, Any] = {
+            "func": handler,
+            "args": resolved_args,
+            "job_id": job_id,
+            "unique": unique,
+        }
+        if kwargs:
+            enqueue_call_kwargs["kwargs"] = kwargs
         cast(Any, queue).enqueue_call(
-            func=handler,
-            args=resolved_args,
-            kwargs=kwargs or {},
-            job_id=job_id,
-            unique=unique,
+            **enqueue_call_kwargs,
         )
     except RedisError:
         log_warn(

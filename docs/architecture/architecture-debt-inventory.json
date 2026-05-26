@@ -56,6 +56,32 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/neuro_commenting/__init__.py",
+        "backend/app/modules/neuro_commenting/contracts.py",
+        "backend/app/modules/neuro_commenting/enqueue.py",
+        "backend/app/modules/neuro_commenting/errors.py",
+        "backend/app/modules/neuro_commenting/jobs.py",
+        "backend/app/modules/neuro_commenting/module.py",
+        "backend/app/modules/neuro_commenting/policies.py",
+        "backend/app/modules/neuro_commenting/repository.py",
+        "backend/app/modules/neuro_commenting/router.py",
+        "backend/app/modules/neuro_commenting/service.py"
+      ],
+      "id": "canonical-neuro-commenting",
+      "owner": "neuro_commenting",
+      "paths": [
+        "backend/app/modules/neuro_commenting/**"
+      ],
+      "phase": "Phase 2C",
+      "rationale": "Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.neuro_commenting"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/warmup/__init__.py",
         "backend/app/modules/warmup/commands.py",
         "backend/app/modules/warmup/contracts.py",
@@ -92,6 +118,7 @@
       "category": "compatibility_wrapper",
       "existing_paths": [
         "backend/app/api/account_update.py",
+        "backend/app/api/neuro_commenting.py",
         "backend/app/api/warmup.py",
         "backend/app/services/account_update_jobs.py",
         "backend/app/services/account_update_plan.py",
@@ -122,7 +149,8 @@
         "backend/app/services/warmup_readiness.py",
         "backend/app/services/warmup_p2p.py",
         "backend/app/workers/warmup_jobs.py",
-        "backend/app/workers/warmup_dispatch_jobs.py"
+        "backend/app/workers/warmup_dispatch_jobs.py",
+        "backend/app/api/neuro_commenting.py"
       ],
       "phase": "wrapper-cleanup",
       "rationale": "Known wrappers preserve public import compatibility and must remain behavior-free.",
@@ -332,8 +360,6 @@
     {
       "category": "unmanaged_feature_surface",
       "existing_paths": [
-        "backend/app/api/neuro_commenting.py",
-        "backend/app/contracts/neuro_commenting.py",
         "backend/app/services/neuro_commenting/__init__.py",
         "backend/app/services/neuro_commenting/account_health_service.py",
         "backend/app/services/neuro_commenting/account_selector.py",
@@ -370,13 +396,11 @@
       "id": "debt-neuro-commenting",
       "owner": "neuro_commenting",
       "paths": [
-        "backend/app/api/neuro_commenting.py",
-        "backend/app/services/neuro_commenting/**",
-        "backend/app/contracts/neuro_commenting.py"
+        "backend/app/services/neuro_commenting/**"
       ],
-      "phase": "Phase 2",
-      "rationale": "NeuroCommenting has API, service, repository, job, AI/TDLib, and DTO ownership outside app.modules.",
-      "removal_condition": "Registered canonical neuro_commenting module owns router, contracts, service, repository, jobs, enqueue, policies, and adapters; legacy paths are wrappers-only or removed after reference audit.",
+      "phase": "Phase 2D",
+      "rationale": "NeuroCommenting service, repository, job, AI/TDLib, and policy implementation files remain outside app.modules after the Phase 2C canonical router/contracts slice.",
+      "removal_condition": "Service, repository, job, policy, and adapter implementations move behind app.modules.neuro_commenting or become behavior-free compatibility wrappers after reference audit.",
       "severity": "high",
       "status": "open",
       "target_owner": "app.modules.neuro_commenting"
@@ -486,6 +510,7 @@
         "backend/app/contracts/__init__.py",
         "backend/app/contracts/disaster_state.py",
         "backend/app/contracts/jobs.py",
+        "backend/app/contracts/neuro_commenting.py",
         "backend/app/contracts/notifications.py",
         "backend/app/contracts/queues.py",
         "backend/app/contracts/types.py",
@@ -498,6 +523,7 @@
         "backend/app/contracts/__init__.py",
         "backend/app/contracts/disaster_state.py",
         "backend/app/contracts/jobs.py",
+        "backend/app/contracts/neuro_commenting.py",
         "backend/app/contracts/notifications.py",
         "backend/app/contracts/queues.py",
         "backend/app/contracts/types.py",
@@ -1358,7 +1384,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-26T19:58:02Z",
+  "generated_at": "2026-05-26T20:52:34Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {

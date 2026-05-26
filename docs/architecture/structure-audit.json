@@ -186,6 +186,7 @@
       "backend/app/contracts/types.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
+      "backend/app/modules/neuro_commenting/contracts.py": [],
       "backend/app/modules/warmup/contracts.py": [],
       "backend/app/schemas.py": []
     },
@@ -193,15 +194,18 @@
     "policies_forbidden_imports": {
       "backend/app/modules/account_editing/policies.py": [],
       "backend/app/modules/auth/policies.py": [],
+      "backend/app/modules/neuro_commenting/policies.py": [],
       "backend/app/modules/warmup/policies.py": []
     },
     "repositories_forbidden_imports": {
       "backend/app/modules/account_editing/repository.py": [],
       "backend/app/modules/auth/repository.py": [],
+      "backend/app/modules/neuro_commenting/repository.py": [],
       "backend/app/modules/warmup/repository.py": []
     },
     "routers_importing_models": {
       "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/neuro_commenting/router.py": [],
       "backend/app/modules/warmup/router.py": []
     }
   },
@@ -263,6 +267,32 @@
       {
         "category": "canonical_feature_module",
         "existing_paths": [
+          "backend/app/modules/neuro_commenting/__init__.py",
+          "backend/app/modules/neuro_commenting/contracts.py",
+          "backend/app/modules/neuro_commenting/enqueue.py",
+          "backend/app/modules/neuro_commenting/errors.py",
+          "backend/app/modules/neuro_commenting/jobs.py",
+          "backend/app/modules/neuro_commenting/module.py",
+          "backend/app/modules/neuro_commenting/policies.py",
+          "backend/app/modules/neuro_commenting/repository.py",
+          "backend/app/modules/neuro_commenting/router.py",
+          "backend/app/modules/neuro_commenting/service.py"
+        ],
+        "id": "canonical-neuro-commenting",
+        "owner": "neuro_commenting",
+        "paths": [
+          "backend/app/modules/neuro_commenting/**"
+        ],
+        "phase": "Phase 2C",
+        "rationale": "Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.neuro_commenting"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
@@ -299,6 +329,7 @@
         "category": "compatibility_wrapper",
         "existing_paths": [
           "backend/app/api/account_update.py",
+          "backend/app/api/neuro_commenting.py",
           "backend/app/api/warmup.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
@@ -329,7 +360,8 @@
           "backend/app/services/warmup_readiness.py",
           "backend/app/services/warmup_p2p.py",
           "backend/app/workers/warmup_jobs.py",
-          "backend/app/workers/warmup_dispatch_jobs.py"
+          "backend/app/workers/warmup_dispatch_jobs.py",
+          "backend/app/api/neuro_commenting.py"
         ],
         "phase": "wrapper-cleanup",
         "rationale": "Known wrappers preserve public import compatibility and must remain behavior-free.",
@@ -539,8 +571,6 @@
       {
         "category": "unmanaged_feature_surface",
         "existing_paths": [
-          "backend/app/api/neuro_commenting.py",
-          "backend/app/contracts/neuro_commenting.py",
           "backend/app/services/neuro_commenting/__init__.py",
           "backend/app/services/neuro_commenting/account_health_service.py",
           "backend/app/services/neuro_commenting/account_selector.py",
@@ -577,13 +607,11 @@
         "id": "debt-neuro-commenting",
         "owner": "neuro_commenting",
         "paths": [
-          "backend/app/api/neuro_commenting.py",
-          "backend/app/services/neuro_commenting/**",
-          "backend/app/contracts/neuro_commenting.py"
+          "backend/app/services/neuro_commenting/**"
         ],
-        "phase": "Phase 2",
-        "rationale": "NeuroCommenting has API, service, repository, job, AI/TDLib, and DTO ownership outside app.modules.",
-        "removal_condition": "Registered canonical neuro_commenting module owns router, contracts, service, repository, jobs, enqueue, policies, and adapters; legacy paths are wrappers-only or removed after reference audit.",
+        "phase": "Phase 2D",
+        "rationale": "NeuroCommenting service, repository, job, AI/TDLib, and policy implementation files remain outside app.modules after the Phase 2C canonical router/contracts slice.",
+        "removal_condition": "Service, repository, job, policy, and adapter implementations move behind app.modules.neuro_commenting or become behavior-free compatibility wrappers after reference audit.",
         "severity": "high",
         "status": "open",
         "target_owner": "app.modules.neuro_commenting"
@@ -693,6 +721,7 @@
           "backend/app/contracts/__init__.py",
           "backend/app/contracts/disaster_state.py",
           "backend/app/contracts/jobs.py",
+          "backend/app/contracts/neuro_commenting.py",
           "backend/app/contracts/notifications.py",
           "backend/app/contracts/queues.py",
           "backend/app/contracts/types.py",
@@ -705,6 +734,7 @@
           "backend/app/contracts/__init__.py",
           "backend/app/contracts/disaster_state.py",
           "backend/app/contracts/jobs.py",
+          "backend/app/contracts/neuro_commenting.py",
           "backend/app/contracts/notifications.py",
           "backend/app/contracts/queues.py",
           "backend/app/contracts/types.py",
@@ -1565,7 +1595,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-26T19:58:02Z",
+    "generated_at": "2026-05-26T20:52:34Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1594,7 +1624,7 @@
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports auth, account_editing, and warmup; open unmanaged feature surfaces: debt-account-safety, debt-neuro-commenting.",
+      "evidence": "app.modules.registry imports account_editing, auth, neuro_commenting, warmup; open unmanaged feature surfaces: debt-account-safety, debt-neuro-commenting.",
       "finding": "Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
       "id": "STRUCTURE-001",
       "recommendation": "Complete Phase 0 guard, then migrate neuro_commenting, account_safety, and account_lifecycle in separate PRs.",
@@ -1817,7 +1847,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-26T19:58:02Z",
+  "generated_at": "2026-05-26T20:52:34Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -1972,6 +2002,17 @@
       "import_path": "app.workers.warmup_dispatch_jobs",
       "module_import_references": [],
       "path": "backend/app/workers/warmup_dispatch_jobs.py"
+    },
+    {
+      "canonical_owner": "app.modules.neuro_commenting.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.neuro_commenting",
+      "module_import_references": [],
+      "path": "backend/app/api/neuro_commenting.py"
     }
   ],
   "modules": [
@@ -2078,6 +2119,78 @@
       "template_files_are_non_runtime": null,
       "tests_present": true,
       "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/neuro_commenting/__init__.py",
+        "backend/app/modules/neuro_commenting/contracts.py",
+        "backend/app/modules/neuro_commenting/enqueue.py",
+        "backend/app/modules/neuro_commenting/errors.py",
+        "backend/app/modules/neuro_commenting/jobs.py",
+        "backend/app/modules/neuro_commenting/module.py",
+        "backend/app/modules/neuro_commenting/policies.py",
+        "backend/app/modules/neuro_commenting/repository.py",
+        "backend/app/modules/neuro_commenting/router.py",
+        "backend/app/modules/neuro_commenting/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": true,
+      "has_errors": true,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": true,
+      "has_policies": true,
+      "has_repository": true,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "neuro_commenting",
+      "registered": true,
+      "router_path": "app.modules.neuro_commenting.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": [
+        {
+          "args_mode": "CUSTOM",
+          "description": "Generate a neuro-comment for an observed post.",
+          "handler_path": "app.modules.neuro_commenting.jobs:run_generate_comment",
+          "module": "neuro_commenting",
+          "queue_name": "neuro_comment_jobs",
+          "workflow_type": "neuro_generate_comment"
+        },
+        {
+          "args_mode": "CUSTOM",
+          "description": "Observe campaign targets for neuro-commenting.",
+          "handler_path": "app.modules.neuro_commenting.jobs:run_observe_campaign",
+          "module": "neuro_commenting",
+          "queue_name": "neuro_comment_jobs",
+          "workflow_type": "neuro_observe_campaign"
+        },
+        {
+          "args_mode": "CUSTOM",
+          "description": "Observe one target for neuro-commenting.",
+          "handler_path": "app.modules.neuro_commenting.jobs:run_observe_target",
+          "module": "neuro_commenting",
+          "queue_name": "neuro_comment_jobs",
+          "workflow_type": "neuro_observe_target"
+        },
+        {
+          "args_mode": "CUSTOM",
+          "description": "Refresh neuro-commenting target metadata.",
+          "handler_path": "app.modules.neuro_commenting.jobs:run_refresh_target_metadata",
+          "module": "neuro_commenting",
+          "queue_name": "neuro_comment_jobs",
+          "workflow_type": "neuro_refresh_target_metadata"
+        },
+        {
+          "args_mode": "CUSTOM",
+          "description": "Send a prepared neuro-comment attempt.",
+          "handler_path": "app.modules.neuro_commenting.jobs:run_send_attempt",
+          "module": "neuro_commenting",
+          "queue_name": "neuro_comment_jobs",
+          "workflow_type": "neuro_send_attempt"
+        }
+      ]
     },
     {
       "documentation_only": false,
@@ -2210,8 +2323,7 @@
     }
   ],
   "recommended_next_phases": [
-    "Phase 1 - Dependency Rule and dynamic fitness functions",
-    "Phase 2 - backend module neuro_commenting",
+    "Phase 2D - neuro_commenting service/job/adapter cleanup",
     "Phase 3 - account_safety public boundary",
     "Phase 4 - account_lifecycle module",
     "Phase 5 - frontend/shared/deep-import cleanup"
@@ -2605,6 +2717,46 @@
       "module": "account_editing",
       "queue_name": "profile_jobs",
       "workflow_type": "account_update"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Generate a neuro-comment for an observed post.",
+      "handler_path": "app.modules.neuro_commenting.jobs:run_generate_comment",
+      "module": "neuro_commenting",
+      "queue_name": "neuro_comment_jobs",
+      "workflow_type": "neuro_generate_comment"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Observe campaign targets for neuro-commenting.",
+      "handler_path": "app.modules.neuro_commenting.jobs:run_observe_campaign",
+      "module": "neuro_commenting",
+      "queue_name": "neuro_comment_jobs",
+      "workflow_type": "neuro_observe_campaign"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Observe one target for neuro-commenting.",
+      "handler_path": "app.modules.neuro_commenting.jobs:run_observe_target",
+      "module": "neuro_commenting",
+      "queue_name": "neuro_comment_jobs",
+      "workflow_type": "neuro_observe_target"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Refresh neuro-commenting target metadata.",
+      "handler_path": "app.modules.neuro_commenting.jobs:run_refresh_target_metadata",
+      "module": "neuro_commenting",
+      "queue_name": "neuro_comment_jobs",
+      "workflow_type": "neuro_refresh_target_metadata"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Send a prepared neuro-comment attempt.",
+      "handler_path": "app.modules.neuro_commenting.jobs:run_send_attempt",
+      "module": "neuro_commenting",
+      "queue_name": "neuro_comment_jobs",
+      "workflow_type": "neuro_send_attempt"
     },
     {
       "args_mode": "NONE",

@@ -29,6 +29,7 @@ def test_module_router_paths_are_lazy_strings() -> None:
     assert router_paths == (
         "app.modules.account_editing.router:router",
         "app.modules.warmup.router:router",
+        "app.modules.neuro_commenting.router:router",
     )
 
 
@@ -38,6 +39,7 @@ def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
 
     assert "/api/account-update" in prefixes
     assert "/api/warmup" in prefixes
+    assert "/api/neuro-commenting" in prefixes
 
 
 def test_account_editing_workflow_type_remains_account_update() -> None:
@@ -62,6 +64,14 @@ def test_no_account_editing_workflow_type_exists() -> None:
 def test_warmup_workflows_remain_no_arg_handlers() -> None:
     assert get_workflow_spec("warmup_due_sessions").args_mode == WorkflowArgsMode.NONE
     assert get_workflow_spec("warmup_dispatch_tick").args_mode == WorkflowArgsMode.NONE
+
+
+def test_neuro_commenting_workflows_use_custom_args() -> None:
+    assert get_workflow_spec("neuro_generate_comment").args_mode == WorkflowArgsMode.CUSTOM
+    assert get_workflow_spec("neuro_observe_campaign").args_mode == WorkflowArgsMode.CUSTOM
+    assert get_workflow_spec("neuro_observe_target").args_mode == WorkflowArgsMode.CUSTOM
+    assert get_workflow_spec("neuro_refresh_target_metadata").args_mode == WorkflowArgsMode.CUSTOM
+    assert get_workflow_spec("neuro_send_attempt").args_mode == WorkflowArgsMode.CUSTOM
 
 
 def test_workflow_handler_paths_are_lazy_strings() -> None:

@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 from app.contracts.queues import (
+    NEURO_COMMENT_QUEUE_NAME,
     PROFILE_QUEUE_NAME,
     WARMUP_DISPATCH_QUEUE_NAME,
     WARMUP_QUEUE_NAME,
@@ -58,6 +59,7 @@ def test_workflow_metadata_keeps_stable_handler_paths_and_queues() -> None:
     account_update = get_workflow_spec("account_update")
     warmup_due = get_workflow_spec("warmup_due_sessions")
     warmup_dispatch = get_workflow_spec("warmup_dispatch_tick")
+    neuro_generate = get_workflow_spec("neuro_generate_comment")
 
     assert account_update.queue_name == PROFILE_QUEUE_NAME
     assert account_update.handler_path == "app.modules.account_editing.jobs:run_account_update_job"
@@ -65,6 +67,8 @@ def test_workflow_metadata_keeps_stable_handler_paths_and_queues() -> None:
     assert warmup_due.handler_path == "app.modules.warmup.jobs:run_warmup_due_sessions"
     assert warmup_dispatch.queue_name == WARMUP_DISPATCH_QUEUE_NAME
     assert warmup_dispatch.handler_path == "app.modules.warmup.jobs:run_warmup_dispatch_tick"
+    assert neuro_generate.queue_name == NEURO_COMMENT_QUEUE_NAME
+    assert neuro_generate.handler_path == "app.modules.neuro_commenting.jobs:run_generate_comment"
 
 
 def test_forbidden_feature_workflow_types_are_not_introduced() -> None:

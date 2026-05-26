@@ -15,7 +15,9 @@ Task 30 observability covers Prometheus metrics, Alertmanager rules, and the Gra
 | `safety_gate_blocks_total` | counter | `workspace_id`, `intent`, `reason` | Gate block volume and blocked-reason bursts. |
 | `quarantine_active` | gauge | `workspace_id`, `reason` | Active quarantine count by workspace and reason. |
 | `account_total` | gauge | `workspace_id` | Account denominator for quarantine fraction. |
-| `ggr_score` | histogram | `workspace_id`, `bucket` | GGR distribution; `bucket="weak"` tracks weak-account growth. |
+| `ggr_score` | histogram | `workspace_id`, `bucket` | GGR score distribution by current bucket. |
+| `weak_ggr_accounts_total` | gauge | `workspace_id` | Current weak GGR account population by workspace. |
+| `weak_ggr_transitions_total` | counter | `workspace_id`, `from_bucket` | Accounts transitioning into the weak GGR bucket. |
 | `flood_wait_total` | counter | `workspace_id`, `account_id_hash` | Flood-wait spikes without raw account ids. |
 | `attempt_send_duration_seconds` | histogram | `strategy` | Send attempt latency SLO. |
 | `safety_gate_evaluate_duration_seconds` | histogram | `intent`, `cache_hit` | Safety gate evaluation latency and cache behavior. |
@@ -35,7 +37,7 @@ Critical alerts page PagerDuty and phone escalation immediately. They require an
 | SLO | Metrics | Alert |
 | --- | --- | --- |
 | Quarantine ratio stays under 10% per workspace. | `quarantine_active`, `account_total` | `QuarantineEpidemic` |
-| Weak GGR population does not grow faster than 5 accounts/hour. | `ggr_score_bucket{bucket="weak"}` | `GgrWeakBucketGrowth` |
+| Weak GGR population does not grow faster than 5 accounts/hour. | `weak_ggr_transitions_total` | `WeakGgrAccountsGrowth` |
 | Safety gate false-positive bursts are caught within 10 minutes. | `safety_gate_blocks_total{reason="ggr_too_low"}` | `GateBlockBurst` |
 | Comment send p95 latency stays under 30 seconds. | `attempt_send_duration_seconds_bucket` | `SendDurationSlow` |
 | Cross-module overload remains visible during rollout. | `cross_module_overload_total` | Dashboard panel, manual incident review |
@@ -75,19 +77,19 @@ groups:
           description: "Workspace {{ $labels.workspace_id }} has quarantine_active / account_total above 0.1 for 1h."
           runbook_url: "docs/runbooks/safety-alerts.md#quarantineepidemic"
 
-      - alert: GgrWeakBucketGrowth
+      - alert: WeakGgrAccountsGrowth
         expr: |
           sum by (workspace_id) (
-            increase(ggr_score_bucket{bucket="weak"}[1h])
+            increase(weak_ggr_transitions_total[1h])
           ) > 5
-        for: 10m
+        for: 30m
         labels:
           severity: warning
           service: safety-pipeline
         annotations:
-          summary: "Weak GGR bucket growing faster than 5 accounts/hour"
-          description: "Workspace {{ $labels.workspace_id }} has weak GGR growth above 5 per hour."
-          runbook_url: "docs/runbooks/safety-alerts.md#ggrweakbucketgrowth"
+          summary: ">5 accounts/hour transitioned to weak GGR"
+          description: "Workspace {{ $labels.workspace_id }} has more than 5 accounts transition into weak GGR in 1h."
+          runbook_url: "docs/runbooks/safety-alerts.md#weakggraccountsgrowth"
 
       - alert: GateBlockBurst
         expr: |
@@ -133,16 +135,16 @@ Severity: warning.
 6. Release quarantine only through the admin override flow, with an operator reason. Do not bulk-clear DB rows.
 7. Recover when the fraction stays below 0.1 for 1h and new block reasons match baseline.
 
-## GgrWeakBucketGrowth
+## WeakGgrAccountsGrowth
 
 Severity: warning.
 
-1. Compare weak GGR growth against recent imports, bought-account onboarding, and warmup completion.
-2. Check whether the weak growth is concentrated in one workspace, strategy, proxy provider, or account origin.
+1. Compare weak GGR transitions and `weak_ggr_accounts_total` against recent imports, bought-account onboarding, and warmup completion.
+2. Check whether weak transitions are concentrated in one workspace, strategy, proxy provider, or account origin.
 3. Inspect recent safety-gate verdict samples for `ggr_too_low`, `profile_incomplete`, and `status_degraded`.
 4. Hold new risky execution for affected workspaces until GGR recalculation and warmup state look fresh.
 5. Roll back with `PATCH /api/workspaces/{workspace_id}/feature-flags` if weak growth correlates with a new rollout and operators confirm false positives.
-6. Recover when weak growth is below 5 accounts/hour for 1h and no correlated gate block burst remains active.
+6. Recover when weak transitions stay below 5 accounts/hour for 1h and no correlated gate block burst remains active.
 
 ## GateBlockBurst
 
@@ -213,6 +215,6 @@ Operator response:
 Import `docs/grafana/safety-pipeline.json` into Grafana with a Prometheus data source. Required checks:
 
 - `quarantine_active` is visible over time.
-- GGR weak bucket growth is visible by workspace.
+- Weak GGR transitions are visible by workspace.
 - Gate block burst and send p95 panels match the Alertmanager expressions.
 - Workspace variable can isolate a single workspace without hiding global panels.

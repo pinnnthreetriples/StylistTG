@@ -195,7 +195,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (workspace_id) (quarantine_active{workspace_id=~\"$workspace\"}) / clamp_min(sum by (workspace_id) (total_accounts{workspace_id=~\"$workspace\"}), 1)",
+          "expr": "sum by (workspace_id) (quarantine_active{workspace_id=~\"$workspace\"}) / clamp_min(sum by (workspace_id) (account_total{workspace_id=~\"$workspace\"}), 1)",
           "legendFormat": "{{workspace_id}}",
           "range": true,
           "refId": "A"
@@ -292,7 +292,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (workspace_id) (increase(ggr_score_bucket{workspace_id=~\"$workspace\", bucket=\"weak\"}[1h]))",
+          "expr": "sum by (workspace_id) (increase(weak_ggr_transitions_total{workspace_id=~\"$workspace\"}[1h]))",
           "legendFormat": "{{workspace_id}} weak",
           "range": true,
           "refId": "A"

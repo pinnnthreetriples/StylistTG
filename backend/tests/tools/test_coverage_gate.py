@@ -84,3 +84,14 @@ def test_coverage_gate_passes_when_critical_file_thresholds_are_met(
     monkeypatch.chdir(tmp_path)
 
     assert coverage_gate.main() == 0
+
+
+def test_critical_file_threshold_paths_exist() -> None:
+    backend_root = Path(__file__).resolve().parents[2]
+    missing = [
+        path
+        for path, _line, _branch in coverage_gate.CRITICAL_FILE_THRESHOLDS
+        if not (backend_root / path).exists()
+    ]
+
+    assert missing == []

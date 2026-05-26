@@ -87,28 +87,28 @@ function headerRuntimeStatus(preflight: { overall_status: string; rq_worker_stat
   if (!preflight) {
     return {
       label: 'Проверяем готовность',
-      className: 'bg-gray-50 text-gray-600',
-      dotClassName: 'bg-gray-400',
+      className: 'bg-muted text-muted-foreground',
+      dotClassName: 'bg-foreground',
     }
   }
   if (preflight.overall_status === 'ok' && preflight.rq_worker_status === 'ready') {
     return {
       label: 'Live-инфраструктура готова',
-      className: 'bg-emerald-50 text-emerald-700',
-      dotClassName: 'bg-emerald-500',
+      className: 'bg-muted text-primary',
+      dotClassName: 'bg-muted',
     }
   }
   if (preflight.rq_worker_status === 'missing') {
     return {
       label: 'Worker не запущен',
-      className: 'bg-red-50 text-red-700',
-      dotClassName: 'bg-red-500',
+      className: 'bg-destructive/10 text-destructive',
+      dotClassName: 'bg-destructive',
     }
   }
   return {
     label: 'Live-инфраструктура ограничена',
-    className: 'bg-amber-50 text-amber-700',
-    dotClassName: 'bg-amber-500',
+    className: 'bg-muted text-muted-foreground',
+    dotClassName: 'bg-muted',
   }
 }
 
@@ -185,27 +185,27 @@ export function AccountList({
   )
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="sticky top-0 z-40 border-b border-gray-200/70 bg-white">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className="mx-auto max-w-5xl px-5">
           <div className="flex h-14 items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-navy-400">
-                <Sparkles className="size-3.5 text-white" />
+              <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
+                <Sparkles className="size-3.5 text-primary-foreground" />
               </div>
-              <span className="hidden font-display text-base font-bold tracking-tight text-navy-900 min-[380px]:inline">
+              <span className="hidden font-sans text-base font-bold tracking-tight text-foreground min-[380px]:inline">
                 StylistTG
               </span>
             </div>
 
-            <div className="mx-1 hidden h-5 w-px bg-gray-200 sm:block" />
+            <div className="mx-1 hidden h-5 w-px bg-muted sm:block" />
 
             <nav className="flex h-full items-center gap-6">
               <button
                 className={`h-full border-b-2 pt-0.5 text-sm font-medium transition-all ${
                   activeTab === 'accounts'
-                    ? 'border-navy-400 text-navy-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                    ? 'border-border text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => onTabChange('accounts')}
                 type="button"
@@ -215,8 +215,8 @@ export function AccountList({
               <button
                 className={`h-full border-b-2 pt-0.5 text-sm font-medium transition-all ${
                   activeTab === 'settings'
-                    ? 'border-navy-400 text-navy-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                    ? 'border-border text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => onTabChange('settings')}
                 type="button"
@@ -227,12 +227,12 @@ export function AccountList({
 
             <div className="ml-auto flex items-center gap-2.5">
               <span className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 sm:flex ${headerRuntimeStatus(settingsBundleQuery.data?.preflight).className}`}>
-                <span className={`size-1.5 animate-pulse-dot rounded-full ${headerRuntimeStatus(settingsBundleQuery.data?.preflight).dotClassName}`} />
+                <span className={`size-1.5 animate-pulse rounded-full ${headerRuntimeStatus(settingsBundleQuery.data?.preflight).dotClassName}`} />
                 <span className="text-[11px] font-medium">{headerRuntimeStatus(settingsBundleQuery.data?.preflight).label}</span>
               </span>
               <button
                 aria-label="Добавить аккаунты"
-                className="add-btn flex items-center gap-1.5 rounded-lg bg-navy-400 px-2.5 py-1.5 text-[13px] font-medium text-white sm:px-3.5"
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-[13px] font-medium text-primary-foreground sm:px-3.5"
                 onClick={onAddBatch}
                 type="button"
               >
@@ -346,7 +346,7 @@ function AccountsContent({
 }) {
   if (isLoading) {
     return (
-      <section className="fade-in rounded-xl border border-gray-200/70 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+      <section className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm">
         Загружаем аккаунты...
       </section>
     )
@@ -354,10 +354,10 @@ function AccountsContent({
 
   if (error) {
     return (
-      <section className="fade-in rounded-xl border border-rose-100 bg-white p-8 text-center shadow-sm">
-        <div className="text-sm font-semibold text-rose-600">{error}</div>
+      <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+        <div className="text-sm font-semibold text-muted-foreground">{error}</div>
         <button
-          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-navy-400 px-4 py-2 text-sm font-semibold text-white"
+          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
           onClick={onReload}
           type="button"
         >
@@ -387,7 +387,7 @@ function AccountsContent({
       />
 
       {accounts.length > 0 ? (
-        <section className="fade-in overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-soft">
+        <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           {accounts.map((account, index) => (
             <AccountRow
               account={account}
@@ -403,15 +403,15 @@ function AccountsContent({
           ))}
         </section>
       ) : (
-        <section className="fade-in rounded-xl border border-gray-200/70 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm">
           Ничего не найдено.
         </section>
       )}
 
-      <section className="fade-in d12 mt-5 rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
+      <section className="mt-5 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="mb-3">
-          <h2 className="text-sm font-bold text-navy-900">Таблица аккаунтов</h2>
-          <p className="mt-1 text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-foreground">Таблица аккаунтов</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
             TanStack Table view for sorting, selection, and column visibility migration.
           </p>
         </div>
@@ -425,24 +425,24 @@ function AccountsContent({
 
 function StatsRow({ stats }: { stats: ReturnType<typeof accountStats> }) {
   return (
-    <div className="fade-in mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatCard icon={<Users className="size-4 text-navy-400" />} label="Всего" value={stats.total} />
+    <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatCard icon={<Users className="size-4 text-primary" />} label="Всего" value={stats.total} />
       <StatCard
-        icon={<CheckCircle2 className="size-4 text-emerald-500" />}
+        icon={<CheckCircle2 className="size-4 text-primary" />}
         label="Авторизованы"
-        tone="emerald"
+        tone="primary"
         value={stats.authorized}
       />
       <StatCard
-        icon={<Clock className="size-4 text-honey-500" />}
+        icon={<Clock className="size-4 text-muted-foreground" />}
         label="Ожидают"
-        tone="honey"
+        tone="muted"
         value={stats.waiting}
       />
       <StatCard
-        icon={<AlertCircle className="size-4 text-tangerine-400" />}
+        icon={<AlertCircle className="size-4 text-muted-foreground" />}
         label="Ошибки"
-        tone="tangerine"
+        tone="muted"
         value={stats.error}
       />
     </div>
@@ -451,16 +451,16 @@ function StatsRow({ stats }: { stats: ReturnType<typeof accountStats> }) {
 
 function RiskSummaryRow({ summary }: { summary: AccountReadinessRiskSummary }) {
   return (
-    <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
+    <section className="mb-4 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="text-sm font-bold text-navy-900">Риск аккаунтов</div>
-        <div className="text-[11px] font-semibold text-gray-500">app-known readiness score</div>
+        <div className="text-sm font-bold text-foreground">Риск аккаунтов</div>
+        <div className="text-[11px] font-semibold text-muted-foreground">app-known readiness score</div>
       </div>
       <div className="grid gap-2 sm:grid-cols-4">
-        <RiskMetric label="Низкий" value={summary.low} className="bg-emerald-50 text-emerald-700" />
-        <RiskMetric label="Средний" value={summary.medium} className="bg-honey-50 text-honey-700" />
-        <RiskMetric label="Высокий" value={summary.high} className="bg-orange-50 text-orange-700" />
-        <RiskMetric label="Критический" value={summary.critical} className="bg-red-50 text-red-700" />
+        <RiskMetric label="Низкий" value={summary.low} className="bg-muted text-primary" />
+        <RiskMetric label="Средний" value={summary.medium} className="bg-muted text-muted-foreground" />
+        <RiskMetric label="Высокий" value={summary.high} className="bg-muted text-muted-foreground" />
+        <RiskMetric label="Критический" value={summary.critical} className="bg-destructive/10 text-destructive" />
       </div>
     </section>
   )
@@ -484,17 +484,17 @@ function BatchSafetySummary({
   canStart: boolean
 }) {
   const items = [
-    ['Готовы', counts.ready ?? 0, 'text-emerald-700 bg-emerald-50'],
-    ['Нужен вход', counts.needs_login ?? 0, 'text-red-700 bg-red-50'],
-    ['На паузе', counts.paused ?? 0, 'text-honey-700 bg-honey-50'],
-    ['Ограничения', counts.limited ?? 0, 'text-tangerine-700 bg-tangerine-50'],
-    ['Неизвестно', counts.unknown ?? 0, 'text-gray-600 bg-gray-100'],
+    ['Готовы', counts.ready ?? 0, 'text-primary bg-muted'],
+    ['Нужен вход', counts.needs_login ?? 0, 'text-destructive bg-destructive/10'],
+    ['На паузе', counts.paused ?? 0, 'text-muted-foreground bg-muted'],
+    ['Ограничения', counts.limited ?? 0, 'text-muted-foreground bg-muted'],
+    ['Неизвестно', counts.unknown ?? 0, 'text-muted-foreground bg-muted'],
   ] as const
   return (
-    <section className="fade-in mb-4 rounded-xl border border-gray-200/70 bg-white px-4 py-3 shadow-soft">
+    <section className="mb-4 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="text-sm font-bold text-navy-900">Готовность массовых действий</div>
-        <div className={`text-[11px] font-semibold ${canStart ? 'text-emerald-700' : 'text-honey-700'}`}>
+        <div className="text-sm font-bold text-foreground">Готовность массовых действий</div>
+        <div className={`text-[11px] font-semibold ${canStart ? 'text-primary' : 'text-muted-foreground'}`}>
           {canStart ? 'Можно запускать' : 'Есть ограничения'}
         </div>
       </div>
@@ -512,29 +512,28 @@ function BatchSafetySummary({
 function StatCard({
   icon,
   label,
-  tone = 'navy',
+  tone = 'default',
   value,
 }: {
   icon: React.ReactNode
   label: string
-  tone?: 'navy' | 'emerald' | 'honey' | 'tangerine'
+  tone?: 'default' | 'primary' | 'muted'
   value: number
 }) {
   const color = {
-    navy: 'text-navy-900 bg-navy-50',
-    emerald: 'text-emerald-600 bg-emerald-50',
-    honey: 'text-honey-600 bg-honey-50',
-    tangerine: 'text-tangerine-500 bg-tangerine-50',
+    default: 'text-foreground bg-muted',
+    primary: 'text-primary bg-muted',
+    muted: 'text-muted-foreground bg-muted',
   }[tone]
 
   return (
-    <div className="stat-card flex items-center gap-3 rounded-xl border border-gray-200/70 bg-white px-4 py-3">
+    <div className="stat-card flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
       <div className={`flex size-9 items-center justify-center rounded-lg ${color}`}>{icon}</div>
       <div>
-        <p className={`text-lg font-bold leading-none ${tone === 'navy' ? 'text-navy-900' : color.split(' ')[0]}`}>
+        <p className={`text-lg font-bold leading-none ${tone === 'default' ? 'text-foreground' : color.split(' ')[0]}`}>
           {value}
         </p>
-        <p className="mt-0.5 text-[11px] text-gray-400">{label}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
       </div>
     </div>
   )
@@ -565,12 +564,12 @@ function SearchAndFilters({
   }
 
   return (
-    <div className="fade-in d1 mb-4 grid gap-3">
+    <div className="mb-4 grid gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative max-w-sm flex-1">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
-          className="search-field w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm transition-all"
+          className="search-field w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm transition-all"
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Поиск аккаунтов..."
           type="text"
@@ -582,8 +581,8 @@ function SearchAndFilters({
             <button
               className={`chip rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all ${
                 filter === item
-                  ? 'border-navy-200 bg-navy-50 text-navy-400'
-                  : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                  ? 'border-border bg-muted text-primary'
+                  : 'border-border text-muted-foreground hover:bg-muted'
               }`}
               key={item}
               onClick={() => onFilterChange(item)}
@@ -599,8 +598,8 @@ function SearchAndFilters({
           <button
             className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-all ${
               advancedFilter === item
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                ? 'border-border bg-muted text-primary'
+                : 'border-border text-muted-foreground hover:bg-muted'
             }`}
             key={item}
             onClick={() => onAdvancedFilterChange(item)}
@@ -641,9 +640,9 @@ function AccountRow({
 
   return (
     <div
-      className={`account-row fade-in d${Math.min(index + 2, 12)} group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-all ${
-        isLast ? '' : 'border-b border-gray-100'
-      } ${status.kind === 'error' ? 'bg-tangerine-50/30' : ''}`}
+      className={`account-row  d${Math.min(index + 2, 12)} group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-all ${
+        isLast ? '' : 'border-b border-border'
+      } ${status.kind === 'error' ? 'bg-muted' : ''}`}
     >
       <button
         className="flex min-w-0 flex-1 items-center gap-3.5 text-left"
@@ -655,13 +654,13 @@ function AccountRow({
         <AccountAvatar account={account} fallbackClassName={avatarGradient(index)} initial={initial} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-navy-900">{name}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{name}</p>
             <span className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${statusStyle.badge}`}>
               <StatusIcon className="size-2.5" />
               {status.label}
             </span>
             {account.is_test_dc ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <FlaskConical className="size-2.5" />
                 Test DC
               </span>
@@ -669,12 +668,12 @@ function AccountRow({
             <SafetyBadge safety={safety} />
             <ProxyBadge proxy={proxy} />
           </div>
-          <p className={`mt-0.5 truncate text-xs ${status.kind === 'error' ? 'text-tangerine-400' : 'text-gray-400'}`}>
+          <p className={`mt-0.5 truncate text-xs ${status.kind === 'error' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
             {account.username ? `@${account.username} · ` : ''}
             {maskPhone(account.phone_number)}
           </p>
           {safety ? (
-            <p className="mt-0.5 truncate text-[11px] text-gray-400">
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               {accountSafetyDetails(safety)}
             </p>
           ) : null}
@@ -686,14 +685,14 @@ function AccountRow({
         </span>
         <button
           aria-label={`Удалить аккаунт ${name}`}
-          className="flex size-8 items-center justify-center rounded-lg text-gray-300 transition-all hover:bg-red-50 hover:text-red-500"
+          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
           onClick={() => onRequestDelete(account)}
           title="Удалить аккаунт"
           type="button"
         >
           <Trash2 className="size-4" />
         </button>
-        <ChevronRight className="row-chevron size-5 text-gray-300 transition-all group-hover:translate-x-0.5 group-hover:text-navy-400" />
+        <ChevronRight className="row-chevron size-5 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
     </div>
   )
@@ -702,10 +701,10 @@ function AccountRow({
 function ProxyBadge({ proxy }: { proxy: AccountProxySummary | null }) {
   const tone = proxyStatusTone(proxy?.status)
   const classes = {
-    green: 'bg-emerald-50 text-emerald-700',
-    amber: 'bg-honey-50 text-honey-700',
-    red: 'bg-red-50 text-red-600',
-    gray: 'bg-gray-100 text-gray-500',
+    green: 'bg-muted text-primary',
+    amber: 'bg-muted text-muted-foreground',
+    red: 'bg-destructive/10 text-destructive',
+    gray: 'bg-muted text-muted-foreground',
   }[tone]
   return (
     <span
@@ -721,10 +720,10 @@ function SafetyBadge({ safety }: { safety: AccountSafetySummary | null }) {
   if (!safety) return null
   const tone = compactSafetyTone(safety)
   const classes = {
-    green: 'bg-emerald-50 text-emerald-700',
-    amber: 'bg-honey-50 text-honey-700',
-    red: 'bg-red-50 text-red-600',
-    gray: 'bg-gray-100 text-gray-500',
+    green: 'bg-muted text-primary',
+    amber: 'bg-muted text-muted-foreground',
+    red: 'bg-destructive/10 text-destructive',
+    gray: 'bg-muted text-muted-foreground',
   }[tone]
 
   return (
@@ -763,7 +762,7 @@ function AccountAvatar({
   }
 
   return (
-    <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${fallbackClassName}`}>
+    <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-primary-foreground ${fallbackClassName}`}>
       {initial}
     </div>
   )
@@ -772,31 +771,31 @@ function AccountAvatar({
 const statusStyles = {
   authorized: {
     icon: Check,
-    badge: 'bg-emerald-50 text-emerald-700',
-    detail: 'text-gray-400',
+    badge: 'bg-muted text-primary',
+    detail: 'text-muted-foreground',
   },
   waiting: {
     icon: Clock,
-    badge: 'bg-honey-50 text-honey-600',
-    detail: 'text-honey-500',
+    badge: 'bg-muted text-muted-foreground',
+    detail: 'text-muted-foreground',
   },
   error: {
     icon: AlertTriangle,
-    badge: 'bg-red-50 text-red-600',
-    detail: 'text-tangerine-400',
+    badge: 'bg-destructive/10 text-destructive',
+    detail: 'text-muted-foreground',
   },
 }
 
 function avatarGradient(index: number): string {
   const gradients = [
-    'bg-gradient-to-br from-navy-400 to-navy-300',
-    'bg-gradient-to-br from-tangerine-400 to-honey-400',
-    'bg-gradient-to-br from-emerald-400 to-emerald-300',
-    'bg-gradient-to-br from-honey-400 to-honey-300',
-    'bg-gradient-to-br from-violet-400 to-violet-300',
-    'bg-gradient-to-br from-rose-400 to-rose-300',
-    'bg-gradient-to-br from-cyan-400 to-cyan-300',
-    'bg-gradient-to-br from-indigo-400 to-indigo-300',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
+    'bg-muted  ',
   ]
   return gradients[index % gradients.length]
 }
@@ -816,15 +815,15 @@ function updatedAgo(value: string): string {
 
 function FooterCounter({ stats }: { stats: ReturnType<typeof accountStats> }) {
   return (
-    <div className="fade-in d12 mt-4 flex flex-col gap-2 px-1 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-4 flex flex-col gap-2 px-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <p>
-        Всего: <span className="font-medium text-gray-500">{stats.total} аккаунтов</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span className="font-medium text-emerald-600">{stats.authorized} авторизованы</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span className="font-medium text-honey-500">{stats.waiting} ожидают</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span className="font-medium text-tangerine-400">{stats.error} ошибки</span>
+        Всего: <span className="font-medium text-muted-foreground">{stats.total} аккаунтов</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
+        <span className="font-medium text-primary">{stats.authorized} авторизованы</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
+        <span className="font-medium text-muted-foreground">{stats.waiting} ожидают</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
+        <span className="font-medium text-muted-foreground">{stats.error} ошибки</span>
       </p>
       <div className="flex items-center gap-1">
         <Server className="size-3.5" />
@@ -836,18 +835,18 @@ function FooterCounter({ stats }: { stats: ReturnType<typeof accountStats> }) {
 
 function EmptyAccounts({ onAddBatch }: { onAddBatch: () => void }) {
   return (
-    <section className="fade-in rounded-xl border border-gray-200/70 bg-white p-8 text-center shadow-sm">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-navy-50">
-        <UserRound className="size-5 text-navy-400" />
+    <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-muted">
+        <UserRound className="size-5 text-primary" />
       </div>
-      <h1 className="mt-4 font-display text-xl font-bold tracking-tight text-navy-900">
+      <h1 className="mt-4 font-sans text-xl font-bold tracking-tight text-foreground">
         Аккаунтов пока нет
       </h1>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
         Добавьте один или несколько Telegram-аккаунтов, чтобы открыть редактор профиля и запускать задачи.
       </p>
       <button
-        className="add-btn mt-5 inline-flex items-center gap-1.5 rounded-lg bg-navy-400 px-4 py-2 text-sm font-semibold text-white"
+        className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         onClick={onAddBatch}
         type="button"
       >
@@ -915,16 +914,16 @@ function DeleteAccountDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/20 px-4 backdrop-animate">
-      <div className="modal-animate max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 px-4">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <h2 className="font-display text-base font-bold text-navy-900">Account lifecycle request</h2>
-            <p className="mt-0.5 text-xs text-gray-400">{name}</p>
+            <h2 className="font-sans text-base font-bold text-foreground">Account lifecycle request</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{name}</p>
           </div>
           <button
             aria-label="Закрыть подтверждение удаления"
-            className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
             disabled={isSubmitting}
             onClick={onCancel}
             type="button"
@@ -933,17 +932,17 @@ function DeleteAccountDialog({
           </button>
         </div>
         <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
-          <p className="text-sm leading-6 text-gray-600">
+          <p className="text-sm leading-6 text-muted-foreground">
             Удаление теперь проходит через auditable lifecycle request. По умолчанию создаётся safe dry-run request:
             backend фиксирует preview, reason и audit event без live TDLib действий.
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <LifecycleCard title="Risk gate">
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-muted-foreground">
                 {actionGateQuery.data ? (
                   <>
-                    <div className="font-semibold text-navy-900">
+                    <div className="font-semibold text-foreground">
                       {actionGateQuery.data.allowed ? 'Allowed' : 'Blocked'} · {actionGateQuery.data.risk_level} · {actionGateQuery.data.risk_score}
                     </div>
                     <div className="mt-1">{actionGateQuery.data.requires_override ? 'Override reason required.' : 'No override required for this request.'}</div>
@@ -966,9 +965,9 @@ function DeleteAccountDialog({
 
           <LifecycleCard className="mt-3" title="Deletion preview">
             {previewQuery.isPending ? (
-              <div className="text-xs text-gray-500">Loading deletion preview...</div>
+              <div className="text-xs text-muted-foreground">Loading deletion preview...</div>
             ) : previewQuery.isError ? (
-              <div className="text-xs font-semibold text-red-600">Deletion preview unavailable.</div>
+              <div className="text-xs font-semibold text-destructive">Deletion preview unavailable.</div>
             ) : preview ? (
               <DeletionPreview preview={preview} />
             ) : null}
@@ -977,7 +976,7 @@ function DeleteAccountDialog({
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <LifecycleCard title="Export data">
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-navy-700 hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
                 disabled={exportRequestMutation.isPending}
                 onClick={() => void requestExport()}
                 type="button"
@@ -1001,19 +1000,19 @@ function DeleteAccountDialog({
           </div>
 
           <LifecycleCard className="mt-3" title="Deletion request">
-            <label className="grid gap-1 text-xs font-semibold text-gray-600">
+            <label className="grid gap-1 text-xs font-semibold text-muted-foreground">
               Reason
               <textarea
-                className="min-h-20 rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-navy-900 outline-none focus:border-navy-300"
+                className="min-h-20 rounded-lg border border-border px-3 py-2 text-sm font-normal text-foreground outline-none focus:border-border"
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Describe why this account lifecycle request is required..."
                 value={reason}
               />
             </label>
-            <label className="mt-3 grid gap-1 text-xs font-semibold text-gray-600">
+            <label className="mt-3 grid gap-1 text-xs font-semibold text-muted-foreground">
               Confirmation
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-navy-900 outline-none focus:border-navy-300"
+                className="rounded-lg border border-border px-3 py-2 text-sm font-normal text-foreground outline-none focus:border-border"
                 onChange={(event) => setConfirmation(event.target.value)}
                 placeholder="Type DELETE"
                 value={confirmation}
@@ -1027,14 +1026,14 @@ function DeleteAccountDialog({
           </LifecycleCard>
 
           {error ? (
-            <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+            <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
               {error}
             </div>
           ) : null}
         </div>
-        <div className="flex items-center justify-end gap-2 bg-gray-50 px-5 py-4">
+        <div className="flex items-center justify-end gap-2 bg-muted px-5 py-4">
           <button
-            className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             disabled={isSubmitting}
             onClick={onCancel}
             type="button"
@@ -1042,7 +1041,7 @@ function DeleteAccountDialog({
             Отмена
           </button>
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3.5 py-2 text-sm font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-destructive disabled:opacity-60"
             disabled={!canSubmit}
             onClick={() => void submitDeletionRequest()}
             type="button"
@@ -1066,20 +1065,20 @@ function LifecycleCard({
   title: string
 }) {
   return (
-    <section className={`rounded-xl border border-gray-200/70 bg-gray-50/60 p-3 ${className}`}>
-      <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500">{title}</h3>
+    <section className={`rounded-xl border border-border bg-muted p-3 ${className}`}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</h3>
       <div className="mt-2">{children}</div>
     </section>
   )
 }
 
 function CompactList({ empty, items, loading }: { empty: string; items: string[]; loading: boolean }) {
-  if (loading) return <div className="mt-2 text-xs text-gray-500">Loading...</div>
-  if (items.length === 0) return <div className="mt-2 text-xs text-gray-500">{empty}</div>
+  if (loading) return <div className="mt-2 text-xs text-muted-foreground">Loading...</div>
+  if (items.length === 0) return <div className="mt-2 text-xs text-muted-foreground">{empty}</div>
   return (
-    <ul className="mt-2 grid gap-1 text-xs text-gray-600">
+    <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
       {items.map((item) => (
-        <li className="truncate rounded-lg bg-white px-2 py-1" key={item}>
+        <li className="truncate rounded-lg bg-card px-2 py-1" key={item}>
           {item}
         </li>
       ))}
@@ -1089,12 +1088,12 @@ function CompactList({ empty, items, loading }: { empty: string; items: string[]
 
 function DeletionPreview({ preview }: { preview: AccountDeletionPreview }) {
   return (
-    <div className="text-xs text-gray-600">
-      <div className={`font-semibold ${preview.can_delete ? 'text-emerald-700' : 'text-red-600'}`}>
+    <div className="text-xs text-muted-foreground">
+      <div className={`font-semibold ${preview.can_delete ? 'text-primary' : 'text-destructive'}`}>
         {preview.can_delete ? 'Request can be created' : 'Blocked'} · risk {preview.risk_level}
       </div>
       {preview.blocking_reasons.length > 0 ? (
-        <ul className="mt-2 grid gap-1 text-red-600">
+        <ul className="mt-2 grid gap-1 text-destructive">
           {preview.blocking_reasons.map((reason) => (
             <li key={reason}>{reason}</li>
           ))}
@@ -1102,7 +1101,7 @@ function DeletionPreview({ preview }: { preview: AccountDeletionPreview }) {
       ) : null}
       <div className="mt-2 grid gap-1">
         {preview.planned_actions.map((action, index) => (
-          <div className="rounded-lg bg-white px-2 py-1" key={`${action.type}-${action.resource}-${index}`}>
+          <div className="rounded-lg bg-card px-2 py-1" key={`${action.type}-${action.resource}-${index}`}>
             {action.resource}: {plannedActionDetail(action)}
           </div>
         ))}

@@ -2,12 +2,12 @@ import { Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 function SkeletonBlock({ className }: { className: string }) {
-  return <div className={`skeleton-shimmer rounded-xl ${className}`} />
+  return <div className={`animate-pulse bg-muted rounded-xl ${className}`} />
 }
 
 function SkeletonCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-gray-200/60 bg-white p-4 shadow-soft ${className}`}>
+    <section className={`rounded-2xl border border-border bg-card p-4 shadow-sm ${className}`}>
       {children}
     </section>
   )
@@ -15,13 +15,13 @@ function SkeletonCard({ children, className = '' }: { children: ReactNode; class
 
 export function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-cream text-navy-900 gradient-blob">
-      <header className="border-b border-gray-200/60 bg-white">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6">
           <div className="flex h-14 items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-navy-400">
-                <Sparkles className="size-4 text-white" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+                <Sparkles className="size-4 text-primary-foreground" />
               </div>
               <SkeletonBlock className="h-5 w-28" />
             </div>
@@ -63,7 +63,7 @@ export function DashboardSkeleton() {
             </SkeletonCard>
           </aside>
 
-          <main className="min-w-0 flex-1 animate-fade-in">
+          <main className="min-w-0 flex-1 animate-">
             <div className="mb-6 flex items-center justify-between">
               <div className="space-y-2">
                 <SkeletonBlock className="h-7 w-64" />

@@ -55,16 +55,16 @@ function WarmupSessionCard({
   const executionTone = session.execution_mode === 'dry_run' ? 'gray' : 'amber'
 
   return (
-    <article className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+    <article className="rounded-lg border border-border bg-card p-3 shadow-sm">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_140px] lg:items-center">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <UserRound className="size-4 shrink-0 text-gray-400" />
-            <h3 className="truncate text-sm font-semibold text-navy-900">
+            <UserRound className="size-4 shrink-0 text-muted-foreground" />
+            <h3 className="truncate text-sm font-semibold text-foreground">
               {session.account_label ?? session.account_id}
             </h3>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="truncate">{session.strategy_name}</span>
             <Badge tone={executionTone}>
               <Sparkles className="size-3" />
@@ -75,14 +75,14 @@ function WarmupSessionCard({
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <WarmupStatusBadge status={session.status} />
-            <span className="text-xs font-semibold text-gray-500">
+            <span className="text-xs font-semibold text-muted-foreground">
               День {session.current_day} из {session.duration_days}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full rounded-full bg-gray-950" style={{ width: `${progress}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-foreground" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarClock className="size-3.5" />
             {session.next_micro_session_at
               ? `Окно микро-сессии: ${formatWarmupNextStep(session.next_micro_session_at, workersEnabled)}`

@@ -31,11 +31,11 @@ export function AuthPasswordStep({
       }}
     >
       <div className="space-y-1">
-        <p className="text-xs font-medium text-gray-500">
+        <p className="text-xs font-medium text-muted-foreground">
           Двухэтапная аутентификация для {phoneNumber || 'указанный номер'}
         </p>
         <button
-          className="text-xs font-medium text-navy-500 transition-colors hover:text-navy-600"
+          className="text-xs font-medium text-primary transition-colors hover:text-primary"
           onClick={onResetPhone}
           type="button"
         >
@@ -43,12 +43,12 @@ export function AuthPasswordStep({
         </button>
       </div>
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-gray-500" htmlFor="auth-password">
+        <label className="block text-xs font-medium text-muted-foreground" htmlFor="auth-password">
           Облачный пароль (2FA)
         </label>
         <Input
           autoComplete="current-password"
-          className="h-auto rounded-xl border-gray-200 bg-white px-3.5 py-3 text-sm"
+          className="h-auto rounded-xl border-border bg-card px-3.5 py-3 text-sm"
           id="auth-password"
           onChange={(event) => onPasswordChange(event.target.value)}
           placeholder="Введите пароль"
@@ -56,13 +56,13 @@ export function AuthPasswordStep({
           value={password}
         />
         {passwordHint ? (
-          <p className="text-xs text-gray-400">
-            Подсказка: <span className="font-medium text-gray-500">{passwordHint}</span>
+          <p className="text-xs text-muted-foreground">
+            Подсказка: <span className="font-medium text-muted-foreground">{passwordHint}</span>
           </p>
         ) : null}
       </div>
       <Button
-        className="h-auto w-full rounded-xl bg-navy-400 px-4 py-3 text-sm font-semibold text-white hover:bg-navy-500"
+        className="h-auto w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary"
         disabled={pending || !password.trim()}
         type="submit"
       >

@@ -50,18 +50,18 @@ function AttemptsTable({
   error: string | null
   total?: number
 }) {
-  if (error) return <Card className="p-4 text-sm text-red-600">{error}</Card>
+  if (error) return <Card className="p-4 text-sm text-destructive">{error}</Card>
   if (loading) return <Skeleton className="h-32 w-full" />
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Attempts ({total})</h3>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Attempts ({total})</h3>
       {attempts.length === 0 ? (
         <EmptyState title="Нет попыток" description="Ручные отправки появятся здесь" />
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-xs">
-            <thead className="text-gray-500">
+            <thead className="text-muted-foreground">
               <tr>
                 <th className="py-2 pr-3 font-medium">attempt id</th>
                 <th className="py-2 pr-3 font-medium">status</th>
@@ -74,7 +74,7 @@ function AttemptsTable({
                 <th className="py-2 pr-3 font-medium">sent_at</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-gray-700">
+            <tbody className="divide-y divide-gray-100 text-foreground">
               {attempts.map((attempt) => (
                 <tr key={attempt.id}>
                   <td className="py-2 pr-3">{attempt.id}</td>

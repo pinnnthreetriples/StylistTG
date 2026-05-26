@@ -86,11 +86,11 @@ export function AvatarBlock({
           {previewUrl ? (
             <img
               alt="Предпросмотр фото профиля"
-              className="size-32 rounded-full object-cover shadow-sm border border-gray-100"
+              className="size-32 rounded-full object-cover shadow-sm border border-border"
               src={previewUrl}
             />
           ) : (
-            <div className="flex size-32 items-center justify-center rounded-full bg-gradient-to-br from-navy-400 via-navy-300 to-tangerine-300 text-5xl font-bold text-white shadow-sm">
+            <div className="flex size-32 items-center justify-center rounded-full bg-muted text-5xl font-bold text-primary-foreground shadow-sm">
               {composeDisplayName(
                 currentProfile.first_name ?? '',
                 currentProfile.last_name ?? '',
@@ -99,22 +99,22 @@ export function AvatarBlock({
           )}
 
           {/* Hover overlay */}
-          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Camera className="text-white size-8" />
+          <div className="absolute inset-0 rounded-full bg-foreground/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="text-primary-foreground size-8" />
           </div>
         </div>
 
         {/* Camera badge */}
         <button
           aria-label="Изменить фото профиля"
-          className="absolute bottom-0 right-0 flex size-10 items-center justify-center rounded-full border-[3px] border-white bg-navy-400 shadow-md transition-colors hover:bg-navy-500 z-10"
+          className="absolute bottom-0 right-0 flex size-10 items-center justify-center rounded-full border-[3px] border-background bg-primary shadow-md transition-colors hover:bg-primary z-10"
           onClick={(e) => { e.stopPropagation(); onChoosePhoto() }}
           type="button"
         >
           {isUploadingPhoto ? (
-            <Loader2 className="size-4 text-white animate-spin" />
+            <Loader2 className="size-4 text-primary-foreground animate-spin" />
           ) : (
-            <Camera className="size-4 text-white" />
+            <Camera className="size-4 text-primary-foreground" />
           )}
         </button>
 
@@ -122,7 +122,7 @@ export function AvatarBlock({
         {hasSelectedPhoto && (
           <button
             aria-label="Удалить фото"
-            className="absolute top-0 right-0 flex size-8 items-center justify-center rounded-full border-[2px] border-white bg-red-50 text-red-500 hover:bg-red-500 hover:text-white shadow-sm transition-all z-10"
+            className="absolute top-0 right-0 flex size-8 items-center justify-center rounded-full border-[2px] border-background bg-destructive/10 text-destructive hover:bg-destructive hover:text-primary-foreground shadow-sm transition-all z-10"
             onClick={(e) => { e.stopPropagation(); onClearPhoto() }}
             type="button"
           >
@@ -134,11 +134,11 @@ export function AvatarBlock({
       {/* Caption */}
       <div className="text-center w-full max-w-[120px]">
         {hasSelectedPhoto ? (
-          <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
             {syncStateLabels.appKnown}
           </p>
         ) : null}
-        <p className="text-[10px] text-gray-400 leading-tight">
+        <p className="text-[10px] text-muted-foreground leading-tight">
           {selectedPhotoName ?? (!hasSelectedPhoto ? 'JPG, PNG до 5 МБ' : null)}
         </p>
       </div>

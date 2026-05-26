@@ -35,7 +35,7 @@ export function WarmupProxySnapshotPanel({
         title="Прокси-снимок сессии"
         description="На момент создания сессии у аккаунта не было привязанного прокси."
       >
-        <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-dashed border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
           Без прокси live-режимы прогрева работать не будут. Привяжите прокси к
           аккаунту и пересоздайте сессию, если планируется shadow/network/advanced.
         </div>
@@ -62,7 +62,7 @@ export function WarmupProxySnapshotPanel({
         <SnapshotRow label="Хост">
           <span className="font-mono text-xs">
             {snapshot.host}
-            <span className="text-gray-400">:{snapshot.port}</span>
+            <span className="text-muted-foreground">:{snapshot.port}</span>
           </span>
         </SnapshotRow>
         <SnapshotRow label="Статус">
@@ -85,8 +85,8 @@ function SnapshotRow({
 }) {
   return (
     <div className="grid gap-0.5">
-      <span className="text-xs font-semibold uppercase text-gray-500">{label}</span>
-      <span className="text-sm text-navy-900">{children}</span>
+      <span className="text-xs font-semibold uppercase text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground">{children}</span>
     </div>
   )
 }

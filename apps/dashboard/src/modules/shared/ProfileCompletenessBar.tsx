@@ -17,15 +17,15 @@ export function ProfileCompletenessBar({ accountId }: ProfileCompletenessBarProp
 
   if (query.isLoading) {
     return (
-      <div className="h-10 animate-pulse rounded-lg border border-gray-200 bg-white px-3 py-2">
-        <div className="h-2 rounded-full bg-gray-100" />
-        <div className="mt-2 h-2 w-28 rounded-full bg-gray-100" />
+      <div className="h-10 animate-pulse rounded-lg border border-border bg-card px-3 py-2">
+        <div className="h-2 rounded-full bg-muted" />
+        <div className="mt-2 h-2 w-28 rounded-full bg-muted" />
       </div>
     )
   }
 
   if (query.isError || !query.data) {
-    return <p className="text-xs text-gray-500">Profile completeness unavailable.</p>
+    return <p className="text-xs text-muted-foreground">Profile completeness unavailable.</p>
   }
 
   const report = query.data
@@ -36,11 +36,11 @@ export function ProfileCompletenessBar({ accountId }: ProfileCompletenessBarProp
   return (
     <Tooltip content={missingText} side="bottom" className="w-full">
       <div
-        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 shadow-sm"
+        className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm"
         title={missingText}
       >
         <div className="mb-1.5 flex items-center justify-between gap-3">
-          <span className="font-medium text-gray-700">Profile completeness</span>
+          <span className="font-medium text-foreground">Profile completeness</span>
           <Badge tone={badgeTone(report.score)}>{percentage}%</Badge>
         </div>
         <div
@@ -48,7 +48,7 @@ export function ProfileCompletenessBar({ accountId }: ProfileCompletenessBarProp
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={percentage}
-          className="h-1.5 overflow-hidden rounded-full bg-gray-100"
+          className="h-1.5 overflow-hidden rounded-full bg-muted"
           role="progressbar"
         >
           <div className={`h-full rounded-full ${barClass}`} style={{ width: `${percentage}%` }} />
@@ -59,9 +59,9 @@ export function ProfileCompletenessBar({ accountId }: ProfileCompletenessBarProp
 }
 
 function scoreColorClass(score: number): string {
-  if (score < 0.5) return 'bg-red-500'
-  if (score < 0.8) return 'bg-amber-500'
-  return 'bg-emerald-500'
+  if (score < 0.5) return 'bg-destructive'
+  if (score < 0.8) return 'bg-muted'
+  return 'bg-muted'
 }
 
 function badgeTone(score: number): 'red' | 'amber' | 'green' {

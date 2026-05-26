@@ -20,7 +20,7 @@ export function AccountsSection({ campaignId }: { campaignId: string }) {
   const accounts = accountsQuery.data?.items ?? []
 
   if (accountsQuery.isError) {
-    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+    return <Card className="p-4 text-sm text-destructive">Не удалось загрузить данные</Card>
   }
   if (accountsQuery.isLoading) return <Skeleton className="h-20 w-full" />
 
@@ -46,7 +46,7 @@ export function AccountsSection({ campaignId }: { campaignId: string }) {
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Аккаунты ({accountsQuery.data?.total ?? 0})</h3>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Аккаунты ({accountsQuery.data?.total ?? 0})</h3>
       <form className="mb-3 grid gap-2 sm:grid-cols-[1fr_80px_80px_auto]" onSubmit={handleSubmit}>
         <FormField className="sm:col-span-1" error={formError} htmlFor="neuro-account-id">
           <Input
@@ -74,17 +74,17 @@ export function AccountsSection({ campaignId }: { campaignId: string }) {
           Добавить
         </Button>
       </form>
-      {mutationError ? <p className="mb-3 text-xs font-medium text-red-500">{mutationError}</p> : null}
+      {mutationError ? <p className="mb-3 text-xs font-medium text-destructive">{mutationError}</p> : null}
       {accounts.length === 0 ? (
         <EmptyState title="Нет аккаунтов" description="Добавьте аккаунты к кампании" />
       ) : (
         <div className="space-y-1.5">
           {accounts.map((account) => (
-            <div key={account.id} className="rounded border border-gray-100 px-3 py-2 text-sm">
+            <div key={account.id} className="rounded border border-border px-3 py-2 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span className="font-medium text-gray-700">{account.account_id}</span>
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span className="font-medium text-foreground">{account.account_id}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
                     w:{account.rotation_weight} o:{account.rotation_order}
                   </span>
                 </div>

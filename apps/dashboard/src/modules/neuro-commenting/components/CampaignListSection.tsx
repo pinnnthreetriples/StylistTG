@@ -39,7 +39,7 @@ export function CampaignListSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">Кампании</h2>
+        <h2 className="text-sm font-semibold text-foreground">Кампании</h2>
         <Button size="sm" variant="outline" onClick={() => setShowCreate((v) => !v)} icon={<Plus className="size-3.5" />}>
           Создать
         </Button>
@@ -59,12 +59,12 @@ export function CampaignListSection({
               Добавить
             </Button>
           </div>
-          {mutationError ? <p className="text-xs font-medium text-red-500">{mutationError}</p> : null}
+          {mutationError ? <p className="text-xs font-medium text-destructive">{mutationError}</p> : null}
         </Card>
       ) : null}
 
       {campaignsQuery.isError ? (
-        <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+        <Card className="p-4 text-sm text-destructive">Не удалось загрузить данные</Card>
       ) : null}
 
       {campaigns.length === 0 && !campaignsQuery.isLoading && !campaignsQuery.isError ? (
@@ -79,8 +79,8 @@ export function CampaignListSection({
             onClick={() => onSelect(campaign.id)}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition ${
               selectedId === campaign.id
-                ? 'border-navy-300 bg-navy-50 text-navy-900'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'border-border bg-muted text-foreground'
+                : 'border-border bg-card text-foreground hover:bg-muted'
             }`}
           >
             <span className="truncate font-medium">{campaign.name}</span>

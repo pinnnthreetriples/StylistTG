@@ -34,8 +34,8 @@ export function DropdownMenu({ trigger, children, align = 'end', className }: Dr
       {open ? (
         <div
           className={cn(
-            'absolute top-full z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg',
-            'animate-[fade-in_0.15s_ease-out_both]',
+            'absolute top-full z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg',
+            '',
             align === 'end' ? 'right-0' : 'left-0',
           )}
           onClick={() => setOpen(false)}
@@ -62,8 +62,8 @@ export function DropdownMenuItem({ children, onClick, disabled, destructive, cla
       className={cn(
         'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition',
         destructive
-          ? 'text-red-600 hover:bg-red-50'
-          : 'text-gray-700 hover:bg-gray-50',
+          ? 'text-destructive hover:bg-destructive/10'
+          : 'text-foreground hover:bg-muted',
         disabled && 'pointer-events-none opacity-50',
         className,
       )}
@@ -78,5 +78,5 @@ export function DropdownMenuItem({ children, onClick, disabled, destructive, cla
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="my-1 h-px bg-gray-100" role="separator" />
+  return <div className="my-1 h-px bg-muted" role="separator" />
 }

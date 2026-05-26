@@ -16,9 +16,9 @@ export function FormField({ label, htmlFor, error, hint, required, children, cla
   return (
     <div className={cn('grid gap-1.5', className)}>
       {label ? (
-        <label className="text-sm font-medium text-gray-700" htmlFor={htmlFor}>
+        <label className="text-sm font-medium text-foreground" htmlFor={htmlFor}>
           {label}
-          {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+          {required ? <span className="ml-0.5 text-destructive">*</span> : null}
         </label>
       ) : null}
       {children}
@@ -29,9 +29,9 @@ export function FormField({ label, htmlFor, error, hint, required, children, cla
 }
 
 export function FieldError({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('text-xs font-medium text-red-500', className)}>{children}</p>
+  return <p className={cn('text-xs font-medium text-destructive', className)}>{children}</p>
 }
 
 export function FieldHint({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('text-xs text-gray-400', className)}>{children}</p>
+  return <p className={cn('text-xs text-muted-foreground', className)}>{children}</p>
 }

@@ -5,10 +5,10 @@ import { cn } from './utils'
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
 
 const styles: Record<RiskLevel, string> = {
-  low: 'border-emerald-100 bg-emerald-50 text-emerald-700',
-  medium: 'border-amber-100 bg-amber-50 text-amber-700',
-  high: 'border-orange-100 bg-orange-50 text-orange-700',
-  critical: 'border-red-100 bg-red-50 text-red-700',
+  low: 'border-border bg-muted text-primary',
+  medium: 'border-border bg-muted text-muted-foreground',
+  high: 'border-border bg-muted text-muted-foreground',
+  critical: 'border-destructive/20 bg-destructive/10 text-destructive',
 }
 
 export type RiskBadgeProps = HTMLAttributes<HTMLSpanElement> & {

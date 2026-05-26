@@ -23,7 +23,7 @@ export function SubmitCodeForm({
       >
         <input
           autoComplete="one-time-code"
-          className="h-10 flex-1 rounded-md border border-gray-200 px-3 text-sm"
+          className="h-10 flex-1 rounded-md border border-border px-3 text-sm"
           disabled={disabled}
           onChange={(event) => setCode(event.target.value)}
           placeholder="Код Telegram"

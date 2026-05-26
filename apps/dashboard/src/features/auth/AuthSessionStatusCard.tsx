@@ -19,24 +19,24 @@ export function AuthSessionStatusCard({ session }: { session: TelegramAuthSessio
         {session?.cooldown_until ? <StatusPill tone="red">Пауза безопасности</StatusPill> : null}
       </div>
       {session?.last_error_code ? (
-        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {labelIssue(session.last_error_code)}
         </p>
       ) : null}
-      <details className="mt-4 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-        <summary className="cursor-pointer font-semibold text-gray-800">Расширенная диагностика</summary>
+      <details className="mt-4 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+        <summary className="cursor-pointer font-semibold text-foreground">Расширенная диагностика</summary>
         <dl className="mt-3 grid gap-3 md:grid-cols-3">
           <div>
-            <dt className="text-gray-500">Сессия входа</dt>
-            <dd className="font-mono text-xs text-gray-900">{session?.id ?? 'Не создана'}</dd>
+            <dt className="text-muted-foreground">Сессия входа</dt>
+            <dd className="font-mono text-xs text-foreground">{session?.id ?? 'Не создана'}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Аккаунт</dt>
-            <dd className="font-mono text-xs text-gray-900">{session?.account_id ?? 'Ожидает входа'}</dd>
+            <dt className="text-muted-foreground">Аккаунт</dt>
+            <dd className="font-mono text-xs text-foreground">{session?.account_id ?? 'Ожидает входа'}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Код ошибки</dt>
-            <dd className="font-mono text-xs text-gray-900">{session?.last_error_code ?? 'Нет'}</dd>
+            <dt className="text-muted-foreground">Код ошибки</dt>
+            <dd className="font-mono text-xs text-foreground">{session?.last_error_code ?? 'Нет'}</dd>
           </div>
         </dl>
       </details>

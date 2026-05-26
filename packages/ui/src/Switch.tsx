@@ -15,9 +15,9 @@ export function Switch({ className, checked, onCheckedChange, label, disabled, .
         aria-checked={checked}
         className={cn(
           'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-400 focus-visible:ring-offset-2',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed',
-          checked ? 'bg-navy-500' : 'bg-gray-200',
+          checked ? 'bg-primary' : 'bg-muted',
         )}
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
@@ -27,12 +27,12 @@ export function Switch({ className, checked, onCheckedChange, label, disabled, .
       >
         <span
           className={cn(
-            'pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform',
+            'pointer-events-none block size-4 rounded-full bg-card shadow-sm transition-transform',
             checked ? 'translate-x-4' : 'translate-x-0',
           )}
         />
       </button>
-      {label ? <span className="select-none text-sm text-gray-700">{label}</span> : null}
+      {label ? <span className="select-none text-sm text-foreground">{label}</span> : null}
     </label>
   )
 }

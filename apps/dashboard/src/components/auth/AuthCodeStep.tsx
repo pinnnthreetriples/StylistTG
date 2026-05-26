@@ -29,9 +29,9 @@ export function AuthCodeStep({
       }}
     >
       <div className="space-y-1">
-        <p className="text-xs font-medium text-gray-500">Код отправлен на {phoneNumber || 'указанный номер'}</p>
+        <p className="text-xs font-medium text-muted-foreground">Код отправлен на {phoneNumber || 'указанный номер'}</p>
         <button
-          className="text-xs font-medium text-navy-500 transition-colors hover:text-navy-600"
+          className="text-xs font-medium text-primary transition-colors hover:text-primary"
           onClick={onResetPhone}
           type="button"
         >
@@ -39,12 +39,12 @@ export function AuthCodeStep({
         </button>
       </div>
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-gray-500" htmlFor="auth-code">
+        <label className="block text-xs font-medium text-muted-foreground" htmlFor="auth-code">
           Код подтверждения
         </label>
         <Input
           autoComplete="one-time-code"
-          className="h-auto rounded-xl border-gray-200 bg-white px-3.5 py-3 text-sm tracking-[0.2em]"
+          className="h-auto rounded-xl border-border bg-card px-3.5 py-3 text-sm tracking-[0.2em]"
           id="auth-code"
           inputMode="numeric"
           onChange={(event) => onCodeChange(event.target.value)}
@@ -53,7 +53,7 @@ export function AuthCodeStep({
         />
       </div>
       <Button
-        className="h-auto w-full rounded-xl bg-navy-400 px-4 py-3 text-sm font-semibold text-white hover:bg-navy-500"
+        className="h-auto w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary"
         disabled={pending || !code.trim()}
         type="submit"
       >

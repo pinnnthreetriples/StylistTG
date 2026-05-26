@@ -12,14 +12,14 @@ interface ErrorBannerProps {
 export function ErrorBanner({ banner }: ErrorBannerProps) {
   const palette =
     banner.accent === 'error'
-      ? 'border-red-200/60 bg-red-50 text-red-800'
-      : 'border-honey-200/60 bg-honey-50 text-honey-700'
+      ? 'border-destructive/20 bg-destructive/10 text-destructive'
+      : 'border-border bg-muted text-muted-foreground'
 
   return (
     <section
-      className={`ui-surface-enter mb-6 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-start ${palette}`}
+      className={`mb-6 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-start ${palette}`}
     >
-      <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/70">
+      <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-card/70">
         <AlertTriangle className="size-4 text-current" />
       </div>
       <div className="min-w-0 flex-1">

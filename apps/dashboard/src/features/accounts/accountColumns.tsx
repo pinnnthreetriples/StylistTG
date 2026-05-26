@@ -43,8 +43,8 @@ export const accountColumns = [
     header: 'Аккаунт',
     cell: ({ row, getValue }) => (
       <div className="min-w-0">
-        <div className="truncate text-sm font-semibold text-navy-900">{getValue()}</div>
-        <div className="truncate text-xs text-gray-400">
+        <div className="truncate text-sm font-semibold text-foreground">{getValue()}</div>
+        <div className="truncate text-xs text-muted-foreground">
           {row.original.username ? `@${row.original.username} · ` : ''}
           {maskPhone(row.original.phone_number)}
         </div>
@@ -76,7 +76,7 @@ export const accountColumns = [
   columnHelper.display({
     id: 'lastJob',
     header: 'Последняя задача',
-    cell: () => <span className="text-xs text-gray-400">Нет задач</span>,
+    cell: () => <span className="text-xs text-muted-foreground">Нет задач</span>,
   }),
   columnHelper.accessor((account) => account.risk?.score ?? 0, {
     id: 'risk',
@@ -109,7 +109,7 @@ export const accountColumns = [
     cell: ({ row }) => {
       const proxyStatus = (row.original as AccountTableRow & { proxy_status?: string }).proxy_status
       return (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-muted-foreground">
           {labelProxyStatus(proxyStatus ?? 'none')}
         </span>
       )
@@ -119,9 +119,9 @@ export const accountColumns = [
     header: 'Обновлён',
     cell: ({ getValue }) => {
       const value = getValue()
-      if (!value) return <span className="text-xs text-gray-400">—</span>
+      if (!value) return <span className="text-xs text-muted-foreground">—</span>
       return (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-muted-foreground">
           {new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
         </span>
       )

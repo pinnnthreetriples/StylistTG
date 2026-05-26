@@ -4,17 +4,17 @@ import type { RiskLevel } from './RiskBadge'
 import { cn } from './utils'
 
 const borderStyles: Record<RiskLevel, string> = {
-  low: 'border-emerald-200',
-  medium: 'border-amber-200',
-  high: 'border-orange-200',
-  critical: 'border-red-300',
+  low: 'border-border',
+  medium: 'border-border',
+  high: 'border-border',
+  critical: 'border-destructive/20',
 }
 
 const bgStyles: Record<RiskLevel, string> = {
-  low: 'bg-emerald-50/40',
-  medium: 'bg-amber-50/40',
-  high: 'bg-orange-50/40',
-  critical: 'bg-red-50/40',
+  low: 'bg-muted',
+  medium: 'bg-muted',
+  high: 'bg-muted',
+  critical: 'bg-destructive/10',
 }
 
 export type RiskSummaryCardProps = HTMLAttributes<HTMLDivElement> & {
@@ -38,12 +38,12 @@ export function RiskSummaryCard({ className, level, levelLabel, score, descripti
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-500">{levelLabel}</div>
-          <div className="mt-1 text-3xl font-bold text-gray-900">{score}</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{levelLabel}</div>
+          <div className="mt-1 text-3xl font-bold text-foreground">{score}</div>
         </div>
         {actions}
       </div>
-      {description ? <div className="mt-3 text-sm text-gray-600">{description}</div> : null}
+      {description ? <div className="mt-3 text-sm text-muted-foreground">{description}</div> : null}
     </div>
   )
 }

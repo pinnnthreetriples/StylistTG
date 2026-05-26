@@ -12,12 +12,12 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'border-navy-600 bg-navy-600 text-white hover:bg-navy-700',
-  secondary: 'border-gray-200 bg-gray-50 text-gray-900 hover:bg-gray-100',
-  outline: 'border-gray-200 bg-white text-gray-900 hover:bg-gray-50',
-  ghost: 'border-transparent bg-transparent text-gray-700 hover:bg-gray-100',
-  danger: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
-  destructive: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+  primary: 'border-border bg-primary text-primary-foreground hover:bg-foreground',
+  secondary: 'border-border bg-muted text-foreground hover:bg-muted',
+  outline: 'border-border bg-card text-foreground hover:bg-muted',
+  ghost: 'border-transparent bg-transparent text-foreground hover:bg-muted',
+  danger: 'border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/10',
+  destructive: 'border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/10',
 }
 
 const sizes: Record<ButtonSize, string> = {

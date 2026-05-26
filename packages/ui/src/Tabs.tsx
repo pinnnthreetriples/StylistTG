@@ -34,7 +34,7 @@ export function TabsList({ children, className }: { children: ReactNode; classNa
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-lg bg-gray-100/80 p-1',
+        'inline-flex items-center gap-1 rounded-lg bg-muted p-1',
         className,
       )}
       role="tablist"
@@ -60,10 +60,10 @@ export function TabsTrigger({ value, children, className, disabled }: TabsTrigge
       aria-selected={isActive}
       className={cn(
         'inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-400',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isActive
-          ? 'bg-white text-navy-900 shadow-sm'
-          : 'text-gray-500 hover:text-gray-900',
+          ? 'bg-card text-foreground shadow-sm'
+          : 'text-muted-foreground hover:text-foreground',
         disabled && 'pointer-events-none opacity-50',
         className,
       )}

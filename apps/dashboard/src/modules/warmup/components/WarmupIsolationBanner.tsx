@@ -28,17 +28,17 @@ export function WarmupIsolationBanner({
   return (
     <Alert className={className} variant="info">
       <div className="flex items-start gap-2">
-        <ShieldCheck className="mt-0.5 size-4 text-blue-600" aria-hidden />
+        <ShieldCheck className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
         <div className="grid gap-1">
-          <div className="text-sm font-semibold text-blue-900">
+          <div className="text-sm font-semibold text-muted-foreground">
             Аккаунт сейчас занят прогревом
           </div>
-          <p className="text-xs leading-5 text-blue-900/80">
+          <p className="text-xs leading-5 text-muted-foreground">
             Пока активная сессия прогрева удерживает аккаунт, другие модули
             (Кампании, Рассылки, Парсинг) не смогут выполнять с ним действия.
             Это защита от конфликтов и неожиданных мутаций.
           </p>
-          <div className="mt-1 grid gap-0.5 text-xs text-blue-900/70 sm:grid-cols-2">
+          <div className="mt-1 grid gap-0.5 text-xs text-muted-foreground sm:grid-cols-2">
             <span>
               <span className="font-semibold">Кем удерживается:</span>{' '}
               {status.claim.held_by}

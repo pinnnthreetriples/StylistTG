@@ -5,10 +5,10 @@ import { cn } from './utils'
 type AlertVariant = 'info' | 'success' | 'warning' | 'error'
 
 const variants: Record<AlertVariant, string> = {
-  info: 'border-sky-200 bg-sky-50 text-sky-800',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  warning: 'border-amber-200 bg-amber-50 text-amber-800',
-  error: 'border-red-200 bg-red-50 text-red-800',
+  info: 'border-border bg-muted text-muted-foreground',
+  success: 'border-border bg-muted text-primary',
+  warning: 'border-border bg-muted text-muted-foreground',
+  error: 'border-destructive/20 bg-destructive/10 text-destructive',
 }
 
 export type AlertProps = HTMLAttributes<HTMLDivElement> & {

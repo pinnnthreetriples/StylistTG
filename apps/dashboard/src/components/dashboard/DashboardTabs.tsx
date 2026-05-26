@@ -20,8 +20,8 @@ export function DashboardTabs({
             aria-selected={active}
             className={
               active
-                ? 'rounded-lg bg-navy-50 px-3.5 py-1.5 text-sm font-medium text-navy-400'
-                : 'rounded-lg px-3.5 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100/60 hover:text-gray-800'
+                ? 'rounded-lg bg-muted px-3.5 py-1.5 text-sm font-medium text-primary'
+                : 'rounded-lg px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
             }
             id={`dashboard-tab-${tab.id}`}
             key={tab.id}

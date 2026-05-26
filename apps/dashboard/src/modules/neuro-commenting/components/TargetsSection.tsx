@@ -60,7 +60,7 @@ function CampaignTargetsSection({ campaignId }: { campaignId: string }) {
   const targets = targetsQuery.data?.items ?? []
 
   if (targetsQuery.isError) {
-    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+    return <Card className="p-4 text-sm text-destructive">Не удалось загрузить данные</Card>
   }
   if (targetsQuery.isLoading) return <Skeleton className="h-20 w-full" />
 
@@ -102,7 +102,7 @@ function CampaignTargetsSection({ campaignId }: { campaignId: string }) {
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">Каналы ({targetsQuery.data?.total ?? 0})</h3>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Каналы ({targetsQuery.data?.total ?? 0})</h3>
       <form className="mb-3 grid gap-2" onSubmit={handleSubmit}>
         <div className="grid gap-2 sm:grid-cols-2">
           <FormField error={formError} htmlFor="neuro-target-channel">
@@ -136,16 +136,16 @@ function CampaignTargetsSection({ campaignId }: { campaignId: string }) {
           Добавить канал
         </Button>
       </form>
-      {mutationError ? <p className="mb-3 text-xs font-medium text-red-500">{mutationError}</p> : null}
+      {mutationError ? <p className="mb-3 text-xs font-medium text-destructive">{mutationError}</p> : null}
       {targets.length === 0 ? (
         <EmptyState title="Нет каналов" description="Добавьте целевые каналы для мониторинга" />
       ) : (
         <div className="space-y-1.5">
           {targets.map((target) => (
-            <div key={target.id} className="flex items-center justify-between rounded border border-gray-100 px-3 py-2 text-sm">
+            <div key={target.id} className="flex items-center justify-between rounded border border-border px-3 py-2 text-sm">
               <div>
-                <span className="font-medium text-gray-700">{target.channel_ref}</span>
-                {target.title ? <span className="ml-2 text-xs text-gray-400">{target.title}</span> : null}
+                <span className="font-medium text-foreground">{target.channel_ref}</span>
+                {target.title ? <span className="ml-2 text-xs text-muted-foreground">{target.title}</span> : null}
               </div>
               <div className="flex flex-wrap justify-end gap-1.5">
                 <Button

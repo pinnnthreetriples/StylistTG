@@ -9,20 +9,20 @@ export function ImportValidationResult({ batch }: { batch: AccountImportBatch | 
     <SectionCard title="Итог импорта">
       <div className="grid gap-3 text-sm md:grid-cols-3">
         <div>
-          <p className="text-gray-500">Пачка</p>
-          <p className="font-mono text-xs text-gray-900">{batch?.id ?? 'not created'}</p>
+          <p className="text-muted-foreground">Пачка</p>
+          <p className="font-mono text-xs text-foreground">{batch?.id ?? 'not created'}</p>
         </div>
         <div>
-          <p className="text-gray-500">Неподдерживаемые строки</p>
-          <p className="font-semibold text-gray-900">{unsupported.length}</p>
+          <p className="text-muted-foreground">Неподдерживаемые строки</p>
+          <p className="font-semibold text-foreground">{unsupported.length}</p>
         </div>
         <div>
-          <p className="text-gray-500">Политика</p>
-          <p className="font-semibold text-gray-900">сначала предпросмотр, без автоматического входа</p>
+          <p className="text-muted-foreground">Политика</p>
+          <p className="font-semibold text-foreground">сначала предпросмотр, без автоматического входа</p>
         </div>
       </div>
       {unsupported.length > 0 ? (
-        <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="mt-3 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
           Неподдерживаемые форматы сессий требуют ручного повторного входа; небезопасная конвертация не запускается.
         </div>
       ) : null}

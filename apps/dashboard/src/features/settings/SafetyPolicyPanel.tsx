@@ -49,13 +49,13 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
       }
     >
       {policyQuery.isPending ? (
-        <div className="text-sm text-gray-500">Загрузка policy...</div>
+        <div className="text-sm text-muted-foreground">Загрузка policy...</div>
       ) : policyQuery.isError || !policy ? (
-        <div className="text-sm text-amber-600">Policy безопасности недоступна.</div>
+        <div className="text-sm text-muted-foreground">Policy безопасности недоступна.</div>
       ) : (
         <div className="grid gap-4">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,240px)_1fr] sm:items-center">
-            <label className="text-sm font-medium text-gray-700" htmlFor="workspace-safety-mode">
+            <label className="text-sm font-medium text-foreground" htmlFor="workspace-safety-mode">
               Режим защиты
             </label>
             <Select
@@ -71,12 +71,12 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
           </div>
 
           {!canEdit ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
               Только администратор может менять режим.
             </div>
           ) : null}
           {updateMutation.error ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               Не удалось сохранить policy.
             </div>
           ) : null}
@@ -138,16 +138,16 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
 
 function ParameterList({ title, items }: { title: string; items: Array<[string, string]> }) {
   return (
-    <div className="rounded-md border border-gray-200 bg-white">
-      <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase text-gray-500">
+    <div className="rounded-md border border-border bg-card">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
         <ShieldCheck className="size-3.5" />
         {title}
       </div>
       <dl className="divide-y divide-gray-100">
         {items.map(([label, value]) => (
           <div className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2" key={label}>
-            <dt className="text-gray-500">{label}</dt>
-            <dd className="font-medium text-gray-900">{value}</dd>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="font-medium text-foreground">{value}</dd>
           </div>
         ))}
       </dl>

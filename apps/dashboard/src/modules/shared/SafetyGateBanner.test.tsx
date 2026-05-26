@@ -46,14 +46,14 @@ describe('SafetyGateBanner', () => {
     const html = renderBanner('blocked')
 
     expect(html).toContain('Account safety blocked')
-    expect(html).toContain('border-red-200')
+    expect(html).toContain('border-destructive/20')
   })
 
   it('renders warning verdicts', () => {
     const html = renderBanner('warning')
 
     expect(html).toContain('Account safety warning')
-    expect(html).toContain('border-amber-200')
+    expect(html).toContain('border-border')
   })
 
   it('returns null for ok verdicts', () => {

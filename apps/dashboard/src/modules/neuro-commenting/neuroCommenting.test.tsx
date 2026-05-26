@@ -212,7 +212,7 @@ describe('neuro-commenting section components', () => {
 
   test('AccountsSection renders loading skeleton', () => {
     const html = renderWithClient(<AccountsSection campaignId="c-1" />)
-    expect(html).toContain('skeleton')
+    expect(html).toContain('data-slot="skeleton"')
   })
 
   test('AccountsSection renders add form', () => {
@@ -240,7 +240,7 @@ describe('neuro-commenting section components', () => {
 
   test('TargetsSection renders loading skeleton', () => {
     const html = renderWithClient(<TargetsSection campaignId="c-1" />)
-    expect(html).toContain('skeleton')
+    expect(html).toContain('data-slot="skeleton"')
   })
 
   test('TargetsSection renders add form', () => {
@@ -262,7 +262,7 @@ describe('neuro-commenting section components', () => {
 
   test('EventsSection renders loading skeleton', () => {
     const html = renderWithClient(<EventsSection campaignId="c-1" />)
-    expect(html).toContain('skeleton')
+    expect(html).toContain('data-slot="skeleton"')
   })
 
   test('GeneratedCommentsSection displays generated text fallback and pending actions', () => {

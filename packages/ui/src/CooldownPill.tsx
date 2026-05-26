@@ -10,12 +10,12 @@ export function CooldownPill({ className, remainingLabel, ...props }: CooldownPi
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700',
+        'inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground',
         className,
       )}
       {...props}
     >
-      <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+      <span className="size-1.5 animate-pulse rounded-full bg-muted" />
       {remainingLabel}
     </span>
   )

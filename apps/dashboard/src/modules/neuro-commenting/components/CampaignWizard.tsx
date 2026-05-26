@@ -118,8 +118,8 @@ export function CampaignWizard({
   return (
     <Card className="p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Новая кампания</h3>
-        <ol className="flex gap-2 text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-foreground">Новая кампания</h3>
+        <ol className="flex gap-2 text-xs text-muted-foreground">
           {stepLabels.map((label, idx) => {
             const stepNumber = idx + 1
             const isActive = stepNumber === step
@@ -129,10 +129,10 @@ export function CampaignWizard({
                 key={label}
                 className={
                   isActive
-                    ? 'rounded-md bg-navy-50 px-2 py-0.5 font-medium text-navy-900'
+                    ? 'rounded-md bg-muted px-2 py-0.5 font-medium text-foreground'
                     : isDone
-                      ? 'text-emerald-600'
-                      : 'text-gray-400'
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
                 }
               >
                 {stepNumber}. {label}
@@ -144,7 +144,7 @@ export function CampaignWizard({
 
       {step === 1 ? (
         <div className="grid gap-3">
-          <label className="grid gap-1 text-xs font-medium text-gray-700">
+          <label className="grid gap-1 text-xs font-medium text-foreground">
             Название
             <Input
               value={state.name}
@@ -152,10 +152,10 @@ export function CampaignWizard({
               placeholder="Запуск B2B"
             />
           </label>
-          <label className="grid gap-1 text-xs font-medium text-gray-700">
+          <label className="grid gap-1 text-xs font-medium text-foreground">
             Описание
             <textarea
-              className="min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+              className="min-h-20 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
               placeholder="Опционально"
@@ -167,11 +167,11 @@ export function CampaignWizard({
       {step === 2 ? (
         <div className="grid gap-4">
           <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-gray-700">Режим подбора постов</legend>
+            <legend className="text-xs font-medium text-foreground">Режим подбора постов</legend>
             {supportedModes.map((option) => (
               <label
                 key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-2 text-sm has-[input:checked]:border-navy-300 has-[input:checked]:bg-navy-50"
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
                   type="radio"
@@ -181,18 +181,18 @@ export function CampaignWizard({
                   onChange={() => setState((s) => ({ ...s, mode: option.value }))}
                 />
                 <span>
-                  <span className="font-medium text-gray-900">{option.label}</span>
-                  <span className="block text-xs text-gray-500">{option.description}</span>
+                  <span className="font-medium text-foreground">{option.label}</span>
+                  <span className="block text-xs text-muted-foreground">{option.description}</span>
                 </span>
               </label>
             ))}
           </fieldset>
           <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-gray-700">Режим работы</legend>
+            <legend className="text-xs font-medium text-foreground">Режим работы</legend>
             {supportedWorkModes.map((option) => (
               <label
                 key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-2 text-sm has-[input:checked]:border-navy-300 has-[input:checked]:bg-navy-50"
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
                   type="radio"
@@ -202,8 +202,8 @@ export function CampaignWizard({
                   onChange={() => setState((s) => ({ ...s, workMode: option.value }))}
                 />
                 <span>
-                  <span className="font-medium text-gray-900">{option.label}</span>
-                  <span className="block text-xs text-gray-500">{option.description}</span>
+                  <span className="font-medium text-foreground">{option.label}</span>
+                  <span className="block text-xs text-muted-foreground">{option.description}</span>
                 </span>
               </label>
             ))}
@@ -213,10 +213,10 @@ export function CampaignWizard({
 
       {step === 3 ? (
         <div className="grid gap-4">
-          <label className="grid gap-1 text-xs font-medium text-gray-700">
+          <label className="grid gap-1 text-xs font-medium text-foreground">
             Пресет промпта
             <select
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={selectedPresetId}
               onChange={(event) => {
                 const id = event.target.value
@@ -235,21 +235,21 @@ export function CampaignWizard({
               ))}
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-medium text-gray-700">
+          <label className="grid gap-1 text-xs font-medium text-foreground">
             Промпт для AI
             <textarea
-              className="min-h-28 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+              className="min-h-28 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.promptTemplate}
               onChange={(e) => setState((s) => ({ ...s, promptTemplate: e.target.value }))}
               placeholder="Например: «Напиши короткий нативный комментарий по теме поста, 3-7 слов»"
             />
           </label>
           <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-gray-700">Режим одобрения</legend>
+            <legend className="text-xs font-medium text-foreground">Режим одобрения</legend>
             {supportedApprovalModes.map((option) => (
               <label
                 key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-2 text-sm has-[input:checked]:border-navy-300 has-[input:checked]:bg-navy-50"
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
                   type="radio"
@@ -259,8 +259,8 @@ export function CampaignWizard({
                   onChange={() => setState((s) => ({ ...s, approvalMode: option.value }))}
                 />
                 <span>
-                  <span className="font-medium text-gray-900">{option.label}</span>
-                  <span className="block text-xs text-gray-500">{option.description}</span>
+                  <span className="font-medium text-foreground">{option.label}</span>
+                  <span className="block text-xs text-muted-foreground">{option.description}</span>
                 </span>
               </label>
             ))}
@@ -269,14 +269,14 @@ export function CampaignWizard({
       ) : null}
 
       {step === 4 ? (
-        <dl className="grid gap-2 text-xs text-gray-700">
+        <dl className="grid gap-2 text-xs text-foreground">
           <div className="flex justify-between">
             <dt className="font-medium">Название:</dt>
-            <dd>{state.name || <span className="text-gray-400">—</span>}</dd>
+            <dd>{state.name || <span className="text-muted-foreground">—</span>}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="font-medium">Описание:</dt>
-            <dd className="max-w-[60%] text-right">{state.description || <span className="text-gray-400">—</span>}</dd>
+            <dd className="max-w-[60%] text-right">{state.description || <span className="text-muted-foreground">—</span>}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="font-medium">Режим:</dt>
@@ -293,13 +293,13 @@ export function CampaignWizard({
           <div className="flex justify-between">
             <dt className="font-medium">Промпт:</dt>
             <dd className="max-w-[60%] truncate text-right">
-              {state.promptTemplate || <span className="text-gray-400">по умолчанию</span>}
+              {state.promptTemplate || <span className="text-muted-foreground">по умолчанию</span>}
             </dd>
           </div>
         </dl>
       ) : null}
 
-      {error ? <p className="mt-3 text-xs font-medium text-red-500">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs font-medium text-destructive">{error}</p> : null}
 
       <div className="mt-4 flex justify-between gap-2">
         <Button

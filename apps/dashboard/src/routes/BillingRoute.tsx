@@ -16,7 +16,7 @@ export function BillingRoute() {
           <ProductEmptyState
             title="Биллинг пока недоступен"
             description="Оплата, лимиты тарифа и расширенная аналитика появятся в отдельном безопасном PR. Сейчас этот раздел ничего не запускает и не меняет."
-            action={<Lock className="size-5 text-gray-400" />}
+            action={<Lock className="size-5 text-muted-foreground" />}
           />
         </Card>
       </PageShell>

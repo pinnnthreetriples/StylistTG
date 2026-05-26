@@ -17,9 +17,9 @@ export type AccountReadinessPanelProps = {
 
 export function AccountReadinessPanel({ title, items, actions, className }: AccountReadinessPanelProps) {
   return (
-    <div className={cn('rounded-xl border border-gray-200 bg-white p-4', className)}>
+    <div className={cn('rounded-xl border border-border bg-card p-4', className)}>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        <h3 className="text-sm font-bold text-foreground">{title}</h3>
         {actions}
       </div>
       <ul className="mt-3 grid gap-2">
@@ -28,14 +28,14 @@ export function AccountReadinessPanel({ title, items, actions, className }: Acco
             <span
               className={cn(
                 'size-2 shrink-0 rounded-full',
-                item.ready ? 'bg-emerald-500' : 'bg-gray-300',
+                item.ready ? 'bg-muted' : 'bg-foreground',
               )}
             />
-            <span className={cn('text-gray-700', !item.ready && 'text-gray-400')}>
+            <span className={cn('text-foreground', !item.ready && 'text-muted-foreground')}>
               {item.label}
             </span>
             {item.detail ? (
-              <span className="ml-auto text-xs text-gray-400">{item.detail}</span>
+              <span className="ml-auto text-xs text-muted-foreground">{item.detail}</span>
             ) : null}
           </li>
         ))}

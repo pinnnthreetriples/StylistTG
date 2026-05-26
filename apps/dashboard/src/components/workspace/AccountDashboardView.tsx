@@ -194,7 +194,7 @@ export function AccountDashboardView({
   )
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-background">
       {dashboard?.account ? (
         <AccountHeader
           account={dashboard.account}
@@ -207,8 +207,8 @@ export function AccountDashboardView({
           onSync={onSync}
         />
       ) : (
-        <div className="border-b border-gray-200/70 bg-white px-4 py-3 sm:px-6">
-          <div className="mx-auto max-w-6xl text-sm text-gray-500">Загружаем аккаунт...</div>
+        <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
+          <div className="mx-auto max-w-6xl text-sm text-muted-foreground">Загружаем аккаунт...</div>
         </div>
       )}
 
@@ -221,18 +221,18 @@ export function AccountDashboardView({
       ) : null}
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-24">
-        <div className="flex items-center justify-between mb-4 fade-in">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h1 className="font-display font-bold text-lg tracking-tight text-gray-900">
+            <h1 className="font-sans font-bold text-lg tracking-tight text-foreground">
               Редактирование профиля
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-md text-[11px] font-medium text-emerald-700">
-              <Check className="size-3 text-emerald-500" />
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted border border-border rounded-md text-[11px] font-medium text-primary">
+              <Check className="size-3 text-primary" />
               {buildJobMetrics(jobs).success} успешно
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium text-gray-500">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted border border-border rounded-md text-[11px] font-medium text-muted-foreground">
               {buildJobMetrics(jobs).total} задач
             </span>
           </div>
@@ -353,7 +353,7 @@ export function AccountDashboardView({
                         resultSummary={jobResultSummary}
                       />
                     ) : (
-                      <div className="text-sm text-gray-500">Нет активных задач.</div>
+                      <div className="text-sm text-muted-foreground">Нет активных задач.</div>
                     )}
                     <OperationLogsPanel logs={(accountLogsData?.items ?? []).slice(0, 10)} title="История задач" />
                   </div>

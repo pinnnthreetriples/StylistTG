@@ -26,16 +26,16 @@ export function DataTable({
   className,
 }: DataTableProps) {
   if (loading) {
-    return <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">Загрузка...</div>
+    return <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">Загрузка...</div>
   }
   if (empty) {
     return <EmptyState title={emptyTitle} />
   }
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-gray-200 bg-white', className)}>
+    <div className={cn('overflow-hidden rounded-lg border border-border bg-card', className)}>
       {columns ? (
         <table className="w-full border-collapse text-sm">
-          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+          <thead className="bg-muted text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {columns.map((column) => (
                 <th className="px-3 py-2 font-semibold" key={column.key}>

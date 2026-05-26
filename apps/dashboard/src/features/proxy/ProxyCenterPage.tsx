@@ -9,7 +9,7 @@ export function ProxyCenterPage() {
         description="Read-only раздел для глубоких ссылок. Основная работа с прокси находится внутри аккаунта."
       />
       <SectionCard title="Операции с прокси">
-        <p className="text-sm leading-6 text-gray-500">
+        <p className="text-sm leading-6 text-muted-foreground">
           Диагностика прокси по аккаунту доступна во вкладке аккаунта. Этот раздел не создаёт, не проверяет и не меняет прокси.
         </p>
       </SectionCard>

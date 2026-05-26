@@ -14,17 +14,17 @@ export function SafetyGatePanel({ title, reason, retryLabel, icon, className }: 
   return (
     <div
       className={cn(
-        'rounded-xl border-2 border-amber-200 bg-amber-50/50 px-5 py-4',
+        'rounded-xl border-2 border-border bg-muted px-5 py-4',
         className,
       )}
     >
       <div className="flex items-start gap-3">
-        {icon ? <span className="mt-0.5 shrink-0 text-amber-600">{icon}</span> : null}
+        {icon ? <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span> : null}
         <div className="min-w-0">
-          <div className="text-sm font-bold text-amber-900">{title}</div>
-          <div className="mt-1 text-sm text-amber-700">{reason}</div>
+          <div className="text-sm font-bold text-muted-foreground">{title}</div>
+          <div className="mt-1 text-sm text-muted-foreground">{reason}</div>
           {retryLabel ? (
-            <div className="mt-2 text-xs font-medium text-amber-600">{retryLabel}</div>
+            <div className="mt-2 text-xs font-medium text-muted-foreground">{retryLabel}</div>
           ) : null}
         </div>
       </div>

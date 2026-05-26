@@ -59,7 +59,7 @@ export function ImportBatchPage({ compact = false }: { compact?: boolean }) {
       {compact && !batch ? null : <ImportPreviewTable batch={batch} />}
       {compact && !batch ? null : <ImportValidationResult batch={batch} />}
       {error ? (
-        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+        <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-semibold text-muted-foreground">
           {redactImportUiError(error)}
         </div>
       ) : null}

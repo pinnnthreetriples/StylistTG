@@ -133,25 +133,25 @@ export function ApprovalInbox({
   return (
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h3 className="text-sm font-semibold text-foreground">
           Очередь модерации ({pending.length})
         </h3>
         <button
           type="button"
-          className="text-xs text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline"
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           onClick={() => setShowHint((value) => !value)}
         >
           ? горячие клавиши
         </button>
       </div>
       {showHint ? (
-        <p className="mb-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">{SHORTCUTS_LABEL}</p>
+        <p className="mb-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">{SHORTCUTS_LABEL}</p>
       ) : null}
       {commentsQuery.isError ? (
-        <p className="text-sm text-red-600">Не удалось загрузить данные</p>
+        <p className="text-sm text-destructive">Не удалось загрузить данные</p>
       ) : null}
       {!commentsQuery.isLoading && pending.length === 0 ? (
-        <p className="text-sm text-gray-500">Все комментарии обработаны.</p>
+        <p className="text-sm text-muted-foreground">Все комментарии обработаны.</p>
       ) : null}
       <div ref={containerRef} className="space-y-2">
         {pending.map((comment, index) => {
@@ -161,18 +161,18 @@ export function ApprovalInbox({
             <div
               key={comment.id}
               className={`rounded-lg border p-3 transition ${
-                isActive ? 'border-navy-300 bg-navy-50' : 'border-gray-100 bg-gray-50/50'
+                isActive ? 'border-border bg-muted' : 'border-border bg-muted'
               }`}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
                 {isEditing ? (
                   <textarea
-                    className="min-h-20 flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+                    className="min-h-20 flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
                     value={editText}
                     onChange={(event) => setEditText(event.target.value)}
                   />
                 ) : (
-                  <p className="text-sm text-gray-800">{comment.text}</p>
+                  <p className="text-sm text-foreground">{comment.text}</p>
                 )}
                 <ApprovalBadge status={comment.status} />
               </div>
@@ -180,14 +180,14 @@ export function ApprovalInbox({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className="rounded-md border border-navy-300 bg-navy-50 px-2 py-1 text-xs font-medium text-navy-900 hover:bg-navy-100"
+                    className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted"
                     onClick={submitEdit}
                   >
                     Сохранить
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                    className="rounded-md border border-border bg-card px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
                     onClick={() => {
                       setEditingId(null)
                       setEditText('')
@@ -202,7 +202,7 @@ export function ApprovalInbox({
         })}
       </div>
       {statusMessage ? (
-        <p className="mt-3 text-xs text-gray-500" aria-live="polite">
+        <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
           {statusMessage}
         </p>
       ) : null}

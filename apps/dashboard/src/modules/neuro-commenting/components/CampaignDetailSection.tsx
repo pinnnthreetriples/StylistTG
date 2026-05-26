@@ -22,7 +22,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
   const campaign = campaignQuery.data
 
   if (campaignQuery.isError) {
-    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+    return <Card className="p-4 text-sm text-destructive">Не удалось загрузить данные</Card>
   }
   if (campaignQuery.isLoading) {
     return <Skeleton className="h-32 w-full" />
@@ -57,36 +57,36 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
     <Card className="space-y-4 p-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">{campaign.name}</h2>
-          {campaign.description ? <p className="mt-0.5 text-sm text-gray-500">{campaign.description}</p> : null}
+          <h2 className="text-base font-semibold text-foreground">{campaign.name}</h2>
+          {campaign.description ? <p className="mt-0.5 text-sm text-muted-foreground">{campaign.description}</p> : null}
         </div>
         <CampaignStatusBadge status={campaign.status} />
       </div>
 
       <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <span className="text-gray-500">Режим</span>
+          <span className="text-muted-foreground">Режим</span>
           <p className="font-medium">{campaign.mode}</p>
         </div>
         <div>
-          <span className="text-gray-500">Отправка</span>
+          <span className="text-muted-foreground">Отправка</span>
           <p className="font-medium">{campaign.send_mode}</p>
         </div>
         <div>
-          <span className="text-gray-500">Одобрение</span>
+          <span className="text-muted-foreground">Одобрение</span>
           <p className="font-medium">{campaign.approval_mode}</p>
         </div>
         <div>
-          <span className="text-gray-500">Dry Run</span>
+          <span className="text-muted-foreground">Dry Run</span>
           <p className="font-medium">{campaign.dry_run ? 'Да' : 'Нет'}</p>
         </div>
       </div>
 
-      <form className="space-y-3 border-t border-gray-100 pt-4" onSubmit={handleEditorSubmit}>
+      <form className="space-y-3 border-t border-border pt-4" onSubmit={handleEditorSubmit}>
         <FormField label="Prompt" error={formError} htmlFor="neuro-campaign-prompt">
           <textarea
             id="neuro-campaign-prompt"
-            className="min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+            className="min-h-24 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
             maxLength={5000}
             value={editorForm.promptTemplate}
             onChange={(event) => updateEditorForm({ promptTemplate: event.target.value })}
@@ -173,7 +173,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
           </FormField>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+          <label className="inline-flex items-center gap-2 text-sm text-foreground">
             <input
               checked={editorForm.safetyEnabled}
               className="size-4"
@@ -182,16 +182,16 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
             />
             Safety enabled
           </label>
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
+          <span className="rounded border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
             auto_send_enabled: false
           </span>
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
+          <span className="rounded border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
             send_mode: {campaign.send_mode}
           </span>
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
+          <span className="rounded border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
             comment_as_channel: coming soon
           </span>
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
+          <span className="rounded border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
             emoji_then_edit: coming soon
           </span>
           <Button
@@ -203,7 +203,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
             Сохранить настройки
           </Button>
         </div>
-        {mutationError ? <p className="text-xs font-medium text-red-500">{mutationError}</p> : null}
+        {mutationError ? <p className="text-xs font-medium text-destructive">{mutationError}</p> : null}
       </form>
 
       <div className="flex gap-2">
@@ -217,7 +217,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
           Observe campaign now
         </Button>
         {observe.data ? (
-          <span className="self-center text-xs text-gray-500">
+          <span className="self-center text-xs text-muted-foreground">
             Accepted: {observe.data.job_id}
           </span>
         ) : null}

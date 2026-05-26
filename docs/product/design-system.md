@@ -2,52 +2,39 @@
 
 ## Visual Style
 
-StylistTG uses a warm, professional SaaS aesthetic with cream backgrounds, navy accents, and clear typographic hierarchy. The design is minimal and clean — no decorative gradients or heavy shadows.
+StylistTG is temporarily reset to a neutral shadcn baseline before a full redesign. The dashboard should stay usable, compact, and operational while avoiding project-specific visual identity.
 
-## Color System
+## Token Baseline
 
-### Brand palette
+Use shadcn/Tailwind semantic tokens only:
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `navy-50` – `navy-900` | Blue scale | Primary brand, active states, links |
-| `tangerine-50` – `tangerine-700` | Orange scale | Warnings, attention, dirty indicators |
-| `honey-50` – `honey-700` | Yellow/amber scale | Caution states, safety pauses |
-| `cream` | `#F7F7F5` | Page background |
+| Purpose | Token |
+|---------|-------|
+| Page/background | `background` |
+| Main text | `foreground` |
+| Panels/cards | `card`, `card-foreground` |
+| Secondary surfaces | `muted`, `muted-foreground` |
+| Primary actions | `primary`, `primary-foreground` |
+| Errors/critical | `destructive` |
+| Structure/focus | `border`, `input`, `ring` |
 
-### Semantic colors
+Do not add a custom palette until the new redesign direction is approved. Avoid brand color scales, decorative gradients, custom shadows, display fonts, and custom page-entry animations.
 
-| Purpose | Token | Usage |
-|---------|-------|-------|
-| Primary | `navy-400` / `navy-500` | Buttons, links, active states |
-| Success | `emerald-*` | Ready, OK, low risk |
-| Warning | `amber-*` | Pauses, medium risk, needs attention |
-| Danger | `red-*` | Errors, critical risk, failures |
-| Info | `sky-*` | Informational badges, neutral status |
-| Muted | `gray-*` | Secondary text, disabled states |
+## Status Tones
 
-### Status tones (used by StatusPill, Badge, StatusCard)
+Status tone names may remain in code as behavior labels for backwards compatibility, but their visual output should map to shadcn tokens:
 
-- `green` → success / ready
-- `amber` → warning / needs attention
-- `red` → error / critical
-- `blue` → informational
-- `gray` → neutral / unknown / muted
+- success/ready -> `muted` with `primary` emphasis
+- warning/info/paused -> `muted` with `muted-foreground`
+- danger/error/critical -> `destructive`
+- neutral/unknown -> `muted` or `foreground`
 
 ## Typography
 
-- **Heading**: Cabinet Grotesk (bold, 700-800)
-- **Body**: General Sans → Geist Variable → system sans-serif
-- **Display**: Cabinet Grotesk
-- **Code/technical**: System monospace
-
-### Scale
-
-- Page title: `text-xl font-bold` or `text-lg font-bold`
-- Section title: `text-sm font-semibold`
-- Body: `text-sm`
-- Small: `text-xs`
-- Tiny: `text-[11px]`
+- Use system UI fonts only.
+- Keep dashboard surfaces compact: `text-sm`, `text-xs`, and restrained headings.
+- Do not use display fonts, hero-scale typography, negative tracking, or viewport-scaled type in product UI.
+- Use system monospace for code/technical snippets.
 
 ## Spacing
 
@@ -60,30 +47,14 @@ Standard Tailwind spacing scale. Key patterns:
 
 ## Border Radius
 
-- `--radius`: `0.625rem` (10px)
+- `--radius`: `0.625rem`
 - Small buttons/badges: `rounded-md`
 - Cards/sections: `rounded-lg` or `rounded-xl`
 - Avatars/pills: `rounded-full`
 
-## Shadows
-
-- Soft: `shadow-soft` → `0 1px 3px rgba(0, 0, 0, 0.04)`
-- Card: `shadow-sm`
-- Modal: `shadow-xl`
-
 ## Motion
 
-Duration tokens:
-- Fast: 150ms (hover, micro-interactions)
-- Normal: 200ms (sections, cards)
-- Slow: 300ms (page transitions, modals)
-
-Easing: `ease-out` / `cubic-bezier(0, 0, 0.2, 1)` for enters.
-
-Rules:
-- **DO**: Animate page enters, section appears, card reveals, list staggers
-- **DON'T**: Animate errors, critical risk, dense tables, log entries, health failures
-- Always respect `prefers-reduced-motion` (MotionConfig reducedMotion="user")
+Use motion only where it clarifies state changes. Avoid decorative page-load sequences, custom stagger utilities, and custom keyframes during the redesign reset.
 
 ## Component Catalog
 
@@ -101,15 +72,15 @@ Rules:
 | Component | Usage |
 |-----------|-------|
 | `Badge` | Inline status indicator |
-| `StatusPill` | Colored pill for status values |
+| `StatusPill` | Status value with semantic dot |
 | `StatusCard` | Labeled value card with tone |
-| `MetricCard` | Large numeric metric display |
+| `MetricCard` | Numeric metric display |
 | `DataTable` | Table wrapper |
 
 ### Layout
 | Component | Usage |
 |-----------|-------|
-| `PageShell` | Standard page wrapper (max-width, padding) |
+| `PageShell` | Standard page wrapper |
 | `PageHeader` | Page title with eyebrow and actions |
 | `SectionCard` | Titled card section |
 | `Card` | Base card container |
@@ -132,7 +103,7 @@ Rules:
 | `DropdownMenu` | Contextual action menu |
 | `Tooltip` | Hover information |
 | `Tabs` | Tab navigation |
-| `Alert` | Banner notification (info/success/warning/error) |
+| `Alert` | Banner notification |
 | `Skeleton` | Loading placeholder |
 
 ### Risk & Safety
@@ -148,10 +119,10 @@ Rules:
 
 ## Anti-patterns
 
-1. **Don't show raw API enums** — Always map through `uiLabels.ts`
-2. **Don't use English in UI** — All user-facing text must be Russian
-3. **Don't animate errors** — Critical states should appear immediately
-4. **Don't put Russian in generic primitives** — Russian text belongs in app-level components
-5. **Don't use `confirm()` dialogs** — Use app-styled Dialog components
-6. **Don't create ad-hoc status colors** — Use the tone system (green/amber/red/blue/gray)
-7. **Don't add components without types** — Everything must be typed TypeScript
+1. Do not show raw API enums. Always map through `uiLabels.ts`.
+2. Do not use English in UI. User-facing dashboard text must be Russian unless it is a protocol or product term.
+3. Do not animate errors. Critical states should appear immediately.
+4. Do not put Russian copy in generic primitives. Russian text belongs in app-level components.
+5. Do not use `confirm()` dialogs. Use app-styled Dialog components.
+6. Do not add ad-hoc colors or visual tokens before the redesign direction is approved.
+7. Do not add components without TypeScript types.

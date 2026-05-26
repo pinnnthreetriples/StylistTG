@@ -15,7 +15,6 @@
     "qa:screenshots": "playwright test --project=chromium"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.2.9",
     "@sentry/react": "^10.53.1",
     "@stylisttg/api-client": "file:../../packages/api-client",
     "@stylisttg/ui": "file:../../packages/ui",

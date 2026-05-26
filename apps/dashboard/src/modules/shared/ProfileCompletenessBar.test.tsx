@@ -47,6 +47,6 @@ describe('ProfileCompletenessBar', () => {
     )
 
     expect(html).toContain('80%')
-    expect(html).toContain('bg-emerald-500')
+    expect(html).toContain('bg-muted')
   })
 })

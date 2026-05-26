@@ -21,6 +21,7 @@ WORKSPACE_INDEX = "ix_account_safety_override_workspace_id"
 WORKSPACE_COMPOSITE_INDEX = "ix_override_workspace_account_op_until"
 WORKSPACE_FK = "account_safety_override_workspace_id_fkey"
 DEFAULT_WORKSPACE_ID = "00000000-0000-4000-8000-000000000001"
+WORKSPACE_ID_TYPE = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
 
 
 def upgrade() -> None:
@@ -28,7 +29,7 @@ def upgrade() -> None:
         TABLE_NAME,
         sa.Column(
             "workspace_id",
-            sa.String(length=36),
+            WORKSPACE_ID_TYPE,
             nullable=True,
         ),
     )
@@ -63,14 +64,14 @@ def upgrade() -> None:
     op.alter_column(
         TABLE_NAME,
         "workspace_id",
-        existing_type=sa.String(length=36),
+        existing_type=WORKSPACE_ID_TYPE,
         nullable=False,
         server_default=DEFAULT_WORKSPACE_ID,
     )
     op.alter_column(
         TABLE_NAME,
         "workspace_id",
-        existing_type=sa.String(length=36),
+        existing_type=WORKSPACE_ID_TYPE,
         server_default=None,
     )
 

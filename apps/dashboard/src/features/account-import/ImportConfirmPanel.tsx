@@ -30,7 +30,7 @@ export function ImportConfirmPanel({
           Проверить
         </Button>
         <input
-          className="h-10 flex-1 rounded-md border border-gray-200 px-3 text-sm"
+          className="h-10 flex-1 rounded-md border border-border px-3 text-sm"
           disabled={disabled || !batch}
           onChange={(event) => setConfirmation(event.target.value)}
           placeholder="Введите IMPORT для подтверждения"

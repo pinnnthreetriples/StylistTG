@@ -25,12 +25,12 @@ export function AuthPhoneStep({
       }}
     >
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-gray-500" htmlFor="auth-phone-number">
+        <label className="block text-xs font-medium text-muted-foreground" htmlFor="auth-phone-number">
           Номер телефона
         </label>
         <Input
           autoComplete="tel"
-          className="h-auto rounded-xl border-gray-200 bg-white px-3.5 py-3 text-sm"
+          className="h-auto rounded-xl border-border bg-card px-3.5 py-3 text-sm"
           id="auth-phone-number"
           inputMode="tel"
           onChange={(event) => onPhoneNumberChange(event.target.value)}
@@ -39,7 +39,7 @@ export function AuthPhoneStep({
         />
       </div>
       <Button
-        className="h-auto w-full rounded-xl bg-navy-400 px-4 py-3 text-sm font-semibold text-white hover:bg-navy-500"
+        className="h-auto w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary"
         disabled={pending || !phoneNumber.trim()}
         type="submit"
       >

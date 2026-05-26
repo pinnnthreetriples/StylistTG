@@ -84,18 +84,18 @@ export function QuarantineStateBanner({
 
   if (compact) {
     return (
-      <span className="inline-flex max-w-[12rem] items-center truncate rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+      <span className="inline-flex max-w-[12rem] items-center truncate rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
         {label}
       </span>
     )
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+    <div className="rounded-xl border border-border bg-muted p-3 text-sm text-muted-foreground">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="amber">{label}</Badge>
-          <span className="text-xs text-amber-700">{quarantine.reason}</span>
+          <span className="text-xs text-muted-foreground">{quarantine.reason}</span>
         </div>
         {isAdmin ? (
           <Button type="button" variant="secondary" onClick={() => setIsModalOpen(true)}>
@@ -105,29 +105,29 @@ export function QuarantineStateBanner({
       </div>
 
       {isModalOpen ? (
-        <div className="mt-3 rounded-lg border border-amber-200 bg-white p-3">
-          <label className="grid gap-1 text-xs font-medium text-gray-700">
+        <div className="mt-3 rounded-lg border border-border bg-card p-3">
+          <label className="grid gap-1 text-xs font-medium text-foreground">
             Reason
             <textarea
-              className="min-h-20 rounded-lg border border-gray-200 p-2 text-sm"
+              className="min-h-20 rounded-lg border border-border p-2 text-sm"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
             />
           </label>
-          <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+          <label className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted p-2 text-xs text-muted-foreground">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-700"
+              className="mt-0.5 h-4 w-4 rounded border-border text-muted-foreground"
               checked={overrideGateBlock}
               onChange={(event) => setOverrideGateBlock(event.target.checked)}
             />
             <span>Override safety gate block for this release.</span>
           </label>
-          <p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+          <p role="alert" className="mt-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2 text-xs text-destructive">
             When checked, releasing quarantine also grants a 24-hour safety gate override. Use only after manual
             operator verification.
           </p>
-          {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
           <div className="mt-3 flex justify-end gap-2">
             <Button
               type="button"

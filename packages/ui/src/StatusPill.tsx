@@ -5,13 +5,13 @@ import { cn } from './utils'
 export type StatusPillTone = 'ok' | 'warn' | 'error' | 'muted' | 'green' | 'amber' | 'red'
 
 const tones: Record<StatusPillTone, string> = {
-  ok: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  error: 'bg-red-500',
-  muted: 'bg-gray-400',
-  green: 'bg-emerald-500',
-  amber: 'bg-amber-500',
-  red: 'bg-red-500',
+  ok: 'bg-muted',
+  warn: 'bg-muted',
+  error: 'bg-destructive',
+  muted: 'bg-foreground',
+  green: 'bg-muted',
+  amber: 'bg-muted',
+  red: 'bg-destructive',
 }
 
 export type StatusPillProps = HTMLAttributes<HTMLSpanElement> & {
@@ -21,7 +21,7 @@ export type StatusPillProps = HTMLAttributes<HTMLSpanElement> & {
 export function StatusPill({ className, tone = 'muted', children, ...props }: StatusPillProps) {
   return (
     <span
-      className={cn('inline-flex items-center gap-2 rounded-full bg-gray-50 px-2.5 py-1 text-xs text-gray-700', className)}
+      className={cn('inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-xs text-foreground', className)}
       {...props}
     >
       <span className={cn('size-2 rounded-full', tones[tone])} />

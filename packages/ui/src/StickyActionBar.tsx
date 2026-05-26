@@ -14,8 +14,8 @@ export function StickyActionBar({ visible, children, className }: StickyActionBa
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur',
-        'animate-[fade-in-up_0.2s_ease-out_both]',
+        'fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur',
+        'animate-[-up_0.2s_ease-out_both]',
         'xl:left-64',
         className,
       )}

@@ -25,7 +25,7 @@ export function ImportPreviewTable({ batch }: { batch: AccountImportBatch | null
     <SectionCard title="Предпросмотр" description="Показываются только скрытые подсказки и статус проверки. Материал сессий исключён.">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="text-xs uppercase text-gray-500">
+          <thead className="text-xs uppercase text-muted-foreground">
             <tr>
               <th className="py-2">Статус</th>
               <th className="py-2">Телефон</th>

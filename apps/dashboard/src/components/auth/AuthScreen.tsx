@@ -88,46 +88,46 @@ export const AuthScreen = memo(function AuthScreen({
   ]
 
   return (
-    <div className="min-h-screen bg-cream gradient-blob">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-4 py-10 sm:px-6">
-        <section className="w-full max-w-[980px] overflow-hidden rounded-[28px] border border-gray-200/60 bg-white shadow-soft">
+        <section className="w-full max-w-[980px] overflow-hidden rounded-[28px] border border-border bg-card shadow-sm">
           <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="border-b border-gray-200/60 bg-gradient-to-br from-navy-50 via-white to-tangerine-50 p-6 lg:border-b-0 lg:border-r lg:p-8">
+            <div className="border-b border-border bg-muted p-6 lg:border-b-0 lg:border-r lg:p-8">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-navy-400">
-                  <Sparkles className="size-5 text-white" />
+                <div className="flex size-10 items-center justify-center rounded-xl bg-primary">
+                  <Sparkles className="size-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-navy-900">StylistTG</p>
-                  <p className="text-xs font-medium text-gray-400">Авторизация по коду</p>
+                  <p className="text-lg font-bold text-foreground">StylistTG</p>
+                  <p className="text-xs font-medium text-muted-foreground">Авторизация по коду</p>
                 </div>
               </div>
 
               <div className="mt-10 max-w-sm">
-                <h1 className="text-3xl font-bold tracking-normal text-navy-900">Вход в Telegram</h1>
-                <p className="mt-3 text-sm leading-6 text-gray-600">
+                <h1 className="text-3xl font-bold tracking-normal text-foreground">Вход в Telegram</h1>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
                   Рабочий экран авторизации перед панелью управления. После успешного входа вы сразу попадёте в
                   редактирование профиля.
                 </p>
               </div>
 
-              <div className="mt-8 grid gap-3 text-sm text-gray-600">
-                <div className="flex items-start gap-3 rounded-2xl bg-white/80 px-4 py-3 shadow-soft">
-                  <ShieldCheck className="mt-0.5 size-4 text-emerald-600" />
+              <div className="mt-8 grid gap-3 text-sm text-muted-foreground">
+                <div className="flex items-start gap-3 rounded-2xl bg-card/80 px-4 py-3 shadow-sm">
+                  <ShieldCheck className="mt-0.5 size-4 text-primary" />
                   <div>
-                    <p className="font-medium text-navy-900">Поддержка двухэтапной аутентификации</p>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">OTP-код + облачный пароль Telegram (2FA).</p>
+                    <p className="font-medium text-foreground">Поддержка двухэтапной аутентификации</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">OTP-код + облачный пароль Telegram (2FA).</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-white/80 px-4 py-3 shadow-soft">
+                <div className="flex items-start gap-3 rounded-2xl bg-card/80 px-4 py-3 shadow-sm">
                   {pending ? (
-                    <Loader2 className="mt-0.5 size-4 animate-spin text-navy-500" />
+                    <Loader2 className="mt-0.5 size-4 animate-spin text-primary" />
                   ) : (
-                    <KeyRound className="mt-0.5 size-4 text-navy-500" />
+                    <KeyRound className="mt-0.5 size-4 text-primary" />
                   )}
                   <div>
-                    <p className="font-medium text-navy-900">После входа обновляем runtime</p>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                    <p className="font-medium text-foreground">После входа обновляем runtime</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       В панель управления пускаем только когда аккаунт действительно готов к работе.
                     </p>
                   </div>
@@ -145,18 +145,18 @@ export const AuthScreen = memo(function AuthScreen({
                     title={statusBlock.title}
                   />
                 </div>
-                <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-navy-900">Test DC</p>
+                      <p className="text-xs font-semibold text-foreground">Test DC</p>
                       <div className="group relative flex">
-                        <HelpCircle className="size-4 text-gray-400" aria-label="Подсказка по Test DC" />
-                        <div className="pointer-events-none absolute left-1/2 top-6 z-10 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-5 text-gray-600 opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
+                        <HelpCircle className="size-4 text-muted-foreground" aria-label="Подсказка по Test DC" />
+                        <div className="pointer-events-none absolute left-1/2 top-6 z-10 w-64 -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs leading-5 text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
                           Тестовый Telegram. Пример: номер +9996611234, код 11111. Для реального аккаунта выключите.
                         </div>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       {testDcEnabled ? 'Вход идет в тестовую среду Telegram.' : 'Вход идет в обычный Telegram.'}
                     </p>
                   </div>
@@ -164,15 +164,15 @@ export const AuthScreen = memo(function AuthScreen({
                     aria-checked={testDcEnabled}
                     aria-label="Переключить Test DC"
                     className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                      testDcEnabled ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-gray-200'
-                    } ${testDcPending || pending ? 'opacity-60' : 'hover:border-gray-400'}`}
+                      testDcEnabled ? 'border-border bg-muted' : 'border-border bg-muted'
+                    } ${testDcPending || pending ? 'opacity-60' : 'hover:border-border'}`}
                     disabled={testDcPending || pending}
                     onClick={() => onTestDcChange(!testDcEnabled)}
                     role="switch"
                     type="button"
                   >
                     <span
-                      className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
+                      className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-card shadow-sm transition-transform ${
                         testDcEnabled ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -206,12 +206,12 @@ export const AuthScreen = memo(function AuthScreen({
                     phoneNumber={phoneNumber}
                   />
                 )}
-                <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                  <p className="text-xs font-semibold text-navy-900">Как входить безопаснее</p>
-                  <ul className="mt-2 space-y-1.5 text-xs leading-5 text-gray-600">
+                <div className="mt-6 rounded-2xl border border-border bg-muted px-4 py-3">
+                  <p className="text-xs font-semibold text-foreground">Как входить безопаснее</p>
+                  <ul className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                     {safetyTips.map((tip) => (
                       <li className="flex gap-2" key={tip}>
-                        <span className="mt-2 size-1 shrink-0 rounded-full bg-amber-500" />
+                        <span className="mt-2 size-1 shrink-0 rounded-full bg-muted" />
                         <span>{tip}</span>
                       </li>
                     ))}

@@ -204,15 +204,15 @@ export function BulkAuthScreen({
 
   return (
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
+        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="mb-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Только по вашему действию</span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Запись в аудит</span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Лимиты и блокировки</span>
+            <span className="rounded-full bg-muted px-2.5 py-1 font-semibold text-primary">Только по вашему действию</span>
+            <span className="rounded-full bg-muted px-2.5 py-1 font-semibold text-primary">Запись в аудит</span>
+            <span className="rounded-full bg-muted px-2.5 py-1 font-semibold text-primary">Лимиты и блокировки</span>
             <span className={`rounded-full px-2.5 py-1 font-semibold ${liveStatusClassName(liveStatus.tone)}`}>{liveStatus.label}</span>
           </div>
           {testDcEnabled ? (
-            <div className="mb-4 rounded-xl border border-honey-100 bg-honey-50 px-3 py-2 text-xs text-honey-700">
+            <div className="mb-4 rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
               <div className="font-semibold">Включена тестовая среда Telegram</div>
               <div className="mt-1">Обычные Telegram-аккаунты здесь не авторизуются.</div>
               <Button
@@ -227,9 +227,9 @@ export function BulkAuthScreen({
               </Button>
             </div>
           ) : null}
-          <label className="block text-xs font-semibold uppercase text-gray-400">Номера</label>
+          <label className="block text-xs font-semibold uppercase text-muted-foreground">Номера</label>
           <textarea
-            className="mt-2 min-h-64 w-full resize-y rounded-xl border border-gray-200 px-3 py-2 text-sm leading-6 focus:border-navy-300 focus:outline-none focus:ring-2 focus:ring-navy-100"
+            className="mt-2 min-h-64 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm leading-6 focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
             onChange={(e) => {
               setRawInput(sanitizeBulkPhoneInput(e.target.value))
               setValidation(null)
@@ -237,7 +237,7 @@ export function BulkAuthScreen({
             placeholder="+79990000001&#10;79990000002, Марина"
             value={rawInput}
           />
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-b border-gray-100 pb-3">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-b border-border pb-3">
             <Button onClick={() => { setRawInput(uniqueBulkPhoneLines(parsedLines).join('\n')); setValidation(null) }} size="sm" type="button" variant="secondary">
               Уникализировать
             </Button>
@@ -249,9 +249,9 @@ export function BulkAuthScreen({
             </Button>
           </div>
           <ValidationSummary localInvalidRows={localInvalidRows} parsedCount={parsedLines.length} validation={validation} />
-          <label className="mt-4 block text-xs font-semibold uppercase text-gray-400">{parsedItems.length === 1 ? 'Название аккаунта' : 'Название пачки'}</label>
-          <input className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-navy-300 focus:outline-none focus:ring-2 focus:ring-navy-100" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Необязательно" />
-          {error ? <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div> : null}
+          <label className="mt-4 block text-xs font-semibold uppercase text-muted-foreground">{parsedItems.length === 1 ? 'Название аккаунта' : 'Название пачки'}</label>
+          <input className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Необязательно" />
+          {error ? <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div> : null}
           <div className="mt-4 flex gap-2">
             <Button className="min-w-28" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button" variant="secondary">
               Проверить
@@ -268,7 +268,7 @@ export function BulkAuthScreen({
           </div>
         </section>
 
-        <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
+        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
           {snapshot ? (
             <BatchDashboard
               isBusy={isBusy}
@@ -300,10 +300,10 @@ function rememberBatch(batchId: string) {
 }
 
 function liveStatusClassName(tone: LiveStatus['tone']): string {
-  if (tone === 'green') return 'bg-emerald-50 text-emerald-700'
-  if (tone === 'red') return 'bg-red-50 text-red-700'
-  if (tone === 'amber') return 'bg-amber-50 text-amber-700'
-  return 'bg-gray-50 text-gray-500'
+  if (tone === 'green') return 'bg-muted text-primary'
+  if (tone === 'red') return 'bg-destructive/10 text-destructive'
+  if (tone === 'amber') return 'bg-muted text-muted-foreground'
+  return 'bg-muted text-muted-foreground'
 }
 
 function ValidationSummary({
@@ -326,15 +326,15 @@ function ValidationSummary({
 
   return (
     <div className="mt-3 space-y-2 text-xs">
-      <div className="rounded-lg bg-gray-50 px-3 py-2 font-medium text-gray-500">
-        Новые <span className="text-navy-900">{validCount}</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        Уже есть <span className="text-navy-900">{existingCount}</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        Дубли <span className="text-navy-900">{duplicateCount}</span>
-        <span className="mx-1.5 text-gray-300">·</span>
+      <div className="rounded-lg bg-muted px-3 py-2 font-medium text-muted-foreground">
+        Новые <span className="text-foreground">{validCount}</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
+        Уже есть <span className="text-foreground">{existingCount}</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
+        Дубли <span className="text-foreground">{duplicateCount}</span>
+        <span className="mx-1.5 text-muted-foreground">·</span>
         Ошибки{' '}
-        <span className={invalidRows.length + activeConflictCount > 0 ? 'text-red-600' : 'text-navy-900'}>
+        <span className={invalidRows.length + activeConflictCount > 0 ? 'text-destructive' : 'text-foreground'}>
           {invalidRows.length + activeConflictCount}
         </span>
       </div>
@@ -356,31 +356,31 @@ function BatchPreview({ lines }: { lines: ReturnType<typeof parseBulkPhoneLines>
 
   return (
     <div>
-      <div className="border-b border-gray-100 pb-4">
-        <h2 className="font-display text-lg font-bold text-navy-900">Предпросмотр</h2>
-        <p className="mt-1 text-xs text-gray-400">Перед запуском проверьте номера и дубли.</p>
+      <div className="border-b border-border pb-4">
+        <h2 className="font-sans text-lg font-bold text-foreground">Предпросмотр</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Перед запуском проверьте номера и дубли.</p>
       </div>
       {visibleLines.length === 0 ? (
-        <div className="flex min-h-72 items-center justify-center text-center text-sm text-gray-400">
+        <div className="flex min-h-72 items-center justify-center text-center text-sm text-muted-foreground">
           Добавьте номера слева.
         </div>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border border-gray-100">
+        <div className="mt-4 overflow-hidden rounded-xl border border-border">
           {visibleLines.map((line) => (
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2 last:border-b-0" key={`${line.position}-${line.input}`}>
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0" key={`${line.position}-${line.input}`}>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-navy-900">{line.phone_number ?? line.input}</div>
-                <div className={`truncate text-xs ${line.status === 'invalid' ? 'text-red-500' : 'text-gray-400'}`}>
+                <div className="truncate text-sm font-semibold text-foreground">{line.phone_number ?? line.input}</div>
+                <div className={`truncate text-xs ${line.status === 'invalid' ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {line.status === 'invalid' ? line.error : line.label || 'Без метки'}
                 </div>
               </div>
-              <span className={`shrink-0 rounded px-2 py-1 text-[11px] font-semibold ${line.status === 'invalid' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+              <span className={`shrink-0 rounded px-2 py-1 text-[11px] font-semibold ${line.status === 'invalid' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-primary'}`}>
                 {line.status === 'invalid' ? 'Ошибка' : 'Готов'}
               </span>
             </div>
           ))}
           {remainingCount > 0 ? (
-            <div className="bg-gray-50 px-3 py-2 text-xs font-medium text-gray-400">Ещё {remainingCount}</div>
+            <div className="bg-muted px-3 py-2 text-xs font-medium text-muted-foreground">Ещё {remainingCount}</div>
           ) : null}
         </div>
       )}
@@ -390,7 +390,7 @@ function BatchPreview({ lines }: { lines: ReturnType<typeof parseBulkPhoneLines>
 
 function ValidationGroup({ rows, title, tone }: { rows: string[]; title: string; tone: 'error' | 'muted' | 'warning' }) {
   if (rows.length === 0) return null
-  const toneClass = tone === 'error' ? 'border-red-100 bg-red-50 text-red-700' : tone === 'warning' ? 'border-honey-100 bg-honey-50 text-honey-700' : 'border-gray-100 bg-gray-50 text-gray-500'
+  const toneClass = tone === 'error' ? 'border-destructive/20 bg-destructive/10 text-destructive' : tone === 'warning' ? 'border-border bg-muted text-muted-foreground' : 'border-border bg-muted text-muted-foreground'
   return (
     <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
       <div className="font-semibold">{title}</div>
@@ -427,10 +427,10 @@ function BatchDashboard({
   const isCompleted = batch.status === 'completed'
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h2 className="font-display text-lg font-bold text-navy-900">{batch.label || 'Новая пачка'}</h2>
-          <p className="text-xs text-gray-400">{labelAuthBatchStatus(batch.status)} · {batch.success_count}/{batch.total_count} авторизовано</p>
+          <h2 className="font-sans text-lg font-bold text-foreground">{batch.label || 'Новая пачка'}</h2>
+          <p className="text-xs text-muted-foreground">{labelAuthBatchStatus(batch.status)} · {batch.success_count}/{batch.total_count} авторизовано</p>
         </div>
         {!isTerminalBatch ? (
           <div className="flex gap-2">
@@ -445,17 +445,17 @@ function BatchDashboard({
       </div>
 
       {isCompleted ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-3">
           <div>
-            <div className="text-sm font-semibold text-emerald-800">Пачка завершена</div>
-            <div className="text-xs text-emerald-700">{batch.success_count} из {batch.total_count} аккаунтов готовы</div>
+            <div className="text-sm font-semibold text-primary">Пачка завершена</div>
+            <div className="text-xs text-primary">{batch.success_count} из {batch.total_count} аккаунтов готовы</div>
           </div>
         </div>
       ) : null}
 
       {waitingItems.length > 0 ? (
-        <div className="my-4 rounded-xl border border-honey-100 bg-honey-50/50 p-3">
-          <div className="mb-2 text-xs font-semibold uppercase text-honey-600">Ожидают ввода</div>
+        <div className="my-4 rounded-xl border border-border bg-muted p-3">
+          <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Ожидают ввода</div>
           <div className="space-y-2">
             {waitingItems.map((item) => (
               <CredentialRow item={item} key={item.id} onSubmitCode={onSubmitCode} onSubmitPassword={onSubmitPassword} />
@@ -464,12 +464,12 @@ function BatchDashboard({
         </div>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-gray-100">
+      <div className="mt-4 overflow-hidden rounded-xl border border-border">
         {snapshot.items.map((item) => (
-          <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2 last:border-b-0" key={item.id}>
+          <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0" key={item.id}>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-navy-900">{authBatchItemPhoneLabel(item)}</div>
-              <div className="truncate text-xs text-gray-400">{item.label || (item.error_code ? labelIssue(item.error_code) : item.error_message) || 'Без метки'}</div>
+              <div className="truncate text-sm font-semibold text-foreground">{authBatchItemPhoneLabel(item)}</div>
+              <div className="truncate text-xs text-muted-foreground">{item.label || (item.error_code ? labelIssue(item.error_code) : item.error_message) || 'Без метки'}</div>
             </div>
             <div className="flex items-center gap-2">
               <StatusPill status={item.status} />
@@ -488,9 +488,9 @@ function CredentialRow({ item, onSubmitCode, onSubmitPassword }: { item: AuthBat
   const [value, setValue] = useState('')
   const isPassword = item.status === 'waiting_2fa'
   return (
-    <div className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_180px_auto] sm:items-center">
-      <div className="text-sm font-semibold text-navy-900">{authBatchItemPhoneLabel(item)}</div>
-      <input className="rounded-lg border border-gray-200 px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
+    <div className="grid gap-2 rounded-lg bg-card p-2 sm:grid-cols-[1fr_180px_auto] sm:items-center">
+      <div className="text-sm font-semibold text-foreground">{authBatchItemPhoneLabel(item)}</div>
+      <input className="rounded-lg border border-border px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
       <Button disabled={value.length < 4} onClick={() => isPassword ? onSubmitPassword(item, value) : onSubmitCode(item, value)} type="button">
         Отправить
       </Button>
@@ -502,7 +502,7 @@ function StatusPill({ status }: { status: string }) {
   const positive = status === 'authorized'
   const problem = ['failed', 'timed_out', 'cancelled'].includes(status)
   return (
-    <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold ${positive ? 'bg-emerald-50 text-emerald-700' : problem ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-500'}`}>
+    <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold ${positive ? 'bg-muted text-primary' : problem ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
       {positive ? <CheckCircle2 className="size-3" /> : problem ? <AlertTriangle className="size-3" /> : null}
       {labelAuthBatchItemStatus(status)}
     </span>

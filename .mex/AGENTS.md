@@ -59,6 +59,9 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run design:detect
+npm run impeccable:check
+npm run impeccable:skills
 cd backend; python -m pytest -q
 cd backend; python -m ruff check .
 ```

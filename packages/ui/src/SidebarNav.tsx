@@ -27,8 +27,8 @@ export function SidebarNav({ items, activeHref, onNavigate, className }: Sidebar
             className={cn(
               'flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-all',
               isActive
-                ? 'bg-gray-900/5 text-gray-900 font-semibold'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900',
+                ? 'bg-foreground text-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               item.disabled && 'pointer-events-none opacity-45',
             )}
             disabled={item.disabled}

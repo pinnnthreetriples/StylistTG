@@ -105,12 +105,12 @@ export const ProfileEditor = memo(function ProfileEditor({
   return (
     <>
       {/* ════════ BLOCK 1: PROFILE ════════ */}
-      <div id="account-workspace-profile" className="section-card bg-white rounded-xl border border-gray-200 p-4 mb-4 delay-1">
-        <div className="mb-3 flex flex-col gap-1 border-b border-gray-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+      <div id="account-workspace-profile" className="bg-card rounded-xl border border-border p-4 mb-4">
+        <div className="mb-3 flex flex-col gap-1 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
             {syncStateLabels.telegramCurrent}
           </span>
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[10px] text-muted-foreground">
             Данные профиля синхронизируются после проверки аккаунта. {appKnownMediaSyncNote}
           </span>
         </div>
@@ -132,7 +132,7 @@ export const ProfileEditor = memo(function ProfileEditor({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label
-                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                   htmlFor="first-name"
                 >
                   Имя
@@ -141,7 +141,7 @@ export const ProfileEditor = memo(function ProfileEditor({
                   <form.Field name="firstName">
                     {(field) => (
                       <Input
-                        className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
+                        className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
                         id="first-name"
                         onChange={(e) => {
                           field.handleChange(e.target.value)
@@ -161,7 +161,7 @@ export const ProfileEditor = memo(function ProfileEditor({
 
               <div>
                 <label
-                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                   htmlFor="last-name"
                 >
                   Фамилия
@@ -170,7 +170,7 @@ export const ProfileEditor = memo(function ProfileEditor({
                   <form.Field name="lastName">
                     {(field) => (
                       <Input
-                        className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 text-sm transition-colors"
+                        className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
                         id="last-name"
                         onChange={(e) => {
                           field.handleChange(e.target.value)
@@ -190,19 +190,19 @@ export const ProfileEditor = memo(function ProfileEditor({
             {/* Username */}
             <div>
               <label
-                className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                 htmlFor="username"
               >
                 Юзернейм
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-gray-400">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-muted-foreground">
                   @
                 </span>
                 <form.Field name="username">
                   {(field) => (
                     <Input
-                      className="h-9 rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white pl-7 pr-3 text-sm transition-colors font-mono"
+                      className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card pl-7 pr-3 text-sm transition-colors font-mono"
                       id="username"
                       onChange={(e) => {
                         const nextValue = e.target.value.replace(/^@/, '')
@@ -223,14 +223,14 @@ export const ProfileEditor = memo(function ProfileEditor({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label
-                  className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                  className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                   htmlFor="bio"
                 >
                   Описание
                 </label>
                 <span
                   className={`text-[10px] font-medium ${
-                    characterCount > 70 ? 'text-red-500' : 'text-gray-400'
+                    characterCount > 70 ? 'text-destructive' : 'text-muted-foreground'
                   }`}
                 >
                   {characterCount} / 70
@@ -240,7 +240,7 @@ export const ProfileEditor = memo(function ProfileEditor({
                 <form.Field name="bio">
                   {(field) => (
                     <Textarea
-                      className="min-h-[72px] resize-none rounded-lg border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white px-3 py-2 text-sm leading-relaxed transition-colors"
+                      className="min-h-[72px] resize-none rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 py-2 text-sm leading-relaxed transition-colors"
                       id="bio"
                       onChange={(e) => {
                         field.handleChange(e.target.value)
@@ -253,16 +253,16 @@ export const ProfileEditor = memo(function ProfileEditor({
                   )}
                 </form.Field>
                 {(currentProfile.bio ?? '') !== draftForm.bio && (
-                  <span className="absolute right-2.5 top-3 size-1.5 rounded-full bg-tangerine-400" />
+                  <span className="absolute right-2.5 top-3 size-1.5 rounded-full bg-muted" />
                 )}
               </div>
               {/* Character progress bar */}
-              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full rounded-full transition-all ${
                     characterCount > 70
-                      ? 'bg-red-400'
-                      : 'bg-gradient-to-r from-navy-400 to-tangerine-400'
+                      ? 'bg-destructive'
+                      : 'bg-muted  '
                   }`}
                   style={{ width: `${Math.min(100, (characterCount / 70) * 100)}%` }}
                 />
@@ -282,12 +282,12 @@ export const ProfileEditor = memo(function ProfileEditor({
 
 
       {/* ════════ BLOCK 4: CHANGE SUMMARY ════════ */}
-      <div className="section-card bg-white rounded-xl border border-gray-200 p-4 delay-4">
-        <label className="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+      <div className="bg-card rounded-xl border border-border p-4">
+        <label className="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Сводка изменений
         </label>
         {changeItems.filter((c) => c.changed).length === 0 ? (
-          <div className="text-xs text-gray-400">Нет изменений</div>
+          <div className="text-xs text-muted-foreground">Нет изменений</div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {changeItems
@@ -295,14 +295,14 @@ export const ProfileEditor = memo(function ProfileEditor({
               .map((change, index) => (
                 <div
                   key={`${change.operation}-${index}`}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-tangerine-200/50 bg-tangerine-50"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-muted"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-tangerine-400 flex-shrink-0" />
-                  <span className="text-[10px] font-semibold text-gray-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted flex-shrink-0" />
+                  <span className="text-[10px] font-semibold text-muted-foreground">
                     {formatChangeOperationLabel(change.operation)}
                   </span>
                   {change.value && (
-                    <span className="text-[11px] font-medium text-gray-800 truncate max-w-[150px]">
+                    <span className="text-[11px] font-medium text-foreground truncate max-w-[150px]">
                       {change.value}
                     </span>
                   )}
@@ -315,9 +315,9 @@ export const ProfileEditor = memo(function ProfileEditor({
   )
 })
 
-/** Tiny orange dot indicating a field has been edited. */
+/** Tiny dot indicating a field has been edited. */
 function DirtyDot() {
   return (
-    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-tangerine-400" />
+    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-muted" />
   )
 }

@@ -14,7 +14,7 @@ export function DisasterModeBanner() {
   return (
     <section
       aria-label="Disaster mode"
-      className="fixed left-0 right-0 top-14 z-[60] border-b border-red-700 bg-red-600 text-white shadow-lg xl:left-64"
+      className="fixed left-0 right-0 top-14 z-[60] border-b border-destructive/20 bg-destructive text-primary-foreground shadow-lg xl:left-64"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
@@ -23,14 +23,14 @@ export function DisasterModeBanner() {
             <h2 className="text-sm font-bold">
               Disaster mode: {state.quarantined_count}/{state.total_accounts} accounts in quarantine
             </h2>
-            <p className="mt-0.5 text-xs text-white/85">Detected {humanizeDetectedAgo(state.detected_at)} ago</p>
+            <p className="mt-0.5 text-xs text-primary-foreground/85">Detected {humanizeDetectedAgo(state.detected_at)} ago</p>
             {state.sample_quarantined_account_ids.length > 0 ? (
               <details className="mt-2 text-xs">
-                <summary className="cursor-pointer font-semibold text-white/90">Sample quarantined accounts</summary>
+                <summary className="cursor-pointer font-semibold text-primary-foreground/90">Sample quarantined accounts</summary>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {state.sample_quarantined_account_ids.map((accountId) => (
                     <a
-                      className="rounded-md bg-white/15 px-2 py-1 font-mono text-[11px] text-white underline-offset-2 hover:bg-white/25 hover:underline"
+                      className="rounded-md bg-card/15 px-2 py-1 font-mono text-[11px] text-primary-foreground underline-offset-2 hover:bg-card/25 hover:underline"
                       href={appRoutes.account(accountId)}
                       key={accountId}
                     >
@@ -43,7 +43,7 @@ export function DisasterModeBanner() {
           </div>
         </div>
         <a
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-white/30 bg-white px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+          className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-background/30 bg-card px-3 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
           href={buildDisasterSupportHref(state)}
         >
           Escalate to support

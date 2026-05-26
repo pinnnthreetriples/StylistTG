@@ -67,35 +67,35 @@ export function LoginPageView({
   }
 
   return (
-    <main className="min-h-screen bg-cream px-4 py-8 text-navy-900">
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
       <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
         <div className="mb-6 flex items-center gap-2">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-navy-400 text-white">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="size-4" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold">Войти в StylistTG</h1>
-            <p className="mt-1 text-sm text-gray-500">SaaS dashboard</p>
+            <h1 className="font-sans text-2xl font-bold">Войти в StylistTG</h1>
+            <p className="mt-1 text-sm text-muted-foreground">SaaS dashboard</p>
           </div>
         </div>
 
-        <form className="grid gap-4 rounded-lg border border-gray-200 bg-white p-5 shadow-soft" onSubmit={submit}>
-          <label className="grid gap-1.5 text-sm font-semibold text-gray-700">
+        <form className="grid gap-4 rounded-lg border border-border bg-card p-5 shadow-sm" onSubmit={submit}>
+          <label className="grid gap-1.5 text-sm font-semibold text-foreground">
             Email
             <input
               autoComplete="email"
-              className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-medium outline-none transition focus:border-navy-300"
+              className="h-11 rounded-lg border border-border px-3 text-sm font-medium outline-none transition focus:border-border"
               onChange={(event) => setEmail(event.target.value)}
               required
               type="email"
               value={email}
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-semibold text-gray-700">
+          <label className="grid gap-1.5 text-sm font-semibold text-foreground">
             Пароль
             <input
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-medium outline-none transition focus:border-navy-300"
+              className="h-11 rounded-lg border border-border px-3 text-sm font-medium outline-none transition focus:border-border"
               minLength={6}
               onChange={(event) => setPassword(event.target.value)}
               required
@@ -104,11 +104,11 @@ export function LoginPageView({
             />
           </label>
 
-          {error ? <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div> : null}
-          {message ? <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">{message}</div> : null}
+          {error ? <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">{error}</div> : null}
+          {message ? <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-primary">{message}</div> : null}
 
           <button
-            className="flex h-11 items-center justify-center gap-2 rounded-lg bg-navy-400 px-4 text-sm font-bold text-white transition hover:bg-navy-500 disabled:opacity-60"
+            className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary disabled:opacity-60"
             disabled={pending}
             type="submit"
           >
@@ -117,7 +117,7 @@ export function LoginPageView({
           </button>
 
           <button
-            className="h-10 rounded-lg text-sm font-semibold text-navy-500 transition hover:bg-navy-50"
+            className="h-10 rounded-lg text-sm font-semibold text-primary transition hover:bg-muted"
             onClick={() => onModeChange(mode === 'login' ? 'signup' : 'login')}
             type="button"
           >

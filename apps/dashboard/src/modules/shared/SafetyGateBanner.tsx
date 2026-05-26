@@ -17,15 +17,15 @@ export function SafetyGateBanner({ accountId, intent }: SafetyGateBannerProps) {
 
   if (query.isLoading) {
     return (
-      <div className="h-12 animate-pulse rounded-lg border border-gray-200 bg-white px-3 py-2">
-        <div className="h-2 w-40 rounded-full bg-gray-100" />
-        <div className="mt-2 h-2 w-64 rounded-full bg-gray-100" />
+      <div className="h-12 animate-pulse rounded-lg border border-border bg-card px-3 py-2">
+        <div className="h-2 w-40 rounded-full bg-muted" />
+        <div className="mt-2 h-2 w-64 rounded-full bg-muted" />
       </div>
     )
   }
 
   if (query.isError) {
-    return <p className="text-xs text-gray-500">Safety gate unavailable.</p>
+    return <p className="text-xs text-muted-foreground">Safety gate unavailable.</p>
   }
 
   const verdict = query.data
@@ -34,9 +34,9 @@ export function SafetyGateBanner({ accountId, intent }: SafetyGateBannerProps) {
   const blocked = verdict.severity === 'blocked'
   const Icon = blocked ? ShieldOff : AlertTriangle
   const toneClass = blocked
-    ? 'border-red-200 bg-red-50 text-red-900'
-    : 'border-amber-200 bg-amber-50 text-amber-900'
-  const iconClass = blocked ? 'text-red-600' : 'text-amber-600'
+    ? 'border-destructive/20 bg-destructive/10 text-destructive'
+    : 'border-border bg-muted text-muted-foreground'
+  const iconClass = blocked ? 'text-destructive' : 'text-muted-foreground'
   const firstReason = verdict.reasons[0]
   const extraCount = Math.max(0, verdict.reasons.length - 1)
   const message = firstReason
@@ -69,11 +69,11 @@ function ReasonDetails({ verdict }: { verdict: SafetyGateVerdict }) {
   return (
     <div className="mt-3 space-y-2 border-t border-current/15 pt-3">
       {verdict.reasons.map((reason) => (
-        <div key={`${reason.code}:${reason.severity}`} className="rounded-md bg-white/70 px-2.5 py-2 text-xs">
+        <div key={`${reason.code}:${reason.severity}`} className="rounded-md bg-card/70 px-2.5 py-2 text-xs">
           <div className="font-semibold">{reason.code}</div>
           <div className="mt-0.5">{reason.message}</div>
           {reason.metadata && Object.keys(reason.metadata).length > 0 ? (
-            <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap rounded bg-black/5 p-2 text-[11px]">
+            <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap rounded bg-foreground/5 p-2 text-[11px]">
               {JSON.stringify(reason.metadata, null, 2)}
             </pre>
           ) : null}

@@ -48,7 +48,7 @@ export function AccountHeader({
   const statusTone = status.kind === 'authorized' ? 'green' : status.kind === 'error' ? 'red' : 'amber'
 
   return (
-    <div className="border-b border-gray-200/70 bg-white px-4 py-3 sm:px-6">
+    <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
         {onBack ? (
           <Button onClick={onBack} type="button" variant="ghost">
@@ -59,14 +59,14 @@ export function AccountHeader({
         {/* Identity */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-base font-bold text-navy-900">
+            <h1 className="truncate text-base font-bold text-foreground">
               {account.display_name || maskPhone(account.phone_number ?? '')}
             </h1>
             {account.username ? (
-              <span className="truncate text-sm text-gray-400">@{account.username}</span>
+              <span className="truncate text-sm text-muted-foreground">@{account.username}</span>
             ) : null}
           </div>
-          <div className="mt-0.5 text-xs text-gray-400">{maskPhone(account.phone_number ?? '')}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{maskPhone(account.phone_number ?? '')}</div>
         </div>
 
         {/* Status pills */}
@@ -82,7 +82,7 @@ export function AccountHeader({
               score={risk.score}
             />
           ) : null}
-          <span className="text-xs text-gray-400">{labelProxyStatus(proxyStatus ?? 'none')}</span>
+          <span className="text-xs text-muted-foreground">{labelProxyStatus(proxyStatus ?? 'none')}</span>
         </div>
 
         {/* Actions */}

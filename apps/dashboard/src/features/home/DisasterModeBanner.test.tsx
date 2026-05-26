@@ -44,7 +44,7 @@ describe('DisasterModeBanner', () => {
     const html = renderBanner(disasterState)
 
     expect(html).toContain('Disaster mode: 6/10 accounts in quarantine')
-    expect(html).toContain('bg-red-600')
+    expect(html).toContain('bg-destructive')
     expect(html).toContain('/accounts/00000000-0000-4000-8000-000000000101')
   })
 

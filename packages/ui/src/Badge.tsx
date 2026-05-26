@@ -5,16 +5,16 @@ import { cn } from './utils'
 type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'gray' | 'green' | 'amber' | 'red' | 'blue'
 
 const tones: Record<BadgeTone, string> = {
-  neutral: 'bg-gray-100 text-gray-700 border-gray-200',
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  warning: 'bg-amber-50 text-amber-700 border-amber-100',
-  danger: 'bg-red-50 text-red-700 border-red-100',
-  info: 'bg-sky-50 text-sky-700 border-sky-100',
-  gray: 'bg-gray-100 text-gray-700 border-gray-200',
-  green: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  amber: 'bg-amber-50 text-amber-700 border-amber-100',
-  red: 'bg-red-50 text-red-700 border-red-100',
-  blue: 'bg-sky-50 text-sky-700 border-sky-100',
+  neutral: 'bg-muted text-foreground border-border',
+  success: 'bg-muted text-primary border-border',
+  warning: 'bg-muted text-muted-foreground border-border',
+  danger: 'bg-destructive/10 text-destructive border-destructive/20',
+  info: 'bg-muted text-muted-foreground border-border',
+  gray: 'bg-muted text-foreground border-border',
+  green: 'bg-muted text-primary border-border',
+  amber: 'bg-muted text-muted-foreground border-border',
+  red: 'bg-destructive/10 text-destructive border-destructive/20',
+  blue: 'bg-muted text-muted-foreground border-border',
 }
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {

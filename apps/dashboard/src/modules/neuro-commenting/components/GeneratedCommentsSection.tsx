@@ -19,7 +19,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
   const comments = commentsQuery.data?.items ?? []
 
   if (commentsQuery.isError) {
-    return <Card className="p-4 text-sm text-red-600">Не удалось загрузить данные</Card>
+    return <Card className="p-4 text-sm text-destructive">Не удалось загрузить данные</Card>
   }
   if (commentsQuery.isLoading) return <Skeleton className="h-40 w-full" />
 
@@ -31,7 +31,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">
         Сгенерированные комментарии ({commentsQuery.data?.total ?? 0})
       </h3>
       {comments.length === 0 ? (
@@ -43,24 +43,24 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
             const canSend = comment.approval_status === 'approved'
 
             return (
-              <div key={comment.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+              <div key={comment.id} className="rounded-lg border border-border bg-muted p-3">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   {editingCommentId === comment.id ? (
                     <textarea
-                      className="min-h-20 flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+                      className="min-h-20 flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
                       value={editedText}
                       onChange={(event) => setEditedText(event.target.value)}
                     />
                   ) : (
-                    <p className="text-sm text-gray-800">{visibleGeneratedCommentText(comment)}</p>
+                    <p className="text-sm text-foreground">{visibleGeneratedCommentText(comment)}</p>
                   )}
                   <ApprovalBadge status={comment.approval_status} />
                 </div>
                 {editingCommentId === comment.id && formError ? (
-                  <p className="mb-2 text-xs font-medium text-red-500">{formError}</p>
+                  <p className="mb-2 text-xs font-medium text-destructive">{formError}</p>
                 ) : null}
-                {mutationError ? <p className="mb-2 text-xs font-medium text-red-500">{mutationError}</p> : null}
-                {sendDisabledReason ? <p className="mb-2 text-xs font-medium text-amber-700">{sendDisabledReason}</p> : null}
+                {mutationError ? <p className="mb-2 text-xs font-medium text-destructive">{mutationError}</p> : null}
+                {sendDisabledReason ? <p className="mb-2 text-xs font-medium text-muted-foreground">{sendDisabledReason}</p> : null}
                 {canReview ? (
                   <div className="flex flex-wrap gap-1.5">
                   {editingCommentId === comment.id ? (
@@ -130,7 +130,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                     Отклонить
                   </Button>
                   <input
-                    className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100"
+                    className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-1 text-xs focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="Причина отклонения"
                     value={rejectReason}
                     onChange={(event) => setRejectReason(event.target.value)}

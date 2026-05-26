@@ -86,11 +86,11 @@ export function BoughtAccountOnboardingWizard({
   const completion = status?.completion_percent ?? 0
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4">
+    <section className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-600" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-gray-900">Bought-account onboarding</h3>
+          <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-foreground">Bought-account onboarding</h3>
         </div>
         <Badge tone={status?.completed_at ? 'green' : 'amber'}>{completion}%</Badge>
       </div>
@@ -100,10 +100,10 @@ export function BoughtAccountOnboardingWizard({
           const isCurrent = step === currentStep
           return (
             <div
-              className="flex items-center justify-between rounded-md border border-gray-100 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
               key={step}
             >
-              <span className={isCurrent ? 'font-medium text-gray-900' : 'text-gray-600'}>
+              <span className={isCurrent ? 'font-medium text-foreground' : 'text-muted-foreground'}>
                 {STEP_LABELS[step]}
               </span>
               <Badge tone={isCurrent ? 'amber' : 'gray'}>{isCurrent ? 'Current' : 'Queued'}</Badge>
@@ -112,7 +112,7 @@ export function BoughtAccountOnboardingWizard({
         })}
       </div>
 
-      {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs text-destructive">{error}</p> : null}
 
       {!status ? (
         <Button

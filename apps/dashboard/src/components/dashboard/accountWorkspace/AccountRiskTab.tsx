@@ -113,15 +113,15 @@ export function AccountRiskTab({
       {/* Validity check history */}
       <SectionCard title="История проверок безопасности">
         {validityChecks.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Проверка ещё не запускалась. Кнопка «Проверить» не меняет аккаунт, а только проверяет сессию.
           </p>
         ) : (
           <div className="space-y-1.5">
             {validityChecks.slice(0, 5).map((check) => (
-              <details className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600" key={check.id}>
-                <summary className="cursor-pointer font-semibold text-gray-800">{validityCheckSummary(check)}</summary>
-                <pre aria-label="Расширенная диагностика" className="mt-2 max-h-40 overflow-auto rounded bg-white p-2 text-[11px] text-gray-500">
+              <details className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground" key={check.id}>
+                <summary className="cursor-pointer font-semibold text-foreground">{validityCheckSummary(check)}</summary>
+                <pre aria-label="Расширенная диагностика" className="mt-2 max-h-40 overflow-auto rounded bg-card p-2 text-[11px] text-muted-foreground">
                   {JSON.stringify({ status: check.status, error_code: check.error_code, details: check.details, result: check.result }, null, 2)}
                 </pre>
               </details>

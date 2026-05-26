@@ -43,7 +43,7 @@ export function WarmupSessionDetail({
   if (!session) {
     return (
       <SectionCard title="Детали сессии" description="Выберите сессию в таблице.">
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-border bg-muted px-4 py-6 text-sm text-muted-foreground">
           Откройте сессию, чтобы увидеть текущий день, состояние воркера, паузу и журнал событий.
         </div>
       </SectionCard>
@@ -63,27 +63,27 @@ export function WarmupSessionDetail({
       <WarmupIsolationBanner accountId={session.account_id} />
       <SectionCard title="Открытая сессия" description="Что происходит сейчас и когда система сможет сделать следующий шаг.">
         <div className="grid gap-3">
-          <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+          <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
             {isDryRun
               ? `Сейчас аккаунт не выполняет действий в Telegram. Система только проверяет готовность, ведёт ${session.duration_days}-дневный план, блокирует конфликтующие изменения и пишет журнал.`
               : `Активен режим «${executionLabel}»: модуль управляет аккаунтом по плану на ${session.duration_days} дней. Сторонние модули временно не могут с ним взаимодействовать.`}
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-5 text-gray-600">
+          <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs leading-5 text-muted-foreground">
             {isDryRun
               ? 'Реальные действия в Telegram появятся только после отдельного включения live-воркера и явного списка разрешённых действий. Сейчас модуль ничего не подписывает, не отправляет, не реагирует и не меняет профиль.'
               : 'Подробный список выполняемых действий определяется выбранным режимом. Журнал событий ниже отражает каждый шаг подготовки.'}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-xs font-semibold uppercase text-gray-400">Аккаунт</div>
-              <div className="text-sm font-semibold text-navy-900">{session.account_label ?? session.account_id}</div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Аккаунт</div>
+              <div className="text-sm font-semibold text-foreground">{session.account_label ?? session.account_id}</div>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase text-gray-400">Стратегия</div>
-              <div className="text-sm font-semibold text-navy-900">{session.strategy_name}</div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Стратегия</div>
+              <div className="text-sm font-semibold text-foreground">{session.strategy_name}</div>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase text-gray-400">Статус</div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Статус</div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <WarmupStatusBadge status={session.status} />
                 <Badge tone={executionTone}>
@@ -93,10 +93,10 @@ export function WarmupSessionDetail({
               </div>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase text-gray-400">
+              <div className="text-xs font-semibold uppercase text-muted-foreground">
                 {session.next_micro_session_at ? 'Следующее окно микро-сессии' : 'Следующий шаг'}
               </div>
-              <div className="text-sm font-semibold text-navy-900">
+              <div className="text-sm font-semibold text-foreground">
                 {formatWarmupNextStep(
                   session.next_micro_session_at ?? session.next_step_at,
                   workersEnabled,
@@ -105,20 +105,20 @@ export function WarmupSessionDetail({
             </div>
           </div>
           <div>
-            <div className="mb-1 flex items-center justify-between text-xs font-semibold text-gray-500">
+            <div className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
               <span>Прогресс</span>
               <span>{session.current_day} / {session.duration_days} дней</span>
             </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full rounded-full bg-gray-950" style={{ width: `${progress}%` }} />
+            <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-foreground" style={{ width: `${progress}%` }} />
             </div>
           </div>
         </div>
-        <div className="mt-4 grid gap-2 border-t border-gray-100 pt-4">
+        <div className="mt-4 grid gap-2 border-t border-border pt-4">
           <label className="grid gap-1.5">
-            <span className="text-xs font-semibold uppercase text-gray-500">Причина паузы</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Причина паузы</span>
             <input
-              className="h-9 rounded-md border border-gray-200 px-3 text-sm"
+              className="h-9 rounded-md border border-border px-3 text-sm"
               value={pauseReason}
               aria-label="Причина паузы"
               placeholder="Например: проверка аккаунта, proxy или профиля"

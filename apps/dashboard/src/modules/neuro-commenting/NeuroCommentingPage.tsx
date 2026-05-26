@@ -127,7 +127,7 @@ export function NeuroCommentingPage({
               ) : null}
             </>
           ) : (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 p-12 text-sm text-gray-500">
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted p-12 text-sm text-muted-foreground">
               Выберите кампанию или создайте новую
             </div>
           )}
@@ -146,7 +146,7 @@ function NeuroCommentingTabs({
 }) {
   const order: NeuroCommentingTab[] = ['setup', 'queue', 'analytics']
   return (
-    <nav className="flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-white p-1 text-sm">
+    <nav className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1 text-sm">
       {order.map((value) => {
         const active = value === tab
         return (
@@ -158,8 +158,8 @@ function NeuroCommentingTabs({
             data-testid={`neuro-commenting-tab-${value}`}
             className={`rounded-md px-3 py-1.5 transition ${
               active
-                ? 'bg-navy-50 font-medium text-navy-900'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-muted font-medium text-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
             onClick={() => onChange(value)}
           >

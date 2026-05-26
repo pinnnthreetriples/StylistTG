@@ -41,17 +41,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-cream text-navy-900">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-gray-200/70 bg-white/95 px-4 py-4 shadow-sm xl:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-card/95 px-4 py-4 shadow-sm xl:block">
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-2 px-1">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-navy-400 text-white">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Sparkles className="size-4" />
             </div>
             <div>
-              <div className="font-display text-base font-bold">StylistTG</div>
-              <div className="text-[11px] font-medium text-gray-400">{workspaceLabel}</div>
+              <div className="font-sans text-base font-bold">StylistTG</div>
+              <div className="text-[11px] font-medium text-muted-foreground">{workspaceLabel}</div>
             </div>
           </div>
 
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               const Icon = item.icon
               const active = !item.disabled && isActivePath(pathname, item.href)
               const className = `flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition-all ${
-                active ? 'bg-navy-50 text-navy-900' : 'text-gray-500 hover:bg-gray-50 hover:text-navy-900'
+                active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               } ${item.disabled ? 'pointer-events-none opacity-45' : ''}`
 
               return item.disabled ? (
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mt-auto space-y-2 px-1">
             <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             <button
-              className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-navy-900"
+              className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
               onClick={() => void handleSignOut()}
               type="button"
             >
@@ -97,23 +97,23 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="min-h-screen xl:pl-64">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 border-b border-gray-200/70 bg-white/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6">
             <button
               aria-label="Открыть меню"
-              className="flex size-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-50 xl:hidden"
+              className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted xl:hidden"
               onClick={() => setMobileMenuOpen(true)}
               type="button"
             >
               <Menu className="size-5" />
             </button>
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className="truncate text-sm font-bold text-navy-900">{workspaceLabel}</span>
+              <span className="truncate text-sm font-bold text-foreground">{workspaceLabel}</span>
               <Badge tone={appEnv === 'staging' ? 'blue' : 'gray'}>{appEnv}</Badge>
             </div>
             <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             <button
-              className="hidden h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-navy-900 sm:flex"
+              className="hidden h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground sm:flex"
               onClick={() => void handleSignOut()}
               type="button"
             >
@@ -132,20 +132,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-40 xl:hidden">
           <div
             aria-hidden
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 bg-foreground/30 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 border-r border-gray-200 bg-white px-4 py-4 shadow-xl animate-[fade-in_0.15s_ease-out_both]">
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card px-4 py-4 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-navy-400 text-white">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Sparkles className="size-3.5" />
                 </div>
-                <span className="font-display text-sm font-bold">StylistTG</span>
+                <span className="font-sans text-sm font-bold">StylistTG</span>
               </div>
               <button
                 aria-label="Закрыть меню"
-                className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-50"
+                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
                 onClick={() => setMobileMenuOpen(false)}
                 type="button"
               >
@@ -157,7 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 .map((item) => {
                   const Icon = item.icon
                   const className = `flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition-all ${
-                    !item.disabled && isActivePath(pathname, item.href) ? 'bg-navy-50 text-navy-900' : 'text-gray-500'
+                    !item.disabled && isActivePath(pathname, item.href) ? 'bg-muted text-foreground' : 'text-muted-foreground'
                   } ${item.disabled ? 'pointer-events-none opacity-45' : ''}`
                   return item.disabled ? (
                     <span className={className} key={item.label}>

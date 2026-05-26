@@ -76,11 +76,11 @@ export function AuthSessionWizard({ accountId, liveStatus = getLiveStatus() }: {
         </div>
       ) : null}
       {error ? (
-        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+        <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-semibold text-muted-foreground">
           {redactAuthUiError(error)}
         </div>
       ) : null}
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <ShieldCheck className="size-4" />
         Коды и пароли не сохраняются в браузере.
       </div>

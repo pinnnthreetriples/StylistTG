@@ -11,10 +11,10 @@ export type RiskReason = {
 }
 
 const severityDots: Record<string, string> = {
-  info: 'bg-sky-400',
-  warning: 'bg-amber-400',
-  error: 'bg-orange-500',
-  critical: 'bg-red-500',
+  info: 'bg-muted-foreground',
+  warning: 'bg-muted-foreground',
+  error: 'bg-muted-foreground',
+  critical: 'bg-destructive',
 }
 
 export type RiskReasonListProps = {
@@ -26,7 +26,7 @@ export type RiskReasonListProps = {
 export function RiskReasonList({ reasons, emptyMessage, className }: RiskReasonListProps) {
   if (reasons.length === 0) {
     return emptyMessage ? (
-      <p className={cn('text-sm text-gray-500', className)}>{emptyMessage}</p>
+      <p className={cn('text-sm text-muted-foreground', className)}>{emptyMessage}</p>
     ) : null
   }
 
@@ -37,10 +37,10 @@ export function RiskReasonList({ reasons, emptyMessage, className }: RiskReasonL
           <span
             className={cn(
               'mt-1.5 size-2 shrink-0 rounded-full',
-              severityDots[reason.severity] ?? 'bg-gray-400',
+              severityDots[reason.severity] ?? 'bg-foreground',
             )}
           />
-          <span className="min-w-0 text-gray-700">{reason.message}</span>
+          <span className="min-w-0 text-foreground">{reason.message}</span>
         </li>
       ))}
     </ul>

@@ -22,10 +22,10 @@ export function AddAccountsPage({
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">
             Добавление аккаунтов
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Введите один или несколько номеров для запуска авторизации.
           </p>
         </div>
@@ -38,12 +38,12 @@ export function AddAccountsPage({
           testDcEnabled={testDcEnabled}
           testDcPending={testDcPending}
         />
-        <details className="rounded-xl border border-gray-200/70 bg-white shadow-soft">
-          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-navy-900">
+        <details className="rounded-xl border border-border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-foreground">
             Импорт пакета
-            <span className="ml-2 font-normal text-gray-400">предпросмотр и ручное подтверждение</span>
+            <span className="ml-2 font-normal text-muted-foreground">предпросмотр и ручное подтверждение</span>
           </summary>
-          <div className="border-t border-gray-100 p-4">
+          <div className="border-t border-border p-4">
             <ImportBatchPage compact />
           </div>
         </details>

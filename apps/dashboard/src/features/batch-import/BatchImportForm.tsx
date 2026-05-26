@@ -33,10 +33,10 @@ export function BatchImportForm() {
       >
         <form.Field name="label" validators={{ onChange: ({ value }) => (value.length > 80 ? 'Max 80 characters.' : undefined) }}>
           {(field) => (
-            <label className="grid gap-1.5 text-sm font-semibold text-navy-900">
+            <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Batch label
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal"
+                className="rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
                 placeholder="May staging dry run"
@@ -48,10 +48,10 @@ export function BatchImportForm() {
 
         <form.Field name="sourceType" validators={{ onChange: ({ value }) => (!value ? 'Source type is required.' : undefined) }}>
           {(field) => (
-            <label className="grid gap-1.5 text-sm font-semibold text-navy-900">
+            <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Source type
               <select
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal"
+                className="rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value as BatchImportSourceType)}
                 value={field.state.value}
@@ -68,10 +68,10 @@ export function BatchImportForm() {
 
         <form.Field name="notes">
           {(field) => (
-            <label className="grid gap-1.5 text-sm font-semibold text-navy-900">
+            <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Notes
               <textarea
-                className="min-h-24 rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal"
+                className="min-h-24 rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
                 value={field.state.value}
@@ -82,7 +82,7 @@ export function BatchImportForm() {
 
         <form.Field name="dryRun">
           {(field) => (
-            <label className="flex items-center gap-2 text-sm font-semibold text-navy-900">
+            <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <input
                 checked={field.state.value}
                 onBlur={field.handleBlur}
@@ -98,7 +98,7 @@ export function BatchImportForm() {
       </form>
 
       {preview ? (
-        <pre className="mt-4 overflow-auto rounded-lg bg-navy-900 p-4 text-xs text-white">
+        <pre className="mt-4 overflow-auto rounded-lg bg-foreground p-4 text-xs text-primary-foreground">
           {JSON.stringify(preview, null, 2)}
         </pre>
       ) : null}

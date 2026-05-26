@@ -13,17 +13,17 @@ export function MetricCard({ className, label, value, change, icon, ...props }: 
   return (
     <div
       className={cn(
-        'rounded-xl border border-gray-200 bg-white p-4 shadow-sm',
+        'rounded-xl border border-border bg-card p-4 shadow-sm',
         className,
       )}
       {...props}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</span>
-        {icon ? <span className="text-gray-400">{icon}</span> : null}
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+        {icon ? <span className="text-muted-foreground">{icon}</span> : null}
       </div>
-      <div className="mt-2 text-2xl font-bold text-gray-900">{value}</div>
-      {change ? <div className="mt-1 text-xs text-gray-500">{change}</div> : null}
+      <div className="mt-2 text-2xl font-bold text-foreground">{value}</div>
+      {change ? <div className="mt-1 text-xs text-muted-foreground">{change}</div> : null}
     </div>
   )
 }

@@ -84,7 +84,7 @@ export function AccountsTable({
   if (isLoading) {
     return (
       <DataTable>
-        <div className="p-8 text-center text-sm font-medium text-gray-500">Загружаем аккаунты...</div>
+        <div className="p-8 text-center text-sm font-medium text-muted-foreground">Загружаем аккаунты...</div>
       </DataTable>
     )
   }
@@ -105,11 +105,11 @@ export function AccountsTable({
           const status = accountStatus(account)
           const risk = account.risk
           return (
-            <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" key={account.account_id}>
+            <article className="rounded-xl border border-border bg-card p-4 shadow-sm" key={account.account_id}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold text-navy-900">{account.display_name || maskPhone(account.phone_number)}</h3>
-                  <p className="mt-1 truncate text-xs text-gray-500">
+                  <h3 className="truncate text-sm font-semibold text-foreground">{account.display_name || maskPhone(account.phone_number)}</h3>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
                     {account.username ? `@${account.username} · ` : ''}
                     {maskPhone(account.phone_number)}
                   </p>
@@ -120,7 +120,7 @@ export function AccountsTable({
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <StatusPill tone={status.kind === 'authorized' ? 'green' : status.kind === 'error' ? 'red' : 'amber'}>{status.label}</StatusPill>
-                <span className="rounded-full bg-gray-50 px-2.5 py-1 text-xs text-gray-600">{labelProxyStatus('none')}</span>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">{labelProxyStatus('none')}</span>
               </div>
               <Button className="mt-4 w-full" onClick={() => onSelectAccount?.(account.account_id)} type="button" variant="secondary">
                 Открыть
@@ -132,11 +132,11 @@ export function AccountsTable({
 
       <DataTable className="hidden md:block">
         <table className="w-full border-collapse text-left">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th className="px-4 py-3 text-xs font-bold uppercase text-gray-500" key={header.id}>
+                  <th className="px-4 py-3 text-xs font-bold uppercase text-muted-foreground" key={header.id}>
                     {header.isPlaceholder ? null : (
                       <button
                         className="inline-flex items-center gap-1"
@@ -155,7 +155,7 @@ export function AccountsTable({
           <tbody>
             {table.getRowModel().rows.map((row) => (
               <tr
-                className="cursor-pointer border-t border-gray-100 transition-colors hover:bg-gray-50"
+                className="cursor-pointer border-t border-border transition-colors hover:bg-muted"
                 key={row.id}
                 onClick={() => onSelectAccount?.(row.original.account_id)}
               >

@@ -202,7 +202,7 @@ export function HealthCenterPage() {
               />
             </div>
           ) : (
-            <p className="text-sm text-gray-500">TDLib, планировщик, очиститель и другие технические детали.</p>
+            <p className="text-sm text-muted-foreground">TDLib, планировщик, очиститель и другие технические детали.</p>
           )}
         </SectionCard>
 

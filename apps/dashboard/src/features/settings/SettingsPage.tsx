@@ -54,19 +54,19 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
         <SectionCard title="Рабочая область">
           <div className="grid gap-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Среда</span>
+              <span className="text-muted-foreground">Среда</span>
               <StatusPill tone={diagnostics?.app_env === 'staging' ? 'green' : 'muted'}>
                 {diagnostics?.app_env === 'staging' ? 'Staging' : diagnostics?.app_env === 'local' ? 'Локальная среда' : 'Проверка...'}
               </StatusPill>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Режим авторизации</span>
+              <span className="text-muted-foreground">Режим авторизации</span>
               <StatusPill tone={diagnostics?.auth_mode === 'supabase_jwt' ? 'green' : 'amber'}>
                 {diagnostics?.auth_mode === 'supabase_jwt' ? 'Supabase JWT' : diagnostics?.auth_mode ?? 'Проверка...'}
               </StatusPill>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Хранилище</span>
+              <span className="text-muted-foreground">Хранилище</span>
               <StatusPill tone={diagnostics?.storage.backend === 's3' ? 'green' : 'muted'}>
                 {diagnostics?.storage.backend ?? 'Проверка...'}
               </StatusPill>
@@ -78,14 +78,14 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
         <SectionCard title="Безопасность">
           <div className="grid gap-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Режим выполнения задач</span>
+              <span className="text-muted-foreground">Режим выполнения задач</span>
               <StatusPill tone="amber">Безопасный mock-режим</StatusPill>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Удаление аккаунтов</span>
+              <span className="text-muted-foreground">Удаление аккаунтов</span>
               <StatusPill tone="green">Заблокировано</StatusPill>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Полное удаление аккаунтов отключено по умолчанию. Данные сохраняются для аудита.
             </p>
           </div>
@@ -107,7 +107,7 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
               <StatusCard label="Удаление историй" value={formatDuration(policy.story_delete_cooldown_seconds)} detail="между задачами" tone="neutral" />
             </div>
           ) : (
-            <div className="text-sm text-gray-500">Загрузка настроек...</div>
+            <div className="text-sm text-muted-foreground">Загрузка настроек...</div>
           )}
         </SectionCard>
 
@@ -116,16 +116,16 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
           <div className="grid gap-3 text-sm">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-700">Live-режим Telegram</div>
-                <p className="mt-0.5 text-xs text-gray-400">Реальное выполнение задач через Telegram.</p>
+                <div className="font-medium text-foreground">Live-режим Telegram</div>
+                <p className="mt-0.5 text-xs text-muted-foreground">Реальное выполнение задач через Telegram.</p>
               </div>
               <Switch checked={false} disabled onCheckedChange={() => {}} label="Отключён" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Среда исполнения</span>
+              <span className="text-muted-foreground">Среда исполнения</span>
               <StatusPill tone={liveStatus.tone}>{liveStatus.label}</StatusPill>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Зелёный статус означает, что live включён и исполнительная среда реально готова.
             </p>
           </div>
@@ -144,31 +144,31 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
             <div className="grid gap-5">
               {/* Журнал операций */}
               <div>
-                <h3 className="mb-2 text-sm font-bold text-gray-900">Журнал операций</h3>
+                <h3 className="mb-2 text-sm font-bold text-foreground">Журнал операций</h3>
                 {operationLogsQuery.isPending ? (
-                  <div className="text-sm text-gray-500">Загрузка журнала...</div>
+                  <div className="text-sm text-muted-foreground">Загрузка журнала...</div>
                 ) : operationLogsQuery.isError ? (
-                  <div className="text-sm text-red-500">Журнал операций недоступен.</div>
+                  <div className="text-sm text-destructive">Журнал операций недоступен.</div>
                 ) : operationLogsQuery.data.items.length > 0 ? (
                   <div className="max-h-60 space-y-1.5 overflow-auto">
                     {operationLogsQuery.data.items.slice(0, 20).map((log: OperationLog) => (
-                      <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600" key={log.id}>
+                      <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground" key={log.id}>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="font-semibold text-gray-800">{compactOperationLogLabel(log)}</span>
-                          <span className="text-[11px] text-gray-400">{new Date(log.created_at).toLocaleString('ru-RU')}</span>
+                          <span className="font-semibold text-foreground">{compactOperationLogLabel(log)}</span>
+                          <span className="text-[11px] text-muted-foreground">{new Date(log.created_at).toLocaleString('ru-RU')}</span>
                         </div>
-                        <p className="mt-0.5 text-gray-500">{log.message}</p>
+                        <p className="mt-0.5 text-muted-foreground">{log.message}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">Пока нет записей.</div>
+                  <div className="text-sm text-muted-foreground">Пока нет записей.</div>
                 )}
               </div>
 
               {/* Worker diagnostics */}
               <div>
-                <h3 className="mb-2 text-sm font-bold text-gray-900">Диагностика воркеров</h3>
+                <h3 className="mb-2 text-sm font-bold text-foreground">Диагностика воркеров</h3>
                 <div className="grid gap-2 sm:grid-cols-3">
                   <StatusCard
                     label="Планировщик"
@@ -190,21 +190,21 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
 
               {/* Audit history */}
               <div>
-                <h3 className="mb-2 text-sm font-bold text-gray-900">История аудита</h3>
+                <h3 className="mb-2 text-sm font-bold text-foreground">История аудита</h3>
                 <div className="mb-2 flex flex-wrap gap-2">
                   <StatusPill tone="green">Только чтение</StatusPill>
                   <StatusPill tone="amber">Секреты скрыты</StatusPill>
                 </div>
                 {auditEventsQuery.isPending ? (
-                  <div className="text-sm text-gray-500">Загрузка событий аудита...</div>
+                  <div className="text-sm text-muted-foreground">Загрузка событий аудита...</div>
                 ) : auditEventsQuery.isError ? (
-                  <div className="text-sm text-amber-600">История аудита недоступна.</div>
+                  <div className="text-sm text-muted-foreground">История аудита недоступна.</div>
                 ) : auditEventsQuery.data.items.length > 0 ? (
                   <div className="max-h-48 space-y-1.5 overflow-auto">
                     {auditEventsQuery.data.items.map((event) => (
-                      <div className="rounded-lg border border-gray-200/70 bg-gray-50 px-3 py-2" key={event.id}>
-                        <div className="text-sm font-semibold text-navy-900">{event.action}</div>
-                        <div className="mt-1 text-xs text-gray-500">
+                      <div className="rounded-lg border border-border bg-muted px-3 py-2" key={event.id}>
+                        <div className="text-sm font-semibold text-foreground">{event.action}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {event.entity_type}
                           {event.account_id ? ` · ${event.account_id}` : ''}
                           {' · '}
@@ -214,12 +214,12 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">Нет событий аудита.</div>
+                  <div className="text-sm text-muted-foreground">Нет событий аудита.</div>
                 )}
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Журнал операций, диагностика воркеров и история аудита.</p>
+            <p className="text-sm text-muted-foreground">Журнал операций, диагностика воркеров и история аудита.</p>
           )}
         </SectionCard>
       </PageShell>

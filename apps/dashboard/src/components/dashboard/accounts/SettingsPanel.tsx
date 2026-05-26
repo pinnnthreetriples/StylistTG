@@ -56,16 +56,16 @@ export function SettingsPanel() {
 
   if (isColdLoading) {
     return (
-      <section className="fade-in rounded-xl border border-gray-200/70 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+      <section className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm">
         Загружаем настройки...
       </section>
     )
   }
 
   return (
-    <div className="fade-in grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-2">
       {error || (settingsQuery.isError && !settings) ? (
-        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600 lg:col-span-2">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive lg:col-span-2">
           {error ?? 'Не удалось загрузить настройки'}
         </div>
       ) : null}
@@ -74,35 +74,35 @@ export function SettingsPanel() {
         action={
           <button
             aria-label="Обновить настройки"
-            className="flex size-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200"
+            className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-muted"
             onClick={() => void loadSettings()}
             type="button"
           >
             <RefreshCw className={`size-4 ${settingsQuery.isFetching ? 'animate-spin' : ''}`} />
           </button>
         }
-        icon={<Server className="size-4 text-navy-400" />}
+        icon={<Server className="size-4 text-primary" />}
         title="Система"
       >
         <StatusRows items={runtimeItems} />
       </SettingsCard>
 
-      <SettingsCard icon={<ShieldCheck className="size-4 text-emerald-500" />} title="Готовность live-режима">
+      <SettingsCard icon={<ShieldCheck className="size-4 text-primary" />} title="Готовность live-режима">
         <StatusRows items={preflightItems} />
       </SettingsCard>
 
-      <SettingsCard icon={<ShieldCheck className="size-4 text-emerald-500" />} title="Паузы безопасности">
+      <SettingsCard icon={<ShieldCheck className="size-4 text-primary" />} title="Паузы безопасности">
         {settings?.policy ? (
           <div className="space-y-2">
-            <div className="rounded-xl bg-gray-50 px-3 py-2">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+            <div className="rounded-xl bg-muted px-3 py-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <span>Пауза между задачами профиля</span>
                 <HelpTip
                   label="Пауза между задачами профиля"
                   text="Это минимальная пауза между задачами изменения профиля. Например: если стоит 5 минут, новую задачу профиля нельзя запустить сразу после предыдущей."
                 />
               </div>
-              <div className="mt-1 text-sm font-semibold text-navy-900">
+              <div className="mt-1 text-sm font-semibold text-foreground">
                 {formatCooldown(settings.policy.profile_job_cooldown_seconds)}
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -110,8 +110,8 @@ export function SettingsPanel() {
                   <button
                     className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
                       settings.policy.profile_job_cooldown_seconds === seconds
-                        ? 'border-navy-200 bg-navy-50 text-navy-500'
-                        : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+                        ? 'border-border bg-muted text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
                     }`}
                     disabled={updatePolicyMutation.isPending}
                     key={seconds}
@@ -139,13 +139,13 @@ export function SettingsPanel() {
         )}
       </SettingsCard>
 
-      <SettingsCard icon={<ShieldCheck className="size-4 text-violet-500" />} title="Расширенные настройки">
+      <SettingsCard icon={<ShieldCheck className="size-4 text-muted-foreground" />} title="Расширенные настройки">
         {settings?.authMode ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-navy-900">Тестовая среда Telegram</div>
-                <div className="mt-0.5 text-xs text-gray-500">
+                <div className="text-sm font-semibold text-foreground">Тестовая среда Telegram</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
                   {settings.authMode.tdlib_use_test_dc
                     ? 'Только для разработки. Обычные Telegram-аккаунты здесь не авторизуются.'
                     : 'Обычный Telegram. Для рабочей авторизации держите этот режим.'}
@@ -155,15 +155,15 @@ export function SettingsPanel() {
                 aria-checked={settings.authMode.tdlib_use_test_dc}
                 aria-label="Переключить Test DC"
                 className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                  settings.authMode.tdlib_use_test_dc ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-gray-200'
-                } ${updateAuthModeMutation.isPending ? 'opacity-60' : 'hover:border-gray-400'}`}
+                  settings.authMode.tdlib_use_test_dc ? 'border-border bg-muted' : 'border-border bg-muted'
+                } ${updateAuthModeMutation.isPending ? 'opacity-60' : 'hover:border-border'}`}
                 disabled={updateAuthModeMutation.isPending}
                 onClick={() => void handleTestDcChange(!settings.authMode.tdlib_use_test_dc)}
                 role="switch"
                 type="button"
               >
                 <span
-                  className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
+                  className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-card shadow-sm transition-transform ${
                     settings.authMode.tdlib_use_test_dc ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -171,7 +171,7 @@ export function SettingsPanel() {
             </div>
 
             {settings.policy ? (
-              <div className="space-y-2 rounded-xl bg-gray-50 px-3 py-2">
+              <div className="space-y-2 rounded-xl bg-muted px-3 py-2">
                 <PolicySelect
                   disabled={updatePolicyMutation.isPending}
                   help="Что делать, если приложение пока не знает, можно ли выполнить действие. Например: музыка ещё не проверялась, поэтому можно только предупредить или запретить реальный запуск."
@@ -207,7 +207,7 @@ export function SettingsPanel() {
                   value={settings.policy.fresh_validity_required}
                 />
                 <label className="flex items-center justify-between gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 font-medium text-gray-600">
+                  <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
                     <span>Макс. возраст проверки</span>
                     <HelpTip
                       label="Максимальный возраст проверки"
@@ -215,7 +215,7 @@ export function SettingsPanel() {
                     />
                   </span>
                   <input
-                    className="w-20 rounded-lg border border-gray-200 bg-white px-2 py-1 text-right text-xs font-semibold text-navy-900"
+                    className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-right text-xs font-semibold text-foreground"
                     disabled={updatePolicyMutation.isPending}
                     min={1}
                     onBlur={(event) =>
@@ -225,17 +225,17 @@ export function SettingsPanel() {
                     defaultValue={settings.policy.fresh_validity_max_age_minutes}
                   />
                 </label>
-                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2">
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2">
                   <label className="flex items-center justify-between gap-3 text-xs">
                     <span>
-                      <span className="flex items-center gap-1.5 font-semibold text-red-700">
+                      <span className="flex items-center gap-1.5 font-semibold text-destructive">
                         <span>Ручной разбор жёстких блокировок</span>
                         <HelpTip
                           label="Ручной разбор жёстких блокировок"
                           text="Это не отключает защиту автоматически. Например: если сессия отозвана, задачу всё равно нельзя запускать, пока аккаунт снова не войдёт."
                         />
                       </span>
-                      <span className="block text-red-600">
+                      <span className="block text-destructive">
                         Критические блокировки всё равно останутся защищены.
                       </span>
                     </span>
@@ -249,7 +249,7 @@ export function SettingsPanel() {
                     />
                   </label>
                 </div>
-                <div className="text-[11px] leading-5 text-gray-500">
+                <div className="text-[11px] leading-5 text-muted-foreground">
                   Всегда защищены: {formatHardBlockers(settings.policy.non_overridable_blockers)}
                 </div>
               </div>
@@ -310,16 +310,16 @@ function CooldownRow({
   value: number
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2">
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <span>{label}</span>
           <HelpTip label={label} text={help} />
         </div>
-        <div className="text-[11px] text-gray-400">{formatCooldown(value)}</div>
+        <div className="text-[11px] text-muted-foreground">{formatCooldown(value)}</div>
       </div>
       <select
-        className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-navy-900"
+        className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-semibold text-foreground"
         disabled={disabled}
         onChange={(event) => onChange(Number(event.currentTarget.value))}
         value={value}
@@ -351,12 +351,12 @@ function PolicySelect({
 }) {
   return (
     <label className="flex items-center justify-between gap-3 text-xs">
-      <span className="flex items-center gap-1.5 font-medium text-gray-600">
+      <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
         <span>{label}</span>
         <HelpTip label={label} text={help} />
       </span>
       <select
-        className="max-w-48 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-navy-900"
+        className="max-w-48 rounded-lg border border-border bg-card px-2 py-1 text-xs font-semibold text-foreground"
         disabled={disabled}
         onChange={(event) => onChange(event.currentTarget.value)}
         value={value}
@@ -397,11 +397,11 @@ function SettingsCard({
   title: string
 }) {
   return (
-    <section className="rounded-xl border border-gray-200/70 bg-white p-4 shadow-soft">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gray-50">{icon}</div>
-          <h2 className="truncate text-sm font-bold text-navy-900">{title}</h2>
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">{icon}</div>
+          <h2 className="truncate text-sm font-bold text-foreground">{title}</h2>
         </div>
         {action}
       </div>
@@ -416,9 +416,9 @@ function StatusRows({ items }: { items: SettingsStatusItem[] }) {
   return (
     <div className="space-y-1.5">
       {items.map((item) => (
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2" key={item.key}>
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2" key={item.key}>
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-xs font-medium text-gray-600">{item.label}</span>
+            <span className="truncate text-xs font-medium text-muted-foreground">{item.label}</span>
             {item.help ? <HelpTip label={item.label} text={item.help} /> : null}
           </span>
           <span className={`flex items-center gap-1.5 text-[10px] font-semibold ${statusTextClass(item.status)}`}>
@@ -436,13 +436,13 @@ function HelpTip({ label, text }: { label: string; text: string }) {
     <span className="group relative inline-flex shrink-0">
       <button
         aria-label={`Что значит ${label}`}
-        className="flex size-4 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-navy-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-200"
+        className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         title={text}
         type="button"
       >
         <CircleHelp className="size-3.5" />
       </button>
-      <span className="pointer-events-none absolute left-1/2 top-5 z-20 hidden w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium leading-snug text-gray-600 shadow-lg group-hover:block group-focus-within:block">
+      <span className="pointer-events-none absolute left-1/2 top-5 z-20 hidden w-64 -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium leading-snug text-muted-foreground shadow-lg group-hover:block group-focus-within:block">
         {text}
       </span>
     </span>
@@ -450,17 +450,17 @@ function HelpTip({ label, text }: { label: string; text: string }) {
 }
 
 function EmptyState() {
-  return <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-400">Нет данных</div>
+  return <div className="rounded-xl bg-muted px-3 py-2 text-xs text-muted-foreground">Нет данных</div>
 }
 
 function statusDotClass(status: SettingsStatusItem['status']): string {
-  if (status === 'ok') return 'bg-emerald-500'
-  if (status === 'down') return 'bg-red-500'
-  return 'bg-honey-500'
+  if (status === 'ok') return 'bg-muted'
+  if (status === 'down') return 'bg-destructive'
+  return 'bg-muted'
 }
 
 function statusTextClass(status: SettingsStatusItem['status']): string {
-  if (status === 'ok') return 'text-emerald-700'
-  if (status === 'down') return 'text-red-700'
-  return 'text-honey-700'
+  if (status === 'ok') return 'text-primary'
+  if (status === 'down') return 'text-destructive'
+  return 'text-muted-foreground'
 }

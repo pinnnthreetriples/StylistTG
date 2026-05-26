@@ -34,20 +34,20 @@ export function ImportUploadForm({
           void onCreate({ dry_run: true, label: label.trim() || undefined, source_type: sourceType })
         }}
       >
-        <label className="grid gap-1 text-sm font-medium text-gray-700">
+        <label className="grid gap-1 text-sm font-medium text-foreground">
           Название пакета
           <input
-            className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+            className="h-10 rounded-md border border-border px-3 text-sm"
             disabled={disabled}
             onChange={(event) => setLabel(event.target.value)}
             placeholder="Например: майский импорт"
             value={label}
           />
         </label>
-        <label className="grid gap-1 text-sm font-medium text-gray-700">
+        <label className="grid gap-1 text-sm font-medium text-foreground">
           Тип источника
           <select
-            className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+            className="h-10 rounded-md border border-border px-3 text-sm"
             disabled={disabled}
             onChange={(event) => setSourceTypeLabel(event.target.value)}
             value={sourceTypeLabel}

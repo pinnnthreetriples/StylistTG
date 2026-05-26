@@ -14,23 +14,23 @@ import {
 
 export function SafetyHistoryPanel({ checks }: { checks: AccountValidityCheck[] }) {
   return (
-    <section className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-soft" id="account-workspace-debug">
+    <section className="mb-4 rounded-xl border border-border bg-card p-4 shadow-sm" id="account-workspace-debug">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-gray-900">История проверок безопасности</h2>
-        <span className="text-[11px] text-gray-400">
+        <h2 className="text-sm font-bold text-foreground">История проверок безопасности</h2>
+        <span className="text-[11px] text-muted-foreground">
           {checks.length > 0 ? `Последние ${Math.min(checks.length, 5)}` : 'Нет проверок'}
         </span>
       </div>
       {checks.length === 0 ? (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Проверка ещё не запускалась. Кнопка “Проверить” не меняет аккаунт, а только проверяет сессию.
         </p>
       ) : (
         <div className="space-y-1.5">
           {checks.slice(0, 5).map((check) => (
-            <details className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600" key={check.id}>
-              <summary className="cursor-pointer font-semibold text-gray-800">{validityCheckSummary(check)}</summary>
-              <pre className="mt-2 max-h-40 overflow-auto rounded bg-white p-2 text-[11px] text-gray-500">
+            <details className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground" key={check.id}>
+              <summary className="cursor-pointer font-semibold text-foreground">{validityCheckSummary(check)}</summary>
+              <pre className="mt-2 max-h-40 overflow-auto rounded bg-card p-2 text-[11px] text-muted-foreground">
                 {JSON.stringify({ status: check.status, error_code: check.error_code, details: check.details, result: check.result }, null, 2)}
               </pre>
             </details>
@@ -66,15 +66,15 @@ export function ProxyPanel({
   const errorLabel = proxyErrorLabel(proxy?.last_error_code)
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-soft">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Сеть и прокси</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-foreground">Сеть и прокси</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Прокси используется для сетевой маршрутизации аккаунта и диагностики подключения.
           </p>
         </div>
-        <span className="rounded-lg bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+        <span className="rounded-lg bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           {proxyStatusLabel(proxy?.status)}
         </span>
       </div>
@@ -110,7 +110,7 @@ export function ProxyPanel({
         </FormField>
       </div>
       {proxy?.last_checked_at || errorLabel ? (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           {proxy?.last_checked_at ? `Последняя проверка: ${new Date(proxy.last_checked_at).toLocaleString('ru-RU')}` : null}
           {errorLabel ? ` · ${errorLabel}` : null}
         </p>
@@ -139,22 +139,22 @@ export function ProxyPanel({
 
 export function OperationLogsPanel({ logs, title }: { logs: OperationLog[]; title: string }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-soft">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-        <span className="text-[11px] text-gray-400">{logs.length ? `Событий: ${logs.length}` : 'Нет событий'}</span>
+        <h2 className="text-sm font-bold text-foreground">{title}</h2>
+        <span className="text-[11px] text-muted-foreground">{logs.length ? `Событий: ${logs.length}` : 'Нет событий'}</span>
       </div>
       {logs.length === 0 ? (
-        <p className="text-xs text-gray-500">Пока нет записей. Новые проверки и операции будут появляться здесь.</p>
+        <p className="text-xs text-muted-foreground">Пока нет записей. Новые проверки и операции будут появляться здесь.</p>
       ) : (
         <div className="space-y-1.5">
           {logs.map((log) => (
-            <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600" key={log.id}>
+            <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground" key={log.id}>
               <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-gray-800">{compactOperationLogLabel(log)}</span>
-                <span className="text-[11px] text-gray-400">{new Date(log.created_at).toLocaleString('ru-RU')}</span>
+                <span className="font-semibold text-foreground">{compactOperationLogLabel(log)}</span>
+                <span className="text-[11px] text-muted-foreground">{new Date(log.created_at).toLocaleString('ru-RU')}</span>
               </div>
-              <p className="mt-0.5 text-gray-500">{log.message}</p>
+              <p className="mt-0.5 text-muted-foreground">{log.message}</p>
             </div>
           ))}
         </div>
@@ -177,21 +177,21 @@ export function RealTelegramExecutionModal({
   const groups = groupRealExecutionChanges(changedItems)
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-navy-900/25 px-4 backdrop-blur-sm">
-      <div className="modal-animate w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/25 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-xl">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex min-w-0 items-start gap-2.5">
-            <span className="mt-0.5 flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-honey-50 text-honey-700">
+            <span className="mt-0.5 flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <AlertTriangle className="size-4" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-gray-900">Подтвердите изменение аккаунта</h2>
-              <p className="mt-1 text-xs leading-relaxed text-gray-500">Это действие реально изменит Telegram-аккаунт.</p>
+              <h2 className="text-sm font-bold text-foreground">Подтвердите изменение аккаунта</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Это действие реально изменит Telegram-аккаунт.</p>
             </div>
           </div>
           <button
             aria-label="Закрыть подтверждение"
-            className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-50 hover:text-gray-700"
+            className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
             disabled={isSubmitting}
             onClick={onCancel}
             type="button"
@@ -206,11 +206,11 @@ export function RealTelegramExecutionModal({
           <RealExecutionGroup title="Stories" items={groups.stories} />
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3">
-          <button className="rounded-lg px-3 py-2 text-xs font-semibold text-gray-500 transition hover:bg-white hover:text-gray-700 disabled:opacity-50" disabled={isSubmitting} onClick={onCancel} type="button">
+        <div className="flex justify-end gap-2 border-t border-border bg-muted px-4 py-3">
+          <button className="rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-card hover:text-foreground disabled:opacity-50" disabled={isSubmitting} onClick={onCancel} type="button">
             Отмена
           </button>
-          <button className="rounded-lg bg-navy-400 px-4 py-2 text-xs font-semibold text-white transition hover:bg-navy-500 disabled:opacity-50" disabled={isSubmitting} onClick={onConfirm} type="button">
+          <button className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary disabled:opacity-50" disabled={isSubmitting} onClick={onConfirm} type="button">
             Подтвердить и создать задачу
           </button>
         </div>
@@ -223,14 +223,14 @@ function RealExecutionGroup({ title, items }: { title: string; items: ChangeItem
   if (items.length === 0) return null
   return (
     <section>
-      <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{title}</h3>
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>
       <ul className="mt-1.5 space-y-1">
         {items.map((item) => (
-          <li className="flex gap-2 text-xs text-gray-700" key={`${item.operation}:${item.value}`}>
-            <span className="mt-1 size-1.5 flex-shrink-0 rounded-full bg-navy-300" />
+          <li className="flex gap-2 text-xs text-foreground" key={`${item.operation}:${item.value}`}>
+            <span className="mt-1 size-1.5 flex-shrink-0 rounded-full bg-primary" />
             <span className="min-w-0">
               <span className="font-semibold">{formatChangeOperationLabel(item.operation)}</span>
-              <span className="text-gray-400"> · {item.value}</span>
+              <span className="text-muted-foreground"> · {item.value}</span>
             </span>
           </li>
         ))}

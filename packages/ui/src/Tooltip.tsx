@@ -35,8 +35,8 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
       {visible ? (
         <div
           className={cn(
-            'absolute z-50 max-w-xs rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg',
-            'animate-[fade-in_0.15s_ease-out_both]',
+            'absolute z-50 max-w-xs rounded-md bg-foreground px-2.5 py-1.5 text-xs font-medium text-primary-foreground shadow-lg',
+            '',
             side === 'top'
               ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'
               : 'top-full left-1/2 mt-1.5 -translate-x-1/2',

@@ -45,9 +45,9 @@ export function BehaviorProfileViewer({ accountId, currentUserRole }: BehaviorPr
       description="Per-account stable baseline parameters for human behavior emulation (admin only)."
     >
       {profileQuery.isPending ? (
-        <div className="text-sm text-gray-500">Загрузка профиля поведения...</div>
+        <div className="text-sm text-muted-foreground">Загрузка профиля поведения...</div>
       ) : profileQuery.isError ? (
-        <div className="text-sm text-red-500">Не удалось загрузить профиль поведения.</div>
+        <div className="text-sm text-destructive">Не удалось загрузить профиль поведения.</div>
       ) : profile ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <StatusCard
@@ -88,7 +88,7 @@ export function BehaviorProfileViewer({ accountId, currentUserRole }: BehaviorPr
           />
         </div>
       ) : (
-        <div className="text-sm text-gray-500">Нет данных.</div>
+        <div className="text-sm text-muted-foreground">Нет данных.</div>
       )}
     </SectionCard>
   )

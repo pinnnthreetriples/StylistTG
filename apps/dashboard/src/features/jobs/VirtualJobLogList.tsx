@@ -11,7 +11,7 @@ export function VirtualJobLogList({
   entries?: JobLogEntry[]
   isLoading?: boolean
 }) {
-  if (isLoading) return <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">Загружаем журнал...</div>
+  if (isLoading) return <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">Загружаем журнал...</div>
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -26,7 +26,7 @@ export function VirtualJobLogList({
 
 function StaticJobLogList({ entries }: { entries: JobLogEntry[] }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       {entries.map((entry) => (
         <JobLogRow entry={entry} key={entry.id} />
       ))}
@@ -46,7 +46,7 @@ function VirtualJobLogListBrowser({ entries }: { entries: JobLogEntry[] }) {
   })
 
   return (
-    <div className="h-[520px] overflow-auto rounded-lg border border-gray-200 bg-white" ref={parentRef}>
+    <div className="h-[520px] overflow-auto rounded-lg border border-border bg-card" ref={parentRef}>
       <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const entry = entries[virtualItem.index]
@@ -66,13 +66,13 @@ function VirtualJobLogListBrowser({ entries }: { entries: JobLogEntry[] }) {
 }
 
 function JobLogRow({ entry }: { entry: JobLogEntry }) {
-  const tone = entry.level === 'error' ? 'text-red-600' : entry.level === 'warning' ? 'text-honey-700' : 'text-gray-600'
+  const tone = entry.level === 'error' ? 'text-destructive' : entry.level === 'warning' ? 'text-muted-foreground' : 'text-muted-foreground'
   const levelLabel = entry.level === 'error' ? 'Ошибка' : entry.level === 'warning' ? 'Внимание' : 'Инфо'
   return (
-    <div className="grid grid-cols-[11rem_5rem_1fr] gap-3 border-b border-gray-100 px-4 py-3 text-xs">
-      <span className="font-mono text-gray-400">{entry.timestamp}</span>
+    <div className="grid grid-cols-[11rem_5rem_1fr] gap-3 border-b border-border px-4 py-3 text-xs">
+      <span className="font-mono text-muted-foreground">{entry.timestamp}</span>
       <span className={`font-bold ${tone}`}>{levelLabel}</span>
-      <span className="truncate text-gray-700">{entry.message}</span>
+      <span className="truncate text-foreground">{entry.message}</span>
     </div>
   )
 }

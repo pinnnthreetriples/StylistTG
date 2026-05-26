@@ -104,7 +104,7 @@ describe('neuro-commenting route smoke', () => {
       'aria-selected="true" data-testid="neuro-commenting-tab-queue"',
     )
     // Attempts table belongs to analytics tab and must be absent here.
-    expect(html).not.toContain('<h3 class="mb-3 text-sm font-semibold text-gray-900">Attempts')
+    expect(html).not.toContain('<h3 class="mb-3 text-sm font-semibold text-foreground">Attempts')
   })
 
   test('NeuroCommentingPage renders analytics tab content when initialTab=analytics', () => {

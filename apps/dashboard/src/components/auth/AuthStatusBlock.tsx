@@ -15,8 +15,8 @@ export function AuthStatusBlock({
 }: AuthStatusBlockProps) {
   const palette =
     accent === 'error'
-      ? 'border-red-200/70 bg-red-50 text-red-800'
-      : 'border-gray-200/70 bg-gray-50 text-gray-700'
+      ? 'border-destructive/20 bg-destructive/10 text-destructive'
+      : 'border-border bg-muted text-foreground'
 
   return (
     <div className={`rounded-2xl border px-4 py-3 ${palette}`}>

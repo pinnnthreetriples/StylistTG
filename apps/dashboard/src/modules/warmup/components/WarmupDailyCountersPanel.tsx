@@ -31,7 +31,7 @@ export function WarmupDailyCountersPanel({
         title="Действия по дням"
         description="План пока не содержит действий, либо стратегия не использует daily_action_limits."
       >
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-border bg-muted px-4 py-6 text-sm text-muted-foreground">
           Журнал событий ниже отражает каждое действие, которое выполнила
           сессия.
         </div>
@@ -47,14 +47,14 @@ export function WarmupDailyCountersPanel({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[420px] border-collapse text-left text-xs">
           <thead>
-            <tr className="text-gray-500">
-              <th className="border-b border-gray-200 px-2 py-1 font-semibold uppercase">
+            <tr className="text-muted-foreground">
+              <th className="border-b border-border px-2 py-1 font-semibold uppercase">
                 День
               </th>
               {actionTypes.map((actionType) => (
                 <th
                   key={actionType}
-                  className="border-b border-gray-200 px-2 py-1 font-semibold uppercase"
+                  className="border-b border-border px-2 py-1 font-semibold uppercase"
                 >
                   {actionType}
                 </th>
@@ -74,13 +74,13 @@ export function WarmupDailyCountersPanel({
                   key={day}
                   className={
                     isCurrent
-                      ? 'bg-blue-50/60 text-blue-900'
+                      ? 'bg-muted text-muted-foreground'
                       : isFuture
-                        ? 'text-gray-400'
-                        : 'text-gray-700'
+                        ? 'text-muted-foreground'
+                        : 'text-foreground'
                   }
                 >
-                  <td className="border-b border-gray-100 px-2 py-1 font-semibold">
+                  <td className="border-b border-border px-2 py-1 font-semibold">
                     {day + 1}
                   </td>
                   {actionTypes.map((actionType) => {
@@ -88,12 +88,12 @@ export function WarmupDailyCountersPanel({
                     const actual = countersForDay[actionType] ?? 0
                     return (
                       <td
-                        className="border-b border-gray-100 px-2 py-1"
+                        className="border-b border-border px-2 py-1"
                         key={`${day}:${actionType}`}
                       >
                         <span className="font-mono text-[11px]">
                           {actual}
-                          <span className="text-gray-400">/{planned}</span>
+                          <span className="text-muted-foreground">/{planned}</span>
                         </span>
                       </td>
                     )

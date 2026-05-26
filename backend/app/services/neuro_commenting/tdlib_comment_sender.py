@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from app.adapters.tdlib_auth import TdlibClientFactory
 from app.config import Settings, settings
+from app.models import utc_now
 from app.services.neuro_commenting.errors import NeuroRuntimeUnavailableError
 from app.services.neuro_commenting.sender_service import (
     SentCommentResult,
@@ -71,7 +71,7 @@ class TdlibTelegramCommentSender:
             )
         return SentCommentResult(
             telegram_message_id=telegram_message_id,
-            sent_at=datetime.now(UTC),
+            sent_at=utc_now(),
         )
 
 

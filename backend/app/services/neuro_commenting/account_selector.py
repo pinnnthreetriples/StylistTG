@@ -13,6 +13,7 @@ from app.models import (
     NeuroCommentCampaign,
     NeuroCommentCampaignAccount,
     NeuroCommentTarget,
+    utc_now,
 )
 from app.services.neuro_commenting.enums import (
     NeuroCampaignAccountStatus,
@@ -81,7 +82,7 @@ class AccountSelector:
         accounts: list[NeuroCommentCampaignAccount],
         target: NeuroCommentTarget | None,
     ) -> AccountSelectionResult:
-        now = datetime.now(UTC)
+        now = utc_now()
         eligible: list[NeuroCommentCampaignAccount] = []
         skipped: list[AccountSkipReason] = []
         for account in accounts:

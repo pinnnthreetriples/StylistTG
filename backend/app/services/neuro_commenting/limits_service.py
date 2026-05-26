@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import NeuroCommentCampaign, NeuroCommentLimit, new_id
+from app.models import NeuroCommentCampaign, NeuroCommentLimit, new_id, utc_now
 from app.services.neuro_commenting import repository
 
 
@@ -70,7 +69,7 @@ class LimitsService:
         limit = self._require_limit(session, limit_id=limit_id, workspace_id=workspace_id)
         for key, value in payload.items():
             setattr(limit, key, value)
-        limit.updated_at = datetime.now(UTC)
+        limit.updated_at = utc_now()
         session.flush()
         return limit
 

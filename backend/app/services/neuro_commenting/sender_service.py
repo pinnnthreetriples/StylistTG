@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Protocol
 
 from sqlalchemy.orm import Session, object_session
@@ -16,6 +16,7 @@ from app.models import (
     NeuroCommentGeneratedComment,
     NeuroCommentObservedPost,
     NeuroCommentTarget,
+    utc_now,
 )
 from app.services.account_safety_gate import evaluate as evaluate_safety_gate
 from app.services.idempotency_keys import (
@@ -138,7 +139,7 @@ class FakeTelegramCommentSender:
             raise self._error
         return SentCommentResult(
             telegram_message_id=self._telegram_message_id,
-            sent_at=datetime.now(UTC),
+            sent_at=utc_now(),
         )
 
 
@@ -289,7 +290,7 @@ class SenderService:
             self._release_gate_reservation()
             gate_released = True
             attempt.status = NeuroAttemptStatus.FAILED.value
-            attempt.failed_at = datetime.now(UTC)
+            attempt.failed_at = utc_now()
             attempt.error_code = "sender_unexpected_error"
             attempt.error_message = f"{type(exc).__name__}: {exc}"[:300]
             self._analytics.write_event(
@@ -399,7 +400,7 @@ class SenderService:
         attempt: NeuroCommentAttempt,
         telegram_message_id: str | None = None,
     ) -> NeuroCommentAttempt:
-        now = datetime.now(UTC)
+        now = utc_now()
         attempt.status = NeuroAttemptStatus.SENT.value
         attempt.telegram_message_id = telegram_message_id or attempt.telegram_message_id
         attempt.sent_at = attempt.sent_at or now
@@ -435,7 +436,7 @@ class SenderService:
         error_message: str | None = None,
         flood_wait_seconds: int | None = None,
     ) -> NeuroCommentAttempt:
-        now = datetime.now(UTC)
+        now = utc_now()
         attempt.status = NeuroAttemptStatus.FAILED.value
         attempt.error_code = error_code
         attempt.error_message = error_message
@@ -816,7 +817,7 @@ class SenderService:
         attempt: NeuroCommentAttempt,
         error: TelegramCommentSendError,
     ) -> None:
-        now = datetime.now(UTC)
+        now = utc_now()
         attempt.error_code = error.error_code
         attempt.error_message = str(error)[:300]
         attempt.failed_at = now

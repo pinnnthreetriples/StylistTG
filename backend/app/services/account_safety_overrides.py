@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AccountSafetyOverride
+from app.models import AccountSafetyOverride, utc_now
 from app.services.account_cooldowns import OPERATION_KEYS
 from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
@@ -41,7 +41,7 @@ def create_safety_override(
     non_overridable = [code for code in blockers if code in NON_OVERRIDABLE_BLOCKERS]
     if non_overridable:
         raise ValueError(f"non-overridable blocker: {non_overridable[0]}")
-    now = datetime.now(UTC)
+    now = utc_now()
     row = AccountSafetyOverride(
         workspace_id=workspace_id,
         account_id=account_id,
@@ -76,7 +76,7 @@ def active_overrides_by_operation(
     workspace_id: str,
     now: datetime | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     rows = (
         session.execute(
             select(AccountSafetyOverride)
@@ -102,7 +102,7 @@ def batch_active_overrides_by_operation(
     now: datetime | None = None,
 ) -> dict[str, dict[str, list[dict[str, Any]]]]:
     """Return {account_id: {operation: [overrides]}} for all accounts in one query."""
-    now = now or datetime.now(UTC)
+    now = now or utc_now()
     if not account_ids:
         return {}
     rows = (

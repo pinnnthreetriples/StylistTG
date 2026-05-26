@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from difflib import unified_diff
 import re
 
 from sqlalchemy.orm import Session
 
-from app.models import NeuroCommentAttempt, NeuroCommentGeneratedComment, new_id
+from app.models import NeuroCommentAttempt, NeuroCommentGeneratedComment, new_id, utc_now
 from app.services.secret_redaction import redact_text
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
@@ -43,7 +42,7 @@ class ApprovalService:
         comment.edited_text = edited_text.strip()
         comment.final_text = comment.edited_text
         comment.approval_status = NeuroGeneratedApprovalStatus.EDITED.value
-        comment.updated_at = datetime.now(UTC)
+        comment.updated_at = utc_now()
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,
@@ -74,7 +73,7 @@ class ApprovalService:
         comment.approval_status = NeuroGeneratedApprovalStatus.APPROVED.value
         comment.final_text = comment.edited_text or comment.generated_text
         comment.approved_by = actor_user_id
-        comment.approved_at = datetime.now(UTC)
+        comment.approved_at = utc_now()
         attempt = repository.get_attempt_for_generated_comment(
             session, generated_comment_id=comment.id
         )
@@ -127,7 +126,7 @@ class ApprovalService:
         )
         comment.approval_status = NeuroGeneratedApprovalStatus.REJECTED.value
         comment.rejected_reason = reason
-        comment.updated_at = datetime.now(UTC)
+        comment.updated_at = utc_now()
         self._analytics.write_event(
             session,
             workspace_id=workspace_id,

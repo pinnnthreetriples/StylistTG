@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AccountExportRequest
+from app.models import AccountExportRequest, utc_now
 from app.services.sensitive_audit import record_sensitive_audit_event
 
 
@@ -29,7 +28,7 @@ class ReaperReport:
 def run_reaper_report(
     session: Session, *, workspace_id: str | None = None, mode: str = "dry_run"
 ) -> ReaperReport:
-    now = datetime.now(UTC)
+    now = utc_now()
     statement = (
         select(AccountExportRequest)
         .where(AccountExportRequest.expires_at.is_not(None))

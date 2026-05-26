@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any, cast
 
 from redis.exceptions import RedisError
@@ -9,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import Job, JobStepResult
+from app.models import Job, JobStepResult, utc_now
 from app.services.accounts import get_account
 from app.services.redis_client import redis_from_url
 
@@ -59,7 +58,7 @@ def account_runtime_diagnostics(session: Session, account_id: str) -> dict[str, 
         "recovery_marker": account.runtime_state.recovery_marker,
         "lock_owner": account.runtime_state.lock_owner,
         "lock_epoch": account.runtime_state.lock_epoch,
-        "diagnostic_timestamp": datetime.now(UTC).isoformat(),
+        "diagnostic_timestamp": utc_now().isoformat(),
     }
 
 

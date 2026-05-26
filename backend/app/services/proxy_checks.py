@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import socket
-from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
 from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
 from app.config import Settings, settings
-from app.models import AccountProxy
+from app.models import AccountProxy, utc_now
 from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 from app.services.proxy_accounts import proxy_to_dict
@@ -58,7 +57,7 @@ def check_account_proxy(
         raise ValueError("proxy not configured")
     ok, error_code, error_message = (checker or TcpProxyConnectivityChecker()).check(proxy)
     check_scope = "tcp"
-    now = datetime.now(UTC)
+    now = utc_now()
     status = "tcp_working" if ok else "failed"
     tdlib_error_code = None
     tdlib_error_message = None

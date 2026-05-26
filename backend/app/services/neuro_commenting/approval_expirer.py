@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import NeuroCommentCampaign, NeuroCommentGeneratedComment
+from app.models import NeuroCommentCampaign, NeuroCommentGeneratedComment, utc_now
 from app.services.neuro_commenting.analytics_service import AnalyticsService
 from app.services.neuro_commenting.enums import (
     NeuroEventLevel,
@@ -34,7 +34,7 @@ class ApprovalExpirer:
     ) -> int:
         if ttl_seconds <= 0:
             raise ValueError("ttl_seconds must be positive")
-        moment = now or datetime.now(UTC)
+        moment = now or utc_now()
         if moment.tzinfo is None:
             moment = moment.replace(tzinfo=UTC)
         cutoff = moment - timedelta(seconds=ttl_seconds)

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Account, AccountOperationCooldown, AccountState, Job, JobState
+from app.models import Account, AccountOperationCooldown, AccountState, Job, JobState, utc_now
 from app.services.accounts import list_accounts
 
 
@@ -196,7 +196,7 @@ def _score_readiness_risk(
 def build_account_readiness_risk(
     session: Session, account: Account, *, computed_at: datetime | None = None
 ) -> dict[str, Any]:
-    computed = computed_at or datetime.now(UTC)
+    computed = computed_at or utc_now()
     return _score_readiness_risk(
         account,
         computed=computed,
@@ -206,7 +206,7 @@ def build_account_readiness_risk(
 
 
 def build_account_readiness_risk_summary(session: Session, *, workspace_id: str) -> dict[str, Any]:
-    computed_at = datetime.now(UTC)
+    computed_at = utc_now()
     accounts = list_accounts(session, workspace_id=workspace_id)
     if not accounts:
         return _empty_risk_summary(computed_at)

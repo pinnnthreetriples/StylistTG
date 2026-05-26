@@ -602,7 +602,7 @@ def _warmup_complete(warmup: WarmupSession, policy: WorkspaceSafetyPolicy) -> bo
 
 def _age_hours(account: Account) -> float:
     created_at = account.created_at
-    return (datetime.now(UTC) - _as_utc(created_at)).total_seconds() / 3600
+    return (utc_now() - _as_utc(created_at)).total_seconds() / 3600
 
 
 def _fraud_score(session: Session, account: Account) -> float:

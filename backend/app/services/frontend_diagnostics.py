@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from app.config import Settings, settings
+from app.models import utc_now
 from app.services.tdlib_runtime import detect_tdlib_runtime
 from app.services.worker_plane import PRODUCTION_QUEUE_NAMES
 
@@ -65,5 +65,5 @@ def build_frontend_diagnostics_summary(
             "scheduler_enabled": config.scheduler_enabled,
             "reaper_mode": config.reaper_mode,
         },
-        "generated_at": datetime.now(UTC),
+        "generated_at": utc_now(),
     }

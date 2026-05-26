@@ -353,7 +353,8 @@
         "apps/dashboard/src/modules/shared/SafetyGateBanner.tsx",
         "apps/dashboard/src/modules/shared/api.ts",
         "apps/dashboard/src/modules/shared/index.ts",
-        "apps/dashboard/src/modules/shared/jobs.ts"
+        "apps/dashboard/src/modules/shared/jobs.ts",
+        "apps/dashboard/src/modules/shared/quarantineReleasePayload.ts"
       ],
       "has_components_dir": false,
       "has_index": true,

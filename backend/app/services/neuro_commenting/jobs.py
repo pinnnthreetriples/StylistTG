@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -11,6 +10,7 @@ from app.models import (
     NeuroCommentObservedPost,
     NeuroCommentTarget,
     new_id,
+    utc_now,
 )
 from app.services.neuro_commenting.account_selector import AccountSelector
 from app.services.neuro_commenting.ai_comment_generator import (
@@ -80,7 +80,7 @@ def generate_comment(
     )
     if not rule_decision.allowed:
         observed_post.status = NeuroObservedPostStatus.FAILED.value
-        observed_post.processed_at = datetime.now(UTC)
+        observed_post.processed_at = utc_now()
         AnalyticsService().write_event(
             session,
             workspace_id=workspace_id,
@@ -120,7 +120,7 @@ def generate_comment(
         generated = build_ai_comment_generator().generate(prompt)
     except AICommentGenerationError as exc:
         observed_post.status = NeuroObservedPostStatus.FAILED.value
-        observed_post.processed_at = datetime.now(UTC)
+        observed_post.processed_at = utc_now()
         analytics.write_event(
             session,
             workspace_id=workspace_id,
@@ -160,7 +160,7 @@ def generate_comment(
         approval_status=NeuroGeneratedApprovalStatus.PENDING.value,
     )
     observed_post.status = NeuroObservedPostStatus.GENERATED.value
-    observed_post.processed_at = datetime.now(UTC)
+    observed_post.processed_at = utc_now()
     session.add(comment)
     session.flush()
     analytics.record_generated_comment(session, campaign=campaign, target=target, comment=comment)
@@ -564,7 +564,7 @@ def _resolve_discussion_for_observed_post(
         source_chat_id=observed.source_chat_id,
         source_message_id=observed.source_message_id,
     )
-    now = datetime.now(UTC)
+    now = utc_now()
     observed.discussion_chat_id = resolution.discussion_chat_id
     observed.discussion_message_id = resolution.discussion_message_id
     observed.discussion_resolution_error_code = resolution.error_code

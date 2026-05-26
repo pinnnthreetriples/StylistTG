@@ -123,3 +123,19 @@ rules:
       - metavariable-regex:
           metavariable: $VALUE
           regex: "(?i).*(phone|phoneNumber|phone_number|externalRef|external_ref|password|token|secret|apiKey|api_key|authCode|auth_code).*"
+
+  - id: stylisttg.no-direct-datetime-now-utc-services
+    languages:
+      - python
+    severity: ERROR
+    message: Use app.models.utc_now() in backend services instead of direct datetime.now(UTC) or datetime.utcnow().
+    paths:
+      include:
+        - backend/app/services/**/*.py
+    metadata:
+      category: correctness
+      technology:
+        - python
+    pattern-either:
+      - pattern: datetime.now(UTC)
+      - pattern: datetime.utcnow()

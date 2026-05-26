@@ -7,7 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Account, AccountProxy, AccountValidityCheckRun
+from app.models import (
+    DEFAULT_LOCAL_WORKSPACE_ID,
+    Account,
+    AccountProxy,
+    AccountValidityCheckRun,
+    utc_now,
+)
 from app.services.account_capabilities import build_account_capabilities
 from app.services.account_cooldowns import (
     active_cooldowns_by_operation,
@@ -50,7 +56,7 @@ def build_account_safety(
 def build_account_safety_for_account(
     session: Session, account: Account, *, config: Settings = settings
 ) -> dict[str, Any]:
-    checked_at = datetime.now(UTC)
+    checked_at = utc_now()
     health = collect_account_health_signals(session, account)
     capabilities = build_account_capabilities(
         account, health["reasons"], config=config, checked_at=checked_at
@@ -92,7 +98,7 @@ def build_account_safety_summary(
     if not accounts:
         return []
     account_ids = [a.id for a in accounts]
-    checked_at = datetime.now(UTC)
+    checked_at = utc_now()
 
     latest_jobs_map = batch_latest_jobs(session, account_ids)
     latest_failed_steps_map = batch_latest_failed_steps(session, account_ids)
@@ -371,7 +377,7 @@ def _validity_is_stale(safety: dict[str, Any], *, max_age_minutes: int) -> bool:
         return True
     if finished_at.tzinfo is None:
         finished_at = finished_at.replace(tzinfo=UTC)
-    return datetime.now(UTC) - finished_at > timedelta(minutes=max_age_minutes)
+    return utc_now() - finished_at > timedelta(minutes=max_age_minutes)
 
 
 def _top_reasons(reasons: list[dict[str, Any]]) -> list[dict[str, Any]]:

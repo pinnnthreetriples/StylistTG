@@ -43,6 +43,7 @@ import {
   fetchRuntimeDiagnostics,
   fetchAccountRiskSummary,
   fetchTdlibRuntimeStatus,
+  fetchWorkspaceSafetyPolicy,
   generateNeuroObservedPost,
   normalizeClientError,
   observeNeuroCampaign,
@@ -60,6 +61,7 @@ import {
   submitTelegramAuthCode,
   startOtp,
   updateNeuroCampaign,
+  updateWorkspaceSafetyPolicy,
   validateAccountImportBatch,
   validateAuthBatchPhones,
   whitelistNeuroTarget,
@@ -124,6 +126,23 @@ describe('@stylisttg/api-client', () => {
     })
 
     await expect(fetchReady(client)).resolves.toEqual({ status: 'ok' })
+  })
+
+  test('workspace safety policy wrappers use typed OpenAPI requests', async () => {
+    const calls: Array<{ url: string; method: string; body: unknown }> = []
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: requestUrl(input), method: requestMethod(input, init), body: await requestBody(input, init) })
+      return jsonResponse(workspaceSafetyPolicyPayload())
+    }
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as typeof fetch })
+
+    await fetchWorkspaceSafetyPolicy(client)
+    await updateWorkspaceSafetyPolicy(client, { mode: 'balanced' })
+
+    expect(calls).toEqual([
+      { url: 'http://api.test/api/safety-policy', method: 'GET', body: null },
+      { url: 'http://api.test/api/safety-policy', method: 'PATCH', body: { mode: 'balanced' } },
+    ])
   })
 
   test('normalizes backend and network errors', () => {
@@ -867,5 +886,31 @@ function importBatchPayload() {
         updated_at: '2026-05-03T00:00:00Z',
       },
     ],
+  }
+}
+
+function workspaceSafetyPolicyPayload() {
+  return {
+    id: 'policy-1',
+    workspace_id: 'workspace-1',
+    mode: 'balanced',
+    delay_multiplier: 1,
+    typing_chars_per_minute_min: 100,
+    typing_chars_per_minute_max: 150,
+    profile_view_probability: 0.7,
+    scroll_probability: 0.3,
+    typo_probability: 0.05,
+    message_deletion_probability: 0.02,
+    quiet_hours_local_start: 120,
+    quiet_hours_local_end: 360,
+    require_warmup_before_commenting: true,
+    min_warmup_days: 3,
+    require_healthy_proxy: true,
+    min_account_age_hours: 24,
+    auto_pause_on_flood_wait_count: 3,
+    auto_pause_on_deleted_comments_count: 5,
+    quarantine_hours_on_flood_wait: 24,
+    created_at: '2026-05-03T00:00:00Z',
+    updated_at: '2026-05-03T00:00:00Z',
   }
 }

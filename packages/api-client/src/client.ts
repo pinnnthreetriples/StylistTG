@@ -1240,17 +1240,14 @@ export async function updateExecutionPolicy(
 }
 
 export async function fetchWorkspaceSafetyPolicy(client: StylistTgClient): Promise<WorkspaceSafetyPolicy> {
-  return client.request<WorkspaceSafetyPolicy>('/api/safety-policy')
+  return unwrap(client.openapi.GET('/api/safety-policy'), 'workspace safety policy')
 }
 
 export async function updateWorkspaceSafetyPolicy(
   client: StylistTgClient,
   update: WorkspaceSafetyPolicyUpdate,
 ): Promise<WorkspaceSafetyPolicy> {
-  return client.request<WorkspaceSafetyPolicy>('/api/safety-policy', {
-    method: 'PATCH',
-    body: JSON.stringify(update),
-  })
+  return unwrap(client.openapi.PATCH('/api/safety-policy', { body: update }), 'update workspace safety policy')
 }
 
 export async function fetchStoryDrafts(client: StylistTgClient, accountId: string): Promise<StoryDraftRead[]> {

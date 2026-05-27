@@ -33,6 +33,7 @@ export {
 } from './mappers'
 export { useCreateAccountUpdateJobMutation, useProfileDraft } from './hooks'
 export { buildPreviewStatus } from './labels'
+export { PinnedChannelField } from './components/PinnedChannelField'
 export type { PreviewStatus } from './labels'
 export type {
   ChangeItem,

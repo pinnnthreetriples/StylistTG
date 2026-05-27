@@ -18,6 +18,8 @@ MODULES_ROOT = Path("backend/app/modules")
 CONTRACTS_ROOT = Path("backend/app/contracts")
 RUNTIME_ROOT = Path("backend/app/runtime")
 FRONTEND_MODULES_ROOT = Path("apps/dashboard/src/modules")
+FRONTEND_APP_ROOT = Path("apps/dashboard/src")
+FRONTEND_BOUNDARY_POLICY_PATH = Path("docs/architecture/frontend-boundary-policy.json")
 DEFAULT_JSON_OUTPUT = Path("docs/architecture/structure-audit.json")
 DEFAULT_MARKDOWN_OUTPUT = Path("docs/architecture/STRUCTURE_AUDIT.md")
 DEFAULT_DEBT_OUTPUT = Path("docs/architecture/architecture-debt-inventory.json")
@@ -43,6 +45,11 @@ FORBIDDEN_POLICY_IMPORTS = (
     "rq",
 )
 FORBIDDEN_REPOSITORY_IMPORTS = ("fastapi", "app.api", "app.main")
+TS_IMPORT_SPECIFIER_RE = re.compile(
+    r"(?:\bimport\s*\(\s*['\"]([^'\"]+)['\"]\s*\)|"
+    r"\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['\"]([^'\"]+)['\"])",
+    flags=re.MULTILINE,
+)
 
 DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
     "policy": (
@@ -859,6 +866,207 @@ def _audit_frontend_modules(repo_root: Path) -> list[dict[str, Any]]:
     return modules
 
 
+def _read_frontend_boundary_policy(repo_root: Path) -> dict[str, Any]:
+    path = repo_root / FRONTEND_BOUNDARY_POLICY_PATH
+    if not path.exists():
+        return {
+            "schema_version": None,
+            "shared_module": "shared",
+            "feature_modules": [],
+            "allowed_shared_deep_imports": [],
+            "allowed_app_deep_module_imports": [],
+        }
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _frontend_policy_import_key(entry: Any) -> str:
+    if isinstance(entry, dict):
+        return str(entry.get("key") or "")
+    return str(entry)
+
+
+def _frontend_policy_import_details(entries: Any) -> list[dict[str, Any]]:
+    details: list[dict[str, Any]] = []
+    if not isinstance(entries, list):
+        return details
+    for entry in entries:
+        if isinstance(entry, dict):
+            details.append({**entry, "key": _frontend_policy_import_key(entry)})
+        else:
+            key = str(entry)
+            details.append(
+                {
+                    "key": key,
+                    "source": key.split(" -> ", 1)[0] if " -> " in key else "",
+                    "target": key.split(" -> ", 1)[1] if " -> " in key else "",
+                    "owner": "",
+                    "rationale": "",
+                    "removal_condition": "",
+                }
+            )
+    return sorted(details, key=lambda item: str(item["key"]))
+
+
+def _frontend_source_files(repo_root: Path) -> list[Path]:
+    app_root = repo_root / FRONTEND_APP_ROOT
+    if not app_root.exists():
+        return []
+    return sorted(
+        path for path in app_root.rglob("*") if path.is_file() and path.suffix in {".ts", ".tsx"}
+    )
+
+
+def _frontend_import_specifiers(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    return [
+        match.group(1) or match.group(2)
+        for match in TS_IMPORT_SPECIFIER_RE.finditer(text)
+        if match.group(1) or match.group(2)
+    ]
+
+
+def _frontend_boundary_source_path(path: Path, repo_root: Path) -> str:
+    modules_root = repo_root / FRONTEND_MODULES_ROOT
+    app_root = repo_root / FRONTEND_APP_ROOT
+    try:
+        return f"./{path.relative_to(modules_root).as_posix()}"
+    except ValueError:
+        return f"../{path.relative_to(app_root).as_posix()}"
+
+
+def _frontend_deep_module_import_key(
+    repo_root: Path,
+    path: Path,
+    import_specifier: str,
+    module_names: set[str],
+) -> str | None:
+    alias_match = re.match(r"^@/modules/([^/]+)/(.+)", import_specifier)
+    source_path = _frontend_boundary_source_path(path, repo_root)
+    if alias_match:
+        return f"{source_path} -> @/modules/{alias_match.group(1)}/{alias_match.group(2)}"
+
+    if not import_specifier.startswith("."):
+        return None
+
+    target = (path.parent / import_specifier).resolve()
+    modules_root = (repo_root / FRONTEND_MODULES_ROOT).resolve()
+    try:
+        target_rel = target.relative_to(modules_root).as_posix()
+    except ValueError:
+        return None
+    parts = target_rel.split("/")
+    if len(parts) < 2 or parts[0] not in module_names:
+        return None
+    return f"{source_path} -> @/modules/{parts[0]}/{'/'.join(parts[1:])}"
+
+
+def _module_name_from_deep_import_key(key: str) -> str | None:
+    match = re.search(r" -> @/modules/([^/]+)/", key)
+    return match.group(1) if match else None
+
+
+def _audit_frontend_boundaries(repo_root: Path) -> dict[str, Any]:
+    policy = _read_frontend_boundary_policy(repo_root)
+    modules_root = repo_root / FRONTEND_MODULES_ROOT
+    module_names = (
+        sorted(path.name for path in modules_root.iterdir() if path.is_dir())
+        if modules_root.exists()
+        else []
+    )
+    module_name_set = set(module_names)
+    shared_module = str(policy.get("shared_module") or "shared")
+    feature_modules = [module for module in module_names if module != shared_module]
+    expected_feature_modules = sorted(str(item) for item in policy.get("feature_modules", []))
+    missing_indexes = [
+        module_name
+        for module_name in module_names
+        if not (modules_root / module_name / "index.ts").exists()
+    ]
+    allowed_shared_deep_import_details = _frontend_policy_import_details(
+        policy.get("allowed_shared_deep_imports", [])
+    )
+    allowed_app_deep_module_import_details = _frontend_policy_import_details(
+        policy.get("allowed_app_deep_module_imports", [])
+    )
+    allowed_shared_deep_imports = sorted(
+        _frontend_policy_import_key(item) for item in policy.get("allowed_shared_deep_imports", [])
+    )
+    allowed_app_deep_module_imports = sorted(
+        _frontend_policy_import_key(item)
+        for item in policy.get("allowed_app_deep_module_imports", [])
+    )
+
+    feature_to_feature_deep_imports: list[str] = []
+    feature_to_shared_deep_imports: list[str] = []
+    shared_to_feature_deep_imports: list[str] = []
+    app_deep_module_imports: list[str] = []
+
+    for path in _frontend_source_files(repo_root):
+        try:
+            source_module = path.relative_to(modules_root).parts[0]
+            inside_modules = True
+        except ValueError:
+            source_module = None
+            inside_modules = False
+
+        for import_specifier in _frontend_import_specifiers(path):
+            key = _frontend_deep_module_import_key(
+                repo_root, path, import_specifier, module_name_set
+            )
+            if key is None:
+                continue
+            target_module = _module_name_from_deep_import_key(key)
+            if inside_modules:
+                if source_module == shared_module and target_module in feature_modules:
+                    shared_to_feature_deep_imports.append(key)
+                elif source_module in feature_modules and target_module == shared_module:
+                    feature_to_shared_deep_imports.append(key)
+                elif (
+                    source_module in feature_modules
+                    and target_module in feature_modules
+                    and target_module != source_module
+                ):
+                    feature_to_feature_deep_imports.append(key)
+            else:
+                app_deep_module_imports.append(key)
+
+    unexpected_shared_deep_imports = sorted(
+        set(feature_to_shared_deep_imports) - set(allowed_shared_deep_imports)
+    )
+    unexpected_app_deep_module_imports = sorted(
+        set(app_deep_module_imports) - set(allowed_app_deep_module_imports)
+    )
+    return {
+        "policy_path": FRONTEND_BOUNDARY_POLICY_PATH.as_posix(),
+        "policy_schema_version": policy.get("schema_version"),
+        "shared_module": shared_module,
+        "expected_feature_modules": expected_feature_modules,
+        "feature_modules": feature_modules,
+        "missing_indexes": missing_indexes,
+        "module_boundary_test": (modules_root / "moduleBoundaries.test.ts").exists(),
+        "allowed_shared_deep_imports": allowed_shared_deep_imports,
+        "allowed_app_deep_module_imports": allowed_app_deep_module_imports,
+        "allowed_shared_deep_import_details": allowed_shared_deep_import_details,
+        "allowed_app_deep_module_import_details": allowed_app_deep_module_import_details,
+        "feature_to_feature_deep_imports": sorted(set(feature_to_feature_deep_imports)),
+        "feature_to_shared_deep_imports": sorted(set(feature_to_shared_deep_imports)),
+        "shared_to_feature_deep_imports": sorted(set(shared_to_feature_deep_imports)),
+        "app_deep_module_imports": sorted(set(app_deep_module_imports)),
+        "unexpected_shared_deep_imports": unexpected_shared_deep_imports,
+        "unexpected_app_deep_module_imports": unexpected_app_deep_module_imports,
+        "deep_import_count": len(
+            set(
+                [
+                    *feature_to_feature_deep_imports,
+                    *feature_to_shared_deep_imports,
+                    *shared_to_feature_deep_imports,
+                    *app_deep_module_imports,
+                ]
+            )
+        ),
+    }
+
+
 def _audit_supporting_surfaces(repo_root: Path) -> dict[str, Any]:
     roots = {
         "backend_scripts": "backend/scripts",
@@ -1086,6 +1294,7 @@ def _findings(
     boundaries: dict[str, Any],
     forbidden_claims: dict[str, list[str]],
     debt_inventory: dict[str, Any],
+    frontend_boundaries: dict[str, Any],
 ) -> list[dict[str, str]]:
     canonical_modules = sorted(
         entry["owner"]
@@ -1163,19 +1372,56 @@ def _findings(
             suggested_phase="ongoing",
         )
 
+    frontend_boundary_issues = [
+        *frontend_boundaries["missing_indexes"],
+        *frontend_boundaries["feature_to_feature_deep_imports"],
+        *frontend_boundaries["shared_to_feature_deep_imports"],
+        *frontend_boundaries["unexpected_shared_deep_imports"],
+        *frontend_boundaries["unexpected_app_deep_module_imports"],
+    ]
+    if frontend_boundaries["feature_modules"] != frontend_boundaries["expected_feature_modules"]:
+        frontend_boundary_issues.append("feature module set differs from policy")
+    frontend_finding = Finding(
+        id="STRUCTURE-002",
+        severity="high" if frontend_boundary_issues else "medium",
+        status="open",
+        area="frontend",
+        finding=(
+            "Frontend module public-boundary policy has violations."
+            if frontend_boundary_issues
+            else "Frontend modules expose enforced public indexes while global dashboard roots remain transitional."
+        ),
+        evidence=json.dumps(
+            {
+                "feature_modules": frontend_boundaries["feature_modules"],
+                "shared_module": frontend_boundaries["shared_module"],
+                "missing_indexes": frontend_boundaries["missing_indexes"],
+                "app_deep_module_imports": frontend_boundaries["app_deep_module_imports"],
+                "unexpected_app_deep_module_imports": frontend_boundaries[
+                    "unexpected_app_deep_module_imports"
+                ],
+                "unexpected_shared_deep_imports": frontend_boundaries[
+                    "unexpected_shared_deep_imports"
+                ],
+            },
+            sort_keys=True,
+        ),
+        risk=(
+            "High. New frontend code can bypass module public APIs if boundary violations are allowed to drift."
+            if frontend_boundary_issues
+            else "Medium. Global dashboard roots can still own feature logic, but deep imports are now explicit and bounded."
+        ),
+        recommendation=(
+            "Remove unexpected frontend deep imports or add explicit compatibility-policy debt before merging."
+            if frontend_boundary_issues
+            else "Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes."
+        ),
+        suggested_phase="Phase 5+",
+    )
+
     findings = [
         structure_001,
-        Finding(
-            id="STRUCTURE-002",
-            severity="medium",
-            status="open",
-            area="frontend",
-            finding="Frontend modularization is progressing, but global lib, hooks, components, and features still own substantial feature logic.",
-            evidence="apps/dashboard/src/modules has account-editing, auth, warmup, and shared indexes; frontend-ownership-audit.md records migrated and deferred surfaces.",
-            risk="Future frontend work can bypass module boundaries unless feature ownership keeps moving behind public module indexes.",
-            recommendation="Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
-            suggested_phase="Phase 23",
-        ),
+        frontend_finding,
         Finding(
             id="STRUCTURE-003",
             severity="medium",
@@ -1280,6 +1526,7 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
     queues = _audit_queues(repo_root, runtime_roles)
     workflows = _workflow_specs(repo_root)
     boundaries = _audit_boundaries(repo_root)
+    frontend_boundaries = _audit_frontend_boundaries(repo_root)
     forbidden_claims = _forbidden_runtime_claims(workflows, queues)
     debt_inventory = build_debt_inventory(repo_root, generated_at)
     return {
@@ -1293,10 +1540,11 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "shared_contracts": _audit_shared_contracts(repo_root),
         "architecture_tests": _audit_architecture_tests(repo_root),
         "frontend_modules": _audit_frontend_modules(repo_root),
+        "frontend_boundaries": frontend_boundaries,
         "supporting_surfaces": _audit_supporting_surfaces(repo_root),
         "security_checks": _audit_security_checks(repo_root),
         "debt_inventory": debt_inventory,
-        "findings": _findings(boundaries, forbidden_claims, debt_inventory),
+        "findings": _findings(boundaries, forbidden_claims, debt_inventory, frontend_boundaries),
         "boundaries": boundaries,
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
@@ -1397,6 +1645,14 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     modules = report["modules"]
     runtime_roles = report["runtime_roles"]
     findings = report["findings"]
+    frontend_boundaries = report["frontend_boundaries"]
+    frontend_boundary_issues = [
+        *frontend_boundaries["missing_indexes"],
+        *frontend_boundaries["feature_to_feature_deep_imports"],
+        *frontend_boundaries["shared_to_feature_deep_imports"],
+        *frontend_boundaries["unexpected_shared_deep_imports"],
+        *frontend_boundaries["unexpected_app_deep_module_imports"],
+    ]
     high_debt = [
         entry
         for entry in debt_entries
@@ -1460,10 +1716,20 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 ),
                 (
                     "Frontend ownership",
-                    "YELLOW",
-                    "Frontend modules and global roots are tracked as supporting ownership evidence.",
-                    "Global dashboard roots can still own feature logic.",
-                    "Formalize shared/deep-import policy in a later PR.",
+                    "RED" if frontend_boundary_issues else "YELLOW",
+                    "Feature modules: "
+                    + ", ".join(frontend_boundaries["feature_modules"])
+                    + f"; app deep-import debt: {len(frontend_boundaries['app_deep_module_imports'])}.",
+                    (
+                        "Frontend module boundary violations are present."
+                        if frontend_boundary_issues
+                        else "Global dashboard roots can still own feature logic, but deep-import debt is explicit."
+                    ),
+                    (
+                        "Remove unexpected deep imports or record them in the frontend boundary policy."
+                        if frontend_boundary_issues
+                        else "Continue moving feature-specific dashboard helpers/components behind public module indexes."
+                    ),
                 ),
             ],
         ),
@@ -1582,7 +1848,51 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ],
         ),
         "",
-        "## 7. Risk Register",
+        "## 7. Frontend Boundary Policy",
+        "",
+        _markdown_table(
+            ("Check", "Status", "Evidence"),
+            [
+                (
+                    "Public module indexes",
+                    "GREEN" if not frontend_boundaries["missing_indexes"] else "RED",
+                    ", ".join(frontend_boundaries["missing_indexes"])
+                    or "Every module has index.ts.",
+                ),
+                (
+                    "Feature module set",
+                    "GREEN"
+                    if frontend_boundaries["feature_modules"]
+                    == frontend_boundaries["expected_feature_modules"]
+                    else "RED",
+                    ", ".join(frontend_boundaries["feature_modules"]),
+                ),
+                (
+                    "Feature to feature deep imports",
+                    "GREEN"
+                    if not frontend_boundaries["feature_to_feature_deep_imports"]
+                    else "RED",
+                    "<br>".join(frontend_boundaries["feature_to_feature_deep_imports"]) or "None.",
+                ),
+                (
+                    "Feature to shared deep imports",
+                    "GREEN" if not frontend_boundaries["unexpected_shared_deep_imports"] else "RED",
+                    "<br>".join(frontend_boundaries["feature_to_shared_deep_imports"]) or "None.",
+                ),
+                (
+                    "App compatibility deep imports",
+                    "YELLOW"
+                    if frontend_boundaries["app_deep_module_imports"]
+                    and not frontend_boundaries["unexpected_app_deep_module_imports"]
+                    else "GREEN"
+                    if not frontend_boundaries["app_deep_module_imports"]
+                    else "RED",
+                    "<br>".join(frontend_boundaries["app_deep_module_imports"]) or "None.",
+                ),
+            ],
+        ),
+        "",
+        "## 8. Risk Register",
         "",
         _markdown_table(
             ("ID", "Severity", "Status", "Area", "Finding", "Risk", "Recommendation"),
@@ -1600,7 +1910,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ],
         ),
         "",
-        "## 8. Recommended Next Implementation Issues",
+        "## 9. Recommended Next Implementation Issues",
         "",
         _markdown_table(
             ("Phase", "Scope"),

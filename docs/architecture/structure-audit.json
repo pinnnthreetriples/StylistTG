@@ -149,7 +149,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 26
+      "test_count": 27
     },
     {
       "boundary_keywords": [
@@ -1590,6 +1590,7 @@
           "docs/architecture/architecture-debt-inventory.json",
           "docs/architecture/boundary-enforcement.md",
           "docs/architecture/diagnostics-and-health.md",
+          "docs/architecture/frontend-boundary-policy.json",
           "docs/architecture/frontend-saas-foundation.md",
           "docs/architecture/legacy-wrapper-audit.md",
           "docs/architecture/legacy-wrapper-deprecation-plan.md",
@@ -1689,7 +1690,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-27T18:13:02Z",
+    "generated_at": "2026-05-27T19:14:06Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1733,14 +1734,14 @@
     },
     {
       "area": "frontend",
-      "evidence": "apps/dashboard/src/modules has account-editing, auth, warmup, and shared indexes; frontend-ownership-audit.md records migrated and deferred surfaces.",
-      "finding": "Frontend modularization is progressing, but global lib, hooks, components, and features still own substantial feature logic.",
+      "evidence": "{\"app_deep_module_imports\": [\"../lib/auth.ts -> @/modules/auth/api\", \"../lib/authBatches.ts -> @/modules/auth/batches\"], \"feature_modules\": [\"account-editing\", \"auth\", \"neuro-commenting\", \"warmup\"], \"missing_indexes\": [], \"shared_module\": \"shared\", \"unexpected_app_deep_module_imports\": [], \"unexpected_shared_deep_imports\": []}",
+      "finding": "Frontend modules expose enforced public indexes while global dashboard roots remain transitional.",
       "id": "STRUCTURE-002",
       "recommendation": "Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes.",
-      "risk": "Future frontend work can bypass module boundaries unless feature ownership keeps moving behind public module indexes.",
+      "risk": "Medium. Global dashboard roots can still own feature logic, but deep imports are now explicit and bounded.",
       "severity": "medium",
       "status": "open",
-      "suggested_phase": "Phase 23"
+      "suggested_phase": "Phase 5+"
     },
     {
       "area": "storage-contracts",
@@ -1812,6 +1813,59 @@
   "forbidden_runtime_claims": {
     "queues": [],
     "workflows": []
+  },
+  "frontend_boundaries": {
+    "allowed_app_deep_module_import_details": [
+      {
+        "key": "../lib/auth.ts -> @/modules/auth/api",
+        "owner": "auth compatibility wrapper",
+        "rationale": "Preserves the legacy @/lib/auth API while auth network implementation lives in the auth module.",
+        "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/auth no longer re-exports module API internals.",
+        "source": "../lib/auth.ts",
+        "target": "@/modules/auth/api"
+      },
+      {
+        "key": "../lib/authBatches.ts -> @/modules/auth/batches",
+        "owner": "auth compatibility wrapper",
+        "rationale": "Preserves the legacy @/lib/authBatches API while bulk-auth implementation lives in the auth module.",
+        "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/authBatches no longer re-exports module API internals.",
+        "source": "../lib/authBatches.ts",
+        "target": "@/modules/auth/batches"
+      }
+    ],
+    "allowed_app_deep_module_imports": [
+      "../lib/auth.ts -> @/modules/auth/api",
+      "../lib/authBatches.ts -> @/modules/auth/batches"
+    ],
+    "allowed_shared_deep_import_details": [],
+    "allowed_shared_deep_imports": [],
+    "app_deep_module_imports": [
+      "../lib/auth.ts -> @/modules/auth/api",
+      "../lib/authBatches.ts -> @/modules/auth/batches"
+    ],
+    "deep_import_count": 2,
+    "expected_feature_modules": [
+      "account-editing",
+      "auth",
+      "neuro-commenting",
+      "warmup"
+    ],
+    "feature_modules": [
+      "account-editing",
+      "auth",
+      "neuro-commenting",
+      "warmup"
+    ],
+    "feature_to_feature_deep_imports": [],
+    "feature_to_shared_deep_imports": [],
+    "missing_indexes": [],
+    "module_boundary_test": true,
+    "policy_path": "docs/architecture/frontend-boundary-policy.json",
+    "policy_schema_version": 1,
+    "shared_module": "shared",
+    "shared_to_feature_deep_imports": [],
+    "unexpected_app_deep_module_imports": [],
+    "unexpected_shared_deep_imports": []
   },
   "frontend_modules": [
     {
@@ -1945,7 +1999,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-27T18:13:02Z",
+  "generated_at": "2026-05-27T19:14:06Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -3413,7 +3467,7 @@
     },
     "docs": {
       "exists": true,
-      "file_count": 96,
+      "file_count": 97,
       "path": "docs"
     },
     "frontend": {

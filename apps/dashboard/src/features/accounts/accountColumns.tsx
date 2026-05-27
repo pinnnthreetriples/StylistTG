@@ -5,8 +5,7 @@ import type { AccountRisk } from '@/features/accounts/accountRisk'
 import type { AccountListItem } from '@/lib/api'
 import { accountStatus, maskPhone } from '@/lib/accounts'
 import { labelRiskLevelShort, labelRuntimeHealth, labelProxyStatus, runtimeHealthTone } from '@/lib/uiLabels'
-import { GGRBadge, type GgrBucket } from '@/modules/shared/GGRBadge'
-import { QuarantineStateBanner } from '@/modules/shared/QuarantineStateBanner'
+import { GGRBadge, QuarantineStateBanner, type GgrBucket } from '@/modules/shared'
 
 export type AccountTableRow = AccountListItem & {
   risk?: AccountRisk

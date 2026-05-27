@@ -40,6 +40,7 @@ REQUIRED_KEYS = {
     "legacy_wrappers",
     "architecture_tests",
     "frontend_modules",
+    "frontend_boundaries",
     "debt_inventory",
     "security_checks",
     "findings",
@@ -67,6 +68,7 @@ def _report_with_unmanaged_entries(
         report["boundaries"],
         report["forbidden_runtime_claims"],
         report["debt_inventory"],
+        report["frontend_boundaries"],
     )
     return report
 
@@ -195,6 +197,42 @@ def test_structure_audit_first_generation_is_not_self_stale(tmp_path: Path) -> N
 
 def test_structure_audit_report_has_required_top_level_keys() -> None:
     assert REQUIRED_KEYS.issubset(_committed_report())
+
+
+def test_structure_audit_reports_frontend_boundary_policy() -> None:
+    frontend_boundaries = _committed_report()["frontend_boundaries"]
+
+    assert frontend_boundaries["feature_modules"] == [
+        "account-editing",
+        "auth",
+        "neuro-commenting",
+        "warmup",
+    ]
+    assert frontend_boundaries["shared_module"] == "shared"
+    assert frontend_boundaries["missing_indexes"] == []
+    assert frontend_boundaries["feature_to_feature_deep_imports"] == []
+    assert frontend_boundaries["feature_to_shared_deep_imports"] == []
+    assert frontend_boundaries["shared_to_feature_deep_imports"] == []
+    assert frontend_boundaries["unexpected_app_deep_module_imports"] == []
+    assert frontend_boundaries["unexpected_shared_deep_imports"] == []
+    assert frontend_boundaries["allowed_app_deep_module_import_details"] == [
+        {
+            "key": "../lib/auth.ts -> @/modules/auth/api",
+            "source": "../lib/auth.ts",
+            "target": "@/modules/auth/api",
+            "owner": "auth compatibility wrapper",
+            "rationale": "Preserves the legacy @/lib/auth API while auth network implementation lives in the auth module.",
+            "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/auth no longer re-exports module API internals.",
+        },
+        {
+            "key": "../lib/authBatches.ts -> @/modules/auth/batches",
+            "source": "../lib/authBatches.ts",
+            "target": "@/modules/auth/batches",
+            "owner": "auth compatibility wrapper",
+            "rationale": "Preserves the legacy @/lib/authBatches API while bulk-auth implementation lives in the auth module.",
+            "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/authBatches no longer re-exports module API internals.",
+        },
+    ]
 
 
 def test_structure_audit_finding_ids_are_unique_and_sorted() -> None:

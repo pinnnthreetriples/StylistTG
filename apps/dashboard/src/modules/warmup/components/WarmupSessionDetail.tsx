@@ -2,7 +2,7 @@ import { Alert, Badge, Button, SectionCard } from '@stylisttg/ui'
 import { PauseCircle, PlayCircle, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 
-import { SafetyGateBanner } from '@/modules/shared/SafetyGateBanner'
+import { SafetyGateBanner } from '@/modules/shared'
 
 import {
   usePauseWarmupSession,

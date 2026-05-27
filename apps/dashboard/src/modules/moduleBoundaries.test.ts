@@ -8,10 +8,27 @@ import apiCompat from '../lib/api.ts?raw'
 import authBatchesCompat from '../lib/authBatches.ts?raw'
 import authCompat from '../lib/auth.ts?raw'
 import dashboardCompat from '../lib/dashboard.ts?raw'
+import boundaryPolicy from '../../../../docs/architecture/frontend-boundary-policy.json'
 
-const SHARED_MODULE = 'shared'
+const BOUNDARY_POLICY = boundaryPolicy as {
+  shared_module: string
+  feature_modules: string[]
+  allowed_shared_deep_imports: DeepImportPolicyEntry[]
+  allowed_app_deep_module_imports: DeepImportPolicyEntry[]
+}
+type DeepImportPolicyEntry =
+  | string
+  | {
+      key: string
+    }
+const SHARED_MODULE = BOUNDARY_POLICY.shared_module
 const LEGACY_COMPAT_IMPORT_RE = /@\/(components\/auth|features\/auth|hooks\/use(AuthBootstrap|AuthFlow|ProfileDraft)|lib\/(auth|authBatches|dashboard))/
 const moduleSources = import.meta.glob('./**/*.{ts,tsx}', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+const appSources = import.meta.glob('../**/*.{ts,tsx}', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -24,10 +41,13 @@ const MODULE_NAMES = Array.from(
   ),
 ).sort()
 const FEATURE_MODULES = MODULE_NAMES.filter((moduleName) => moduleName !== SHARED_MODULE)
-const LEGACY_DEEP_MODULE_IMPORTS = new Set([
-  './neuro-commenting/components/AccountsSection.tsx -> @/modules/shared/SafetyGateBanner',
-  './warmup/components/WarmupSessionDetail.tsx -> @/modules/shared/SafetyGateBanner',
-])
+const EXPECTED_FEATURE_MODULES = [...BOUNDARY_POLICY.feature_modules].sort()
+const LEGACY_SHARED_DEEP_IMPORTS = new Set(
+  BOUNDARY_POLICY.allowed_shared_deep_imports.map(policyEntryKey),
+)
+const LEGACY_COMPAT_DEEP_MODULE_IMPORTS = new Set(
+  BOUNDARY_POLICY.allowed_app_deep_module_imports.map(policyEntryKey),
+)
 const IMPORT_SPECIFIER_RE =
   /(?:\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"])/g
 
@@ -48,7 +68,10 @@ function moduleImportKey(path: string, importSpecifier: string): string | null {
     return null
   }
 
-  const importerParts = path.replace(/^\.\//, '').split('/')
+  const importerParts = path
+    .replace(/^\.\//, '')
+    .replace(/^\.\.\/modules\//, '')
+    .split('/')
   importerParts.pop()
   const resolvedParts = [...importerParts]
   for (const part of importSpecifier.split('/')) {
@@ -65,6 +88,10 @@ function moduleImportKey(path: string, importSpecifier: string): string | null {
     return null
   }
   return `${path} -> @/modules/${targetModule}/${targetPath.join('/')}`
+}
+
+function policyEntryKey(entry: DeepImportPolicyEntry): string {
+  return typeof entry === 'string' ? entry : entry.key
 }
 
 function deepModuleImportKeys(path: string, source: string): string[] {
@@ -88,7 +115,7 @@ describe('frontend module boundaries', () => {
 
   it('discovers the active feature module set from source folders', () => {
     expect(MODULE_NAMES).toContain(SHARED_MODULE)
-    expect(FEATURE_MODULES).toEqual(['account-editing', 'auth', 'neuro-commenting', 'warmup'])
+    expect(FEATURE_MODULES).toEqual(EXPECTED_FEATURE_MODULES)
   })
 
   it('keeps account-editing independent from warmup internals', () => {
@@ -121,29 +148,44 @@ describe('frontend module boundaries', () => {
         if (!path.startsWith(`./${moduleName}/`)) continue
         for (const importKey of deepModuleImportKeys(path, source)) {
           const targetModule = moduleNameFromImportKey(importKey)
-          if (targetModule === moduleName) continue
-          if (!LEGACY_DEEP_MODULE_IMPORTS.has(importKey)) {
-            throw new Error(`${path} imports another module internals through ${importKey}`)
+          if (targetModule === moduleName || targetModule === SHARED_MODULE) continue
+          if (FEATURE_MODULES.includes(targetModule)) {
+            throw new Error(`${path} imports another feature module internals through ${importKey}`)
           }
         }
       }
     }
   })
 
-  it('tracks the exact legacy deep imports until shared exports are cleaned up', () => {
+  it('requires feature modules to use shared through the public shared index', () => {
     const observed = new Set<string>()
     for (const moduleName of FEATURE_MODULES) {
       for (const [path, source] of Object.entries(moduleSources)) {
         if (!path.startsWith(`./${moduleName}/`)) continue
         for (const importKey of deepModuleImportKeys(path, source)) {
           const targetModule = moduleNameFromImportKey(importKey)
-          if (targetModule === moduleName) continue
-          observed.add(importKey)
+          if (targetModule === SHARED_MODULE) {
+            observed.add(importKey)
+          }
         }
       }
     }
 
-    expect(Array.from(observed).sort()).toEqual(Array.from(LEGACY_DEEP_MODULE_IMPORTS).sort())
+    expect(Array.from(observed).sort()).toEqual(Array.from(LEGACY_SHARED_DEEP_IMPORTS).sort())
+  })
+
+  it('blocks app-wide deep imports into module internals except compatibility wrappers', () => {
+    const observed = new Set<string>()
+    for (const [path, source] of Object.entries(appSources)) {
+      if (path.startsWith('./')) continue
+      for (const importKey of deepModuleImportKeys(path, source)) {
+        observed.add(importKey)
+      }
+    }
+
+    expect(Array.from(observed).sort()).toEqual(
+      Array.from(LEGACY_COMPAT_DEEP_MODULE_IMPORTS).sort(),
+    )
   })
 
   it('keeps shared module independent from feature modules', () => {
@@ -166,8 +208,7 @@ describe('frontend module boundaries', () => {
 
   it('keeps old frontend import paths as compatibility re-exports', () => {
     expect(useProfileDraftCompat).toContain("from '@/modules/account-editing'")
-    expect(dashboardCompat).toContain("from '@/modules/account-editing/mappers'")
-    expect(dashboardCompat).toContain("from '@/modules/account-editing/types'")
+    expect(dashboardCompat).toContain("from '@/modules/account-editing'")
     expect(apiCompat).toContain("from '@/modules/account-editing'")
 
     expect(useAuthBootstrapCompat).toContain("from '@/modules/auth'")

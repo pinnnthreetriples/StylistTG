@@ -97,6 +97,486 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.neuro_commenting",
+      "file": "backend/app/services/neuro_commenting/__init__.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting",
+      "notes": "Preserves old neuro-commenting package imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.account_health_service",
+      "file": "backend/app/services/neuro_commenting/account_health_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.account_health_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.account_selector",
+      "file": "backend/app/services/neuro_commenting/account_selector.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.account_selector",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.ai_comment_generator",
+      "file": "backend/app/services/neuro_commenting/ai_comment_generator.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.ai_comment_generator",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.ai_provider_openai",
+      "file": "backend/app/services/neuro_commenting/ai_provider_openai.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.ai_provider_openai",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.analytics_service",
+      "file": "backend/app/services/neuro_commenting/analytics_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.analytics_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.approval_expirer",
+      "file": "backend/app/services/neuro_commenting/approval_expirer.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.approval_expirer",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.approval_service",
+      "file": "backend/app/services/neuro_commenting/approval_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.approval_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.campaign_account_service",
+      "file": "backend/app/services/neuro_commenting/campaign_account_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.campaign_account_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.campaign_service",
+      "file": "backend/app/services/neuro_commenting/campaign_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.campaign_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.channel_rules_service",
+      "file": "backend/app/services/neuro_commenting/channel_rules_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.channel_rules_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.discussion_resolver",
+      "file": "backend/app/services/neuro_commenting/discussion_resolver.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.discussion_resolver",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.enums",
+      "file": "backend/app/services/neuro_commenting/enums.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.enums",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.errors",
+      "file": "backend/app/services/neuro_commenting/errors.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.errors",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.job_handlers",
+      "file": "backend/app/services/neuro_commenting/jobs.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.jobs",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.limits_service",
+      "file": "backend/app/services/neuro_commenting/limits_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.limits_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.live_readiness_service",
+      "file": "backend/app/services/neuro_commenting/live_readiness_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.live_readiness_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.post_context_builder",
+      "file": "backend/app/services/neuro_commenting/post_context_builder.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.post_context_builder",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.post_detector",
+      "file": "backend/app/services/neuro_commenting/post_detector.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.post_detector",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.prompt_builder",
+      "file": "backend/app/services/neuro_commenting/prompt_builder.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.prompt_builder",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.prompt_presets",
+      "file": "backend/app/services/neuro_commenting/prompt_presets.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.prompt_presets",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.rate_limiter",
+      "file": "backend/app/services/neuro_commenting/rate_limiter.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.rate_limiter",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.repository",
+      "file": "backend/app/services/neuro_commenting/repository.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.repository",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.rules_policy",
+      "file": "backend/app/services/neuro_commenting/rules_policy.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.rules_policy",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.safety_policy",
+      "file": "backend/app/services/neuro_commenting/safety_policy.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.safety_policy",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.sender_service",
+      "file": "backend/app/services/neuro_commenting/sender_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.sender_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.target_health_service",
+      "file": "backend/app/services/neuro_commenting/target_health_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.target_health_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.target_service",
+      "file": "backend/app/services/neuro_commenting/target_service.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.target_service",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.tdlib_comment_sender",
+      "file": "backend/app/services/neuro_commenting/tdlib_comment_sender.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.tdlib_comment_sender",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.tdlib_helpers",
+      "file": "backend/app/services/neuro_commenting/tdlib_helpers.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.tdlib_helpers",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.tdlib_observer",
+      "file": "backend/app/services/neuro_commenting/tdlib_observer.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.tdlib_observer",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.neuro_commenting.tdlib_runtime",
+      "file": "backend/app/services/neuro_commenting/tdlib_runtime.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.neuro_commenting.tdlib_runtime",
+      "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.warmup.service",
       "file": "backend/app/services/warmup.py",
       "forbidden_importers": [

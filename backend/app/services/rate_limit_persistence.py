@@ -20,7 +20,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from app.models import RateLimitPersistentCounter, new_id, utc_now
-from app.services.neuro_commenting.rate_limiter import (
+from app.modules.neuro_commenting.rate_limiter import (
     RATE_LIMIT_COUNTER_SCAN_PATTERN,
     build_rate_limit_counter_key,
     build_rate_limit_counter_metadata_key,

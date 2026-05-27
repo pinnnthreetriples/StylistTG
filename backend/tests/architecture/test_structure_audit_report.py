@@ -165,7 +165,8 @@ def test_structure_audit_reports_required_unmanaged_domains() -> None:
         entry["owner"] for entry in entries if entry["category"] == "unmanaged_feature_surface"
     }
 
-    assert {"neuro_commenting", "account_safety", "account_lifecycle"}.issubset(owners)
+    assert {"account_safety", "account_lifecycle"}.issubset(owners)
+    assert "neuro_commenting" not in owners
 
 
 def test_structure_audit_phase_zero_debt_contract_is_exact() -> None:
@@ -175,12 +176,10 @@ def test_structure_audit_phase_zero_debt_contract_is_exact() -> None:
     assert report["backend_overall_status"] == "RED"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == [
         "debt-account-safety",
-        "debt-neuro-commenting",
     ]
     assert entries["debt-account-safety"]["status"] == "open"
     assert entries["debt-account-safety"]["severity"] == "high"
-    assert entries["debt-neuro-commenting"]["status"] == "open"
-    assert entries["debt-neuro-commenting"]["severity"] == "high"
+    assert "debt-neuro-commenting" not in entries
     assert entries["debt-account-lifecycle"]["status"] == "open"
     assert entries["debt-account-lifecycle"]["severity"] == "medium"
 

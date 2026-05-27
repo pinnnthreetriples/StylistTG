@@ -1,21 +1,13 @@
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.neuro_commenting.post_context_builder
+Do not add new behavior here.
+"""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
+import sys
 
-from app.models import NeuroCommentObservedPost
+from app.modules.neuro_commenting import post_context_builder as _canonical_module
 
-
-@dataclass(frozen=True)
-class PostContext:
-    text: str
-    media_summary: str | None
-    language: str | None
-
-
-class PostContextBuilder:
-    def build(self, observed_post: NeuroCommentObservedPost) -> PostContext:
-        return PostContext(
-            text=observed_post.post_text or "",
-            media_summary=observed_post.media_summary,
-            language=observed_post.language,
-        )
+sys.modules[__name__] = _canonical_module

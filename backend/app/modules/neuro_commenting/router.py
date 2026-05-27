@@ -62,21 +62,21 @@ from app.modules.auth.dependencies import (
     require_authenticated,
     require_mutation_permission,
 )
-from app.services.neuro_commenting import repository
-from app.services.neuro_commenting.analytics_service import AnalyticsService
-from app.services.neuro_commenting.approval_service import ApprovalService
-from app.services.neuro_commenting.campaign_account_service import CampaignAccountService
-from app.services.neuro_commenting.campaign_service import CampaignService
-from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
-from app.services.neuro_commenting.enums import NeuroAttemptStatus, NeuroEventLevel
-from app.services.neuro_commenting.errors import NeuroCommentingError, NeuroConflictError
-from app.services.neuro_commenting.limits_service import LimitsService
-from app.services.neuro_commenting.live_readiness_service import LiveReadinessService
-from app.services.neuro_commenting.prompt_presets import list_prompt_presets
-from app.services.neuro_commenting.sender_service import SenderService
-from app.services.neuro_commenting.target_service import TargetService
-from app.services.neuro_commenting.jobs import resolve_observed_post_discussion
-from app.job_queue.rq import (
+from app.modules.neuro_commenting import repository
+from app.modules.neuro_commenting.analytics_service import AnalyticsService
+from app.modules.neuro_commenting.approval_service import ApprovalService
+from app.modules.neuro_commenting.campaign_account_service import CampaignAccountService
+from app.modules.neuro_commenting.campaign_service import CampaignService
+from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService
+from app.modules.neuro_commenting.enums import NeuroAttemptStatus, NeuroEventLevel
+from app.modules.neuro_commenting.errors import NeuroCommentingError, NeuroConflictError
+from app.modules.neuro_commenting.limits_service import LimitsService
+from app.modules.neuro_commenting.live_readiness_service import LiveReadinessService
+from app.modules.neuro_commenting.prompt_presets import list_prompt_presets
+from app.modules.neuro_commenting.sender_service import SenderService
+from app.modules.neuro_commenting.target_service import TargetService
+from app.modules.neuro_commenting.jobs import resolve_observed_post_discussion
+from app.modules.neuro_commenting.enqueue import (
     enqueue_neuro_generate_comment,
     enqueue_neuro_observe_campaign,
     enqueue_neuro_observe_target,

@@ -53,6 +53,12 @@ def test_get_creates_balanced_default_when_missing(admin_client, db_session) -> 
     row = db_session.query(WorkspaceSafetyPolicy).one()
     assert row.mode == "balanced"
     assert get_consecutive_failure_threshold(row) == 3
+
+
+def test_get_bootstraps_local_workspace_membership_and_plan(admin_client, db_session) -> None:
+    response = admin_client.get("/api/safety-policy")
+
+    assert response.status_code == 200
     assert db_session.get(Workspace, DEFAULT_LOCAL_WORKSPACE_ID) is not None
     assert db_session.get(WorkspacePlan, DEFAULT_LOCAL_WORKSPACE_ID) is not None
     assert (

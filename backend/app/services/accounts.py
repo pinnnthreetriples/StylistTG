@@ -14,8 +14,8 @@ from app.models import (
 )
 from app.services.audit_logs import log_audit_event
 from app.services.limits import check_workspace_limit
-from app.services.workspaces import ensure_default_workspace
 from app.services.stale_jobs import reap_stale_jobs
+from app.workspace_bootstrap import ensure_default_workspace
 
 
 def create_account(

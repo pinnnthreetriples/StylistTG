@@ -27,7 +27,7 @@ from app.services.accounts import get_account_by_external_ref
 from app.services.audit_logs import log_audit_event
 from app.services.auth_batch_state import transition_batch, transition_item
 from app.services.limits import check_workspace_limit
-from app.services.workspaces import ensure_default_workspace
+from app.workspace_bootstrap import ensure_default_workspace
 
 REUSABLE_BATCH_ACCOUNT_STATES = {
     AccountState.REGISTERED,

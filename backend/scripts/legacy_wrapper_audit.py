@@ -164,6 +164,27 @@ _ACCOUNT_LIFECYCLE_WRAPPERS = (
     ),
 )
 
+_ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS = (
+    (
+        "app.api.account_profile_completeness_routes",
+        "backend/app/api/account_profile_completeness_routes.py",
+        "app.modules.account_profile_completeness.router",
+        "Preserves legacy account profile-completeness router import path.",
+    ),
+    (
+        "app.contracts.profile_completeness",
+        "backend/app/contracts/profile_completeness.py",
+        "app.modules.account_profile_completeness.contracts",
+        "Preserves old account profile-completeness contract imports.",
+    ),
+    (
+        "app.services.account_profile_completeness",
+        "backend/app/services/account_profile_completeness.py",
+        "app.modules.account_profile_completeness.service",
+        "Preserves old account profile-completeness service imports.",
+    ),
+)
+
 
 def _account_safety_wrapper(
     legacy_path: str,
@@ -200,6 +221,7 @@ WRAPPERS = (
     ),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_SAFETY_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_LIFECYCLE_WRAPPERS),
+    *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS),
     WrapperSpec(
         legacy_path="app.api.warmup",
         file="backend/app/api/warmup.py",

@@ -25,6 +25,7 @@ def test_module_names_are_unique_and_expected_modules_exist() -> None:
     assert "account_safety" in names
     assert "account_editing" in names
     assert "account_lifecycle" in names
+    assert "account_profile_completeness" in names
     assert "warmup" in names
     assert "neuro_commenting" in names
 
@@ -80,6 +81,7 @@ def test_router_paths_are_lazy_module_routes() -> None:
         "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.account_lifecycle.router:router",
+        "app.modules.account_profile_completeness.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
     )
@@ -89,12 +91,16 @@ def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     safety_router = resolve_router("app.modules.account_safety.router:router")
     account_router = resolve_router("app.modules.account_editing.router:router")
     lifecycle_router = resolve_router("app.modules.account_lifecycle.router:router")
+    profile_completeness_router = resolve_router(
+        "app.modules.account_profile_completeness.router:router"
+    )
     warmup_router = resolve_router("app.modules.warmup.router:router")
     neuro_router = resolve_router("app.modules.neuro_commenting.router:router")
 
     assert safety_router.prefix == ""
     assert account_router.prefix == "/api/account-update"
     assert lifecycle_router.prefix == "/api/accounts"
+    assert profile_completeness_router.prefix == "/api/accounts"
     assert warmup_router.prefix == "/api/warmup"
     assert neuro_router.prefix == "/api/neuro-commenting"
 

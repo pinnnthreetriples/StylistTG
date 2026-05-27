@@ -8,7 +8,7 @@ from app.models import (
     DEFAULT_LOCAL_USER_ID,
     DEFAULT_LOCAL_WORKSPACE_ID,
 )
-from app.services.account_profile_completeness import (
+from app.modules.account_profile_completeness import (
     ProfileCompletenessAccountNotFound,
     evaluate,
 )

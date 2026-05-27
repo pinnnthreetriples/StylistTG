@@ -15,6 +15,7 @@ from legacy_wrapper_audit import WRAPPERS  # noqa: E402
 MODULE_ROOTS = (
     Path("app/modules/account_safety"),
     Path("app/modules/account_editing"),
+    Path("app/modules/account_profile_completeness"),
     Path("app/modules/account_lifecycle"),
     Path("app/modules/neuro_commenting"),
     Path("app/modules/warmup"),
@@ -30,7 +31,7 @@ def _python_files(root: Path) -> list[Path]:
 
 
 def _module_name(path: Path) -> str:
-    return ".".join(path.with_suffix("").parts)
+    return ".".join(path.relative_to(BACKEND_ROOT).with_suffix("").parts)
 
 
 def _imports(path: Path) -> list[str]:
@@ -51,7 +52,7 @@ def _matches(imported: str, forbidden: str) -> bool:
 def test_modules_do_not_import_legacy_wrappers() -> None:
     violations: list[str] = []
     for root in MODULE_ROOTS:
-        for source in _python_files(root):
+        for source in _python_files(BACKEND_ROOT / root):
             for imported in _imports(source):
                 if any(_matches(imported, forbidden) for forbidden in LEGACY_IMPORTS):
                     violations.append(f"{_module_name(source)} imports {imported}")
@@ -63,7 +64,7 @@ def test_legacy_wrappers_have_compatibility_docstrings() -> None:
     violations = [
         str(path)
         for path in WRAPPER_PATHS
-        if not _has_wrapper_docstring(path.read_text(encoding="utf-8"))
+        if not _has_wrapper_docstring((BACKEND_ROOT / path).read_text(encoding="utf-8"))
     ]
 
     assert violations == []

@@ -54,6 +54,28 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_profile_completeness/__init__.py",
+        "backend/app/modules/account_profile_completeness/contracts.py",
+        "backend/app/modules/account_profile_completeness/interfaces.py",
+        "backend/app/modules/account_profile_completeness/module.py",
+        "backend/app/modules/account_profile_completeness/router.py",
+        "backend/app/modules/account_profile_completeness/service.py"
+      ],
+      "id": "canonical-account-profile-completeness",
+      "owner": "account_profile_completeness",
+      "paths": [
+        "backend/app/modules/account_profile_completeness/**"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Account profile-completeness route, service, and contract ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_profile_completeness"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/account_safety/__init__.py",
         "backend/app/modules/account_safety/accounts_router.py",
         "backend/app/modules/account_safety/action_gate.py",
@@ -206,15 +228,18 @@
       "category": "compatibility_wrapper",
       "existing_paths": [
         "backend/app/api/account_lifecycle_routes.py",
+        "backend/app/api/account_profile_completeness_routes.py",
         "backend/app/api/account_safety_routes.py",
         "backend/app/api/account_update.py",
         "backend/app/api/neuro_commenting.py",
         "backend/app/api/safety_policy.py",
         "backend/app/api/warmup.py",
+        "backend/app/contracts/profile_completeness.py",
         "backend/app/contracts/safety.py",
         "backend/app/contracts/safety_gate.py",
         "backend/app/services/account_batch_safety.py",
         "backend/app/services/account_lifecycle.py",
+        "backend/app/services/account_profile_completeness.py",
         "backend/app/services/account_safety.py",
         "backend/app/services/account_safety_gate.py",
         "backend/app/services/account_safety_overrides.py",
@@ -289,6 +314,9 @@
         "backend/app/api/account_lifecycle_routes.py",
         "backend/app/services/account_lifecycle.py",
         "backend/app/services/retention_worker.py",
+        "backend/app/api/account_profile_completeness_routes.py",
+        "backend/app/contracts/profile_completeness.py",
+        "backend/app/services/account_profile_completeness.py",
         "backend/app/api/warmup.py",
         "backend/app/services/account_update_jobs.py",
         "backend/app/services/account_update_plan.py",
@@ -346,91 +374,220 @@
     {
       "category": "unmanaged_feature_surface",
       "existing_paths": [
-        "backend/app/api/account_audit_routes.py",
+        "backend/app/api/account_audit_routes.py"
+      ],
+      "id": "debt-account-audit",
+      "owner": "account_audit",
+      "paths": [
+        "backend/app/api/account_audit_routes.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Account audit route ownership is separate from core account CRUD and should not stay hidden inside broad account_platform debt.",
+      "removal_condition": "Account audit transport is module-owned or explicitly retained as shared account-platform audit infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_audit or documented account platform audit boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
         "backend/app/api/account_compat_routes.py",
         "backend/app/api/account_context.py",
-        "backend/app/api/account_ggr_routes.py",
-        "backend/app/api/account_imports.py",
-        "backend/app/api/account_jobs_routes.py",
-        "backend/app/api/account_profile_completeness_routes.py",
-        "backend/app/api/account_proxy_routes.py",
-        "backend/app/api/account_quarantine_routes.py",
-        "backend/app/api/account_runtime_routes.py",
-        "backend/app/api/account_status_routes.py",
         "backend/app/api/accounts.py",
-        "backend/app/contracts/account_status.py",
         "backend/app/contracts/accounts.py",
         "backend/app/contracts/cross_module_load.py",
-        "backend/app/contracts/ggr.py",
-        "backend/app/contracts/profile_completeness.py",
-        "backend/app/contracts/quarantine.py",
         "backend/app/services/account_bundle.py",
         "backend/app/services/account_capabilities.py",
-        "backend/app/services/account_cooldowns.py",
-        "backend/app/services/account_health.py",
-        "backend/app/services/account_imports.py",
-        "backend/app/services/account_profile_completeness.py",
-        "backend/app/services/account_quarantine.py",
-        "backend/app/services/account_risk.py",
-        "backend/app/services/account_status_monitor.py",
-        "backend/app/services/account_terminal_status.py",
-        "backend/app/services/account_validity.py",
+        "backend/app/services/accounts.py"
+      ],
+      "id": "debt-account-core",
+      "owner": "account_core",
+      "paths": [
+        "backend/app/api/account_compat_routes.py",
+        "backend/app/api/account_context.py",
+        "backend/app/api/accounts.py",
+        "backend/app/services/account_bundle.py",
+        "backend/app/services/account_capabilities.py",
         "backend/app/services/accounts.py",
+        "backend/app/contracts/accounts.py",
+        "backend/app/contracts/cross_module_load.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Core account transport, bundle/context helpers, and account DTOs are cohesive account platform surfaces outside app.modules.",
+      "removal_condition": "Core account read/write/context surfaces are module-owned or explicitly retained as shared account-platform infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_core or documented shared account platform"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
+        "backend/app/api/account_ggr_routes.py",
+        "backend/app/contracts/ggr.py",
+        "backend/app/services/fraud_score.py",
+        "backend/app/services/ggr_calculator.py"
+      ],
+      "id": "debt-account-ggr",
+      "owner": "account_ggr",
+      "paths": [
+        "backend/app/api/account_ggr_routes.py",
         "backend/app/services/fraud_score.py",
         "backend/app/services/ggr_calculator.py",
+        "backend/app/contracts/ggr.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "GGR and fraud scoring form a distinct account risk slice that can be migrated independently.",
+      "removal_condition": "GGR/fraud scoring route, contracts, and calculators are module-owned or explicitly retained as shared risk-scoring infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_ggr or documented risk-scoring platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
+        "backend/app/api/account_imports.py",
+        "backend/app/services/account_imports.py"
+      ],
+      "id": "debt-account-imports",
+      "owner": "account_imports",
+      "paths": [
+        "backend/app/api/account_imports.py",
+        "backend/app/services/account_imports.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Account import behavior is a distinct feature slice and should not be hidden in broad account_platform debt.",
+      "removal_condition": "Account import transport and service ownership is module-owned or explicitly retained as onboarding/import platform infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_imports or documented onboarding/import platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
+        "backend/app/api/account_jobs_routes.py"
+      ],
+      "id": "debt-account-jobs",
+      "owner": "account_jobs",
+      "paths": [
+        "backend/app/api/account_jobs_routes.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Account job route ownership is distinct from account_editing workflow implementation and needs an explicit boundary.",
+      "removal_condition": "Account job transport is module-owned or explicitly retained as shared account job infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_jobs or documented account job platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
         "backend/app/services/profile_audio_state.py",
         "backend/app/services/profile_photo_state.py",
-        "backend/app/services/profile_sync.py",
+        "backend/app/services/profile_sync.py"
+      ],
+      "id": "debt-account-profile-state",
+      "owner": "account_profile_state",
+      "paths": [
+        "backend/app/services/profile_audio_state.py",
+        "backend/app/services/profile_photo_state.py",
+        "backend/app/services/profile_sync.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Profile state helpers support account editing but remain global service surfaces outside the canonical module.",
+      "removal_condition": "Profile audio/photo/sync state helpers are module-owned by account_editing or explicitly retained as shared profile-state infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_editing or documented account profile state platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
+        "backend/app/api/account_proxy_routes.py",
         "backend/app/services/proxy_accounts.py",
         "backend/app/services/proxy_checks.py"
       ],
-      "id": "debt-account-legacy-surfaces",
-      "owner": "account_platform",
+      "id": "debt-account-proxy",
+      "owner": "account_proxy",
       "paths": [
-        "backend/app/api/account_audit_routes.py",
-        "backend/app/api/account_compat_routes.py",
-        "backend/app/api/account_context.py",
-        "backend/app/api/account_ggr_routes.py",
-        "backend/app/api/account_imports.py",
-        "backend/app/api/account_jobs_routes.py",
-        "backend/app/api/account_profile_completeness_routes.py",
         "backend/app/api/account_proxy_routes.py",
+        "backend/app/services/proxy_accounts.py",
+        "backend/app/services/proxy_checks.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Proxy assignment/checking is a distinct account infrastructure slice and should be tracked separately.",
+      "removal_condition": "Account proxy transport and services are module-owned or explicitly retained as shared proxy infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_proxy or documented proxy platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
         "backend/app/api/account_quarantine_routes.py",
+        "backend/app/contracts/quarantine.py",
+        "backend/app/services/account_quarantine.py"
+      ],
+      "id": "debt-account-quarantine",
+      "owner": "account_quarantine",
+      "paths": [
+        "backend/app/api/account_quarantine_routes.py",
+        "backend/app/services/account_quarantine.py",
+        "backend/app/contracts/quarantine.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Quarantine is safety-adjacent account state with a distinct route/service/contract set.",
+      "removal_condition": "Account quarantine route, service, and contract are module-owned or explicitly retained as account safety/platform infrastructure.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_quarantine or documented account safety/platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
         "backend/app/api/account_runtime_routes.py",
         "backend/app/api/account_status_routes.py",
-        "backend/app/api/accounts.py",
-        "backend/app/services/account_bundle.py",
-        "backend/app/services/account_capabilities.py",
+        "backend/app/contracts/account_status.py",
         "backend/app/services/account_cooldowns.py",
         "backend/app/services/account_health.py",
-        "backend/app/services/account_imports.py",
-        "backend/app/services/account_profile_completeness.py",
-        "backend/app/services/account_quarantine.py",
+        "backend/app/services/account_risk.py",
+        "backend/app/services/account_status_monitor.py",
+        "backend/app/services/account_terminal_status.py"
+      ],
+      "id": "debt-account-runtime-status",
+      "owner": "account_runtime_status",
+      "paths": [
+        "backend/app/api/account_runtime_routes.py",
+        "backend/app/api/account_status_routes.py",
+        "backend/app/services/account_cooldowns.py",
+        "backend/app/services/account_health.py",
         "backend/app/services/account_risk.py",
         "backend/app/services/account_status_monitor.py",
         "backend/app/services/account_terminal_status.py",
-        "backend/app/services/account_validity.py",
-        "backend/app/services/accounts.py",
-        "backend/app/services/fraud_score.py",
-        "backend/app/services/ggr_calculator.py",
-        "backend/app/services/profile_audio_state.py",
-        "backend/app/services/profile_photo_state.py",
-        "backend/app/services/profile_sync.py",
-        "backend/app/services/proxy_accounts.py",
-        "backend/app/services/proxy_checks.py",
-        "backend/app/contracts/account_status.py",
-        "backend/app/contracts/accounts.py",
-        "backend/app/contracts/cross_module_load.py",
-        "backend/app/contracts/ggr.py",
-        "backend/app/contracts/profile_completeness.py",
-        "backend/app/contracts/quarantine.py"
+        "backend/app/contracts/account_status.py"
       ],
-      "phase": "inventory-follow-up",
-      "rationale": "Account-adjacent APIs, services, and DTOs are broad production feature surfaces outside canonical modules.",
-      "removal_condition": "Each account-owned feature surface is either assigned to a canonical module or documented as shared platform infrastructure.",
+      "phase": "Phase 6A",
+      "rationale": "Runtime health, status, cooldown, and risk read models are cohesive but remain global account platform surfaces.",
+      "removal_condition": "Account runtime/status/cooldown/risk surfaces are module-owned or explicitly retained as shared account runtime platform infrastructure.",
       "severity": "medium",
       "status": "open",
-      "target_owner": "future account modules or documented shared account platform"
+      "target_owner": "app.modules.account_runtime_status or documented account runtime platform boundary"
+    },
+    {
+      "category": "unmanaged_feature_surface",
+      "existing_paths": [
+        "backend/app/services/account_validity.py"
+      ],
+      "id": "debt-account-validity",
+      "owner": "account_validity",
+      "paths": [
+        "backend/app/services/account_validity.py"
+      ],
+      "phase": "Phase 6A",
+      "rationale": "Validity checks are safety-adjacent and depend on account safety/readiness behavior, so they need separate ownership from generic account platform debt.",
+      "removal_condition": "Account validity checks are owned by account_safety/account_validity module boundary or explicitly retained as account platform debt.",
+      "severity": "medium",
+      "status": "open",
+      "target_owner": "app.modules.account_safety or app.modules.account_validity"
     },
     {
       "category": "unmanaged_feature_surface",
@@ -1464,7 +1621,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T19:14:06Z",
+  "generated_at": "2026-05-27T21:14:08Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {
@@ -1482,15 +1639,24 @@
   "summary": {
     "high_risk_unmanaged_feature_surface_count": 0,
     "high_risk_unmanaged_feature_surfaces": [],
-    "medium_unmanaged_feature_surface_count": 4,
+    "medium_unmanaged_feature_surface_count": 13,
     "medium_unmanaged_feature_surfaces": [
-      "debt-account-legacy-surfaces",
+      "debt-account-audit",
+      "debt-account-core",
+      "debt-account-ggr",
+      "debt-account-imports",
+      "debt-account-jobs",
+      "debt-account-profile-state",
+      "debt-account-proxy",
+      "debt-account-quarantine",
+      "debt-account-runtime-status",
+      "debt-account-validity",
       "debt-bought-onboarding",
       "debt-human-behavior",
       "debt-story-surfaces"
     ],
-    "open_count": 5,
-    "unmanaged_feature_surface_count": 4
+    "open_count": 14,
+    "unmanaged_feature_surface_count": 13
   },
   "untracked_backend_app_python_files": []
 }

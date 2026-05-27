@@ -1,0 +1,34 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.api.tenant_helpers import require_account_in_workspace
+from app.db import get_session
+from app.modules.account_profile_completeness.contracts import ProfileCompletenessReport
+from app.modules.account_profile_completeness.service import (
+    ProfileCompletenessAccountNotFound,
+    evaluate,
+)
+from app.modules.auth.dependencies import AuthContext, require_authenticated
+
+router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+
+
+@router.get(
+    "/{account_id}/profile-completeness",
+    response_model=ProfileCompletenessReport,
+)
+def get_account_profile_completeness(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> ProfileCompletenessReport:
+    require_account_in_workspace(session, account_id, auth)
+    try:
+        return evaluate(session, workspace_id=auth.workspace_id, account_id=account_id)
+    except ProfileCompletenessAccountNotFound as exc:
+        raise HTTPException(status_code=404, detail="account not found") from exc
+
+
+__all__ = ["router"]

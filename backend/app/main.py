@@ -32,9 +32,6 @@ from app.api.account_jobs_routes import router as account_jobs_router
 from app.api.account_proxy_routes import router as account_proxy_router
 from app.api.account_runtime_routes import router as account_runtime_router
 from app.api.account_ggr_routes import router as account_ggr_router
-from app.api.account_profile_completeness_routes import (
-    router as account_profile_completeness_router,
-)
 from app.api.account_quarantine_routes import router as account_quarantine_router
 from app.api.account_status_routes import router as account_status_router
 from app.api.bought_onboarding_routes import router as bought_onboarding_router
@@ -222,7 +219,6 @@ for module_router in iter_routers():
     app.include_router(module_router)
 app.include_router(account_proxy_router)
 app.include_router(account_ggr_router)
-app.include_router(account_profile_completeness_router)
 app.include_router(account_quarantine_router)
 app.include_router(account_status_router)
 app.include_router(bought_onboarding_router)

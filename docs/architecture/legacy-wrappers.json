@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T18:12:58Z",
+  "generated_at": "2026-05-27T20:13:47Z",
   "wrappers": [
     {
       "allowed_importers": [
@@ -13,6 +13,21 @@
       ],
       "legacy_path": "app.api.account_lifecycle_routes",
       "notes": "Preserves legacy account lifecycle router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_profile_completeness.router",
+      "file": "backend/app/api/account_profile_completeness_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_profile_completeness_routes",
+      "notes": "Preserves legacy account profile-completeness router import path.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -96,6 +111,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_profile_completeness.contracts",
+      "file": "backend/app/contracts/profile_completeness.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.profile_completeness",
+      "notes": "Preserves old account profile-completeness contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_safety.read_contracts",
       "file": "backend/app/contracts/safety.py",
       "forbidden_importers": [
@@ -148,6 +178,21 @@
       ],
       "legacy_path": "app.services.account_lifecycle",
       "notes": "Preserves old account lifecycle service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_profile_completeness.service",
+      "file": "backend/app/services/account_profile_completeness.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_profile_completeness",
+      "notes": "Preserves old account profile-completeness service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

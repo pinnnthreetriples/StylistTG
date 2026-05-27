@@ -133,6 +133,18 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Account-safety routers, read models, gate/cache/reserve/override/policy services, and contracts are canonical; old API/service/contract paths are compatibility wrappers.",
     ),
     OwnershipEntry(
+        id="canonical-account-lifecycle",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="account_lifecycle",
+        paths=("backend/app/modules/account_lifecycle/**",),
+        target_owner="app.modules.account_lifecycle",
+        phase="Phase 4",
+        removal_condition="n/a",
+        rationale="Account lifecycle router, deletion/export services, retention worker, and contracts are canonical; old API/service paths are compatibility wrappers.",
+    ),
+    OwnershipEntry(
         id="module-registry-and-template",
         category="shared_platform_infrastructure",
         severity="info",
@@ -148,22 +160,6 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         phase="ongoing",
         removal_condition="n/a",
         rationale="Module metadata, registry, and non-runtime template support module governance.",
-    ),
-    OwnershipEntry(
-        id="debt-account-lifecycle",
-        category="unmanaged_feature_surface",
-        severity="medium",
-        status="open",
-        owner="account_lifecycle",
-        paths=(
-            "backend/app/api/account_lifecycle_routes.py",
-            "backend/app/services/account_lifecycle.py",
-            "backend/app/services/retention_worker.py",
-        ),
-        target_owner="app.modules.account_lifecycle",
-        phase="Phase 4",
-        removal_condition="Deletion/export flows are module-owned with preserved preview/request/export/audit semantics; legacy paths are wrappers-only or removed after reference audit.",
-        rationale="Lifecycle API and service ownership remains global while runtime role metadata already reserves account_lifecycle_jobs.",
     ),
     OwnershipEntry(
         id="debt-account-legacy-surfaces",
@@ -1063,7 +1059,7 @@ def _findings(
                 f"open unmanaged feature surfaces: {', '.join(debt_inventory['summary']['high_risk_unmanaged_feature_surfaces'])}."
             ),
             risk="High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
-            recommendation="Complete Phase 0 guard, then migrate neuro_commenting, account_safety, and account_lifecycle in separate PRs.",
+            recommendation="Continue migrating remaining account-adjacent and story feature surfaces in separate PRs.",
             suggested_phase="Phase 0+",
         ),
         Finding(
@@ -1212,8 +1208,8 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
-            "Phase 4 - account_lifecycle module",
             "Phase 5 - frontend/shared/deep-import cleanup",
+            "Phase 6 - account platform debt split",
         ],
     }
 
@@ -1287,7 +1283,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     "Registered modules: "
                     + ", ".join(module["name"] for module in modules if module["registered"]),
                     "Canonical ownership exists for migrated modules only.",
-                    "Continue with neuro_commenting, account_safety, then account_lifecycle.",
+                    "Continue with frontend/shared cleanup and account platform debt split.",
                 ),
                 (
                     "Unmanaged feature debt",

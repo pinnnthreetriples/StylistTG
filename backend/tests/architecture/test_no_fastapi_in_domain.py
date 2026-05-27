@@ -19,6 +19,7 @@ DOMAIN_ROOTS = [
 FASTAPI_IMPORT_ALLOWLIST = {
     APP_ROOT / "modules" / "account_safety" / "accounts_router.py",
     APP_ROOT / "modules" / "account_safety" / "policy_router.py",
+    APP_ROOT / "modules" / "account_lifecycle" / "router.py",
     APP_ROOT / "modules" / "auth" / "dependencies.py",
 }
 

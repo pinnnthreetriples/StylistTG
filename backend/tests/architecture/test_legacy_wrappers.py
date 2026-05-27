@@ -15,6 +15,7 @@ from legacy_wrapper_audit import WRAPPERS  # noqa: E402
 MODULE_ROOTS = (
     Path("app/modules/account_safety"),
     Path("app/modules/account_editing"),
+    Path("app/modules/account_lifecycle"),
     Path("app/modules/neuro_commenting"),
     Path("app/modules/warmup"),
 )

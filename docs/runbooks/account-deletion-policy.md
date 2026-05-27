@@ -5,7 +5,7 @@
 > behavior on safety-pipeline FKs).
 
 Migration: `backend/migrations/versions/20260525_0054_account_safety_cascade.py`
-Service: `app.services.account_lifecycle.hard_delete_account`
+Service: `app.modules.account_lifecycle.service.hard_delete_account`
 Test coverage: `backend/tests/test_account_safety_cascade.py`
 
 ## Per-table policy

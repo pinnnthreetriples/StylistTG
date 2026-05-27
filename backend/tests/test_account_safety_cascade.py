@@ -40,7 +40,7 @@ from app.models import (
     new_id,
     utc_now,
 )
-from app.services.account_lifecycle import hard_delete_account
+from app.modules.account_lifecycle.service import hard_delete_account
 from tests.helpers.factories import seed_account, seed_two_workspaces
 
 

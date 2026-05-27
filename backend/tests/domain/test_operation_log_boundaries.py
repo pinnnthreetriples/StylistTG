@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, AccountState
-from app.services.account_lifecycle import (
+from app.modules.account_lifecycle.service import (
     create_account_export_request,
     list_deletion_requests,
     list_export_requests,

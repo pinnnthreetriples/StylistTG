@@ -31,6 +31,28 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_lifecycle/__init__.py",
+        "backend/app/modules/account_lifecycle/contracts.py",
+        "backend/app/modules/account_lifecycle/module.py",
+        "backend/app/modules/account_lifecycle/retention.py",
+        "backend/app/modules/account_lifecycle/router.py",
+        "backend/app/modules/account_lifecycle/service.py"
+      ],
+      "id": "canonical-account-lifecycle",
+      "owner": "account_lifecycle",
+      "paths": [
+        "backend/app/modules/account_lifecycle/**"
+      ],
+      "phase": "Phase 4",
+      "rationale": "Account lifecycle router, deletion/export services, retention worker, and contracts are canonical; old API/service paths are compatibility wrappers.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_lifecycle"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/account_safety/__init__.py",
         "backend/app/modules/account_safety/accounts_router.py",
         "backend/app/modules/account_safety/action_gate.py",
@@ -179,6 +201,7 @@
     {
       "category": "compatibility_wrapper",
       "existing_paths": [
+        "backend/app/api/account_lifecycle_routes.py",
         "backend/app/api/account_safety_routes.py",
         "backend/app/api/account_update.py",
         "backend/app/api/neuro_commenting.py",
@@ -187,6 +210,7 @@
         "backend/app/contracts/safety.py",
         "backend/app/contracts/safety_gate.py",
         "backend/app/services/account_batch_safety.py",
+        "backend/app/services/account_lifecycle.py",
         "backend/app/services/account_safety.py",
         "backend/app/services/account_safety_gate.py",
         "backend/app/services/account_safety_overrides.py",
@@ -225,6 +249,7 @@
         "backend/app/services/neuro_commenting/tdlib_helpers.py",
         "backend/app/services/neuro_commenting/tdlib_observer.py",
         "backend/app/services/neuro_commenting/tdlib_runtime.py",
+        "backend/app/services/retention_worker.py",
         "backend/app/services/risk_gate.py",
         "backend/app/services/safety_gate_cache.py",
         "backend/app/services/safety_gate_reserve.py",
@@ -256,6 +281,9 @@
         "backend/app/services/safety_gate_cache.py",
         "backend/app/services/safety_gate_reserve.py",
         "backend/app/services/workspace_safety_policy.py",
+        "backend/app/api/account_lifecycle_routes.py",
+        "backend/app/services/account_lifecycle.py",
+        "backend/app/services/retention_worker.py",
         "backend/app/api/warmup.py",
         "backend/app/services/account_update_jobs.py",
         "backend/app/services/account_update_plan.py",
@@ -397,27 +425,6 @@
       "severity": "medium",
       "status": "open",
       "target_owner": "future account modules or documented shared account platform"
-    },
-    {
-      "category": "unmanaged_feature_surface",
-      "existing_paths": [
-        "backend/app/api/account_lifecycle_routes.py",
-        "backend/app/services/account_lifecycle.py",
-        "backend/app/services/retention_worker.py"
-      ],
-      "id": "debt-account-lifecycle",
-      "owner": "account_lifecycle",
-      "paths": [
-        "backend/app/api/account_lifecycle_routes.py",
-        "backend/app/services/account_lifecycle.py",
-        "backend/app/services/retention_worker.py"
-      ],
-      "phase": "Phase 4",
-      "rationale": "Lifecycle API and service ownership remains global while runtime role metadata already reserves account_lifecycle_jobs.",
-      "removal_condition": "Deletion/export flows are module-owned with preserved preview/request/export/audit semantics; legacy paths are wrappers-only or removed after reference audit.",
-      "severity": "medium",
-      "status": "open",
-      "target_owner": "app.modules.account_lifecycle"
     },
     {
       "category": "unmanaged_feature_surface",
@@ -1219,6 +1226,7 @@
         "backend/tests/modules/test_account_editing_ownership.py",
         "backend/tests/modules/test_account_editing_policies.py",
         "backend/tests/modules/test_account_editing_repository.py",
+        "backend/tests/modules/test_account_lifecycle_module.py",
         "backend/tests/modules/test_account_safety_module.py",
         "backend/tests/modules/test_modular_architecture_contract.py",
         "backend/tests/modules/test_module_registry.py",
@@ -1449,7 +1457,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T09:09:45Z",
+  "generated_at": "2026-05-27T10:09:08Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {
@@ -1467,8 +1475,8 @@
   "summary": {
     "high_risk_unmanaged_feature_surface_count": 0,
     "high_risk_unmanaged_feature_surfaces": [],
-    "open_count": 6,
-    "unmanaged_feature_surface_count": 5
+    "open_count": 5,
+    "unmanaged_feature_surface_count": 4
   },
   "untracked_backend_app_python_files": []
 }

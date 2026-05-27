@@ -12,6 +12,7 @@ The machine-readable source is `docs/architecture/legacy-wrappers.json`, validat
 
 | Legacy area | Current stage | Canonical owners |
 | --- | --- | --- |
+| Account lifecycle API/service wrappers | Stage 0 compatibility active | `app.modules.account_lifecycle.router`, `service`, `retention` |
 | Account update API/service/worker wrappers | Stage 0 compatibility active | `app.modules.account_editing.router`, `service`, `planner`, `executor` |
 | Account safety API/service/contract wrappers | Stage 0 compatibility active | `app.modules.account_safety.router`, `accounts_router`, `policy_router`, `read_models`, `batch_preview`, `gate`, `cache`, `reserve`, `overrides`, `policy`, `action_gate`, `read_contracts`, `gate_contracts` |
 | Auth context wrapper | Stage 0 compatibility active | `app.modules.auth.dependencies / context` |
@@ -21,6 +22,7 @@ The machine-readable source is `docs/architecture/legacy-wrappers.json`, validat
 ## Canonical Owners
 
 - Account editing behavior belongs under `app.modules.account_editing`.
+- Account lifecycle behavior belongs under `app.modules.account_lifecycle`.
 - Account safety behavior belongs under `app.modules.account_safety`.
 - Auth dependency/context behavior belongs under `app.modules.auth`.
 - Neuro-commenting behavior belongs under `app.modules.neuro_commenting`.

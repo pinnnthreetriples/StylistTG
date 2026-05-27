@@ -120,8 +120,11 @@ registry resolves routers only when `main.py` calls `iter_routers()`:
 
 ```text
 app.modules.registry.iter_routers()
+  -> app.modules.account_safety.router:router
   -> app.modules.account_editing.router:router
+  -> app.modules.account_lifecycle.router:router
   -> app.modules.warmup.router:router
+  -> app.modules.neuro_commenting.router:router
 ```
 
 The registry must not import `app.api` or hold eager `APIRouter` objects in

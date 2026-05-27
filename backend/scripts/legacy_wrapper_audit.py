@@ -4,10 +4,9 @@ import ast
 import argparse
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-GENERATED_AT = "2026-05-17T00:00:00Z"
 
 
 @dataclass(frozen=True)
@@ -336,9 +335,13 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def build_manifest() -> dict[str, Any]:
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def build_manifest(generated_at: str | None = None) -> dict[str, Any]:
     return {
-        "generated_at": GENERATED_AT,
+        "generated_at": generated_at or _utc_timestamp(),
         "wrappers": [
             {
                 "legacy_path": spec.legacy_path,
@@ -376,7 +379,7 @@ def _matches(imported: str, legacy_path: str) -> bool:
 
 def validate_manifest(repo: Path, manifest: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    expected = build_manifest()
+    expected = build_manifest(generated_at=str(manifest.get("generated_at", "")))
     if manifest != expected:
         errors.append("docs/architecture/legacy-wrappers.json does not match generated manifest")
 
@@ -417,10 +420,21 @@ def main() -> None:
         action="store_true",
         help="print the deterministic manifest to stdout instead of validating the committed file",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="write a generated manifest to the given path",
+    )
     args = parser.parse_args()
 
     repo = repo_root()
     manifest_path = repo / "docs/architecture/legacy-wrappers.json"
+    if args.output:
+        manifest = build_manifest()
+        output = args.output if args.output.is_absolute() else repo / args.output
+        output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"Wrote {output.relative_to(repo).as_posix()}")
+        return
     if args.print:
         print(json.dumps(build_manifest(), indent=2, sort_keys=True))
         return

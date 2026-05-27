@@ -45,6 +45,20 @@ jobs:
         run: |
           python -m pip install uv==${{ env.UV_VERSION }}
           uv sync --locked --extra test
+      - name: Run benchmark smoke tests
+        run: |
+          uv run pytest tests/benchmarks/ \
+            -p no:randomly \
+            --benchmark-disable \
+            -q
+        env:
+          APP_ENV: test
+          AUTH_MODE: local
+          PROFILE_EXECUTION_ADAPTER: mock
+          STORIES_TDLIB_LIVE_ENABLED: "false"
+          QUEUE_INLINE_FALLBACK_ENABLED: "false"
+          TDLIB_API_ID: "0"
+          TDLIB_API_HASH: ""
       - name: Run safety gate performance budget
         run: |
           set +e
@@ -54,6 +68,8 @@ jobs:
             --benchmark-enable \
             --benchmark-only \
             --benchmark-storage=file://./benchmark_storage \
+            --benchmark-compare=tests/benchmarks/baselines/safety_gate_baseline.json \
+            --benchmark-compare-fail=mean:20% \
             --benchmark-json=reports/safety_gate_benchmark.json \
             2>&1 | tee reports/nightly-benchmark.log
           pytest_status=${PIPESTATUS[0]}

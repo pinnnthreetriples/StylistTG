@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.modules.account_safety import contracts as contracts
     from app.modules.account_safety import gate as gate
     from app.modules.account_safety import gate_contracts as gate_contracts
+    from app.modules.account_safety import interfaces as interfaces
     from app.modules.account_safety import overrides as overrides
     from app.modules.account_safety import policy as policy
     from app.modules.account_safety import policy_router as policy_router
@@ -34,6 +35,7 @@ _LAZY_SUBMODULES = frozenset(
         "contracts",
         "gate",
         "gate_contracts",
+        "interfaces",
         "overrides",
         "policy",
         "policy_router",
@@ -47,8 +49,8 @@ _LAZY_FEATURE_EXPORTS = frozenset({"module"})
 
 __all__ = [
     "contracts",
+    "interfaces",
     "module",
-    "service",
 ]
 
 

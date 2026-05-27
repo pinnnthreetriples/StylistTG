@@ -13,6 +13,11 @@ from app.models import (
 )
 from app.modules.neuro_commenting.analytics_service import AnalyticsService
 from app.modules.neuro_commenting.enums import NeuroTargetStatus
+from app.modules.neuro_commenting.rules_policy import (
+    ChannelRuleDecision,
+    ChannelRulesPolicy,
+    ChannelRuleSnapshot,
+)
 
 
 class ChannelRulesService:
@@ -114,6 +119,23 @@ class ChannelRulesService:
     def target_rule_status(self, session: Session, *, workspace_id: str, target_ref: str) -> str:
         rule = self.find_rule(session, workspace_id=workspace_id, target_ref=target_ref)
         return rule.rule_type if rule is not None else "none"
+
+    def evaluate_target_allowed(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        target: NeuroCommentTarget,
+        whitelist_required: bool = False,
+    ) -> ChannelRuleDecision:
+        rule = self.find_rule(session, workspace_id=workspace_id, target_ref=target.channel_ref)
+        return ChannelRulesPolicy().check_target_allowed(
+            target_status=target.status,
+            rule=ChannelRuleSnapshot(rule_type=rule.rule_type, rule_id=rule.id)
+            if rule is not None
+            else None,
+            whitelist_required=whitelist_required,
+        )
 
     def require_target(
         self, session: Session, *, workspace_id: str, target_id: str

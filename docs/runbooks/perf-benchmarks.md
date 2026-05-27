@@ -19,6 +19,10 @@ with `--benchmark-disable`.
 No live TDLib, Telegram, secrets, or real account runtime data are required.
 Benchmark fixtures seed local test data only.
 
+Nightly CI first runs the same benchmark tests once with
+`--benchmark-disable -q` as a smoke check, then runs the benchmark-only
+performance gate.
+
 ## Local Run
 
 From `backend/`:
@@ -48,7 +52,8 @@ notes.
 The nightly gate compares the current run against
 `backend/tests/benchmarks/baselines/safety_gate_baseline.json` and fails on
 `mean:20%` regression. The absolute SLOs above remain the product budget even
-when the relative comparison passes.
+when the relative comparison passes; `tools/check_benchmark_budget.py` enforces
+those absolute limits from the saved JSON.
 
 ## Regression Triage
 

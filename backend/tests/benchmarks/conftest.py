@@ -79,7 +79,7 @@ class _LuaReserveRedis:
     def __init__(self) -> None:
         self.current_count = 0
 
-    def eval(self, _script, _numkeys, _counter_key, _reservation_key, max_concurrent, *_args):
+    def eval(self, _script, _numkeys, _zset_key, _now, _ttl, max_concurrent, *_args):
         if self.current_count >= int(max_concurrent):
             return [0, self.current_count]
         self.current_count += 1

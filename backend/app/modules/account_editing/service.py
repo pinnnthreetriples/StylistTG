@@ -27,7 +27,7 @@ from app.modules.account_editing.planner import (
 )
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.repository import AccountEditingRepository
-from app.modules.account_safety.service import evaluate as evaluate_safety_gate
+from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.warmup import service as warmup_service
 from app.services.dashboard import job_summary
 from app.services.execution_policy import ExecutionUsableAdapter

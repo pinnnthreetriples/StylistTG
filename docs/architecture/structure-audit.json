@@ -49,7 +49,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_legacy_wrapper_deprecation_manifest.py",
-      "test_count": 5
+      "test_count": 6
     },
     {
       "boundary_keywords": [
@@ -75,7 +75,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_no_cross_module_internal_imports.py",
-      "test_count": 3
+      "test_count": 4
     },
     {
       "boundary_keywords": [
@@ -108,7 +108,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_registered_module_layer_boundaries.py",
-      "test_count": 9
+      "test_count": 12
     },
     {
       "boundary_keywords": [
@@ -192,18 +192,24 @@
       "backend/app/modules/warmup/contracts.py": [],
       "backend/app/schemas.py": []
     },
-    "fastapi_outside_router_or_auth_dependencies": [
-      "backend/app/modules/account_safety/accounts_router.py",
-      "backend/app/modules/account_safety/policy_router.py"
-    ],
+    "fastapi_outside_router_or_auth_dependencies": [],
     "policies_forbidden_imports": {
-      "backend/app/modules/account_editing/policies.py": [],
+      "backend/app/modules/account_editing/policies.py": [
+        "app.models"
+      ],
+      "backend/app/modules/account_safety/policy_rules.py": [],
       "backend/app/modules/auth/policies.py": [],
       "backend/app/modules/neuro_commenting/policies.py": [],
-      "backend/app/modules/warmup/policies.py": []
+      "backend/app/modules/neuro_commenting/rules_policy.py": [],
+      "backend/app/modules/neuro_commenting/safety_policy.py": [],
+      "backend/app/modules/warmup/policies.py": [
+        "app.models"
+      ]
     },
     "repositories_forbidden_imports": {
       "backend/app/modules/account_editing/repository.py": [],
+      "backend/app/modules/account_lifecycle/repository.py": [],
+      "backend/app/modules/account_safety/policy_repository.py": [],
       "backend/app/modules/auth/repository.py": [],
       "backend/app/modules/neuro_commenting/repository.py": [],
       "backend/app/modules/warmup/repository.py": []
@@ -211,6 +217,8 @@
     "routers_importing_models": {
       "backend/app/modules/account_editing/router.py": [],
       "backend/app/modules/account_lifecycle/router.py": [],
+      "backend/app/modules/account_safety/accounts_router.py": [],
+      "backend/app/modules/account_safety/policy_router.py": [],
       "backend/app/modules/account_safety/router.py": [],
       "backend/app/modules/neuro_commenting/router.py": [],
       "backend/app/modules/warmup/router.py": []
@@ -252,6 +260,7 @@
           "backend/app/modules/account_lifecycle/__init__.py",
           "backend/app/modules/account_lifecycle/contracts.py",
           "backend/app/modules/account_lifecycle/module.py",
+          "backend/app/modules/account_lifecycle/repository.py",
           "backend/app/modules/account_lifecycle/retention.py",
           "backend/app/modules/account_lifecycle/router.py",
           "backend/app/modules/account_lifecycle/service.py"
@@ -279,10 +288,13 @@
           "backend/app/modules/account_safety/contracts.py",
           "backend/app/modules/account_safety/gate.py",
           "backend/app/modules/account_safety/gate_contracts.py",
+          "backend/app/modules/account_safety/interfaces.py",
           "backend/app/modules/account_safety/module.py",
           "backend/app/modules/account_safety/overrides.py",
           "backend/app/modules/account_safety/policy.py",
+          "backend/app/modules/account_safety/policy_repository.py",
           "backend/app/modules/account_safety/policy_router.py",
+          "backend/app/modules/account_safety/policy_rules.py",
           "backend/app/modules/account_safety/read_contracts.py",
           "backend/app/modules/account_safety/read_models.py",
           "backend/app/modules/account_safety/reserve.py",
@@ -374,7 +386,7 @@
         "paths": [
           "backend/app/modules/neuro_commenting/**"
         ],
-        "phase": "Phase 2C",
+        "phase": "Phase 2D",
         "rationale": "Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
         "removal_condition": "n/a",
         "severity": "info",
@@ -1675,7 +1687,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-27T10:09:08Z",
+    "generated_at": "2026-05-27T16:42:08Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1693,6 +1705,13 @@
     "summary": {
       "high_risk_unmanaged_feature_surface_count": 0,
       "high_risk_unmanaged_feature_surfaces": [],
+      "medium_unmanaged_feature_surface_count": 4,
+      "medium_unmanaged_feature_surfaces": [
+        "debt-account-legacy-surfaces",
+        "debt-bought-onboarding",
+        "debt-human-behavior",
+        "debt-story-surfaces"
+      ],
       "open_count": 5,
       "unmanaged_feature_surface_count": 4
     },
@@ -1701,14 +1720,14 @@
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_editing, account_lifecycle, account_safety, auth, neuro_commenting, warmup; open unmanaged feature surfaces: .",
-      "finding": "Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
+      "evidence": "app.modules.registry imports account_editing, account_lifecycle, account_safety, auth, neuro_commenting, warmup; medium unmanaged feature surfaces: debt-account-legacy-surfaces, debt-bought-onboarding, debt-human-behavior, debt-story-surfaces.",
+      "finding": "Backend has canonical modules and only medium unmanaged feature surfaces remain outside app.modules.",
       "id": "STRUCTURE-001",
-      "recommendation": "Continue migrating remaining account-adjacent and story feature surfaces in separate PRs.",
-      "risk": "High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
-      "severity": "high",
+      "recommendation": "Continue with Phase 5 frontend/shared cleanup and Phase 6 account-platform debt split without hiding medium debt.",
+      "risk": "Medium. Remaining feature debt is transitional and must stay visible until separately migrated or accepted.",
+      "severity": "medium",
       "status": "open",
-      "suggested_phase": "Phase 0+"
+      "suggested_phase": "Phase 5+"
     },
     {
       "area": "frontend",
@@ -1778,12 +1797,12 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"open_count\": 5, \"unmanaged_feature_surface_count\": 4}",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_unmanaged_feature_surface_count\": 4, \"medium_unmanaged_feature_surfaces\": [\"debt-account-legacy-surfaces\", \"debt-bought-onboarding\", \"debt-human-behavior\", \"debt-story-surfaces\"], \"open_count\": 5, \"unmanaged_feature_surface_count\": 4}",
       "finding": "Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
       "id": "STRUCTURE-008",
       "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
-      "risk": "High if new feature-owned code can appear outside app.modules without being classified as debt or platform support.",
-      "severity": "high",
+      "risk": "High if new feature-owned code can appear outside app.modules without being classified as debt or platform support; medium for current classified residual debt.",
+      "severity": "medium",
       "status": "open",
       "suggested_phase": "Phase 0"
     }
@@ -1924,7 +1943,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-27T10:09:08Z",
+  "generated_at": "2026-05-27T16:42:08Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -2690,6 +2709,7 @@
         "backend/app/modules/account_lifecycle/__init__.py",
         "backend/app/modules/account_lifecycle/contracts.py",
         "backend/app/modules/account_lifecycle/module.py",
+        "backend/app/modules/account_lifecycle/repository.py",
         "backend/app/modules/account_lifecycle/retention.py",
         "backend/app/modules/account_lifecycle/router.py",
         "backend/app/modules/account_lifecycle/service.py"
@@ -2701,7 +2721,7 @@
       "has_init": true,
       "has_jobs": false,
       "has_policies": false,
-      "has_repository": false,
+      "has_repository": true,
       "has_router": true,
       "has_service_facade": true,
       "name": "account_lifecycle",
@@ -2722,10 +2742,13 @@
         "backend/app/modules/account_safety/contracts.py",
         "backend/app/modules/account_safety/gate.py",
         "backend/app/modules/account_safety/gate_contracts.py",
+        "backend/app/modules/account_safety/interfaces.py",
         "backend/app/modules/account_safety/module.py",
         "backend/app/modules/account_safety/overrides.py",
         "backend/app/modules/account_safety/policy.py",
+        "backend/app/modules/account_safety/policy_repository.py",
         "backend/app/modules/account_safety/policy_router.py",
+        "backend/app/modules/account_safety/policy_rules.py",
         "backend/app/modules/account_safety/read_contracts.py",
         "backend/app/modules/account_safety/read_models.py",
         "backend/app/modules/account_safety/reserve.py",
@@ -2738,8 +2761,8 @@
       "has_explicit_all": true,
       "has_init": true,
       "has_jobs": false,
-      "has_policies": false,
-      "has_repository": false,
+      "has_policies": true,
+      "has_repository": true,
       "has_router": true,
       "has_service_facade": true,
       "name": "account_safety",

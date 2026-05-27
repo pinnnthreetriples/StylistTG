@@ -23,7 +23,7 @@ export {
   shouldConfirmRealTelegramExecution,
   splitDisplayName,
   syncStateLabels,
-} from '@/modules/account-editing/mappers'
+} from '@/modules/account-editing'
 export type {
   ChangeItem,
   CurrentProfile,
@@ -31,7 +31,7 @@ export type {
   FormState,
   PhotoPreviewState,
   RealExecutionChangeGroups,
-} from '@/modules/account-editing/types'
+} from '@/modules/account-editing'
 export type { ApiError }
 
 export type RuntimeBanner = {

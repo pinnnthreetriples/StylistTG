@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "shared_module": "shared",
+  "feature_modules": [
+    "account-editing",
+    "auth",
+    "neuro-commenting",
+    "warmup"
+  ],
+  "allowed_shared_deep_imports": [],
+  "allowed_app_deep_module_imports": [
+    {
+      "key": "../lib/auth.ts -> @/modules/auth/api",
+      "source": "../lib/auth.ts",
+      "target": "@/modules/auth/api",
+      "owner": "auth compatibility wrapper",
+      "rationale": "Preserves the legacy @/lib/auth API while auth network implementation lives in the auth module.",
+      "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/auth no longer re-exports module API internals."
+    },
+    {
+      "key": "../lib/authBatches.ts -> @/modules/auth/batches",
+      "source": "../lib/authBatches.ts",
+      "target": "@/modules/auth/batches",
+      "owner": "auth compatibility wrapper",
+      "rationale": "Preserves the legacy @/lib/authBatches API while bulk-auth implementation lives in the auth module.",
+      "removal_condition": "Remove when legacy frontend compatibility wrappers are retired or @/lib/authBatches no longer re-exports module API internals."
+    }
+  ]
+}

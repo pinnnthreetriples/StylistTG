@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { buildCampaignAccountPayload, type AccountFormState } from '../formPayloads'
 import { useAddCampaignAccount, useNeuroCampaignAccounts, useRemoveCampaignAccount } from '../hooks'
 import type { NeuroCampaignAccountCreate } from '../types'
-import { SafetyGateBanner } from '@/modules/shared/SafetyGateBanner'
+import { SafetyGateBanner } from '@/modules/shared'
 
 export function AccountsSection({ campaignId }: { campaignId: string }) {
   const accountsQuery = useNeuroCampaignAccounts(campaignId)

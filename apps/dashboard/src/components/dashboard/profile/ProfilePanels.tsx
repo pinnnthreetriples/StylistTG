@@ -23,7 +23,7 @@ import {
   type FormState,
 } from '@/lib/dashboard'
 
-import { PinnedChannelField } from '@/modules/account-editing/components/PinnedChannelField'
+import { PinnedChannelField } from '@/modules/account-editing'
 import { AvatarBlock } from './AvatarBlock'
 
 type ProfileTextField = 'firstName' | 'lastName' | 'username' | 'bio'

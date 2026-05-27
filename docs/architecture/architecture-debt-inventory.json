@@ -1364,6 +1364,7 @@
         "docs/architecture/architecture-debt-inventory.json",
         "docs/architecture/boundary-enforcement.md",
         "docs/architecture/diagnostics-and-health.md",
+        "docs/architecture/frontend-boundary-policy.json",
         "docs/architecture/frontend-saas-foundation.md",
         "docs/architecture/legacy-wrapper-audit.md",
         "docs/architecture/legacy-wrapper-deprecation-plan.md",
@@ -1463,7 +1464,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T18:13:02Z",
+  "generated_at": "2026-05-27T19:14:06Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {

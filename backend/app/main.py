@@ -29,7 +29,6 @@ from app.api.account_imports import router as account_imports_router
 from app.api.account_audit_routes import router as account_audit_router
 from app.api.account_compat_routes import router as account_compat_router
 from app.api.account_jobs_routes import router as account_jobs_router
-from app.api.account_lifecycle_routes import router as account_lifecycle_router
 from app.api.account_proxy_routes import router as account_proxy_router
 from app.api.account_runtime_routes import router as account_runtime_router
 from app.api.account_ggr_routes import router as account_ggr_router
@@ -230,7 +229,6 @@ app.include_router(bought_onboarding_router)
 app.include_router(human_behavior_router)
 app.include_router(account_compat_router)
 app.include_router(accounts_router)
-app.include_router(account_lifecycle_router)
 app.include_router(account_runtime_router)
 app.include_router(account_jobs_router)
 app.include_router(account_audit_router)

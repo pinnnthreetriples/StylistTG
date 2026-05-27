@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models import AccountState, DEFAULT_LOCAL_WORKSPACE_ID
 from app.services.account_cooldowns import create_cooldown_from_error, list_active_account_cooldowns
-from app.services.account_lifecycle import (
+from app.modules.account_lifecycle.service import (
     build_account_export_payload,
     create_account_export_request,
 )
@@ -166,6 +166,9 @@ def test_deletion_request_requires_confirmation_and_audits(db_session) -> None:
         app.dependency_overrides.clear()
 
     assert rejected.status_code == 422
+    rejected_body = rejected.json()
+    assert rejected_body["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert rejected_body["field_errors"][0]["field"] == "confirmation"
     assert accepted.status_code == 201
     payload = accepted.json()
     assert payload["status"] == "previewed"

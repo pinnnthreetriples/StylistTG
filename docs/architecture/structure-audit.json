@@ -185,6 +185,7 @@
       "backend/app/contracts/safety_gate.py": [],
       "backend/app/contracts/types.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
+      "backend/app/modules/account_lifecycle/contracts.py": [],
       "backend/app/modules/account_safety/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
       "backend/app/modules/neuro_commenting/contracts.py": [],
@@ -209,6 +210,7 @@
     },
     "routers_importing_models": {
       "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/account_lifecycle/router.py": [],
       "backend/app/modules/account_safety/router.py": [],
       "backend/app/modules/neuro_commenting/router.py": [],
       "backend/app/modules/warmup/router.py": []
@@ -243,6 +245,28 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules.account_editing"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_lifecycle/__init__.py",
+          "backend/app/modules/account_lifecycle/contracts.py",
+          "backend/app/modules/account_lifecycle/module.py",
+          "backend/app/modules/account_lifecycle/retention.py",
+          "backend/app/modules/account_lifecycle/router.py",
+          "backend/app/modules/account_lifecycle/service.py"
+        ],
+        "id": "canonical-account-lifecycle",
+        "owner": "account_lifecycle",
+        "paths": [
+          "backend/app/modules/account_lifecycle/**"
+        ],
+        "phase": "Phase 4",
+        "rationale": "Account lifecycle router, deletion/export services, retention worker, and contracts are canonical; old API/service paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_lifecycle"
       },
       {
         "category": "canonical_feature_module",
@@ -395,6 +419,7 @@
       {
         "category": "compatibility_wrapper",
         "existing_paths": [
+          "backend/app/api/account_lifecycle_routes.py",
           "backend/app/api/account_safety_routes.py",
           "backend/app/api/account_update.py",
           "backend/app/api/neuro_commenting.py",
@@ -403,6 +428,7 @@
           "backend/app/contracts/safety.py",
           "backend/app/contracts/safety_gate.py",
           "backend/app/services/account_batch_safety.py",
+          "backend/app/services/account_lifecycle.py",
           "backend/app/services/account_safety.py",
           "backend/app/services/account_safety_gate.py",
           "backend/app/services/account_safety_overrides.py",
@@ -441,6 +467,7 @@
           "backend/app/services/neuro_commenting/tdlib_helpers.py",
           "backend/app/services/neuro_commenting/tdlib_observer.py",
           "backend/app/services/neuro_commenting/tdlib_runtime.py",
+          "backend/app/services/retention_worker.py",
           "backend/app/services/risk_gate.py",
           "backend/app/services/safety_gate_cache.py",
           "backend/app/services/safety_gate_reserve.py",
@@ -472,6 +499,9 @@
           "backend/app/services/safety_gate_cache.py",
           "backend/app/services/safety_gate_reserve.py",
           "backend/app/services/workspace_safety_policy.py",
+          "backend/app/api/account_lifecycle_routes.py",
+          "backend/app/services/account_lifecycle.py",
+          "backend/app/services/retention_worker.py",
           "backend/app/api/warmup.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
@@ -613,27 +643,6 @@
         "severity": "medium",
         "status": "open",
         "target_owner": "future account modules or documented shared account platform"
-      },
-      {
-        "category": "unmanaged_feature_surface",
-        "existing_paths": [
-          "backend/app/api/account_lifecycle_routes.py",
-          "backend/app/services/account_lifecycle.py",
-          "backend/app/services/retention_worker.py"
-        ],
-        "id": "debt-account-lifecycle",
-        "owner": "account_lifecycle",
-        "paths": [
-          "backend/app/api/account_lifecycle_routes.py",
-          "backend/app/services/account_lifecycle.py",
-          "backend/app/services/retention_worker.py"
-        ],
-        "phase": "Phase 4",
-        "rationale": "Lifecycle API and service ownership remains global while runtime role metadata already reserves account_lifecycle_jobs.",
-        "removal_condition": "Deletion/export flows are module-owned with preserved preview/request/export/audit semantics; legacy paths are wrappers-only or removed after reference audit.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_lifecycle"
       },
       {
         "category": "unmanaged_feature_surface",
@@ -1435,6 +1444,7 @@
           "backend/tests/modules/test_account_editing_ownership.py",
           "backend/tests/modules/test_account_editing_policies.py",
           "backend/tests/modules/test_account_editing_repository.py",
+          "backend/tests/modules/test_account_lifecycle_module.py",
           "backend/tests/modules/test_account_safety_module.py",
           "backend/tests/modules/test_modular_architecture_contract.py",
           "backend/tests/modules/test_module_registry.py",
@@ -1665,7 +1675,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-27T09:09:45Z",
+    "generated_at": "2026-05-27T10:09:08Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1683,18 +1693,18 @@
     "summary": {
       "high_risk_unmanaged_feature_surface_count": 0,
       "high_risk_unmanaged_feature_surfaces": [],
-      "open_count": 6,
-      "unmanaged_feature_surface_count": 5
+      "open_count": 5,
+      "unmanaged_feature_surface_count": 4
     },
     "untracked_backend_app_python_files": []
   },
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_editing, account_safety, auth, neuro_commenting, warmup; open unmanaged feature surfaces: .",
+      "evidence": "app.modules.registry imports account_editing, account_lifecycle, account_safety, auth, neuro_commenting, warmup; open unmanaged feature surfaces: .",
       "finding": "Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
       "id": "STRUCTURE-001",
-      "recommendation": "Complete Phase 0 guard, then migrate neuro_commenting, account_safety, and account_lifecycle in separate PRs.",
+      "recommendation": "Continue migrating remaining account-adjacent and story feature surfaces in separate PRs.",
       "risk": "High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
       "severity": "high",
       "status": "open",
@@ -1768,7 +1778,7 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"open_count\": 6, \"unmanaged_feature_surface_count\": 5}",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"open_count\": 5, \"unmanaged_feature_surface_count\": 4}",
       "finding": "Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
       "id": "STRUCTURE-008",
       "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
@@ -1914,7 +1924,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-27T09:09:45Z",
+  "generated_at": "2026-05-27T10:09:08Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -2069,6 +2079,39 @@
       "import_path": "app.services.workspace_safety_policy",
       "module_import_references": [],
       "path": "backend/app/services/workspace_safety_policy.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_lifecycle.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_lifecycle_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_lifecycle_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_lifecycle.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_lifecycle",
+      "module_import_references": [],
+      "path": "backend/app/services/account_lifecycle.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_lifecycle.retention",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.retention_worker",
+      "module_import_references": [],
+      "path": "backend/app/services/retention_worker.py"
     },
     {
       "canonical_owner": "app.modules.warmup.router",
@@ -2644,6 +2687,33 @@
     {
       "documentation_only": false,
       "files": [
+        "backend/app/modules/account_lifecycle/__init__.py",
+        "backend/app/modules/account_lifecycle/contracts.py",
+        "backend/app/modules/account_lifecycle/module.py",
+        "backend/app/modules/account_lifecycle/retention.py",
+        "backend/app/modules/account_lifecycle/router.py",
+        "backend/app/modules/account_lifecycle/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "account_lifecycle",
+      "registered": true,
+      "router_path": "app.modules.account_lifecycle.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
         "backend/app/modules/account_safety/__init__.py",
         "backend/app/modules/account_safety/accounts_router.py",
         "backend/app/modules/account_safety/action_gate.py",
@@ -2941,8 +3011,8 @@
     }
   ],
   "recommended_next_phases": [
-    "Phase 4 - account_lifecycle module",
-    "Phase 5 - frontend/shared/deep-import cleanup"
+    "Phase 5 - frontend/shared/deep-import cleanup",
+    "Phase 6 - account platform debt split"
   ],
   "runtime_roles": [
     {
@@ -3302,7 +3372,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 216,
+      "file_count": 217,
       "path": "backend/tests"
     },
     "docs": {

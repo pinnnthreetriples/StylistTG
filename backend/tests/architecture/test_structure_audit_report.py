@@ -165,7 +165,7 @@ def test_structure_audit_reports_required_unmanaged_domains() -> None:
         entry["owner"] for entry in entries if entry["category"] == "unmanaged_feature_surface"
     }
 
-    assert "account_lifecycle" in owners
+    assert "account_lifecycle" not in owners
     assert "account_safety" not in owners
     assert "neuro_commenting" not in owners
 
@@ -177,9 +177,10 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     assert report["backend_overall_status"] == "YELLOW"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == []
     assert "debt-account-safety" not in entries
+    assert "debt-account-lifecycle" not in entries
     assert "debt-neuro-commenting" not in entries
-    assert entries["debt-account-lifecycle"]["status"] == "open"
-    assert entries["debt-account-lifecycle"]["severity"] == "medium"
+    assert entries["canonical-account-lifecycle"]["status"] == "accepted"
+    assert entries["canonical-account-lifecycle"]["severity"] == "info"
 
 
 def test_structure_audit_markdown_preserves_live_tdlib_role_flags() -> None:

@@ -73,6 +73,18 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         rationale="FastAPI auth dependency facade used by canonical account-safety policy router.",
     ),
     CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_lifecycle" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-lifecycle router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_lifecycle" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-lifecycle router.",
+    ),
+    CrossModuleFacadeException(
         source=MODULES_ROOT / "account_editing" / "service.py",
         imported_module="warmup",
         public_name="service",

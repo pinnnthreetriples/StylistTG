@@ -13,7 +13,7 @@ from app.models import (
     NeuroCommentEvent,
     SensitiveAuditEvent,
 )
-from app.services.retention_worker import run_retention_tick
+from app.modules.account_lifecycle.retention import run_retention_tick
 from app.services.scheduler import RETENTION_TICK_SECONDS, scheduler_report
 from tests.helpers.factories import seed_account
 

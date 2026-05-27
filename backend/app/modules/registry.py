@@ -6,6 +6,7 @@ from typing import Any
 
 from app.modules.account_safety.module import module as account_safety_module
 from app.modules.account_editing.module import module as account_editing_module
+from app.modules.account_lifecycle.module import module as account_lifecycle_module
 from app.modules.auth.module import module as auth_module
 from app.modules.contracts import FeatureModule, WorkflowSpec
 from app.modules.neuro_commenting.module import module as neuro_commenting_module
@@ -16,6 +17,7 @@ MODULES: tuple[FeatureModule, ...] = (
     auth_module,
     account_safety_module,
     account_editing_module,
+    account_lifecycle_module,
     warmup_module,
     neuro_commenting_module,
 )

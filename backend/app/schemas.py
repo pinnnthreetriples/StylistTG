@@ -13,6 +13,7 @@ from app.contracts import bought_onboarding as _bought_onboarding_contracts
 from app.contracts import human_behavior as _human_behavior_contracts
 from app.modules.account_safety import gate_contracts as _safety_gate_contracts
 from app.modules.account_safety import read_contracts as _safety_contracts
+from app.modules.account_lifecycle import contracts as _account_lifecycle_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
 TerminalStatus = Literal["none", "banned", "deleted", "suspended"]
@@ -31,6 +32,11 @@ AccountSafetySummaryRead = _safety_contracts.AccountSafetySummaryRead
 AccountValidityCheckRead = _safety_contracts.AccountValidityCheckRead
 WorkspaceSafetyPolicyRead = _safety_gate_contracts.WorkspaceSafetyPolicyRead
 WorkspaceSafetyPolicyUpdate = _safety_gate_contracts.WorkspaceSafetyPolicyUpdate
+AccountDeletionPlannedActionRead = _account_lifecycle_contracts.AccountDeletionPlannedActionRead
+AccountDeletionPreviewRead = _account_lifecycle_contracts.AccountDeletionPreviewRead
+AccountDeletionRequestCreate = _account_lifecycle_contracts.AccountDeletionRequestCreate
+AccountDeletionRequestRead = _account_lifecycle_contracts.AccountDeletionRequestRead
+AccountExportRequestRead = _account_lifecycle_contracts.AccountExportRequestRead
 GgrBreakdownRead = _ggr_contracts.GgrBreakdownRead
 GgrScoreRead = _ggr_contracts.GgrScoreRead
 BehaviorProfileRead = _human_behavior_contracts.BehaviorProfileRead
@@ -296,60 +302,6 @@ class AccountReadinessRiskSummaryRead(BaseModel):
     proxy_problem: int
     items: list[AccountReadinessRiskRead] = Field(default_factory=_empty_readiness_risk_items)
     computed_at: datetime
-
-
-class AccountDeletionPlannedActionRead(BaseModel):
-    type: str
-    resource: str
-    count: int | None = None
-    present: bool | None = None
-    retention_policy: str | None = None
-
-
-class AccountDeletionPreviewRead(BaseModel):
-    account_id: str
-    can_delete: bool
-    risk_level: str
-    risk_score: int
-    blocking_reasons: list[str]
-    planned_actions: list[AccountDeletionPlannedActionRead]
-    requires_confirmation: bool
-    generated_at: datetime
-
-
-class AccountDeletionRequestCreate(BaseModel):
-    reason: str = Field(min_length=10, max_length=1000)
-    confirmation: Literal["DELETE"]
-    dry_run: bool = True
-
-
-class AccountDeletionRequestRead(BaseModel):
-    id: str
-    account_id: str
-    status: str
-    reason: str | None = None
-    dry_run_result: dict[str, Any] | None = None
-    execution_result: dict[str, Any] | None = None
-    requested_at: datetime
-    completed_at: datetime | None = None
-    failed_at: datetime | None = None
-    failure_code: str | None = None
-    failure_message: str | None = None
-
-
-class AccountExportRequestRead(BaseModel):
-    id: str
-    account_id: str
-    status: str
-    export_key: str | None = None
-    export_size_bytes: int | None = None
-    export_content_type: str | None = None
-    requested_at: datetime
-    completed_at: datetime | None = None
-    failed_at: datetime | None = None
-    failure_code: str | None = None
-    failure_message: str | None = None
-    expires_at: datetime | None = None
 
 
 class SensitiveAuditEventRead(BaseModel):

@@ -144,6 +144,28 @@ _ACCOUNT_SAFETY_WRAPPERS = (
 )
 
 
+_ACCOUNT_LIFECYCLE_WRAPPERS = (
+    (
+        "app.api.account_lifecycle_routes",
+        "backend/app/api/account_lifecycle_routes.py",
+        "app.modules.account_lifecycle.router",
+        "Preserves legacy account lifecycle router import path.",
+    ),
+    (
+        "app.services.account_lifecycle",
+        "backend/app/services/account_lifecycle.py",
+        "app.modules.account_lifecycle.service",
+        "Preserves old account lifecycle service imports.",
+    ),
+    (
+        "app.services.retention_worker",
+        "backend/app/services/retention_worker.py",
+        "app.modules.account_lifecycle.retention",
+        "Preserves old retention worker imports.",
+    ),
+)
+
+
 def _account_safety_wrapper(
     legacy_path: str,
     file: str,
@@ -178,6 +200,7 @@ WRAPPERS = (
         notes="Preserves legacy router import path for /api/neuro-commenting.",
     ),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_SAFETY_WRAPPERS),
+    *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_LIFECYCLE_WRAPPERS),
     WrapperSpec(
         legacy_path="app.api.warmup",
         file="backend/app/api/warmup.py",

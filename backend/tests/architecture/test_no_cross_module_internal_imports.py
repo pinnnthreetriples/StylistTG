@@ -54,6 +54,36 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         public_name="service",
         rationale="Temporary warmup-operation policy facade until account_safety owns this boundary.",
     ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_editing" / "policies.py",
+        imported_module="account_safety",
+        public_name="service",
+        rationale="Account-editing preview uses the account-safety public facade for preserved operation safety semantics.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_editing" / "service.py",
+        imported_module="account_safety",
+        public_name="service",
+        rationale="Account-editing preflight evaluates the account-safety gate through the public facade.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "warmup" / "dispatcher.py",
+        imported_module="account_safety",
+        public_name="service",
+        rationale="Warmup dispatch evaluates the account-safety gate through the public facade before write-capable work.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "neuro_commenting" / "live_readiness_service.py",
+        imported_module="account_safety",
+        public_name="service",
+        rationale="Neuro-commenting readiness evaluates the account-safety gate through the public facade.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "neuro_commenting" / "sender_service.py",
+        imported_module="account_safety",
+        public_name="service",
+        rationale="Neuro-commenting send attempts use the account-safety public facade for gate and reservation behavior.",
+    ),
 }
 
 

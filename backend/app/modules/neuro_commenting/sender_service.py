@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from sqlalchemy.orm import Session, object_session
 
 from app.config import Settings, settings
-from app.contracts.safety_gate import SafetyGateVerdict
+from app.modules.account_safety.contracts import SafetyGateVerdict
 from app.models import (
     NeuroCommentAttempt,
     NeuroCommentCampaign,
@@ -18,7 +18,12 @@ from app.models import (
     NeuroCommentTarget,
     utc_now,
 )
-from app.services.account_safety_gate import evaluate as evaluate_safety_gate
+from app.modules.account_safety.service import (
+    SafetyGateReservation,
+    evaluate as evaluate_safety_gate,
+    release as release_gate_reservation,
+    reserve as reserve_gate_slot,
+)
 from app.services.human_behavior.behavior_profile import (
     get_or_create_baseline,
     randomize_for_session,
@@ -35,11 +40,6 @@ from app.services.idempotency_keys import (
     reserve_in_redis,
 )
 from app.observability.safety_metrics import safety_metrics
-from app.services.safety_gate_reserve import (
-    SafetyGateReservation,
-    release as release_gate_reservation,
-    reserve as reserve_gate_slot,
-)
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.account_health_service import AccountHealthService
 from app.modules.neuro_commenting.account_selector import DefaultAccountReadinessProvider

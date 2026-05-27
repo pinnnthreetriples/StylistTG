@@ -12,7 +12,7 @@ from app.contracts.neuro_commenting import (
     NeuroLiveReadinessRead,
 )
 from app.models import Account, NeuroCommentGeneratedComment
-from app.services.account_safety_gate import evaluate as evaluate_safety_gate
+from app.modules.account_safety.service import evaluate as evaluate_safety_gate
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.account_selector import AccountSelector
 from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService

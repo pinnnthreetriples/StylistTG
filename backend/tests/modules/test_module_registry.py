@@ -22,6 +22,7 @@ def test_module_names_are_unique_and_expected_modules_exist() -> None:
 
     assert len(names) == len(set(names))
     assert "auth" in names
+    assert "account_safety" in names
     assert "account_editing" in names
     assert "warmup" in names
     assert "neuro_commenting" in names

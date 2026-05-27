@@ -4,6 +4,7 @@ import importlib
 from collections.abc import Iterator
 from typing import Any
 
+from app.modules.account_safety.module import module as account_safety_module
 from app.modules.account_editing.module import module as account_editing_module
 from app.modules.auth.module import module as auth_module
 from app.modules.contracts import FeatureModule, WorkflowSpec
@@ -13,6 +14,7 @@ from app.modules.warmup.module import module as warmup_module
 
 MODULES: tuple[FeatureModule, ...] = (
     auth_module,
+    account_safety_module,
     account_editing_module,
     warmup_module,
     neuro_commenting_module,

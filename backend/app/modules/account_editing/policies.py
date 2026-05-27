@@ -20,7 +20,7 @@ from app.modules.account_editing.planner import (
     normalize_account_update_desired_state,
 )
 from app.modules.account_editing.repository import AccountEditingRepository
-from app.services.account_safety import (
+from app.modules.account_safety.service import (
     build_account_safety_for_account,
     safety_preview_fields_with_policy,
     unique_preserve_order,

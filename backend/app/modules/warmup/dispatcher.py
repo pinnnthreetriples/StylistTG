@@ -44,7 +44,7 @@ from app.models import (
     WarmupStatus,
     utc_now,
 )
-from app.services.account_safety_gate import evaluate as evaluate_safety_gate
+from app.modules.account_safety.service import evaluate as evaluate_safety_gate
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.worker import handle_warmup_step_failure

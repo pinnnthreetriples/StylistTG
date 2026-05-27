@@ -31,6 +31,26 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_safety/__init__.py",
+        "backend/app/modules/account_safety/contracts.py",
+        "backend/app/modules/account_safety/module.py",
+        "backend/app/modules/account_safety/service.py"
+      ],
+      "id": "canonical-account-safety",
+      "owner": "account_safety",
+      "paths": [
+        "backend/app/modules/account_safety/**"
+      ],
+      "phase": "Phase 3A",
+      "rationale": "Account-safety public contracts and service facade are canonical; legacy implementation paths remain tracked debt until behavior moves behind this boundary.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_safety"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/auth/__init__.py",
         "backend/app/modules/auth/context.py",
         "backend/app/modules/auth/contracts.py",
@@ -397,8 +417,8 @@
         "backend/app/observability/safety_metrics.py"
       ],
       "phase": "Phase 3",
-      "rationale": "Safety gate and override behavior is cross-feature policy code without a canonical module boundary.",
-      "removal_condition": "Account safety exposes public gate/readiness/override contracts and consumers use that boundary instead of internal services.",
+      "rationale": "Account-safety now has a public module boundary, but legacy API, service, contract, and metrics implementation paths still carry behavior outside the canonical module.",
+      "removal_condition": "Account safety routers, read models, gate/cache/reserve/override/policy services, and shared contracts are module-owned or compatibility wrappers only.",
       "severity": "high",
       "status": "open",
       "target_owner": "app.modules.account_safety"
@@ -1201,6 +1221,7 @@
         "backend/tests/modules/test_account_editing_ownership.py",
         "backend/tests/modules/test_account_editing_policies.py",
         "backend/tests/modules/test_account_editing_repository.py",
+        "backend/tests/modules/test_account_safety_module.py",
         "backend/tests/modules/test_modular_architecture_contract.py",
         "backend/tests/modules/test_module_registry.py",
         "backend/tests/modules/test_neuro_commenting_legacy_compat.py",
@@ -1430,7 +1451,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-26T21:30:10Z",
+  "generated_at": "2026-05-27T07:59:04Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {

@@ -266,6 +266,37 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     assert "debt-neuro-commenting" not in entries
     assert entries["canonical-account-lifecycle"]["status"] == "accepted"
     assert entries["canonical-account-lifecycle"]["severity"] == "info"
+    assert entries["canonical-account-profile-completeness"]["status"] == "accepted"
+    assert entries["canonical-account-profile-completeness"]["severity"] == "info"
+
+
+def test_structure_audit_phase_six_a_splits_account_platform_debt() -> None:
+    report = _committed_report()
+    entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
+    unmanaged = [
+        entry
+        for entry in report["debt_inventory"]["entries"]
+        if entry["category"] == "unmanaged_feature_surface"
+    ]
+    unmanaged_ids = {entry["id"] for entry in unmanaged}
+    unmanaged_owners = {entry["owner"] for entry in unmanaged}
+
+    assert "debt-account-legacy-surfaces" not in entries
+    assert "account_platform" not in unmanaged_owners
+    assert "debt-account-profile-completeness" not in unmanaged_ids
+    assert "canonical-account-profile-completeness" in entries
+    assert {
+        "debt-account-audit",
+        "debt-account-core",
+        "debt-account-ggr",
+        "debt-account-imports",
+        "debt-account-jobs",
+        "debt-account-profile-state",
+        "debt-account-proxy",
+        "debt-account-quarantine",
+        "debt-account-runtime-status",
+        "debt-account-validity",
+    }.issubset(unmanaged_ids)
 
 
 def test_structure_audit_markdown_preserves_live_tdlib_role_flags() -> None:
@@ -327,7 +358,7 @@ def test_backend_overall_yellow_with_remaining_medium_unmanaged_surfaces() -> No
     assert "high-risk feature ownership" not in findings["STRUCTURE-001"]["finding"]
     assert findings["STRUCTURE-008"]["severity"] == "medium"
     assert (
-        "| Backend overall | YELLOW | 0 high-risk and 4 medium unmanaged feature surfaces remain."
+        "| Backend overall | YELLOW | 0 high-risk and 13 medium unmanaged feature surfaces remain."
         in markdown
     )
     assert "| Unmanaged feature debt | YELLOW |" in markdown

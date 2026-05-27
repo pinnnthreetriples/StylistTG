@@ -34,7 +34,9 @@ from app.models import (
     WorkspaceSafetyPolicy,
     utc_now,
 )
-from app.services.account_profile_completeness import evaluate as evaluate_profile_completeness
+from app.modules.account_profile_completeness.interfaces import (
+    evaluate as evaluate_profile_completeness,
+)
 from app.services.account_quarantine import get_active_quarantine
 from app.services.cross_module_load_tracker import current_load, evaluate_threshold
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode

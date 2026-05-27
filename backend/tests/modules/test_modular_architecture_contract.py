@@ -30,6 +30,7 @@ def test_module_router_paths_are_lazy_strings() -> None:
         "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.account_lifecycle.router:router",
+        "app.modules.account_profile_completeness.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
     )

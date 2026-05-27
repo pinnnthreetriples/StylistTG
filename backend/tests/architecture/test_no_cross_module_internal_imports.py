@@ -88,37 +88,10 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         source=MODULES_ROOT / "account_editing" / "service.py",
         imported_module="warmup",
         public_name="service",
-        rationale="Temporary warmup-operation policy facade until account_safety owns this boundary.",
-    ),
-    CrossModuleFacadeException(
-        source=MODULES_ROOT / "account_editing" / "policies.py",
-        imported_module="account_safety",
-        public_name="service",
-        rationale="Account-editing preview uses the account-safety public facade for preserved operation safety semantics.",
-    ),
-    CrossModuleFacadeException(
-        source=MODULES_ROOT / "account_editing" / "service.py",
-        imported_module="account_safety",
-        public_name="service",
-        rationale="Account-editing preflight evaluates the account-safety gate through the public facade.",
-    ),
-    CrossModuleFacadeException(
-        source=MODULES_ROOT / "warmup" / "dispatcher.py",
-        imported_module="account_safety",
-        public_name="service",
-        rationale="Warmup dispatch evaluates the account-safety gate through the public facade before write-capable work.",
-    ),
-    CrossModuleFacadeException(
-        source=MODULES_ROOT / "neuro_commenting" / "live_readiness_service.py",
-        imported_module="account_safety",
-        public_name="service",
-        rationale="Neuro-commenting readiness evaluates the account-safety gate through the public facade.",
-    ),
-    CrossModuleFacadeException(
-        source=MODULES_ROOT / "neuro_commenting" / "sender_service.py",
-        imported_module="account_safety",
-        public_name="service",
-        rationale="Neuro-commenting send attempts use the account-safety public facade for gate and reservation behavior.",
+        rationale=(
+            "Account-editing still asks warmup for warmup-operation lock state; remove when "
+            "that lock decision is exposed as a dedicated contracts/interfaces boundary."
+        ),
     ),
 }
 
@@ -280,3 +253,25 @@ def test_module_packages_define_explicit_public_exports() -> None:
                 missing_or_wildcard.append(f"{init_file}: wildcard public export is forbidden")
 
     assert missing_or_wildcard == []
+
+
+def test_account_safety_package_exposes_narrow_public_boundary() -> None:
+    init_file = MODULES_ROOT / "account_safety" / "__init__.py"
+    tree = ast.parse(init_file.read_text(encoding="utf-8"), filename=str(init_file))
+    public_exports: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(
+            isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets
+        ):
+            continue
+        if not isinstance(node.value, ast.List):
+            continue
+        public_exports = [
+            item.value
+            for item in node.value.elts
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        ]
+
+    assert public_exports == ["contracts", "interfaces", "module"]

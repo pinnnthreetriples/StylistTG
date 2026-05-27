@@ -34,6 +34,7 @@ FORBIDDEN_CONTRACT_IMPORTS = (
     "app.adapters.warmup_tdlib",
 )
 FORBIDDEN_POLICY_IMPORTS = (
+    "app.models",
     "sqlalchemy",
     "app.db",
     "app.api",
@@ -42,6 +43,25 @@ FORBIDDEN_POLICY_IMPORTS = (
     "rq",
 )
 FORBIDDEN_REPOSITORY_IMPORTS = ("fastapi", "app.api", "app.main")
+
+DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
+    "policy": (
+        Path("policies.py"),
+        Path("account_safety/policy_rules.py"),
+        Path("neuro_commenting/policies.py"),
+        Path("neuro_commenting/rules_policy.py"),
+        Path("neuro_commenting/safety_policy.py"),
+    ),
+    "repository": (
+        Path("repository.py"),
+        Path("account_safety/policy_repository.py"),
+    ),
+    "router": (
+        Path("router.py"),
+        Path("account_safety/accounts_router.py"),
+        Path("account_safety/policy_router.py"),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -116,7 +136,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         owner="neuro_commenting",
         paths=("backend/app/modules/neuro_commenting/**",),
         target_owner="app.modules.neuro_commenting",
-        phase="Phase 2C",
+        phase="Phase 2D",
         removal_condition="n/a",
         rationale="Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
     ),
@@ -524,6 +544,28 @@ def _has_all_dunder(path: Path) -> bool:
     return "__all__" in text
 
 
+def _declared_layer_files(repo_root: Path, module_name: str, layer: str) -> list[Path]:
+    module_root = repo_root / MODULES_ROOT / module_name
+    files: list[Path] = []
+    for relative in DECLARED_LAYER_FILES[layer]:
+        if len(relative.parts) > 1 and relative.parts[0] != module_name:
+            continue
+        source = module_root / (Path(*relative.parts[1:]) if len(relative.parts) > 1 else relative)
+        if source.exists():
+            files.append(source)
+    return sorted(files)
+
+
+def _declared_layer_files_for_all_modules(repo_root: Path, layer: str) -> list[Path]:
+    modules_root = repo_root / MODULES_ROOT
+    if not modules_root.exists():
+        return []
+    files: list[Path] = []
+    for module_dir in sorted(path for path in modules_root.iterdir() if path.is_dir()):
+        files.extend(_declared_layer_files(repo_root, module_dir.name, layer))
+    return sorted(files)
+
+
 def _literal_value(node: ast.AST, constants: dict[str, str]) -> Any:
     if isinstance(node, ast.Constant):
         return node.value
@@ -623,10 +665,10 @@ def _audit_modules(repo_root: Path) -> list[dict[str, Any]]:
                 "has_init": init_path.exists(),
                 "has_explicit_all": _has_all_dunder(init_path) if init_path.exists() else False,
                 "has_contracts": (module_dir / "contracts.py").exists(),
-                "has_router": (module_dir / "router.py").exists(),
+                "has_router": bool(_declared_layer_files(repo_root, module_name, "router")),
                 "has_service_facade": (module_dir / "service.py").exists(),
-                "has_repository": (module_dir / "repository.py").exists(),
-                "has_policies": (module_dir / "policies.py").exists(),
+                "has_repository": bool(_declared_layer_files(repo_root, module_name, "repository")),
+                "has_policies": bool(_declared_layer_files(repo_root, module_name, "policy")),
                 "has_errors": (module_dir / "errors.py").exists(),
                 "has_jobs": (module_dir / "jobs.py").exists(),
                 "has_enqueue": (module_dir / "enqueue.py").exists(),
@@ -894,11 +936,14 @@ def _debt_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
         entry for entry in open_entries if entry["category"] == "unmanaged_feature_surface"
     ]
     high_risk = [entry for entry in unmanaged if entry["severity"] == "high"]
+    medium_risk = [entry for entry in unmanaged if entry["severity"] == "medium"]
     return {
         "open_count": len(open_entries),
         "unmanaged_feature_surface_count": len(unmanaged),
         "high_risk_unmanaged_feature_surface_count": len(high_risk),
         "high_risk_unmanaged_feature_surfaces": [entry["id"] for entry in high_risk],
+        "medium_unmanaged_feature_surface_count": len(medium_risk),
+        "medium_unmanaged_feature_surfaces": [entry["id"] for entry in medium_risk],
     }
 
 
@@ -974,14 +1019,14 @@ def _audit_boundaries(repo_root: Path) -> dict[str, Any]:
     contract_files = sorted((repo_root / MODULES_ROOT).glob("*/contracts.py"))
     contract_files.extend(_python_files(repo_root / CONTRACTS_ROOT))
     contract_files.append(repo_root / "backend/app/schemas.py")
-    policy_files = sorted((repo_root / MODULES_ROOT).glob("*/policies.py"))
-    repository_files = sorted((repo_root / MODULES_ROOT).glob("*/repository.py"))
-    router_files = sorted((repo_root / MODULES_ROOT).glob("*/router.py"))
+    policy_files = _declared_layer_files_for_all_modules(repo_root, "policy")
+    repository_files = _declared_layer_files_for_all_modules(repo_root, "repository")
+    router_files = _declared_layer_files_for_all_modules(repo_root, "router")
 
     fastapi_violations: list[str] = []
     for path in _python_files(repo_root / MODULES_ROOT):
         rel = _relative(path, repo_root)
-        if rel.endswith("/router.py") or rel.endswith("/auth/dependencies.py"):
+        if path in router_files or rel.endswith("/auth/dependencies.py"):
             continue
         if _has_import_prefix(path, ("fastapi",)):
             fastapi_violations.append(rel)
@@ -1047,8 +1092,9 @@ def _findings(
         for entry in debt_inventory["entries"]
         if entry["category"] == "canonical_feature_module"
     )
-    findings = [
-        Finding(
+    summary = debt_inventory["summary"]
+    if summary["high_risk_unmanaged_feature_surface_count"]:
+        structure_001 = Finding(
             id="STRUCTURE-001",
             severity="high",
             status="open",
@@ -1056,12 +1102,44 @@ def _findings(
             finding="Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
             evidence=(
                 f"app.modules.registry imports {', '.join(canonical_modules)}; "
-                f"open unmanaged feature surfaces: {', '.join(debt_inventory['summary']['high_risk_unmanaged_feature_surfaces'])}."
+                "high-risk unmanaged feature surfaces: "
+                f"{', '.join(summary['high_risk_unmanaged_feature_surfaces'])}."
             ),
             risk="High. Architecture audit must not report overall backend GREEN while high-risk unmanaged domains remain.",
-            recommendation="Continue migrating remaining account-adjacent and story feature surfaces in separate PRs.",
-            suggested_phase="Phase 0+",
-        ),
+            recommendation="Migrate or explicitly reclassify high-risk unmanaged feature surfaces before claiming backend health.",
+            suggested_phase="next",
+        )
+    elif summary["unmanaged_feature_surface_count"]:
+        structure_001 = Finding(
+            id="STRUCTURE-001",
+            severity="medium",
+            status="open",
+            area="backend-modules",
+            finding="Backend has canonical modules and only medium unmanaged feature surfaces remain outside app.modules.",
+            evidence=(
+                f"app.modules.registry imports {', '.join(canonical_modules)}; "
+                "medium unmanaged feature surfaces: "
+                f"{', '.join(summary['medium_unmanaged_feature_surfaces'])}."
+            ),
+            risk="Medium. Remaining feature debt is transitional and must stay visible until separately migrated or accepted.",
+            recommendation="Continue with Phase 5 frontend/shared cleanup and Phase 6 account-platform debt split without hiding medium debt.",
+            suggested_phase="Phase 5+",
+        )
+    else:
+        structure_001 = Finding(
+            id="STRUCTURE-001",
+            severity="info",
+            status="accepted",
+            area="backend-modules",
+            finding="Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
+            evidence=f"app.modules.registry imports {', '.join(canonical_modules)}; no unmanaged feature surfaces remain.",
+            risk="Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
+            recommendation="Keep structure audit drift checks required for structural changes.",
+            suggested_phase="ongoing",
+        )
+
+    findings = [
+        structure_001,
         Finding(
             id="STRUCTURE-002",
             severity="medium",
@@ -1130,12 +1208,12 @@ def _findings(
         ),
         Finding(
             id="STRUCTURE-008",
-            severity="high",
+            severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
             status="open",
             area="unmanaged-backend-surfaces",
             finding="Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
             evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
-            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support.",
+            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support; medium for current classified residual debt.",
             recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
             suggested_phase="Phase 0",
         ),
@@ -1244,6 +1322,7 @@ def _status_for_entry(entry: dict[str, Any]) -> str:
 
 def render_markdown_report(report: dict[str, Any]) -> str:
     debt_entries = report["debt_inventory"]["entries"]
+    debt_summary = report["debt_inventory"]["summary"]
     modules = report["modules"]
     runtime_roles = report["runtime_roles"]
     findings = report["findings"]
@@ -1252,6 +1331,15 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         for entry in debt_entries
         if entry["category"] == "unmanaged_feature_surface" and entry["severity"] == "high"
     ]
+    unmanaged_debt = [
+        entry for entry in debt_entries if entry["category"] == "unmanaged_feature_surface"
+    ]
+    unmanaged_status = "RED" if high_debt else "YELLOW" if unmanaged_debt else "GREEN"
+    unmanaged_evidence = (
+        ", ".join(entry["owner"] for entry in high_debt)
+        if high_debt
+        else ", ".join(entry["owner"] for entry in unmanaged_debt) or "No unmanaged feature debt."
+    )
     lines = [
         "# Structure Audit",
         "",
@@ -1273,13 +1361,16 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 (
                     "Backend overall",
                     report["backend_overall_status"],
-                    f"{len(high_debt)} high-risk unmanaged feature surfaces remain.",
-                    "Architecture audit must not claim overall GREEN while high-risk unmanaged domains remain.",
-                    "Complete Phase 0 guard, then migrate domains in separate PRs.",
+                    (
+                        f"{debt_summary['high_risk_unmanaged_feature_surface_count']} high-risk and "
+                        f"{debt_summary['medium_unmanaged_feature_surface_count']} medium unmanaged feature surfaces remain."
+                    ),
+                    "Architecture audit must not claim overall GREEN while classified medium or high unmanaged domains remain.",
+                    "Keep medium debt visible while Phase 5/6 continue.",
                 ),
                 (
                     "Backend modules",
-                    "YELLOW" if high_debt else "GREEN",
+                    "YELLOW" if unmanaged_debt else "GREEN",
                     "Registered modules: "
                     + ", ".join(module["name"] for module in modules if module["registered"]),
                     "Canonical ownership exists for migrated modules only.",
@@ -1287,9 +1378,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 ),
                 (
                     "Unmanaged feature debt",
-                    "RED" if high_debt else "YELLOW",
-                    ", ".join(entry["owner"] for entry in high_debt)
-                    or "No high-risk unmanaged debt.",
+                    unmanaged_status,
+                    unmanaged_evidence,
                     "New feature behavior can bypass app.modules unless classified and guarded.",
                     "Keep debt inventory exhaustive and CI-enforced.",
                 ),

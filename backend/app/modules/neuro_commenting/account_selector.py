@@ -20,7 +20,7 @@ from app.modules.neuro_commenting.enums import (
     NeuroRotationStrategy,
 )
 from app.modules.neuro_commenting.rate_limiter import RateLimitScope
-from app.modules.neuro_commenting.rules_policy import ChannelRulesPolicy
+from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService
 
 _HARD_ERROR_CODES = {"AUTH_FAILED", "SESSION_REVOKED", "PHONE_BANNED", "ACCOUNT_BANNED"}
 _READY_ACCOUNT_STATES = {AccountState.AUTHORIZED_READY.value, AccountState.EXECUTION_USABLE.value}
@@ -134,7 +134,7 @@ class AccountSelector:
     ) -> bool:
         if self._session is None:
             return False
-        decision = ChannelRulesPolicy().check_target_allowed(
+        decision = ChannelRulesService().evaluate_target_allowed(
             self._session, workspace_id=campaign.workspace_id, target=target
         )
         return not decision.allowed

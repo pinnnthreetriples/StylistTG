@@ -2,36 +2,20 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.models import (
     Account,
-    AccountAuthAttempt,
-    AccountBehaviorProfile,
     AccountDeletionRequest,
     AccountExportRequest,
-    AccountGgrScore,
-    AccountLifecycleEvent,
-    AccountOperationLog,
-    AccountQuarantine,
-    AccountSafetyOverride,
-    AccountStatusObservation,
-    Asset,
-    BoughtOnboardingState,
-    CrossModuleLoadBucket,
-    NeuroCommentAttempt,
-    NeuroCommentEvent,
-    NeuroCommentGeneratedComment,
-    WarmupSession,
     new_id,
     utc_now,
 )
+from app.modules.account_lifecycle import repository
 from app.services.account_risk import build_account_readiness_risk
-from app.services.accounts import get_account
 from app.services.sensitive_audit import record_sensitive_audit_event
 from app.services.secret_redaction import redact_metadata
 from app.storage import StorageService, build_storage_service
@@ -47,9 +31,9 @@ def build_account_deletion_preview(
     account_id: str,
     workspace_id: str,
 ) -> dict[str, Any]:
-    account = _account_or_raise(session, account_id, workspace_id)
+    account = repository.account_or_raise(session, account_id, workspace_id)
     risk = build_account_readiness_risk(session, account)
-    assets = _account_assets(session, account)
+    assets = repository.account_assets(session, account)
     active_jobs = [
         job for job in account.jobs if job.job_state in {"queued", "running", "waiting_lock"}
     ]
@@ -97,17 +81,12 @@ def request_account_deletion(
         raise ValueError("confirmation required")
     if len(reason.strip()) < 10:
         raise ValueError("reason too short")
-    account = _account_or_raise(session, account_id, workspace_id)
-    existing = (
-        session.execute(
-            select(AccountDeletionRequest)
-            .where(AccountDeletionRequest.workspace_id == workspace_id)
-            .where(AccountDeletionRequest.account_id == account_id)
-            .where(AccountDeletionRequest.status.in_(ACTIVE_DELETION_STATUSES))
-            .limit(1)
-        )
-        .scalars()
-        .first()
+    account = repository.account_or_raise(session, account_id, workspace_id)
+    existing = repository.active_deletion_request(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        active_statuses=ACTIVE_DELETION_STATUSES,
     )
     if existing is not None:
         raise ValueError("active deletion request exists")
@@ -128,7 +107,7 @@ def request_account_deletion(
         requested_at=utc_now(),
     )
     session.add(request)
-    _record_lifecycle_event(
+    repository.add_lifecycle_event(
         session,
         workspace_id=workspace_id,
         account_id=account.id,
@@ -158,33 +137,18 @@ def request_account_deletion(
 def list_deletion_requests(
     session: Session, *, account_id: str, workspace_id: str
 ) -> list[AccountDeletionRequest]:
-    _account_or_raise(session, account_id, workspace_id)
-    return list(
-        session.execute(
-            select(AccountDeletionRequest)
-            .where(AccountDeletionRequest.workspace_id == workspace_id)
-            .where(AccountDeletionRequest.account_id == account_id)
-            .order_by(AccountDeletionRequest.requested_at.desc())
-        )
-        .scalars()
-        .all()
+    repository.account_or_raise(session, account_id, workspace_id)
+    return repository.list_deletion_requests_for_account(
+        session, account_id=account_id, workspace_id=workspace_id
     )
 
 
 def get_deletion_request(
     session: Session, *, account_id: str, request_id: str, workspace_id: str
 ) -> AccountDeletionRequest | None:
-    _account_or_raise(session, account_id, workspace_id)
-    return (
-        session.execute(
-            select(AccountDeletionRequest)
-            .where(AccountDeletionRequest.workspace_id == workspace_id)
-            .where(AccountDeletionRequest.account_id == account_id)
-            .where(AccountDeletionRequest.id == request_id)
-            .limit(1)
-        )
-        .scalars()
-        .first()
+    repository.account_or_raise(session, account_id, workspace_id)
+    return repository.get_deletion_request_for_account(
+        session, account_id=account_id, request_id=request_id, workspace_id=workspace_id
     )
 
 
@@ -198,7 +162,7 @@ def execute_account_deletion_request(
     request = session.get(AccountDeletionRequest, request_id)
     if request is None:
         raise ValueError("deletion request not found")
-    account = _account_or_raise(session, request.account_id, request.workspace_id)
+    account = repository.account_or_raise(session, request.account_id, request.workspace_id)
     if not config.account_deletion_allow_hard_delete:
         result: dict[str, Any] = {
             "executed": False,
@@ -211,7 +175,7 @@ def execute_account_deletion_request(
         return result
     request.status = "running"
     request.started_at = utc_now()
-    assets = _account_assets(session, account)
+    assets = repository.account_assets(session, account)
     storage_service = storage or build_storage_service(config)
     deleted_asset_objects = 0
     for asset in assets:
@@ -256,7 +220,7 @@ def create_account_export_request(
     storage: StorageService | None = None,
     config: Settings = settings,
 ) -> AccountExportRequest:
-    account = _account_or_raise(session, account_id, workspace_id)
+    account = repository.account_or_raise(session, account_id, workspace_id)
     export_id = new_id()
     payload = build_account_export_payload(session, account=account)
     body = json.dumps(payload, default=str, ensure_ascii=False, indent=2).encode("utf-8")
@@ -299,38 +263,23 @@ def create_account_export_request(
 def list_export_requests(
     session: Session, *, account_id: str, workspace_id: str
 ) -> list[AccountExportRequest]:
-    _account_or_raise(session, account_id, workspace_id)
-    return list(
-        session.execute(
-            select(AccountExportRequest)
-            .where(AccountExportRequest.workspace_id == workspace_id)
-            .where(AccountExportRequest.account_id == account_id)
-            .order_by(AccountExportRequest.requested_at.desc())
-        )
-        .scalars()
-        .all()
+    repository.account_or_raise(session, account_id, workspace_id)
+    return repository.list_export_requests_for_account(
+        session, account_id=account_id, workspace_id=workspace_id
     )
 
 
 def get_export_request(
     session: Session, *, account_id: str, request_id: str, workspace_id: str
 ) -> AccountExportRequest | None:
-    _account_or_raise(session, account_id, workspace_id)
-    return (
-        session.execute(
-            select(AccountExportRequest)
-            .where(AccountExportRequest.workspace_id == workspace_id)
-            .where(AccountExportRequest.account_id == account_id)
-            .where(AccountExportRequest.id == request_id)
-            .limit(1)
-        )
-        .scalars()
-        .first()
+    repository.account_or_raise(session, account_id, workspace_id)
+    return repository.get_export_request_for_account(
+        session, account_id=account_id, request_id=request_id, workspace_id=workspace_id
     )
 
 
 def build_account_export_payload(session: Session, *, account: Account) -> dict[str, Any]:
-    assets = _account_assets(session, account)
+    assets = repository.account_assets(session, account)
     return redact_metadata(
         {
             "schema_version": EXPORT_SCHEMA_VERSION,
@@ -414,34 +363,6 @@ def export_request_to_dict(request: AccountExportRequest) -> dict[str, Any]:
     }
 
 
-def _account_or_raise(session: Session, account_id: str, workspace_id: str) -> Account:
-    account = get_account(session, account_id, workspace_id=workspace_id)
-    if account is None:
-        raise ValueError("account not found")
-    return account
-
-
-def _account_assets(session: Session, account: Account) -> list[Asset]:
-    asset_ids: set[str] = set()
-    if account.profile_state and account.profile_state.profile_photo_asset_id:
-        asset_ids.add(account.profile_state.profile_photo_asset_id)
-    if account.profile_audio_state and account.profile_audio_state.source_asset_id:
-        asset_ids.add(account.profile_audio_state.source_asset_id)
-    asset_ids.update(draft.asset_id for draft in account.story_drafts)
-    asset_ids.update(post.asset_id for post in account.story_posts if post.asset_id)
-    if not asset_ids:
-        return []
-    return list(
-        session.execute(
-            select(Asset)
-            .where(Asset.workspace_id == account.workspace_id)
-            .where(Asset.id.in_(asset_ids))
-        )
-        .scalars()
-        .all()
-    )
-
-
 def _profile_payload(account: Account) -> dict[str, Any] | None:
     profile = account.profile_state
     if profile is None:
@@ -455,65 +376,9 @@ def _profile_payload(account: Account) -> dict[str, Any] | None:
     }
 
 
-def _record_lifecycle_event(
-    session: Session,
-    *,
-    workspace_id: str,
-    account_id: str,
-    event_type: str,
-    actor_user_id: str | None,
-    request_id: str | None,
-    payload: dict[str, Any],
-) -> None:
-    session.add(
-        AccountLifecycleEvent(
-            id=new_id(),
-            workspace_id=workspace_id,
-            account_id=account_id,
-            event_type=event_type,
-            actor_user_id=actor_user_id,
-            request_id=request_id,
-            payload_json=redact_metadata(payload),
-            created_at=utc_now(),
-        )
-    )
-
-
 def _json_safe(payload: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = json.loads(json.dumps(payload, default=str))
     return result
-
-
-# ---------------------------------------------------------------------------
-# Hard delete cascade (Task 45 / F-E001)
-# ---------------------------------------------------------------------------
-
-# Tables whose rows must be deleted when the parent account is removed.
-# Mirror of migration 20260525_0054_account_safety_cascade — the DB-level
-# ON DELETE CASCADE handles this on Postgres; the explicit ORM delete here
-# guarantees portable behavior on SQLite (tests) and acts as defense in depth.
-# Each entry is (table_name, mapper class) so the report uses the on-disk
-# table name and pyright sees a concrete type for the FK column.
-_CASCADE_MODELS: tuple[tuple[str, Any], ...] = (
-    ("account_quarantines", AccountQuarantine),
-    ("account_status_observations", AccountStatusObservation),
-    ("cross_module_load_buckets", CrossModuleLoadBucket),
-    ("account_ggr_scores", AccountGgrScore),
-    ("account_behavior_profile", AccountBehaviorProfile),
-    ("bought_onboarding_state", BoughtOnboardingState),
-    ("account_safety_override", AccountSafetyOverride),
-    ("account_lifecycle_event", AccountLifecycleEvent),
-    ("account_operation_log", AccountOperationLog),
-    ("account_auth_attempt", AccountAuthAttempt),
-    ("warmup_session", WarmupSession),
-)
-
-# Tables whose account_id is nulled instead of deleted (audit/compliance).
-_SET_NULL_MODELS: tuple[tuple[str, Any], ...] = (
-    ("neuro_comment_attempts", NeuroCommentAttempt),
-    ("neuro_comment_events", NeuroCommentEvent),
-    ("neuro_comment_generated_comments", NeuroCommentGeneratedComment),
-)
 
 
 def hard_delete_account(
@@ -537,24 +402,10 @@ def hard_delete_account(
     operator UI. Raises :class:`ValueError` if the account is not visible
     under ``workspace_id`` (cross-tenant deletion is forbidden).
     """
-    from sqlalchemy import delete, update
-    from sqlalchemy.engine import CursorResult
-
-    account = _account_or_raise(session, account_id, workspace_id)
-
-    cascade_counts: dict[str, int] = {}
-    for table_name, model in _CASCADE_MODELS:
-        result = session.execute(delete(model).where(model.account_id == account.id))
-        cursor = cast("CursorResult[Any]", result)
-        cascade_counts[table_name] = int(cursor.rowcount or 0)
-
-    set_null_counts: dict[str, int] = {}
-    for table_name, model in _SET_NULL_MODELS:
-        result = session.execute(
-            update(model).where(model.account_id == account.id).values(account_id=None)
-        )
-        cursor = cast("CursorResult[Any]", result)
-        set_null_counts[table_name] = int(cursor.rowcount or 0)
+    account = repository.account_or_raise(session, account_id, workspace_id)
+    cascade_counts, set_null_counts = repository.apply_account_hard_delete_cascade(
+        session, account=account
+    )
 
     report: dict[str, Any] = {
         "account_id": account.id,
@@ -576,6 +427,6 @@ def hard_delete_account(
         metadata=_json_safe(report),
     )
 
-    session.delete(account)
+    repository.delete_account(session, account=account)
     session.commit()
     return report

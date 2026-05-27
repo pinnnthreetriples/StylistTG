@@ -24,12 +24,20 @@ def _manifest() -> dict[str, object]:
 def test_legacy_wrapper_manifest_is_valid_json() -> None:
     manifest = _manifest()
 
-    assert manifest["generated_at"] == "2026-05-17T00:00:00Z"
+    assert manifest["generated_at"].endswith("Z")
     assert isinstance(manifest["wrappers"], list)
 
 
 def test_legacy_wrapper_manifest_matches_script_output() -> None:
-    assert _manifest() == build_manifest()
+    manifest = _manifest()
+
+    assert manifest == build_manifest(generated_at=str(manifest["generated_at"]))
+
+
+def test_legacy_wrapper_manifest_generated_at_can_be_injected() -> None:
+    manifest = build_manifest(generated_at="2026-05-27T01:02:03Z")
+
+    assert manifest["generated_at"] == "2026-05-27T01:02:03Z"
 
 
 def test_legacy_wrapper_manifest_entries_are_sorted_and_use_valid_stages() -> None:

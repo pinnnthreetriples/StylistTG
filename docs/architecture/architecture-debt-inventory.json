@@ -34,6 +34,7 @@
         "backend/app/modules/account_lifecycle/__init__.py",
         "backend/app/modules/account_lifecycle/contracts.py",
         "backend/app/modules/account_lifecycle/module.py",
+        "backend/app/modules/account_lifecycle/repository.py",
         "backend/app/modules/account_lifecycle/retention.py",
         "backend/app/modules/account_lifecycle/router.py",
         "backend/app/modules/account_lifecycle/service.py"
@@ -61,10 +62,13 @@
         "backend/app/modules/account_safety/contracts.py",
         "backend/app/modules/account_safety/gate.py",
         "backend/app/modules/account_safety/gate_contracts.py",
+        "backend/app/modules/account_safety/interfaces.py",
         "backend/app/modules/account_safety/module.py",
         "backend/app/modules/account_safety/overrides.py",
         "backend/app/modules/account_safety/policy.py",
+        "backend/app/modules/account_safety/policy_repository.py",
         "backend/app/modules/account_safety/policy_router.py",
+        "backend/app/modules/account_safety/policy_rules.py",
         "backend/app/modules/account_safety/read_contracts.py",
         "backend/app/modules/account_safety/read_models.py",
         "backend/app/modules/account_safety/reserve.py",
@@ -156,7 +160,7 @@
       "paths": [
         "backend/app/modules/neuro_commenting/**"
       ],
-      "phase": "Phase 2C",
+      "phase": "Phase 2D",
       "rationale": "Neuro-commenting router, contracts, workflow metadata, and public facades are canonical.",
       "removal_condition": "n/a",
       "severity": "info",
@@ -1457,7 +1461,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T10:09:08Z",
+  "generated_at": "2026-05-27T16:42:08Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {
@@ -1475,6 +1479,13 @@
   "summary": {
     "high_risk_unmanaged_feature_surface_count": 0,
     "high_risk_unmanaged_feature_surfaces": [],
+    "medium_unmanaged_feature_surface_count": 4,
+    "medium_unmanaged_feature_surfaces": [
+      "debt-account-legacy-surfaces",
+      "debt-bought-onboarding",
+      "debt-human-behavior",
+      "debt-story-surfaces"
+    ],
     "open_count": 5,
     "unmanaged_feature_surface_count": 4
   },

@@ -75,6 +75,28 @@ POLICY_LAYER_DEBT_EXCEPTIONS = {
     ),
 }
 
+DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
+    "contracts": (Path("contracts.py"),),
+    "policy": (
+        Path("policies.py"),
+        Path("account_safety/policy_rules.py"),
+        Path("neuro_commenting/policies.py"),
+        Path("neuro_commenting/rules_policy.py"),
+        Path("neuro_commenting/safety_policy.py"),
+    ),
+    "facade": (Path("account_safety/policy.py"),),
+    "repository": (
+        Path("repository.py"),
+        Path("account_safety/policy_repository.py"),
+    ),
+    "router": (
+        Path("router.py"),
+        Path("account_safety/accounts_router.py"),
+        Path("account_safety/policy_router.py"),
+    ),
+    "jobs": (Path("jobs.py"), Path("enqueue.py")),
+}
+
 
 def _registered_module_roots() -> list[Path]:
     return [MODULES_ROOT / module.name for module in iter_modules()]
@@ -112,18 +134,34 @@ def _matches(imported: str, forbidden: str) -> bool:
     return imported == forbidden or imported.startswith(f"{forbidden}.")
 
 
-def _violations_for(
-    *, layer_filename: str, forbidden_imports: tuple[str, ...]
+def _declared_layer_files(layer: str) -> list[Path]:
+    declared = DECLARED_LAYER_FILES[layer]
+    files: list[Path] = []
+    for module_root in _registered_module_roots():
+        for relative in declared:
+            if len(relative.parts) > 1 and relative.parts[0] != module_root.name:
+                continue
+            source = module_root / (
+                Path(*relative.parts[1:]) if len(relative.parts) > 1 else relative
+            )
+            if source.exists():
+                files.append(source)
+    return sorted(set(files))
+
+
+def _violations_for_sources(
+    sources: list[Path], forbidden_imports: tuple[str, ...]
 ) -> list[tuple[Path, str]]:
     violations: list[tuple[Path, str]] = []
-    for module_root in _registered_module_roots():
-        source = module_root / layer_filename
-        if not source.exists():
-            continue
+    for source in sources:
         for imported in _imports(source):
             if any(_matches(imported, forbidden) for forbidden in forbidden_imports):
                 violations.append((source, imported))
     return violations
+
+
+def _violations_for(*, layer: str, forbidden_imports: tuple[str, ...]) -> list[tuple[Path, str]]:
+    return _violations_for_sources(_declared_layer_files(layer), forbidden_imports)
 
 
 def _existing_layer_files(layer_filename: str) -> list[Path]:
@@ -152,9 +190,7 @@ def test_registered_modules_have_existing_roots() -> None:
 
 
 def test_registered_module_contracts_stay_runtime_and_persistence_free() -> None:
-    violations = _violations_for(
-        layer_filename="contracts.py", forbidden_imports=FORBIDDEN_CONTRACT_IMPORTS
-    )
+    violations = _violations_for(layer="contracts", forbidden_imports=FORBIDDEN_CONTRACT_IMPORTS)
 
     assert violations == []
 
@@ -163,7 +199,7 @@ def test_registered_module_policies_do_not_add_transport_runtime_or_persistence_
     violations = [
         (source, imported)
         for source, imported in _violations_for(
-            layer_filename="policies.py", forbidden_imports=FORBIDDEN_POLICY_IMPORTS
+            layer="policy", forbidden_imports=FORBIDDEN_POLICY_IMPORTS
         )
         if not _is_allowed_policy_debt(source, imported)
     ]
@@ -171,28 +207,37 @@ def test_registered_module_policies_do_not_add_transport_runtime_or_persistence_
     assert violations == []
 
 
+def test_account_safety_policy_facade_stays_reexport_only() -> None:
+    source = MODULES_ROOT / "account_safety" / "policy.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    allowed_nodes = (ast.Expr, ast.ImportFrom, ast.Assign)
+    violations = [
+        type(node).__name__
+        for node in tree.body
+        if not (
+            isinstance(node, allowed_nodes)
+            or (isinstance(node, ast.ImportFrom) and node.module == "__future__")
+        )
+    ]
+
+    assert violations == []
+
+
 def test_registered_module_routers_do_not_import_orm_models_directly() -> None:
-    violations = _violations_for(
-        layer_filename="router.py", forbidden_imports=FORBIDDEN_ROUTER_IMPORTS
-    )
+    violations = _violations_for(layer="router", forbidden_imports=FORBIDDEN_ROUTER_IMPORTS)
 
     assert violations == []
 
 
 def test_registered_module_repositories_stay_below_api_layers() -> None:
-    violations = _violations_for(
-        layer_filename="repository.py", forbidden_imports=FORBIDDEN_REPOSITORY_IMPORTS
-    )
+    violations = _violations_for(layer="repository", forbidden_imports=FORBIDDEN_REPOSITORY_IMPORTS)
 
     assert violations == []
 
 
 def test_registered_module_jobs_and_enqueue_stay_out_of_transport_and_orm_imports() -> None:
     violations: list[tuple[Path, str]] = []
-    for source in [
-        *_existing_layer_files("jobs.py"),
-        *_existing_layer_files("enqueue.py"),
-    ]:
+    for source in _declared_layer_files("jobs"):
         for imported in _imports(source):
             if any(_matches(imported, forbidden) for forbidden in FORBIDDEN_JOB_IMPORTS):
                 violations.append((source, imported))
@@ -236,3 +281,47 @@ def test_layer_debt_exceptions_have_existing_sources() -> None:
     ]
 
     assert missing == []
+
+
+def test_registered_module_layer_like_files_are_declared() -> None:
+    declared = {
+        MODULES_ROOT / module.name / relative
+        for module in iter_modules()
+        for files in DECLARED_LAYER_FILES.values()
+        for relative in files
+        if len(relative.parts) == 1
+    } | {
+        MODULES_ROOT / relative
+        for files in DECLARED_LAYER_FILES.values()
+        for relative in files
+        if len(relative.parts) > 1
+    }
+    discovered = [
+        path
+        for module_root in _registered_module_roots()
+        for path in module_root.glob("*.py")
+        if path.name == "router.py"
+        or path.name.endswith("_router.py")
+        or path.name == "policies.py"
+        or path.name.endswith("policy.py")
+        or path.name.endswith("_rules.py")
+        or path.name.endswith("_repository.py")
+    ]
+
+    assert [path for path in discovered if path not in declared] == []
+
+
+def test_layer_violation_helpers_catch_alternate_router_and_policy_names(
+    tmp_path: Path,
+) -> None:
+    router = tmp_path / "accounts_router.py"
+    policy = tmp_path / "rules_policy.py"
+    router.write_text("from app.models import Account\n", encoding="utf-8")
+    policy.write_text("from sqlalchemy.orm import Session\n", encoding="utf-8")
+
+    assert _violations_for_sources([router], FORBIDDEN_ROUTER_IMPORTS) == [
+        (router, "app.models.Account")
+    ]
+    assert _violations_for_sources([policy], FORBIDDEN_POLICY_IMPORTS) == [
+        (policy, "sqlalchemy.orm.Session")
+    ]

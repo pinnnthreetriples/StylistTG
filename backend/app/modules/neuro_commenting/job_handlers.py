@@ -37,8 +37,13 @@ from app.modules.neuro_commenting.discussion_resolver import (
 )
 from app.modules.neuro_commenting.post_detector import PostDetector
 from app.modules.neuro_commenting.prompt_builder import PromptBuilder
-from app.modules.neuro_commenting.rules_policy import ChannelRulesPolicy
-from app.modules.neuro_commenting.safety_policy import SafetyPolicy
+from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService
+from app.modules.neuro_commenting.safety_policy import (
+    AccountSafetySnapshot,
+    CampaignSafetySnapshot,
+    SafetyPolicy,
+    TargetSafetySnapshot,
+)
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.tdlib_observer import (
     TelegramPostObserver,
@@ -75,7 +80,7 @@ def generate_comment(
     target = repository.require_target(
         session, target_id=observed_post.target_id, campaign_id=campaign.id
     )
-    rule_decision = ChannelRulesPolicy().check_target_allowed(
+    rule_decision = ChannelRulesService().evaluate_target_allowed(
         session, workspace_id=workspace_id, target=target
     )
     if not rule_decision.allowed:
@@ -137,11 +142,11 @@ def generate_comment(
         raise
     safety = SafetyPolicy().check(
         text=generated.text,
-        campaign=campaign,
-        target=target,
-        account=selected.account,
-        session=session,
-        workspace_id=workspace_id,
+        campaign=CampaignSafetySnapshot(status=campaign.status),
+        target=TargetSafetySnapshot(status=target.status),
+        account=AccountSafetySnapshot(status=selected.account.status)
+        if selected.account is not None
+        else None,
     )
     comment = NeuroCommentGeneratedComment(
         id=new_id(),
@@ -311,7 +316,7 @@ def observe_target(
             error_class="NeuroConflictError",
         )
         raise NeuroConflictError("target is not active", error_code="TARGET_NOT_ACTIVE")
-    decision = ChannelRulesPolicy().check_target_allowed(
+    decision = ChannelRulesService().evaluate_target_allowed(
         session,
         workspace_id=workspace_id,
         target=target,

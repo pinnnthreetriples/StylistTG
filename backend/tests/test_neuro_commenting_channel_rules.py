@@ -5,7 +5,6 @@ from sqlalchemy import UniqueConstraint
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, NeuroCommentChannelRule
 from app.services.neuro_commenting.campaign_service import CampaignService
 from app.services.neuro_commenting.channel_rules_service import ChannelRulesService
-from app.services.neuro_commenting.rules_policy import ChannelRulesPolicy
 from app.services.neuro_commenting.target_service import TargetService
 
 
@@ -39,11 +38,11 @@ def test_create_list_delete_rule_and_policy_blocks_blacklist(db_session) -> None
         payload={"target_ref": target.channel_ref, "rule_type": "blacklist", "reason": "bad"},
     )
     listed, total = service.list_rules(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
-    decision = ChannelRulesPolicy(service).check_target_allowed(
+    decision = service.evaluate_target_allowed(
         db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, target=target
     )
     service.delete_rule(db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, rule_id=rule.id)
-    allowed = ChannelRulesPolicy(service).check_target_allowed(
+    allowed = service.evaluate_target_allowed(
         db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, target=target
     )
 
@@ -104,7 +103,7 @@ def test_auto_suggestion_does_not_block_and_pause_resume_target(db_session) -> N
             "reason": "low health",
         },
     )
-    suggested = ChannelRulesPolicy(service).check_target_allowed(
+    suggested = service.evaluate_target_allowed(
         db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, target=target
     )
     service.pause_target(
@@ -113,7 +112,7 @@ def test_auto_suggestion_does_not_block_and_pause_resume_target(db_session) -> N
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         actor_user_id="user-1",
     )
-    paused = ChannelRulesPolicy(service).check_target_allowed(
+    paused = service.evaluate_target_allowed(
         db_session, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, target=target
     )
     service.resume_target(

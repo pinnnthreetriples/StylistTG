@@ -16,7 +16,7 @@ from app.services.neuro_commenting.approval_service import ApprovalService
 from app.services.neuro_commenting.campaign_account_service import CampaignAccountService
 from app.services.neuro_commenting.campaign_service import CampaignService
 from app.services.neuro_commenting.jobs import generate_comment
-from app.services.neuro_commenting.safety_policy import SafetyPolicy
+from app.services.neuro_commenting.safety_policy import CampaignSafetySnapshot, SafetyPolicy
 from app.services.neuro_commenting.sender_service import SenderService
 from app.services.neuro_commenting.target_service import TargetService
 from tests.helpers.factories import seed_account, seed_two_workspaces
@@ -266,8 +266,9 @@ def test_safety_policy_blocks_links_and_too_long_text(db_session) -> None:
     )
     policy = SafetyPolicy()
 
-    link_decision = policy.check(text="Посмотри https://example.test", campaign=campaign)
-    long_decision = policy.check(text="а" * 121, campaign=campaign)
+    snapshot = CampaignSafetySnapshot(status=campaign.status)
+    link_decision = policy.check(text="Посмотри https://example.test", campaign=snapshot)
+    long_decision = policy.check(text="а" * 121, campaign=snapshot)
 
     assert link_decision.status == NeuroSafetyStatus.BLOCKED
     assert link_decision.reason == "links_blocked"

@@ -18,7 +18,7 @@ from app.models import (
     NeuroCommentTarget,
     utc_now,
 )
-from app.modules.account_safety.service import (
+from app.modules.account_safety.interfaces import (
     SafetyGateReservation,
     evaluate as evaluate_safety_gate,
     release as release_gate_reservation,
@@ -64,7 +64,7 @@ from app.modules.neuro_commenting.rate_limiter import (
     RateLimitReservation,
     RateLimitScope,
 )
-from app.modules.neuro_commenting.rules_policy import ChannelRulesPolicy
+from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService
 from app.modules.neuro_commenting.target_health_service import TargetHealthService
 
 _INT_COERCION_ERRORS = (TypeError, ValueError)
@@ -243,7 +243,7 @@ class SenderService:
         if self._block_by_safety_gate(session, workspace_id=workspace_id, context=context):
             return attempt
         if context.target is not None:
-            decision = ChannelRulesPolicy().check_target_allowed(
+            decision = ChannelRulesService().evaluate_target_allowed(
                 session, workspace_id=workspace_id, target=context.target
             )
             if not decision.allowed:
@@ -415,7 +415,7 @@ class SenderService:
         session = self._session_for(comment, attempt, campaign)
         target = self._target_for_send(session, campaign=campaign, comment=comment, attempt=attempt)
         if session is not None and target is not None:
-            decision = ChannelRulesPolicy().check_target_allowed(
+            decision = ChannelRulesService().evaluate_target_allowed(
                 session, workspace_id=campaign.workspace_id, target=target
             )
             if not decision.allowed:
@@ -597,7 +597,7 @@ class SenderService:
         if not self._config.neuro_comment_tdlib_send_enabled:
             return
         if context.target is not None:
-            decision = ChannelRulesPolicy().check_target_allowed(
+            decision = ChannelRulesService().evaluate_target_allowed(
                 session, workspace_id=workspace_id, target=context.target
             )
             if not decision.allowed:

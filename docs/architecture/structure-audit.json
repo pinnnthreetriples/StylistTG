@@ -75,7 +75,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_no_cross_module_internal_imports.py",
-      "test_count": 4
+      "test_count": 5
     },
     {
       "boundary_keywords": [
@@ -108,7 +108,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_registered_module_layer_boundaries.py",
-      "test_count": 12
+      "test_count": 13
     },
     {
       "boundary_keywords": [
@@ -149,7 +149,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 24
+      "test_count": 26
     },
     {
       "boundary_keywords": [
@@ -490,6 +490,7 @@
           "backend/app/services/warmup_readiness.py",
           "backend/app/services/warmup_worker.py",
           "backend/app/services/workspace_safety_policy.py",
+          "backend/app/services/workspaces.py",
           "backend/app/workers/account_update_jobs.py",
           "backend/app/workers/warmup_dispatch_jobs.py",
           "backend/app/workers/warmup_jobs.py"
@@ -556,6 +557,7 @@
           "backend/app/services/warmup_p2p.py",
           "backend/app/services/warmup_readiness.py",
           "backend/app/services/warmup_worker.py",
+          "backend/app/services/workspaces.py",
           "backend/app/workers/account_update_jobs.py",
           "backend/app/workers/warmup_dispatch_jobs.py",
           "backend/app/workers/warmup_jobs.py"
@@ -941,7 +943,6 @@
           "backend/app/services/tenant_scope.py",
           "backend/app/services/users.py",
           "backend/app/services/workspace_onboarding.py",
-          "backend/app/services/workspaces.py",
           "backend/app/storage/__init__.py",
           "backend/app/storage/base.py",
           "backend/app/storage/errors.py",
@@ -954,7 +955,8 @@
           "backend/app/tools/live_smoke.py",
           "backend/app/tools/migration_smoke.py",
           "backend/app/tools/reap_stale_jobs.py",
-          "backend/app/tools/tdlib_auth_persistence_spike.py"
+          "backend/app/tools/tdlib_auth_persistence_spike.py",
+          "backend/app/workspace_bootstrap.py"
         ],
         "id": "shared-platform-infrastructure",
         "owner": "platform",
@@ -967,6 +969,7 @@
           "backend/app/main.py",
           "backend/app/platform_bootstrap.py",
           "backend/app/tdlib_job.py",
+          "backend/app/workspace_bootstrap.py",
           "backend/app/adapters/**",
           "backend/app/storage/**",
           "backend/app/observability/__init__.py",
@@ -1037,8 +1040,7 @@
           "backend/app/services/tenant_scope.py",
           "backend/app/services/__init__.py",
           "backend/app/services/users.py",
-          "backend/app/services/workspace_onboarding.py",
-          "backend/app/services/workspaces.py"
+          "backend/app/services/workspace_onboarding.py"
         ],
         "phase": "ongoing",
         "rationale": "Cross-cutting auth, storage, runtime, audit, notification, tenant, and operator support code is not a bounded feature module by itself.",
@@ -1687,7 +1689,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-27T16:42:08Z",
+    "generated_at": "2026-05-27T18:13:02Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1943,7 +1945,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-27T16:42:08Z",
+  "generated_at": "2026-05-27T18:13:02Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -2593,6 +2595,17 @@
       "import_path": "app.services.warmup_worker",
       "module_import_references": [],
       "path": "backend/app/services/warmup_worker.py"
+    },
+    {
+      "canonical_owner": "app.workspace_bootstrap.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.workspaces",
+      "module_import_references": [],
+      "path": "backend/app/services/workspaces.py"
     },
     {
       "canonical_owner": "app.modules.account_editing.executor",

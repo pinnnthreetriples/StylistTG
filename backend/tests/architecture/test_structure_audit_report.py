@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import re
 import sys
+from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -13,6 +15,9 @@ if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
 from structure_audit import (  # noqa: E402
+    _backend_overall_status,
+    _debt_summary,
+    _findings,
     build_report,
     detect_report_drift,
     render_debt_inventory,
@@ -43,6 +48,48 @@ REQUIRED_KEYS = {
 
 def _committed_report() -> dict[str, object]:
     return json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+
+
+def _report_with_unmanaged_entries(
+    base_report: dict[str, Any],
+    unmanaged_entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    report = deepcopy(base_report)
+    non_unmanaged = [
+        entry
+        for entry in report["debt_inventory"]["entries"]
+        if entry["category"] != "unmanaged_feature_surface"
+    ]
+    report["debt_inventory"]["entries"] = [*non_unmanaged, *unmanaged_entries]
+    report["debt_inventory"]["summary"] = _debt_summary(report["debt_inventory"]["entries"])
+    report["backend_overall_status"] = _backend_overall_status(report["debt_inventory"])
+    report["findings"] = _findings(
+        report["boundaries"],
+        report["forbidden_runtime_claims"],
+        report["debt_inventory"],
+    )
+    return report
+
+
+def _unmanaged_entry(
+    *,
+    entry_id: str,
+    owner: str,
+    severity: str,
+) -> dict[str, Any]:
+    return {
+        "id": entry_id,
+        "category": "unmanaged_feature_surface",
+        "severity": severity,
+        "status": "open",
+        "owner": owner,
+        "paths": [f"backend/app/api/{owner}.py"],
+        "existing_paths": [f"backend/app/api/{owner}.py"],
+        "target_owner": f"app.modules.{owner}",
+        "phase": "synthetic-test",
+        "removal_condition": "Synthetic scenario exits when the owner is migrated.",
+        "rationale": "Synthetic scenario coverage entry.",
+    }
 
 
 def test_structure_audit_report_matches_static_script() -> None:
@@ -228,13 +275,81 @@ def test_structure_audit_inventory_entries_have_required_metadata() -> None:
 def test_backend_overall_yellow_with_remaining_medium_unmanaged_surfaces() -> None:
     report = _committed_report()
     findings = {finding["id"]: finding for finding in report["findings"]}
+    markdown = render_markdown_report(report)
+    rendered_json = json.loads(render_json_report(report))
 
+    assert rendered_json["backend_overall_status"] == "YELLOW"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
+    assert (
+        rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
+    )
     assert report["backend_overall_status"] == "YELLOW"
     assert findings["STRUCTURE-001"]["severity"] == "medium"
     assert "medium unmanaged feature surfaces" in findings["STRUCTURE-001"]["finding"]
     assert "high-risk feature ownership" not in findings["STRUCTURE-001"]["finding"]
     assert findings["STRUCTURE-008"]["severity"] == "medium"
+    assert (
+        "| Backend overall | YELLOW | 0 high-risk and 4 medium unmanaged feature surfaces remain."
+        in markdown
+    )
+    assert "| Unmanaged feature debt | YELLOW |" in markdown
+    assert "| STRUCTURE-001 | medium | open |" in markdown
+    assert "high-risk feature ownership" not in markdown
+
+
+def test_structure_audit_synthetic_high_risk_debt_is_reported_truthfully() -> None:
+    report = _report_with_unmanaged_entries(
+        build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z"),
+        [_unmanaged_entry(entry_id="debt-synthetic-high", owner="synthetic_high", severity="high")],
+    )
+    findings = {finding["id"]: finding for finding in report["findings"]}
+    markdown = render_markdown_report(report)
+    rendered_json = json.loads(render_json_report(report))
+
+    assert report["backend_overall_status"] == "RED"
+    assert rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == [
+        "debt-synthetic-high"
+    ]
+    assert findings["STRUCTURE-001"]["severity"] == "high"
+    assert "high-risk feature ownership" in findings["STRUCTURE-001"]["finding"]
+    assert "high-risk unmanaged feature surfaces" in findings["STRUCTURE-001"]["recommendation"]
+    assert "debt-synthetic-high" in findings["STRUCTURE-001"]["evidence"]
+    assert findings["STRUCTURE-008"]["severity"] == "high"
+    assert (
+        "| Backend overall | RED | 1 high-risk and 0 medium unmanaged feature surfaces remain."
+        in markdown
+    )
+    assert "| Unmanaged feature debt | RED | synthetic_high |" in markdown
+    assert "debt-synthetic-high" in markdown
+    assert "Keep medium debt visible" not in markdown
+
+
+def test_structure_audit_synthetic_zero_unmanaged_debt_is_reported_truthfully() -> None:
+    report = _report_with_unmanaged_entries(
+        build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z"),
+        [],
+    )
+    findings = {finding["id"]: finding for finding in report["findings"]}
+    markdown = render_markdown_report(report)
+    rendered_json = json.loads(render_json_report(report))
+
+    assert report["backend_overall_status"] == "GREEN"
+    assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
+    assert findings["STRUCTURE-001"]["status"] == "accepted"
+    assert findings["STRUCTURE-001"]["severity"] == "info"
+    assert "no unmanaged feature debt is open" in findings["STRUCTURE-001"]["evidence"]
+    assert findings["STRUCTURE-008"]["status"] == "accepted"
+    assert findings["STRUCTURE-008"]["severity"] == "info"
+    assert "No unmanaged feature debt remains." in markdown
+    assert "unmanaged feature surfaces remain" not in markdown
+    backend_modules_row = next(
+        line for line in markdown.splitlines() if line.startswith("| Backend modules |")
+    )
+    unmanaged_debt_row = next(
+        line for line in markdown.splitlines() if line.startswith("| Unmanaged feature debt |")
+    )
+    assert "account platform debt split" not in backend_modules_row
+    assert "New feature behavior can bypass app.modules" not in unmanaged_debt_row
 
 
 def test_backend_app_python_files_are_classified_by_inventory() -> None:

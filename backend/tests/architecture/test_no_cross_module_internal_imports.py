@@ -13,6 +13,16 @@ PUBLIC_SUBMODULES = {
     "interfaces",
 }
 SHARED_MODULES = {"contracts", "registry"}
+ACCOUNT_SAFETY_INTERFACE_SYMBOLS = {
+    "SafetyGateReservation",
+    "SafetyGateVerdict",
+    "build_account_safety_for_account",
+    "evaluate",
+    "release",
+    "reserve",
+    "safety_preview_fields_with_policy",
+    "unique_preserve_order",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +215,23 @@ def test_feature_modules_do_not_import_other_module_internals() -> None:
                     ]
                 )
             )
+
+    assert violations == []
+
+
+def test_account_safety_interface_cross_module_imports_are_allowlisted_symbols() -> None:
+    violations: list[str] = []
+    prefix = "app.modules.account_safety.interfaces."
+    for source in _python_files(MODULES_ROOT):
+        source_module = _feature_module_for(source)
+        if source_module is None or source_module == "account_safety":
+            continue
+        for imported in _imports(source):
+            if not imported.startswith(prefix):
+                continue
+            symbol = imported.removeprefix(prefix).split(".", 1)[0]
+            if symbol not in ACCOUNT_SAFETY_INTERFACE_SYMBOLS:
+                violations.append(f"{_module_name(source)} imports {imported}")
 
     assert violations == []
 

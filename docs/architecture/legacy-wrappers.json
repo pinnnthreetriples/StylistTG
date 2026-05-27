@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T16:14:01Z",
+  "generated_at": "2026-05-27T18:12:58Z",
   "wrappers": [
     {
       "allowed_importers": [
@@ -884,6 +884,21 @@
       ],
       "legacy_path": "app.services.workspace_safety_policy",
       "notes": "Preserves old workspace safety policy service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.workspace_bootstrap",
+      "file": "backend/app/services/workspaces.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.workspaces",
+      "notes": "Preserves old local default workspace bootstrap service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

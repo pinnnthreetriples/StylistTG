@@ -296,6 +296,14 @@ WRAPPERS = (
         notes="Preserves old warmup due-session worker service imports.",
     ),
     WrapperSpec(
+        legacy_path="app.services.workspaces",
+        file="backend/app/services/workspaces.py",
+        canonical_owner="app.workspace_bootstrap",
+        allowed_importers=("tests", "external_compatibility"),
+        forbidden_importers=("backend/app/modules",),
+        notes="Preserves old local default workspace bootstrap service imports.",
+    ),
+    WrapperSpec(
         legacy_path="app.workers.account_update_jobs",
         file="backend/app/workers/account_update_jobs.py",
         canonical_owner="app.modules.account_editing.executor",

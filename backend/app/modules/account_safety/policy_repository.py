@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, WorkspaceSafetyPolicy, new_id, utc_now
 from app.modules.account_safety.policy_rules import WorkspaceSafetyMode, apply_preset_defaults
-from app.services.workspaces import ensure_default_workspace
+from app.workspace_bootstrap import ensure_default_workspace
 
 
 def get_workspace_safety_policy(

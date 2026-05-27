@@ -10,7 +10,7 @@ from app.services.workspace_onboarding import (
 from app.services.workspace_onboarding import (
     resolve_workspace_membership as _resolve_workspace_membership,
 )
-from app.services.workspaces import ensure_default_workspace as _ensure_default_workspace
+from app.workspace_bootstrap import ensure_default_workspace as _ensure_default_workspace
 
 
 def ensure_default_workspace(session: Session) -> tuple[User, Workspace, WorkspaceMember]:

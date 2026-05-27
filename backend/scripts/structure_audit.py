@@ -330,6 +330,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/main.py",
             "backend/app/platform_bootstrap.py",
             "backend/app/tdlib_job.py",
+            "backend/app/workspace_bootstrap.py",
             "backend/app/adapters/**",
             "backend/app/storage/**",
             "backend/app/observability/__init__.py",
@@ -401,7 +402,6 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/__init__.py",
             "backend/app/services/users.py",
             "backend/app/services/workspace_onboarding.py",
-            "backend/app/services/workspaces.py",
         ),
         target_owner="shared platform/infrastructure",
         phase="ongoing",
@@ -1132,9 +1132,34 @@ def _findings(
             status="accepted",
             area="backend-modules",
             finding="Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
-            evidence=f"app.modules.registry imports {', '.join(canonical_modules)}; no unmanaged feature surfaces remain.",
+            evidence=f"app.modules.registry imports {', '.join(canonical_modules)}; no unmanaged feature debt is open.",
             risk="Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
             recommendation="Keep structure audit drift checks required for structural changes.",
+            suggested_phase="ongoing",
+        )
+
+    if summary["unmanaged_feature_surface_count"]:
+        structure_008 = Finding(
+            id="STRUCTURE-008",
+            severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
+            status="open",
+            area="unmanaged-backend-surfaces",
+            finding="Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
+            evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
+            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support; medium for current classified residual debt.",
+            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+            suggested_phase="Phase 0",
+        )
+    else:
+        structure_008 = Finding(
+            id="STRUCTURE-008",
+            severity="info",
+            status="accepted",
+            area="unmanaged-backend-surfaces",
+            finding="Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
+            evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
+            risk="Low while inventory checks keep production files classified.",
+            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
             suggested_phase="ongoing",
         )
 
@@ -1206,17 +1231,7 @@ def _findings(
             recommendation="Keep security docs in sync with GitHub branch protection and workflow policy changes.",
             suggested_phase="ongoing",
         ),
-        Finding(
-            id="STRUCTURE-008",
-            severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
-            status="open",
-            area="unmanaged-backend-surfaces",
-            finding="Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
-            evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
-            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support; medium for current classified residual debt.",
-            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
-            suggested_phase="Phase 0",
-        ),
+        structure_008,
     ]
     if any(boundaries["contracts_forbidden_imports"].values()) or any(
         boundaries["routers_importing_models"].values()
@@ -1320,6 +1335,62 @@ def _status_for_entry(entry: dict[str, Any]) -> str:
     return "GREEN"
 
 
+def _backend_overall_evidence(debt_summary: dict[str, Any]) -> str:
+    high_count = debt_summary["high_risk_unmanaged_feature_surface_count"]
+    medium_count = debt_summary["medium_unmanaged_feature_surface_count"]
+    if high_count or medium_count:
+        return (
+            f"{high_count} high-risk and {medium_count} medium unmanaged feature surfaces remain."
+        )
+    return "No unmanaged feature debt remains."
+
+
+def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
+    if debt_summary["high_risk_unmanaged_feature_surface_count"]:
+        return (
+            "High-risk unmanaged feature surfaces must not be hidden behind overall backend health."
+        )
+    if debt_summary["medium_unmanaged_feature_surface_count"]:
+        return "Architecture audit must not claim overall GREEN while classified medium or high unmanaged domains remain."
+    return "Low while structure audit checks keep feature ownership classified."
+
+
+def _backend_overall_followup(debt_summary: dict[str, Any]) -> str:
+    if debt_summary["high_risk_unmanaged_feature_surface_count"]:
+        return "Migrate or explicitly reclassify high-risk unmanaged feature surfaces."
+    if debt_summary["medium_unmanaged_feature_surface_count"]:
+        return "Keep medium debt visible while Phase 5/6 continue."
+    return "Keep drift checks required for structural changes."
+
+
+def _backend_modules_status(unmanaged_debt: list[dict[str, Any]]) -> str:
+    return "YELLOW" if unmanaged_debt else "GREEN"
+
+
+def _backend_modules_risk(unmanaged_debt: list[dict[str, Any]]) -> str:
+    if unmanaged_debt:
+        return "Canonical ownership exists for migrated modules only."
+    return "Low while registered modules and support surfaces remain classified."
+
+
+def _backend_modules_followup(unmanaged_debt: list[dict[str, Any]]) -> str:
+    if unmanaged_debt:
+        return "Continue with frontend/shared cleanup and account platform debt split."
+    return "Keep module registry and inventory checks in sync."
+
+
+def _unmanaged_debt_risk(unmanaged_debt: list[dict[str, Any]]) -> str:
+    if unmanaged_debt:
+        return "New feature behavior can bypass app.modules unless classified and guarded."
+    return "Low while new backend/app production files fail when unclassified."
+
+
+def _unmanaged_debt_followup(unmanaged_debt: list[dict[str, Any]]) -> str:
+    if unmanaged_debt:
+        return "Keep debt inventory exhaustive and CI-enforced."
+    return "Keep untracked backend/app file checks active."
+
+
 def render_markdown_report(report: dict[str, Any]) -> str:
     debt_entries = report["debt_inventory"]["entries"]
     debt_summary = report["debt_inventory"]["summary"]
@@ -1361,27 +1432,24 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 (
                     "Backend overall",
                     report["backend_overall_status"],
-                    (
-                        f"{debt_summary['high_risk_unmanaged_feature_surface_count']} high-risk and "
-                        f"{debt_summary['medium_unmanaged_feature_surface_count']} medium unmanaged feature surfaces remain."
-                    ),
-                    "Architecture audit must not claim overall GREEN while classified medium or high unmanaged domains remain.",
-                    "Keep medium debt visible while Phase 5/6 continue.",
+                    _backend_overall_evidence(debt_summary),
+                    _backend_overall_risk(debt_summary),
+                    _backend_overall_followup(debt_summary),
                 ),
                 (
                     "Backend modules",
-                    "YELLOW" if unmanaged_debt else "GREEN",
+                    _backend_modules_status(unmanaged_debt),
                     "Registered modules: "
                     + ", ".join(module["name"] for module in modules if module["registered"]),
-                    "Canonical ownership exists for migrated modules only.",
-                    "Continue with frontend/shared cleanup and account platform debt split.",
+                    _backend_modules_risk(unmanaged_debt),
+                    _backend_modules_followup(unmanaged_debt),
                 ),
                 (
                     "Unmanaged feature debt",
                     unmanaged_status,
                     unmanaged_evidence,
-                    "New feature behavior can bypass app.modules unless classified and guarded.",
-                    "Keep debt inventory exhaustive and CI-enforced.",
+                    _unmanaged_debt_risk(unmanaged_debt),
+                    _unmanaged_debt_followup(unmanaged_debt),
                 ),
                 (
                     "Generated artifacts",

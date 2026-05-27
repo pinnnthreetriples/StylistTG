@@ -235,6 +235,14 @@ def test_registered_module_repositories_stay_below_api_layers() -> None:
     assert violations == []
 
 
+def test_account_safety_policy_repository_uses_workspace_bootstrap_boundary() -> None:
+    source = MODULES_ROOT / "account_safety" / "policy_repository.py"
+    imports = _imports(source)
+
+    assert "app.workspace_bootstrap.ensure_default_workspace" in imports
+    assert not any(imported.startswith("app.services.") for imported in imports)
+
+
 def test_registered_module_jobs_and_enqueue_stay_out_of_transport_and_orm_imports() -> None:
     violations: list[tuple[Path, str]] = []
     for source in _declared_layer_files("jobs"):

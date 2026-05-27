@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -8,8 +10,12 @@ from app.models import (
     DEFAULT_LOCAL_USER_ID,
     DEFAULT_LOCAL_WORKSPACE_ID,
     SensitiveAuditEvent,
+    Workspace,
+    WorkspaceMember,
+    WorkspacePlan,
     WorkspaceSafetyPolicy,
 )
+from app import workspace_bootstrap
 from app.services.auth_context import AuthContext, get_current_auth_context
 from app.services.workspace_safety_policy import compute_diff
 from app.services.workspace_safety_policy import get_consecutive_failure_threshold
@@ -47,6 +53,20 @@ def test_get_creates_balanced_default_when_missing(admin_client, db_session) -> 
     row = db_session.query(WorkspaceSafetyPolicy).one()
     assert row.mode == "balanced"
     assert get_consecutive_failure_threshold(row) == 3
+    assert db_session.get(Workspace, DEFAULT_LOCAL_WORKSPACE_ID) is not None
+    assert db_session.get(WorkspacePlan, DEFAULT_LOCAL_WORKSPACE_ID) is not None
+    assert (
+        db_session.query(WorkspaceMember)
+        .filter_by(workspace_id=DEFAULT_LOCAL_WORKSPACE_ID, user_id=DEFAULT_LOCAL_USER_ID)
+        .one_or_none()
+        is not None
+    )
+
+
+def test_legacy_workspace_service_reexports_platform_bootstrap() -> None:
+    legacy_workspace_service = importlib.import_module("app.services.workspaces")
+
+    assert legacy_workspace_service is workspace_bootstrap
 
 
 _CONSERVATIVE_EXPECTED = {

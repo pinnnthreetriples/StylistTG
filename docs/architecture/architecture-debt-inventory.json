@@ -264,6 +264,7 @@
         "backend/app/services/warmup_readiness.py",
         "backend/app/services/warmup_worker.py",
         "backend/app/services/workspace_safety_policy.py",
+        "backend/app/services/workspaces.py",
         "backend/app/workers/account_update_jobs.py",
         "backend/app/workers/warmup_dispatch_jobs.py",
         "backend/app/workers/warmup_jobs.py"
@@ -330,6 +331,7 @@
         "backend/app/services/warmup_p2p.py",
         "backend/app/services/warmup_readiness.py",
         "backend/app/services/warmup_worker.py",
+        "backend/app/services/workspaces.py",
         "backend/app/workers/account_update_jobs.py",
         "backend/app/workers/warmup_dispatch_jobs.py",
         "backend/app/workers/warmup_jobs.py"
@@ -715,7 +717,6 @@
         "backend/app/services/tenant_scope.py",
         "backend/app/services/users.py",
         "backend/app/services/workspace_onboarding.py",
-        "backend/app/services/workspaces.py",
         "backend/app/storage/__init__.py",
         "backend/app/storage/base.py",
         "backend/app/storage/errors.py",
@@ -728,7 +729,8 @@
         "backend/app/tools/live_smoke.py",
         "backend/app/tools/migration_smoke.py",
         "backend/app/tools/reap_stale_jobs.py",
-        "backend/app/tools/tdlib_auth_persistence_spike.py"
+        "backend/app/tools/tdlib_auth_persistence_spike.py",
+        "backend/app/workspace_bootstrap.py"
       ],
       "id": "shared-platform-infrastructure",
       "owner": "platform",
@@ -741,6 +743,7 @@
         "backend/app/main.py",
         "backend/app/platform_bootstrap.py",
         "backend/app/tdlib_job.py",
+        "backend/app/workspace_bootstrap.py",
         "backend/app/adapters/**",
         "backend/app/storage/**",
         "backend/app/observability/__init__.py",
@@ -811,8 +814,7 @@
         "backend/app/services/tenant_scope.py",
         "backend/app/services/__init__.py",
         "backend/app/services/users.py",
-        "backend/app/services/workspace_onboarding.py",
-        "backend/app/services/workspaces.py"
+        "backend/app/services/workspace_onboarding.py"
       ],
       "phase": "ongoing",
       "rationale": "Cross-cutting auth, storage, runtime, audit, notification, tenant, and operator support code is not a bounded feature module by itself.",
@@ -1461,7 +1463,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T16:42:08Z",
+  "generated_at": "2026-05-27T18:13:02Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {

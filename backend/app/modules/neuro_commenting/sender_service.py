@@ -7,7 +7,6 @@ from typing import Any, Protocol
 from sqlalchemy.orm import Session, object_session
 
 from app.config import Settings, settings
-from app.modules.account_safety.contracts import SafetyGateVerdict
 from app.models import (
     NeuroCommentAttempt,
     NeuroCommentCampaign,
@@ -20,6 +19,7 @@ from app.models import (
 )
 from app.modules.account_safety.interfaces import (
     SafetyGateReservation,
+    SafetyGateVerdict,
     evaluate as evaluate_safety_gate,
     release as release_gate_reservation,
     reserve as reserve_gate_slot,

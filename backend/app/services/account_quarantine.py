@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import AccountQuarantine, QUARANTINE_REASONS, WorkspaceSafetyPolicy, new_id, utc_now
 from app.models import Account
 from app.observability.safety_metrics import safety_metrics
-from app.services.workspace_safety_policy import get_workspace_safety_policy
+from app.modules.account_safety.policy import get_workspace_safety_policy
 
 
 class QuarantineNotFound(LookupError):

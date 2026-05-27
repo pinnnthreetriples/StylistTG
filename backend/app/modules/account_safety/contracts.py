@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-from app.contracts.safety import (
-    AccountCapabilityRead,
-    AccountOperationCooldownRead,
-    AccountOperationSafetyRead,
-    AccountRiskRead,
-    AccountSafetyRead,
-    AccountSafetyReasonRead,
-    AccountSafetySummaryRead,
-    AccountValidityCheckRead,
-)
-from app.contracts.safety_gate import (
+from app.modules.account_safety.gate_contracts import (
     ConsecutiveFailureThreshold,
     MinuteOfDay,
     NonNegativeInt,
@@ -24,6 +14,16 @@ from app.contracts.safety_gate import (
     WorkspaceSafetyMode,
     WorkspaceSafetyPolicyRead,
     WorkspaceSafetyPolicyUpdate,
+)
+from app.modules.account_safety.read_contracts import (
+    AccountCapabilityRead,
+    AccountOperationCooldownRead,
+    AccountOperationSafetyRead,
+    AccountRiskRead,
+    AccountSafetyRead,
+    AccountSafetyReasonRead,
+    AccountSafetySummaryRead,
+    AccountValidityCheckRead,
 )
 
 __all__ = [

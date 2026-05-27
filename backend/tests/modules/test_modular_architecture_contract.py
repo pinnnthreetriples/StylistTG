@@ -27,6 +27,7 @@ def test_module_router_paths_are_lazy_strings() -> None:
     router_paths = registry.iter_router_paths()
 
     assert router_paths == (
+        "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
@@ -37,6 +38,7 @@ def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
     routers = list(registry.iter_routers())
     prefixes = {router.prefix for router in routers}
 
+    assert "" in prefixes
     assert "/api/account-update" in prefixes
     assert "/api/warmup" in prefixes
     assert "/api/neuro-commenting" in prefixes

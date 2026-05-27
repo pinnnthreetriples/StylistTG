@@ -40,7 +40,6 @@ from app.api.account_quarantine_routes import router as account_quarantine_route
 from app.api.account_status_routes import router as account_status_router
 from app.api.bought_onboarding_routes import router as bought_onboarding_router
 from app.api.human_behavior_routes import router as human_behavior_router
-from app.api.account_safety_routes import router as account_safety_router
 from app.api.accounts import router as accounts_router
 from app.api.audit import router as audit_router
 from app.api.assets import router as assets_router
@@ -49,7 +48,6 @@ from app.api.diagnostics import router as diagnostics_router
 from app.api.jobs import router as jobs_router
 from app.api.me import router as me_router
 from app.api.operation_logs import router as operation_logs_router
-from app.api.safety_policy import router as safety_policy_router
 from app.api.settings import router as settings_router
 from app.api.story_drafts import router as story_drafts_router
 from app.api.story_capabilities import router as story_capabilities_router
@@ -221,7 +219,8 @@ app.add_exception_handler(
 app.include_router(account_imports_router)
 app.include_router(auth_router)
 app.include_router(auth_batches_router)
-app.include_router(account_safety_router)
+for module_router in iter_routers():
+    app.include_router(module_router)
 app.include_router(account_proxy_router)
 app.include_router(account_ggr_router)
 app.include_router(account_profile_completeness_router)
@@ -242,7 +241,6 @@ app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(me_router)
 app.include_router(operation_logs_router)
-app.include_router(safety_policy_router)
 app.include_router(settings_router)
 app.include_router(story_drafts_router)
 app.include_router(story_capabilities_router)
@@ -251,8 +249,6 @@ app.include_router(telegram_auth_router)
 app.include_router(tdlib_runtime_router)
 app.include_router(workspace_feature_flags_router)
 app.include_router(workers_router)
-for module_router in iter_routers():
-    app.include_router(module_router)
 
 
 _route_methods_cache: list[tuple[Pattern[str], tuple[int, int], set[str]]] | None = None

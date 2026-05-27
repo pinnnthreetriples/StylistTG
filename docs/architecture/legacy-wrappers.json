@@ -6,6 +6,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.accounts_router",
+      "file": "backend/app/api/account_safety_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_safety_routes",
+      "notes": "Preserves legacy account-safety accounts router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_editing.router",
       "file": "backend/app/api/account_update.py",
       "forbidden_importers": [
@@ -36,6 +51,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.policy_router",
+      "file": "backend/app/api/safety_policy.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.safety_policy",
+      "notes": "Preserves legacy workspace safety policy router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.warmup.router",
       "file": "backend/app/api/warmup.py",
       "forbidden_importers": [
@@ -43,6 +73,96 @@
       ],
       "legacy_path": "app.api.warmup",
       "notes": "Preserves legacy router import path for /api/warmup.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.read_contracts",
+      "file": "backend/app/contracts/safety.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.safety",
+      "notes": "Preserves old account safety read contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.gate_contracts",
+      "file": "backend/app/contracts/safety_gate.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.safety_gate",
+      "notes": "Preserves old account safety gate contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.batch_preview",
+      "file": "backend/app/services/account_batch_safety.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_batch_safety",
+      "notes": "Preserves old account batch safety preview service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.read_models",
+      "file": "backend/app/services/account_safety.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_safety",
+      "notes": "Preserves old account safety read model service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.gate",
+      "file": "backend/app/services/account_safety_gate.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_safety_gate",
+      "notes": "Preserves old account safety gate service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.overrides",
+      "file": "backend/app/services/account_safety_overrides.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_safety_overrides",
+      "notes": "Preserves old account safety override service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -577,6 +697,51 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.action_gate",
+      "file": "backend/app/services/risk_gate.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.risk_gate",
+      "notes": "Preserves old account action gate service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.cache",
+      "file": "backend/app/services/safety_gate_cache.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.safety_gate_cache",
+      "notes": "Preserves old account safety gate cache imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.reserve",
+      "file": "backend/app/services/safety_gate_reserve.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.safety_gate_reserve",
+      "notes": "Preserves old account safety gate reservation imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.warmup.service",
       "file": "backend/app/services/warmup.py",
       "forbidden_importers": [
@@ -659,6 +824,21 @@
       ],
       "legacy_path": "app.services.warmup_worker",
       "notes": "Preserves old warmup due-session worker service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.policy",
+      "file": "backend/app/services/workspace_safety_policy.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.workspace_safety_policy",
+      "notes": "Preserves old workspace safety policy service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

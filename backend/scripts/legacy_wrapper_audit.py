@@ -68,6 +68,98 @@ def _neuro_commenting_service_wrapper(
     )
 
 
+_ACCOUNT_SAFETY_WRAPPERS = (
+    (
+        "app.api.account_safety_routes",
+        "backend/app/api/account_safety_routes.py",
+        "app.modules.account_safety.accounts_router",
+        "Preserves legacy account-safety accounts router import path.",
+    ),
+    (
+        "app.api.safety_policy",
+        "backend/app/api/safety_policy.py",
+        "app.modules.account_safety.policy_router",
+        "Preserves legacy workspace safety policy router import path.",
+    ),
+    (
+        "app.contracts.safety",
+        "backend/app/contracts/safety.py",
+        "app.modules.account_safety.read_contracts",
+        "Preserves old account safety read contract imports.",
+    ),
+    (
+        "app.contracts.safety_gate",
+        "backend/app/contracts/safety_gate.py",
+        "app.modules.account_safety.gate_contracts",
+        "Preserves old account safety gate contract imports.",
+    ),
+    (
+        "app.services.account_batch_safety",
+        "backend/app/services/account_batch_safety.py",
+        "app.modules.account_safety.batch_preview",
+        "Preserves old account batch safety preview service imports.",
+    ),
+    (
+        "app.services.account_safety",
+        "backend/app/services/account_safety.py",
+        "app.modules.account_safety.read_models",
+        "Preserves old account safety read model service imports.",
+    ),
+    (
+        "app.services.account_safety_gate",
+        "backend/app/services/account_safety_gate.py",
+        "app.modules.account_safety.gate",
+        "Preserves old account safety gate service imports.",
+    ),
+    (
+        "app.services.account_safety_overrides",
+        "backend/app/services/account_safety_overrides.py",
+        "app.modules.account_safety.overrides",
+        "Preserves old account safety override service imports.",
+    ),
+    (
+        "app.services.risk_gate",
+        "backend/app/services/risk_gate.py",
+        "app.modules.account_safety.action_gate",
+        "Preserves old account action gate service imports.",
+    ),
+    (
+        "app.services.safety_gate_cache",
+        "backend/app/services/safety_gate_cache.py",
+        "app.modules.account_safety.cache",
+        "Preserves old account safety gate cache imports.",
+    ),
+    (
+        "app.services.safety_gate_reserve",
+        "backend/app/services/safety_gate_reserve.py",
+        "app.modules.account_safety.reserve",
+        "Preserves old account safety gate reservation imports.",
+    ),
+    (
+        "app.services.workspace_safety_policy",
+        "backend/app/services/workspace_safety_policy.py",
+        "app.modules.account_safety.policy",
+        "Preserves old workspace safety policy service imports.",
+    ),
+)
+
+
+def _account_safety_wrapper(
+    legacy_path: str,
+    file: str,
+    canonical_owner: str,
+    notes: str,
+) -> WrapperSpec:
+    return WrapperSpec(
+        legacy_path=legacy_path,
+        file=file,
+        canonical_owner=canonical_owner,
+        allowed_importers=("tests", "external_compatibility"),
+        forbidden_importers=("backend/app/modules",),
+        notes=notes,
+    )
+
+
 WRAPPERS = (
     WrapperSpec(
         legacy_path="app.api.account_update",
@@ -85,6 +177,7 @@ WRAPPERS = (
         forbidden_importers=("backend/app/modules",),
         notes="Preserves legacy router import path for /api/neuro-commenting.",
     ),
+    *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_SAFETY_WRAPPERS),
     WrapperSpec(
         legacy_path="app.api.warmup",
         file="backend/app/api/warmup.py",

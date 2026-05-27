@@ -76,6 +76,7 @@ def test_unknown_workflow_type_raises_controlled_error() -> None:
 
 def test_router_paths_are_lazy_module_routes() -> None:
     assert iter_router_paths() == (
+        "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
@@ -83,10 +84,12 @@ def test_router_paths_are_lazy_module_routes() -> None:
 
 
 def test_router_paths_resolve_without_api_wrapper_imports() -> None:
+    safety_router = resolve_router("app.modules.account_safety.router:router")
     account_router = resolve_router("app.modules.account_editing.router:router")
     warmup_router = resolve_router("app.modules.warmup.router:router")
     neuro_router = resolve_router("app.modules.neuro_commenting.router:router")
 
+    assert safety_router.prefix == ""
     assert account_router.prefix == "/api/account-update"
     assert warmup_router.prefix == "/api/warmup"
     assert neuro_router.prefix == "/api/neuro-commenting"

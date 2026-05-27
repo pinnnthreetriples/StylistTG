@@ -7,13 +7,42 @@ from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from app.modules.account_safety import accounts_router as accounts_router
+    from app.modules.account_safety import action_gate as action_gate
+    from app.modules.account_safety import batch_preview as batch_preview
+    from app.modules.account_safety import cache as cache
     from app.modules.account_safety import contracts as contracts
+    from app.modules.account_safety import gate as gate
+    from app.modules.account_safety import gate_contracts as gate_contracts
+    from app.modules.account_safety import overrides as overrides
+    from app.modules.account_safety import policy as policy
+    from app.modules.account_safety import policy_router as policy_router
+    from app.modules.account_safety import read_contracts as read_contracts
+    from app.modules.account_safety import read_models as read_models
+    from app.modules.account_safety import reserve as reserve
     from app.modules.account_safety import service as service
     from app.modules.contracts import FeatureModule
 
     module: FeatureModule
 
-_LAZY_SUBMODULES = frozenset({"contracts", "service"})
+_LAZY_SUBMODULES = frozenset(
+    {
+        "accounts_router",
+        "action_gate",
+        "batch_preview",
+        "cache",
+        "contracts",
+        "gate",
+        "gate_contracts",
+        "overrides",
+        "policy",
+        "policy_router",
+        "read_contracts",
+        "read_models",
+        "reserve",
+        "service",
+    }
+)
 _LAZY_FEATURE_EXPORTS = frozenset({"module"})
 
 __all__ = [

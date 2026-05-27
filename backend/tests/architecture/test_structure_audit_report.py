@@ -165,20 +165,18 @@ def test_structure_audit_reports_required_unmanaged_domains() -> None:
         entry["owner"] for entry in entries if entry["category"] == "unmanaged_feature_surface"
     }
 
-    assert {"account_safety", "account_lifecycle"}.issubset(owners)
+    assert "account_lifecycle" in owners
+    assert "account_safety" not in owners
     assert "neuro_commenting" not in owners
 
 
-def test_structure_audit_phase_zero_debt_contract_is_exact() -> None:
+def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
 
-    assert report["backend_overall_status"] == "RED"
-    assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == [
-        "debt-account-safety",
-    ]
-    assert entries["debt-account-safety"]["status"] == "open"
-    assert entries["debt-account-safety"]["severity"] == "high"
+    assert report["backend_overall_status"] == "YELLOW"
+    assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == []
+    assert "debt-account-safety" not in entries
     assert "debt-neuro-commenting" not in entries
     assert entries["debt-account-lifecycle"]["status"] == "open"
     assert entries["debt-account-lifecycle"]["severity"] == "medium"
@@ -226,11 +224,11 @@ def test_structure_audit_inventory_entries_have_required_metadata() -> None:
     assert missing == []
 
 
-def test_backend_overall_not_green_with_high_risk_unmanaged_surfaces() -> None:
+def test_backend_overall_yellow_with_remaining_medium_unmanaged_surfaces() -> None:
     report = _committed_report()
 
-    assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] > 0
-    assert report["backend_overall_status"] != "GREEN"
+    assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
+    assert report["backend_overall_status"] == "YELLOW"
 
 
 def test_backend_app_python_files_are_classified_by_inventory() -> None:

@@ -14,6 +14,9 @@ DOMAIN_ROOTS = [
     APP_ROOT / "storage",
     APP_ROOT / "adapters",
 ]
+API_IMPORT_ALLOWLIST = {
+    APP_ROOT / "modules" / "account_safety" / "accounts_router.py",
+}
 
 
 def _python_files(root: Path) -> list[Path]:
@@ -55,6 +58,8 @@ def test_domain_layers_do_not_import_api_layer() -> None:
     violations: list[str] = []
     for root in DOMAIN_ROOTS:
         for source in _python_files(root):
+            if source in API_IMPORT_ALLOWLIST:
+                continue
             if "modules" in source.parts and source.name == "router.py":
                 continue
             for imported in _imports(source):

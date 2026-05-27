@@ -113,13 +113,13 @@ class TdlibReadOnlyValidityAdapter:
                 "error_code": "tdlib_readonly_timeout",
                 "error_class": "timeout",
             }
-        except Exception as exc:
+        except Exception:
             return {
                 "status": "runtime_broken",
                 "runtime_health": "broken",
                 "error_code": "tdlib_readonly_runtime_broken",
-                "error_class": exc.__class__.__name__,
-                "error": str(exc),
+                "error_class": "runtime",
+                "error": "internal_error",
             }
         finally:
             if client is not None:

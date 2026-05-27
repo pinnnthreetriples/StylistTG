@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.contracts.accounts import ProfileAudioAction, ProfilePreviewRead
 from app.contracts.jobs import JobSummaryRead
-from app.contracts.safety import (
+from app.modules.account_safety.contracts import (
     AccountOperationCooldownRead,
     AccountOperationSafetyRead,
     AccountRiskRead,

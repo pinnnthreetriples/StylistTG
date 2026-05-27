@@ -32,8 +32,21 @@
       "category": "canonical_feature_module",
       "existing_paths": [
         "backend/app/modules/account_safety/__init__.py",
+        "backend/app/modules/account_safety/accounts_router.py",
+        "backend/app/modules/account_safety/action_gate.py",
+        "backend/app/modules/account_safety/batch_preview.py",
+        "backend/app/modules/account_safety/cache.py",
         "backend/app/modules/account_safety/contracts.py",
+        "backend/app/modules/account_safety/gate.py",
+        "backend/app/modules/account_safety/gate_contracts.py",
         "backend/app/modules/account_safety/module.py",
+        "backend/app/modules/account_safety/overrides.py",
+        "backend/app/modules/account_safety/policy.py",
+        "backend/app/modules/account_safety/policy_router.py",
+        "backend/app/modules/account_safety/read_contracts.py",
+        "backend/app/modules/account_safety/read_models.py",
+        "backend/app/modules/account_safety/reserve.py",
+        "backend/app/modules/account_safety/router.py",
         "backend/app/modules/account_safety/service.py"
       ],
       "id": "canonical-account-safety",
@@ -41,8 +54,8 @@
       "paths": [
         "backend/app/modules/account_safety/**"
       ],
-      "phase": "Phase 3A",
-      "rationale": "Account-safety public contracts and service facade are canonical; legacy implementation paths remain tracked debt until behavior moves behind this boundary.",
+      "phase": "Phase 3B",
+      "rationale": "Account-safety routers, read models, gate/cache/reserve/override/policy services, and contracts are canonical; old API/service/contract paths are compatibility wrappers.",
       "removal_condition": "n/a",
       "severity": "info",
       "status": "accepted",
@@ -166,9 +179,17 @@
     {
       "category": "compatibility_wrapper",
       "existing_paths": [
+        "backend/app/api/account_safety_routes.py",
         "backend/app/api/account_update.py",
         "backend/app/api/neuro_commenting.py",
+        "backend/app/api/safety_policy.py",
         "backend/app/api/warmup.py",
+        "backend/app/contracts/safety.py",
+        "backend/app/contracts/safety_gate.py",
+        "backend/app/services/account_batch_safety.py",
+        "backend/app/services/account_safety.py",
+        "backend/app/services/account_safety_gate.py",
+        "backend/app/services/account_safety_overrides.py",
         "backend/app/services/account_update_jobs.py",
         "backend/app/services/account_update_plan.py",
         "backend/app/services/auth_context.py",
@@ -204,12 +225,16 @@
         "backend/app/services/neuro_commenting/tdlib_helpers.py",
         "backend/app/services/neuro_commenting/tdlib_observer.py",
         "backend/app/services/neuro_commenting/tdlib_runtime.py",
+        "backend/app/services/risk_gate.py",
+        "backend/app/services/safety_gate_cache.py",
+        "backend/app/services/safety_gate_reserve.py",
         "backend/app/services/warmup.py",
         "backend/app/services/warmup_dispatch.py",
         "backend/app/services/warmup_isolation.py",
         "backend/app/services/warmup_p2p.py",
         "backend/app/services/warmup_readiness.py",
         "backend/app/services/warmup_worker.py",
+        "backend/app/services/workspace_safety_policy.py",
         "backend/app/workers/account_update_jobs.py",
         "backend/app/workers/warmup_dispatch_jobs.py",
         "backend/app/workers/warmup_jobs.py"
@@ -219,6 +244,18 @@
       "paths": [
         "backend/app/api/account_update.py",
         "backend/app/api/neuro_commenting.py",
+        "backend/app/api/account_safety_routes.py",
+        "backend/app/api/safety_policy.py",
+        "backend/app/contracts/safety.py",
+        "backend/app/contracts/safety_gate.py",
+        "backend/app/services/account_batch_safety.py",
+        "backend/app/services/account_safety.py",
+        "backend/app/services/account_safety_gate.py",
+        "backend/app/services/account_safety_overrides.py",
+        "backend/app/services/risk_gate.py",
+        "backend/app/services/safety_gate_cache.py",
+        "backend/app/services/safety_gate_reserve.py",
+        "backend/app/services/workspace_safety_policy.py",
         "backend/app/api/warmup.py",
         "backend/app/services/account_update_jobs.py",
         "backend/app/services/account_update_plan.py",
@@ -381,47 +418,6 @@
       "severity": "medium",
       "status": "open",
       "target_owner": "app.modules.account_lifecycle"
-    },
-    {
-      "category": "unmanaged_feature_surface",
-      "existing_paths": [
-        "backend/app/api/account_safety_routes.py",
-        "backend/app/api/safety_policy.py",
-        "backend/app/contracts/safety.py",
-        "backend/app/contracts/safety_gate.py",
-        "backend/app/observability/safety_metrics.py",
-        "backend/app/services/account_batch_safety.py",
-        "backend/app/services/account_safety.py",
-        "backend/app/services/account_safety_gate.py",
-        "backend/app/services/account_safety_overrides.py",
-        "backend/app/services/risk_gate.py",
-        "backend/app/services/safety_gate_cache.py",
-        "backend/app/services/safety_gate_reserve.py",
-        "backend/app/services/workspace_safety_policy.py"
-      ],
-      "id": "debt-account-safety",
-      "owner": "account_safety",
-      "paths": [
-        "backend/app/api/account_safety_routes.py",
-        "backend/app/api/safety_policy.py",
-        "backend/app/services/account_batch_safety.py",
-        "backend/app/services/account_safety.py",
-        "backend/app/services/account_safety_gate.py",
-        "backend/app/services/account_safety_overrides.py",
-        "backend/app/services/risk_gate.py",
-        "backend/app/services/safety_gate_cache.py",
-        "backend/app/services/safety_gate_reserve.py",
-        "backend/app/services/workspace_safety_policy.py",
-        "backend/app/contracts/safety.py",
-        "backend/app/contracts/safety_gate.py",
-        "backend/app/observability/safety_metrics.py"
-      ],
-      "phase": "Phase 3",
-      "rationale": "Account-safety now has a public module boundary, but legacy API, service, contract, and metrics implementation paths still carry behavior outside the canonical module.",
-      "removal_condition": "Account safety routers, read models, gate/cache/reserve/override/policy services, and shared contracts are module-owned or compatibility wrappers only.",
-      "severity": "high",
-      "status": "open",
-      "target_owner": "app.modules.account_safety"
     },
     {
       "category": "unmanaged_feature_surface",
@@ -635,6 +631,7 @@
         "backend/app/logging_utils.py",
         "backend/app/main.py",
         "backend/app/observability/__init__.py",
+        "backend/app/observability/safety_metrics.py",
         "backend/app/observability/sentry.py",
         "backend/app/platform_bootstrap.py",
         "backend/app/scripts/__init__.py",
@@ -736,6 +733,7 @@
         "backend/app/adapters/**",
         "backend/app/storage/**",
         "backend/app/observability/__init__.py",
+        "backend/app/observability/safety_metrics.py",
         "backend/app/observability/sentry.py",
         "backend/app/scripts/**",
         "backend/app/tools/**",
@@ -1451,7 +1449,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-27T07:59:04Z",
+  "generated_at": "2026-05-27T09:09:45Z",
   "overlapping_backend_app_python_files": {},
   "schema_version": 2,
   "scope": {
@@ -1467,12 +1465,10 @@
     ]
   },
   "summary": {
-    "high_risk_unmanaged_feature_surface_count": 1,
-    "high_risk_unmanaged_feature_surfaces": [
-      "debt-account-safety"
-    ],
-    "open_count": 7,
-    "unmanaged_feature_surface_count": 6
+    "high_risk_unmanaged_feature_surface_count": 0,
+    "high_risk_unmanaged_feature_surfaces": [],
+    "open_count": 6,
+    "unmanaged_feature_surface_count": 5
   },
   "untracked_backend_app_python_files": []
 }

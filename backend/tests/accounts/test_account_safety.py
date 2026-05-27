@@ -494,7 +494,8 @@ def test_account_validity_tdlib_readonly_adapter_create_failure_is_structured() 
 
     assert result["status"] == "runtime_broken"
     assert result["error_code"] == "tdlib_readonly_runtime_broken"
-    assert result["error"] == "tdjson unavailable"
+    assert result["error_class"] == "runtime"
+    assert result["error"] == "internal_error"
 
 
 @freeze_time("2026-01-15 12:00:00")

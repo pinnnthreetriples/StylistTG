@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import AccountSafetyOverride, utc_now
+from app.services.account_cooldowns import OPERATION_KEYS
+from app.services.accounts import get_account
+from app.services.operation_logs import log_operation
+
+NON_OVERRIDABLE_BLOCKERS = {
+    "SESSION_REVOKED",
+    "AUTH_KEY_UNREGISTERED",
+    "PHONE_NUMBER_BANNED",
+    "missing_tdlib_credentials",
+    "runtime_broken",
+    "reauth_required",
+}
+OVERRIDE_TTL_MINUTES = 30
+
+
+def create_safety_override(
+    session: Session,
+    account_id: str,
+    *,
+    workspace_id: str,
+    operation: str,
+    reason: str,
+    requested_blockers: list[str],
+) -> dict[str, Any]:
+    if get_account(session, account_id, workspace_id=workspace_id) is None:
+        raise ValueError("account not found")
+    if operation not in OPERATION_KEYS:
+        raise ValueError("unsupported safety operation")
+    if not reason.strip():
+        raise ValueError("override reason is required")
+    blockers = sorted(set(requested_blockers))
+    non_overridable = [code for code in blockers if code in NON_OVERRIDABLE_BLOCKERS]
+    if non_overridable:
+        raise ValueError(f"non-overridable blocker: {non_overridable[0]}")
+    now = utc_now()
+    row = AccountSafetyOverride(
+        workspace_id=workspace_id,
+        account_id=account_id,
+        operation=operation,
+        reason=reason.strip(),
+        requested_blockers_json=blockers,
+        allowed_until=now + timedelta(minutes=OVERRIDE_TTL_MINUTES),
+        created_at=now,
+    )
+    session.add(row)
+    log_operation(
+        session,
+        account_id=account_id,
+        operation_type="safety_override",
+        operation_key=operation,
+        status="completed",
+        severity="warning",
+        source="account_safety",
+        message="Manual safety review saved",
+        workspace_id=workspace_id,
+        metadata={"requested_blockers": blockers},
+    )
+    session.commit()
+    session.refresh(row)
+    return safety_override_to_dict(row)
+
+
+def active_overrides_by_operation(
+    session: Session,
+    account_id: str,
+    *,
+    workspace_id: str,
+    now: datetime | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    now = now or utc_now()
+    rows = (
+        session.execute(
+            select(AccountSafetyOverride)
+            .where(AccountSafetyOverride.workspace_id == workspace_id)
+            .where(AccountSafetyOverride.account_id == account_id)
+            .where(AccountSafetyOverride.allowed_until > now)
+            .order_by(AccountSafetyOverride.created_at.desc())
+        )
+        .scalars()
+        .all()
+    )
+    result: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        result.setdefault(row.operation, []).append(safety_override_to_dict(row))
+    return result
+
+
+def batch_active_overrides_by_operation(
+    session: Session,
+    account_ids: list[str],
+    *,
+    workspace_id: str,
+    now: datetime | None = None,
+) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    """Return {account_id: {operation: [overrides]}} for all accounts in one query."""
+    now = now or utc_now()
+    if not account_ids:
+        return {}
+    rows = (
+        session.execute(
+            select(AccountSafetyOverride)
+            .where(AccountSafetyOverride.workspace_id == workspace_id)
+            .where(AccountSafetyOverride.account_id.in_(account_ids))
+            .where(AccountSafetyOverride.allowed_until > now)
+            .order_by(AccountSafetyOverride.created_at.desc())
+        )
+        .scalars()
+        .all()
+    )
+    result: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for row in rows:
+        per_account = result.setdefault(row.account_id, {})
+        per_account.setdefault(row.operation, []).append(safety_override_to_dict(row))
+    return result
+
+
+def safety_override_to_dict(row: AccountSafetyOverride) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "account_id": row.account_id,
+        "operation": row.operation,
+        "reason": row.reason,
+        "requested_blockers": row.requested_blockers_json,
+        "allowed_until": row.allowed_until,
+        "created_at": row.created_at,
+    }

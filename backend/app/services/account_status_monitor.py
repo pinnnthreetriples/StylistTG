@@ -23,7 +23,7 @@ from app.models import (
 from app.modules.warmup.events import write_warmup_event
 from app.observability.safety_metrics import safety_metrics
 from app.services.account_quarantine import AccountQuarantineService, get_active_quarantine
-from app.services.workspace_safety_policy import (
+from app.modules.account_safety.policy import (
     get_consecutive_failure_threshold,
     get_workspace_safety_policy,
 )

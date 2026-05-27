@@ -60,7 +60,7 @@ def test_account_editing_contracts_use_shared_contracts_instead_of_app_schemas()
     assert "app.schemas" not in imports
     assert "app.contracts.accounts" in imports
     assert "app.contracts.jobs" in imports
-    assert "app.contracts.safety" in imports
+    assert "app.modules.account_safety.contracts" in imports
 
 
 def test_warmup_contracts_do_not_depend_on_app_schemas() -> None:

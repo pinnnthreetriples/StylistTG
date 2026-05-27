@@ -1,39 +1,25 @@
 from __future__ import annotations
 
-from app.services.account_batch_safety import build_account_batch_safety_preview
-from app.services.account_safety import (
-    build_account_safety,
-    build_account_safety_for_account,
-    build_account_safety_summary,
-    safety_preview_fields,
-    safety_preview_fields_with_policy,
-    summarize_account_safety,
-    unique_preserve_order,
-)
-from app.services.account_safety_gate import (
-    AccountSafetyGate,
-    AccountSafetyGateAccountNotFound,
-    evaluate,
-)
-from app.services.account_safety_overrides import (
-    active_overrides_by_operation,
-    batch_active_overrides_by_operation,
-    create_safety_override,
-    safety_override_to_dict,
-)
-from app.services.risk_gate import ACTION_TYPES, evaluate_action_gate
-from app.services.safety_gate_cache import (
+from app.modules.account_safety.action_gate import ACTION_TYPES, evaluate_action_gate
+from app.modules.account_safety.batch_preview import build_account_batch_safety_preview
+from app.modules.account_safety.cache import (
     InMemorySafetyGateCache,
     NullSafetyGateCache,
     RedisSafetyGateCache,
     SafetyGateCache,
 )
-from app.services.safety_gate_reserve import (
-    SafetyGateReservation,
-    release,
-    reserve,
+from app.modules.account_safety.gate import (
+    AccountSafetyGate,
+    AccountSafetyGateAccountNotFound,
+    evaluate,
 )
-from app.services.workspace_safety_policy import (
+from app.modules.account_safety.overrides import (
+    active_overrides_by_operation,
+    batch_active_overrides_by_operation,
+    create_safety_override,
+    safety_override_to_dict,
+)
+from app.modules.account_safety.policy import (
     DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD,
     PUBLIC_POLICY_FIELDS,
     WorkspaceSafetyPolicyDefaults,
@@ -45,6 +31,20 @@ from app.services.workspace_safety_policy import (
     get_workspace_safety_policy,
     policy_public_snapshot,
     update_workspace_safety_policy,
+)
+from app.modules.account_safety.read_models import (
+    build_account_safety,
+    build_account_safety_for_account,
+    build_account_safety_summary,
+    safety_preview_fields,
+    safety_preview_fields_with_policy,
+    summarize_account_safety,
+    unique_preserve_order,
+)
+from app.modules.account_safety.reserve import (
+    SafetyGateReservation,
+    release,
+    reserve,
 )
 
 __all__ = [

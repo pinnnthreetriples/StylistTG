@@ -16,7 +16,7 @@ from app.models import (
 )
 from app.services.accounts import get_account
 from app.services.account_cooldowns import ensure_cooldowns_from_recent_failures
-from app.services.account_safety import build_account_safety, summarize_account_safety
+from app.modules.account_safety.read_models import build_account_safety, summarize_account_safety
 from app.services.operation_logs import log_operation
 
 

@@ -164,7 +164,7 @@
       "test_count": 9
     }
   ],
-  "backend_overall_status": "RED",
+  "backend_overall_status": "YELLOW",
   "boundaries": {
     "contracts_forbidden_imports": {
       "backend/app/contracts/__init__.py": [],
@@ -191,7 +191,10 @@
       "backend/app/modules/warmup/contracts.py": [],
       "backend/app/schemas.py": []
     },
-    "fastapi_outside_router_or_auth_dependencies": [],
+    "fastapi_outside_router_or_auth_dependencies": [
+      "backend/app/modules/account_safety/accounts_router.py",
+      "backend/app/modules/account_safety/policy_router.py"
+    ],
     "policies_forbidden_imports": {
       "backend/app/modules/account_editing/policies.py": [],
       "backend/app/modules/auth/policies.py": [],
@@ -206,6 +209,7 @@
     },
     "routers_importing_models": {
       "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/account_safety/router.py": [],
       "backend/app/modules/neuro_commenting/router.py": [],
       "backend/app/modules/warmup/router.py": []
     }
@@ -244,8 +248,21 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/account_safety/__init__.py",
+          "backend/app/modules/account_safety/accounts_router.py",
+          "backend/app/modules/account_safety/action_gate.py",
+          "backend/app/modules/account_safety/batch_preview.py",
+          "backend/app/modules/account_safety/cache.py",
           "backend/app/modules/account_safety/contracts.py",
+          "backend/app/modules/account_safety/gate.py",
+          "backend/app/modules/account_safety/gate_contracts.py",
           "backend/app/modules/account_safety/module.py",
+          "backend/app/modules/account_safety/overrides.py",
+          "backend/app/modules/account_safety/policy.py",
+          "backend/app/modules/account_safety/policy_router.py",
+          "backend/app/modules/account_safety/read_contracts.py",
+          "backend/app/modules/account_safety/read_models.py",
+          "backend/app/modules/account_safety/reserve.py",
+          "backend/app/modules/account_safety/router.py",
           "backend/app/modules/account_safety/service.py"
         ],
         "id": "canonical-account-safety",
@@ -253,8 +270,8 @@
         "paths": [
           "backend/app/modules/account_safety/**"
         ],
-        "phase": "Phase 3A",
-        "rationale": "Account-safety public contracts and service facade are canonical; legacy implementation paths remain tracked debt until behavior moves behind this boundary.",
+        "phase": "Phase 3B",
+        "rationale": "Account-safety routers, read models, gate/cache/reserve/override/policy services, and contracts are canonical; old API/service/contract paths are compatibility wrappers.",
         "removal_condition": "n/a",
         "severity": "info",
         "status": "accepted",
@@ -378,9 +395,17 @@
       {
         "category": "compatibility_wrapper",
         "existing_paths": [
+          "backend/app/api/account_safety_routes.py",
           "backend/app/api/account_update.py",
           "backend/app/api/neuro_commenting.py",
+          "backend/app/api/safety_policy.py",
           "backend/app/api/warmup.py",
+          "backend/app/contracts/safety.py",
+          "backend/app/contracts/safety_gate.py",
+          "backend/app/services/account_batch_safety.py",
+          "backend/app/services/account_safety.py",
+          "backend/app/services/account_safety_gate.py",
+          "backend/app/services/account_safety_overrides.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
           "backend/app/services/auth_context.py",
@@ -416,12 +441,16 @@
           "backend/app/services/neuro_commenting/tdlib_helpers.py",
           "backend/app/services/neuro_commenting/tdlib_observer.py",
           "backend/app/services/neuro_commenting/tdlib_runtime.py",
+          "backend/app/services/risk_gate.py",
+          "backend/app/services/safety_gate_cache.py",
+          "backend/app/services/safety_gate_reserve.py",
           "backend/app/services/warmup.py",
           "backend/app/services/warmup_dispatch.py",
           "backend/app/services/warmup_isolation.py",
           "backend/app/services/warmup_p2p.py",
           "backend/app/services/warmup_readiness.py",
           "backend/app/services/warmup_worker.py",
+          "backend/app/services/workspace_safety_policy.py",
           "backend/app/workers/account_update_jobs.py",
           "backend/app/workers/warmup_dispatch_jobs.py",
           "backend/app/workers/warmup_jobs.py"
@@ -431,6 +460,18 @@
         "paths": [
           "backend/app/api/account_update.py",
           "backend/app/api/neuro_commenting.py",
+          "backend/app/api/account_safety_routes.py",
+          "backend/app/api/safety_policy.py",
+          "backend/app/contracts/safety.py",
+          "backend/app/contracts/safety_gate.py",
+          "backend/app/services/account_batch_safety.py",
+          "backend/app/services/account_safety.py",
+          "backend/app/services/account_safety_gate.py",
+          "backend/app/services/account_safety_overrides.py",
+          "backend/app/services/risk_gate.py",
+          "backend/app/services/safety_gate_cache.py",
+          "backend/app/services/safety_gate_reserve.py",
+          "backend/app/services/workspace_safety_policy.py",
           "backend/app/api/warmup.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
@@ -593,47 +634,6 @@
         "severity": "medium",
         "status": "open",
         "target_owner": "app.modules.account_lifecycle"
-      },
-      {
-        "category": "unmanaged_feature_surface",
-        "existing_paths": [
-          "backend/app/api/account_safety_routes.py",
-          "backend/app/api/safety_policy.py",
-          "backend/app/contracts/safety.py",
-          "backend/app/contracts/safety_gate.py",
-          "backend/app/observability/safety_metrics.py",
-          "backend/app/services/account_batch_safety.py",
-          "backend/app/services/account_safety.py",
-          "backend/app/services/account_safety_gate.py",
-          "backend/app/services/account_safety_overrides.py",
-          "backend/app/services/risk_gate.py",
-          "backend/app/services/safety_gate_cache.py",
-          "backend/app/services/safety_gate_reserve.py",
-          "backend/app/services/workspace_safety_policy.py"
-        ],
-        "id": "debt-account-safety",
-        "owner": "account_safety",
-        "paths": [
-          "backend/app/api/account_safety_routes.py",
-          "backend/app/api/safety_policy.py",
-          "backend/app/services/account_batch_safety.py",
-          "backend/app/services/account_safety.py",
-          "backend/app/services/account_safety_gate.py",
-          "backend/app/services/account_safety_overrides.py",
-          "backend/app/services/risk_gate.py",
-          "backend/app/services/safety_gate_cache.py",
-          "backend/app/services/safety_gate_reserve.py",
-          "backend/app/services/workspace_safety_policy.py",
-          "backend/app/contracts/safety.py",
-          "backend/app/contracts/safety_gate.py",
-          "backend/app/observability/safety_metrics.py"
-        ],
-        "phase": "Phase 3",
-        "rationale": "Account-safety now has a public module boundary, but legacy API, service, contract, and metrics implementation paths still carry behavior outside the canonical module.",
-        "removal_condition": "Account safety routers, read models, gate/cache/reserve/override/policy services, and shared contracts are module-owned or compatibility wrappers only.",
-        "severity": "high",
-        "status": "open",
-        "target_owner": "app.modules.account_safety"
       },
       {
         "category": "unmanaged_feature_surface",
@@ -847,6 +847,7 @@
           "backend/app/logging_utils.py",
           "backend/app/main.py",
           "backend/app/observability/__init__.py",
+          "backend/app/observability/safety_metrics.py",
           "backend/app/observability/sentry.py",
           "backend/app/platform_bootstrap.py",
           "backend/app/scripts/__init__.py",
@@ -948,6 +949,7 @@
           "backend/app/adapters/**",
           "backend/app/storage/**",
           "backend/app/observability/__init__.py",
+          "backend/app/observability/safety_metrics.py",
           "backend/app/observability/sentry.py",
           "backend/app/scripts/**",
           "backend/app/tools/**",
@@ -1663,7 +1665,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-27T07:59:04Z",
+    "generated_at": "2026-05-27T09:09:45Z",
     "overlapping_backend_app_python_files": {},
     "schema_version": 2,
     "scope": {
@@ -1679,19 +1681,17 @@
       ]
     },
     "summary": {
-      "high_risk_unmanaged_feature_surface_count": 1,
-      "high_risk_unmanaged_feature_surfaces": [
-        "debt-account-safety"
-      ],
-      "open_count": 7,
-      "unmanaged_feature_surface_count": 6
+      "high_risk_unmanaged_feature_surface_count": 0,
+      "high_risk_unmanaged_feature_surfaces": [],
+      "open_count": 6,
+      "unmanaged_feature_surface_count": 5
     },
     "untracked_backend_app_python_files": []
   },
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_editing, account_safety, auth, neuro_commenting, warmup; open unmanaged feature surfaces: debt-account-safety.",
+      "evidence": "app.modules.registry imports account_editing, account_safety, auth, neuro_commenting, warmup; open unmanaged feature surfaces: .",
       "finding": "Backend has canonical modules, but high-risk feature ownership still exists outside app.modules.",
       "id": "STRUCTURE-001",
       "recommendation": "Complete Phase 0 guard, then migrate neuro_commenting, account_safety, and account_lifecycle in separate PRs.",
@@ -1768,7 +1768,7 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 1, \"high_risk_unmanaged_feature_surfaces\": [\"debt-account-safety\"], \"open_count\": 7, \"unmanaged_feature_surface_count\": 6}",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"open_count\": 6, \"unmanaged_feature_surface_count\": 5}",
       "finding": "Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
       "id": "STRUCTURE-008",
       "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
@@ -1914,7 +1914,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-27T07:59:04Z",
+  "generated_at": "2026-05-27T09:09:45Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -1937,6 +1937,138 @@
       "import_path": "app.api.neuro_commenting",
       "module_import_references": [],
       "path": "backend/app/api/neuro_commenting.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.accounts_router.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_safety_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_safety_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.policy_router.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.safety_policy",
+      "module_import_references": [],
+      "path": "backend/app/api/safety_policy.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.read_contracts.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.safety",
+      "module_import_references": [],
+      "path": "backend/app/contracts/safety.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.gate_contracts.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.safety_gate",
+      "module_import_references": [],
+      "path": "backend/app/contracts/safety_gate.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.batch_preview.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_batch_safety",
+      "module_import_references": [],
+      "path": "backend/app/services/account_batch_safety.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.read_models.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_safety",
+      "module_import_references": [],
+      "path": "backend/app/services/account_safety.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.gate.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_safety_gate",
+      "module_import_references": [],
+      "path": "backend/app/services/account_safety_gate.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.overrides.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_safety_overrides",
+      "module_import_references": [],
+      "path": "backend/app/services/account_safety_overrides.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.action_gate.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.risk_gate",
+      "module_import_references": [],
+      "path": "backend/app/services/risk_gate.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.cache.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.safety_gate_cache",
+      "module_import_references": [],
+      "path": "backend/app/services/safety_gate_cache.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.reserve.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.safety_gate_reserve",
+      "module_import_references": [],
+      "path": "backend/app/services/safety_gate_reserve.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_safety.policy.",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": true,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.workspace_safety_policy",
+      "module_import_references": [],
+      "path": "backend/app/services/workspace_safety_policy.py"
     },
     {
       "canonical_owner": "app.modules.warmup.router",
@@ -2513,8 +2645,21 @@
       "documentation_only": false,
       "files": [
         "backend/app/modules/account_safety/__init__.py",
+        "backend/app/modules/account_safety/accounts_router.py",
+        "backend/app/modules/account_safety/action_gate.py",
+        "backend/app/modules/account_safety/batch_preview.py",
+        "backend/app/modules/account_safety/cache.py",
         "backend/app/modules/account_safety/contracts.py",
+        "backend/app/modules/account_safety/gate.py",
+        "backend/app/modules/account_safety/gate_contracts.py",
         "backend/app/modules/account_safety/module.py",
+        "backend/app/modules/account_safety/overrides.py",
+        "backend/app/modules/account_safety/policy.py",
+        "backend/app/modules/account_safety/policy_router.py",
+        "backend/app/modules/account_safety/read_contracts.py",
+        "backend/app/modules/account_safety/read_models.py",
+        "backend/app/modules/account_safety/reserve.py",
+        "backend/app/modules/account_safety/router.py",
         "backend/app/modules/account_safety/service.py"
       ],
       "has_contracts": true,
@@ -2525,11 +2670,11 @@
       "has_jobs": false,
       "has_policies": false,
       "has_repository": false,
-      "has_router": false,
+      "has_router": true,
       "has_service_facade": true,
       "name": "account_safety",
       "registered": true,
-      "router_path": null,
+      "router_path": "app.modules.account_safety.router:router",
       "template_files_are_non_runtime": null,
       "tests_present": false,
       "workflows": []
@@ -2796,7 +2941,6 @@
     }
   ],
   "recommended_next_phases": [
-    "Phase 3B - move account_safety routers/services behind the public boundary",
     "Phase 4 - account_lifecycle module",
     "Phase 5 - frontend/shared/deep-import cleanup"
   ],
@@ -3120,25 +3264,21 @@
     },
     {
       "forbidden_imports": [],
-      "has_explicit_all": true,
+      "has_explicit_all": false,
       "imports": [
         "__future__",
-        "datetime",
-        "pydantic",
-        "typing"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/safety.py"
     },
     {
       "forbidden_imports": [],
-      "has_explicit_all": true,
+      "has_explicit_all": false,
       "imports": [
         "__future__",
-        "datetime",
-        "pydantic",
-        "pydantic.json_schema",
-        "typing",
-        "uuid"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/safety_gate.py"
     },

@@ -13,13 +13,17 @@ The machine-readable source is `docs/architecture/legacy-wrappers.json`, validat
 | Legacy area | Current stage | Canonical owners |
 | --- | --- | --- |
 | Account update API/service/worker wrappers | Stage 0 compatibility active | `app.modules.account_editing.router`, `service`, `planner`, `executor` |
+| Account safety API/service/contract wrappers | Stage 0 compatibility active | `app.modules.account_safety.router`, `accounts_router`, `policy_router`, `read_models`, `batch_preview`, `gate`, `cache`, `reserve`, `overrides`, `policy`, `action_gate`, `read_contracts`, `gate_contracts` |
 | Auth context wrapper | Stage 0 compatibility active | `app.modules.auth.dependencies / context` |
+| Neuro-commenting API/service wrappers | Stage 0 compatibility active | `app.modules.neuro_commenting.router` and service implementation modules |
 | Warmup API/service/worker wrappers | Stage 0 compatibility active | `app.modules.warmup.router`, `service`, `dispatcher`, `isolation`, `readiness`, `p2p`, `worker`, `jobs` |
 
 ## Canonical Owners
 
 - Account editing behavior belongs under `app.modules.account_editing`.
+- Account safety behavior belongs under `app.modules.account_safety`.
 - Auth dependency/context behavior belongs under `app.modules.auth`.
+- Neuro-commenting behavior belongs under `app.modules.neuro_commenting`.
 - Warmup behavior belongs under `app.modules.warmup`.
 - Legacy wrappers may re-export or delegate only to canonical owners.
 

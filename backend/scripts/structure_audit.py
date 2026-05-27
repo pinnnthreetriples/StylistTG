@@ -201,22 +201,22 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Module metadata, registry, and non-runtime template support module governance.",
     ),
     OwnershipEntry(
-        id="debt-account-audit",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-audit",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_audit",
         paths=("backend/app/api/account_audit_routes.py",),
-        target_owner="app.modules.account_audit or documented account platform audit boundary",
-        phase="Phase 6A",
-        removal_condition="Account audit transport is module-owned or explicitly retained as shared account-platform audit infrastructure.",
-        rationale="Account audit route ownership is separate from core account CRUD and should not stay hidden inside broad account_platform debt.",
+        target_owner="accepted legacy account audit boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_audit only when account audit behavior changes; keep classified and guarded meanwhile.",
+        rationale="Account audit transport is a stable read-only legacy feature boundary backed by shared audit services; Phase 6B accepts it explicitly instead of treating it as hidden account-platform debt.",
     ),
     OwnershipEntry(
-        id="debt-account-core",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-core",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_core",
         paths=(
             "backend/app/api/account_compat_routes.py",
@@ -228,16 +228,16 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/contracts/accounts.py",
             "backend/app/contracts/cross_module_load.py",
         ),
-        target_owner="app.modules.account_core or documented shared account platform",
-        phase="Phase 6A",
-        removal_condition="Core account read/write/context surfaces are module-owned or explicitly retained as shared account-platform infrastructure.",
-        rationale="Core account transport, bundle/context helpers, and account DTOs are cohesive account platform surfaces outside app.modules.",
+        target_owner="accepted legacy account core boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_core only with a dedicated behavior-preserving account-core migration; keep classified and guarded meanwhile.",
+        rationale="Core account CRUD, context, bundle, capabilities, and DTO surfaces are stable platform-level account primitives used across modules; Phase 6B accepts the existing boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-ggr",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-ggr",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_ggr",
         paths=(
             "backend/app/api/account_ggr_routes.py",
@@ -245,91 +245,91 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/ggr_calculator.py",
             "backend/app/contracts/ggr.py",
         ),
-        target_owner="app.modules.account_ggr or documented risk-scoring platform boundary",
-        phase="Phase 6A",
-        removal_condition="GGR/fraud scoring route, contracts, and calculators are module-owned or explicitly retained as shared risk-scoring infrastructure.",
-        rationale="GGR and fraud scoring form a distinct account risk slice that can be migrated independently.",
+        target_owner="accepted legacy account GGR/risk scoring boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_ggr only when GGR behavior changes; keep classified and guarded meanwhile.",
+        rationale="GGR and fraud scoring are stable account risk-scoring surfaces with existing tests and metrics; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-imports",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-imports",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_imports",
         paths=(
             "backend/app/api/account_imports.py",
             "backend/app/services/account_imports.py",
         ),
-        target_owner="app.modules.account_imports or documented onboarding/import platform boundary",
-        phase="Phase 6A",
-        removal_condition="Account import transport and service ownership is module-owned or explicitly retained as onboarding/import platform infrastructure.",
-        rationale="Account import behavior is a distinct feature slice and should not be hidden in broad account_platform debt.",
+        target_owner="accepted legacy account imports boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_imports only when import behavior changes; keep classified and guarded meanwhile.",
+        rationale="Account import is a stable onboarding/import surface; Phase 6B accepts its legacy route/service boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-jobs",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-jobs",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_jobs",
         paths=("backend/app/api/account_jobs_routes.py",),
-        target_owner="app.modules.account_jobs or documented account job platform boundary",
-        phase="Phase 6A",
-        removal_condition="Account job transport is module-owned or explicitly retained as shared account job infrastructure.",
-        rationale="Account job route ownership is distinct from account_editing workflow implementation and needs an explicit boundary.",
+        target_owner="accepted legacy account jobs boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_jobs only when account job transport behavior changes; keep classified and guarded meanwhile.",
+        rationale="Account job transport is a stable account workspace/read model boundary over shared job infrastructure; Phase 6B accepts it explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-profile-state",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-profile-state",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_profile_state",
         paths=(
             "backend/app/services/profile_audio_state.py",
             "backend/app/services/profile_photo_state.py",
             "backend/app/services/profile_sync.py",
         ),
-        target_owner="app.modules.account_editing or documented account profile state platform boundary",
-        phase="Phase 6A",
-        removal_condition="Profile audio/photo/sync state helpers are module-owned by account_editing or explicitly retained as shared profile-state infrastructure.",
-        rationale="Profile state helpers support account editing but remain global service surfaces outside the canonical module.",
+        target_owner="accepted legacy account profile-state boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_editing or a profile-state module only when profile-state behavior changes; keep classified and guarded meanwhile.",
+        rationale="Profile audio/photo/sync helpers are stable profile-state support surfaces shared by account editing and runtime sync; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-proxy",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-proxy",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_proxy",
         paths=(
             "backend/app/api/account_proxy_routes.py",
             "backend/app/services/proxy_accounts.py",
             "backend/app/services/proxy_checks.py",
         ),
-        target_owner="app.modules.account_proxy or documented proxy platform boundary",
-        phase="Phase 6A",
-        removal_condition="Account proxy transport and services are module-owned or explicitly retained as shared proxy infrastructure.",
-        rationale="Proxy assignment/checking is a distinct account infrastructure slice and should be tracked separately.",
+        target_owner="accepted legacy account proxy boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_proxy only when proxy assignment/checking behavior changes; keep classified and guarded meanwhile.",
+        rationale="Proxy assignment and check surfaces are stable account infrastructure behavior with external-network guards; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-quarantine",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-quarantine",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_quarantine",
         paths=(
             "backend/app/api/account_quarantine_routes.py",
             "backend/app/services/account_quarantine.py",
             "backend/app/contracts/quarantine.py",
         ),
-        target_owner="app.modules.account_quarantine or documented account safety/platform boundary",
-        phase="Phase 6A",
-        removal_condition="Account quarantine route, service, and contract are module-owned or explicitly retained as account safety/platform infrastructure.",
-        rationale="Quarantine is safety-adjacent account state with a distinct route/service/contract set.",
+        target_owner="accepted legacy account quarantine boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_quarantine or account_safety only when quarantine behavior changes; keep classified and guarded meanwhile.",
+        rationale="Quarantine is stable safety-adjacent account state with route/service/contract coverage; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-runtime-status",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-runtime-status",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_runtime_status",
         paths=(
             "backend/app/api/account_runtime_routes.py",
@@ -341,69 +341,69 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/account_terminal_status.py",
             "backend/app/contracts/account_status.py",
         ),
-        target_owner="app.modules.account_runtime_status or documented account runtime platform boundary",
-        phase="Phase 6A",
-        removal_condition="Account runtime/status/cooldown/risk surfaces are module-owned or explicitly retained as shared account runtime platform infrastructure.",
-        rationale="Runtime health, status, cooldown, and risk read models are cohesive but remain global account platform surfaces.",
+        target_owner="accepted legacy account runtime/status boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_runtime_status only when runtime/status behavior changes; keep classified and guarded meanwhile.",
+        rationale="Runtime health, status, cooldown, risk, and terminal-state surfaces are stable account runtime read models; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-account-validity",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-account-validity",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="account_validity",
         paths=("backend/app/services/account_validity.py",),
-        target_owner="app.modules.account_safety or app.modules.account_validity",
-        phase="Phase 6A",
-        removal_condition="Account validity checks are owned by account_safety/account_validity module boundary or explicitly retained as account platform debt.",
-        rationale="Validity checks are safety-adjacent and depend on account safety/readiness behavior, so they need separate ownership from generic account platform debt.",
+        target_owner="accepted legacy account validity boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.account_validity or account_safety only when validity behavior changes; keep classified and guarded meanwhile.",
+        rationale="Validity checks are stable safety-adjacent runtime checks with TDLib/live gates; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-story-surfaces",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-story-surfaces",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="story",
         paths=(
             "backend/app/api/story_*.py",
             "backend/app/services/story_*.py",
         ),
-        target_owner="app.modules.story or documented exception",
-        phase="inventory-follow-up",
-        removal_condition="Story draft/post/capability ownership is either module-owned or explicitly tracked as approved debt.",
-        rationale="Story feature code has API and service ownership outside app.modules.",
+        target_owner="accepted legacy story boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.story only when story behavior changes; keep classified and guarded meanwhile.",
+        rationale="Story draft/post/capability surfaces are stable legacy feature boundaries with live-operation gates; Phase 6B accepts them explicitly.",
     ),
     OwnershipEntry(
-        id="debt-bought-onboarding",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-bought-onboarding",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="bought_onboarding",
         paths=(
             "backend/app/api/bought_onboarding_routes.py",
             "backend/app/services/bought_account_onboarding.py",
             "backend/app/contracts/bought_onboarding.py",
         ),
-        target_owner="app.modules.bought_onboarding or documented account platform",
-        phase="inventory-follow-up",
-        removal_condition="Bought-account onboarding is module-owned or explicitly retained as account platform debt.",
-        rationale="Onboarding feature paths are global production feature surfaces.",
+        target_owner="accepted legacy bought-account onboarding boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.bought_onboarding only when bought-account onboarding behavior changes; keep classified and guarded meanwhile.",
+        rationale="Bought-account onboarding is a stable account onboarding workflow; Phase 6B accepts the legacy route/service/contract boundary explicitly.",
     ),
     OwnershipEntry(
-        id="debt-human-behavior",
-        category="unmanaged_feature_surface",
+        id="accepted-legacy-human-behavior",
+        category="accepted_legacy_feature_boundary",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="human_behavior",
         paths=(
             "backend/app/api/human_behavior_routes.py",
             "backend/app/services/human_behavior/**",
             "backend/app/contracts/human_behavior.py",
         ),
-        target_owner="app.modules.human_behavior or documented shared policy boundary",
-        phase="inventory-follow-up",
-        removal_condition="Human-behavior policy/runtime surfaces are module-owned or explicitly classified as shared policy infrastructure.",
-        rationale="Human behavior emulation is feature logic outside app.modules.",
+        target_owner="accepted legacy human-behavior boundary",
+        phase="Phase 6B",
+        removal_condition="Promote to app.modules.human_behavior only when human-behavior policy/runtime behavior changes; keep classified and guarded meanwhile.",
+        rationale="Human-behavior policy/runtime surfaces are stable feature logic with safety/runtime constraints; Phase 6B accepts the legacy boundary explicitly.",
     ),
     OwnershipEntry(
         id="compatibility-wrappers",
@@ -539,7 +539,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         id="shared-contracts-and-orm",
         category="shared_platform_infrastructure",
         severity="medium",
-        status="open",
+        status="accepted",
         owner="shared_contracts_storage",
         paths=(
             "backend/app/contracts/__init__.py",
@@ -553,9 +553,9 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/schemas.py",
         ),
         target_owner="shared contracts plus repositories/module-owned DTOs",
-        phase="inventory-follow-up",
-        removal_condition="DTO and ORM ownership is either module-owned, shared-contract-owned, or documented as compatibility debt.",
-        rationale="Global schemas and ORM models remain transitional shared ownership surfaces.",
+        phase="Phase 6B",
+        removal_condition="Promote DTOs to module contracts only when behavior changes; keep shared contracts and ORM guarded by boundary tests meanwhile.",
+        rationale="Global schemas, shared contracts, and ORM models are accepted platform/storage boundaries for the modular monolith; contracts purity and router ORM checks keep them from growing unguarded feature ownership.",
     ),
     OwnershipEntry(
         id="supporting-governance-evidence",
@@ -1291,7 +1291,7 @@ def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> di
                 ".mex/**",
                 "apps/dashboard/src/**",
             ],
-            "classification_rule": "Every discovered zone is classified as canonical_feature_module, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence.",
+            "classification_rule": "Every discovered zone is classified as canonical_feature_module, accepted_legacy_feature_boundary, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence.",
         },
         "entries": entries,
         "summary": _debt_summary(entries),
@@ -1403,6 +1403,11 @@ def _forbidden_runtime_claims(
 
 
 def _backend_overall_status(debt_inventory: dict[str, Any]) -> str:
+    if (
+        debt_inventory["untracked_backend_app_python_files"]
+        or debt_inventory["overlapping_backend_app_python_files"]
+    ):
+        return "RED"
     if debt_inventory["summary"]["high_risk_unmanaged_feature_surface_count"]:
         return "RED"
     if debt_inventory["summary"]["unmanaged_feature_surface_count"]:
@@ -1422,7 +1427,26 @@ def _findings(
         if entry["category"] == "canonical_feature_module"
     )
     summary = debt_inventory["summary"]
-    if summary["high_risk_unmanaged_feature_surface_count"]:
+    inventory_classification_issues = [
+        *debt_inventory["untracked_backend_app_python_files"],
+        *debt_inventory["overlapping_backend_app_python_files"].keys(),
+    ]
+    if inventory_classification_issues:
+        structure_001 = Finding(
+            id="STRUCTURE-001",
+            severity="high",
+            status="open",
+            area="backend-modules",
+            finding="Backend has unclassified or overlapping production files in backend/app.",
+            evidence=(
+                f"app.modules.registry imports {', '.join(canonical_modules)}; "
+                f"classification issues: {', '.join(inventory_classification_issues)}."
+            ),
+            risk="High. Architecture audit must not report overall backend GREEN while production files are unclassified or multiply owned.",
+            recommendation="Classify each backend/app production file exactly once before merging.",
+            suggested_phase="next",
+        )
+    elif summary["high_risk_unmanaged_feature_surface_count"]:
         structure_001 = Finding(
             id="STRUCTURE-001",
             severity="high",
@@ -1467,7 +1491,29 @@ def _findings(
             suggested_phase="ongoing",
         )
 
-    if summary["unmanaged_feature_surface_count"]:
+    if inventory_classification_issues:
+        structure_008 = Finding(
+            id="STRUCTURE-008",
+            severity="high",
+            status="open",
+            area="unmanaged-backend-surfaces",
+            finding="Machine-readable inventory found unclassified or overlapping backend/app production files.",
+            evidence=json.dumps(
+                {
+                    "untracked_backend_app_python_files": debt_inventory[
+                        "untracked_backend_app_python_files"
+                    ],
+                    "overlapping_backend_app_python_files": debt_inventory[
+                        "overlapping_backend_app_python_files"
+                    ],
+                },
+                sort_keys=True,
+            ),
+            risk="High if new feature-owned code can appear outside app.modules without exactly one inventory owner.",
+            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked or overlapping backend/app production files.",
+            suggested_phase="next",
+        )
+    elif summary["unmanaged_feature_surface_count"]:
         structure_008 = Finding(
             id="STRUCTURE-008",
             severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
@@ -1499,22 +1545,25 @@ def _findings(
         *frontend_boundaries["unexpected_shared_deep_imports"],
         *frontend_boundaries["unexpected_app_deep_module_imports"],
     ]
+    if not frontend_boundaries["module_boundary_test"]:
+        frontend_boundary_issues.append("module boundary test is missing")
     if frontend_boundaries["feature_modules"] != frontend_boundaries["expected_feature_modules"]:
         frontend_boundary_issues.append("feature module set differs from policy")
     frontend_finding = Finding(
         id="STRUCTURE-002",
-        severity="high" if frontend_boundary_issues else "medium",
-        status="open",
+        severity="high" if frontend_boundary_issues else "info",
+        status="open" if frontend_boundary_issues else "accepted",
         area="frontend",
         finding=(
             "Frontend module public-boundary policy has violations."
             if frontend_boundary_issues
-            else "Frontend modules expose enforced public indexes while global dashboard roots remain transitional."
+            else "Frontend modules expose enforced public indexes and only accepted compatibility deep imports remain."
         ),
         evidence=json.dumps(
             {
                 "feature_modules": frontend_boundaries["feature_modules"],
                 "shared_module": frontend_boundaries["shared_module"],
+                "module_boundary_test": frontend_boundaries["module_boundary_test"],
                 "missing_indexes": frontend_boundaries["missing_indexes"],
                 "app_deep_module_imports": frontend_boundaries["app_deep_module_imports"],
                 "unexpected_app_deep_module_imports": frontend_boundaries[
@@ -1529,14 +1578,14 @@ def _findings(
         risk=(
             "High. New frontend code can bypass module public APIs if boundary violations are allowed to drift."
             if frontend_boundary_issues
-            else "Medium. Global dashboard roots can still own feature logic, but deep imports are now explicit and bounded."
+            else "Low. Allowed app compatibility imports are explicit, bounded, and documented with removal conditions."
         ),
         recommendation=(
             "Remove unexpected frontend deep imports or add explicit compatibility-policy debt before merging."
             if frontend_boundary_issues
-            else "Continue moving feature-specific dashboard helpers/components into modules in small compatibility-preserving passes."
+            else "Keep frontend boundary policy checks required for module or compatibility wrapper changes."
         ),
-        suggested_phase="Phase 5+",
+        suggested_phase="next" if frontend_boundary_issues else "ongoing",
     )
 
     findings = [
@@ -1544,14 +1593,14 @@ def _findings(
         frontend_finding,
         Finding(
             id="STRUCTURE-003",
-            severity="medium",
-            status="open",
+            severity="info",
+            status="accepted",
             area="storage-contracts",
-            finding="Shared contracts extraction has started while app.schemas.py remains a compatibility/global DTO layer.",
+            finding="Shared contracts and global DTO/ORM storage boundaries are accepted platform surfaces.",
             evidence="backend/app/contracts exists for low-risk shared DTOs; app.schemas re-exports moved DTOs for compatibility.",
-            risk="Remaining DTOs in app.schemas.py can still attract new shared imports unless architecture tests keep enforcing boundaries.",
-            recommendation="Move only proven shared DTOs into app.contracts and continue keeping ORM access behind repositories before splitting app.models.",
-            suggested_phase="Phase 24",
+            risk="Low while contracts purity, router ORM, and inventory checks keep shared storage boundaries from attracting unguarded feature ownership.",
+            recommendation="Promote DTOs to module contracts only when behavior changes; keep shared-contract and ORM checks required.",
+            suggested_phase="ongoing",
         ),
         Finding(
             id="STRUCTURE-004",
@@ -1577,14 +1626,14 @@ def _findings(
         ),
         Finding(
             id="STRUCTURE-006",
-            severity="low",
-            status="open",
+            severity="info",
+            status="accepted",
             area="architecture-tests",
             finding="Architecture tests contain duplicated static-analysis helper patterns.",
             evidence="Multiple tests parse imports and source files independently with small local helper functions.",
-            risk="Low. Duplication can make future boundary-rule changes noisy.",
-            recommendation="Consolidate AST/import helper utilities after the boundary set stabilizes.",
-            suggested_phase="Phase 23+",
+            risk="Low. Duplication is accepted for small, explicit guard tests while architecture boundaries are stable.",
+            recommendation="Consolidate helpers only when a future boundary change makes duplication noisy.",
+            suggested_phase="ongoing",
         ),
         Finding(
             id="STRUCTURE-007",
@@ -1669,8 +1718,7 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
-            "Phase 5 - frontend/shared/deep-import cleanup",
-            "Phase 6 - account platform debt split",
+            "Ongoing - keep structure audit and boundary checks required for structural changes",
         ],
     }
 
@@ -1836,19 +1884,21 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 ),
                 (
                     "Frontend ownership",
-                    "RED" if frontend_boundary_issues else "YELLOW",
+                    "RED" if frontend_boundary_issues else "GREEN",
                     "Feature modules: "
                     + ", ".join(frontend_boundaries["feature_modules"])
-                    + f"; app deep-import debt: {len(frontend_boundaries['app_deep_module_imports'])}.",
+                    + "; accepted app compatibility deep imports: "
+                    + str(len(frontend_boundaries["app_deep_module_imports"]))
+                    + ".",
                     (
                         "Frontend module boundary violations are present."
                         if frontend_boundary_issues
-                        else "Global dashboard roots can still own feature logic, but deep-import debt is explicit."
+                        else "Frontend public APIs are enforced; compatibility imports are explicit and bounded."
                     ),
                     (
                         "Remove unexpected deep imports or record them in the frontend boundary policy."
                         if frontend_boundary_issues
-                        else "Continue moving feature-specific dashboard helpers/components behind public module indexes."
+                        else "Keep frontend boundary policy checks required for module or wrapper changes."
                     ),
                 ),
             ],
@@ -2001,12 +2051,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 ),
                 (
                     "App compatibility deep imports",
-                    "YELLOW"
-                    if frontend_boundaries["app_deep_module_imports"]
-                    and not frontend_boundaries["unexpected_app_deep_module_imports"]
-                    else "GREEN"
-                    if not frontend_boundaries["app_deep_module_imports"]
-                    else "RED",
+                    "RED" if frontend_boundaries["unexpected_app_deep_module_imports"] else "GREEN",
                     "<br>".join(frontend_boundaries["app_deep_module_imports"]) or "None.",
                 ),
             ],

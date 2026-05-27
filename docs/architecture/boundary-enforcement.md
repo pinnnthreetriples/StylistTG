@@ -2,18 +2,26 @@
 
 ## Goal
 
-Phase 5 turns modular backend boundaries into executable checks. The goal is to
-prevent architecture drift without changing runtime behavior.
+Architecture Epic Phase 6B keeps modular backend boundaries executable and
+closed. The goal is to prevent architecture drift without changing runtime
+behavior.
 
 The current backend modules are:
 
 ```text
 backend/app/modules/account_editing
+backend/app/modules/account_lifecycle
+backend/app/modules/account_profile_completeness
+backend/app/modules/account_safety
 backend/app/modules/auth
+backend/app/modules/neuro_commenting
 backend/app/modules/warmup
 ```
 
 Future modules should follow the same rules before adding runtime dependencies.
+Legacy feature boundaries that remain outside `app.modules` are explicitly
+classified as accepted legacy feature boundaries in the generated structure
+audit instead of open unmanaged debt.
 
 ## Public Module Surfaces
 

@@ -136,7 +136,7 @@ def test_structure_audit_drift_check_detects_json_drift(tmp_path: Path) -> None:
     markdown_path = tmp_path / "STRUCTURE_AUDIT.md"
     debt_path = tmp_path / "architecture-debt-inventory.json"
     json_path.write_text(
-        render_json_report({**expected, "backend_overall_status": "GREEN"}), encoding="utf-8"
+        render_json_report({**expected, "backend_overall_status": "RED"}), encoding="utf-8"
     )
     markdown_path.write_text(render_markdown_report(expected), encoding="utf-8")
     debt_path.write_text(render_debt_inventory(expected), encoding="utf-8")
@@ -209,6 +209,7 @@ def test_structure_audit_reports_frontend_boundary_policy() -> None:
         "warmup",
     ]
     assert frontend_boundaries["shared_module"] == "shared"
+    assert frontend_boundaries["module_boundary_test"] is True
     assert frontend_boundaries["missing_indexes"] == []
     assert frontend_boundaries["feature_to_feature_deep_imports"] == []
     assert frontend_boundaries["feature_to_shared_deep_imports"] == []
@@ -259,7 +260,7 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
 
-    assert report["backend_overall_status"] == "YELLOW"
+    assert report["backend_overall_status"] == "GREEN"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == []
     assert "debt-account-safety" not in entries
     assert "debt-account-lifecycle" not in entries
@@ -270,7 +271,7 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     assert entries["canonical-account-profile-completeness"]["severity"] == "info"
 
 
-def test_structure_audit_phase_six_a_splits_account_platform_debt() -> None:
+def test_structure_audit_phase_six_b_accepts_all_remaining_legacy_feature_boundaries() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
     unmanaged = [
@@ -278,25 +279,56 @@ def test_structure_audit_phase_six_a_splits_account_platform_debt() -> None:
         for entry in report["debt_inventory"]["entries"]
         if entry["category"] == "unmanaged_feature_surface"
     ]
-    unmanaged_ids = {entry["id"] for entry in unmanaged}
     unmanaged_owners = {entry["owner"] for entry in unmanaged}
+    accepted_legacy = {
+        entry["id"]: entry
+        for entry in report["debt_inventory"]["entries"]
+        if entry["category"] == "accepted_legacy_feature_boundary"
+    }
 
     assert "debt-account-legacy-surfaces" not in entries
     assert "account_platform" not in unmanaged_owners
-    assert "debt-account-profile-completeness" not in unmanaged_ids
+    assert "debt-account-profile-completeness" not in entries
     assert "canonical-account-profile-completeness" in entries
-    assert {
-        "debt-account-audit",
-        "debt-account-core",
-        "debt-account-ggr",
-        "debt-account-imports",
-        "debt-account-jobs",
-        "debt-account-profile-state",
-        "debt-account-proxy",
-        "debt-account-quarantine",
-        "debt-account-runtime-status",
-        "debt-account-validity",
-    }.issubset(unmanaged_ids)
+    assert unmanaged == []
+    assert set(accepted_legacy) == {
+        "accepted-legacy-account-audit",
+        "accepted-legacy-account-core",
+        "accepted-legacy-account-ggr",
+        "accepted-legacy-account-imports",
+        "accepted-legacy-account-jobs",
+        "accepted-legacy-account-profile-state",
+        "accepted-legacy-account-proxy",
+        "accepted-legacy-account-quarantine",
+        "accepted-legacy-account-runtime-status",
+        "accepted-legacy-account-validity",
+        "accepted-legacy-bought-onboarding",
+        "accepted-legacy-human-behavior",
+        "accepted-legacy-story-surfaces",
+    }
+    assert all(entry["status"] == "accepted" for entry in accepted_legacy.values())
+    assert all(entry["severity"] == "medium" for entry in accepted_legacy.values())
+    assert all(entry["phase"] == "Phase 6B" for entry in accepted_legacy.values())
+    assert all(entry["existing_paths"] for entry in accepted_legacy.values())
+    assert (
+        "accepted_legacy_feature_boundary"
+        in report["debt_inventory"]["scope"]["classification_rule"]
+    )
+
+
+def test_structure_audit_phase_six_b_accepts_shared_contracts_storage_boundary() -> None:
+    entries = {entry["id"]: entry for entry in _committed_report()["debt_inventory"]["entries"]}
+    shared_contracts = entries["shared-contracts-and-orm"]
+
+    assert shared_contracts["category"] == "shared_platform_infrastructure"
+    assert shared_contracts["status"] == "accepted"
+    assert shared_contracts["severity"] == "medium"
+    assert shared_contracts["phase"] == "Phase 6B"
+    assert "contracts purity" in shared_contracts["rationale"]
+    assert (
+        "Promote DTOs to module contracts only when behavior changes"
+        in shared_contracts["removal_condition"]
+    )
 
 
 def test_structure_audit_markdown_preserves_live_tdlib_role_flags() -> None:
@@ -341,28 +373,42 @@ def test_structure_audit_inventory_entries_have_required_metadata() -> None:
     assert missing == []
 
 
-def test_backend_overall_yellow_with_remaining_medium_unmanaged_surfaces() -> None:
+def test_backend_overall_green_after_phase_six_b_closure() -> None:
     report = _committed_report()
-    findings = {finding["id"]: finding for finding in report["findings"]}
-    markdown = render_markdown_report(report)
     rendered_json = json.loads(render_json_report(report))
 
-    assert rendered_json["backend_overall_status"] == "YELLOW"
+    assert rendered_json["backend_overall_status"] == "GREEN"
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 0
+    assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     assert (
         rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     )
-    assert report["backend_overall_status"] == "YELLOW"
-    assert findings["STRUCTURE-001"]["severity"] == "medium"
-    assert "medium unmanaged feature surfaces" in findings["STRUCTURE-001"]["finding"]
+    assert report["backend_overall_status"] == "GREEN"
+
+
+def test_phase_six_b_closure_findings_are_accepted() -> None:
+    report = _committed_report()
+    findings = {finding["id"]: finding for finding in report["findings"]}
+
+    assert findings["STRUCTURE-001"]["severity"] == "info"
+    assert findings["STRUCTURE-001"]["status"] == "accepted"
+    assert "fully classified" in findings["STRUCTURE-001"]["finding"]
     assert "high-risk feature ownership" not in findings["STRUCTURE-001"]["finding"]
-    assert findings["STRUCTURE-008"]["severity"] == "medium"
-    assert (
-        "| Backend overall | YELLOW | 0 high-risk and 13 medium unmanaged feature surfaces remain."
-        in markdown
-    )
-    assert "| Unmanaged feature debt | YELLOW |" in markdown
-    assert "| STRUCTURE-001 | medium | open |" in markdown
+    assert findings["STRUCTURE-002"]["severity"] == "info"
+    assert findings["STRUCTURE-002"]["status"] == "accepted"
+    assert findings["STRUCTURE-008"]["severity"] == "info"
+    assert findings["STRUCTURE-008"]["status"] == "accepted"
+
+
+def test_phase_six_b_closure_markdown_is_green() -> None:
+    markdown = render_markdown_report(_committed_report())
+
+    assert "| Backend overall | GREEN | No unmanaged feature debt remains." in markdown
+    assert "| Unmanaged feature debt | GREEN | No unmanaged feature debt." in markdown
+    assert "| Frontend ownership | GREEN |" in markdown
+    assert "| STRUCTURE-001 | info | accepted |" in markdown
+    assert "| STRUCTURE-002 | info | accepted |" in markdown
     assert "high-risk feature ownership" not in markdown
 
 
@@ -431,6 +477,28 @@ def test_backend_app_python_files_are_classified_once_by_inventory() -> None:
     overlaps = _committed_report()["debt_inventory"]["overlapping_backend_app_python_files"]
 
     assert overlaps == {}
+
+
+def test_structure_audit_untracked_backend_app_files_block_green_closure() -> None:
+    report = build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z")
+    report["debt_inventory"]["untracked_backend_app_python_files"] = [
+        "backend/app/api/new_feature.py"
+    ]
+    report["backend_overall_status"] = _backend_overall_status(report["debt_inventory"])
+    report["findings"] = _findings(
+        report["boundaries"],
+        report["forbidden_runtime_claims"],
+        report["debt_inventory"],
+        report["frontend_boundaries"],
+    )
+    findings = {finding["id"]: finding for finding in report["findings"]}
+    markdown = render_markdown_report(report)
+
+    assert report["backend_overall_status"] == "RED"
+    assert findings["STRUCTURE-001"]["severity"] == "high"
+    assert findings["STRUCTURE-008"]["severity"] == "high"
+    assert "backend/app/api/new_feature.py" in findings["STRUCTURE-008"]["evidence"]
+    assert "| Untracked backend/app production files | RED |" in markdown
 
 
 def test_module_template_is_reported_but_not_registered() -> None:

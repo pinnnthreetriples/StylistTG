@@ -2,21 +2,23 @@
 
 ## Goal
 
-The backend is moving toward business modules under `backend/app/modules/` so feature
-work can be organized by domain instead of spreading new code across `api/`,
+The backend uses business modules under `backend/app/modules/` so new feature
+work can be organized by domain instead of spreading code across `api/`,
 `services/`, `workers/`, and `job_queue/`.
 
-The current goal is a safe foundation, not a large rewrite. Existing public API
+Architecture Epic Phase 6B closes the initial module split by making remaining
+legacy feature boundaries explicit, accepted, and guarded. Existing public API
 paths, job models, job states, workflow identifiers, and worker behavior remain
 the compatibility contract.
 
 ## Current Phase: Stabilized Module Boundaries
 
-The current backend has module-owned runtime boundaries for `account_update` and
-warmup, and `app.modules.auth` owns auth context/dependency resolution. Warmup is now split into canonical contracts, repository, policies,
+The current backend has canonical modules for account editing, account
+lifecycle, account profile completeness, account safety, auth, neuro commenting,
+and warmup. Warmup is split into canonical contracts, repository, policies,
 errors, query/read-model, command, router, worker, and dispatcher modules. This
-is still compatibility-first: public routes, workflow identifiers, models,
-queues, deterministic job ids, no-arg handlers, and worker behavior remain the
+remains compatibility-first: public routes, workflow identifiers, models, queues,
+deterministic job ids, no-arg handlers, and worker behavior remain the
 compatibility contract.
 
 - `FeatureModule` stores lazy `router_path` strings, not `APIRouter` objects.
@@ -199,9 +201,10 @@ modules. Non-module routers are still manually registered in `main.py`.
 - Router registration in `main.py`
 - TDLib/live execution gates
 
-## Future Migration Phases
+## Future Module Work
 
-Possible future phases should stay narrow:
+Possible future work should stay narrow and is not Architecture Epic closure
+debt:
 
 - Continue splitting account editing internals only when behavior-matching tests
   exist first.

@@ -8,7 +8,10 @@ from app.db import get_session
 from app.modules.account_core.context import account_id_header
 from app.modules.account_jobs.interfaces import latest_job_summary, list_job_summaries
 from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
+from app.modules.auth.dependencies import (
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.schemas import (
     AccountRuntimeDiagnosticsRead,
     AuthStateRead,
@@ -29,7 +32,9 @@ def get_account_auth_state_from_header(
     from app.api.auth import auth_response
     from app.services.auth import get_auth_state
 
-    return auth_response(get_auth_state(session, account_id, workspace_id=auth.workspace_id))
+    return auth_response(
+        get_auth_state(session, account_id, workspace_id=auth.workspace_id)
+    )
 
 
 @router.post("/refresh-runtime", response_model=RuntimeRefreshRead)

@@ -9,5 +9,8 @@ from __future__ import annotations
 import sys
 
 from app.modules.account_core import accounts_router as _router_module
+from app.modules.account_core.accounts_router import router
+
+__all__ = ["router"]
 
 sys.modules[__name__] = _router_module

@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/setup.md
   - .mex/patterns/mex-memory-update.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Documentation Audit

@@ -4,7 +4,7 @@ description: Lookup table for repeatable StylistTG task workflows.
 edges:
   - .mex/ROUTER.md
   - .mex/context/conventions.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Pattern Index

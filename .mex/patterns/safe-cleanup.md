@@ -8,7 +8,7 @@ triggers:
 edges:
   - .mex/context/security.md
   - .gitignore
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Safe Cleanup

@@ -9,7 +9,7 @@ triggers:
 edges:
   - .mex/context/frontend.md
   - .mex/context/conventions.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Frontend Module Change

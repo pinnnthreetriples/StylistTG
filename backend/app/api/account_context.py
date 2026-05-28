@@ -1,5 +1,13 @@
-from fastapi import Header
+"""Compatibility wrapper.
 
+Canonical owner: app.modules.account_core.context
+Do not add new behavior here.
+"""
 
-def account_id_header(x_account_id: str = Header(alias="X-Account-Id")) -> str:
-    return x_account_id
+from __future__ import annotations
+
+import sys
+
+from app.modules.account_core import context as _context_module
+
+sys.modules[__name__] = _context_module

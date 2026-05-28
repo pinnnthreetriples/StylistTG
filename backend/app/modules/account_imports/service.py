@@ -43,7 +43,11 @@ def create_import_batch(
         action="account.import.uploaded",
         entity_type="account_import_batch",
         entity_id=row.id,
-        metadata={"source_type": source_type, "dry_run": dry_run, "metadata": metadata or {}},
+        metadata={
+            "source_type": source_type,
+            "dry_run": dry_run,
+            "metadata": metadata or {},
+        },
     )
     session.commit()
     session.refresh(row)
@@ -157,7 +161,8 @@ def get_import_batch(
     return (
         session.execute(
             select(AccountImportBatch).where(
-                AccountImportBatch.id == batch_id, AccountImportBatch.workspace_id == workspace_id
+                AccountImportBatch.id == batch_id,
+                AccountImportBatch.workspace_id == workspace_id,
             )
         )
         .scalars()
@@ -198,7 +203,9 @@ def import_item_to_dict(item: AccountImportItem) -> dict[str, Any]:
     }
 
 
-def _require_batch(session: Session, batch_id: str, workspace_id: str) -> AccountImportBatch:
+def _require_batch(
+    session: Session, batch_id: str, workspace_id: str
+) -> AccountImportBatch:
     batch = get_import_batch(session, batch_id=batch_id, workspace_id=workspace_id)
     if batch is None:
         raise AppError(

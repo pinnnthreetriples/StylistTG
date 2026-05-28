@@ -14,7 +14,10 @@ from app.schemas import (
     SensitiveAuditEventRead,
 )
 from app.services.operation_logs import list_account_logs
-from app.services.sensitive_audit import audit_event_to_dict, list_sensitive_audit_events
+from app.services.sensitive_audit import (
+    audit_event_to_dict,
+    list_sensitive_audit_events,
+)
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 

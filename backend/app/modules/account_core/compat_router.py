@@ -7,16 +7,13 @@ from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.errors import AppError
 from app.modules.account_core.context import account_id_header
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
 from app.schemas import (
     AccountRuntimeDiagnosticsRead,
     AuthStateRead,
     JobSummaryRead,
     RuntimeRefreshRead,
-)
-from app.services.auth_context import (
-    AuthContext,
-    require_authenticated,
-    require_mutation_permission,
 )
 from app.services.dashboard import job_summary
 from app.services.jobs import get_latest_account_job, list_account_jobs

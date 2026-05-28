@@ -140,14 +140,15 @@ def delete_account(
         raise ValueError("account not found")
 
     reap_stale_jobs(session, stale_after_seconds=settings.stale_job_timeout_seconds)
+    target_workspace_id = account.workspace_id
 
     active_job = (
         session.execute(
-            select(Job.id)
-            .where(Job.workspace_id == account.workspace_id)
-            .where(Job.account_id == account_id)
-            .where(Job.job_state.not_in([state.value for state in TERMINAL_JOB_STATES]))
-            .limit(1)
+            select(Job.id).where(
+                Job.account_id == account_id,
+                Job.workspace_id == target_workspace_id,
+                Job.job_state.not_in([state.value for state in TERMINAL_JOB_STATES]),
+            ).limit(1)
         )
         .scalars()
         .first()
@@ -157,9 +158,9 @@ def delete_account(
 
     terminal_jobs = list(
         session.execute(
-            select(Job)
-            .where(Job.workspace_id == account.workspace_id)
-            .where(Job.account_id == account_id)
+            select(Job).where(
+                Job.account_id == account_id, Job.workspace_id == target_workspace_id
+            )
         )
         .scalars()
         .all()

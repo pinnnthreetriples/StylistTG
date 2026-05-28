@@ -144,7 +144,8 @@ def delete_account(
     active_job = (
         session.execute(
             select(Job.id)
-            .where(Job.account_id == account_id, Job.workspace_id == account.workspace_id)
+            .where(Job.workspace_id == account.workspace_id)
+            .where(Job.account_id == account_id)
             .where(Job.job_state.not_in([state.value for state in TERMINAL_JOB_STATES]))
             .limit(1)
         )
@@ -156,7 +157,9 @@ def delete_account(
 
     terminal_jobs = list(
         session.execute(
-            select(Job).where(Job.account_id == account_id, Job.workspace_id == account.workspace_id)
+            select(Job)
+            .where(Job.workspace_id == account.workspace_id)
+            .where(Job.account_id == account_id)
         )
         .scalars()
         .all()

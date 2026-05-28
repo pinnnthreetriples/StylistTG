@@ -5,7 +5,9 @@ from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
-from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
+from app.adapters.tdlib_readonly_validity import (
+    build_tdlib_readonly_validity_adapter,
+)
 from app.config import Settings, settings
 from app.models import AccountProxy, utc_now
 from app.modules.account_core.interfaces import lookup_account
@@ -29,7 +31,9 @@ class TcpProxyConnectivityChecker:
 
     def check(self, proxy: AccountProxy) -> tuple[bool, str | None, str | None]:
         try:
-            with socket.create_connection((proxy.host, proxy.port), timeout=self._timeout_seconds):
+            with socket.create_connection(
+                (proxy.host, proxy.port), timeout=self._timeout_seconds
+            ):
                 return True, None, None
         except socket.timeout:
             return False, "proxy_timeout", "Proxy connection timed out"
@@ -55,7 +59,9 @@ def check_account_proxy(
     proxy = session.get(AccountProxy, account_id)
     if proxy is None:
         raise ValueError("proxy not configured")
-    ok, error_code, error_message = (checker or TcpProxyConnectivityChecker()).check(proxy)
+    ok, error_code, error_message = (
+        checker or TcpProxyConnectivityChecker()
+    ).check(proxy)
     check_scope = "tcp"
     now = utc_now()
     status = "tcp_working" if ok else "failed"
@@ -71,15 +77,24 @@ def check_account_proxy(
         if tdlib_status == "valid":
             status = "tdlib_working"
             tdlib_verified_at = now
-        elif tdlib_status in {"reauth_required", "awaiting_code", "awaiting_password", "unknown"}:
+        elif tdlib_status in {
+            "reauth_required",
+            "awaiting_code",
+            "awaiting_password",
+            "unknown",
+        }:
             status = "tdlib_unverified"
             tdlib_error_code = str(tdlib_result.get("error_code") or tdlib_status)
             tdlib_error_message = str(
-                tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status
+                tdlib_result.get("error")
+                or tdlib_result.get("runtime_health")
+                or tdlib_status
             )
         else:
             status = "tdlib_failed"
-            tdlib_error_code = str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed")
+            tdlib_error_code = str(
+                tdlib_result.get("error_code") or "tdlib_proxy_check_failed"
+            )
             tdlib_error_message = str(
                 tdlib_result.get("error")
                 or tdlib_result.get("runtime_health")
@@ -107,7 +122,9 @@ def check_account_proxy(
         error_code=None
         if ok and status != "tdlib_failed"
         else (tdlib_error_code if status == "tdlib_failed" else error_code),
-        error_class="tdlib_proxy" if status == "tdlib_failed" else (None if ok else "proxy"),
+        error_class="tdlib_proxy"
+        if status == "tdlib_failed"
+        else (None if ok else "proxy"),
         workspace_id=workspace_id,
         metadata={
             "proxy_type": proxy.proxy_type,
@@ -135,7 +152,9 @@ def _proxy_check_message(status: str) -> str:
     return {
         "tcp_working": "TCP proxy check succeeded",
         "tdlib_working": "TDLib proxy check succeeded",
-        "tdlib_unverified": "TCP proxy works, but Telegram account is not ready for TDLib verification",
+        "tdlib_unverified": (
+            "TCP proxy works, but Telegram account is not ready for TDLib verification"
+        ),
         "tdlib_failed": "TDLib proxy check failed",
         "failed": "Proxy check failed",
     }.get(status, "Proxy check completed")

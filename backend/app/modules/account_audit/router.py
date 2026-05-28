@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.errors import AppError
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated
 from app.schemas import (
     AccountOperationLogPageRead,
     SensitiveAuditEventPageRead,
     SensitiveAuditEventRead,
 )
-from app.services.auth_context import AuthContext, require_authenticated
 from app.services.operation_logs import list_account_logs
 from app.services.sensitive_audit import audit_event_to_dict, list_sensitive_audit_events
 

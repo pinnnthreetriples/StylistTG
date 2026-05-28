@@ -1,0 +1,19 @@
+"""Action sequencer — deterministic seeded shuffle for planned actions."""
+
+from __future__ import annotations
+
+import random
+from typing import TypeVar
+
+T = TypeVar("T")
+
+
+def shuffle(actions: list[T], seed: int) -> list[T]:
+    """Return a new list with actions deterministically shuffled by seed."""
+    if len(actions) <= 1:
+        return list(actions)
+
+    r = random.Random(seed)
+    result = list(actions)
+    r.shuffle(result)
+    return result

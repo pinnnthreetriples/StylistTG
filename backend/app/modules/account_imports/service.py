@@ -60,7 +60,14 @@ def validate_batch(
 ) -> AccountImportBatch:
     batch = _require_batch(session, batch_id, workspace_id)
     batch.status = "validating"
-    session.query(AccountImportItem).filter(AccountImportItem.batch_id == batch.id).delete()
+    (
+        session.query(AccountImportItem)
+        .filter(
+            AccountImportItem.batch_id == batch.id,
+            AccountImportItem.workspace_id == batch.workspace_id,
+        )
+        .delete()
+    )
     items = validate_import_source(
         source_type=batch.source_type, content=content, metadata=metadata
     )

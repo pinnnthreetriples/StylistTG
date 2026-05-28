@@ -1,0 +1,507 @@
+{
+  "entries": [
+    {
+      "entry_id": "residual-legacy-account-audit",
+      "existing_paths": [
+        "backend/app/api/account_audit_routes.py"
+      ],
+      "owner": "account_audit",
+      "paths": [
+        "backend/app/api/account_audit_routes.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_audit_routes.py:function:get_account_audit_events",
+        "backend/app/api/account_audit_routes.py:function:get_account_operation_logs",
+        "backend/app/api/account_audit_routes.py:route:GET /{account_id}/audit-events -> get_account_audit_events",
+        "backend/app/api/account_audit_routes.py:route:GET /{account_id}/operation-logs -> get_account_operation_logs"
+      ],
+      "rationale": "Account audit transport remains feature-owned production code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+      "related_issue": "#213",
+      "removal_condition": "Remove this residual entry only after #213 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-core",
+      "existing_paths": [
+        "backend/app/api/account_compat_routes.py",
+        "backend/app/api/account_context.py",
+        "backend/app/api/accounts.py",
+        "backend/app/contracts/accounts.py",
+        "backend/app/contracts/cross_module_load.py",
+        "backend/app/services/account_bundle.py",
+        "backend/app/services/account_capabilities.py",
+        "backend/app/services/accounts.py"
+      ],
+      "owner": "account_core",
+      "paths": [
+        "backend/app/api/account_compat_routes.py",
+        "backend/app/api/account_context.py",
+        "backend/app/api/accounts.py",
+        "backend/app/services/account_bundle.py",
+        "backend/app/services/account_capabilities.py",
+        "backend/app/services/accounts.py",
+        "backend/app/contracts/accounts.py",
+        "backend/app/contracts/cross_module_load.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_compat_routes.py:function:get_account_auth_state_from_header",
+        "backend/app/api/account_compat_routes.py:function:latest_job_from_header",
+        "backend/app/api/account_compat_routes.py:function:list_jobs_from_header",
+        "backend/app/api/account_compat_routes.py:function:refresh_runtime_from_header",
+        "backend/app/api/account_compat_routes.py:function:runtime_diagnostics_from_header",
+        "backend/app/api/account_compat_routes.py:route:GET /auth-state -> get_account_auth_state_from_header",
+        "backend/app/api/account_compat_routes.py:route:GET /jobs -> list_jobs_from_header",
+        "backend/app/api/account_compat_routes.py:route:GET /jobs/latest -> latest_job_from_header",
+        "backend/app/api/account_compat_routes.py:route:GET /runtime-diagnostics -> runtime_diagnostics_from_header",
+        "backend/app/api/account_compat_routes.py:route:POST /refresh-runtime -> refresh_runtime_from_header",
+        "backend/app/api/account_context.py:function:account_id_header",
+        "backend/app/api/accounts.py:function:account_list_item",
+        "backend/app/api/accounts.py:function:delete_account_endpoint",
+        "backend/app/api/accounts.py:function:get_account_endpoint",
+        "backend/app/api/accounts.py:function:get_accounts",
+        "backend/app/api/accounts.py:function:post_account",
+        "backend/app/api/accounts.py:route:DELETE /{account_id} -> delete_account_endpoint",
+        "backend/app/api/accounts.py:route:GET /{account_id} -> get_account_endpoint",
+        "backend/app/contracts/accounts.py:class:ProfileAudioAction",
+        "backend/app/contracts/accounts.py:class:ProfilePreviewRead",
+        "backend/app/contracts/accounts.py:class:ProfilePreviewStepRead",
+        "backend/app/contracts/cross_module_load.py:class:CrossModuleLoad",
+        "backend/app/services/account_bundle.py:function:get_account_dashboard_bundle",
+        "backend/app/services/account_bundle.py:function:get_latest_job_for_account",
+        "backend/app/services/account_capabilities.py:function:build_account_capabilities",
+        "backend/app/services/accounts.py:function:create_account",
+        "backend/app/services/accounts.py:function:delete_account",
+        "backend/app/services/accounts.py:function:get_account",
+        "backend/app/services/accounts.py:function:get_account_by_external_ref",
+        "backend/app/services/accounts.py:function:list_accounts"
+      ],
+      "rationale": "Core account CRUD, context, bundle, capabilities, and DTO surfaces remain active feature-owned production code outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#214",
+      "removal_condition": "Remove this residual entry only after #214 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-ggr",
+      "existing_paths": [
+        "backend/app/api/account_ggr_routes.py",
+        "backend/app/contracts/ggr.py",
+        "backend/app/services/fraud_score.py",
+        "backend/app/services/ggr_calculator.py"
+      ],
+      "owner": "account_ggr",
+      "paths": [
+        "backend/app/api/account_ggr_routes.py",
+        "backend/app/services/fraud_score.py",
+        "backend/app/services/ggr_calculator.py",
+        "backend/app/contracts/ggr.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_ggr_routes.py:function:get_account_ggr",
+        "backend/app/api/account_ggr_routes.py:route:GET /{account_id}/ggr -> get_account_ggr",
+        "backend/app/contracts/ggr.py:class:GgrBreakdownRead",
+        "backend/app/contracts/ggr.py:class:GgrScoreRead",
+        "backend/app/services/fraud_score.py:class:FraudAssessment",
+        "backend/app/services/fraud_score.py:class:FraudScoreProvider",
+        "backend/app/services/fraud_score.py:class:MockFraudScoreProvider",
+        "backend/app/services/fraud_score.py:class:ProxyAssessmentInput",
+        "backend/app/services/fraud_score.py:class:UnavailableFraudScoreProvider",
+        "backend/app/services/fraud_score.py:function:build_fraud_score_provider",
+        "backend/app/services/ggr_calculator.py:function:backfill_ggr_scores",
+        "backend/app/services/ggr_calculator.py:function:calculate_ggr",
+        "backend/app/services/ggr_calculator.py:function:compute_bucket",
+        "backend/app/services/ggr_calculator.py:function:compute_components",
+        "backend/app/services/ggr_calculator.py:function:compute_score",
+        "backend/app/services/ggr_calculator.py:function:get_ggr_score",
+        "backend/app/services/ggr_calculator.py:function:recalculate_due_scores"
+      ],
+      "rationale": "GGR and fraud scoring remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#215",
+      "removal_condition": "Remove this residual entry only after #215 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-imports",
+      "existing_paths": [
+        "backend/app/api/account_imports.py",
+        "backend/app/services/account_imports.py"
+      ],
+      "owner": "account_imports",
+      "paths": [
+        "backend/app/api/account_imports.py",
+        "backend/app/services/account_imports.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_imports.py:function:get_import_batch_detail",
+        "backend/app/api/account_imports.py:function:get_import_batches",
+        "backend/app/api/account_imports.py:function:post_confirm_import_batch",
+        "backend/app/api/account_imports.py:function:post_import_batch",
+        "backend/app/api/account_imports.py:function:post_validate_import_batch",
+        "backend/app/api/account_imports.py:route:GET /{batch_id} -> get_import_batch_detail",
+        "backend/app/api/account_imports.py:route:POST /{batch_id}/confirm -> post_confirm_import_batch",
+        "backend/app/api/account_imports.py:route:POST /{batch_id}/validate -> post_validate_import_batch",
+        "backend/app/services/account_imports.py:function:confirm_import_batch",
+        "backend/app/services/account_imports.py:function:create_import_batch",
+        "backend/app/services/account_imports.py:function:get_import_batch",
+        "backend/app/services/account_imports.py:function:import_batch_to_dict",
+        "backend/app/services/account_imports.py:function:import_item_to_dict",
+        "backend/app/services/account_imports.py:function:list_import_batches",
+        "backend/app/services/account_imports.py:function:metadata_to_bytes",
+        "backend/app/services/account_imports.py:function:validate_batch"
+      ],
+      "rationale": "Account import remains an onboarding/import feature surface outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+      "related_issue": "#216",
+      "removal_condition": "Remove this residual entry only after #216 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-jobs",
+      "existing_paths": [
+        "backend/app/api/account_jobs_routes.py"
+      ],
+      "owner": "account_jobs",
+      "paths": [
+        "backend/app/api/account_jobs_routes.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_jobs_routes.py:function:latest_job",
+        "backend/app/api/account_jobs_routes.py:function:list_jobs",
+        "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs -> list_jobs",
+        "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs/latest -> latest_job"
+      ],
+      "rationale": "Account job transport remains account feature/read-model code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+      "related_issue": "#217",
+      "removal_condition": "Remove this residual entry only after #217 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-profile-state",
+      "existing_paths": [
+        "backend/app/services/profile_audio_state.py",
+        "backend/app/services/profile_photo_state.py",
+        "backend/app/services/profile_sync.py"
+      ],
+      "owner": "account_profile_state",
+      "paths": [
+        "backend/app/services/profile_audio_state.py",
+        "backend/app/services/profile_photo_state.py",
+        "backend/app/services/profile_sync.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/services/profile_audio_state.py:function:clear_profile_audio_state",
+        "backend/app/services/profile_audio_state.py:function:profile_audio_state_payload",
+        "backend/app/services/profile_audio_state.py:function:upsert_profile_audio_state",
+        "backend/app/services/profile_photo_state.py:function:batch_latest_profile_photo_asset_ids",
+        "backend/app/services/profile_photo_state.py:function:latest_applied_profile_photo_asset_id",
+        "backend/app/services/profile_sync.py:class:ProfileSyncAdapter",
+        "backend/app/services/profile_sync.py:class:TdlibProfileSyncAdapter",
+        "backend/app/services/profile_sync.py:class:UnavailableProfileSyncAdapter",
+        "backend/app/services/profile_sync.py:function:build_profile_sync_adapter",
+        "backend/app/services/profile_sync.py:function:sync_account_live_story_posts",
+        "backend/app/services/profile_sync.py:function:sync_account_profile_snapshot",
+        "backend/app/services/profile_sync.py:function:sync_account_profile_state"
+      ],
+      "rationale": "Profile audio/photo/sync helpers remain profile-state feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#218",
+      "removal_condition": "Remove this residual entry only after #218 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-proxy",
+      "existing_paths": [
+        "backend/app/api/account_proxy_routes.py",
+        "backend/app/services/proxy_accounts.py",
+        "backend/app/services/proxy_checks.py"
+      ],
+      "owner": "account_proxy",
+      "paths": [
+        "backend/app/api/account_proxy_routes.py",
+        "backend/app/services/proxy_accounts.py",
+        "backend/app/services/proxy_checks.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_proxy_routes.py:function:delete_account_proxy_endpoint",
+        "backend/app/api/account_proxy_routes.py:function:get_account_proxy_endpoint",
+        "backend/app/api/account_proxy_routes.py:function:get_accounts_proxy_summary",
+        "backend/app/api/account_proxy_routes.py:function:post_account_proxy_check",
+        "backend/app/api/account_proxy_routes.py:function:put_account_proxy",
+        "backend/app/api/account_proxy_routes.py:route:DELETE /{account_id}/proxy -> delete_account_proxy_endpoint",
+        "backend/app/api/account_proxy_routes.py:route:GET /proxy-summary -> get_accounts_proxy_summary",
+        "backend/app/api/account_proxy_routes.py:route:GET /{account_id}/proxy -> get_account_proxy_endpoint",
+        "backend/app/api/account_proxy_routes.py:route:POST /{account_id}/proxy/check -> post_account_proxy_check",
+        "backend/app/api/account_proxy_routes.py:route:PUT /{account_id}/proxy -> put_account_proxy",
+        "backend/app/services/proxy_accounts.py:function:decrypt_proxy_password",
+        "backend/app/services/proxy_accounts.py:function:delete_account_proxy",
+        "backend/app/services/proxy_accounts.py:function:get_account_proxy",
+        "backend/app/services/proxy_accounts.py:function:proxy_summary",
+        "backend/app/services/proxy_accounts.py:function:proxy_to_dict",
+        "backend/app/services/proxy_accounts.py:function:upsert_account_proxy",
+        "backend/app/services/proxy_checks.py:class:ProxyConnectivityChecker",
+        "backend/app/services/proxy_checks.py:class:TcpProxyConnectivityChecker",
+        "backend/app/services/proxy_checks.py:class:TdlibProxyChecker",
+        "backend/app/services/proxy_checks.py:function:check_account_proxy"
+      ],
+      "rationale": "Proxy assignment and check surfaces remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#219",
+      "removal_condition": "Remove this residual entry only after #219 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-quarantine",
+      "existing_paths": [
+        "backend/app/api/account_quarantine_routes.py",
+        "backend/app/contracts/quarantine.py",
+        "backend/app/services/account_quarantine.py"
+      ],
+      "owner": "account_quarantine",
+      "paths": [
+        "backend/app/api/account_quarantine_routes.py",
+        "backend/app/services/account_quarantine.py",
+        "backend/app/contracts/quarantine.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_quarantine_routes.py:function:admin_override_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:function:clear_account_terminal_status",
+        "backend/app/api/account_quarantine_routes.py:function:get_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:function:release_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:route:GET /{account_id}/quarantine -> get_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:route:POST /{account_id}/quarantine/admin-override -> admin_override_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:route:POST /{account_id}/quarantine/release -> release_account_quarantine",
+        "backend/app/api/account_quarantine_routes.py:route:POST /{account_id}/terminal-status/clear -> clear_account_terminal_status",
+        "backend/app/contracts/quarantine.py:class:AccountQuarantineRead",
+        "backend/app/contracts/quarantine.py:class:AdminReasonRequest",
+        "backend/app/contracts/quarantine.py:class:ReleaseRequest",
+        "backend/app/contracts/quarantine.py:class:TerminalStatusClearRead",
+        "backend/app/services/account_quarantine.py:class:AccountQuarantineService",
+        "backend/app/services/account_quarantine.py:class:QuarantineNotFound",
+        "backend/app/services/account_quarantine.py:function:admin_override_release",
+        "backend/app/services/account_quarantine.py:function:create_quarantine",
+        "backend/app/services/account_quarantine.py:function:get_active_quarantine",
+        "backend/app/services/account_quarantine.py:function:get_unreleased_quarantine",
+        "backend/app/services/account_quarantine.py:function:handle_flood_wait",
+        "backend/app/services/account_quarantine.py:function:is_account_quarantined",
+        "backend/app/services/account_quarantine.py:function:release_quarantine"
+      ],
+      "rationale": "Quarantine remains safety-adjacent account feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+      "related_issue": "#220",
+      "removal_condition": "Remove this residual entry only after #220 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-runtime-status",
+      "existing_paths": [
+        "backend/app/api/account_runtime_routes.py",
+        "backend/app/api/account_status_routes.py",
+        "backend/app/contracts/account_status.py",
+        "backend/app/services/account_cooldowns.py",
+        "backend/app/services/account_health.py",
+        "backend/app/services/account_risk.py",
+        "backend/app/services/account_status_monitor.py",
+        "backend/app/services/account_terminal_status.py"
+      ],
+      "owner": "account_runtime_status",
+      "paths": [
+        "backend/app/api/account_runtime_routes.py",
+        "backend/app/api/account_status_routes.py",
+        "backend/app/services/account_cooldowns.py",
+        "backend/app/services/account_health.py",
+        "backend/app/services/account_risk.py",
+        "backend/app/services/account_status_monitor.py",
+        "backend/app/services/account_terminal_status.py",
+        "backend/app/contracts/account_status.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/account_runtime_routes.py:function:post_account_reauth_session",
+        "backend/app/api/account_runtime_routes.py:function:refresh_runtime",
+        "backend/app/api/account_runtime_routes.py:function:runtime_diagnostics",
+        "backend/app/api/account_runtime_routes.py:route:GET /{account_id}/runtime-diagnostics -> runtime_diagnostics",
+        "backend/app/api/account_runtime_routes.py:route:POST /{account_id}/reauth-sessions -> post_account_reauth_session",
+        "backend/app/api/account_runtime_routes.py:route:POST /{account_id}/refresh-runtime -> refresh_runtime",
+        "backend/app/api/account_status_routes.py:function:list_account_status_observations",
+        "backend/app/api/account_status_routes.py:route:GET /{account_id}/status-observations -> list_account_status_observations",
+        "backend/app/contracts/account_status.py:class:AccountStatusObservationRead",
+        "backend/app/services/account_cooldowns.py:function:active_cooldowns_by_operation",
+        "backend/app/services/account_cooldowns.py:function:batch_active_cooldowns_by_operation",
+        "backend/app/services/account_cooldowns.py:function:batch_latest_succeeded_steps",
+        "backend/app/services/account_cooldowns.py:function:batch_recent_failed_steps",
+        "backend/app/services/account_cooldowns.py:function:cooldown_from_failed_step",
+        "backend/app/services/account_cooldowns.py:function:cooldown_to_dict",
+        "backend/app/services/account_cooldowns.py:function:create_cooldown_from_error",
+        "backend/app/services/account_cooldowns.py:function:ensure_cooldowns_from_recent_failures",
+        "backend/app/services/account_cooldowns.py:function:list_active_account_cooldowns",
+        "backend/app/services/account_cooldowns.py:function:merge_cooldowns",
+        "backend/app/services/account_cooldowns.py:function:product_cooldown_seconds",
+        "backend/app/services/account_cooldowns.py:function:product_cooldowns_by_operation",
+        "backend/app/services/account_cooldowns.py:function:product_cooldowns_from_steps",
+        "backend/app/services/account_cooldowns.py:function:recent_failure_cooldowns_by_operation",
+        "backend/app/services/account_cooldowns.py:function:recent_failure_cooldowns_from_steps",
+        "backend/app/services/account_health.py:function:batch_latest_failed_steps",
+        "backend/app/services/account_health.py:function:batch_latest_jobs",
+        "backend/app/services/account_health.py:function:build_reason",
+        "backend/app/services/account_health.py:function:collect_account_health_signals",
+        "backend/app/services/account_health.py:function:collect_account_health_signals_prefetched",
+        "backend/app/services/account_risk.py:function:build_account_readiness_risk",
+        "backend/app/services/account_risk.py:function:build_account_readiness_risk_summary",
+        "backend/app/services/account_risk.py:function:build_risk_by_operation",
+        "backend/app/services/account_risk.py:function:overall_risk_level",
+        "backend/app/services/account_status_monitor.py:class:AccountStatusMonitor",
+        "backend/app/services/account_status_monitor.py:class:AccountStatusProbe",
+        "backend/app/services/account_status_monitor.py:class:AccountStatusProbeResult",
+        "backend/app/services/account_status_monitor.py:class:DatabaseSnapshotStatusProbe",
+        "backend/app/services/account_status_monitor.py:class:StatusMonitorReport",
+        "backend/app/services/account_status_monitor.py:class:StatusMonitorStateStore",
+        "backend/app/services/account_status_monitor.py:function:is_in_ip_change_cooldown",
+        "backend/app/services/account_status_monitor.py:function:run_account_status_monitor_tick",
+        "backend/app/services/account_terminal_status.py:class:TerminalStatusAlreadyNone",
+        "backend/app/services/account_terminal_status.py:class:TerminalStatusClearResult",
+        "backend/app/services/account_terminal_status.py:class:TerminalStatusColumnUnavailable",
+        "backend/app/services/account_terminal_status.py:function:clear_terminal_status"
+      ],
+      "rationale": "Runtime health, status, cooldown, risk, and terminal-state surfaces remain account runtime feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#221",
+      "removal_condition": "Remove this residual entry only after #221 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-account-validity",
+      "existing_paths": [
+        "backend/app/services/account_validity.py"
+      ],
+      "owner": "account_validity",
+      "paths": [
+        "backend/app/services/account_validity.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/services/account_validity.py:class:ReadOnlyAccountValidityAdapter",
+        "backend/app/services/account_validity.py:function:latest_account_validity_check",
+        "backend/app/services/account_validity.py:function:list_account_validity_checks",
+        "backend/app/services/account_validity.py:function:run_account_validity_check",
+        "backend/app/services/account_validity.py:function:validity_check_run_to_dict"
+      ],
+      "rationale": "Validity checks remain safety-adjacent runtime feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#222",
+      "removal_condition": "Remove this residual entry only after #222 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-bought-onboarding",
+      "existing_paths": [
+        "backend/app/api/bought_onboarding_routes.py",
+        "backend/app/contracts/bought_onboarding.py",
+        "backend/app/services/bought_account_onboarding.py"
+      ],
+      "owner": "bought_onboarding",
+      "paths": [
+        "backend/app/api/bought_onboarding_routes.py",
+        "backend/app/services/bought_account_onboarding.py",
+        "backend/app/contracts/bought_onboarding.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/bought_onboarding_routes.py:function:get_account_bought_onboarding_status",
+        "backend/app/api/bought_onboarding_routes.py:function:start_account_bought_onboarding",
+        "backend/app/api/bought_onboarding_routes.py:route:GET /{account_id}/bought-onboarding/status -> get_account_bought_onboarding_status",
+        "backend/app/api/bought_onboarding_routes.py:route:POST /{account_id}/bought-onboarding/start -> start_account_bought_onboarding",
+        "backend/app/contracts/bought_onboarding.py:class:BoughtOnboardingStatusRead",
+        "backend/app/services/bought_account_onboarding.py:class:BoughtOnboardingNotFound",
+        "backend/app/services/bought_account_onboarding.py:function:enable_two_factor",
+        "backend/app/services/bought_account_onboarding.py:function:get_onboarding_state",
+        "backend/app/services/bought_account_onboarding.py:function:process_rest_period_ggr_check",
+        "backend/app/services/bought_account_onboarding.py:function:run_rest_period_ggr_check",
+        "backend/app/services/bought_account_onboarding.py:function:run_terminate_other_sessions",
+        "backend/app/services/bought_account_onboarding.py:function:start_bought_onboarding",
+        "backend/app/services/bought_account_onboarding.py:function:status_read",
+        "backend/app/services/bought_account_onboarding.py:function:terminate_other_sessions"
+      ],
+      "rationale": "Bought-account onboarding remains account onboarding feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+      "related_issue": "#223",
+      "removal_condition": "Remove this residual entry only after #223 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-human-behavior",
+      "existing_paths": [
+        "backend/app/api/human_behavior_routes.py",
+        "backend/app/contracts/human_behavior.py",
+        "backend/app/services/human_behavior/__init__.py",
+        "backend/app/services/human_behavior/action_sequencer.py",
+        "backend/app/services/human_behavior/behavior_profile.py",
+        "backend/app/services/human_behavior/decoy_actions.py",
+        "backend/app/services/human_behavior/typing_emulator.py",
+        "backend/app/services/human_behavior/typo_generator.py"
+      ],
+      "owner": "human_behavior",
+      "paths": [
+        "backend/app/api/human_behavior_routes.py",
+        "backend/app/services/human_behavior/**",
+        "backend/app/contracts/human_behavior.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/human_behavior_routes.py:function:get_behavior_profile",
+        "backend/app/api/human_behavior_routes.py:route:GET /{account_id}/behavior-profile -> get_behavior_profile",
+        "backend/app/contracts/human_behavior.py:class:BehaviorProfileRead",
+        "backend/app/services/human_behavior/action_sequencer.py:function:shuffle",
+        "backend/app/services/human_behavior/behavior_profile.py:class:SessionProfile",
+        "backend/app/services/human_behavior/behavior_profile.py:function:get_or_create_baseline",
+        "backend/app/services/human_behavior/behavior_profile.py:function:randomize_for_session",
+        "backend/app/services/human_behavior/decoy_actions.py:class:DecoyAction",
+        "backend/app/services/human_behavior/decoy_actions.py:function:run_before_send",
+        "backend/app/services/human_behavior/typing_emulator.py:class:TypingFragment",
+        "backend/app/services/human_behavior/typing_emulator.py:function:emit_typing",
+        "backend/app/services/human_behavior/typing_emulator.py:function:total_duration",
+        "backend/app/services/human_behavior/typo_generator.py:class:TypoResult",
+        "backend/app/services/human_behavior/typo_generator.py:function:maybe_typo"
+      ],
+      "rationale": "Human-behavior policy/runtime surfaces remain feature logic outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#224",
+      "removal_condition": "Remove this residual entry only after #224 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    },
+    {
+      "entry_id": "residual-legacy-story-surfaces",
+      "existing_paths": [
+        "backend/app/api/story_capabilities.py",
+        "backend/app/api/story_drafts.py",
+        "backend/app/api/story_posts.py",
+        "backend/app/services/story_capabilities.py",
+        "backend/app/services/story_drafts.py",
+        "backend/app/services/story_posts.py"
+      ],
+      "owner": "story",
+      "paths": [
+        "backend/app/api/story_*.py",
+        "backend/app/services/story_*.py"
+      ],
+      "public_api_fingerprint": [
+        "backend/app/api/story_capabilities.py:function:get_story_capabilities",
+        "backend/app/api/story_capabilities.py:function:get_story_capabilities_from_header",
+        "backend/app/api/story_capabilities.py:route:GET /{account_id} -> get_story_capabilities",
+        "backend/app/api/story_drafts.py:function:get_story_drafts",
+        "backend/app/api/story_drafts.py:function:get_story_drafts_from_header",
+        "backend/app/api/story_drafts.py:function:patch_story_draft",
+        "backend/app/api/story_drafts.py:function:post_story_draft",
+        "backend/app/api/story_drafts.py:function:remove_story_draft",
+        "backend/app/api/story_drafts.py:route:DELETE /{draft_id} -> remove_story_draft",
+        "backend/app/api/story_drafts.py:route:GET /{account_id} -> get_story_drafts",
+        "backend/app/api/story_drafts.py:route:PATCH /{draft_id} -> patch_story_draft",
+        "backend/app/api/story_posts.py:function:delete_story_post",
+        "backend/app/api/story_posts.py:route:DELETE /{story_post_id} -> delete_story_post",
+        "backend/app/services/story_capabilities.py:function:build_story_capabilities",
+        "backend/app/services/story_drafts.py:function:create_story_draft",
+        "backend/app/services/story_drafts.py:function:delete_story_draft",
+        "backend/app/services/story_drafts.py:function:delete_story_drafts_for_asset",
+        "backend/app/services/story_drafts.py:function:list_story_drafts",
+        "backend/app/services/story_drafts.py:function:update_story_draft",
+        "backend/app/services/story_posts.py:function:create_story_post_from_result",
+        "backend/app/services/story_posts.py:function:delete_profile_story",
+        "backend/app/services/story_posts.py:function:list_story_posts",
+        "backend/app/services/story_posts.py:function:story_post_payload"
+      ],
+      "rationale": "Story draft/post/capability surfaces remain feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+      "related_issue": "#225",
+      "removal_condition": "Remove this residual entry only after #225 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+      "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
+    }
+  ],
+  "generated_from_issue": "#212",
+  "policy": "Residual legacy feature boundaries are open modularisation debt. Any path or public route/function/class fingerprint growth requires a reviewed manifest update with owner, related issue, rationale, removal condition, and verification scope.",
+  "schema_version": 2
+}

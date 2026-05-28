@@ -87,6 +87,8 @@ The machine-readable source is `docs/architecture/legacy-wrappers.json`, validat
 ## Current Status
 
 All wrappers remain in `stage_0_compatibility_active`. No wrapper is removed, renamed, or deprecated at runtime in this PR.
-Architecture Epic Phase 6B treats this Stage 0 compatibility state as accepted
-closure evidence, not as a blocker. Wrapper retirement remains a separate
+Architecture Epic Phase 6C still treats behavior-free canonical wrappers as
+accepted compatibility evidence. That acceptance does not apply to active
+residual legacy feature boundaries, which remain visible architecture debt until
+migrated or reduced to wrappers. Wrapper retirement remains a separate
 behavior-preserving compatibility program.

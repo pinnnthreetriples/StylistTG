@@ -9,5 +9,18 @@ from __future__ import annotations
 import sys
 
 from app.modules.account_proxy import checks as _checks_module
+from app.modules.account_proxy.checks import (
+    ProxyConnectivityChecker,
+    TcpProxyConnectivityChecker,
+    TdlibProxyChecker,
+    check_account_proxy,
+)
+
+__all__ = [
+    "ProxyConnectivityChecker",
+    "TcpProxyConnectivityChecker",
+    "TdlibProxyChecker",
+    "check_account_proxy",
+]
 
 sys.modules[__name__] = _checks_module

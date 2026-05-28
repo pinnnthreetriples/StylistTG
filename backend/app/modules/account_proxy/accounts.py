@@ -64,7 +64,9 @@ def upsert_account_proxy(
     if lookup_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     _validate_proxy(proxy_type=proxy_type, host=host, port=port)
-    encrypted_password = _encrypt_password(password, config=config) if password else None
+    encrypted_password = (
+        _encrypt_password(password, config=config) if password else None
+    )
     row = session.get(AccountProxy, account_id)
     if row is None:
         row = AccountProxy(account_id=account_id)
@@ -147,7 +149,9 @@ def proxy_to_dict(row: AccountProxy) -> dict[str, Any]:
     }
 
 
-def decrypt_proxy_password(row: AccountProxy, *, config: Settings = settings) -> str | None:
+def decrypt_proxy_password(
+    row: AccountProxy, *, config: Settings = settings
+) -> str | None:
     if not row.password_encrypted:
         return None
     if not config.proxy_credentials_encryption_key:
@@ -172,7 +176,9 @@ def _validate_proxy(*, proxy_type: str, host: str, port: int) -> None:
         raise ValueError("proxy_port_invalid")
 
 
-def _encrypt_password(password: str | None, *, config: Settings = settings) -> str | None:
+def _encrypt_password(
+    password: str | None, *, config: Settings = settings
+) -> str | None:
     if not password:
         return None
     if not config.proxy_credentials_encryption_key:

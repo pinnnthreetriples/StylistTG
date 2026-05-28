@@ -14,7 +14,10 @@ from app.modules.account_proxy.accounts import (
 )
 from app.modules.account_proxy.checks import check_account_proxy
 from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
+from app.modules.auth.dependencies import (
+    require_authenticated,
+    require_mutation_permission,
+)
 from app.modules.warmup.service import warmup_operation_policy
 from app.schemas import (
     AccountProxyRead,
@@ -68,7 +71,10 @@ def put_account_proxy(
 ):
     require_account_in_workspace(session, account_id, auth)
     _raise_if_warmup_locked(
-        session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change"
+        session,
+        account_id=account_id,
+        workspace_id=auth.workspace_id,
+        operation="proxy_change",
     )
     try:
         return upsert_account_proxy(
@@ -93,7 +99,10 @@ def delete_account_proxy_endpoint(
 ):
     require_account_in_workspace(session, account_id, auth)
     _raise_if_warmup_locked(
-        session, account_id=account_id, workspace_id=auth.workspace_id, operation="proxy_change"
+        session,
+        account_id=account_id,
+        workspace_id=auth.workspace_id,
+        operation="proxy_change",
     )
     try:
         delete_account_proxy(session, account_id, workspace_id=auth.workspace_id)
@@ -139,9 +148,13 @@ def _proxy_error(exc: ValueError, *, operation: str = "operation") -> AppError:
         )
     return AppError(
         status_code=status.HTTP_400_BAD_REQUEST,
-        error_code="PROXY_CHECK_FAILED" if operation == "check" else "PROXY_OPERATION_FAILED",
+        error_code="PROXY_CHECK_FAILED"
+        if operation == "check"
+        else "PROXY_OPERATION_FAILED",
         error_class="proxy",
-        message="Proxy check failed" if operation == "check" else "Proxy operation failed",
+        message="Proxy check failed"
+        if operation == "check"
+        else "Proxy operation failed",
     )
 
 

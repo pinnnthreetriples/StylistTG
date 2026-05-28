@@ -15,12 +15,12 @@ from app.modules.account_proxy.accounts import (
 from app.modules.account_proxy.checks import check_account_proxy
 from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
+from app.modules.warmup.service import warmup_operation_policy
 from app.schemas import (
     AccountProxyRead,
     AccountProxySummaryRead,
     AccountProxyUpsert,
 )
-from app.services.warmup import warmup_operation_policy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 

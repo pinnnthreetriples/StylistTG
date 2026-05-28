@@ -18,16 +18,13 @@ from app.modules.account_imports.service import (
     list_import_batches,
     validate_batch,
 )
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
 from app.schemas import (
     AccountImportBatchConfirm,
     AccountImportBatchCreate,
     AccountImportBatchRead,
     AccountImportBatchValidate,
-)
-from app.services.auth_context import (
-    AuthContext,
-    require_authenticated,
-    require_mutation_permission,
 )
 
 router = APIRouter(prefix="/api/account-import-batches", tags=["account-import-batches"])

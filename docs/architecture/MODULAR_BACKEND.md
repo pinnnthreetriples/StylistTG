@@ -56,6 +56,12 @@ public route/function/class fingerprint. Any new residual path or new public
 surface in those paths must update that manifest with reviewable governance or
 move the behavior into a canonical module.
 
+This guard is a public-surface/non-growth control. It does not prove that
+runtime behavior inside residual legacy files has been migrated. Behavior
+changes or feature enhancements in residual boundaries require the matching
+migration issue/implementation PR or a separately approved architecture
+exception; a manifest update alone is not a substitute for canonical migration.
+
 ## Module Rules
 
 - A module may expose workflow metadata through `FeatureModule`.

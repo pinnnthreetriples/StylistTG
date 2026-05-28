@@ -1931,7 +1931,7 @@ def _backend_overall_evidence(debt_summary: dict[str, Any]) -> str:
         )
     if residual_count:
         return f"{residual_count} residual legacy feature boundaries remain outside app.modules."
-    return "No unmanaged feature debt remains."
+    return "No unmanaged or residual feature-boundary debt remains."
 
 
 def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
@@ -2015,7 +2015,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     unmanaged_evidence = (
         ", ".join(entry["owner"] for entry in high_debt)
         if high_debt
-        else ", ".join(entry["owner"] for entry in unmanaged_debt) or "No unmanaged feature debt."
+        else ", ".join(entry["owner"] for entry in unmanaged_debt)
+        or "No untracked unmanaged feature surfaces; residual debt is reported separately."
     )
     residual_status = "YELLOW" if residual_debt else "GREEN"
     residual_evidence = (
@@ -2082,13 +2083,23 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     "Residual boundary non-growth guard",
                     "RED" if residual_guard_violations else "GREEN",
                     "<br>".join(residual_guard_violations)
-                    or "Manifest paths and public API fingerprints match current residual files.",
+                    or (
+                        "Public-surface/non-growth guard covers current residual files, "
+                        "paths, and public route/function/class fingerprints."
+                    ),
                     (
                         "Residual feature boundaries can grow silently if the manifest is stale."
                         if residual_guard_violations
-                        else "Low while guard fingerprints block silent public-surface growth."
+                        else (
+                            "Low for public-surface growth only; behavior changes inside "
+                            "existing residual files still require migration or an approved "
+                            "architecture exception."
+                        )
                     ),
-                    "Update manifest only with owner, related issue, rationale, removal condition, and verification scope.",
+                    (
+                        "Use migration issues for behavior changes; a manifest update alone "
+                        "does not replace canonical migration."
+                    ),
                 ),
                 (
                     "Generated artifacts",
@@ -2221,7 +2232,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     "Residual boundary growth",
                     "GREEN" if not residual_guard_violations else "RED",
                     "<br>".join(residual_guard_violations)
-                    or "Residual manifest covers every current file and public route/function/class surface.",
+                    or (
+                        "Public-surface/non-growth guard covers every current residual "
+                        "file and public route/function/class surface; behavior-changing "
+                        "updates still require migration or an approved architecture exception."
+                    ),
                 ),
                 (
                     "Forbidden contract imports",

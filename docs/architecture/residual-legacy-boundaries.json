@@ -502,6 +502,6 @@
     }
   ],
   "generated_from_issue": "#212",
-  "policy": "Residual legacy feature boundaries are open modularisation debt. Any path or public route/function/class fingerprint growth requires a reviewed manifest update with owner, related issue, rationale, removal condition, and verification scope.",
+  "policy": "Residual legacy feature boundaries are open modularisation debt. This manifest is a public-surface/non-growth governance guard: any path or public route/function/class fingerprint growth requires a reviewed manifest update with owner, related issue, rationale, removal condition, and verification scope. Behavior-changing updates inside existing residual files require the corresponding migration issue/implementation PR or a separate approved architecture exception. Feature enhancements must not accumulate in residual legacy files, and a manifest update alone does not replace canonical migration.",
   "schema_version": 2
 }

@@ -587,7 +587,10 @@ def test_phase_six_c_markdown_is_truthful_yellow() -> None:
         "| Backend overall | YELLOW | 13 residual legacy feature boundaries remain outside app.modules."
         in markdown
     )
-    assert "| Unmanaged feature debt | GREEN | No unmanaged feature debt." in markdown
+    assert (
+        "| Unmanaged feature debt | GREEN | No untracked unmanaged feature surfaces; residual debt is reported separately."
+        in markdown
+    )
     assert "| Residual legacy feature boundaries | YELLOW |" in markdown
     assert "| Frontend ownership | GREEN |" in markdown
     assert "| STRUCTURE-001 | medium | open |" in markdown
@@ -638,7 +641,7 @@ def test_structure_audit_synthetic_all_residual_boundaries_migrated_permits_gree
     assert "no unmanaged feature debt is open" in findings["STRUCTURE-001"]["evidence"]
     assert findings["STRUCTURE-008"]["status"] == "accepted"
     assert findings["STRUCTURE-008"]["severity"] == "info"
-    assert "No unmanaged feature debt remains." in markdown
+    assert "No unmanaged or residual feature-boundary debt remains." in markdown
     assert "unmanaged feature surfaces remain" not in markdown
     backend_modules_row = next(
         line for line in markdown.splitlines() if line.startswith("| Backend modules |")

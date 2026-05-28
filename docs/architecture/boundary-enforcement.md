@@ -139,11 +139,18 @@ The residual legacy feature boundary manifest lives at
 Rules:
 
 - residual entries are open architecture debt, not final GREEN closure;
+- the manifest is a public-surface/non-growth governance guard, not proof that
+  residual runtime behavior has been migrated;
 - each residual entry needs owner, related issue, rationale, removal condition,
   verification scope, current paths, and a public API fingerprint;
 - adding a new residual file or public route/function/class in a guarded
   residual file fails the structure audit until governance is updated or the
   behavior moves into a canonical module;
+- behavior-changing updates inside an existing residual legacy boundary must
+  happen under the corresponding migration issue/implementation PR or a
+  separate approved architecture exception;
+- feature enhancements must not continue accumulating in residual legacy files;
+- updating the manifest by itself does not replace canonical migration;
 - accepted residual boundaries do not weaken Dependency Rule enforcement for
   canonical modules.
 

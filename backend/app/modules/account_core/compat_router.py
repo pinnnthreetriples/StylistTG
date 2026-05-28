@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.modules.account_core.context import account_id_header
-from app.modules.account_jobs.router import latest_job, list_jobs
 from app.schemas import (
     AccountRuntimeDiagnosticsRead,
     AuthStateRead,
@@ -64,6 +63,8 @@ def list_jobs_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
+    from app.api.account_jobs_routes import list_jobs
+
     return list_jobs(account_id, limit, session, auth)
 
 
@@ -73,6 +74,8 @@ def latest_job_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
+    from app.api.account_jobs_routes import latest_job
+
     return latest_job(account_id, session, auth)
 
 

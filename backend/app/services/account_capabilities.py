@@ -9,7 +9,10 @@ from __future__ import annotations
 import sys
 
 from app.modules.account_core import capabilities as _capabilities_module
-from app.modules.account_core.capabilities import CAPABILITY_KEYS, build_account_capabilities
+from app.modules.account_core.capabilities import (
+    CAPABILITY_KEYS,
+    build_account_capabilities,
+)
 
 __all__ = ["CAPABILITY_KEYS", "build_account_capabilities"]
 

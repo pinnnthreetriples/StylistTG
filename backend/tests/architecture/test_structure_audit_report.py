@@ -18,6 +18,7 @@ from structure_audit import (  # noqa: E402
     _backend_overall_status,
     _debt_summary,
     _findings,
+    _residual_boundary_guard,
     build_report,
     detect_report_drift,
     render_debt_inventory,
@@ -30,6 +31,7 @@ from structure_audit import (  # noqa: E402
 REPORT_PATH = REPO_ROOT / "docs/architecture/structure-audit.json"
 MARKDOWN_REPORT_PATH = REPO_ROOT / "docs/architecture/STRUCTURE_AUDIT.md"
 DEBT_INVENTORY_PATH = REPO_ROOT / "docs/architecture/architecture-debt-inventory.json"
+RESIDUAL_MANIFEST_PATH = REPO_ROOT / "docs/architecture/residual-legacy-boundaries.json"
 REQUIRED_KEYS = {
     "schema_version",
     "generated_at",
@@ -73,6 +75,40 @@ def _report_with_unmanaged_entries(
     return report
 
 
+def _report_with_open_debt_entries(
+    base_report: dict[str, Any],
+    *,
+    unmanaged_entries: list[dict[str, Any]] | None = None,
+    residual_entries: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    report = deepcopy(base_report)
+    filtered = [
+        entry
+        for entry in report["debt_inventory"]["entries"]
+        if entry["category"]
+        not in {"unmanaged_feature_surface", "residual_legacy_feature_boundary"}
+    ]
+    report["debt_inventory"]["entries"] = [
+        *filtered,
+        *(unmanaged_entries or []),
+        *(residual_entries or []),
+    ]
+    report["debt_inventory"]["summary"] = _debt_summary(report["debt_inventory"]["entries"])
+    report["debt_inventory"]["residual_boundary_guard"] = {
+        **report["debt_inventory"]["residual_boundary_guard"],
+        "boundary_count": len(residual_entries or []),
+        "violations": [],
+    }
+    report["backend_overall_status"] = _backend_overall_status(report["debt_inventory"])
+    report["findings"] = _findings(
+        report["boundaries"],
+        report["forbidden_runtime_claims"],
+        report["debt_inventory"],
+        report["frontend_boundaries"],
+    )
+    return report
+
+
 def _unmanaged_entry(
     *,
     entry_id: str,
@@ -91,6 +127,22 @@ def _unmanaged_entry(
         "phase": "synthetic-test",
         "removal_condition": "Synthetic scenario exits when the owner is migrated.",
         "rationale": "Synthetic scenario coverage entry.",
+    }
+
+
+def _residual_entry(*, entry_id: str, owner: str) -> dict[str, Any]:
+    return {
+        "id": entry_id,
+        "category": "residual_legacy_feature_boundary",
+        "severity": "medium",
+        "status": "open",
+        "owner": owner,
+        "paths": [f"backend/app/api/{owner}.py"],
+        "existing_paths": [f"backend/app/api/{owner}.py"],
+        "target_owner": f"app.modules.{owner} (follow-up #999)",
+        "phase": "synthetic-test",
+        "removal_condition": "Synthetic residual exits when the owner is migrated.",
+        "rationale": "Synthetic residual boundary coverage entry.",
     }
 
 
@@ -260,7 +312,7 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
 
-    assert report["backend_overall_status"] == "GREEN"
+    assert report["backend_overall_status"] == "YELLOW"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == []
     assert "debt-account-safety" not in entries
     assert "debt-account-lifecycle" not in entries
@@ -271,7 +323,7 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     assert entries["canonical-account-profile-completeness"]["severity"] == "info"
 
 
-def test_structure_audit_phase_six_b_accepts_all_remaining_legacy_feature_boundaries() -> None:
+def test_structure_audit_phase_six_c_tracks_all_remaining_legacy_feature_boundaries() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
     unmanaged = [
@@ -280,10 +332,10 @@ def test_structure_audit_phase_six_b_accepts_all_remaining_legacy_feature_bounda
         if entry["category"] == "unmanaged_feature_surface"
     ]
     unmanaged_owners = {entry["owner"] for entry in unmanaged}
-    accepted_legacy = {
+    residual_legacy = {
         entry["id"]: entry
         for entry in report["debt_inventory"]["entries"]
-        if entry["category"] == "accepted_legacy_feature_boundary"
+        if entry["category"] == "residual_legacy_feature_boundary"
     }
 
     assert "debt-account-legacy-surfaces" not in entries
@@ -291,27 +343,28 @@ def test_structure_audit_phase_six_b_accepts_all_remaining_legacy_feature_bounda
     assert "debt-account-profile-completeness" not in entries
     assert "canonical-account-profile-completeness" in entries
     assert unmanaged == []
-    assert set(accepted_legacy) == {
-        "accepted-legacy-account-audit",
-        "accepted-legacy-account-core",
-        "accepted-legacy-account-ggr",
-        "accepted-legacy-account-imports",
-        "accepted-legacy-account-jobs",
-        "accepted-legacy-account-profile-state",
-        "accepted-legacy-account-proxy",
-        "accepted-legacy-account-quarantine",
-        "accepted-legacy-account-runtime-status",
-        "accepted-legacy-account-validity",
-        "accepted-legacy-bought-onboarding",
-        "accepted-legacy-human-behavior",
-        "accepted-legacy-story-surfaces",
+    assert set(residual_legacy) == {
+        "residual-legacy-account-audit",
+        "residual-legacy-account-core",
+        "residual-legacy-account-ggr",
+        "residual-legacy-account-imports",
+        "residual-legacy-account-jobs",
+        "residual-legacy-account-profile-state",
+        "residual-legacy-account-proxy",
+        "residual-legacy-account-quarantine",
+        "residual-legacy-account-runtime-status",
+        "residual-legacy-account-validity",
+        "residual-legacy-bought-onboarding",
+        "residual-legacy-human-behavior",
+        "residual-legacy-story-surfaces",
     }
-    assert all(entry["status"] == "accepted" for entry in accepted_legacy.values())
-    assert all(entry["severity"] == "medium" for entry in accepted_legacy.values())
-    assert all(entry["phase"] == "Phase 6B" for entry in accepted_legacy.values())
-    assert all(entry["existing_paths"] for entry in accepted_legacy.values())
+    assert all(entry["status"] == "open" for entry in residual_legacy.values())
+    assert all(entry["severity"] == "medium" for entry in residual_legacy.values())
+    assert all(entry["phase"] == "Phase 6C" for entry in residual_legacy.values())
+    assert all(entry["existing_paths"] for entry in residual_legacy.values())
+    assert all("follow-up #" in entry["target_owner"] for entry in residual_legacy.values())
     assert (
-        "accepted_legacy_feature_boundary"
+        "residual_legacy_feature_boundary"
         in report["debt_inventory"]["scope"]["classification_rule"]
     )
 
@@ -373,41 +426,174 @@ def test_structure_audit_inventory_entries_have_required_metadata() -> None:
     assert missing == []
 
 
-def test_backend_overall_green_after_phase_six_b_closure() -> None:
+def test_residual_boundary_manifest_covers_all_open_residual_entries() -> None:
+    report = _committed_report()
+    residual_entries = [
+        entry
+        for entry in report["debt_inventory"]["entries"]
+        if entry["category"] == "residual_legacy_feature_boundary"
+    ]
+    manifest = json.loads(RESIDUAL_MANIFEST_PATH.read_text(encoding="utf-8"))
+    manifest_by_owner = {entry["owner"]: entry for entry in manifest["entries"]}
+
+    assert report["debt_inventory"]["residual_boundary_guard"]["violations"] == []
+    assert sorted(manifest_by_owner) == sorted(entry["owner"] for entry in residual_entries)
+    for entry in residual_entries:
+        manifest_entry = manifest_by_owner[entry["owner"]]
+        assert manifest_entry["entry_id"] == entry["id"]
+        assert manifest_entry["related_issue"].startswith("#")
+        assert manifest_entry["rationale"]
+        assert manifest_entry["removal_condition"]
+        assert manifest_entry["verification_scope"]
+        assert manifest_entry["existing_paths"] == entry["existing_paths"]
+        assert manifest_entry["public_api_fingerprint"]
+
+
+def test_residual_boundary_guard_blocks_unregistered_file_growth(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "docs/architecture/residual-legacy-boundaries.json"
+    manifest_path.parent.mkdir(parents=True)
+    tracked_path = tmp_path / "backend/app/api/synthetic.py"
+    new_path = tmp_path / "backend/app/api/synthetic_extra.py"
+    tracked_path.parent.mkdir(parents=True)
+    tracked_path.write_text("def existing_surface():\n    return None\n", encoding="utf-8")
+    new_path.write_text("def new_surface():\n    return None\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "entries": [
+                    {
+                        "owner": "synthetic",
+                        "entry_id": "residual-legacy-synthetic",
+                        "related_issue": "#999",
+                        "rationale": "Synthetic residual boundary.",
+                        "removal_condition": "Migrate synthetic boundary.",
+                        "verification_scope": "Synthetic verification.",
+                        "paths": ["backend/app/api/synthetic.py"],
+                        "existing_paths": ["backend/app/api/synthetic.py"],
+                        "public_api_fingerprint": [
+                            "backend/app/api/synthetic.py:function:existing_surface"
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    entries = [
+        {
+            "id": "residual-legacy-synthetic",
+            "category": "residual_legacy_feature_boundary",
+            "owner": "synthetic",
+            "existing_paths": [
+                "backend/app/api/synthetic.py",
+                "backend/app/api/synthetic_extra.py",
+            ],
+        }
+    ]
+
+    guard = _residual_boundary_guard(tmp_path, entries)
+
+    assert (
+        "synthetic: new residual path backend/app/api/synthetic_extra.py is not in manifest"
+        in guard["violations"]
+    )
+
+
+def test_residual_boundary_guard_blocks_public_surface_growth(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "docs/architecture/residual-legacy-boundaries.json"
+    manifest_path.parent.mkdir(parents=True)
+    tracked_path = tmp_path / "backend/app/api/synthetic.py"
+    tracked_path.parent.mkdir(parents=True)
+    tracked_path.write_text(
+        "def existing_surface():\n    return None\n\ndef new_surface():\n    return None\n",
+        encoding="utf-8",
+    )
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "entries": [
+                    {
+                        "owner": "synthetic",
+                        "entry_id": "residual-legacy-synthetic",
+                        "related_issue": "#999",
+                        "rationale": "Synthetic residual boundary.",
+                        "removal_condition": "Migrate synthetic boundary.",
+                        "verification_scope": "Synthetic verification.",
+                        "paths": ["backend/app/api/synthetic.py"],
+                        "existing_paths": ["backend/app/api/synthetic.py"],
+                        "public_api_fingerprint": [
+                            "backend/app/api/synthetic.py:function:existing_surface"
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    entries = [
+        {
+            "id": "residual-legacy-synthetic",
+            "category": "residual_legacy_feature_boundary",
+            "owner": "synthetic",
+            "existing_paths": ["backend/app/api/synthetic.py"],
+        }
+    ]
+
+    guard = _residual_boundary_guard(tmp_path, entries)
+
+    assert (
+        "synthetic: new public surface backend/app/api/synthetic.py:function:new_surface is not in manifest"
+        in guard["violations"]
+    )
+
+
+def test_backend_overall_yellow_while_residual_boundaries_remain() -> None:
     report = _committed_report()
     rendered_json = json.loads(render_json_report(report))
 
-    assert rendered_json["backend_overall_status"] == "GREEN"
-    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 0
+    assert rendered_json["backend_overall_status"] == "YELLOW"
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 13
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
+    assert (
+        rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 13
+    )
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     assert (
         rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     )
-    assert report["backend_overall_status"] == "GREEN"
+    assert report["backend_overall_status"] == "YELLOW"
 
 
-def test_phase_six_b_closure_findings_are_accepted() -> None:
+def test_phase_six_c_residual_findings_remain_open() -> None:
     report = _committed_report()
     findings = {finding["id"]: finding for finding in report["findings"]}
 
-    assert findings["STRUCTURE-001"]["severity"] == "info"
-    assert findings["STRUCTURE-001"]["status"] == "accepted"
-    assert "fully classified" in findings["STRUCTURE-001"]["finding"]
+    assert findings["STRUCTURE-001"]["severity"] == "medium"
+    assert findings["STRUCTURE-001"]["status"] == "open"
+    assert "residual legacy feature boundaries" in findings["STRUCTURE-001"]["finding"]
     assert "high-risk feature ownership" not in findings["STRUCTURE-001"]["finding"]
     assert findings["STRUCTURE-002"]["severity"] == "info"
     assert findings["STRUCTURE-002"]["status"] == "accepted"
-    assert findings["STRUCTURE-008"]["severity"] == "info"
-    assert findings["STRUCTURE-008"]["status"] == "accepted"
+    assert findings["STRUCTURE-008"]["severity"] == "medium"
+    assert findings["STRUCTURE-008"]["status"] == "open"
 
 
-def test_phase_six_b_closure_markdown_is_green() -> None:
+def test_phase_six_c_markdown_is_truthful_yellow() -> None:
     markdown = render_markdown_report(_committed_report())
 
-    assert "| Backend overall | GREEN | No unmanaged feature debt remains." in markdown
-    assert "| Unmanaged feature debt | GREEN | No unmanaged feature debt." in markdown
+    assert (
+        "| Backend overall | YELLOW | 13 residual legacy feature boundaries remain outside app.modules."
+        in markdown
+    )
+    assert (
+        "| Unmanaged feature debt | GREEN | No untracked unmanaged feature surfaces; residual debt is reported separately."
+        in markdown
+    )
+    assert "| Residual legacy feature boundaries | YELLOW |" in markdown
     assert "| Frontend ownership | GREEN |" in markdown
-    assert "| STRUCTURE-001 | info | accepted |" in markdown
+    assert "| STRUCTURE-001 | medium | open |" in markdown
     assert "| STRUCTURE-002 | info | accepted |" in markdown
     assert "high-risk feature ownership" not in markdown
 
@@ -439,10 +625,9 @@ def test_structure_audit_synthetic_high_risk_debt_is_reported_truthfully() -> No
     assert "Keep medium debt visible" not in markdown
 
 
-def test_structure_audit_synthetic_zero_unmanaged_debt_is_reported_truthfully() -> None:
-    report = _report_with_unmanaged_entries(
+def test_structure_audit_synthetic_all_residual_boundaries_migrated_permits_green() -> None:
+    report = _report_with_open_debt_entries(
         build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z"),
-        [],
     )
     findings = {finding["id"]: finding for finding in report["findings"]}
     markdown = render_markdown_report(report)
@@ -450,12 +635,13 @@ def test_structure_audit_synthetic_zero_unmanaged_debt_is_reported_truthfully() 
 
     assert report["backend_overall_status"] == "GREEN"
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
+    assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 0
     assert findings["STRUCTURE-001"]["status"] == "accepted"
     assert findings["STRUCTURE-001"]["severity"] == "info"
     assert "no unmanaged feature debt is open" in findings["STRUCTURE-001"]["evidence"]
     assert findings["STRUCTURE-008"]["status"] == "accepted"
     assert findings["STRUCTURE-008"]["severity"] == "info"
-    assert "No unmanaged feature debt remains." in markdown
+    assert "No unmanaged or residual feature-boundary debt remains." in markdown
     assert "unmanaged feature surfaces remain" not in markdown
     backend_modules_row = next(
         line for line in markdown.splitlines() if line.startswith("| Backend modules |")
@@ -465,6 +651,28 @@ def test_structure_audit_synthetic_zero_unmanaged_debt_is_reported_truthfully() 
     )
     assert "account platform debt split" not in backend_modules_row
     assert "New feature behavior can bypass app.modules" not in unmanaged_debt_row
+
+
+def test_structure_audit_synthetic_residual_boundary_is_reported_truthfully() -> None:
+    report = _report_with_open_debt_entries(
+        build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z"),
+        residual_entries=[
+            _residual_entry(entry_id="residual-legacy-synthetic", owner="synthetic_residual")
+        ],
+    )
+    findings = {finding["id"]: finding for finding in report["findings"]}
+    markdown = render_markdown_report(report)
+    rendered_json = json.loads(render_json_report(report))
+
+    assert report["backend_overall_status"] == "YELLOW"
+    assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundaries"] == [
+        "residual-legacy-synthetic"
+    ]
+    assert findings["STRUCTURE-001"]["severity"] == "medium"
+    assert findings["STRUCTURE-001"]["status"] == "open"
+    assert "synthetic" in findings["STRUCTURE-001"]["evidence"]
+    assert findings["STRUCTURE-008"]["severity"] == "medium"
+    assert "| Residual legacy feature boundaries | YELLOW | synthetic_residual |" in markdown
 
 
 def test_backend_app_python_files_are_classified_by_inventory() -> None:

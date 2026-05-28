@@ -4,7 +4,7 @@ description: Agent session protocol for GitHub Project board status transitions.
 edges:
   - .mex/ROUTER.md
   - docs/agents/project-board.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Board Workflow Pattern

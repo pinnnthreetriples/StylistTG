@@ -23,6 +23,8 @@ FRONTEND_BOUNDARY_POLICY_PATH = Path("docs/architecture/frontend-boundary-policy
 DEFAULT_JSON_OUTPUT = Path("docs/architecture/structure-audit.json")
 DEFAULT_MARKDOWN_OUTPUT = Path("docs/architecture/STRUCTURE_AUDIT.md")
 DEFAULT_DEBT_OUTPUT = Path("docs/architecture/architecture-debt-inventory.json")
+RESIDUAL_BOUNDARY_GUARD_PATH = Path("docs/architecture/residual-legacy-boundaries.json")
+RESIDUAL_BOUNDARY_CATEGORY = "residual_legacy_feature_boundary"
 
 WRAPPER_PATHS = tuple(spec.file for spec in LEGACY_WRAPPERS)
 
@@ -201,22 +203,22 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Module metadata, registry, and non-runtime template support module governance.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-audit",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-audit",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_audit",
         paths=("backend/app/api/account_audit_routes.py",),
-        target_owner="accepted legacy account audit boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_audit only when account audit behavior changes; keep classified and guarded meanwhile.",
-        rationale="Account audit transport is a stable read-only legacy feature boundary backed by shared audit services; Phase 6B accepts it explicitly instead of treating it as hidden account-platform debt.",
+        target_owner="app.modules.account_audit (follow-up #213)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #213 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Account audit transport remains feature-owned production code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-core",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-core",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_core",
         paths=(
             "backend/app/api/account_compat_routes.py",
@@ -228,16 +230,16 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/contracts/accounts.py",
             "backend/app/contracts/cross_module_load.py",
         ),
-        target_owner="accepted legacy account core boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_core only with a dedicated behavior-preserving account-core migration; keep classified and guarded meanwhile.",
-        rationale="Core account CRUD, context, bundle, capabilities, and DTO surfaces are stable platform-level account primitives used across modules; Phase 6B accepts the existing boundary explicitly.",
+        target_owner="app.modules.account_core (follow-up #214)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #214 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Core account CRUD, context, bundle, capabilities, and DTO surfaces remain active feature-owned production code outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-ggr",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-ggr",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_ggr",
         paths=(
             "backend/app/api/account_ggr_routes.py",
@@ -245,91 +247,91 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/ggr_calculator.py",
             "backend/app/contracts/ggr.py",
         ),
-        target_owner="accepted legacy account GGR/risk scoring boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_ggr only when GGR behavior changes; keep classified and guarded meanwhile.",
-        rationale="GGR and fraud scoring are stable account risk-scoring surfaces with existing tests and metrics; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_ggr (follow-up #215)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #215 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="GGR and fraud scoring remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-imports",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-imports",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_imports",
         paths=(
             "backend/app/api/account_imports.py",
             "backend/app/services/account_imports.py",
         ),
-        target_owner="accepted legacy account imports boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_imports only when import behavior changes; keep classified and guarded meanwhile.",
-        rationale="Account import is a stable onboarding/import surface; Phase 6B accepts its legacy route/service boundary explicitly.",
+        target_owner="app.modules.account_imports (follow-up #216)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #216 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+        rationale="Account import remains an onboarding/import feature surface outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-jobs",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-jobs",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_jobs",
         paths=("backend/app/api/account_jobs_routes.py",),
-        target_owner="accepted legacy account jobs boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_jobs only when account job transport behavior changes; keep classified and guarded meanwhile.",
-        rationale="Account job transport is a stable account workspace/read model boundary over shared job infrastructure; Phase 6B accepts it explicitly.",
+        target_owner="app.modules.account_jobs (follow-up #217)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #217 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Account job transport remains account feature/read-model code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-profile-state",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-profile-state",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_profile_state",
         paths=(
             "backend/app/services/profile_audio_state.py",
             "backend/app/services/profile_photo_state.py",
             "backend/app/services/profile_sync.py",
         ),
-        target_owner="accepted legacy account profile-state boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_editing or a profile-state module only when profile-state behavior changes; keep classified and guarded meanwhile.",
-        rationale="Profile audio/photo/sync helpers are stable profile-state support surfaces shared by account editing and runtime sync; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_editing or app.modules.account_profile_state (follow-up #218)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #218 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Profile audio/photo/sync helpers remain profile-state feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-proxy",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-proxy",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_proxy",
         paths=(
             "backend/app/api/account_proxy_routes.py",
             "backend/app/services/proxy_accounts.py",
             "backend/app/services/proxy_checks.py",
         ),
-        target_owner="accepted legacy account proxy boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_proxy only when proxy assignment/checking behavior changes; keep classified and guarded meanwhile.",
-        rationale="Proxy assignment and check surfaces are stable account infrastructure behavior with external-network guards; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_proxy (follow-up #219)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #219 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Proxy assignment and check surfaces remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-quarantine",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-quarantine",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_quarantine",
         paths=(
             "backend/app/api/account_quarantine_routes.py",
             "backend/app/services/account_quarantine.py",
             "backend/app/contracts/quarantine.py",
         ),
-        target_owner="accepted legacy account quarantine boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_quarantine or account_safety only when quarantine behavior changes; keep classified and guarded meanwhile.",
-        rationale="Quarantine is stable safety-adjacent account state with route/service/contract coverage; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_quarantine or app.modules.account_safety (follow-up #220)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #220 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Quarantine remains safety-adjacent account feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-runtime-status",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-runtime-status",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_runtime_status",
         paths=(
             "backend/app/api/account_runtime_routes.py",
@@ -341,69 +343,69 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/account_terminal_status.py",
             "backend/app/contracts/account_status.py",
         ),
-        target_owner="accepted legacy account runtime/status boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_runtime_status only when runtime/status behavior changes; keep classified and guarded meanwhile.",
-        rationale="Runtime health, status, cooldown, risk, and terminal-state surfaces are stable account runtime read models; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_runtime_status (follow-up #221)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #221 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Runtime health, status, cooldown, risk, and terminal-state surfaces remain account runtime feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-account-validity",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-account-validity",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="account_validity",
         paths=("backend/app/services/account_validity.py",),
-        target_owner="accepted legacy account validity boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.account_validity or account_safety only when validity behavior changes; keep classified and guarded meanwhile.",
-        rationale="Validity checks are stable safety-adjacent runtime checks with TDLib/live gates; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.account_validity or app.modules.account_safety (follow-up #222)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #222 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
+        rationale="Validity checks remain safety-adjacent runtime feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-story-surfaces",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-story-surfaces",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="story",
         paths=(
             "backend/app/api/story_*.py",
             "backend/app/services/story_*.py",
         ),
-        target_owner="accepted legacy story boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.story only when story behavior changes; keep classified and guarded meanwhile.",
-        rationale="Story draft/post/capability surfaces are stable legacy feature boundaries with live-operation gates; Phase 6B accepts them explicitly.",
+        target_owner="app.modules.story (follow-up #225)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #225 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+        rationale="Story draft/post/capability surfaces remain feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-bought-onboarding",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-bought-onboarding",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="bought_onboarding",
         paths=(
             "backend/app/api/bought_onboarding_routes.py",
             "backend/app/services/bought_account_onboarding.py",
             "backend/app/contracts/bought_onboarding.py",
         ),
-        target_owner="accepted legacy bought-account onboarding boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.bought_onboarding only when bought-account onboarding behavior changes; keep classified and guarded meanwhile.",
-        rationale="Bought-account onboarding is a stable account onboarding workflow; Phase 6B accepts the legacy route/service/contract boundary explicitly.",
+        target_owner="app.modules.bought_onboarding (follow-up #223)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #223 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+        rationale="Bought-account onboarding remains account onboarding feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
     ),
     OwnershipEntry(
-        id="accepted-legacy-human-behavior",
-        category="accepted_legacy_feature_boundary",
+        id="residual-legacy-human-behavior",
+        category=RESIDUAL_BOUNDARY_CATEGORY,
         severity="medium",
-        status="accepted",
+        status="open",
         owner="human_behavior",
         paths=(
             "backend/app/api/human_behavior_routes.py",
             "backend/app/services/human_behavior/**",
             "backend/app/contracts/human_behavior.py",
         ),
-        target_owner="accepted legacy human-behavior boundary",
-        phase="Phase 6B",
-        removal_condition="Promote to app.modules.human_behavior only when human-behavior policy/runtime behavior changes; keep classified and guarded meanwhile.",
-        rationale="Human-behavior policy/runtime surfaces are stable feature logic with safety/runtime constraints; Phase 6B accepts the legacy boundary explicitly.",
+        target_owner="app.modules.human_behavior (follow-up #224)",
+        phase="Phase 6C",
+        removal_condition="Remove this residual entry only after #224 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
+        rationale="Human-behavior policy/runtime surfaces remain feature logic outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
     ),
     OwnershipEntry(
         id="compatibility-wrappers",
@@ -655,6 +657,69 @@ def _imported_paths(path: Path) -> list[str]:
             imported_paths.add(node.module)
             imported_paths.update(f"{node.module}.{alias.name}" for alias in node.names)
     return sorted(imported_paths)
+
+
+def _literal_route_methods(node: ast.AST | None) -> list[str]:
+    if node is None:
+        return []
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value.upper()]
+    if isinstance(node, (ast.List, ast.Tuple)):
+        return sorted(
+            item.value.upper()
+            for item in node.elts
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        )
+    return []
+
+
+def _route_fingerprints_for_function(
+    relative_path: str,
+    node: ast.AsyncFunctionDef | ast.FunctionDef,
+) -> list[str]:
+    routes: list[str] = []
+    for decorator in node.decorator_list:
+        if not isinstance(decorator, ast.Call) or not isinstance(decorator.func, ast.Attribute):
+            continue
+        method = decorator.func.attr.lower()
+        route_path = (
+            decorator.args[0].value
+            if decorator.args
+            and isinstance(decorator.args[0], ast.Constant)
+            and isinstance(decorator.args[0].value, str)
+            else None
+        )
+        if method == "api_route":
+            methods = []
+            for keyword in decorator.keywords:
+                if keyword.arg == "methods":
+                    methods = _literal_route_methods(keyword.value)
+                    break
+            for api_method in methods or ["API_ROUTE"]:
+                if route_path:
+                    routes.append(f"{relative_path}:route:{api_method} {route_path} -> {node.name}")
+            continue
+        if method in {"delete", "get", "patch", "post", "put"} and route_path:
+            routes.append(f"{relative_path}:route:{method.upper()} {route_path} -> {node.name}")
+    return routes
+
+
+def _public_api_fingerprint(repo_root: Path, relative_paths: list[str]) -> list[str]:
+    fingerprints: list[str] = []
+    for relative_path in sorted(relative_paths):
+        path = repo_root / relative_path
+        tree = _parse_ast(path)
+        if tree is None:
+            continue
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
+                fingerprints.append(f"{relative_path}:class:{node.name}")
+            elif isinstance(
+                node, (ast.AsyncFunctionDef, ast.FunctionDef)
+            ) and not node.name.startswith("_"):
+                fingerprints.append(f"{relative_path}:function:{node.name}")
+                fingerprints.extend(_route_fingerprints_for_function(relative_path, node))
+    return sorted(set(fingerprints))
 
 
 def _has_import_prefix(path: Path, forbidden: tuple[str, ...]) -> list[str]:
@@ -1250,6 +1315,87 @@ def _overlapping_backend_app_files(entries: list[dict[str, Any]]) -> dict[str, l
     }
 
 
+def _residual_boundary_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [entry for entry in entries if entry["category"] == RESIDUAL_BOUNDARY_CATEGORY]
+
+
+def _read_residual_boundary_manifest(repo_root: Path) -> dict[str, Any]:
+    path = repo_root / RESIDUAL_BOUNDARY_GUARD_PATH
+    if not path.exists():
+        return {"schema_version": REPORT_SCHEMA_VERSION, "entries": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _residual_boundary_guard(repo_root: Path, entries: list[dict[str, Any]]) -> dict[str, Any]:
+    manifest = _read_residual_boundary_manifest(repo_root)
+    expected_by_owner = {str(entry.get("owner")): entry for entry in manifest.get("entries", [])}
+    residual_entries = _residual_boundary_entries(entries)
+    actual_owners = {entry["owner"] for entry in residual_entries}
+    expected_owners = set(expected_by_owner)
+    violations: list[str] = []
+    required_metadata = (
+        "owner",
+        "entry_id",
+        "related_issue",
+        "rationale",
+        "removal_condition",
+        "verification_scope",
+        "paths",
+        "existing_paths",
+        "public_api_fingerprint",
+    )
+
+    for missing_owner in sorted(actual_owners - expected_owners):
+        violations.append(f"{missing_owner}: missing residual boundary manifest entry")
+    for stale_owner in sorted(expected_owners - actual_owners):
+        violations.append(f"{stale_owner}: manifest entry has no matching residual boundary")
+
+    guard_entries: list[dict[str, Any]] = []
+    for entry in residual_entries:
+        owner = entry["owner"]
+        expected = expected_by_owner.get(owner, {})
+        actual_paths = sorted(entry["existing_paths"])
+        actual_fingerprint = _public_api_fingerprint(repo_root, actual_paths)
+        expected_paths = sorted(str(path) for path in expected.get("existing_paths", []))
+        expected_fingerprint = sorted(
+            str(item) for item in expected.get("public_api_fingerprint", [])
+        )
+        missing_metadata = [key for key in required_metadata if not expected.get(key)]
+        if missing_metadata:
+            violations.append(f"{owner}: missing manifest metadata {', '.join(missing_metadata)}")
+        if expected.get("entry_id") and expected["entry_id"] != entry["id"]:
+            violations.append(
+                f"{owner}: manifest entry_id {expected['entry_id']} does not match {entry['id']}"
+            )
+        for path in sorted(set(actual_paths) - set(expected_paths)):
+            violations.append(f"{owner}: new residual path {path} is not in manifest")
+        for path in sorted(set(expected_paths) - set(actual_paths)):
+            violations.append(f"{owner}: manifest path {path} no longer exists")
+        for item in sorted(set(actual_fingerprint) - set(expected_fingerprint)):
+            violations.append(f"{owner}: new public surface {item} is not in manifest")
+        for item in sorted(set(expected_fingerprint) - set(actual_fingerprint)):
+            violations.append(f"{owner}: manifest public surface {item} no longer exists")
+        guard_entries.append(
+            {
+                "owner": owner,
+                "entry_id": entry["id"],
+                "related_issue": expected.get("related_issue"),
+                "verification_scope": expected.get("verification_scope"),
+                "expected_paths": expected_paths,
+                "actual_paths": actual_paths,
+                "expected_public_api_fingerprint": expected_fingerprint,
+                "actual_public_api_fingerprint": actual_fingerprint,
+            }
+        )
+
+    return {
+        "manifest_path": RESIDUAL_BOUNDARY_GUARD_PATH.as_posix(),
+        "boundary_count": len(residual_entries),
+        "entries": sorted(guard_entries, key=lambda item: str(item["owner"])),
+        "violations": sorted(set(violations)),
+    }
+
+
 def _ensure_report_outputs_exist(repo_root: Path, paths: tuple[Path, ...]) -> None:
     for path in paths:
         output = path if path.is_absolute() else repo_root / path
@@ -1263,8 +1409,10 @@ def _debt_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
     unmanaged = [
         entry for entry in open_entries if entry["category"] == "unmanaged_feature_surface"
     ]
+    residual = [entry for entry in open_entries if entry["category"] == RESIDUAL_BOUNDARY_CATEGORY]
     high_risk = [entry for entry in unmanaged if entry["severity"] == "high"]
     medium_risk = [entry for entry in unmanaged if entry["severity"] == "medium"]
+    medium_residual = [entry for entry in residual if entry["severity"] == "medium"]
     return {
         "open_count": len(open_entries),
         "unmanaged_feature_surface_count": len(unmanaged),
@@ -1272,12 +1420,17 @@ def _debt_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "high_risk_unmanaged_feature_surfaces": [entry["id"] for entry in high_risk],
         "medium_unmanaged_feature_surface_count": len(medium_risk),
         "medium_unmanaged_feature_surfaces": [entry["id"] for entry in medium_risk],
+        "residual_legacy_feature_boundary_count": len(residual),
+        "residual_legacy_feature_boundaries": [entry["id"] for entry in residual],
+        "medium_residual_legacy_feature_boundary_count": len(medium_residual),
+        "medium_residual_legacy_feature_boundaries": [entry["id"] for entry in medium_residual],
     }
 
 
 def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> dict[str, Any]:
     repo_root = repo_root.resolve()
     entries = _ownership_entries(repo_root)
+    residual_boundary_guard = _residual_boundary_guard(repo_root, entries)
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
         "generated_at": generated_at or _utc_timestamp(),
@@ -1291,12 +1444,13 @@ def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> di
                 ".mex/**",
                 "apps/dashboard/src/**",
             ],
-            "classification_rule": "Every discovered zone is classified as canonical_feature_module, accepted_legacy_feature_boundary, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence.",
+            "classification_rule": "Every discovered zone is classified as canonical_feature_module, residual_legacy_feature_boundary, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence. Residual legacy feature boundaries remain open modularisation debt until migrated, reduced to behavior-free wrappers, or reclassified with proof.",
         },
         "entries": entries,
         "summary": _debt_summary(entries),
         "overlapping_backend_app_python_files": _overlapping_backend_app_files(entries),
         "untracked_backend_app_python_files": _untracked_backend_app_files(repo_root, entries),
+        "residual_boundary_guard": residual_boundary_guard,
     }
 
 
@@ -1406,11 +1560,15 @@ def _backend_overall_status(debt_inventory: dict[str, Any]) -> str:
     if (
         debt_inventory["untracked_backend_app_python_files"]
         or debt_inventory["overlapping_backend_app_python_files"]
+        or debt_inventory["residual_boundary_guard"]["violations"]
     ):
         return "RED"
     if debt_inventory["summary"]["high_risk_unmanaged_feature_surface_count"]:
         return "RED"
-    if debt_inventory["summary"]["unmanaged_feature_surface_count"]:
+    if (
+        debt_inventory["summary"]["unmanaged_feature_surface_count"]
+        or debt_inventory["summary"]["residual_legacy_feature_boundary_count"]
+    ):
         return "YELLOW"
     return "GREEN"
 
@@ -1431,19 +1589,21 @@ def _findings(
         *debt_inventory["untracked_backend_app_python_files"],
         *debt_inventory["overlapping_backend_app_python_files"].keys(),
     ]
-    if inventory_classification_issues:
+    residual_guard_violations = debt_inventory["residual_boundary_guard"]["violations"]
+    if inventory_classification_issues or residual_guard_violations:
         structure_001 = Finding(
             id="STRUCTURE-001",
             severity="high",
             status="open",
             area="backend-modules",
-            finding="Backend has unclassified or overlapping production files in backend/app.",
+            finding="Backend has unclassified, overlapping, or silently expanded production boundaries in backend/app.",
             evidence=(
                 f"app.modules.registry imports {', '.join(canonical_modules)}; "
-                f"classification issues: {', '.join(inventory_classification_issues)}."
+                f"classification issues: {', '.join(inventory_classification_issues) or 'none'}; "
+                f"residual guard violations: {', '.join(residual_guard_violations) or 'none'}."
             ),
-            risk="High. Architecture audit must not report overall backend GREEN while production files are unclassified or multiply owned.",
-            recommendation="Classify each backend/app production file exactly once before merging.",
+            risk="High. Architecture audit must not report overall backend GREEN while production files are unclassified, multiply owned, or residual legacy feature boundaries have grown without governance.",
+            recommendation="Classify each backend/app production file exactly once and update residual-boundary governance only with related issue, rationale, removal condition, and verification scope.",
             suggested_phase="next",
         )
     elif summary["high_risk_unmanaged_feature_surface_count"]:
@@ -1462,21 +1622,26 @@ def _findings(
             recommendation="Migrate or explicitly reclassify high-risk unmanaged feature surfaces before claiming backend health.",
             suggested_phase="next",
         )
-    elif summary["unmanaged_feature_surface_count"]:
+    elif (
+        summary["unmanaged_feature_surface_count"]
+        or summary["residual_legacy_feature_boundary_count"]
+    ):
         structure_001 = Finding(
             id="STRUCTURE-001",
             severity="medium",
             status="open",
             area="backend-modules",
-            finding="Backend has canonical modules and only medium unmanaged feature surfaces remain outside app.modules.",
+            finding="Backend has canonical modules plus residual legacy feature boundaries outside app.modules.",
             evidence=(
                 f"app.modules.registry imports {', '.join(canonical_modules)}; "
                 "medium unmanaged feature surfaces: "
-                f"{', '.join(summary['medium_unmanaged_feature_surfaces'])}."
+                f"{', '.join(summary['medium_unmanaged_feature_surfaces']) or 'none'}; "
+                "residual legacy feature boundaries: "
+                f"{', '.join(summary['residual_legacy_feature_boundaries']) or 'none'}."
             ),
-            risk="Medium. Remaining feature debt is transitional and must stay visible until separately migrated or accepted.",
-            recommendation="Continue with Phase 5 frontend/shared cleanup and Phase 6 account-platform debt split without hiding medium debt.",
-            suggested_phase="Phase 5+",
+            risk="Medium. Residual feature-owned code can continue to bypass canonical module ownership unless it stays visible and guarded.",
+            recommendation="Migrate residual legacy feature boundaries through their linked follow-up issues or reduce old paths to behavior-free wrappers before claiming backend GREEN.",
+            suggested_phase="Phase 6C+",
         )
     else:
         structure_001 = Finding(
@@ -1491,13 +1656,13 @@ def _findings(
             suggested_phase="ongoing",
         )
 
-    if inventory_classification_issues:
+    if inventory_classification_issues or residual_guard_violations:
         structure_008 = Finding(
             id="STRUCTURE-008",
             severity="high",
             status="open",
             area="unmanaged-backend-surfaces",
-            finding="Machine-readable inventory found unclassified or overlapping backend/app production files.",
+            finding="Machine-readable inventory found unclassified, overlapping, or silently expanded backend/app production files.",
             evidence=json.dumps(
                 {
                     "untracked_backend_app_python_files": debt_inventory[
@@ -1506,24 +1671,28 @@ def _findings(
                     "overlapping_backend_app_python_files": debt_inventory[
                         "overlapping_backend_app_python_files"
                     ],
+                    "residual_boundary_guard_violations": residual_guard_violations,
                 },
                 sort_keys=True,
             ),
-            risk="High if new feature-owned code can appear outside app.modules without exactly one inventory owner.",
-            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked or overlapping backend/app production files.",
+            risk="High if new feature-owned code can appear outside app.modules without exactly one inventory owner and reviewed residual-boundary governance.",
+            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked, overlapping, or unapproved residual-boundary growth.",
             suggested_phase="next",
         )
-    elif summary["unmanaged_feature_surface_count"]:
+    elif (
+        summary["unmanaged_feature_surface_count"]
+        or summary["residual_legacy_feature_boundary_count"]
+    ):
         structure_008 = Finding(
             id="STRUCTURE-008",
             severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
             status="open",
             area="unmanaged-backend-surfaces",
-            finding="Machine-readable inventory tracks backend/app feature surfaces outside canonical modules.",
+            finding="Machine-readable inventory tracks residual backend/app feature surfaces outside canonical modules.",
             evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
-            risk="High if new feature-owned code can appear outside app.modules without being classified as debt or platform support; medium for current classified residual debt.",
-            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
-            suggested_phase="Phase 0",
+            risk="Medium while residual feature boundaries remain outside app.modules; high if guard coverage is weakened.",
+            recommendation="Keep residual boundaries open, linked to migration issues, and guarded until migrated or reduced to behavior-free wrappers.",
+            suggested_phase="Phase 6C+",
         )
     else:
         structure_008 = Finding(
@@ -1718,6 +1887,7 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
+            "Phase 6C+ - migrate residual legacy feature boundaries linked in #213-#225 before final GREEN architecture closure",
             "Ongoing - keep structure audit and boundary checks required for structural changes",
         ],
     }
@@ -1744,7 +1914,7 @@ def _markdown_table(headers: tuple[str, ...], rows: list[tuple[Any, ...]]) -> st
 def _status_for_entry(entry: dict[str, Any]) -> str:
     if entry["category"] == "canonical_feature_module":
         return "GREEN"
-    if entry["category"] == "unmanaged_feature_surface":
+    if entry["category"] in {"unmanaged_feature_surface", RESIDUAL_BOUNDARY_CATEGORY}:
         return "RED" if entry["severity"] == "high" else "YELLOW"
     if entry["status"] == "open":
         return "YELLOW"
@@ -1754,11 +1924,14 @@ def _status_for_entry(entry: dict[str, Any]) -> str:
 def _backend_overall_evidence(debt_summary: dict[str, Any]) -> str:
     high_count = debt_summary["high_risk_unmanaged_feature_surface_count"]
     medium_count = debt_summary["medium_unmanaged_feature_surface_count"]
+    residual_count = debt_summary["residual_legacy_feature_boundary_count"]
     if high_count or medium_count:
         return (
             f"{high_count} high-risk and {medium_count} medium unmanaged feature surfaces remain."
         )
-    return "No unmanaged feature debt remains."
+    if residual_count:
+        return f"{residual_count} residual legacy feature boundaries remain outside app.modules."
+    return "No unmanaged or residual feature-boundary debt remains."
 
 
 def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
@@ -1768,6 +1941,8 @@ def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
         )
     if debt_summary["medium_unmanaged_feature_surface_count"]:
         return "Architecture audit must not claim overall GREEN while classified medium or high unmanaged domains remain."
+    if debt_summary["residual_legacy_feature_boundary_count"]:
+        return "Architecture audit must not claim overall GREEN while residual feature-owned boundaries remain outside canonical modules."
     return "Low while structure audit checks keep feature ownership classified."
 
 
@@ -1776,22 +1951,26 @@ def _backend_overall_followup(debt_summary: dict[str, Any]) -> str:
         return "Migrate or explicitly reclassify high-risk unmanaged feature surfaces."
     if debt_summary["medium_unmanaged_feature_surface_count"]:
         return "Keep medium debt visible while Phase 5/6 continue."
+    if debt_summary["residual_legacy_feature_boundary_count"]:
+        return (
+            "Migrate linked residual boundaries or reduce legacy paths to behavior-free wrappers."
+        )
     return "Keep drift checks required for structural changes."
 
 
-def _backend_modules_status(unmanaged_debt: list[dict[str, Any]]) -> str:
-    return "YELLOW" if unmanaged_debt else "GREEN"
+def _backend_modules_status(residual_debt: list[dict[str, Any]]) -> str:
+    return "YELLOW" if residual_debt else "GREEN"
 
 
-def _backend_modules_risk(unmanaged_debt: list[dict[str, Any]]) -> str:
-    if unmanaged_debt:
-        return "Canonical ownership exists for migrated modules only."
+def _backend_modules_risk(residual_debt: list[dict[str, Any]]) -> str:
+    if residual_debt:
+        return "Canonical ownership exists for migrated modules only; residual feature behavior still lives outside app.modules."
     return "Low while registered modules and support surfaces remain classified."
 
 
-def _backend_modules_followup(unmanaged_debt: list[dict[str, Any]]) -> str:
-    if unmanaged_debt:
-        return "Continue with frontend/shared cleanup and account platform debt split."
+def _backend_modules_followup(residual_debt: list[dict[str, Any]]) -> str:
+    if residual_debt:
+        return "Use linked residual-boundary follow-ups before final GREEN closure."
     return "Keep module registry and inventory checks in sync."
 
 
@@ -1829,12 +2008,22 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     unmanaged_debt = [
         entry for entry in debt_entries if entry["category"] == "unmanaged_feature_surface"
     ]
+    residual_debt = [
+        entry for entry in debt_entries if entry["category"] == RESIDUAL_BOUNDARY_CATEGORY
+    ]
     unmanaged_status = "RED" if high_debt else "YELLOW" if unmanaged_debt else "GREEN"
     unmanaged_evidence = (
         ", ".join(entry["owner"] for entry in high_debt)
         if high_debt
-        else ", ".join(entry["owner"] for entry in unmanaged_debt) or "No unmanaged feature debt."
+        else ", ".join(entry["owner"] for entry in unmanaged_debt)
+        or "No untracked unmanaged feature surfaces; residual debt is reported separately."
     )
+    residual_status = "YELLOW" if residual_debt else "GREEN"
+    residual_evidence = (
+        ", ".join(entry["owner"] for entry in residual_debt)
+        or "No residual legacy feature boundaries."
+    )
+    residual_guard_violations = report["debt_inventory"]["residual_boundary_guard"]["violations"]
     lines = [
         "# Structure Audit",
         "",
@@ -1862,11 +2051,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 ),
                 (
                     "Backend modules",
-                    _backend_modules_status(unmanaged_debt),
+                    _backend_modules_status([*unmanaged_debt, *residual_debt]),
                     "Registered modules: "
                     + ", ".join(module["name"] for module in modules if module["registered"]),
-                    _backend_modules_risk(unmanaged_debt),
-                    _backend_modules_followup(unmanaged_debt),
+                    _backend_modules_risk([*unmanaged_debt, *residual_debt]),
+                    _backend_modules_followup([*unmanaged_debt, *residual_debt]),
                 ),
                 (
                     "Unmanaged feature debt",
@@ -1874,6 +2063,43 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     unmanaged_evidence,
                     _unmanaged_debt_risk(unmanaged_debt),
                     _unmanaged_debt_followup(unmanaged_debt),
+                ),
+                (
+                    "Residual legacy feature boundaries",
+                    residual_status,
+                    residual_evidence,
+                    (
+                        "Feature behavior remains outside canonical modules and must stay visible."
+                        if residual_debt
+                        else "Low while no residual feature behavior remains outside canonical modules."
+                    ),
+                    (
+                        "Migrate through linked follow-up issues or reduce legacy paths to wrappers."
+                        if residual_debt
+                        else "Keep residual-boundary guard active."
+                    ),
+                ),
+                (
+                    "Residual boundary non-growth guard",
+                    "RED" if residual_guard_violations else "GREEN",
+                    "<br>".join(residual_guard_violations)
+                    or (
+                        "Public-surface/non-growth guard covers current residual files, "
+                        "paths, and public route/function/class fingerprints."
+                    ),
+                    (
+                        "Residual feature boundaries can grow silently if the manifest is stale."
+                        if residual_guard_violations
+                        else (
+                            "Low for public-surface growth only; behavior changes inside "
+                            "existing residual files still require migration or an approved "
+                            "architecture exception."
+                        )
+                    ),
+                    (
+                        "Use migration issues for behavior changes; a manifest update alone "
+                        "does not replace canonical migration."
+                    ),
                 ),
                 (
                     "Generated artifacts",
@@ -1941,20 +2167,28 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ],
         ),
         "",
-        "## 4. Required Unmanaged Domains",
+        "## 4. Required Unmanaged And Residual Domains",
         "",
         _markdown_table(
-            ("Domain", "Severity", "Current paths", "Target owner", "Removal condition"),
+            (
+                "Domain",
+                "Category",
+                "Severity",
+                "Current paths",
+                "Target owner",
+                "Removal condition",
+            ),
             [
                 (
                     entry["owner"],
+                    entry["category"],
                     entry["severity"],
                     "<br>".join(entry["paths"]),
                     entry["target_owner"],
                     entry["removal_condition"],
                 )
                 for entry in debt_entries
-                if entry["category"] == "unmanaged_feature_surface"
+                if entry["category"] in {"unmanaged_feature_surface", RESIDUAL_BOUNDARY_CATEGORY}
             ],
         ),
         "",
@@ -1993,6 +2227,16 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                         ]
                     )
                     or "All backend/app Python files are classified exactly once by the inventory.",
+                ),
+                (
+                    "Residual boundary growth",
+                    "GREEN" if not residual_guard_violations else "RED",
+                    "<br>".join(residual_guard_violations)
+                    or (
+                        "Public-surface/non-growth guard covers every current residual "
+                        "file and public route/function/class surface; behavior-changing "
+                        "updates still require migration or an approved architecture exception."
+                    ),
                 ),
                 (
                     "Forbidden contract imports",

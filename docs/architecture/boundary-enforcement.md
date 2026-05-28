@@ -2,9 +2,10 @@
 
 ## Goal
 
-Architecture Epic Phase 6B keeps modular backend boundaries executable and
-closed. The goal is to prevent architecture drift without changing runtime
-behavior.
+Architecture Epic Phase 6C keeps modular backend boundaries executable and
+truthful. The goal is to prevent architecture drift without changing runtime
+behavior, while keeping active residual feature boundaries visible until they
+are migrated or reduced to behavior-free wrappers.
 
 The current backend modules are:
 
@@ -20,8 +21,9 @@ backend/app/modules/warmup
 
 Future modules should follow the same rules before adding runtime dependencies.
 Legacy feature boundaries that remain outside `app.modules` are explicitly
-classified as accepted legacy feature boundaries in the generated structure
-audit instead of open unmanaged debt.
+classified as residual legacy feature boundaries in the generated structure
+audit. They are classified and guarded, but they are still open modularisation
+debt and keep the backend overall status `YELLOW`.
 
 ## Public Module Surfaces
 
@@ -54,16 +56,22 @@ from app.modules.account_editing.repository import AccountEditingRepository  # f
 ```
 
 Direct imports of a module's own internals are allowed inside that same module.
-Imports across feature modules must use the target module package, `contracts`,
-`interfaces`, `service`, `jobs`, or `events`.
+Imports across feature modules must use default public dependency surfaces:
+`contracts`, `events`, and `interfaces` / documented ports.
 
-Warmup's canonical public submodules include `contracts`, `repository`,
-`policies`, `errors`, `read_models`, `queries`, `commands`, `enqueue`,
-`service`, `router`, `jobs`, `worker`, `dispatcher`, `events`, `isolation`,
-`readiness`, and `p2p`. Account editing exposes equivalent explicit surfaces
-for `contracts`, `enqueue`, `service`, `router`, `jobs`, `executor`, `planner`,
-`policies`, and `repository`. `repository` and `policies` are explicit package
-surfaces for ownership; they are not recommended cross-module dependencies.
+`service`, `dependencies`, `context`, or other facades are allowed across
+modules only as explicit documented exceptions in
+`backend/tests/architecture/test_no_cross_module_internal_imports.py`, with a
+rationale and removal condition. `jobs`, `router`, `repository`, `policies`,
+`adapters`, planners, executors, and persistence helpers are not default
+cross-module API.
+
+Warmup's canonical package may expose submodules such as `contracts`,
+`repository`, `policies`, `errors`, `read_models`, `queries`, `commands`,
+`enqueue`, `service`, `router`, `jobs`, `worker`, `dispatcher`, `events`,
+`isolation`, `readiness`, and `p2p` for internal ownership and same-module
+composition. That does not make those submodules default public API for other
+feature modules.
 
 ## Allowed Dependency Direction
 
@@ -122,6 +130,29 @@ API contract modules from exposing ORM classes as the contract itself.
 4. Do not import another module's repository, policies, planner, executor, or
    other internal files.
 5. Add or extend architecture tests if the module needs a new public boundary.
+
+## Residual Legacy Feature Boundaries
+
+The residual legacy feature boundary manifest lives at
+`docs/architecture/residual-legacy-boundaries.json`.
+
+Rules:
+
+- residual entries are open architecture debt, not final GREEN closure;
+- the manifest is a public-surface/non-growth governance guard, not proof that
+  residual runtime behavior has been migrated;
+- each residual entry needs owner, related issue, rationale, removal condition,
+  verification scope, current paths, and a public API fingerprint;
+- adding a new residual file or public route/function/class in a guarded
+  residual file fails the structure audit until governance is updated or the
+  behavior moves into a canonical module;
+- behavior-changing updates inside an existing residual legacy boundary must
+  happen under the corresponding migration issue/implementation PR or a
+  separate approved architecture exception;
+- feature enhancements must not continue accumulating in residual legacy files;
+- updating the manifest by itself does not replace canonical migration;
+- accepted residual boundaries do not weaken Dependency Rule enforcement for
+  canonical modules.
 
 ## Extending Contracts Safely
 

@@ -10,7 +10,7 @@ edges:
   - .mex/ROUTER.md
   - .mex/context/architecture.md
   - .mex/context/security.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Decisions

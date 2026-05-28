@@ -11,7 +11,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - docs/architecture/production-execution-plane.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Workers and Queues

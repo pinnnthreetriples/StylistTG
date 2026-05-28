@@ -10,7 +10,7 @@ edges:
   - .mex/context/backend.md
   - .mex/context/frontend.md
   - .mex/context/security.md
-last_updated: 2026-05-25
+last_updated: 2026-05-28
 ---
 
 # Conventions

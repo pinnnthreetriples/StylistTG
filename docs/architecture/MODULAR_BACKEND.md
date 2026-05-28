@@ -6,12 +6,14 @@ The backend uses business modules under `backend/app/modules/` so new feature
 work can be organized by domain instead of spreading code across `api/`,
 `services/`, `workers/`, and `job_queue/`.
 
-Architecture Epic Phase 6B closes the initial module split by making remaining
-legacy feature boundaries explicit, accepted, and guarded. Existing public API
-paths, job models, job states, workflow identifiers, and worker behavior remain
-the compatibility contract.
+Architecture Epic Phase 6C corrects the Phase 6B closure claim: remaining
+legacy feature boundaries are explicit and guarded, but they are still open
+residual modularisation debt until they move behind canonical modules, become
+behavior-free compatibility wrappers, or are reclassified with proof. Existing
+public API paths, job models, job states, workflow identifiers, and worker
+behavior remain the compatibility contract.
 
-## Current Phase: Stabilized Module Boundaries
+## Current Phase: Residual Boundary Governance
 
 The current backend has canonical modules for account editing, account
 lifecycle, account profile completeness, account safety, auth, neuro commenting,
@@ -29,6 +31,36 @@ compatibility contract.
 - `app.services.auth_context` remains a compatibility wrapper around
   `app.modules.auth`.
 - Module names may differ from workflow types.
+
+The generated structure audit intentionally reports backend overall `YELLOW`
+while these active feature-owned residual boundaries remain outside
+`backend/app/modules`:
+
+- `account_audit` -> follow-up #213
+- `account_core` -> follow-up #214
+- `account_ggr` -> follow-up #215
+- `account_imports` -> follow-up #216
+- `account_jobs` -> follow-up #217
+- `account_profile_state` -> follow-up #218
+- `account_proxy` -> follow-up #219
+- `account_quarantine` -> follow-up #220
+- `account_runtime_status` -> follow-up #221
+- `account_validity` -> follow-up #222
+- `bought_onboarding` -> follow-up #223
+- `human_behavior` -> follow-up #224
+- `story` -> follow-up #225
+
+`docs/architecture/residual-legacy-boundaries.json` records each residual
+owner, current paths, related issue, removal condition, verification scope, and
+public route/function/class fingerprint. Any new residual path or new public
+surface in those paths must update that manifest with reviewable governance or
+move the behavior into a canonical module.
+
+This guard is a public-surface/non-growth control. It does not prove that
+runtime behavior inside residual legacy files has been migrated. Behavior
+changes or feature enhancements in residual boundaries require the matching
+migration issue/implementation PR or a separately approved architecture
+exception; a manifest update alone is not a substitute for canonical migration.
 
 ## Module Rules
 

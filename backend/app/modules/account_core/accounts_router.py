@@ -9,10 +9,19 @@ from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.errors import AppError
 from app.models import Account, WarmupSession
-from app.modules.account_core.service import create_account, list_accounts as list_accounts_service
+from app.modules.account_core.service import (
+    create_account,
+    list_accounts as list_accounts_service,
+)
 from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
-from app.modules.warmup.service import batch_active_warmups_for_accounts, warmup_operation_policy
+from app.modules.auth.dependencies import (
+    require_authenticated,
+    require_mutation_permission,
+)
+from app.modules.warmup.service import (
+    batch_active_warmups_for_accounts,
+    warmup_operation_policy,
+)
 from app.schemas import (
     AccountCreate,
     AccountListItemRead,
@@ -66,7 +75,10 @@ def get_accounts(
         workspace_id=auth.workspace_id,
     )
     photo_map = batch_latest_profile_photo_asset_ids(session, account_ids)
-    return [_account_list_item_batched(account, warmup_map, photo_map) for account in accounts]
+    return [
+        _account_list_item_batched(account, warmup_map, photo_map)
+        for account in accounts
+    ]
 
 
 @router.get("/{account_id}", response_model=AccountRead)
@@ -98,7 +110,9 @@ def account_list_item(session: Session, account: Account) -> AccountListItemRead
     profile = account.profile_state
     first_name = profile.first_name if profile else None
     last_name = profile.last_name if profile else None
-    display_name = " ".join(part for part in [first_name, last_name] if part).strip() or None
+    display_name = (
+        " ".join(part for part in [first_name, last_name] if part).strip() or None
+    )
     username = profile.username if profile else None
     runtime = account.runtime_state
     warmup_policy = warmup_operation_policy(
@@ -119,7 +133,9 @@ def account_list_item(session: Session, account: Account) -> AccountListItemRead
         runtime_health=runtime.runtime_health,
         is_execution_usable=account.account_state == "execution_usable",
         is_test_dc=_is_test_dc_account(account),
-        profile_photo_asset_id=latest_applied_profile_photo_asset_id(session, account.id),
+        profile_photo_asset_id=latest_applied_profile_photo_asset_id(
+            session, account.id
+        ),
         updated_at=account.updated_at,
         warmup=AccountWarmupInfoRead(
             session_id=warmup_policy["session_id"],
@@ -140,7 +156,9 @@ def _account_list_item_batched(
     profile = account.profile_state
     first_name = profile.first_name if profile else None
     last_name = profile.last_name if profile else None
-    display_name = " ".join(part for part in [first_name, last_name] if part).strip() or None
+    display_name = (
+        " ".join(part for part in [first_name, last_name] if part).strip() or None
+    )
     username = profile.username if profile else None
     runtime = account.runtime_state
     warmup_session = warmup_map.get(account.id)
@@ -173,7 +191,10 @@ def _account_list_item_batched(
 
 
 def _is_test_dc_account(account: Account) -> bool:
-    return account.external_ref.startswith("+999") or account.telegram_user_id == "mock-user"
+    return (
+        account.external_ref.startswith("+999")
+        or account.telegram_user_id == "mock-user"
+    )
 
 
 def _account_origin(account: Account) -> AccountOrigin:

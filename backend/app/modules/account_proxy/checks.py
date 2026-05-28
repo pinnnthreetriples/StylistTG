@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
 from app.config import Settings, settings
 from app.models import AccountProxy, utc_now
+from app.modules.account_core.interfaces import lookup_account
 from app.modules.account_proxy.accounts import proxy_to_dict
-from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 
 
@@ -50,7 +50,7 @@ def check_account_proxy(
     config: Settings = settings,
     workspace_id: str | None = None,
 ) -> dict[str, Any]:
-    if get_account(session, account_id, workspace_id=workspace_id) is None:
+    if lookup_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     proxy = session.get(AccountProxy, account_id)
     if proxy is None:

@@ -13,15 +13,12 @@ from app.modules.account_proxy.accounts import (
     upsert_account_proxy,
 )
 from app.modules.account_proxy.checks import check_account_proxy
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
 from app.schemas import (
     AccountProxyRead,
     AccountProxySummaryRead,
     AccountProxyUpsert,
-)
-from app.services.auth_context import (
-    AuthContext,
-    require_authenticated,
-    require_mutation_permission,
 )
 from app.services.warmup import warmup_operation_policy
 

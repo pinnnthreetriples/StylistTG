@@ -12,6 +12,7 @@ from app.models import Account, WarmupSession
 from app.modules.account_core.service import create_account, list_accounts as list_accounts_service
 from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
+from app.modules.warmup.service import batch_active_warmups_for_accounts, warmup_operation_policy
 from app.schemas import (
     AccountCreate,
     AccountListItemRead,
@@ -23,7 +24,6 @@ from app.services.profile_photo_state import (
     batch_latest_profile_photo_asset_ids,
     latest_applied_profile_photo_asset_id,
 )
-from app.services.warmup import batch_active_warmups_for_accounts, warmup_operation_policy
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 AccountOrigin = Literal["imported", "bought", "created"]

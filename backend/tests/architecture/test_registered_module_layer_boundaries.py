@@ -88,12 +88,15 @@ DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
     "repository": (
         Path("repository.py"),
         Path("account_safety/policy_repository.py"),
+        Path("account_safety/status_repository.py"),
     ),
     "router": (
         Path("router.py"),
         Path("account_safety/accounts_router.py"),
         Path("account_safety/policy_router.py"),
         Path("account_safety/quarantine_router.py"),
+        Path("account_safety/status_router.py"),
+        Path("account_safety/runtime_router.py"),
     ),
     "jobs": (Path("jobs.py"), Path("enqueue.py")),
 }

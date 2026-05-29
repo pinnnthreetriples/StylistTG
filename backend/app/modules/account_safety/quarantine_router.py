@@ -26,7 +26,8 @@ from app.modules.account_safety.terminal_status import (
     TerminalStatusColumnUnavailable,
     clear_terminal_status,
 )
-from app.services.auth_context import AuthContext, require_authenticated, require_role
+from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated, require_role
 from app.services.sensitive_audit import record_sensitive_audit_event
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])

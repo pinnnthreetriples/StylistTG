@@ -113,7 +113,12 @@ def _score_readiness_risk(
     if account.account_state == AccountState.REAUTH_REQUIRED or bool(
         runtime and runtime.reauth_required
     ):
-        add(80, "reauth_required", "critical", "Account requires reauthorization before profile jobs.")
+        add(
+            80,
+            "reauth_required",
+            "critical",
+            "Account requires reauthorization before profile jobs.",
+        )
     elif account.account_state in {
         AccountState.AWAITING_CODE,
         AccountState.AWAITING_PASSWORD,
@@ -128,7 +133,12 @@ def _score_readiness_risk(
     runtime_health = runtime.runtime_health if runtime else "unknown"
     if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
         severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
-        add(45 if severity == "critical" else 25, "runtime_unhealthy", severity, "Account runtime is not ready.")
+        add(
+            45 if severity == "critical" else 25,
+            "runtime_unhealthy",
+            severity,
+            "Account runtime is not ready.",
+        )
 
     if account.account_state in {
         AccountState.RUNTIME_BROKEN,
@@ -163,7 +173,13 @@ def _score_readiness_risk(
 
     score = min(max(score, 0), 100)
     if not reasons:
-        reasons.append({"code": "ready", "severity": "info", "message": "Account is ready based on stored app signals."})
+        reasons.append(
+            {
+                "code": "ready",
+                "severity": "info",
+                "message": "Account is ready based on stored app signals.",
+            }
+        )
     level = _readiness_level(score)
     return {
         "account_id": account.id,

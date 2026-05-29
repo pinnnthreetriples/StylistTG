@@ -6,7 +6,14 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Account, AccountQuarantine, QUARANTINE_REASONS, WorkspaceSafetyPolicy, new_id, utc_now
+from app.models import (
+    Account,
+    AccountQuarantine,
+    QUARANTINE_REASONS,
+    WorkspaceSafetyPolicy,
+    new_id,
+    utc_now,
+)
 from app.modules.account_safety.policy import get_workspace_safety_policy
 from app.observability.safety_metrics import safety_metrics
 
@@ -205,7 +212,9 @@ def is_account_quarantined(
     account_id: str,
     workspace_id: str,
 ) -> bool:
-    return get_active_quarantine(session, account_id=account_id, workspace_id=workspace_id) is not None
+    return (
+        get_active_quarantine(session, account_id=account_id, workspace_id=workspace_id) is not None
+    )
 
 
 def handle_flood_wait(

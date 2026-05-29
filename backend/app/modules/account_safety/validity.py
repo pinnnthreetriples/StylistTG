@@ -231,7 +231,9 @@ def _apply_readonly_result(session: Session, account_id: str, result: dict[str, 
             account.profile_state.first_name = profile.get(
                 "first_name", account.profile_state.first_name
             )
-            account.profile_state.last_name = profile.get("last_name", account.profile_state.last_name)
+            account.profile_state.last_name = profile.get(
+                "last_name", account.profile_state.last_name
+            )
             account.profile_state.username = profile.get("username", account.profile_state.username)
             account.profile_state.bio = profile.get("bio", account.profile_state.bio)
             account.profile_state.synced_at = utc_now()

@@ -6,6 +6,8 @@ Do not add new behavior here.
 
 from __future__ import annotations
 
-from app.modules.account_safety.quarantine_router import router
+import importlib
+import sys
 
-__all__ = ["router"]
+_module = importlib.import_module("app.modules.account_safety.quarantine_router")
+sys.modules[__name__] = _module

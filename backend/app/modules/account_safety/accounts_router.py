@@ -38,7 +38,10 @@ from app.modules.account_safety.risk import (
     build_account_readiness_risk,
     build_account_readiness_risk_summary,
 )
-from app.modules.account_safety.validity import list_account_validity_checks, run_account_validity_check
+from app.modules.account_safety.validity import (
+    list_account_validity_checks,
+    run_account_validity_check,
+)
 from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import (
     require_authenticated,

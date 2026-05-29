@@ -14,8 +14,7 @@ from app.models import (
     AccountValidityCheckRun,
     utc_now,
 )
-from app.services.account_capabilities import build_account_capabilities
-from app.services.account_cooldowns import (
+from app.modules.account_safety.cooldowns import (
     active_cooldowns_by_operation,
     batch_active_cooldowns_by_operation,
     batch_latest_succeeded_steps,
@@ -26,18 +25,19 @@ from app.services.account_cooldowns import (
     recent_failure_cooldowns_by_operation,
     recent_failure_cooldowns_from_steps,
 )
-from app.services.account_health import (
+from app.modules.account_safety.health import (
     batch_latest_failed_steps,
     batch_latest_jobs,
     collect_account_health_signals,
     collect_account_health_signals_prefetched,
 )
-from app.services.account_risk import build_risk_by_operation, overall_risk_level
 from app.modules.account_safety.overrides import (
     NON_OVERRIDABLE_BLOCKERS,
     active_overrides_by_operation,
     batch_active_overrides_by_operation,
 )
+from app.modules.account_safety.risk import build_risk_by_operation, overall_risk_level
+from app.services.account_capabilities import build_account_capabilities
 from app.services.accounts import get_account, list_accounts
 
 

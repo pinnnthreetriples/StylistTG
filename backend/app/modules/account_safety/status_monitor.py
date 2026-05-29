@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import hashlib
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -15,14 +15,17 @@ from app.models import (
     NeuroCommentCampaign,
     NeuroCommentCampaignAccount,
     NeuroCommentEvent,
+    WarmupEvent,
     WarmupSession,
     WarmupStatus,
     new_id,
     utc_now,
 )
-from app.modules.warmup.events import write_warmup_event
 from app.observability.safety_metrics import safety_metrics
-from app.services.account_quarantine import AccountQuarantineService, get_active_quarantine
+from app.modules.account_safety.quarantine import (
+    AccountQuarantineService,
+    get_active_quarantine,
+)
 from app.modules.account_safety.policy import (
     get_consecutive_failure_threshold,
     get_workspace_safety_policy,
@@ -38,6 +41,16 @@ STATUS_MONITOR_CHECKPOINT_KEY = "status_monitor:last_checkpoint:{workspace_id}"
 IP_CHANGE_COOLDOWN_MINUTES = 30
 STICKY_IP_MAX_DISTINCT_HASHES = 3
 TERMINAL_AUTH_FAILURE_THRESHOLD = 5
+SENSITIVE_WARMUP_EVENT_KEYS = {
+    "api_hash",
+    "api_key",
+    "auth_key",
+    "password",
+    "proxy_password",
+    "session",
+    "session_string",
+    "tdlib_path",
+}
 
 _AUTHORIZED_STATES = {AccountState.AUTHORIZED_READY.value, AccountState.EXECUTION_USABLE.value}
 _HEALTHY_PROXY_STATUSES = {"ok", "tcp_working", "tdlib_working"}
@@ -543,7 +556,7 @@ def _auto_pause_account(
         warmup_session.updated_at = now
         warmup_session.next_micro_session_at = None
         warmup_session.next_step_at = None
-        write_warmup_event(
+        _write_warmup_event(
             session,
             warmup_session,
             "paused_risk",
@@ -581,3 +594,40 @@ def _auto_pause_account(
             created_at=now,
         )
     )
+
+
+def _write_warmup_event(
+    session: Session,
+    warmup_session: WarmupSession,
+    event_type: str,
+    payload: dict[str, Any] | None = None,
+) -> WarmupEvent:
+    event = WarmupEvent(
+        id=new_id(),
+        workspace_id=warmup_session.workspace_id,
+        session_id=warmup_session.id,
+        event_type=event_type,
+        payload_json=_sanitize_warmup_event_payload(payload or {}),
+    )
+    session.add(event)
+    return event
+
+
+def _sanitize_warmup_event_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    sanitized: dict[str, Any] = {}
+    for key, value in payload.items():
+        if key.lower() in SENSITIVE_WARMUP_EVENT_KEYS:
+            sanitized[key] = "[redacted]"
+        elif isinstance(value, dict):
+            sanitized[key] = _sanitize_warmup_event_payload(cast(dict[str, Any], value))
+        elif isinstance(value, list):
+            items = cast(list[object], value)
+            sanitized[key] = [
+                _sanitize_warmup_event_payload(cast(dict[str, Any], item))
+                if isinstance(item, dict)
+                else item
+                for item in items
+            ]
+        else:
+            sanitized[key] = value
+    return sanitized

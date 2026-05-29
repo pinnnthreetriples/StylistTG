@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, settings
 from app.errors import AppError
 from app.models import AccountState, TelegramAuthSession, new_id, utc_now
-from app.services.account_cooldowns import create_cooldown_from_error
+from app.modules.account_safety.cooldowns import create_cooldown_from_error
 from app.services.accounts import create_account, get_account
 from app.services.sensitive_audit import record_sensitive_audit_event
 from app.services.tdlib_auth import TdlibAuthStateMachine, TdlibAuthTransition

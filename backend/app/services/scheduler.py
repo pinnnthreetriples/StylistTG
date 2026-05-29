@@ -11,8 +11,8 @@ from app.config import Settings, settings
 from app.db import SessionLocal
 from app.logging_utils import log_warn
 from app.models import utc_now
+from app.modules.account_safety.status_monitor import run_account_status_monitor_tick
 from app.services.admin_notifications import collect_triggers, deliver, is_recently_notified
-from app.services.account_status_monitor import run_account_status_monitor_tick
 from app.services.notification_channels import EmailNotifier, WebhookNotifier
 from app.services.worker_plane import SCHEDULER_QUEUE_NAME
 

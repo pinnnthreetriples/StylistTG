@@ -135,22 +135,26 @@ class AccountStatusMonitor:
         workspace_id: str | None = None,
         now: datetime | None = None,
     ) -> list[AccountStatusObservation]:
-        query = select(  # nosemgrep: missing-workspace-id-filter -- Full monitor tick can scan all workspaces, then each account observation is scoped by account.workspace_id.
-            Account
-        ).where(Account.account_state != AccountState.DISABLED.value)
-        if workspace_id is not None:
-            query = query.where(Account.workspace_id == workspace_id)
         observations: list[AccountStatusObservation] = []
-        for account in session.execute(query.order_by(Account.updated_at.asc())).scalars():
-            observations.append(
-                self.observe_account(
-                    session,
-                    account_id=account.id,
-                    workspace_id=account.workspace_id,
-                    now=now,
-                    account=account,
-                )
+        for current_workspace_id in _status_monitor_workspace_ids(
+            session, workspace_id=workspace_id
+        ):
+            query = (
+                select(Account)
+                .where(Account.account_state != AccountState.DISABLED.value)
+                .where(Account.workspace_id == current_workspace_id)
+                .order_by(Account.updated_at.asc())
             )
+            for account in session.execute(query).scalars():
+                observations.append(
+                    self.observe_account(
+                        session,
+                        account_id=account.id,
+                        workspace_id=account.workspace_id,
+                        now=now,
+                        account=account,
+                    )
+                )
         return observations
 
     def observe_account(

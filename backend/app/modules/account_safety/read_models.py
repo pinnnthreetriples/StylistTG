@@ -36,9 +36,12 @@ from app.modules.account_safety.overrides import (
     active_overrides_by_operation,
     batch_active_overrides_by_operation,
 )
+from app.modules.account_core.interfaces import (
+    build_account_capabilities,
+    list_workspace_accounts,
+    lookup_account,
+)
 from app.modules.account_safety.risk import build_risk_by_operation, overall_risk_level
-from app.services.account_capabilities import build_account_capabilities
-from app.services.accounts import get_account, list_accounts
 
 
 def build_account_safety(
@@ -47,7 +50,7 @@ def build_account_safety(
     *,
     config: Settings = settings,
 ) -> dict[str, Any]:
-    account = get_account(session, account_id)
+    account = lookup_account(session, account_id)
     if account is None:
         raise ValueError("account not found")
     return build_account_safety_for_account(session, account, config=config)
@@ -94,7 +97,7 @@ def build_account_safety_summary(
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
     config: Settings = settings,
 ) -> list[dict[str, Any]]:
-    accounts = list_accounts(session, workspace_id=workspace_id)
+    accounts = list_workspace_accounts(session, workspace_id=workspace_id)
     if not accounts:
         return []
     account_ids = [a.id for a in accounts]

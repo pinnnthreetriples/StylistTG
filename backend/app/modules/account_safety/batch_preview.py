@@ -86,6 +86,6 @@ def _item_reasons(safety: dict[str, Any], risk: dict[str, Any]) -> list[dict[str
 
 
 def _account_in_workspace(session: Session, account_id: str, workspace_id: str) -> bool:
-    from app.services.accounts import get_account
+    from app.modules.account_core.interfaces import lookup_account
 
-    return get_account(session, account_id, workspace_id=workspace_id) is not None
+    return lookup_account(session, account_id, workspace_id=workspace_id) is not None

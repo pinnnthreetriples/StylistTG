@@ -24,7 +24,6 @@ from app.modules.warmup.module import module as warmup_module
 MODULES: tuple[FeatureModule, ...] = (
     auth_module,
     account_audit_module,
-    account_core_module,
     account_imports_module,
     account_jobs_module,
     account_safety_module,
@@ -34,6 +33,11 @@ MODULES: tuple[FeatureModule, ...] = (
     account_proxy_module,
     warmup_module,
     neuro_commenting_module,
+    # account_core MUST be registered last: its accounts_router exposes the
+    # `/api/accounts/{account_id}` wildcard, which would shadow specific
+    # paths like `/api/accounts/safety-summary` registered by other modules
+    # if those modules were mounted after it.
+    account_core_module,
 )
 
 

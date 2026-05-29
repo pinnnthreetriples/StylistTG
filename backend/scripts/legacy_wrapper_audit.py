@@ -356,22 +356,6 @@ def _account_safety_wrapper(
     )
 
 
-def _account_transitional_wrapper(
-    legacy_path: str,
-    file: str,
-    canonical_owner: str,
-    notes: str,
-) -> WrapperSpec:
-    return WrapperSpec(
-        legacy_path=legacy_path,
-        file=file,
-        canonical_owner=canonical_owner,
-        allowed_importers=("tests", "external_compatibility", "backend/app/modules"),
-        forbidden_importers=(),
-        notes=notes,
-    )
-
-
 WRAPPERS = (
     WrapperSpec(
         legacy_path="app.api.account_update",
@@ -393,17 +377,17 @@ WRAPPERS = (
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_LIFECYCLE_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_OPERATIONS_WRAPPERS),
-    _account_transitional_wrapper(
+    _account_safety_wrapper(
         "app.services.accounts",
         "backend/app/services/accounts.py",
         "app.modules.account_core.service",
-        "Preserves legacy account CRUD service imports while module callers transition off the wrapper.",
+        "Preserves legacy account CRUD service imports.",
     ),
-    _account_transitional_wrapper(
+    _account_safety_wrapper(
         "app.services.account_capabilities",
         "backend/app/services/account_capabilities.py",
         "app.modules.account_core.capabilities",
-        "Preserves legacy account capabilities service imports while module callers transition off the wrapper.",
+        "Preserves legacy account capabilities service imports.",
     ),
     WrapperSpec(
         legacy_path="app.api.warmup",

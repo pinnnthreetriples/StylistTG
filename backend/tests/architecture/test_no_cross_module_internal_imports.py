@@ -81,6 +81,15 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         rationale="FastAPI auth dependency facade used by canonical account-core compatibility router.",
     ),
     CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "compat_router.py",
+        imported_module="account_safety",
+        public_name="runtime_router",
+        rationale=(
+            "Compatibility wrapper for legacy /api/accounts header-based runtime endpoints; "
+            "the canonical implementation lives in account_safety after PR1's runtime migration."
+        ),
+    ),
+    CrossModuleFacadeException(
         source=MODULES_ROOT / "account_imports" / "router.py",
         imported_module="auth",
         public_name="context",

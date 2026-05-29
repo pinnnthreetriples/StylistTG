@@ -13,10 +13,15 @@ from legacy_wrapper_audit import WRAPPERS  # noqa: E402
 
 
 MODULE_ROOTS = (
-    Path("app/modules/account_safety"),
+    Path("app/modules/account_audit"),
+    Path("app/modules/account_core"),
     Path("app/modules/account_editing"),
-    Path("app/modules/account_profile_completeness"),
+    Path("app/modules/account_imports"),
+    Path("app/modules/account_jobs"),
     Path("app/modules/account_lifecycle"),
+    Path("app/modules/account_profile_completeness"),
+    Path("app/modules/account_proxy"),
+    Path("app/modules/account_safety"),
     Path("app/modules/neuro_commenting"),
     Path("app/modules/warmup"),
 )

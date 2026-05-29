@@ -28,7 +28,6 @@ def test_module_router_paths_are_lazy_strings() -> None:
 
     assert router_paths == (
         "app.modules.account_audit.router:router",
-        "app.modules.account_core.router:router",
         "app.modules.account_imports.router:router",
         "app.modules.account_jobs.router:router",
         "app.modules.account_safety.router:router",
@@ -38,6 +37,10 @@ def test_module_router_paths_are_lazy_strings() -> None:
         "app.modules.account_proxy.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
+        # account_core ships an aggregate `/api/accounts/{account_id}` wildcard
+        # that must be registered after the more specific routes (e.g.
+        # `/api/accounts/safety-summary`).
+        "app.modules.account_core.router:router",
     )
 
 

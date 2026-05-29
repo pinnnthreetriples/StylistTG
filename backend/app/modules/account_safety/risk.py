@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Account, AccountOperationCooldown, AccountState, Job, JobState, utc_now
-from app.services.accounts import list_accounts
+from app.modules.account_core.interfaces import list_workspace_accounts
 
 OPERATION_KEYS = (
     "profile_update",
@@ -209,7 +209,7 @@ def build_account_readiness_risk(
 
 def build_account_readiness_risk_summary(session: Session, *, workspace_id: str) -> dict[str, Any]:
     computed_at = utc_now()
-    accounts = list_accounts(session, workspace_id=workspace_id)
+    accounts = list_workspace_accounts(session, workspace_id=workspace_id)
     if not accounts:
         return _empty_risk_summary(computed_at)
     account_ids = [a.id for a in accounts]

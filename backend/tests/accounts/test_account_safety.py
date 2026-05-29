@@ -608,6 +608,7 @@ def test_account_validity_second_snapshot_updates_existing_row(db_session) -> No
     assert snapshots[0].account_id == account.id
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_account_health_prefetched_reports_story_limit_failure(db_session) -> None:
     from app.modules.account_safety.health import collect_account_health_signals_prefetched
 
@@ -643,6 +644,7 @@ def test_account_health_prefetched_reports_story_limit_failure(db_session) -> No
         ("STORY_REJECTED", "story_recently_rejected"),
     ],
 )
+@freeze_time("2026-01-15 12:00:00")
 def test_account_health_prefetched_maps_story_failure_reasons(
     db_session, error_code: str, expected_code: str
 ) -> None:
@@ -731,6 +733,7 @@ def test_account_readiness_risk_scores_locked_state_and_repeated_failures(db_ses
     assert "recent_job_failures" in {reason["code"] for reason in failed_risk["reasons"]}
 
 
+@freeze_time("2026-01-15 12:00:00")
 def test_risk_by_operation_handles_missing_unknown_limited_and_custom_cooldown() -> None:
     from app.modules.account_safety.risk import build_risk_by_operation
 

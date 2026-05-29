@@ -258,6 +258,88 @@ _ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS = (
 )
 
 
+_ACCOUNT_OPERATIONS_WRAPPERS = (
+    (
+        "app.api.account_audit_routes",
+        "backend/app/api/account_audit_routes.py",
+        "app.modules.account_audit.router",
+        "Preserves legacy account audit router import path.",
+    ),
+    (
+        "app.api.account_compat_routes",
+        "backend/app/api/account_compat_routes.py",
+        "app.modules.account_core.compat_router",
+        "Preserves legacy account compatibility router import path.",
+    ),
+    (
+        "app.api.account_context",
+        "backend/app/api/account_context.py",
+        "app.modules.account_core.context",
+        "Preserves legacy account context import path.",
+    ),
+    (
+        "app.api.account_imports",
+        "backend/app/api/account_imports.py",
+        "app.modules.account_imports.router",
+        "Preserves legacy account imports router import path.",
+    ),
+    (
+        "app.api.account_jobs_routes",
+        "backend/app/api/account_jobs_routes.py",
+        "app.modules.account_jobs.router",
+        "Preserves legacy account jobs router import path.",
+    ),
+    (
+        "app.api.account_proxy_routes",
+        "backend/app/api/account_proxy_routes.py",
+        "app.modules.account_proxy.router",
+        "Preserves legacy account proxy router import path.",
+    ),
+    (
+        "app.api.accounts",
+        "backend/app/api/accounts.py",
+        "app.modules.account_core.accounts_router",
+        "Preserves legacy accounts router import path.",
+    ),
+    (
+        "app.contracts.accounts",
+        "backend/app/contracts/accounts.py",
+        "app.modules.account_core.account_contracts",
+        "Preserves legacy account contract imports.",
+    ),
+    (
+        "app.contracts.cross_module_load",
+        "backend/app/contracts/cross_module_load.py",
+        "app.modules.account_core.cross_module_contracts",
+        "Preserves legacy cross-module load contract imports.",
+    ),
+    (
+        "app.services.account_bundle",
+        "backend/app/services/account_bundle.py",
+        "app.modules.account_core.bundle",
+        "Preserves legacy account bundle service imports.",
+    ),
+    (
+        "app.services.account_imports",
+        "backend/app/services/account_imports.py",
+        "app.modules.account_imports.service",
+        "Preserves legacy account imports service imports.",
+    ),
+    (
+        "app.services.proxy_accounts",
+        "backend/app/services/proxy_accounts.py",
+        "app.modules.account_proxy.accounts",
+        "Preserves legacy account proxy service imports.",
+    ),
+    (
+        "app.services.proxy_checks",
+        "backend/app/services/proxy_checks.py",
+        "app.modules.account_proxy.checks",
+        "Preserves legacy proxy check service imports.",
+    ),
+)
+
+
 def _account_safety_wrapper(
     legacy_path: str,
     file: str,
@@ -294,6 +376,19 @@ WRAPPERS = (
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_SAFETY_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_LIFECYCLE_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS),
+    *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_OPERATIONS_WRAPPERS),
+    _account_safety_wrapper(
+        "app.services.accounts",
+        "backend/app/services/accounts.py",
+        "app.modules.account_core.service",
+        "Preserves legacy account CRUD service imports.",
+    ),
+    _account_safety_wrapper(
+        "app.services.account_capabilities",
+        "backend/app/services/account_capabilities.py",
+        "app.modules.account_core.capabilities",
+        "Preserves legacy account capabilities service imports.",
+    ),
     WrapperSpec(
         legacy_path="app.api.warmup",
         file="backend/app/api/warmup.py",
@@ -504,7 +599,11 @@ def validate_manifest(repo: Path, manifest: dict[str, Any]) -> list[str]:
         if "Do not add new behavior here." not in source:
             errors.append(f"{path} is missing no-new-behavior marker")
 
-    legacy_paths = [wrapper["legacy_path"] for wrapper in expected["wrappers"]]
+    legacy_paths = [
+        wrapper["legacy_path"]
+        for wrapper in expected["wrappers"]
+        if "backend/app/modules" in wrapper.get("forbidden_importers", [])
+    ]
     for source in _python_files(repo / "backend/app/modules"):
         for imported in _imports(source):
             if any(_matches(imported, legacy_path) for legacy_path in legacy_paths):

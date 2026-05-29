@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
-from app.contracts.cross_module_load import CrossModuleLoad, CrossModuleName
+from app.modules.account_core.cross_module_contracts import CrossModuleLoad, CrossModuleName
 from app.models import Account, CrossModuleLoadBucket, new_id, utc_now
 
 SafetyMode = Literal["conservative", "balanced", "aggressive"]

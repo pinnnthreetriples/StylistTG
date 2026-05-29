@@ -5,8 +5,8 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import Account
+from app.modules.account_core.interfaces import lookup_account
 from app.modules.account_safety.risk import build_account_readiness_risk
-from app.services.accounts import get_account
 from app.services.sensitive_audit import record_sensitive_audit_event
 
 ACTION_TYPES = (
@@ -36,7 +36,7 @@ def evaluate_action_gate(
 ) -> dict[str, Any]:
     if action_type not in ACTION_TYPES:
         raise ValueError("unsupported action type")
-    account = get_account(session, account_id, workspace_id=workspace_id)
+    account = lookup_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     risk = build_account_readiness_risk(session, account)

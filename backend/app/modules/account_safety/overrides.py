@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import AccountSafetyOverride, utc_now
+from app.modules.account_core.interfaces import lookup_account
 from app.modules.account_safety.cooldowns import OPERATION_KEYS
-from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 
 NON_OVERRIDABLE_BLOCKERS = {
@@ -31,7 +31,7 @@ def create_safety_override(
     reason: str,
     requested_blockers: list[str],
 ) -> dict[str, Any]:
-    if get_account(session, account_id, workspace_id=workspace_id) is None:
+    if lookup_account(session, account_id, workspace_id=workspace_id) is None:
         raise ValueError("account not found")
     if operation not in OPERATION_KEYS:
         raise ValueError("unsupported safety operation")

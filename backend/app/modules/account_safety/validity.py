@@ -14,9 +14,9 @@ from app.models import (
     new_id,
     utc_now,
 )
+from app.modules.account_core.interfaces import lookup_account
 from app.modules.account_safety.cooldowns import ensure_cooldowns_from_recent_failures
 from app.modules.account_safety.read_models import build_account_safety, summarize_account_safety
-from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 
 SUPPORTED_MODES = {"db_snapshot", "tdlib_readonly", "full_capability"}
@@ -38,7 +38,7 @@ def run_account_validity_check(
 ) -> dict[str, Any]:
     if mode not in SUPPORTED_MODES:
         raise ValueError("unsupported validity check mode")
-    if get_account(session, account_id) is None:
+    if lookup_account(session, account_id) is None:
         raise ValueError("account not found")
 
     started_at = utc_now()
@@ -207,7 +207,7 @@ def _upsert_safety_snapshot(session: Session, safety: dict[str, Any]) -> None:
 
 
 def _apply_readonly_result(session: Session, account_id: str, result: dict[str, Any]) -> None:
-    account = get_account(session, account_id)
+    account = lookup_account(session, account_id)
     if account is None:
         raise ValueError("account not found")
     runtime = cast(Any, account.runtime_state)

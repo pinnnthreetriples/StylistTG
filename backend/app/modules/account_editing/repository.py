@@ -9,7 +9,7 @@ from app.modules.account_editing.errors import (
     AccountNotFoundError,
     account_editing_error_from_legacy_message,
 )
-from app.services.accounts import get_account
+from app.modules.account_core.interfaces import lookup_account
 from app.services.assets import get_asset
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.jobs import (
@@ -27,7 +27,7 @@ class AccountEditingRepository:
         self._session = session
 
     def get_account(self, *, account_id: str, workspace_id: str | None = None) -> Account | None:
-        return get_account(self._session, account_id, workspace_id=workspace_id)
+        return lookup_account(self._session, account_id, workspace_id=workspace_id)
 
     def require_account(self, *, account_id: str, workspace_id: str | None = None) -> Account:
         account = self.get_account(account_id=account_id, workspace_id=workspace_id)

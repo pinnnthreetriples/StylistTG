@@ -1,19 +1,20 @@
+"""Compatibility wrapper.
+
+Canonical owner: app.modules.account_core.cross_module_contracts
+Do not add new behavior here.
+"""
+
 from __future__ import annotations
 
-from typing import Literal
+import sys
+from importlib import import_module
 
-from pydantic import BaseModel, ConfigDict, Field
+_contracts_module = import_module("app.modules.account_core.cross_module_contracts")
 
-CrossModuleName = Literal["warmup", "commenting", "editing", "other"]
-CrossModuleLoadBreakdown = dict[CrossModuleName, int]
-
-
-class CrossModuleLoad(BaseModel):
-    last_hour: int = Field(ge=0)
-    last_24h: int = Field(ge=0)
-    breakdown: CrossModuleLoadBreakdown
-
-    model_config = ConfigDict(frozen=True)
-
+CrossModuleLoad = getattr(_contracts_module, "CrossModuleLoad")
+CrossModuleLoadBreakdown = getattr(_contracts_module, "CrossModuleLoadBreakdown")
+CrossModuleName = getattr(_contracts_module, "CrossModuleName")
 
 __all__ = ["CrossModuleLoad", "CrossModuleLoadBreakdown", "CrossModuleName"]
+
+sys.modules[__name__] = _contracts_module

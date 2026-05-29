@@ -15,7 +15,7 @@ from app.models import (
     new_id,
     utc_now,
 )
-from app.services.account_quarantine import create_quarantine, release_quarantine
+from app.modules.account_safety.quarantine import create_quarantine, release_quarantine
 from app.services.ggr_calculator import calculate_ggr
 from app.services.scheduler import schedule_bought_onboarding_action
 

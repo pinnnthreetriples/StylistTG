@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import Account
-from app.services.account_risk import build_account_readiness_risk
+from app.modules.account_safety.risk import build_account_readiness_risk
 from app.services.accounts import get_account
 from app.services.sensitive_audit import record_sensitive_audit_event
 

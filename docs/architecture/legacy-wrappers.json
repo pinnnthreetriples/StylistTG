@@ -36,6 +36,36 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.quarantine_router",
+      "file": "backend/app/api/account_quarantine_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_quarantine_routes",
+      "notes": "Preserves legacy account quarantine router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.runtime_router",
+      "file": "backend/app/api/account_runtime_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_runtime_routes",
+      "notes": "Preserves legacy account runtime router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_safety.accounts_router",
       "file": "backend/app/api/account_safety_routes.py",
       "forbidden_importers": [
@@ -43,6 +73,21 @@
       ],
       "legacy_path": "app.api.account_safety_routes",
       "notes": "Preserves legacy account-safety accounts router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.status_router",
+      "file": "backend/app/api/account_status_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_status_routes",
+      "notes": "Preserves legacy account status router import path.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -111,6 +156,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.status_contracts",
+      "file": "backend/app/contracts/account_status.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.account_status",
+      "notes": "Preserves old account status contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_profile_completeness.contracts",
       "file": "backend/app/contracts/profile_completeness.py",
       "forbidden_importers": [
@@ -118,6 +178,21 @@
       ],
       "legacy_path": "app.contracts.profile_completeness",
       "notes": "Preserves old account profile-completeness contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.quarantine_contracts",
+      "file": "backend/app/contracts/quarantine.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.quarantine",
+      "notes": "Preserves old account quarantine contract imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -171,6 +246,36 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.cooldowns",
+      "file": "backend/app/services/account_cooldowns.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_cooldowns",
+      "notes": "Preserves old account cooldown service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.health",
+      "file": "backend/app/services/account_health.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_health",
+      "notes": "Preserves old account health service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_lifecycle.service",
       "file": "backend/app/services/account_lifecycle.py",
       "forbidden_importers": [
@@ -193,6 +298,36 @@
       ],
       "legacy_path": "app.services.account_profile_completeness",
       "notes": "Preserves old account profile-completeness service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.quarantine",
+      "file": "backend/app/services/account_quarantine.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_quarantine",
+      "notes": "Preserves old account quarantine service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.risk",
+      "file": "backend/app/services/account_risk.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_risk",
+      "notes": "Preserves old account risk service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -246,6 +381,36 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_safety.status_monitor",
+      "file": "backend/app/services/account_status_monitor.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_status_monitor",
+      "notes": "Preserves old account status monitor service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.terminal_status",
+      "file": "backend/app/services/account_terminal_status.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_terminal_status",
+      "notes": "Preserves old account terminal status service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_editing.service",
       "file": "backend/app/services/account_update_jobs.py",
       "forbidden_importers": [
@@ -268,6 +433,21 @@
       ],
       "legacy_path": "app.services.account_update_plan",
       "notes": "Preserves old account update planner imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_safety.validity",
+      "file": "backend/app/services/account_validity.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_validity",
+      "notes": "Preserves old account validity service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

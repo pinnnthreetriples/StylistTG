@@ -38,7 +38,7 @@ def refresh_runtime_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    from app.api.account_runtime_routes import refresh_runtime
+    from app.modules.account_safety.runtime_router import refresh_runtime
 
     return refresh_runtime(account_id, session, auth)
 
@@ -49,7 +49,7 @@ def runtime_diagnostics_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    from app.api.account_runtime_routes import runtime_diagnostics
+    from app.modules.account_safety.runtime_router import runtime_diagnostics
 
     return runtime_diagnostics(account_id, session, auth)
 

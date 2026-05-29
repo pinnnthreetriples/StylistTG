@@ -16,6 +16,9 @@ DOMAIN_ROOTS = [
 ]
 API_IMPORT_ALLOWLIST = {
     APP_ROOT / "modules" / "account_safety" / "accounts_router.py",
+    APP_ROOT / "modules" / "account_safety" / "quarantine_router.py",
+    APP_ROOT / "modules" / "account_safety" / "runtime_router.py",
+    APP_ROOT / "modules" / "account_safety" / "status_router.py",
 }
 
 

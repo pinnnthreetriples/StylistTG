@@ -35,6 +35,96 @@ class CrossModuleFacadeException:
 
 DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
     CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_audit" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-audit router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_audit" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-audit router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "accounts_router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-core accounts router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "accounts_router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-core accounts router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "accounts_router.py",
+        imported_module="warmup",
+        public_name="service",
+        rationale=(
+            "Account-core account list/read models still expose warmup status; remove when warmup "
+            "publishes a dedicated account-summary interface."
+        ),
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "compat_router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-core compatibility router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_core" / "compat_router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-core compatibility router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_imports" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-imports router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_imports" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-imports router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_jobs" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-jobs router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_jobs" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-jobs router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_proxy" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-proxy router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_proxy" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-proxy router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_proxy" / "router.py",
+        imported_module="warmup",
+        public_name="service",
+        rationale=(
+            "Account-proxy changes still consult warmup lock policy; remove when warmup exposes "
+            "a dedicated operation-lock interface."
+        ),
+    ),
+    CrossModuleFacadeException(
         source=MODULES_ROOT / "account_editing" / "router.py",
         imported_module="auth",
         public_name="dependencies",

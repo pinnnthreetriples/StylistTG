@@ -186,6 +186,7 @@
       "backend/app/contracts/safety.py": [],
       "backend/app/contracts/safety_gate.py": [],
       "backend/app/contracts/types.py": [],
+      "backend/app/modules/account_core/contracts.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/account_lifecycle/contracts.py": [],
       "backend/app/modules/account_profile_completeness/contracts.py": [],
@@ -195,7 +196,10 @@
       "backend/app/modules/warmup/contracts.py": [],
       "backend/app/schemas.py": []
     },
-    "fastapi_outside_router_or_auth_dependencies": [],
+    "fastapi_outside_router_or_auth_dependencies": [
+      "backend/app/modules/account_core/accounts_router.py",
+      "backend/app/modules/account_core/compat_router.py"
+    ],
     "policies_forbidden_imports": {
       "backend/app/modules/account_editing/policies.py": [
         "app.models"
@@ -218,9 +222,14 @@
       "backend/app/modules/warmup/repository.py": []
     },
     "routers_importing_models": {
+      "backend/app/modules/account_audit/router.py": [],
+      "backend/app/modules/account_core/router.py": [],
       "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/account_imports/router.py": [],
+      "backend/app/modules/account_jobs/router.py": [],
       "backend/app/modules/account_lifecycle/router.py": [],
       "backend/app/modules/account_profile_completeness/router.py": [],
+      "backend/app/modules/account_proxy/router.py": [],
       "backend/app/modules/account_safety/accounts_router.py": [],
       "backend/app/modules/account_safety/policy_router.py": [],
       "backend/app/modules/account_safety/router.py": [],
@@ -230,6 +239,55 @@
   },
   "debt_inventory": {
     "entries": [
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_audit/__init__.py",
+          "backend/app/modules/account_audit/module.py",
+          "backend/app/modules/account_audit/router.py"
+        ],
+        "id": "canonical-account-audit",
+        "owner": "account_audit",
+        "paths": [
+          "backend/app/modules/account_audit/**"
+        ],
+        "phase": "PR2",
+        "rationale": "Account audit transport ownership is canonical; old API path is a compatibility wrapper.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_audit"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_core/__init__.py",
+          "backend/app/modules/account_core/account_contracts.py",
+          "backend/app/modules/account_core/accounts_router.py",
+          "backend/app/modules/account_core/bundle.py",
+          "backend/app/modules/account_core/capabilities.py",
+          "backend/app/modules/account_core/compat_router.py",
+          "backend/app/modules/account_core/context.py",
+          "backend/app/modules/account_core/contracts.py",
+          "backend/app/modules/account_core/cross_module_contracts.py",
+          "backend/app/modules/account_core/interfaces.py",
+          "backend/app/modules/account_core/module.py",
+          "backend/app/modules/account_core/presenters.py",
+          "backend/app/modules/account_core/router.py",
+          "backend/app/modules/account_core/service.py"
+        ],
+        "id": "canonical-account-core",
+        "owner": "account_core",
+        "paths": [
+          "backend/app/modules/account_core/**"
+        ],
+        "phase": "PR2",
+        "rationale": "Core account CRUD, compatibility routes, context, bundle, capabilities, and DTO ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_core"
+      },
       {
         "category": "canonical_feature_module",
         "existing_paths": [
@@ -257,6 +315,46 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules.account_editing"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_imports/__init__.py",
+          "backend/app/modules/account_imports/module.py",
+          "backend/app/modules/account_imports/router.py",
+          "backend/app/modules/account_imports/service.py"
+        ],
+        "id": "canonical-account-imports",
+        "owner": "account_imports",
+        "paths": [
+          "backend/app/modules/account_imports/**"
+        ],
+        "phase": "PR2",
+        "rationale": "Account import route and service ownership is canonical; old API/service paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_imports"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_jobs/__init__.py",
+          "backend/app/modules/account_jobs/interfaces.py",
+          "backend/app/modules/account_jobs/module.py",
+          "backend/app/modules/account_jobs/router.py"
+        ],
+        "id": "canonical-account-jobs",
+        "owner": "account_jobs",
+        "paths": [
+          "backend/app/modules/account_jobs/**"
+        ],
+        "phase": "PR2",
+        "rationale": "Account jobs route and interface ownership is canonical; old API path is a compatibility wrapper.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_jobs"
       },
       {
         "category": "canonical_feature_module",
@@ -302,6 +400,27 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules.account_profile_completeness"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_proxy/__init__.py",
+          "backend/app/modules/account_proxy/accounts.py",
+          "backend/app/modules/account_proxy/checks.py",
+          "backend/app/modules/account_proxy/module.py",
+          "backend/app/modules/account_proxy/router.py"
+        ],
+        "id": "canonical-account-proxy",
+        "owner": "account_proxy",
+        "paths": [
+          "backend/app/modules/account_proxy/**"
+        ],
+        "phase": "PR2",
+        "rationale": "Account proxy route, assignment service, and check service ownership is canonical; old API/service paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_proxy"
       },
       {
         "category": "canonical_feature_module",
@@ -457,17 +576,29 @@
       {
         "category": "compatibility_wrapper",
         "existing_paths": [
+          "backend/app/api/account_audit_routes.py",
+          "backend/app/api/account_compat_routes.py",
+          "backend/app/api/account_context.py",
+          "backend/app/api/account_imports.py",
+          "backend/app/api/account_jobs_routes.py",
           "backend/app/api/account_lifecycle_routes.py",
           "backend/app/api/account_profile_completeness_routes.py",
+          "backend/app/api/account_proxy_routes.py",
           "backend/app/api/account_safety_routes.py",
           "backend/app/api/account_update.py",
+          "backend/app/api/accounts.py",
           "backend/app/api/neuro_commenting.py",
           "backend/app/api/safety_policy.py",
           "backend/app/api/warmup.py",
+          "backend/app/contracts/accounts.py",
+          "backend/app/contracts/cross_module_load.py",
           "backend/app/contracts/profile_completeness.py",
           "backend/app/contracts/safety.py",
           "backend/app/contracts/safety_gate.py",
           "backend/app/services/account_batch_safety.py",
+          "backend/app/services/account_bundle.py",
+          "backend/app/services/account_capabilities.py",
+          "backend/app/services/account_imports.py",
           "backend/app/services/account_lifecycle.py",
           "backend/app/services/account_profile_completeness.py",
           "backend/app/services/account_safety.py",
@@ -475,6 +606,7 @@
           "backend/app/services/account_safety_overrides.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
+          "backend/app/services/accounts.py",
           "backend/app/services/auth_context.py",
           "backend/app/services/neuro_commenting/__init__.py",
           "backend/app/services/neuro_commenting/account_health_service.py",
@@ -508,6 +640,8 @@
           "backend/app/services/neuro_commenting/tdlib_helpers.py",
           "backend/app/services/neuro_commenting/tdlib_observer.py",
           "backend/app/services/neuro_commenting/tdlib_runtime.py",
+          "backend/app/services/proxy_accounts.py",
+          "backend/app/services/proxy_checks.py",
           "backend/app/services/retention_worker.py",
           "backend/app/services/risk_gate.py",
           "backend/app/services/safety_gate_cache.py",
@@ -547,6 +681,21 @@
           "backend/app/api/account_profile_completeness_routes.py",
           "backend/app/contracts/profile_completeness.py",
           "backend/app/services/account_profile_completeness.py",
+          "backend/app/api/account_audit_routes.py",
+          "backend/app/api/account_compat_routes.py",
+          "backend/app/api/account_context.py",
+          "backend/app/api/account_imports.py",
+          "backend/app/api/account_jobs_routes.py",
+          "backend/app/api/account_proxy_routes.py",
+          "backend/app/api/accounts.py",
+          "backend/app/contracts/accounts.py",
+          "backend/app/contracts/cross_module_load.py",
+          "backend/app/services/account_bundle.py",
+          "backend/app/services/account_imports.py",
+          "backend/app/services/proxy_accounts.py",
+          "backend/app/services/proxy_checks.py",
+          "backend/app/services/accounts.py",
+          "backend/app/services/account_capabilities.py",
           "backend/app/api/warmup.py",
           "backend/app/services/account_update_jobs.py",
           "backend/app/services/account_update_plan.py",
@@ -637,54 +786,6 @@
       {
         "category": "residual_legacy_feature_boundary",
         "existing_paths": [
-          "backend/app/api/account_audit_routes.py"
-        ],
-        "id": "residual-legacy-account-audit",
-        "owner": "account_audit",
-        "paths": [
-          "backend/app/api/account_audit_routes.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Account audit transport remains feature-owned production code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #213 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_audit (follow-up #213)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/account_compat_routes.py",
-          "backend/app/api/account_context.py",
-          "backend/app/api/accounts.py",
-          "backend/app/contracts/accounts.py",
-          "backend/app/contracts/cross_module_load.py",
-          "backend/app/services/account_bundle.py",
-          "backend/app/services/account_capabilities.py",
-          "backend/app/services/accounts.py"
-        ],
-        "id": "residual-legacy-account-core",
-        "owner": "account_core",
-        "paths": [
-          "backend/app/api/account_compat_routes.py",
-          "backend/app/api/account_context.py",
-          "backend/app/api/accounts.py",
-          "backend/app/services/account_bundle.py",
-          "backend/app/services/account_capabilities.py",
-          "backend/app/services/accounts.py",
-          "backend/app/contracts/accounts.py",
-          "backend/app/contracts/cross_module_load.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Core account CRUD, context, bundle, capabilities, and DTO surfaces remain active feature-owned production code outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #214 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_core (follow-up #214)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
           "backend/app/api/account_ggr_routes.py",
           "backend/app/contracts/ggr.py",
           "backend/app/services/fraud_score.py",
@@ -708,42 +809,6 @@
       {
         "category": "residual_legacy_feature_boundary",
         "existing_paths": [
-          "backend/app/api/account_imports.py",
-          "backend/app/services/account_imports.py"
-        ],
-        "id": "residual-legacy-account-imports",
-        "owner": "account_imports",
-        "paths": [
-          "backend/app/api/account_imports.py",
-          "backend/app/services/account_imports.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Account import remains an onboarding/import feature surface outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #216 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_imports (follow-up #216)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/account_jobs_routes.py"
-        ],
-        "id": "residual-legacy-account-jobs",
-        "owner": "account_jobs",
-        "paths": [
-          "backend/app/api/account_jobs_routes.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Account job transport remains account feature/read-model code outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #217 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_jobs (follow-up #217)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
           "backend/app/services/profile_audio_state.py",
           "backend/app/services/profile_photo_state.py",
           "backend/app/services/profile_sync.py"
@@ -761,27 +826,6 @@
         "severity": "medium",
         "status": "open",
         "target_owner": "app.modules.account_editing or app.modules.account_profile_state (follow-up #218)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/account_proxy_routes.py",
-          "backend/app/services/proxy_accounts.py",
-          "backend/app/services/proxy_checks.py"
-        ],
-        "id": "residual-legacy-account-proxy",
-        "owner": "account_proxy",
-        "paths": [
-          "backend/app/api/account_proxy_routes.py",
-          "backend/app/services/proxy_accounts.py",
-          "backend/app/services/proxy_checks.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Proxy assignment and check surfaces remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #219 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_proxy (follow-up #219)"
       },
       {
         "category": "residual_legacy_feature_boundary",
@@ -1852,125 +1896,11 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-28T01:18:14Z",
+    "generated_at": "2026-05-29T13:00:00Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
-      "boundary_count": 13,
+      "boundary_count": 8,
       "entries": [
-        {
-          "actual_paths": [
-            "backend/app/api/account_audit_routes.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_audit_routes.py:function:get_account_audit_events",
-            "backend/app/api/account_audit_routes.py:function:get_account_operation_logs",
-            "backend/app/api/account_audit_routes.py:route:GET /{account_id}/audit-events -> get_account_audit_events",
-            "backend/app/api/account_audit_routes.py:route:GET /{account_id}/operation-logs -> get_account_operation_logs"
-          ],
-          "entry_id": "residual-legacy-account-audit",
-          "expected_paths": [
-            "backend/app/api/account_audit_routes.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_audit_routes.py:function:get_account_audit_events",
-            "backend/app/api/account_audit_routes.py:function:get_account_operation_logs",
-            "backend/app/api/account_audit_routes.py:route:GET /{account_id}/audit-events -> get_account_audit_events",
-            "backend/app/api/account_audit_routes.py:route:GET /{account_id}/operation-logs -> get_account_operation_logs"
-          ],
-          "owner": "account_audit",
-          "related_issue": "#213",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/account_compat_routes.py",
-            "backend/app/api/account_context.py",
-            "backend/app/api/accounts.py",
-            "backend/app/contracts/accounts.py",
-            "backend/app/contracts/cross_module_load.py",
-            "backend/app/services/account_bundle.py",
-            "backend/app/services/account_capabilities.py",
-            "backend/app/services/accounts.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_compat_routes.py:function:get_account_auth_state_from_header",
-            "backend/app/api/account_compat_routes.py:function:latest_job_from_header",
-            "backend/app/api/account_compat_routes.py:function:list_jobs_from_header",
-            "backend/app/api/account_compat_routes.py:function:refresh_runtime_from_header",
-            "backend/app/api/account_compat_routes.py:function:runtime_diagnostics_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /auth-state -> get_account_auth_state_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /jobs -> list_jobs_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /jobs/latest -> latest_job_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /runtime-diagnostics -> runtime_diagnostics_from_header",
-            "backend/app/api/account_compat_routes.py:route:POST /refresh-runtime -> refresh_runtime_from_header",
-            "backend/app/api/account_context.py:function:account_id_header",
-            "backend/app/api/accounts.py:function:account_list_item",
-            "backend/app/api/accounts.py:function:delete_account_endpoint",
-            "backend/app/api/accounts.py:function:get_account_endpoint",
-            "backend/app/api/accounts.py:function:get_accounts",
-            "backend/app/api/accounts.py:function:post_account",
-            "backend/app/api/accounts.py:route:DELETE /{account_id} -> delete_account_endpoint",
-            "backend/app/api/accounts.py:route:GET /{account_id} -> get_account_endpoint",
-            "backend/app/contracts/accounts.py:class:ProfileAudioAction",
-            "backend/app/contracts/accounts.py:class:ProfilePreviewRead",
-            "backend/app/contracts/accounts.py:class:ProfilePreviewStepRead",
-            "backend/app/contracts/cross_module_load.py:class:CrossModuleLoad",
-            "backend/app/services/account_bundle.py:function:get_account_dashboard_bundle",
-            "backend/app/services/account_bundle.py:function:get_latest_job_for_account",
-            "backend/app/services/account_capabilities.py:function:build_account_capabilities",
-            "backend/app/services/accounts.py:function:create_account",
-            "backend/app/services/accounts.py:function:delete_account",
-            "backend/app/services/accounts.py:function:get_account",
-            "backend/app/services/accounts.py:function:get_account_by_external_ref",
-            "backend/app/services/accounts.py:function:list_accounts"
-          ],
-          "entry_id": "residual-legacy-account-core",
-          "expected_paths": [
-            "backend/app/api/account_compat_routes.py",
-            "backend/app/api/account_context.py",
-            "backend/app/api/accounts.py",
-            "backend/app/contracts/accounts.py",
-            "backend/app/contracts/cross_module_load.py",
-            "backend/app/services/account_bundle.py",
-            "backend/app/services/account_capabilities.py",
-            "backend/app/services/accounts.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_compat_routes.py:function:get_account_auth_state_from_header",
-            "backend/app/api/account_compat_routes.py:function:latest_job_from_header",
-            "backend/app/api/account_compat_routes.py:function:list_jobs_from_header",
-            "backend/app/api/account_compat_routes.py:function:refresh_runtime_from_header",
-            "backend/app/api/account_compat_routes.py:function:runtime_diagnostics_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /auth-state -> get_account_auth_state_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /jobs -> list_jobs_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /jobs/latest -> latest_job_from_header",
-            "backend/app/api/account_compat_routes.py:route:GET /runtime-diagnostics -> runtime_diagnostics_from_header",
-            "backend/app/api/account_compat_routes.py:route:POST /refresh-runtime -> refresh_runtime_from_header",
-            "backend/app/api/account_context.py:function:account_id_header",
-            "backend/app/api/accounts.py:function:account_list_item",
-            "backend/app/api/accounts.py:function:delete_account_endpoint",
-            "backend/app/api/accounts.py:function:get_account_endpoint",
-            "backend/app/api/accounts.py:function:get_accounts",
-            "backend/app/api/accounts.py:function:post_account",
-            "backend/app/api/accounts.py:route:DELETE /{account_id} -> delete_account_endpoint",
-            "backend/app/api/accounts.py:route:GET /{account_id} -> get_account_endpoint",
-            "backend/app/contracts/accounts.py:class:ProfileAudioAction",
-            "backend/app/contracts/accounts.py:class:ProfilePreviewRead",
-            "backend/app/contracts/accounts.py:class:ProfilePreviewStepRead",
-            "backend/app/contracts/cross_module_load.py:class:CrossModuleLoad",
-            "backend/app/services/account_bundle.py:function:get_account_dashboard_bundle",
-            "backend/app/services/account_bundle.py:function:get_latest_job_for_account",
-            "backend/app/services/account_capabilities.py:function:build_account_capabilities",
-            "backend/app/services/accounts.py:function:create_account",
-            "backend/app/services/accounts.py:function:delete_account",
-            "backend/app/services/accounts.py:function:get_account",
-            "backend/app/services/accounts.py:function:get_account_by_external_ref",
-            "backend/app/services/accounts.py:function:list_accounts"
-          ],
-          "owner": "account_core",
-          "related_issue": "#214",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
         {
           "actual_paths": [
             "backend/app/api/account_ggr_routes.py",
@@ -2029,80 +1959,6 @@
         },
         {
           "actual_paths": [
-            "backend/app/api/account_imports.py",
-            "backend/app/services/account_imports.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_imports.py:function:get_import_batch_detail",
-            "backend/app/api/account_imports.py:function:get_import_batches",
-            "backend/app/api/account_imports.py:function:post_confirm_import_batch",
-            "backend/app/api/account_imports.py:function:post_import_batch",
-            "backend/app/api/account_imports.py:function:post_validate_import_batch",
-            "backend/app/api/account_imports.py:route:GET /{batch_id} -> get_import_batch_detail",
-            "backend/app/api/account_imports.py:route:POST /{batch_id}/confirm -> post_confirm_import_batch",
-            "backend/app/api/account_imports.py:route:POST /{batch_id}/validate -> post_validate_import_batch",
-            "backend/app/services/account_imports.py:function:confirm_import_batch",
-            "backend/app/services/account_imports.py:function:create_import_batch",
-            "backend/app/services/account_imports.py:function:get_import_batch",
-            "backend/app/services/account_imports.py:function:import_batch_to_dict",
-            "backend/app/services/account_imports.py:function:import_item_to_dict",
-            "backend/app/services/account_imports.py:function:list_import_batches",
-            "backend/app/services/account_imports.py:function:metadata_to_bytes",
-            "backend/app/services/account_imports.py:function:validate_batch"
-          ],
-          "entry_id": "residual-legacy-account-imports",
-          "expected_paths": [
-            "backend/app/api/account_imports.py",
-            "backend/app/services/account_imports.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_imports.py:function:get_import_batch_detail",
-            "backend/app/api/account_imports.py:function:get_import_batches",
-            "backend/app/api/account_imports.py:function:post_confirm_import_batch",
-            "backend/app/api/account_imports.py:function:post_import_batch",
-            "backend/app/api/account_imports.py:function:post_validate_import_batch",
-            "backend/app/api/account_imports.py:route:GET /{batch_id} -> get_import_batch_detail",
-            "backend/app/api/account_imports.py:route:POST /{batch_id}/confirm -> post_confirm_import_batch",
-            "backend/app/api/account_imports.py:route:POST /{batch_id}/validate -> post_validate_import_batch",
-            "backend/app/services/account_imports.py:function:confirm_import_batch",
-            "backend/app/services/account_imports.py:function:create_import_batch",
-            "backend/app/services/account_imports.py:function:get_import_batch",
-            "backend/app/services/account_imports.py:function:import_batch_to_dict",
-            "backend/app/services/account_imports.py:function:import_item_to_dict",
-            "backend/app/services/account_imports.py:function:list_import_batches",
-            "backend/app/services/account_imports.py:function:metadata_to_bytes",
-            "backend/app/services/account_imports.py:function:validate_batch"
-          ],
-          "owner": "account_imports",
-          "related_issue": "#216",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/account_jobs_routes.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_jobs_routes.py:function:latest_job",
-            "backend/app/api/account_jobs_routes.py:function:list_jobs",
-            "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs -> list_jobs",
-            "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs/latest -> latest_job"
-          ],
-          "entry_id": "residual-legacy-account-jobs",
-          "expected_paths": [
-            "backend/app/api/account_jobs_routes.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_jobs_routes.py:function:latest_job",
-            "backend/app/api/account_jobs_routes.py:function:list_jobs",
-            "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs -> list_jobs",
-            "backend/app/api/account_jobs_routes.py:route:GET /{account_id}/jobs/latest -> latest_job"
-          ],
-          "owner": "account_jobs",
-          "related_issue": "#217",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
             "backend/app/services/profile_audio_state.py",
             "backend/app/services/profile_photo_state.py",
             "backend/app/services/profile_sync.py"
@@ -2143,66 +1999,6 @@
           ],
           "owner": "account_profile_state",
           "related_issue": "#218",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/account_proxy_routes.py",
-            "backend/app/services/proxy_accounts.py",
-            "backend/app/services/proxy_checks.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_proxy_routes.py:function:delete_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:function:get_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:function:get_accounts_proxy_summary",
-            "backend/app/api/account_proxy_routes.py:function:post_account_proxy_check",
-            "backend/app/api/account_proxy_routes.py:function:put_account_proxy",
-            "backend/app/api/account_proxy_routes.py:route:DELETE /{account_id}/proxy -> delete_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:route:GET /proxy-summary -> get_accounts_proxy_summary",
-            "backend/app/api/account_proxy_routes.py:route:GET /{account_id}/proxy -> get_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:route:POST /{account_id}/proxy/check -> post_account_proxy_check",
-            "backend/app/api/account_proxy_routes.py:route:PUT /{account_id}/proxy -> put_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:decrypt_proxy_password",
-            "backend/app/services/proxy_accounts.py:function:delete_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:get_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:proxy_summary",
-            "backend/app/services/proxy_accounts.py:function:proxy_to_dict",
-            "backend/app/services/proxy_accounts.py:function:upsert_account_proxy",
-            "backend/app/services/proxy_checks.py:class:ProxyConnectivityChecker",
-            "backend/app/services/proxy_checks.py:class:TcpProxyConnectivityChecker",
-            "backend/app/services/proxy_checks.py:class:TdlibProxyChecker",
-            "backend/app/services/proxy_checks.py:function:check_account_proxy"
-          ],
-          "entry_id": "residual-legacy-account-proxy",
-          "expected_paths": [
-            "backend/app/api/account_proxy_routes.py",
-            "backend/app/services/proxy_accounts.py",
-            "backend/app/services/proxy_checks.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_proxy_routes.py:function:delete_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:function:get_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:function:get_accounts_proxy_summary",
-            "backend/app/api/account_proxy_routes.py:function:post_account_proxy_check",
-            "backend/app/api/account_proxy_routes.py:function:put_account_proxy",
-            "backend/app/api/account_proxy_routes.py:route:DELETE /{account_id}/proxy -> delete_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:route:GET /proxy-summary -> get_accounts_proxy_summary",
-            "backend/app/api/account_proxy_routes.py:route:GET /{account_id}/proxy -> get_account_proxy_endpoint",
-            "backend/app/api/account_proxy_routes.py:route:POST /{account_id}/proxy/check -> post_account_proxy_check",
-            "backend/app/api/account_proxy_routes.py:route:PUT /{account_id}/proxy -> put_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:decrypt_proxy_password",
-            "backend/app/services/proxy_accounts.py:function:delete_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:get_account_proxy",
-            "backend/app/services/proxy_accounts.py:function:proxy_summary",
-            "backend/app/services/proxy_accounts.py:function:proxy_to_dict",
-            "backend/app/services/proxy_accounts.py:function:upsert_account_proxy",
-            "backend/app/services/proxy_checks.py:class:ProxyConnectivityChecker",
-            "backend/app/services/proxy_checks.py:class:TcpProxyConnectivityChecker",
-            "backend/app/services/proxy_checks.py:class:TdlibProxyChecker",
-            "backend/app/services/proxy_checks.py:function:check_account_proxy"
-          ],
-          "owner": "account_proxy",
-          "related_issue": "#219",
           "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
         },
         {
@@ -2612,13 +2408,8 @@
       "high_risk_unmanaged_feature_surface_count": 0,
       "high_risk_unmanaged_feature_surfaces": [],
       "medium_residual_legacy_feature_boundaries": [
-        "residual-legacy-account-audit",
-        "residual-legacy-account-core",
         "residual-legacy-account-ggr",
-        "residual-legacy-account-imports",
-        "residual-legacy-account-jobs",
         "residual-legacy-account-profile-state",
-        "residual-legacy-account-proxy",
         "residual-legacy-account-quarantine",
         "residual-legacy-account-runtime-status",
         "residual-legacy-account-validity",
@@ -2626,18 +2417,13 @@
         "residual-legacy-human-behavior",
         "residual-legacy-story-surfaces"
       ],
-      "medium_residual_legacy_feature_boundary_count": 13,
+      "medium_residual_legacy_feature_boundary_count": 8,
       "medium_unmanaged_feature_surface_count": 0,
       "medium_unmanaged_feature_surfaces": [],
-      "open_count": 13,
+      "open_count": 8,
       "residual_legacy_feature_boundaries": [
-        "residual-legacy-account-audit",
-        "residual-legacy-account-core",
         "residual-legacy-account-ggr",
-        "residual-legacy-account-imports",
-        "residual-legacy-account-jobs",
         "residual-legacy-account-profile-state",
-        "residual-legacy-account-proxy",
         "residual-legacy-account-quarantine",
         "residual-legacy-account-runtime-status",
         "residual-legacy-account-validity",
@@ -2645,7 +2431,7 @@
         "residual-legacy-human-behavior",
         "residual-legacy-story-surfaces"
       ],
-      "residual_legacy_feature_boundary_count": 13,
+      "residual_legacy_feature_boundary_count": 8,
       "unmanaged_feature_surface_count": 0
     },
     "untracked_backend_app_python_files": []
@@ -2653,7 +2439,7 @@
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_editing, account_lifecycle, account_profile_completeness, account_safety, auth, neuro_commenting, warmup; medium unmanaged feature surfaces: none; residual legacy feature boundaries: residual-legacy-account-audit, residual-legacy-account-core, residual-legacy-account-ggr, residual-legacy-account-imports, residual-legacy-account-jobs, residual-legacy-account-profile-state, residual-legacy-account-proxy, residual-legacy-account-quarantine, residual-legacy-account-runtime-status, residual-legacy-account-validity, residual-legacy-bought-onboarding, residual-legacy-human-behavior, residual-legacy-story-surfaces.",
+      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_imports, account_jobs, account_lifecycle, account_profile_completeness, account_proxy, account_safety, auth, neuro_commenting, warmup; medium unmanaged feature surfaces: none; residual legacy feature boundaries: residual-legacy-account-ggr, residual-legacy-account-profile-state, residual-legacy-account-quarantine, residual-legacy-account-runtime-status, residual-legacy-account-validity, residual-legacy-bought-onboarding, residual-legacy-human-behavior, residual-legacy-story-surfaces.",
       "finding": "Backend has canonical modules plus residual legacy feature boundaries outside app.modules.",
       "id": "STRUCTURE-001",
       "recommendation": "Migrate residual legacy feature boundaries through their linked follow-up issues or reduce old paths to behavior-free wrappers before claiming backend GREEN.",
@@ -2730,7 +2516,7 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [\"residual-legacy-account-audit\", \"residual-legacy-account-core\", \"residual-legacy-account-ggr\", \"residual-legacy-account-imports\", \"residual-legacy-account-jobs\", \"residual-legacy-account-profile-state\", \"residual-legacy-account-proxy\", \"residual-legacy-account-quarantine\", \"residual-legacy-account-runtime-status\", \"residual-legacy-account-validity\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"medium_residual_legacy_feature_boundary_count\": 13, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 13, \"residual_legacy_feature_boundaries\": [\"residual-legacy-account-audit\", \"residual-legacy-account-core\", \"residual-legacy-account-ggr\", \"residual-legacy-account-imports\", \"residual-legacy-account-jobs\", \"residual-legacy-account-profile-state\", \"residual-legacy-account-proxy\", \"residual-legacy-account-quarantine\", \"residual-legacy-account-runtime-status\", \"residual-legacy-account-validity\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"residual_legacy_feature_boundary_count\": 13, \"unmanaged_feature_surface_count\": 0}",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [\"residual-legacy-account-ggr\", \"residual-legacy-account-profile-state\", \"residual-legacy-account-quarantine\", \"residual-legacy-account-runtime-status\", \"residual-legacy-account-validity\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"medium_residual_legacy_feature_boundary_count\": 8, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 8, \"residual_legacy_feature_boundaries\": [\"residual-legacy-account-ggr\", \"residual-legacy-account-profile-state\", \"residual-legacy-account-quarantine\", \"residual-legacy-account-runtime-status\", \"residual-legacy-account-validity\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"residual_legacy_feature_boundary_count\": 8, \"unmanaged_feature_surface_count\": 0}",
       "finding": "Machine-readable inventory tracks residual backend/app feature surfaces outside canonical modules.",
       "id": "STRUCTURE-008",
       "recommendation": "Keep residual boundaries open, linked to migration issues, and guarded until migrated or reduced to behavior-free wrappers.",
@@ -2929,7 +2715,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-28T01:18:14Z",
+  "generated_at": "2026-05-29T13:00:00Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -3150,6 +2936,178 @@
       "import_path": "app.services.account_profile_completeness",
       "module_import_references": [],
       "path": "backend/app/services/account_profile_completeness.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_audit.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_audit_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_audit_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.compat_router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_compat_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_compat_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.context",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_context",
+      "module_import_references": [],
+      "path": "backend/app/api/account_context.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_imports.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_imports",
+      "module_import_references": [],
+      "path": "backend/app/api/account_imports.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_jobs.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_jobs_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_jobs_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_proxy.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_proxy_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_proxy_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.accounts_router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.accounts",
+      "module_import_references": [],
+      "path": "backend/app/api/accounts.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.account_contracts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.accounts",
+      "module_import_references": [],
+      "path": "backend/app/contracts/accounts.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.cross_module_contracts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.cross_module_load",
+      "module_import_references": [],
+      "path": "backend/app/contracts/cross_module_load.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.bundle",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_bundle",
+      "module_import_references": [],
+      "path": "backend/app/services/account_bundle.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_imports.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_imports",
+      "module_import_references": [],
+      "path": "backend/app/services/account_imports.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_proxy.accounts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.proxy_accounts",
+      "module_import_references": [],
+      "path": "backend/app/services/proxy_accounts.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_proxy.checks",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.proxy_checks",
+      "module_import_references": [],
+      "path": "backend/app/services/proxy_checks.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.accounts",
+      "module_import_references": [
+        "backend/app/modules/account_safety/action_gate.py",
+        "backend/app/modules/account_safety/batch_preview.py",
+        "backend/app/modules/account_safety/overrides.py",
+        "backend/app/modules/account_safety/read_models.py"
+      ],
+      "path": "backend/app/services/accounts.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_core.capabilities",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.account_capabilities",
+      "module_import_references": [
+        "backend/app/modules/account_safety/read_models.py"
+      ],
+      "path": "backend/app/services/account_capabilities.py"
     },
     {
       "canonical_owner": "app.modules.warmup.router",
@@ -3694,6 +3652,65 @@
     {
       "documentation_only": false,
       "files": [
+        "backend/app/modules/account_audit/__init__.py",
+        "backend/app/modules/account_audit/module.py",
+        "backend/app/modules/account_audit/router.py"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "account_audit",
+      "registered": true,
+      "router_path": "app.modules.account_audit.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_core/__init__.py",
+        "backend/app/modules/account_core/account_contracts.py",
+        "backend/app/modules/account_core/accounts_router.py",
+        "backend/app/modules/account_core/bundle.py",
+        "backend/app/modules/account_core/capabilities.py",
+        "backend/app/modules/account_core/compat_router.py",
+        "backend/app/modules/account_core/context.py",
+        "backend/app/modules/account_core/contracts.py",
+        "backend/app/modules/account_core/cross_module_contracts.py",
+        "backend/app/modules/account_core/interfaces.py",
+        "backend/app/modules/account_core/module.py",
+        "backend/app/modules/account_core/presenters.py",
+        "backend/app/modules/account_core/router.py",
+        "backend/app/modules/account_core/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "account_core",
+      "registered": true,
+      "router_path": "app.modules.account_core.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
         "backend/app/modules/account_editing/__init__.py",
         "backend/app/modules/account_editing/contracts.py",
         "backend/app/modules/account_editing/enqueue.py",
@@ -3732,6 +3749,56 @@
           "workflow_type": "account_update"
         }
       ]
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_imports/__init__.py",
+        "backend/app/modules/account_imports/module.py",
+        "backend/app/modules/account_imports/router.py",
+        "backend/app/modules/account_imports/service.py"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "account_imports",
+      "registered": true,
+      "router_path": "app.modules.account_imports.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_jobs/__init__.py",
+        "backend/app/modules/account_jobs/interfaces.py",
+        "backend/app/modules/account_jobs/module.py",
+        "backend/app/modules/account_jobs/router.py"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "account_jobs",
+      "registered": true,
+      "router_path": "app.modules.account_jobs.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
     },
     {
       "documentation_only": false,
@@ -3784,6 +3851,32 @@
       "name": "account_profile_completeness",
       "registered": true,
       "router_path": "app.modules.account_profile_completeness.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_proxy/__init__.py",
+        "backend/app/modules/account_proxy/accounts.py",
+        "backend/app/modules/account_proxy/checks.py",
+        "backend/app/modules/account_proxy/module.py",
+        "backend/app/modules/account_proxy/router.py"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "account_proxy",
+      "registered": true,
+      "router_path": "app.modules.account_proxy.router:router",
       "template_files_are_non_runtime": null,
       "tests_present": false,
       "workflows": []
@@ -4290,9 +4383,8 @@
       "has_explicit_all": true,
       "imports": [
         "__future__",
-        "enum",
-        "pydantic",
-        "typing"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/accounts.py"
     },
@@ -4312,8 +4404,8 @@
       "has_explicit_all": true,
       "imports": [
         "__future__",
-        "pydantic",
-        "typing"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/cross_module_load.py"
     },

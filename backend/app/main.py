@@ -25,11 +25,6 @@ from starlette.types import ExceptionHandler
 
 from app.api.auth import router as auth_router
 from app.api.auth_batches import router as auth_batches_router
-from app.api.account_imports import router as account_imports_router
-from app.api.account_audit_routes import router as account_audit_router
-from app.api.account_compat_routes import router as account_compat_router
-from app.api.account_jobs_routes import router as account_jobs_router
-from app.api.account_proxy_routes import router as account_proxy_router
 from app.api.account_runtime_routes import router as account_runtime_router
 from app.api.account_ggr_routes import router as account_ggr_router
 from app.api.account_quarantine_routes import router as account_quarantine_router
@@ -212,22 +207,17 @@ app.add_exception_handler(HTTPException, cast(ExceptionHandler, http_exception_h
 app.add_exception_handler(
     RequestValidationError, cast(ExceptionHandler, validation_exception_handler)
 )
-app.include_router(account_imports_router)
 app.include_router(auth_router)
 app.include_router(auth_batches_router)
 for module_router in iter_routers():
     app.include_router(module_router)
-app.include_router(account_proxy_router)
 app.include_router(account_ggr_router)
 app.include_router(account_quarantine_router)
 app.include_router(account_status_router)
 app.include_router(bought_onboarding_router)
 app.include_router(human_behavior_router)
-app.include_router(account_compat_router)
 app.include_router(accounts_router)
 app.include_router(account_runtime_router)
-app.include_router(account_jobs_router)
-app.include_router(account_audit_router)
 app.include_router(audit_router)
 app.include_router(assets_router)
 app.include_router(dashboard_router)

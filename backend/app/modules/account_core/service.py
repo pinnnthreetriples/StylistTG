@@ -160,9 +160,7 @@ def delete_account(
 
     terminal_jobs = list(
         session.execute(
-            select(Job).where(
-                Job.account_id == account_id, Job.workspace_id == target_workspace_id
-            )
+            select(Job).where(Job.account_id == account_id, Job.workspace_id == target_workspace_id)
         )
         .scalars()
         .all()

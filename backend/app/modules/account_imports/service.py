@@ -203,9 +203,7 @@ def import_item_to_dict(item: AccountImportItem) -> dict[str, Any]:
     }
 
 
-def _require_batch(
-    session: Session, batch_id: str, workspace_id: str
-) -> AccountImportBatch:
+def _require_batch(session: Session, batch_id: str, workspace_id: str) -> AccountImportBatch:
     batch = get_import_batch(session, batch_id=batch_id, workspace_id=workspace_id)
     if batch is None:
         raise AppError(

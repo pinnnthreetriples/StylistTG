@@ -28,12 +28,12 @@ from app.models import (
     new_id,
     utc_now,
 )
-from app.services.accounts import get_account
+from app.modules.account_core.interfaces import lookup_account
 from app.services.secret_redaction import redact_metadata
 
 
 def account_or_raise(session: Session, account_id: str, workspace_id: str) -> Account:
-    account = get_account(session, account_id, workspace_id=workspace_id)
+    account = lookup_account(session, account_id, workspace_id=workspace_id)
     if account is None:
         raise ValueError("account not found")
     return account

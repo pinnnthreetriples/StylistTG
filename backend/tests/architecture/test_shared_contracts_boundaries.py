@@ -58,7 +58,7 @@ def test_account_editing_contracts_use_shared_contracts_instead_of_app_schemas()
     imports = _imports(MODULE_CONTRACTS_ROOT / "account_editing/contracts.py")
 
     assert "app.schemas" not in imports
-    assert "app.contracts.accounts" in imports
+    assert "app.modules.account_core.contracts" in imports
     assert "app.contracts.jobs" in imports
     assert "app.modules.account_safety.contracts" in imports
 

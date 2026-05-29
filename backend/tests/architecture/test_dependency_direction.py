@@ -15,6 +15,8 @@ DOMAIN_ROOTS = [
     APP_ROOT / "adapters",
 ]
 API_IMPORT_ALLOWLIST = {
+    APP_ROOT / "modules" / "account_core" / "accounts_router.py",
+    APP_ROOT / "modules" / "account_core" / "compat_router.py",
     APP_ROOT / "modules" / "account_safety" / "accounts_router.py",
 }
 

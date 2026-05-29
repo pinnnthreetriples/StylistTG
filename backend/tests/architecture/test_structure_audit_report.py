@@ -344,13 +344,8 @@ def test_structure_audit_phase_six_c_tracks_all_remaining_legacy_feature_boundar
     assert "canonical-account-profile-completeness" in entries
     assert unmanaged == []
     assert set(residual_legacy) == {
-        "residual-legacy-account-audit",
-        "residual-legacy-account-core",
         "residual-legacy-account-ggr",
-        "residual-legacy-account-imports",
-        "residual-legacy-account-jobs",
         "residual-legacy-account-profile-state",
-        "residual-legacy-account-proxy",
         "residual-legacy-account-quarantine",
         "residual-legacy-account-runtime-status",
         "residual-legacy-account-validity",
@@ -554,11 +549,9 @@ def test_backend_overall_yellow_while_residual_boundaries_remain() -> None:
     rendered_json = json.loads(render_json_report(report))
 
     assert rendered_json["backend_overall_status"] == "YELLOW"
-    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 13
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 8
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
-    assert (
-        rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 13
-    )
+    assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 8
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     assert (
         rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
@@ -584,7 +577,7 @@ def test_phase_six_c_markdown_is_truthful_yellow() -> None:
     markdown = render_markdown_report(_committed_report())
 
     assert (
-        "| Backend overall | YELLOW | 13 residual legacy feature boundaries remain outside app.modules."
+        "| Backend overall | YELLOW | 8 residual legacy feature boundaries remain outside app.modules."
         in markdown
     )
     assert (

@@ -17,6 +17,8 @@ DOMAIN_ROOTS = [
 # Auth FastAPI dependency provider. Legacy app.services.auth_context is a
 # compatibility wrapper and must not import FastAPI directly.
 FASTAPI_IMPORT_ALLOWLIST = {
+    APP_ROOT / "modules" / "account_core" / "accounts_router.py",
+    APP_ROOT / "modules" / "account_core" / "compat_router.py",
     APP_ROOT / "modules" / "account_safety" / "accounts_router.py",
     APP_ROOT / "modules" / "account_safety" / "policy_router.py",
     APP_ROOT / "modules" / "account_lifecycle" / "router.py",

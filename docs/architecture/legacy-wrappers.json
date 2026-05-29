@@ -1,6 +1,81 @@
 {
-  "generated_at": "2026-05-27T20:13:47Z",
+  "generated_at": "2026-05-29T13:00:00Z",
   "wrappers": [
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_audit.router",
+      "file": "backend/app/api/account_audit_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_audit_routes",
+      "notes": "Preserves legacy account audit router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.compat_router",
+      "file": "backend/app/api/account_compat_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_compat_routes",
+      "notes": "Preserves legacy account compatibility router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.context",
+      "file": "backend/app/api/account_context.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_context",
+      "notes": "Preserves legacy account context import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_imports.router",
+      "file": "backend/app/api/account_imports.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_imports",
+      "notes": "Preserves legacy account imports router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_jobs.router",
+      "file": "backend/app/api/account_jobs_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_jobs_routes",
+      "notes": "Preserves legacy account jobs router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
     {
       "allowed_importers": [
         "tests",
@@ -36,6 +111,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_proxy.router",
+      "file": "backend/app/api/account_proxy_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_proxy_routes",
+      "notes": "Preserves legacy account proxy router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_safety.accounts_router",
       "file": "backend/app/api/account_safety_routes.py",
       "forbidden_importers": [
@@ -58,6 +148,21 @@
       ],
       "legacy_path": "app.api.account_update",
       "notes": "Preserves legacy router import path for /api/account-update.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.accounts_router",
+      "file": "backend/app/api/accounts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.accounts",
+      "notes": "Preserves legacy accounts router import path.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -103,6 +208,36 @@
       ],
       "legacy_path": "app.api.warmup",
       "notes": "Preserves legacy router import path for /api/warmup.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.account_contracts",
+      "file": "backend/app/contracts/accounts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.accounts",
+      "notes": "Preserves legacy account contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.cross_module_contracts",
+      "file": "backend/app/contracts/cross_module_load.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.cross_module_load",
+      "notes": "Preserves legacy cross-module load contract imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -163,6 +298,50 @@
       ],
       "legacy_path": "app.services.account_batch_safety",
       "notes": "Preserves old account batch safety preview service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_core.bundle",
+      "file": "backend/app/services/account_bundle.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_bundle",
+      "notes": "Preserves legacy account bundle service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility",
+        "backend/app/modules"
+      ],
+      "canonical_owner": "app.modules.account_core.capabilities",
+      "file": "backend/app/services/account_capabilities.py",
+      "forbidden_importers": [],
+      "legacy_path": "app.services.account_capabilities",
+      "notes": "Preserves legacy account capabilities service imports while module callers transition off the wrapper.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_imports.service",
+      "file": "backend/app/services/account_imports.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.account_imports",
+      "notes": "Preserves legacy account imports service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -268,6 +447,20 @@
       ],
       "legacy_path": "app.services.account_update_plan",
       "notes": "Preserves old account update planner imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility",
+        "backend/app/modules"
+      ],
+      "canonical_owner": "app.modules.account_core.service",
+      "file": "backend/app/services/accounts.py",
+      "forbidden_importers": [],
+      "legacy_path": "app.services.accounts",
+      "notes": "Preserves legacy account CRUD service imports while module callers transition off the wrapper.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -764,6 +957,36 @@
       ],
       "legacy_path": "app.services.neuro_commenting.tdlib_runtime",
       "notes": "Preserves old neuro-commenting service imports while implementation is module-owned.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_proxy.accounts",
+      "file": "backend/app/services/proxy_accounts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.proxy_accounts",
+      "notes": "Preserves legacy account proxy service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_proxy.checks",
+      "file": "backend/app/services/proxy_checks.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.proxy_checks",
+      "notes": "Preserves legacy proxy check service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

@@ -148,13 +148,9 @@ def _proxy_error(exc: ValueError, *, operation: str = "operation") -> AppError:
         )
     return AppError(
         status_code=status.HTTP_400_BAD_REQUEST,
-        error_code="PROXY_CHECK_FAILED"
-        if operation == "check"
-        else "PROXY_OPERATION_FAILED",
+        error_code="PROXY_CHECK_FAILED" if operation == "check" else "PROXY_OPERATION_FAILED",
         error_class="proxy",
-        message="Proxy check failed"
-        if operation == "check"
-        else "Proxy operation failed",
+        message="Proxy check failed" if operation == "check" else "Proxy operation failed",
     )
 
 

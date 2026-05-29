@@ -91,6 +91,8 @@ DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
     ),
     "router": (
         Path("router.py"),
+        Path("account_core/accounts_router.py"),
+        Path("account_core/compat_router.py"),
         Path("account_safety/accounts_router.py"),
         Path("account_safety/policy_router.py"),
     ),

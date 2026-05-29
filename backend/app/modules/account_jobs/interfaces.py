@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
@@ -14,19 +13,15 @@ def list_job_summaries(
 ) -> list[JobSummaryRead]:
     return [
         JobSummaryRead(**job_summary(job))
-        for job in list_account_jobs(
-            session, account_id, limit=limit, workspace_id=workspace_id
-        )
+        for job in list_account_jobs(session, account_id, limit=limit, workspace_id=workspace_id)
     ]
 
 
-def latest_job_summary(
-    session: Session, account_id: str, *, workspace_id: str
-) -> JobSummaryRead:
+def latest_job_summary(session: Session, account_id: str, *, workspace_id: str) -> JobSummaryRead:
     job = get_latest_account_job(session, account_id, workspace_id=workspace_id)
     if job is None:
         raise AppError(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             error_code="JOB_NOT_FOUND",
             error_class="not_found",
             message="job not found",

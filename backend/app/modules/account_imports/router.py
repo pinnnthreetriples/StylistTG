@@ -30,9 +30,7 @@ from app.schemas import (
     AccountImportBatchValidate,
 )
 
-router = APIRouter(
-    prefix="/api/account-import-batches", tags=["account-import-batches"]
-)
+router = APIRouter(prefix="/api/account-import-batches", tags=["account-import-batches"])
 
 
 @router.post("", response_model=AccountImportBatchRead, status_code=201)
@@ -70,9 +68,7 @@ def get_import_batch_detail(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    row = get_import_batch(
-        session, batch_id=str(batch_id), workspace_id=auth.workspace_id
-    )
+    row = get_import_batch(session, batch_id=str(batch_id), workspace_id=auth.workspace_id)
     if row is None:
         raise AppError(
             status_code=404,

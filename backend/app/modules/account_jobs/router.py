@@ -21,9 +21,7 @@ def list_jobs(
     auth: AuthContext = Depends(require_authenticated),
 ):
     require_account_in_workspace(session, account_id, auth)
-    return list_job_summaries(
-        session, account_id, limit=limit, workspace_id=auth.workspace_id
-    )
+    return list_job_summaries(session, account_id, limit=limit, workspace_id=auth.workspace_id)
 
 
 @router.get("/{account_id}/jobs/latest", response_model=JobSummaryRead)

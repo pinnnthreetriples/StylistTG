@@ -4,8 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.contracts.accounts import ProfileAudioAction, ProfilePreviewRead
 from app.contracts.jobs import JobSummaryRead
+from app.modules.account_core.contracts import ProfileAudioAction, ProfilePreviewRead
 from app.modules.account_safety.contracts import (
     AccountOperationCooldownRead,
     AccountOperationSafetyRead,

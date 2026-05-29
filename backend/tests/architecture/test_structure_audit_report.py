@@ -546,7 +546,9 @@ def test_backend_overall_yellow_while_residual_boundaries_remain() -> None:
     rendered_json = json.loads(render_json_report(report))
 
     assert rendered_json["backend_overall_status"] == "YELLOW"
-    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 5
+    # 5 PR3 residual scopes + 1 PR2 accepted_architectural_debt entry for the
+    # documented account_core <-> account_safety cycles (tracked by #233).
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 6
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
     assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 5
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0

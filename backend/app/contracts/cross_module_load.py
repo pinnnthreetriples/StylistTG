@@ -7,13 +7,13 @@ Do not add new behavior here.
 from __future__ import annotations
 
 import sys
+from importlib import import_module
 
-from app.modules.account_core import cross_module_contracts as _contracts_module
-from app.modules.account_core.cross_module_contracts import (
-    CrossModuleLoad,
-    CrossModuleLoadBreakdown,
-    CrossModuleName,
-)
+_contracts_module = import_module("app.modules.account_core.cross_module_contracts")
+
+CrossModuleLoad = getattr(_contracts_module, "CrossModuleLoad")
+CrossModuleLoadBreakdown = getattr(_contracts_module, "CrossModuleLoadBreakdown")
+CrossModuleName = getattr(_contracts_module, "CrossModuleName")
 
 __all__ = ["CrossModuleLoad", "CrossModuleLoadBreakdown", "CrossModuleName"]
 

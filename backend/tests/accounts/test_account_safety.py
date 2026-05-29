@@ -498,6 +498,291 @@ def test_account_validity_tdlib_readonly_adapter_create_failure_is_structured() 
     assert result["error"] == "internal_error"
 
 
+def test_account_validity_rejects_unknown_mode_before_persisting_run(db_session) -> None:
+    from app.modules.account_safety.validity import (
+        latest_account_validity_check,
+        run_account_validity_check,
+    )
+
+    account = create_account(db_session, external_ref="+15550102031")
+
+    with pytest.raises(ValueError, match="unsupported validity check mode"):
+        run_account_validity_check(db_session, account.id, mode="write_probe")
+
+    assert latest_account_validity_check(db_session, account.id) is None
+
+
+def test_account_validity_rejects_missing_account(db_session) -> None:
+    from app.modules.account_safety.validity import run_account_validity_check
+
+    with pytest.raises(ValueError, match="account not found"):
+        run_account_validity_check(db_session, "missing-account")
+
+
+def test_account_validity_readonly_mode_without_adapter_is_safe_unsupported(db_session) -> None:
+    from app.modules.account_safety.validity import run_account_validity_check
+
+    account = create_account(db_session, external_ref="+15550102032")
+
+    result = run_account_validity_check(db_session, account.id, mode="tdlib_readonly")
+
+    assert result["status"] == "unsupported"
+    assert result["error_code"] == "TDLIB_READONLY_CHECK_NOT_ENABLED"
+    assert result["details"] == {
+        "reason": "live_tdlib_readonly_check_requires_explicit_enablement",
+        "safe": True,
+    }
+
+
+def test_account_validity_readonly_adapter_failure_is_structured_run(db_session) -> None:
+    from app.modules.account_safety.validity import run_account_validity_check
+
+    class FailingReadonlyAdapter:
+        def check_account(self, _account_id: str) -> dict:
+            raise RuntimeError("tdlib offline")
+
+    account = create_account(db_session, external_ref="+15550102033")
+
+    result = run_account_validity_check(
+        db_session,
+        account.id,
+        mode="tdlib_readonly",
+        adapter=FailingReadonlyAdapter(),
+        workspace_id=account.workspace_id,
+    )
+
+    assert result["status"] == "failed"
+    assert result["error_code"] == "VALIDITY_CHECK_FAILED"
+    assert result["error_class"] == "safety_check"
+
+
+def test_account_validity_readonly_statuses_materialize_account_state(db_session) -> None:
+    from app.modules.account_safety.validity import run_account_validity_check
+
+    class StaticReadonlyAdapter:
+        def __init__(self, status: str) -> None:
+            self.status = status
+
+        def check_account(self, _account_id: str) -> dict:
+            return {"status": self.status}
+
+    reauth = create_account(db_session, external_ref="+15550102034")
+    broken = create_account(db_session, external_ref="+15550102035")
+
+    reauth_result = run_account_validity_check(
+        db_session,
+        reauth.id,
+        mode="tdlib_readonly",
+        adapter=StaticReadonlyAdapter("reauth_required"),
+    )
+    broken_result = run_account_validity_check(
+        db_session,
+        broken.id,
+        mode="tdlib_readonly",
+        adapter=StaticReadonlyAdapter("runtime_broken"),
+    )
+
+    assert reauth_result["result"]["validity_status"] == "reauth_required"
+    assert reauth.account_state == AccountState.REAUTH_REQUIRED
+    assert reauth.runtime_state.runtime_health == "closed"
+    assert reauth.runtime_state.reauth_required is True
+    assert broken_result["result"]["validity_status"] == "runtime_broken"
+    assert broken.account_state == AccountState.RUNTIME_BROKEN
+    assert broken.runtime_state.runtime_health == "broken"
+
+
+def test_account_validity_second_snapshot_updates_existing_row(db_session) -> None:
+    from app.models import AccountSafetySnapshot
+    from app.modules.account_safety.validity import run_account_validity_check
+
+    account = _ready_account(db_session, "+15550102036")
+    first = run_account_validity_check(db_session, account.id)
+
+    account.runtime_state.reauth_required = True
+    second = run_account_validity_check(db_session, account.id)
+
+    snapshots = db_session.execute(select(AccountSafetySnapshot)).scalars().all()
+    assert len(snapshots) == 1
+    assert first["result"]["validity_status"] == "valid"
+    assert second["result"]["validity_status"] == "reauth_required"
+    assert snapshots[0].account_id == account.id
+
+
+@freeze_time("2026-01-15 12:00:00")
+def test_account_health_prefetched_reports_story_limit_failure(db_session) -> None:
+    from app.modules.account_safety.health import collect_account_health_signals_prefetched
+
+    account = _ready_account(db_session, "+15550102037")
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"story": "image"},
+        state=JobState.PARTIALLY_COMPLETED,
+        job_id="story-limit-job",
+        finished_at=datetime.now(UTC),
+    )
+    step = seed_failed_step(
+        db_session,
+        job_id=job.id,
+        step_key="post_story_image",
+        step_type="post_story_image",
+        error_code="STORY_LIMIT_WEEK",
+    )
+
+    health = collect_account_health_signals_prefetched(account, job, step)
+    codes = {reason["code"] for reason in health["reasons"]}
+
+    assert health["health_status"] == "attention"
+    assert {"recent_partial_job", "story_weekly_limit"} <= codes
+
+
+@pytest.mark.parametrize(
+    ("error_code", "expected_code"),
+    [
+        ("STORY_ACTIVE_LIMIT", "story_active_limit"),
+        ("PREMIUM_REQUIRED", "story_premium_required"),
+        ("STORY_REJECTED", "story_recently_rejected"),
+    ],
+)
+@freeze_time("2026-01-15 12:00:00")
+def test_account_health_prefetched_maps_story_failure_reasons(
+    db_session, error_code: str, expected_code: str
+) -> None:
+    from app.modules.account_safety.health import collect_account_health_signals_prefetched
+
+    account = _ready_account(db_session, f"+155501021{len(error_code)}")
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"story": error_code},
+        state=JobState.FAILED,
+        job_id=f"story-failure-{expected_code}",
+        finished_at=datetime.now(UTC),
+    )
+    step = seed_failed_step(
+        db_session,
+        job_id=job.id,
+        step_key="post_story_video",
+        step_type="post_story_video",
+        error_code=error_code,
+    )
+
+    health = collect_account_health_signals_prefetched(account, job, step)
+
+    assert expected_code in {reason["code"] for reason in health["reasons"]}
+
+
+def test_account_health_prefetched_reports_runtime_attention_without_profile(db_session) -> None:
+    from app.modules.account_safety.health import collect_account_health_signals_prefetched
+
+    account = create_account(db_session, external_ref="+15550102038")
+    account.account_state = AccountState.EXECUTION_USABLE
+    account.runtime_state.runtime_health = "degraded"
+    db_session.commit()
+
+    health = collect_account_health_signals_prefetched(account, None, None)
+    codes = {reason["code"] for reason in health["reasons"]}
+
+    assert health["health_status"] == "attention"
+    assert {"runtime_health_attention", "profile_sync_unknown"} <= codes
+
+
+def test_account_risk_summary_empty_workspace_is_low_noise(db_session) -> None:
+    from app.modules.account_safety.risk import build_account_readiness_risk_summary
+
+    summary = build_account_readiness_risk_summary(
+        db_session, workspace_id="00000000-0000-0000-0000-000000000999"
+    )
+
+    assert summary["total"] == 0
+    assert summary["items"] == []
+    assert summary["low"] == 0
+
+
+def test_account_readiness_risk_scores_locked_state_and_repeated_failures(db_session) -> None:
+    from app.modules.account_safety.risk import build_account_readiness_risk
+
+    locked = _ready_account(db_session, "+15550102039")
+    locked.account_state = AccountState.DISABLED
+    locked.runtime_state.session_present = True
+    failed = _ready_account(db_session, "+15550102040")
+    failed.runtime_state.session_present = True
+    seed_job(
+        db_session,
+        account_id=failed.id,
+        payload={"username": "one"},
+        state=JobState.FAILED,
+        job_id="readiness-failed-1",
+    )
+    seed_job(
+        db_session,
+        account_id=failed.id,
+        payload={"username": "two"},
+        state=JobState.FAILED,
+        job_id="readiness-failed-2",
+    )
+    db_session.commit()
+
+    locked_risk = build_account_readiness_risk(db_session, locked)
+    failed_risk = build_account_readiness_risk(db_session, failed)
+
+    assert locked_risk["level"] == "medium"
+    assert locked_risk["recommended_action"] == "Review account readiness before running jobs."
+    assert "account_locked" in {reason["code"] for reason in locked_risk["reasons"]}
+    assert failed_risk["level"] == "medium"
+    assert "recent_job_failures" in {reason["code"] for reason in failed_risk["reasons"]}
+
+
+@freeze_time("2026-01-15 12:00:00")
+def test_risk_by_operation_handles_missing_unknown_limited_and_custom_cooldown() -> None:
+    from app.modules.account_safety.risk import build_risk_by_operation
+
+    risks = build_risk_by_operation(
+        [{"code": "username_recently_rejected", "severity": "medium"}],
+        {
+            "profile_text": {"state": "limited"},
+            "username": {"state": "unknown"},
+            "profile_photo": {"state": "blocked"},
+        },
+        {
+            "custom_operation": [
+                {
+                    "level": "warning",
+                    "reason_code": "manual_pause",
+                    "source": "test",
+                    "started_at": datetime.now(UTC),
+                }
+            ]
+        },
+    )
+
+    assert risks["profile_update"]["level"] == "medium"
+    assert risks["username"]["level"] == "medium"
+    assert risks["profile_photo"]["level"] == "blocked"
+    assert risks["custom_operation"]["level"] == "medium"
+
+
+def test_risk_by_operation_applies_blocked_and_global_failure_reasons() -> None:
+    from app.modules.account_safety.risk import build_risk_by_operation
+
+    blocked = build_risk_by_operation(
+        [{"code": "manual_lock", "severity": "blocked"}],
+        {},
+    )
+    flood_wait = build_risk_by_operation(
+        [{"code": "recent_flood_wait", "severity": "high"}],
+        {},
+    )
+    profile_warning = build_risk_by_operation(
+        [{"code": "stale_profile_sync", "severity": "medium"}],
+        {},
+    )
+
+    assert blocked["sync"]["level"] == "blocked"
+    assert flood_wait["story_delete"]["level"] == "high"
+    assert profile_warning["profile_update"]["level"] == "medium"
+
+
 @freeze_time("2026-01-15 12:00:00")
 def test_account_safety_reports_recent_flood_wait_without_writing_on_read(db_session) -> None:
     from app.services.account_safety import build_account_safety

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import AccountSafetyOverride, utc_now
-from app.services.account_cooldowns import OPERATION_KEYS
+from app.modules.account_safety.cooldowns import OPERATION_KEYS
 from app.services.accounts import get_account
 from app.services.operation_logs import log_operation
 

@@ -69,10 +69,40 @@ def _neuro_commenting_service_wrapper(
 
 _ACCOUNT_SAFETY_WRAPPERS = (
     (
+        "app.api.account_quarantine_routes",
+        "backend/app/api/account_quarantine_routes.py",
+        "app.modules.account_safety.quarantine_router",
+        "Preserves legacy account quarantine router import path.",
+    ),
+    (
+        "app.api.account_runtime_routes",
+        "backend/app/api/account_runtime_routes.py",
+        "app.modules.account_safety.runtime_router",
+        "Preserves legacy account runtime router import path.",
+    ),
+    (
         "app.api.account_safety_routes",
         "backend/app/api/account_safety_routes.py",
         "app.modules.account_safety.accounts_router",
         "Preserves legacy account-safety accounts router import path.",
+    ),
+    (
+        "app.api.account_status_routes",
+        "backend/app/api/account_status_routes.py",
+        "app.modules.account_safety.status_router",
+        "Preserves legacy account status router import path.",
+    ),
+    (
+        "app.contracts.account_status",
+        "backend/app/contracts/account_status.py",
+        "app.modules.account_safety.status_contracts",
+        "Preserves old account status contract imports.",
+    ),
+    (
+        "app.contracts.quarantine",
+        "backend/app/contracts/quarantine.py",
+        "app.modules.account_safety.quarantine_contracts",
+        "Preserves old account quarantine contract imports.",
     ),
     (
         "app.api.safety_policy",
@@ -99,6 +129,30 @@ _ACCOUNT_SAFETY_WRAPPERS = (
         "Preserves old account batch safety preview service imports.",
     ),
     (
+        "app.services.account_cooldowns",
+        "backend/app/services/account_cooldowns.py",
+        "app.modules.account_safety.cooldowns",
+        "Preserves old account cooldown service imports.",
+    ),
+    (
+        "app.services.account_health",
+        "backend/app/services/account_health.py",
+        "app.modules.account_safety.health",
+        "Preserves old account health service imports.",
+    ),
+    (
+        "app.services.account_quarantine",
+        "backend/app/services/account_quarantine.py",
+        "app.modules.account_safety.quarantine",
+        "Preserves old account quarantine service imports.",
+    ),
+    (
+        "app.services.account_risk",
+        "backend/app/services/account_risk.py",
+        "app.modules.account_safety.risk",
+        "Preserves old account risk service imports.",
+    ),
+    (
         "app.services.account_safety",
         "backend/app/services/account_safety.py",
         "app.modules.account_safety.read_models",
@@ -115,6 +169,24 @@ _ACCOUNT_SAFETY_WRAPPERS = (
         "backend/app/services/account_safety_overrides.py",
         "app.modules.account_safety.overrides",
         "Preserves old account safety override service imports.",
+    ),
+    (
+        "app.services.account_status_monitor",
+        "backend/app/services/account_status_monitor.py",
+        "app.modules.account_safety.status_monitor",
+        "Preserves old account status monitor service imports.",
+    ),
+    (
+        "app.services.account_terminal_status",
+        "backend/app/services/account_terminal_status.py",
+        "app.modules.account_safety.terminal_status",
+        "Preserves old account terminal status service imports.",
+    ),
+    (
+        "app.services.account_validity",
+        "backend/app/services/account_validity.py",
+        "app.modules.account_safety.validity",
+        "Preserves old account validity service imports.",
     ),
     (
         "app.services.risk_gate",

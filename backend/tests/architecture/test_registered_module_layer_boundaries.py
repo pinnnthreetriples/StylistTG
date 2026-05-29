@@ -88,6 +88,7 @@ DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
     "repository": (
         Path("repository.py"),
         Path("account_safety/policy_repository.py"),
+        Path("account_safety/status_repository.py"),
     ),
     "router": (
         Path("router.py"),
@@ -95,6 +96,9 @@ DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
         Path("account_core/compat_router.py"),
         Path("account_safety/accounts_router.py"),
         Path("account_safety/policy_router.py"),
+        Path("account_safety/quarantine_router.py"),
+        Path("account_safety/status_router.py"),
+        Path("account_safety/runtime_router.py"),
     ),
     "jobs": (Path("jobs.py"), Path("enqueue.py")),
 }
@@ -263,6 +267,33 @@ def test_registry_and_module_metadata_stay_runtime_free() -> None:
                 violations.append((source, imported))
 
     assert violations == []
+
+
+def test_account_safety_migrated_routes_are_registered_once() -> None:
+    from fastapi.routing import APIRoute
+
+    from app.main import app
+
+    expected_routes = {
+        ("GET", "/api/accounts/{account_id}/quarantine"),
+        ("POST", "/api/accounts/{account_id}/quarantine/release"),
+        ("POST", "/api/accounts/{account_id}/quarantine/admin-override"),
+        ("POST", "/api/accounts/{account_id}/terminal-status/clear"),
+        ("GET", "/api/accounts/{account_id}/status-observations"),
+        ("POST", "/api/accounts/{account_id}/reauth-sessions"),
+        ("POST", "/api/accounts/{account_id}/refresh-runtime"),
+        ("GET", "/api/accounts/{account_id}/runtime-diagnostics"),
+    }
+    counts = {route: 0 for route in expected_routes}
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        for method in route.methods or set():
+            key = (method, route.path)
+            if key in counts:
+                counts[key] += 1
+
+    assert counts == {route: 1 for route in expected_routes}
 
 
 def test_registered_workflow_handlers_are_owned_by_registered_module_jobs() -> None:

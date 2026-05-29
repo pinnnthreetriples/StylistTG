@@ -635,6 +635,41 @@ def test_account_health_prefetched_reports_story_limit_failure(db_session) -> No
     assert {"recent_partial_job", "story_weekly_limit"} <= codes
 
 
+@pytest.mark.parametrize(
+    ("error_code", "expected_code"),
+    [
+        ("STORY_ACTIVE_LIMIT", "story_active_limit"),
+        ("PREMIUM_REQUIRED", "story_premium_required"),
+        ("STORY_REJECTED", "story_recently_rejected"),
+    ],
+)
+def test_account_health_prefetched_maps_story_failure_reasons(
+    db_session, error_code: str, expected_code: str
+) -> None:
+    from app.modules.account_safety.health import collect_account_health_signals_prefetched
+
+    account = _ready_account(db_session, f"+155501021{len(error_code)}")
+    job = seed_job(
+        db_session,
+        account_id=account.id,
+        payload={"story": error_code},
+        state=JobState.FAILED,
+        job_id=f"story-failure-{expected_code}",
+        finished_at=datetime.now(UTC),
+    )
+    step = seed_failed_step(
+        db_session,
+        job_id=job.id,
+        step_key="post_story_video",
+        step_type="post_story_video",
+        error_code=error_code,
+    )
+
+    health = collect_account_health_signals_prefetched(account, job, step)
+
+    assert expected_code in {reason["code"] for reason in health["reasons"]}
+
+
 def test_account_health_prefetched_reports_runtime_attention_without_profile(db_session) -> None:
     from app.modules.account_safety.health import collect_account_health_signals_prefetched
 
@@ -722,6 +757,27 @@ def test_risk_by_operation_handles_missing_unknown_limited_and_custom_cooldown()
     assert risks["username"]["level"] == "medium"
     assert risks["profile_photo"]["level"] == "blocked"
     assert risks["custom_operation"]["level"] == "medium"
+
+
+def test_risk_by_operation_applies_blocked_and_global_failure_reasons() -> None:
+    from app.modules.account_safety.risk import build_risk_by_operation
+
+    blocked = build_risk_by_operation(
+        [{"code": "manual_lock", "severity": "blocked"}],
+        {},
+    )
+    flood_wait = build_risk_by_operation(
+        [{"code": "recent_flood_wait", "severity": "high"}],
+        {},
+    )
+    profile_warning = build_risk_by_operation(
+        [{"code": "stale_profile_sync", "severity": "medium"}],
+        {},
+    )
+
+    assert blocked["sync"]["level"] == "blocked"
+    assert flood_wait["story_delete"]["level"] == "high"
+    assert profile_warning["profile_update"]["level"] == "medium"
 
 
 @freeze_time("2026-01-15 12:00:00")

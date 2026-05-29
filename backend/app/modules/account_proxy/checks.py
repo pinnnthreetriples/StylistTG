@@ -39,8 +39,8 @@ class TcpProxyConnectivityChecker:
             return False, "proxy_dns_failed", "Proxy host could not be resolved"
         except ConnectionRefusedError:
             return False, "proxy_connection_refused", "Proxy refused the connection"
-        except OSError as exc:
-            return False, "proxy_connection_failed", str(exc)
+        except OSError:
+            return False, "proxy_connection_failed", "Proxy connection failed"
 
 
 def check_account_proxy(

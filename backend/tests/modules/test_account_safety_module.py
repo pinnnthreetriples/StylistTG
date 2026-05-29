@@ -10,6 +10,7 @@ EXPECTED_ACCOUNT_SAFETY_INTERFACE_SYMBOLS = [
     "SafetyGateReservation",
     "SafetyGateVerdict",
     "build_account_safety_for_account",
+    "build_account_readiness_risk",
     "evaluate",
     "release",
     "reserve",

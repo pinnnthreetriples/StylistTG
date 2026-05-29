@@ -135,7 +135,9 @@ class AccountStatusMonitor:
         workspace_id: str | None = None,
         now: datetime | None = None,
     ) -> list[AccountStatusObservation]:
-        query = select(Account).where(Account.account_state != AccountState.DISABLED.value)
+        query = select(  # nosemgrep: missing-workspace-id-filter -- Full monitor tick can scan all workspaces, then each account observation is scoped by account.workspace_id.
+            Account
+        ).where(Account.account_state != AccountState.DISABLED.value)
         if workspace_id is not None:
             query = query.where(Account.workspace_id == workspace_id)
         observations: list[AccountStatusObservation] = []

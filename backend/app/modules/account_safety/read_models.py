@@ -100,8 +100,10 @@ def build_account_safety_summary(
     account_ids = [a.id for a in accounts]
     checked_at = utc_now()
 
-    latest_jobs_map = batch_latest_jobs(session, account_ids)
-    latest_failed_steps_map = batch_latest_failed_steps(session, account_ids)
+    latest_jobs_map = batch_latest_jobs(session, account_ids, workspace_id=workspace_id)
+    latest_failed_steps_map = batch_latest_failed_steps(
+        session, account_ids, workspace_id=workspace_id
+    )
     active_cooldowns_map = batch_active_cooldowns_by_operation(session, account_ids, now=checked_at)
     recent_failed_map = batch_recent_failed_steps(session, account_ids)
     succeeded_steps_map = batch_latest_succeeded_steps(session, account_ids)

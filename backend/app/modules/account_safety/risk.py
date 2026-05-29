@@ -198,8 +198,12 @@ def build_account_readiness_risk(
     return _score_readiness_risk(
         account,
         computed=computed,
-        has_cooldown=_has_active_cooldowns(session, account.id, computed),
-        failure_count=_count_recent_job_failures(session, account.id),
+        has_cooldown=_has_active_cooldowns(
+            session, account.id, workspace_id=account.workspace_id, now=computed
+        ),
+        failure_count=_count_recent_job_failures(
+            session, account.id, workspace_id=account.workspace_id
+        ),
     )
 
 
@@ -209,8 +213,12 @@ def build_account_readiness_risk_summary(session: Session, *, workspace_id: str)
     if not accounts:
         return _empty_risk_summary(computed_at)
     account_ids = [a.id for a in accounts]
-    cooldown_flags = _batch_has_active_cooldowns(session, account_ids, computed_at)
-    failure_counts = _batch_count_recent_job_failures(session, account_ids)
+    cooldown_flags = _batch_has_active_cooldowns(
+        session, account_ids, workspace_id=workspace_id, now=computed_at
+    )
+    failure_counts = _batch_count_recent_job_failures(
+        session, account_ids, workspace_id=workspace_id
+    )
     items = [
         _build_readiness_risk_prefetched(
             session,
@@ -319,21 +327,26 @@ def _max_risk(current: dict[str, Any], level: str, reasons: list[dict[str, Any]]
     return current
 
 
-def _has_active_cooldowns(session: Session, account_id: str, now: datetime) -> bool:
+def _has_active_cooldowns(
+    session: Session, account_id: str, *, workspace_id: str, now: datetime
+) -> bool:
     row = session.execute(
         select(AccountOperationCooldown.id)
+        .join(Account, Account.id == AccountOperationCooldown.account_id)
         .where(AccountOperationCooldown.account_id == account_id)
+        .where(Account.workspace_id == workspace_id)
         .where(AccountOperationCooldown.retry_after_at > now)
         .limit(1)
     ).first()
     return row is not None
 
 
-def _count_recent_job_failures(session: Session, account_id: str) -> int:
+def _count_recent_job_failures(session: Session, account_id: str, *, workspace_id: str) -> int:
     result = session.execute(
         select(func.count())
         .select_from(Job)
         .where(Job.account_id == account_id)
+        .where(Job.workspace_id == workspace_id)
         .where(Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED]))
     ).scalar()
     return result or 0
@@ -342,6 +355,8 @@ def _count_recent_job_failures(session: Session, account_id: str) -> int:
 def _batch_has_active_cooldowns(
     session: Session,
     account_ids: list[str],
+    *,
+    workspace_id: str,
     now: datetime,
 ) -> dict[str, bool]:
     if not account_ids:
@@ -349,7 +364,9 @@ def _batch_has_active_cooldowns(
     rows = (
         session.execute(
             select(AccountOperationCooldown.account_id)
+            .join(Account, Account.id == AccountOperationCooldown.account_id)
             .where(AccountOperationCooldown.account_id.in_(account_ids))
+            .where(Account.workspace_id == workspace_id)
             .where(AccountOperationCooldown.retry_after_at > now)
             .distinct()
         )
@@ -362,12 +379,15 @@ def _batch_has_active_cooldowns(
 def _batch_count_recent_job_failures(
     session: Session,
     account_ids: list[str],
+    *,
+    workspace_id: str,
 ) -> dict[str, int]:
     if not account_ids:
         return {}
     rows = session.execute(
         select(Job.account_id, func.count())
         .where(Job.account_id.in_(account_ids))
+        .where(Job.workspace_id == workspace_id)
         .where(Job.job_state.in_([JobState.FAILED, JobState.MANUAL_INTERVENTION_NEEDED]))
         .group_by(Job.account_id)
     ).all()

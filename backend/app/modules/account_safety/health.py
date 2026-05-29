@@ -29,8 +29,8 @@ def build_reason(
 
 
 def collect_account_health_signals(session: Session, account: Account) -> dict[str, Any]:
-    latest_job = _latest_job(session, account.id)
-    latest_failed_step = _latest_failed_step(session, account.id)
+    latest_job = _latest_job(session, account.id, workspace_id=account.workspace_id)
+    latest_failed_step = _latest_failed_step(session, account.id, workspace_id=account.workspace_id)
     reasons: list[dict[str, Any]] = []
     runtime = account.runtime_state
     profile = account.profile_state
@@ -256,7 +256,9 @@ def collect_account_health_signals_prefetched(
     }
 
 
-def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job | None]:
+def batch_latest_jobs(
+    session: Session, account_ids: list[str], *, workspace_id: str
+) -> dict[str, Job | None]:
     """Fetch latest job per account in one query."""
     if not account_ids:
         return {}
@@ -264,6 +266,7 @@ def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job
         session.execute(
             select(Job)
             .where(Job.account_id.in_(account_ids))
+            .where(Job.workspace_id == workspace_id)
             .order_by(
                 Job.account_id, Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc()
             )
@@ -279,7 +282,7 @@ def batch_latest_jobs(session: Session, account_ids: list[str]) -> dict[str, Job
 
 
 def batch_latest_failed_steps(
-    session: Session, account_ids: list[str]
+    session: Session, account_ids: list[str], *, workspace_id: str
 ) -> dict[str, JobStepResult | None]:
     """Fetch latest failed step per account in one query."""
     if not account_ids:
@@ -288,6 +291,7 @@ def batch_latest_failed_steps(
         select(Job.account_id, JobStepResult)
         .join(Job, Job.id == JobStepResult.job_id)
         .where(Job.account_id.in_(account_ids))
+        .where(Job.workspace_id == workspace_id)
         .where(JobStepResult.status == "failed")
         .order_by(Job.account_id, JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
     ).all()
@@ -298,11 +302,12 @@ def batch_latest_failed_steps(
     return result
 
 
-def _latest_job(session: Session, account_id: str) -> Job | None:
+def _latest_job(session: Session, account_id: str, *, workspace_id: str) -> Job | None:
     return (
         session.execute(
             select(Job)
             .where(Job.account_id == account_id)
+            .where(Job.workspace_id == workspace_id)
             .order_by(Job.queued_at.desc(), Job.started_at.desc(), Job.finished_at.desc())
             .limit(1)
         )
@@ -317,12 +322,15 @@ def _aware(value: datetime) -> datetime:
     return value
 
 
-def _latest_failed_step(session: Session, account_id: str) -> JobStepResult | None:
+def _latest_failed_step(
+    session: Session, account_id: str, *, workspace_id: str
+) -> JobStepResult | None:
     return (
         session.execute(
             select(JobStepResult)
             .join(Job, Job.id == JobStepResult.job_id)
             .where(Job.account_id == account_id)
+            .where(Job.workspace_id == workspace_id)
             .where(JobStepResult.status == "failed")
             .order_by(JobStepResult.finished_at.desc(), JobStepResult.started_at.desc())
             .limit(1)

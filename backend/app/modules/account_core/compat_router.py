@@ -48,9 +48,7 @@ def refresh_runtime_from_header(
     from app.modules.account_shared.interfaces import refresh_account_runtime
 
     require_account_in_workspace(session, account_id, auth)
-    return refresh_account_runtime(
-        session, account_id=account_id, workspace_id=auth.workspace_id
-    )
+    return refresh_account_runtime(session, account_id=account_id, workspace_id=auth.workspace_id)
 
 
 @router.get("/runtime-diagnostics", response_model=AccountRuntimeDiagnosticsRead)

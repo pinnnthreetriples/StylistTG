@@ -107,9 +107,7 @@ def refresh_account_runtime(
     )
 
 
-def get_runtime_diagnostics(
-    session: Session, account_id: str
-) -> AccountRuntimeDiagnosticsRead:
+def get_runtime_diagnostics(session: Session, account_id: str) -> AccountRuntimeDiagnosticsRead:
     """Return the public runtime diagnostics read model for `account_id`."""
     try:
         payload = account_runtime_diagnostics(session, account_id)

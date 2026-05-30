@@ -63,9 +63,7 @@ def refresh_runtime(
     auth: AuthContext = Depends(require_mutation_permission),
 ):
     require_account_in_workspace(session, account_id, auth)
-    return refresh_account_runtime(
-        session, account_id=account_id, workspace_id=auth.workspace_id
-    )
+    return refresh_account_runtime(session, account_id=account_id, workspace_id=auth.workspace_id)
 
 
 @router.get("/{account_id}/runtime-diagnostics", response_model=AccountRuntimeDiagnosticsRead)

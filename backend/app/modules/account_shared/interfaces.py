@@ -45,7 +45,9 @@ def __getattr__(name: str) -> Any:
         from app.modules.account_shared import runtime as _runtime
 
         return getattr(_runtime, name)
-    raise AttributeError(f"module 'app.modules.account_shared.interfaces' has no attribute {name!r}")
+    raise AttributeError(
+        f"module 'app.modules.account_shared.interfaces' has no attribute {name!r}"
+    )
 
 
 __all__ = [

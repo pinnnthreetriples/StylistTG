@@ -25,9 +25,7 @@ def lookup_account(
         return session.get(Account, account_id)
     return (
         session.execute(
-            select(Account).where(
-                Account.id == account_id, Account.workspace_id == workspace_id
-            )
+            select(Account).where(Account.id == account_id, Account.workspace_id == workspace_id)
         )
         .scalars()
         .first()

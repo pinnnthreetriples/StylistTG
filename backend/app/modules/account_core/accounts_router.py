@@ -22,7 +22,7 @@ from app.schemas import (
     AccountListItemRead,
     AccountRead,
 )
-from app.services.profile_photo_state import batch_latest_profile_photo_asset_ids
+from app.modules.account_profile_state.interfaces import batch_latest_profile_photo_asset_ids
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 

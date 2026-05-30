@@ -86,7 +86,13 @@ def _report_with_open_debt_entries(
         entry
         for entry in report["debt_inventory"]["entries"]
         if entry["category"]
-        not in {"unmanaged_feature_surface", "residual_legacy_feature_boundary"}
+        not in {
+            "unmanaged_feature_surface",
+            "residual_legacy_feature_boundary",
+            # accepted architectural debt (e.g. allowlisted module cycles)
+            # would otherwise keep the synthetic scenario YELLOW.
+            "accepted_architectural_debt",
+        }
     ]
     report["debt_inventory"]["entries"] = [
         *filtered,
@@ -343,18 +349,14 @@ def test_structure_audit_phase_six_c_tracks_all_remaining_legacy_feature_boundar
     assert "debt-account-profile-completeness" not in entries
     assert "canonical-account-profile-completeness" in entries
     assert unmanaged == []
-    assert set(residual_legacy) == {
-        "residual-legacy-account-ggr",
-        "residual-legacy-account-profile-state",
-        "residual-legacy-bought-onboarding",
-        "residual-legacy-human-behavior",
-        "residual-legacy-story-surfaces",
-    }
-    assert all(entry["status"] == "open" for entry in residual_legacy.values())
-    assert all(entry["severity"] == "medium" for entry in residual_legacy.values())
-    assert all(entry["phase"] == "Phase 6C" for entry in residual_legacy.values())
-    assert all(entry["existing_paths"] for entry in residual_legacy.values())
-    assert all("follow-up #" in entry["target_owner"] for entry in residual_legacy.values())
+    # After PR3 residual migration: every PR3 boundary became a canonical
+    # entry; no residual_legacy_feature_boundary remains.
+    assert residual_legacy == {}
+    assert "canonical-account-ggr" in entries
+    assert "canonical-account-profile-state" in entries
+    assert "canonical-bought-onboarding" in entries
+    assert "canonical-human-behavior" in entries
+    assert "canonical-story" in entries
     assert (
         "residual_legacy_feature_boundary"
         in report["debt_inventory"]["scope"]["classification_rule"]
@@ -546,11 +548,11 @@ def test_backend_overall_yellow_while_residual_boundaries_remain() -> None:
     rendered_json = json.loads(render_json_report(report))
 
     assert rendered_json["backend_overall_status"] == "YELLOW"
-    # 5 PR3 residual scopes + 1 PR2 accepted_architectural_debt entry for the
-    # documented account_core <-> account_safety cycles (tracked by #233).
-    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 6
+    # After PR3 residual migration: 0 residual scopes; only the
+    # accepted-account-module-cycles entry stays open (tracked by #233).
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 1
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
-    assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 5
+    assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 0
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     assert (
         rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
@@ -562,30 +564,32 @@ def test_phase_six_c_residual_findings_remain_open() -> None:
     report = _committed_report()
     findings = {finding["id"]: finding for finding in report["findings"]}
 
-    assert findings["STRUCTURE-001"]["severity"] == "medium"
-    assert findings["STRUCTURE-001"]["status"] == "open"
-    assert "residual legacy feature boundaries" in findings["STRUCTURE-001"]["finding"]
-    assert "high-risk feature ownership" not in findings["STRUCTURE-001"]["finding"]
+    # After PR3 residual migration: STRUCTURE-001 and STRUCTURE-008 flip to
+    # `info / accepted` because residual_legacy_feature_boundary_count == 0
+    # and there are no unmanaged surfaces. Backend overall stays YELLOW
+    # because `accepted-account-module-cycles` (#233) remains open.
+    assert findings["STRUCTURE-001"]["severity"] == "info"
+    assert findings["STRUCTURE-001"]["status"] == "accepted"
     assert findings["STRUCTURE-002"]["severity"] == "info"
     assert findings["STRUCTURE-002"]["status"] == "accepted"
-    assert findings["STRUCTURE-008"]["severity"] == "medium"
-    assert findings["STRUCTURE-008"]["status"] == "open"
+    assert findings["STRUCTURE-008"]["severity"] == "info"
+    assert findings["STRUCTURE-008"]["status"] == "accepted"
 
 
 def test_phase_six_c_markdown_is_truthful_yellow() -> None:
     markdown = render_markdown_report(_committed_report())
 
     assert (
-        "| Backend overall | YELLOW | 5 residual legacy feature boundaries remain outside app.modules."
-        in markdown
+        "| Backend overall | YELLOW | 1 accepted architectural debt entries remain open: "
+        "accepted-account-module-cycles." in markdown
     )
     assert (
         "| Unmanaged feature debt | GREEN | No untracked unmanaged feature surfaces; residual debt is reported separately."
         in markdown
     )
-    assert "| Residual legacy feature boundaries | YELLOW |" in markdown
+    assert "| Residual legacy feature boundaries | GREEN |" in markdown
     assert "| Frontend ownership | GREEN |" in markdown
-    assert "| STRUCTURE-001 | medium | open |" in markdown
+    assert "| STRUCTURE-001 | info | accepted |" in markdown
     assert "| STRUCTURE-002 | info | accepted |" in markdown
     assert "high-risk feature ownership" not in markdown
 

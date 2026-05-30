@@ -192,11 +192,15 @@
       "backend/app/contracts/types.py": [],
       "backend/app/modules/account_core/contracts.py": [],
       "backend/app/modules/account_editing/contracts.py": [],
+      "backend/app/modules/account_ggr/contracts.py": [],
       "backend/app/modules/account_lifecycle/contracts.py": [],
       "backend/app/modules/account_profile_completeness/contracts.py": [],
       "backend/app/modules/account_safety/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
+      "backend/app/modules/bought_onboarding/contracts.py": [],
+      "backend/app/modules/human_behavior/contracts.py": [],
       "backend/app/modules/neuro_commenting/contracts.py": [],
+      "backend/app/modules/story/contracts.py": [],
       "backend/app/modules/warmup/contracts.py": [],
       "backend/app/schemas.py": []
     },
@@ -205,7 +209,10 @@
       "backend/app/modules/account_core/compat_router.py",
       "backend/app/modules/account_safety/quarantine_router.py",
       "backend/app/modules/account_safety/runtime_router.py",
-      "backend/app/modules/account_safety/status_router.py"
+      "backend/app/modules/account_safety/status_router.py",
+      "backend/app/modules/story/capabilities_router.py",
+      "backend/app/modules/story/drafts_router.py",
+      "backend/app/modules/story/posts_router.py"
     ],
     "policies_forbidden_imports": {
       "backend/app/modules/account_editing/policies.py": [
@@ -232,6 +239,7 @@
       "backend/app/modules/account_audit/router.py": [],
       "backend/app/modules/account_core/router.py": [],
       "backend/app/modules/account_editing/router.py": [],
+      "backend/app/modules/account_ggr/router.py": [],
       "backend/app/modules/account_imports/router.py": [],
       "backend/app/modules/account_jobs/router.py": [],
       "backend/app/modules/account_lifecycle/router.py": [],
@@ -240,7 +248,10 @@
       "backend/app/modules/account_safety/accounts_router.py": [],
       "backend/app/modules/account_safety/policy_router.py": [],
       "backend/app/modules/account_safety/router.py": [],
+      "backend/app/modules/bought_onboarding/router.py": [],
+      "backend/app/modules/human_behavior/router.py": [],
       "backend/app/modules/neuro_commenting/router.py": [],
+      "backend/app/modules/story/router.py": [],
       "backend/app/modules/warmup/router.py": []
     }
   },
@@ -345,6 +356,29 @@
       {
         "category": "canonical_feature_module",
         "existing_paths": [
+          "backend/app/modules/account_ggr/__init__.py",
+          "backend/app/modules/account_ggr/calculator.py",
+          "backend/app/modules/account_ggr/contracts.py",
+          "backend/app/modules/account_ggr/fraud_score.py",
+          "backend/app/modules/account_ggr/interfaces.py",
+          "backend/app/modules/account_ggr/module.py",
+          "backend/app/modules/account_ggr/router.py"
+        ],
+        "id": "canonical-account-ggr",
+        "owner": "account_ggr",
+        "paths": [
+          "backend/app/modules/account_ggr/**"
+        ],
+        "phase": "PR3",
+        "rationale": "GGR composite scoring and fraud-score provider ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_ggr"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
           "backend/app/modules/account_imports/__init__.py",
           "backend/app/modules/account_imports/module.py",
           "backend/app/modules/account_imports/router.py",
@@ -426,6 +460,28 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules.account_profile_completeness"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_profile_state/__init__.py",
+          "backend/app/modules/account_profile_state/audio.py",
+          "backend/app/modules/account_profile_state/interfaces.py",
+          "backend/app/modules/account_profile_state/module.py",
+          "backend/app/modules/account_profile_state/photo.py",
+          "backend/app/modules/account_profile_state/sync.py"
+        ],
+        "id": "canonical-account-profile-state",
+        "owner": "account_profile_state",
+        "paths": [
+          "backend/app/modules/account_profile_state/**"
+        ],
+        "phase": "PR3",
+        "rationale": "Profile audio/photo helpers and profile-sync adapter ownership is canonical; old service paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_profile_state"
       },
       {
         "category": "canonical_feature_module",
@@ -525,6 +581,54 @@
       {
         "category": "canonical_feature_module",
         "existing_paths": [
+          "backend/app/modules/bought_onboarding/__init__.py",
+          "backend/app/modules/bought_onboarding/contracts.py",
+          "backend/app/modules/bought_onboarding/interfaces.py",
+          "backend/app/modules/bought_onboarding/module.py",
+          "backend/app/modules/bought_onboarding/router.py",
+          "backend/app/modules/bought_onboarding/service.py"
+        ],
+        "id": "canonical-bought-onboarding",
+        "owner": "bought_onboarding",
+        "paths": [
+          "backend/app/modules/bought_onboarding/**"
+        ],
+        "phase": "PR3",
+        "rationale": "Bought-account onboarding orchestration, router, and DTO ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.bought_onboarding"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/human_behavior/__init__.py",
+          "backend/app/modules/human_behavior/action_sequencer.py",
+          "backend/app/modules/human_behavior/behavior_profile.py",
+          "backend/app/modules/human_behavior/contracts.py",
+          "backend/app/modules/human_behavior/decoy_actions.py",
+          "backend/app/modules/human_behavior/interfaces.py",
+          "backend/app/modules/human_behavior/module.py",
+          "backend/app/modules/human_behavior/router.py",
+          "backend/app/modules/human_behavior/typing_emulator.py",
+          "backend/app/modules/human_behavior/typo_generator.py"
+        ],
+        "id": "canonical-human-behavior",
+        "owner": "human_behavior",
+        "paths": [
+          "backend/app/modules/human_behavior/**"
+        ],
+        "phase": "PR3",
+        "rationale": "Human-behavior baseline, randomization, typing/typo/decoy emulators, and sequencer ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.human_behavior"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
           "backend/app/modules/neuro_commenting/__init__.py",
           "backend/app/modules/neuro_commenting/account_health_service.py",
           "backend/app/modules/neuro_commenting/account_selector.py",
@@ -580,6 +684,33 @@
       {
         "category": "canonical_feature_module",
         "existing_paths": [
+          "backend/app/modules/story/__init__.py",
+          "backend/app/modules/story/capabilities.py",
+          "backend/app/modules/story/capabilities_router.py",
+          "backend/app/modules/story/contracts.py",
+          "backend/app/modules/story/drafts.py",
+          "backend/app/modules/story/drafts_router.py",
+          "backend/app/modules/story/interfaces.py",
+          "backend/app/modules/story/module.py",
+          "backend/app/modules/story/posts.py",
+          "backend/app/modules/story/posts_router.py",
+          "backend/app/modules/story/router.py"
+        ],
+        "id": "canonical-story",
+        "owner": "story",
+        "paths": [
+          "backend/app/modules/story/**"
+        ],
+        "phase": "PR3",
+        "rationale": "Story capabilities, draft, and post routers + services ownership is canonical; old API/service paths are compatibility wrappers.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.story"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
@@ -618,6 +749,7 @@
           "backend/app/api/account_audit_routes.py",
           "backend/app/api/account_compat_routes.py",
           "backend/app/api/account_context.py",
+          "backend/app/api/account_ggr_routes.py",
           "backend/app/api/account_imports.py",
           "backend/app/api/account_jobs_routes.py",
           "backend/app/api/account_lifecycle_routes.py",
@@ -629,12 +761,20 @@
           "backend/app/api/account_status_routes.py",
           "backend/app/api/account_update.py",
           "backend/app/api/accounts.py",
+          "backend/app/api/bought_onboarding_routes.py",
+          "backend/app/api/human_behavior_routes.py",
           "backend/app/api/neuro_commenting.py",
           "backend/app/api/safety_policy.py",
+          "backend/app/api/story_capabilities.py",
+          "backend/app/api/story_drafts.py",
+          "backend/app/api/story_posts.py",
           "backend/app/api/warmup.py",
           "backend/app/contracts/account_status.py",
           "backend/app/contracts/accounts.py",
+          "backend/app/contracts/bought_onboarding.py",
           "backend/app/contracts/cross_module_load.py",
+          "backend/app/contracts/ggr.py",
+          "backend/app/contracts/human_behavior.py",
           "backend/app/contracts/profile_completeness.py",
           "backend/app/contracts/quarantine.py",
           "backend/app/contracts/safety.py",
@@ -659,6 +799,15 @@
           "backend/app/services/account_validity.py",
           "backend/app/services/accounts.py",
           "backend/app/services/auth_context.py",
+          "backend/app/services/bought_account_onboarding.py",
+          "backend/app/services/fraud_score.py",
+          "backend/app/services/ggr_calculator.py",
+          "backend/app/services/human_behavior/__init__.py",
+          "backend/app/services/human_behavior/action_sequencer.py",
+          "backend/app/services/human_behavior/behavior_profile.py",
+          "backend/app/services/human_behavior/decoy_actions.py",
+          "backend/app/services/human_behavior/typing_emulator.py",
+          "backend/app/services/human_behavior/typo_generator.py",
           "backend/app/services/neuro_commenting/__init__.py",
           "backend/app/services/neuro_commenting/account_health_service.py",
           "backend/app/services/neuro_commenting/account_selector.py",
@@ -691,12 +840,18 @@
           "backend/app/services/neuro_commenting/tdlib_helpers.py",
           "backend/app/services/neuro_commenting/tdlib_observer.py",
           "backend/app/services/neuro_commenting/tdlib_runtime.py",
+          "backend/app/services/profile_audio_state.py",
+          "backend/app/services/profile_photo_state.py",
+          "backend/app/services/profile_sync.py",
           "backend/app/services/proxy_accounts.py",
           "backend/app/services/proxy_checks.py",
           "backend/app/services/retention_worker.py",
           "backend/app/services/risk_gate.py",
           "backend/app/services/safety_gate_cache.py",
           "backend/app/services/safety_gate_reserve.py",
+          "backend/app/services/story_capabilities.py",
+          "backend/app/services/story_drafts.py",
+          "backend/app/services/story_posts.py",
           "backend/app/services/warmup.py",
           "backend/app/services/warmup_dispatch.py",
           "backend/app/services/warmup_isolation.py",
@@ -757,6 +912,30 @@
           "backend/app/services/account_imports.py",
           "backend/app/services/proxy_accounts.py",
           "backend/app/services/proxy_checks.py",
+          "backend/app/api/account_ggr_routes.py",
+          "backend/app/contracts/ggr.py",
+          "backend/app/services/fraud_score.py",
+          "backend/app/services/ggr_calculator.py",
+          "backend/app/services/profile_audio_state.py",
+          "backend/app/services/profile_photo_state.py",
+          "backend/app/services/profile_sync.py",
+          "backend/app/api/bought_onboarding_routes.py",
+          "backend/app/contracts/bought_onboarding.py",
+          "backend/app/services/bought_account_onboarding.py",
+          "backend/app/api/human_behavior_routes.py",
+          "backend/app/contracts/human_behavior.py",
+          "backend/app/services/human_behavior/__init__.py",
+          "backend/app/services/human_behavior/behavior_profile.py",
+          "backend/app/services/human_behavior/action_sequencer.py",
+          "backend/app/services/human_behavior/decoy_actions.py",
+          "backend/app/services/human_behavior/typing_emulator.py",
+          "backend/app/services/human_behavior/typo_generator.py",
+          "backend/app/api/story_capabilities.py",
+          "backend/app/api/story_drafts.py",
+          "backend/app/api/story_posts.py",
+          "backend/app/services/story_capabilities.py",
+          "backend/app/services/story_drafts.py",
+          "backend/app/services/story_posts.py",
           "backend/app/services/accounts.py",
           "backend/app/services/account_capabilities.py",
           "backend/app/api/warmup.py",
@@ -845,120 +1024,6 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/account_ggr_routes.py",
-          "backend/app/contracts/ggr.py",
-          "backend/app/services/fraud_score.py",
-          "backend/app/services/ggr_calculator.py"
-        ],
-        "id": "residual-legacy-account-ggr",
-        "owner": "account_ggr",
-        "paths": [
-          "backend/app/api/account_ggr_routes.py",
-          "backend/app/services/fraud_score.py",
-          "backend/app/services/ggr_calculator.py",
-          "backend/app/contracts/ggr.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "GGR and fraud scoring remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #215 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_ggr (follow-up #215)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/services/profile_audio_state.py",
-          "backend/app/services/profile_photo_state.py",
-          "backend/app/services/profile_sync.py"
-        ],
-        "id": "residual-legacy-account-profile-state",
-        "owner": "account_profile_state",
-        "paths": [
-          "backend/app/services/profile_audio_state.py",
-          "backend/app/services/profile_photo_state.py",
-          "backend/app/services/profile_sync.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Profile audio/photo/sync helpers remain profile-state feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #218 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.account_editing or app.modules.account_profile_state (follow-up #218)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/bought_onboarding_routes.py",
-          "backend/app/contracts/bought_onboarding.py",
-          "backend/app/services/bought_account_onboarding.py"
-        ],
-        "id": "residual-legacy-bought-onboarding",
-        "owner": "bought_onboarding",
-        "paths": [
-          "backend/app/api/bought_onboarding_routes.py",
-          "backend/app/services/bought_account_onboarding.py",
-          "backend/app/contracts/bought_onboarding.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Bought-account onboarding remains account onboarding feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #223 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.bought_onboarding (follow-up #223)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/human_behavior_routes.py",
-          "backend/app/contracts/human_behavior.py",
-          "backend/app/services/human_behavior/__init__.py",
-          "backend/app/services/human_behavior/action_sequencer.py",
-          "backend/app/services/human_behavior/behavior_profile.py",
-          "backend/app/services/human_behavior/decoy_actions.py",
-          "backend/app/services/human_behavior/typing_emulator.py",
-          "backend/app/services/human_behavior/typo_generator.py"
-        ],
-        "id": "residual-legacy-human-behavior",
-        "owner": "human_behavior",
-        "paths": [
-          "backend/app/api/human_behavior_routes.py",
-          "backend/app/services/human_behavior/**",
-          "backend/app/contracts/human_behavior.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Human-behavior policy/runtime surfaces remain feature logic outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #224 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.human_behavior (follow-up #224)"
-      },
-      {
-        "category": "residual_legacy_feature_boundary",
-        "existing_paths": [
-          "backend/app/api/story_capabilities.py",
-          "backend/app/api/story_drafts.py",
-          "backend/app/api/story_posts.py",
-          "backend/app/services/story_capabilities.py",
-          "backend/app/services/story_drafts.py",
-          "backend/app/services/story_posts.py"
-        ],
-        "id": "residual-legacy-story-surfaces",
-        "owner": "story",
-        "paths": [
-          "backend/app/api/story_*.py",
-          "backend/app/services/story_*.py"
-        ],
-        "phase": "Phase 6C",
-        "rationale": "Story draft/post/capability surfaces remain feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-        "removal_condition": "Remove this residual entry only after #225 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        "severity": "medium",
-        "status": "open",
-        "target_owner": "app.modules.story (follow-up #225)"
       },
       {
         "category": "runtime_process_ownership",
@@ -1890,290 +1955,11 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-29T20:53:47Z",
+    "generated_at": "2026-05-30T14:45:38Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
-      "boundary_count": 5,
-      "entries": [
-        {
-          "actual_paths": [
-            "backend/app/api/account_ggr_routes.py",
-            "backend/app/contracts/ggr.py",
-            "backend/app/services/fraud_score.py",
-            "backend/app/services/ggr_calculator.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/account_ggr_routes.py:function:get_account_ggr",
-            "backend/app/api/account_ggr_routes.py:route:GET /{account_id}/ggr -> get_account_ggr",
-            "backend/app/contracts/ggr.py:class:GgrBreakdownRead",
-            "backend/app/contracts/ggr.py:class:GgrScoreRead",
-            "backend/app/services/fraud_score.py:class:FraudAssessment",
-            "backend/app/services/fraud_score.py:class:FraudScoreProvider",
-            "backend/app/services/fraud_score.py:class:MockFraudScoreProvider",
-            "backend/app/services/fraud_score.py:class:ProxyAssessmentInput",
-            "backend/app/services/fraud_score.py:class:UnavailableFraudScoreProvider",
-            "backend/app/services/fraud_score.py:function:build_fraud_score_provider",
-            "backend/app/services/ggr_calculator.py:function:backfill_ggr_scores",
-            "backend/app/services/ggr_calculator.py:function:calculate_ggr",
-            "backend/app/services/ggr_calculator.py:function:compute_bucket",
-            "backend/app/services/ggr_calculator.py:function:compute_components",
-            "backend/app/services/ggr_calculator.py:function:compute_score",
-            "backend/app/services/ggr_calculator.py:function:get_ggr_score",
-            "backend/app/services/ggr_calculator.py:function:recalculate_due_scores"
-          ],
-          "entry_id": "residual-legacy-account-ggr",
-          "expected_paths": [
-            "backend/app/api/account_ggr_routes.py",
-            "backend/app/contracts/ggr.py",
-            "backend/app/services/fraud_score.py",
-            "backend/app/services/ggr_calculator.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/account_ggr_routes.py:function:get_account_ggr",
-            "backend/app/api/account_ggr_routes.py:route:GET /{account_id}/ggr -> get_account_ggr",
-            "backend/app/contracts/ggr.py:class:GgrBreakdownRead",
-            "backend/app/contracts/ggr.py:class:GgrScoreRead",
-            "backend/app/services/fraud_score.py:class:FraudAssessment",
-            "backend/app/services/fraud_score.py:class:FraudScoreProvider",
-            "backend/app/services/fraud_score.py:class:MockFraudScoreProvider",
-            "backend/app/services/fraud_score.py:class:ProxyAssessmentInput",
-            "backend/app/services/fraud_score.py:class:UnavailableFraudScoreProvider",
-            "backend/app/services/fraud_score.py:function:build_fraud_score_provider",
-            "backend/app/services/ggr_calculator.py:function:backfill_ggr_scores",
-            "backend/app/services/ggr_calculator.py:function:calculate_ggr",
-            "backend/app/services/ggr_calculator.py:function:compute_bucket",
-            "backend/app/services/ggr_calculator.py:function:compute_components",
-            "backend/app/services/ggr_calculator.py:function:compute_score",
-            "backend/app/services/ggr_calculator.py:function:get_ggr_score",
-            "backend/app/services/ggr_calculator.py:function:recalculate_due_scores"
-          ],
-          "owner": "account_ggr",
-          "related_issue": "#215",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/services/profile_audio_state.py",
-            "backend/app/services/profile_photo_state.py",
-            "backend/app/services/profile_sync.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/services/profile_audio_state.py:function:clear_profile_audio_state",
-            "backend/app/services/profile_audio_state.py:function:profile_audio_state_payload",
-            "backend/app/services/profile_audio_state.py:function:upsert_profile_audio_state",
-            "backend/app/services/profile_photo_state.py:function:batch_latest_profile_photo_asset_ids",
-            "backend/app/services/profile_photo_state.py:function:latest_applied_profile_photo_asset_id",
-            "backend/app/services/profile_sync.py:class:ProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:class:TdlibProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:class:UnavailableProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:function:build_profile_sync_adapter",
-            "backend/app/services/profile_sync.py:function:sync_account_live_story_posts",
-            "backend/app/services/profile_sync.py:function:sync_account_profile_snapshot",
-            "backend/app/services/profile_sync.py:function:sync_account_profile_state"
-          ],
-          "entry_id": "residual-legacy-account-profile-state",
-          "expected_paths": [
-            "backend/app/services/profile_audio_state.py",
-            "backend/app/services/profile_photo_state.py",
-            "backend/app/services/profile_sync.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/services/profile_audio_state.py:function:clear_profile_audio_state",
-            "backend/app/services/profile_audio_state.py:function:profile_audio_state_payload",
-            "backend/app/services/profile_audio_state.py:function:upsert_profile_audio_state",
-            "backend/app/services/profile_photo_state.py:function:batch_latest_profile_photo_asset_ids",
-            "backend/app/services/profile_photo_state.py:function:latest_applied_profile_photo_asset_id",
-            "backend/app/services/profile_sync.py:class:ProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:class:TdlibProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:class:UnavailableProfileSyncAdapter",
-            "backend/app/services/profile_sync.py:function:build_profile_sync_adapter",
-            "backend/app/services/profile_sync.py:function:sync_account_live_story_posts",
-            "backend/app/services/profile_sync.py:function:sync_account_profile_snapshot",
-            "backend/app/services/profile_sync.py:function:sync_account_profile_state"
-          ],
-          "owner": "account_profile_state",
-          "related_issue": "#218",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/bought_onboarding_routes.py",
-            "backend/app/contracts/bought_onboarding.py",
-            "backend/app/services/bought_account_onboarding.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/bought_onboarding_routes.py:function:get_account_bought_onboarding_status",
-            "backend/app/api/bought_onboarding_routes.py:function:start_account_bought_onboarding",
-            "backend/app/api/bought_onboarding_routes.py:route:GET /{account_id}/bought-onboarding/status -> get_account_bought_onboarding_status",
-            "backend/app/api/bought_onboarding_routes.py:route:POST /{account_id}/bought-onboarding/start -> start_account_bought_onboarding",
-            "backend/app/contracts/bought_onboarding.py:class:BoughtOnboardingStatusRead",
-            "backend/app/services/bought_account_onboarding.py:class:BoughtOnboardingNotFound",
-            "backend/app/services/bought_account_onboarding.py:function:enable_two_factor",
-            "backend/app/services/bought_account_onboarding.py:function:get_onboarding_state",
-            "backend/app/services/bought_account_onboarding.py:function:process_rest_period_ggr_check",
-            "backend/app/services/bought_account_onboarding.py:function:run_rest_period_ggr_check",
-            "backend/app/services/bought_account_onboarding.py:function:run_terminate_other_sessions",
-            "backend/app/services/bought_account_onboarding.py:function:start_bought_onboarding",
-            "backend/app/services/bought_account_onboarding.py:function:status_read",
-            "backend/app/services/bought_account_onboarding.py:function:terminate_other_sessions"
-          ],
-          "entry_id": "residual-legacy-bought-onboarding",
-          "expected_paths": [
-            "backend/app/api/bought_onboarding_routes.py",
-            "backend/app/contracts/bought_onboarding.py",
-            "backend/app/services/bought_account_onboarding.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/bought_onboarding_routes.py:function:get_account_bought_onboarding_status",
-            "backend/app/api/bought_onboarding_routes.py:function:start_account_bought_onboarding",
-            "backend/app/api/bought_onboarding_routes.py:route:GET /{account_id}/bought-onboarding/status -> get_account_bought_onboarding_status",
-            "backend/app/api/bought_onboarding_routes.py:route:POST /{account_id}/bought-onboarding/start -> start_account_bought_onboarding",
-            "backend/app/contracts/bought_onboarding.py:class:BoughtOnboardingStatusRead",
-            "backend/app/services/bought_account_onboarding.py:class:BoughtOnboardingNotFound",
-            "backend/app/services/bought_account_onboarding.py:function:enable_two_factor",
-            "backend/app/services/bought_account_onboarding.py:function:get_onboarding_state",
-            "backend/app/services/bought_account_onboarding.py:function:process_rest_period_ggr_check",
-            "backend/app/services/bought_account_onboarding.py:function:run_rest_period_ggr_check",
-            "backend/app/services/bought_account_onboarding.py:function:run_terminate_other_sessions",
-            "backend/app/services/bought_account_onboarding.py:function:start_bought_onboarding",
-            "backend/app/services/bought_account_onboarding.py:function:status_read",
-            "backend/app/services/bought_account_onboarding.py:function:terminate_other_sessions"
-          ],
-          "owner": "bought_onboarding",
-          "related_issue": "#223",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/human_behavior_routes.py",
-            "backend/app/contracts/human_behavior.py",
-            "backend/app/services/human_behavior/__init__.py",
-            "backend/app/services/human_behavior/action_sequencer.py",
-            "backend/app/services/human_behavior/behavior_profile.py",
-            "backend/app/services/human_behavior/decoy_actions.py",
-            "backend/app/services/human_behavior/typing_emulator.py",
-            "backend/app/services/human_behavior/typo_generator.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/human_behavior_routes.py:function:get_behavior_profile",
-            "backend/app/api/human_behavior_routes.py:route:GET /{account_id}/behavior-profile -> get_behavior_profile",
-            "backend/app/contracts/human_behavior.py:class:BehaviorProfileRead",
-            "backend/app/services/human_behavior/action_sequencer.py:function:shuffle",
-            "backend/app/services/human_behavior/behavior_profile.py:class:SessionProfile",
-            "backend/app/services/human_behavior/behavior_profile.py:function:get_or_create_baseline",
-            "backend/app/services/human_behavior/behavior_profile.py:function:randomize_for_session",
-            "backend/app/services/human_behavior/decoy_actions.py:class:DecoyAction",
-            "backend/app/services/human_behavior/decoy_actions.py:function:run_before_send",
-            "backend/app/services/human_behavior/typing_emulator.py:class:TypingFragment",
-            "backend/app/services/human_behavior/typing_emulator.py:function:emit_typing",
-            "backend/app/services/human_behavior/typing_emulator.py:function:total_duration",
-            "backend/app/services/human_behavior/typo_generator.py:class:TypoResult",
-            "backend/app/services/human_behavior/typo_generator.py:function:maybe_typo"
-          ],
-          "entry_id": "residual-legacy-human-behavior",
-          "expected_paths": [
-            "backend/app/api/human_behavior_routes.py",
-            "backend/app/contracts/human_behavior.py",
-            "backend/app/services/human_behavior/__init__.py",
-            "backend/app/services/human_behavior/action_sequencer.py",
-            "backend/app/services/human_behavior/behavior_profile.py",
-            "backend/app/services/human_behavior/decoy_actions.py",
-            "backend/app/services/human_behavior/typing_emulator.py",
-            "backend/app/services/human_behavior/typo_generator.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/human_behavior_routes.py:function:get_behavior_profile",
-            "backend/app/api/human_behavior_routes.py:route:GET /{account_id}/behavior-profile -> get_behavior_profile",
-            "backend/app/contracts/human_behavior.py:class:BehaviorProfileRead",
-            "backend/app/services/human_behavior/action_sequencer.py:function:shuffle",
-            "backend/app/services/human_behavior/behavior_profile.py:class:SessionProfile",
-            "backend/app/services/human_behavior/behavior_profile.py:function:get_or_create_baseline",
-            "backend/app/services/human_behavior/behavior_profile.py:function:randomize_for_session",
-            "backend/app/services/human_behavior/decoy_actions.py:class:DecoyAction",
-            "backend/app/services/human_behavior/decoy_actions.py:function:run_before_send",
-            "backend/app/services/human_behavior/typing_emulator.py:class:TypingFragment",
-            "backend/app/services/human_behavior/typing_emulator.py:function:emit_typing",
-            "backend/app/services/human_behavior/typing_emulator.py:function:total_duration",
-            "backend/app/services/human_behavior/typo_generator.py:class:TypoResult",
-            "backend/app/services/human_behavior/typo_generator.py:function:maybe_typo"
-          ],
-          "owner": "human_behavior",
-          "related_issue": "#224",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        },
-        {
-          "actual_paths": [
-            "backend/app/api/story_capabilities.py",
-            "backend/app/api/story_drafts.py",
-            "backend/app/api/story_posts.py",
-            "backend/app/services/story_capabilities.py",
-            "backend/app/services/story_drafts.py",
-            "backend/app/services/story_posts.py"
-          ],
-          "actual_public_api_fingerprint": [
-            "backend/app/api/story_capabilities.py:function:get_story_capabilities",
-            "backend/app/api/story_capabilities.py:function:get_story_capabilities_from_header",
-            "backend/app/api/story_capabilities.py:route:GET /{account_id} -> get_story_capabilities",
-            "backend/app/api/story_drafts.py:function:get_story_drafts",
-            "backend/app/api/story_drafts.py:function:get_story_drafts_from_header",
-            "backend/app/api/story_drafts.py:function:patch_story_draft",
-            "backend/app/api/story_drafts.py:function:post_story_draft",
-            "backend/app/api/story_drafts.py:function:remove_story_draft",
-            "backend/app/api/story_drafts.py:route:DELETE /{draft_id} -> remove_story_draft",
-            "backend/app/api/story_drafts.py:route:GET /{account_id} -> get_story_drafts",
-            "backend/app/api/story_drafts.py:route:PATCH /{draft_id} -> patch_story_draft",
-            "backend/app/api/story_posts.py:function:delete_story_post",
-            "backend/app/api/story_posts.py:route:DELETE /{story_post_id} -> delete_story_post",
-            "backend/app/services/story_capabilities.py:function:build_story_capabilities",
-            "backend/app/services/story_drafts.py:function:create_story_draft",
-            "backend/app/services/story_drafts.py:function:delete_story_draft",
-            "backend/app/services/story_drafts.py:function:delete_story_drafts_for_asset",
-            "backend/app/services/story_drafts.py:function:list_story_drafts",
-            "backend/app/services/story_drafts.py:function:update_story_draft",
-            "backend/app/services/story_posts.py:function:create_story_post_from_result",
-            "backend/app/services/story_posts.py:function:delete_profile_story",
-            "backend/app/services/story_posts.py:function:list_story_posts",
-            "backend/app/services/story_posts.py:function:story_post_payload"
-          ],
-          "entry_id": "residual-legacy-story-surfaces",
-          "expected_paths": [
-            "backend/app/api/story_capabilities.py",
-            "backend/app/api/story_drafts.py",
-            "backend/app/api/story_posts.py",
-            "backend/app/services/story_capabilities.py",
-            "backend/app/services/story_drafts.py",
-            "backend/app/services/story_posts.py"
-          ],
-          "expected_public_api_fingerprint": [
-            "backend/app/api/story_capabilities.py:function:get_story_capabilities",
-            "backend/app/api/story_capabilities.py:function:get_story_capabilities_from_header",
-            "backend/app/api/story_capabilities.py:route:GET /{account_id} -> get_story_capabilities",
-            "backend/app/api/story_drafts.py:function:get_story_drafts",
-            "backend/app/api/story_drafts.py:function:get_story_drafts_from_header",
-            "backend/app/api/story_drafts.py:function:patch_story_draft",
-            "backend/app/api/story_drafts.py:function:post_story_draft",
-            "backend/app/api/story_drafts.py:function:remove_story_draft",
-            "backend/app/api/story_drafts.py:route:DELETE /{draft_id} -> remove_story_draft",
-            "backend/app/api/story_drafts.py:route:GET /{account_id} -> get_story_drafts",
-            "backend/app/api/story_drafts.py:route:PATCH /{draft_id} -> patch_story_draft",
-            "backend/app/api/story_posts.py:function:delete_story_post",
-            "backend/app/api/story_posts.py:route:DELETE /{story_post_id} -> delete_story_post",
-            "backend/app/services/story_capabilities.py:function:build_story_capabilities",
-            "backend/app/services/story_drafts.py:function:create_story_draft",
-            "backend/app/services/story_drafts.py:function:delete_story_draft",
-            "backend/app/services/story_drafts.py:function:delete_story_drafts_for_asset",
-            "backend/app/services/story_drafts.py:function:list_story_drafts",
-            "backend/app/services/story_drafts.py:function:update_story_draft",
-            "backend/app/services/story_posts.py:function:create_story_post_from_result",
-            "backend/app/services/story_posts.py:function:delete_profile_story",
-            "backend/app/services/story_posts.py:function:list_story_posts",
-            "backend/app/services/story_posts.py:function:story_post_payload"
-          ],
-          "owner": "story",
-          "related_issue": "#225",
-          "verification_scope": "Run focused residual-boundary tests named in the linked issue plus backend architecture checks, security endpoint matrix where routes are exposed, and structure audit drift checks."
-        }
-      ],
+      "boundary_count": 0,
+      "entries": [],
       "manifest_path": "docs/architecture/residual-legacy-boundaries.json",
       "violations": []
     },
@@ -2193,25 +1979,13 @@
     "summary": {
       "high_risk_unmanaged_feature_surface_count": 0,
       "high_risk_unmanaged_feature_surfaces": [],
-      "medium_residual_legacy_feature_boundaries": [
-        "residual-legacy-account-ggr",
-        "residual-legacy-account-profile-state",
-        "residual-legacy-bought-onboarding",
-        "residual-legacy-human-behavior",
-        "residual-legacy-story-surfaces"
-      ],
-      "medium_residual_legacy_feature_boundary_count": 5,
+      "medium_residual_legacy_feature_boundaries": [],
+      "medium_residual_legacy_feature_boundary_count": 0,
       "medium_unmanaged_feature_surface_count": 0,
       "medium_unmanaged_feature_surfaces": [],
-      "open_count": 6,
-      "residual_legacy_feature_boundaries": [
-        "residual-legacy-account-ggr",
-        "residual-legacy-account-profile-state",
-        "residual-legacy-bought-onboarding",
-        "residual-legacy-human-behavior",
-        "residual-legacy-story-surfaces"
-      ],
-      "residual_legacy_feature_boundary_count": 5,
+      "open_count": 1,
+      "residual_legacy_feature_boundaries": [],
+      "residual_legacy_feature_boundary_count": 0,
       "unmanaged_feature_surface_count": 0
     },
     "untracked_backend_app_python_files": []
@@ -2219,14 +1993,14 @@
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_imports, account_jobs, account_lifecycle, account_profile_completeness, account_proxy, account_safety, auth, neuro_commenting, warmup; medium unmanaged feature surfaces: none; residual legacy feature boundaries: residual-legacy-account-ggr, residual-legacy-account-profile-state, residual-legacy-bought-onboarding, residual-legacy-human-behavior, residual-legacy-story-surfaces.",
-      "finding": "Backend has canonical modules plus residual legacy feature boundaries outside app.modules.",
+      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_profile_completeness, account_profile_state, account_proxy, account_safety, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; no unmanaged feature debt is open.",
+      "finding": "Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
       "id": "STRUCTURE-001",
-      "recommendation": "Migrate residual legacy feature boundaries through their linked follow-up issues or reduce old paths to behavior-free wrappers before claiming backend GREEN.",
-      "risk": "Medium. Residual feature-owned code can continue to bypass canonical module ownership unless it stays visible and guarded.",
-      "severity": "medium",
-      "status": "open",
-      "suggested_phase": "Phase 6C+"
+      "recommendation": "Keep structure audit drift checks required for structural changes.",
+      "risk": "Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     },
     {
       "area": "frontend",
@@ -2296,14 +2070,14 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [\"residual-legacy-account-ggr\", \"residual-legacy-account-profile-state\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"medium_residual_legacy_feature_boundary_count\": 5, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 6, \"residual_legacy_feature_boundaries\": [\"residual-legacy-account-ggr\", \"residual-legacy-account-profile-state\", \"residual-legacy-bought-onboarding\", \"residual-legacy-human-behavior\", \"residual-legacy-story-surfaces\"], \"residual_legacy_feature_boundary_count\": 5, \"unmanaged_feature_surface_count\": 0}",
-      "finding": "Machine-readable inventory tracks residual backend/app feature surfaces outside canonical modules.",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [], \"medium_residual_legacy_feature_boundary_count\": 0, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 1, \"residual_legacy_feature_boundaries\": [], \"residual_legacy_feature_boundary_count\": 0, \"unmanaged_feature_surface_count\": 0}",
+      "finding": "Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
       "id": "STRUCTURE-008",
-      "recommendation": "Keep residual boundaries open, linked to migration issues, and guarded until migrated or reduced to behavior-free wrappers.",
-      "risk": "Medium while residual feature boundaries remain outside app.modules; high if guard coverage is weakened.",
-      "severity": "medium",
-      "status": "open",
-      "suggested_phase": "Phase 6C+"
+      "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+      "risk": "Low while inventory checks keep production files classified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     }
   ],
   "forbidden_runtime_claims": {
@@ -2495,7 +2269,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-29T20:53:47Z",
+  "generated_at": "2026-05-30T14:45:38Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -2991,6 +2765,270 @@
       "import_path": "app.services.proxy_checks",
       "module_import_references": [],
       "path": "backend/app/services/proxy_checks.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_ggr.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.account_ggr_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/account_ggr_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_ggr.contracts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.ggr",
+      "module_import_references": [],
+      "path": "backend/app/contracts/ggr.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_ggr.fraud_score",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.fraud_score",
+      "module_import_references": [],
+      "path": "backend/app/services/fraud_score.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_ggr.calculator",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.ggr_calculator",
+      "module_import_references": [],
+      "path": "backend/app/services/ggr_calculator.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_profile_state.audio",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.profile_audio_state",
+      "module_import_references": [],
+      "path": "backend/app/services/profile_audio_state.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_profile_state.photo",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.profile_photo_state",
+      "module_import_references": [],
+      "path": "backend/app/services/profile_photo_state.py"
+    },
+    {
+      "canonical_owner": "app.modules.account_profile_state.sync",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.profile_sync",
+      "module_import_references": [],
+      "path": "backend/app/services/profile_sync.py"
+    },
+    {
+      "canonical_owner": "app.modules.bought_onboarding.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.bought_onboarding_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/bought_onboarding_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.bought_onboarding.contracts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.bought_onboarding",
+      "module_import_references": [],
+      "path": "backend/app/contracts/bought_onboarding.py"
+    },
+    {
+      "canonical_owner": "app.modules.bought_onboarding.service",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.bought_account_onboarding",
+      "module_import_references": [],
+      "path": "backend/app/services/bought_account_onboarding.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.human_behavior_routes",
+      "module_import_references": [],
+      "path": "backend/app/api/human_behavior_routes.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.contracts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.contracts.human_behavior",
+      "module_import_references": [],
+      "path": "backend/app/contracts/human_behavior.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/__init__.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.behavior_profile",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior.behavior_profile",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/behavior_profile.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.action_sequencer",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior.action_sequencer",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/action_sequencer.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.decoy_actions",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior.decoy_actions",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/decoy_actions.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.typing_emulator",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior.typing_emulator",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/typing_emulator.py"
+    },
+    {
+      "canonical_owner": "app.modules.human_behavior.typo_generator",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.human_behavior.typo_generator",
+      "module_import_references": [],
+      "path": "backend/app/services/human_behavior/typo_generator.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.capabilities_router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.story_capabilities",
+      "module_import_references": [],
+      "path": "backend/app/api/story_capabilities.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.drafts_router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.story_drafts",
+      "module_import_references": [],
+      "path": "backend/app/api/story_drafts.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.posts_router",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.api.story_posts",
+      "module_import_references": [],
+      "path": "backend/app/api/story_posts.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.capabilities",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.story_capabilities",
+      "module_import_references": [],
+      "path": "backend/app/services/story_capabilities.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.drafts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.story_drafts",
+      "module_import_references": [],
+      "path": "backend/app/services/story_drafts.py"
+    },
+    {
+      "canonical_owner": "app.modules.story.posts",
+      "do_not_add_behavior_marker": true,
+      "docstring_present": true,
+      "documented_in_audit": false,
+      "documented_in_manifest": true,
+      "exists": true,
+      "import_path": "app.services.story_posts",
+      "module_import_references": [],
+      "path": "backend/app/services/story_posts.py"
     },
     {
       "canonical_owner": "app.modules.account_core.service",
@@ -3658,6 +3696,34 @@
     {
       "documentation_only": false,
       "files": [
+        "backend/app/modules/account_ggr/__init__.py",
+        "backend/app/modules/account_ggr/calculator.py",
+        "backend/app/modules/account_ggr/contracts.py",
+        "backend/app/modules/account_ggr/fraud_score.py",
+        "backend/app/modules/account_ggr/interfaces.py",
+        "backend/app/modules/account_ggr/module.py",
+        "backend/app/modules/account_ggr/router.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "account_ggr",
+      "registered": true,
+      "router_path": "app.modules.account_ggr.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
         "backend/app/modules/account_imports/__init__.py",
         "backend/app/modules/account_imports/module.py",
         "backend/app/modules/account_imports/router.py",
@@ -3756,6 +3822,33 @@
       "name": "account_profile_completeness",
       "registered": true,
       "router_path": "app.modules.account_profile_completeness.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_profile_state/__init__.py",
+        "backend/app/modules/account_profile_state/audio.py",
+        "backend/app/modules/account_profile_state/interfaces.py",
+        "backend/app/modules/account_profile_state/module.py",
+        "backend/app/modules/account_profile_state/photo.py",
+        "backend/app/modules/account_profile_state/sync.py"
+      ],
+      "has_contracts": false,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": false,
+      "has_service_facade": false,
+      "name": "account_profile_state",
+      "registered": true,
+      "router_path": null,
       "template_files_are_non_runtime": null,
       "tests_present": false,
       "workflows": []
@@ -3873,6 +3966,64 @@
     {
       "documentation_only": false,
       "files": [
+        "backend/app/modules/bought_onboarding/__init__.py",
+        "backend/app/modules/bought_onboarding/contracts.py",
+        "backend/app/modules/bought_onboarding/interfaces.py",
+        "backend/app/modules/bought_onboarding/module.py",
+        "backend/app/modules/bought_onboarding/router.py",
+        "backend/app/modules/bought_onboarding/service.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": true,
+      "name": "bought_onboarding",
+      "registered": true,
+      "router_path": "app.modules.bought_onboarding.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/human_behavior/__init__.py",
+        "backend/app/modules/human_behavior/action_sequencer.py",
+        "backend/app/modules/human_behavior/behavior_profile.py",
+        "backend/app/modules/human_behavior/contracts.py",
+        "backend/app/modules/human_behavior/decoy_actions.py",
+        "backend/app/modules/human_behavior/interfaces.py",
+        "backend/app/modules/human_behavior/module.py",
+        "backend/app/modules/human_behavior/router.py",
+        "backend/app/modules/human_behavior/typing_emulator.py",
+        "backend/app/modules/human_behavior/typo_generator.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "human_behavior",
+      "registered": true,
+      "router_path": "app.modules.human_behavior.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
         "backend/app/modules/neuro_commenting/__init__.py",
         "backend/app/modules/neuro_commenting/account_health_service.py",
         "backend/app/modules/neuro_commenting/account_selector.py",
@@ -3970,6 +4121,38 @@
           "workflow_type": "neuro_send_attempt"
         }
       ]
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/story/__init__.py",
+        "backend/app/modules/story/capabilities.py",
+        "backend/app/modules/story/capabilities_router.py",
+        "backend/app/modules/story/contracts.py",
+        "backend/app/modules/story/drafts.py",
+        "backend/app/modules/story/drafts_router.py",
+        "backend/app/modules/story/interfaces.py",
+        "backend/app/modules/story/module.py",
+        "backend/app/modules/story/posts.py",
+        "backend/app/modules/story/posts_router.py",
+        "backend/app/modules/story/router.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": false,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "story",
+      "registered": true,
+      "router_path": "app.modules.story.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": false,
+      "workflows": []
     },
     {
       "documentation_only": false,
@@ -4309,9 +4492,8 @@
       "has_explicit_all": true,
       "imports": [
         "__future__",
-        "datetime",
-        "pydantic",
-        "typing"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/bought_onboarding.py"
     },
@@ -4341,9 +4523,8 @@
       "has_explicit_all": true,
       "imports": [
         "__future__",
-        "datetime",
-        "pydantic",
-        "typing"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/ggr.py"
     },
@@ -4352,8 +4533,8 @@
       "has_explicit_all": true,
       "imports": [
         "__future__",
-        "datetime",
-        "pydantic"
+        "importlib",
+        "sys"
       ],
       "path": "backend/app/contracts/human_behavior.py"
     },

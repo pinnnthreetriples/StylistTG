@@ -86,6 +86,12 @@ def test_router_paths_are_lazy_module_routes() -> None:
         "app.modules.account_lifecycle.router:router",
         "app.modules.account_profile_completeness.router:router",
         "app.modules.account_proxy.router:router",
+        # PR3 canonical modules with account-specific paths must come
+        # before account_core's `/api/accounts/{account_id}` wildcard.
+        "app.modules.account_ggr.router:router",
+        "app.modules.bought_onboarding.router:router",
+        "app.modules.human_behavior.router:router",
+        "app.modules.story.router:router",
         "app.modules.warmup.router:router",
         "app.modules.neuro_commenting.router:router",
         # account_core ships an aggregate `/api/accounts/{account_id}` wildcard

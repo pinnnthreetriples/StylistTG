@@ -245,6 +245,108 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
             "that lock decision is exposed as a dedicated contracts/interfaces boundary."
         ),
     ),
+    # PR3 canonical modules: auth context/dependencies + account_core
+    # header helper + account_safety quarantine helpers are accepted
+    # facades for routers/services that depend on platform glue.
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_ggr" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical account-ggr router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_ggr" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-ggr router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "bought_onboarding" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical bought-onboarding router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "bought_onboarding" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical bought-onboarding router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "bought_onboarding" / "service.py",
+        imported_module="account_safety",
+        public_name="quarantine",
+        rationale=(
+            "Bought-onboarding orchestrates rest-period quarantine via account_safety; "
+            "remove when account_safety exposes a dedicated quarantine interface."
+        ),
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "human_behavior" / "router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical human-behavior router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "human_behavior" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical human-behavior router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "capabilities_router.py",
+        imported_module="account_core",
+        public_name="context",
+        rationale="Canonical account_id_header header dependency used by story routers.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "capabilities_router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical story-capabilities router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "capabilities_router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical story-capabilities router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "drafts_router.py",
+        imported_module="account_core",
+        public_name="context",
+        rationale="Canonical account_id_header header dependency used by story routers.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "drafts_router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical story-drafts router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "drafts_router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical story-drafts router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "posts_router.py",
+        imported_module="account_core",
+        public_name="context",
+        rationale="Canonical account_id_header header dependency used by story routers.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "posts_router.py",
+        imported_module="auth",
+        public_name="context",
+        rationale="FastAPI auth context facade used by canonical story-posts router.",
+    ),
+    CrossModuleFacadeException(
+        source=MODULES_ROOT / "story" / "posts_router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical story-posts router.",
+    ),
 }
 
 

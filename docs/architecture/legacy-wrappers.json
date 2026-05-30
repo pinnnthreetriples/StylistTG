@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-29T19:09:40Z",
+  "generated_at": "2026-05-30T10:51:36Z",
   "wrappers": [
     {
       "allowed_importers": [
@@ -43,6 +43,21 @@
       ],
       "legacy_path": "app.api.account_context",
       "notes": "Preserves legacy account context import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_ggr.router",
+      "file": "backend/app/api/account_ggr_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.account_ggr_routes",
+      "notes": "Preserves legacy account-ggr router import path.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -216,6 +231,36 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.bought_onboarding.router",
+      "file": "backend/app/api/bought_onboarding_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.bought_onboarding_routes",
+      "notes": "Preserves legacy bought-onboarding router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.router",
+      "file": "backend/app/api/human_behavior_routes.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.human_behavior_routes",
+      "notes": "Preserves legacy human-behavior router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.neuro_commenting.router",
       "file": "backend/app/api/neuro_commenting.py",
       "forbidden_importers": [
@@ -238,6 +283,51 @@
       ],
       "legacy_path": "app.api.safety_policy",
       "notes": "Preserves legacy workspace safety policy router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.capabilities_router",
+      "file": "backend/app/api/story_capabilities.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.story_capabilities",
+      "notes": "Preserves legacy story-capabilities router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.drafts_router",
+      "file": "backend/app/api/story_drafts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.story_drafts",
+      "notes": "Preserves legacy story-drafts router import path.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.posts_router",
+      "file": "backend/app/api/story_posts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.api.story_posts",
+      "notes": "Preserves legacy story-posts router import path.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -291,6 +381,21 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.bought_onboarding.contracts",
+      "file": "backend/app/contracts/bought_onboarding.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.bought_onboarding",
+      "notes": "Preserves legacy bought-onboarding contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_core.cross_module_contracts",
       "file": "backend/app/contracts/cross_module_load.py",
       "forbidden_importers": [
@@ -298,6 +403,36 @@
       ],
       "legacy_path": "app.contracts.cross_module_load",
       "notes": "Preserves legacy cross-module load contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_ggr.contracts",
+      "file": "backend/app/contracts/ggr.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.ggr",
+      "notes": "Preserves legacy GGR contract imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.contracts",
+      "file": "backend/app/contracts/human_behavior.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.contracts.human_behavior",
+      "notes": "Preserves legacy human-behavior contract imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -659,6 +794,141 @@
       ],
       "legacy_path": "app.services.auth_context",
       "notes": "Preserves existing auth dependency imports and override keys.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.bought_onboarding.service",
+      "file": "backend/app/services/bought_account_onboarding.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.bought_account_onboarding",
+      "notes": "Preserves legacy bought-onboarding service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_ggr.fraud_score",
+      "file": "backend/app/services/fraud_score.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.fraud_score",
+      "notes": "Preserves legacy fraud score provider imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_ggr.calculator",
+      "file": "backend/app/services/ggr_calculator.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.ggr_calculator",
+      "notes": "Preserves legacy GGR calculator imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior",
+      "file": "backend/app/services/human_behavior/__init__.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior",
+      "notes": "Preserves legacy human-behavior package import root.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.action_sequencer",
+      "file": "backend/app/services/human_behavior/action_sequencer.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior.action_sequencer",
+      "notes": "Preserves legacy action sequencer service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.behavior_profile",
+      "file": "backend/app/services/human_behavior/behavior_profile.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior.behavior_profile",
+      "notes": "Preserves legacy behavior profile service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.decoy_actions",
+      "file": "backend/app/services/human_behavior/decoy_actions.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior.decoy_actions",
+      "notes": "Preserves legacy decoy actions service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.typing_emulator",
+      "file": "backend/app/services/human_behavior/typing_emulator.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior.typing_emulator",
+      "notes": "Preserves legacy typing emulator service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.human_behavior.typo_generator",
+      "file": "backend/app/services/human_behavior/typo_generator.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.human_behavior.typo_generator",
+      "notes": "Preserves legacy typo generator service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },
@@ -1147,6 +1417,51 @@
         "tests",
         "external_compatibility"
       ],
+      "canonical_owner": "app.modules.account_profile_state.audio",
+      "file": "backend/app/services/profile_audio_state.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.profile_audio_state",
+      "notes": "Preserves legacy profile audio state imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_profile_state.photo",
+      "file": "backend/app/services/profile_photo_state.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.profile_photo_state",
+      "notes": "Preserves legacy profile photo state imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.account_profile_state.sync",
+      "file": "backend/app/services/profile_sync.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.profile_sync",
+      "notes": "Preserves legacy profile sync adapter and helper imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
       "canonical_owner": "app.modules.account_proxy.accounts",
       "file": "backend/app/services/proxy_accounts.py",
       "forbidden_importers": [
@@ -1229,6 +1544,51 @@
       ],
       "legacy_path": "app.services.safety_gate_reserve",
       "notes": "Preserves old account safety gate reservation imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.capabilities",
+      "file": "backend/app/services/story_capabilities.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.story_capabilities",
+      "notes": "Preserves legacy story capabilities service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.drafts",
+      "file": "backend/app/services/story_drafts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.story_drafts",
+      "notes": "Preserves legacy story drafts service imports.",
+      "removal_blockers": [],
+      "stage": "stage_0_compatibility_active"
+    },
+    {
+      "allowed_importers": [
+        "tests",
+        "external_compatibility"
+      ],
+      "canonical_owner": "app.modules.story.posts",
+      "file": "backend/app/services/story_posts.py",
+      "forbidden_importers": [
+        "backend/app/modules"
+      ],
+      "legacy_path": "app.services.story_posts",
+      "notes": "Preserves legacy story posts service imports.",
       "removal_blockers": [],
       "stage": "stage_0_compatibility_active"
     },

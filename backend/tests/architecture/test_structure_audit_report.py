@@ -318,7 +318,7 @@ def test_structure_audit_phase_three_b_debt_contract_is_exact() -> None:
     report = _committed_report()
     entries = {entry["id"]: entry for entry in report["debt_inventory"]["entries"]}
 
-    assert report["backend_overall_status"] == "YELLOW"
+    assert report["backend_overall_status"] == "GREEN"
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surfaces"] == []
     assert "debt-account-safety" not in entries
     assert "debt-account-lifecycle" not in entries
@@ -543,31 +543,32 @@ def test_residual_boundary_guard_blocks_public_surface_growth(tmp_path: Path) ->
     )
 
 
-def test_backend_overall_yellow_while_residual_boundaries_remain() -> None:
+def test_backend_overall_green_after_pr4_cycle_break() -> None:
     report = _committed_report()
     rendered_json = json.loads(render_json_report(report))
 
-    assert rendered_json["backend_overall_status"] == "YELLOW"
-    # After PR3 residual migration: 0 residual scopes; only the
-    # accepted-account-module-cycles entry stays open (tracked by #233).
-    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 1
+    # PR4 (#233) broke the residual account_core <-> {account_safety, warmup}
+    # cycles via the neutral `account_shared` module and dropped the
+    # `accepted-account-module-cycles` debt entry. The committed report
+    # therefore flips to GREEN with no open architectural debt.
+    assert rendered_json["backend_overall_status"] == "GREEN"
+    assert rendered_json["debt_inventory"]["summary"]["open_count"] == 0
     assert rendered_json["debt_inventory"]["summary"]["unmanaged_feature_surface_count"] == 0
     assert rendered_json["debt_inventory"]["summary"]["residual_legacy_feature_boundary_count"] == 0
     assert report["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     assert (
         rendered_json["debt_inventory"]["summary"]["high_risk_unmanaged_feature_surface_count"] == 0
     )
-    assert report["backend_overall_status"] == "YELLOW"
+    assert report["backend_overall_status"] == "GREEN"
 
 
-def test_phase_six_c_residual_findings_remain_open() -> None:
+def test_phase_six_c_residual_findings_remain_accepted() -> None:
     report = _committed_report()
     findings = {finding["id"]: finding for finding in report["findings"]}
 
-    # After PR3 residual migration: STRUCTURE-001 and STRUCTURE-008 flip to
-    # `info / accepted` because residual_legacy_feature_boundary_count == 0
-    # and there are no unmanaged surfaces. Backend overall stays YELLOW
-    # because `accepted-account-module-cycles` (#233) remains open.
+    # After PR4 (#233): no residual_legacy_feature_boundary, no unmanaged
+    # surfaces, and no accepted architectural debt. STRUCTURE-001 and
+    # STRUCTURE-008 stay info/accepted and the backend flips to GREEN.
     assert findings["STRUCTURE-001"]["severity"] == "info"
     assert findings["STRUCTURE-001"]["status"] == "accepted"
     assert findings["STRUCTURE-002"]["severity"] == "info"
@@ -576,13 +577,10 @@ def test_phase_six_c_residual_findings_remain_open() -> None:
     assert findings["STRUCTURE-008"]["status"] == "accepted"
 
 
-def test_phase_six_c_markdown_is_truthful_yellow() -> None:
+def test_phase_six_c_markdown_is_truthful_green() -> None:
     markdown = render_markdown_report(_committed_report())
 
-    assert (
-        "| Backend overall | YELLOW | 1 accepted architectural debt entries remain open: "
-        "accepted-account-module-cycles." in markdown
-    )
+    assert "| Backend overall | GREEN |" in markdown
     assert (
         "| Unmanaged feature debt | GREEN | No untracked unmanaged feature surfaces; residual debt is reported separately."
         in markdown
@@ -592,6 +590,7 @@ def test_phase_six_c_markdown_is_truthful_yellow() -> None:
     assert "| STRUCTURE-001 | info | accepted |" in markdown
     assert "| STRUCTURE-002 | info | accepted |" in markdown
     assert "high-risk feature ownership" not in markdown
+    assert "accepted-account-module-cycles" not in markdown
 
 
 def test_structure_audit_synthetic_high_risk_debt_is_reported_truthfully() -> None:

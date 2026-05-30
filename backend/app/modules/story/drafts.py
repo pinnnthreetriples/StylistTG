@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Account, AccountStoryDraft, AccountStoryPost, AssetKind, AssetStatus, utc_now
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.services.assets import get_asset
 
 

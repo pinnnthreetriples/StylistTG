@@ -28,7 +28,7 @@ from app.models import (
     new_id,
     utc_now,
 )
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.services.secret_redaction import redact_metadata
 
 

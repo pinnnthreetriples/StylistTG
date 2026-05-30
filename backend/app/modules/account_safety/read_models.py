@@ -36,7 +36,7 @@ from app.modules.account_safety.overrides import (
     active_overrides_by_operation,
     batch_active_overrides_by_operation,
 )
-from app.modules.account_core.interfaces import (
+from app.modules.account_shared.interfaces import (
     build_account_capabilities,
     list_workspace_accounts,
     lookup_account,

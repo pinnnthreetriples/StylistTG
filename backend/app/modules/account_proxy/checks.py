@@ -10,7 +10,7 @@ from app.adapters.tdlib_readonly_validity import (
 )
 from app.config import Settings, settings
 from app.models import AccountProxy, utc_now
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.modules.account_proxy.accounts import proxy_to_dict
 from app.services.operation_logs import log_operation
 

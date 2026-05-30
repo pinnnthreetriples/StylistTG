@@ -1,25 +1,6 @@
 {
   "entries": [
     {
-      "category": "accepted_architectural_debt",
-      "existing_paths": [
-        "backend/tests/architecture/test_dependency_direction.py",
-        "backend/tests/architecture/test_no_cross_module_internal_imports.py"
-      ],
-      "id": "accepted-account-module-cycles",
-      "owner": "account_core_account_safety_cycle",
-      "paths": [
-        "backend/tests/architecture/test_dependency_direction.py",
-        "backend/tests/architecture/test_no_cross_module_internal_imports.py"
-      ],
-      "phase": "post-PR2",
-      "rationale": "PR2 #229 introduced two-way dependencies between account_core and account_safety (canonical lookup interface vs. compat runtime proxy) and an account_core <-> warmup <-> account_safety triangle (warmup status composition + safety gate). The cycles are explicitly allowlisted in the named test files; the inventory tracks them as open architectural debt until #233 extracts a neutral shared primitive.",
-      "removal_condition": "Remove this entry only after follow-up #233 collapses the account_core <-> account_safety pair and the account_core <-> warmup <-> account_safety triangle: DOCUMENTED_CYCLE_EXCEPTIONS in backend/tests/architecture/test_dependency_direction.py must be empty and the account_core/compat_router -> account_safety/runtime_router facade exception in backend/tests/architecture/test_no_cross_module_internal_imports.py must be deleted.",
-      "severity": "medium",
-      "status": "open",
-      "target_owner": "follow-up #233 (extract shared lookup / runtime composition primitive)"
-    },
-    {
       "category": "canonical_feature_module",
       "existing_paths": [
         "backend/app/modules/account_audit/__init__.py",
@@ -295,6 +276,28 @@
       "severity": "info",
       "status": "accepted",
       "target_owner": "app.modules.account_safety"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
+        "backend/app/modules/account_shared/__init__.py",
+        "backend/app/modules/account_shared/accounts.py",
+        "backend/app/modules/account_shared/capabilities.py",
+        "backend/app/modules/account_shared/interfaces.py",
+        "backend/app/modules/account_shared/module.py",
+        "backend/app/modules/account_shared/runtime.py"
+      ],
+      "id": "canonical-account-shared",
+      "owner": "account_shared",
+      "paths": [
+        "backend/app/modules/account_shared/**"
+      ],
+      "phase": "PR4",
+      "rationale": "Neutral shared primitives (account lookup, capabilities, runtime composition) used by account_core, account_safety, warmup, and other feature modules without forming cross-module cycles.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_shared"
     },
     {
       "category": "canonical_feature_module",
@@ -1698,7 +1701,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-30T14:45:38Z",
+  "generated_at": "2026-05-30T20:06:39Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1726,7 +1729,7 @@
     "medium_residual_legacy_feature_boundary_count": 0,
     "medium_unmanaged_feature_surface_count": 0,
     "medium_unmanaged_feature_surfaces": [],
-    "open_count": 1,
+    "open_count": 0,
     "residual_legacy_feature_boundaries": [],
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0

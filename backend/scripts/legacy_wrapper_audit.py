@@ -356,6 +356,159 @@ def _account_safety_wrapper(
     )
 
 
+_PR3_RESIDUAL_WRAPPERS = (
+    # account_ggr canonical migration
+    (
+        "app.api.account_ggr_routes",
+        "backend/app/api/account_ggr_routes.py",
+        "app.modules.account_ggr.router",
+        "Preserves legacy account-ggr router import path.",
+    ),
+    (
+        "app.contracts.ggr",
+        "backend/app/contracts/ggr.py",
+        "app.modules.account_ggr.contracts",
+        "Preserves legacy GGR contract imports.",
+    ),
+    (
+        "app.services.fraud_score",
+        "backend/app/services/fraud_score.py",
+        "app.modules.account_ggr.fraud_score",
+        "Preserves legacy fraud score provider imports.",
+    ),
+    (
+        "app.services.ggr_calculator",
+        "backend/app/services/ggr_calculator.py",
+        "app.modules.account_ggr.calculator",
+        "Preserves legacy GGR calculator imports.",
+    ),
+    # account_profile_state canonical migration
+    (
+        "app.services.profile_audio_state",
+        "backend/app/services/profile_audio_state.py",
+        "app.modules.account_profile_state.audio",
+        "Preserves legacy profile audio state imports.",
+    ),
+    (
+        "app.services.profile_photo_state",
+        "backend/app/services/profile_photo_state.py",
+        "app.modules.account_profile_state.photo",
+        "Preserves legacy profile photo state imports.",
+    ),
+    (
+        "app.services.profile_sync",
+        "backend/app/services/profile_sync.py",
+        "app.modules.account_profile_state.sync",
+        "Preserves legacy profile sync adapter and helper imports.",
+    ),
+    # bought_onboarding canonical migration
+    (
+        "app.api.bought_onboarding_routes",
+        "backend/app/api/bought_onboarding_routes.py",
+        "app.modules.bought_onboarding.router",
+        "Preserves legacy bought-onboarding router import path.",
+    ),
+    (
+        "app.contracts.bought_onboarding",
+        "backend/app/contracts/bought_onboarding.py",
+        "app.modules.bought_onboarding.contracts",
+        "Preserves legacy bought-onboarding contract imports.",
+    ),
+    (
+        "app.services.bought_account_onboarding",
+        "backend/app/services/bought_account_onboarding.py",
+        "app.modules.bought_onboarding.service",
+        "Preserves legacy bought-onboarding service imports.",
+    ),
+    # human_behavior canonical migration
+    (
+        "app.api.human_behavior_routes",
+        "backend/app/api/human_behavior_routes.py",
+        "app.modules.human_behavior.router",
+        "Preserves legacy human-behavior router import path.",
+    ),
+    (
+        "app.contracts.human_behavior",
+        "backend/app/contracts/human_behavior.py",
+        "app.modules.human_behavior.contracts",
+        "Preserves legacy human-behavior contract imports.",
+    ),
+    (
+        "app.services.human_behavior",
+        "backend/app/services/human_behavior/__init__.py",
+        "app.modules.human_behavior",
+        "Preserves legacy human-behavior package import root.",
+    ),
+    (
+        "app.services.human_behavior.behavior_profile",
+        "backend/app/services/human_behavior/behavior_profile.py",
+        "app.modules.human_behavior.behavior_profile",
+        "Preserves legacy behavior profile service imports.",
+    ),
+    (
+        "app.services.human_behavior.action_sequencer",
+        "backend/app/services/human_behavior/action_sequencer.py",
+        "app.modules.human_behavior.action_sequencer",
+        "Preserves legacy action sequencer service imports.",
+    ),
+    (
+        "app.services.human_behavior.decoy_actions",
+        "backend/app/services/human_behavior/decoy_actions.py",
+        "app.modules.human_behavior.decoy_actions",
+        "Preserves legacy decoy actions service imports.",
+    ),
+    (
+        "app.services.human_behavior.typing_emulator",
+        "backend/app/services/human_behavior/typing_emulator.py",
+        "app.modules.human_behavior.typing_emulator",
+        "Preserves legacy typing emulator service imports.",
+    ),
+    (
+        "app.services.human_behavior.typo_generator",
+        "backend/app/services/human_behavior/typo_generator.py",
+        "app.modules.human_behavior.typo_generator",
+        "Preserves legacy typo generator service imports.",
+    ),
+    # story canonical migration
+    (
+        "app.api.story_capabilities",
+        "backend/app/api/story_capabilities.py",
+        "app.modules.story.capabilities_router",
+        "Preserves legacy story-capabilities router import path.",
+    ),
+    (
+        "app.api.story_drafts",
+        "backend/app/api/story_drafts.py",
+        "app.modules.story.drafts_router",
+        "Preserves legacy story-drafts router import path.",
+    ),
+    (
+        "app.api.story_posts",
+        "backend/app/api/story_posts.py",
+        "app.modules.story.posts_router",
+        "Preserves legacy story-posts router import path.",
+    ),
+    (
+        "app.services.story_capabilities",
+        "backend/app/services/story_capabilities.py",
+        "app.modules.story.capabilities",
+        "Preserves legacy story capabilities service imports.",
+    ),
+    (
+        "app.services.story_drafts",
+        "backend/app/services/story_drafts.py",
+        "app.modules.story.drafts",
+        "Preserves legacy story drafts service imports.",
+    ),
+    (
+        "app.services.story_posts",
+        "backend/app/services/story_posts.py",
+        "app.modules.story.posts",
+        "Preserves legacy story posts service imports.",
+    ),
+)
+
+
 WRAPPERS = (
     WrapperSpec(
         legacy_path="app.api.account_update",
@@ -377,6 +530,7 @@ WRAPPERS = (
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_LIFECYCLE_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_PROFILE_COMPLETENESS_WRAPPERS),
     *(_account_safety_wrapper(*wrapper) for wrapper in _ACCOUNT_OPERATIONS_WRAPPERS),
+    *(_account_safety_wrapper(*wrapper) for wrapper in _PR3_RESIDUAL_WRAPPERS),
     _account_safety_wrapper(
         "app.services.accounts",
         "backend/app/services/accounts.py",

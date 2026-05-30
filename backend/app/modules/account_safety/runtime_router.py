@@ -20,7 +20,10 @@ from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
 from app.services.execution_policy import ensure_execution_usable
 from app.services.operation_logs import log_operation
-from app.services.profile_sync import build_profile_sync_adapter, sync_account_profile_snapshot
+from app.modules.account_profile_state.interfaces import (
+    build_profile_sync_adapter,
+    sync_account_profile_snapshot,
+)
 from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.telegram_auth_sessions import (
     auth_session_to_dict,

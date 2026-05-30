@@ -263,84 +263,64 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Module metadata, registry, and non-runtime template support module governance.",
     ),
     OwnershipEntry(
-        id="residual-legacy-account-ggr",
-        category=RESIDUAL_BOUNDARY_CATEGORY,
-        severity="medium",
-        status="open",
+        id="canonical-account-ggr",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
         owner="account_ggr",
-        paths=(
-            "backend/app/api/account_ggr_routes.py",
-            "backend/app/services/fraud_score.py",
-            "backend/app/services/ggr_calculator.py",
-            "backend/app/contracts/ggr.py",
-        ),
-        target_owner="app.modules.account_ggr (follow-up #215)",
-        phase="Phase 6C",
-        removal_condition="Remove this residual entry only after #215 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        rationale="GGR and fraud scoring remain account feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+        paths=("backend/app/modules/account_ggr/**",),
+        target_owner="app.modules.account_ggr",
+        phase="PR3",
+        removal_condition="n/a",
+        rationale="GGR composite scoring and fraud-score provider ownership is canonical; old API/service/contract paths are compatibility wrappers.",
     ),
     OwnershipEntry(
-        id="residual-legacy-account-profile-state",
-        category=RESIDUAL_BOUNDARY_CATEGORY,
-        severity="medium",
-        status="open",
+        id="canonical-account-profile-state",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
         owner="account_profile_state",
-        paths=(
-            "backend/app/services/profile_audio_state.py",
-            "backend/app/services/profile_photo_state.py",
-            "backend/app/services/profile_sync.py",
-        ),
-        target_owner="app.modules.account_editing or app.modules.account_profile_state (follow-up #218)",
-        phase="Phase 6C",
-        removal_condition="Remove this residual entry only after #218 migrates implementation ownership or proves a non-feature platform classification; keep old paths as wrappers if compatibility requires them.",
-        rationale="Profile audio/photo/sync helpers remain profile-state feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+        paths=("backend/app/modules/account_profile_state/**",),
+        target_owner="app.modules.account_profile_state",
+        phase="PR3",
+        removal_condition="n/a",
+        rationale="Profile audio/photo helpers and profile-sync adapter ownership is canonical; old service paths are compatibility wrappers.",
     ),
     OwnershipEntry(
-        id="residual-legacy-story-surfaces",
-        category=RESIDUAL_BOUNDARY_CATEGORY,
-        severity="medium",
-        status="open",
-        owner="story",
-        paths=(
-            "backend/app/api/story_*.py",
-            "backend/app/services/story_*.py",
-        ),
-        target_owner="app.modules.story (follow-up #225)",
-        phase="Phase 6C",
-        removal_condition="Remove this residual entry only after #225 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        rationale="Story draft/post/capability surfaces remain feature behavior outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
-    ),
-    OwnershipEntry(
-        id="residual-legacy-bought-onboarding",
-        category=RESIDUAL_BOUNDARY_CATEGORY,
-        severity="medium",
-        status="open",
+        id="canonical-bought-onboarding",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
         owner="bought_onboarding",
-        paths=(
-            "backend/app/api/bought_onboarding_routes.py",
-            "backend/app/services/bought_account_onboarding.py",
-            "backend/app/contracts/bought_onboarding.py",
-        ),
-        target_owner="app.modules.bought_onboarding (follow-up #223)",
-        phase="Phase 6C",
-        removal_condition="Remove this residual entry only after #223 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        rationale="Bought-account onboarding remains account onboarding feature behavior outside canonical modules; Phase 6C tracks it as visible residual modularisation debt.",
+        paths=("backend/app/modules/bought_onboarding/**",),
+        target_owner="app.modules.bought_onboarding",
+        phase="PR3",
+        removal_condition="n/a",
+        rationale="Bought-account onboarding orchestration, router, and DTO ownership is canonical; old API/service/contract paths are compatibility wrappers.",
     ),
     OwnershipEntry(
-        id="residual-legacy-human-behavior",
-        category=RESIDUAL_BOUNDARY_CATEGORY,
-        severity="medium",
-        status="open",
+        id="canonical-human-behavior",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
         owner="human_behavior",
-        paths=(
-            "backend/app/api/human_behavior_routes.py",
-            "backend/app/services/human_behavior/**",
-            "backend/app/contracts/human_behavior.py",
-        ),
-        target_owner="app.modules.human_behavior (follow-up #224)",
-        phase="Phase 6C",
-        removal_condition="Remove this residual entry only after #224 migrates implementation ownership; keep old paths as wrappers if compatibility requires them.",
-        rationale="Human-behavior policy/runtime surfaces remain feature logic outside canonical modules; Phase 6C tracks them as visible residual modularisation debt.",
+        paths=("backend/app/modules/human_behavior/**",),
+        target_owner="app.modules.human_behavior",
+        phase="PR3",
+        removal_condition="n/a",
+        rationale="Human-behavior baseline, randomization, typing/typo/decoy emulators, and sequencer ownership is canonical; old API/service/contract paths are compatibility wrappers.",
+    ),
+    OwnershipEntry(
+        id="canonical-story",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="story",
+        paths=("backend/app/modules/story/**",),
+        target_owner="app.modules.story",
+        phase="PR3",
+        removal_condition="n/a",
+        rationale="Story capabilities, draft, and post routers + services ownership is canonical; old API/service paths are compatibility wrappers.",
     ),
     OwnershipEntry(
         id="compatibility-wrappers",
@@ -1537,6 +1517,15 @@ def _backend_overall_status(debt_inventory: dict[str, Any]) -> str:
         or debt_inventory["summary"]["residual_legacy_feature_boundary_count"]
     ):
         return "YELLOW"
+    # Backend must not turn GREEN while accepted architectural debt entries
+    # (e.g. allowlisted module cycles) stay open. Final closure waits for the
+    # underlying refactor that removes those entries.
+    accepted_debt_open = any(
+        entry["category"] == "accepted_architectural_debt" and entry["status"] == "open"
+        for entry in debt_inventory["entries"]
+    )
+    if accepted_debt_open:
+        return "YELLOW"
     return "GREEN"
 
 
@@ -1888,7 +1877,9 @@ def _status_for_entry(entry: dict[str, Any]) -> str:
     return "GREEN"
 
 
-def _backend_overall_evidence(debt_summary: dict[str, Any]) -> str:
+def _backend_overall_evidence(
+    debt_summary: dict[str, Any], debt_inventory: dict[str, Any] | None = None
+) -> str:
     high_count = debt_summary["high_risk_unmanaged_feature_surface_count"]
     medium_count = debt_summary["medium_unmanaged_feature_surface_count"]
     residual_count = debt_summary["residual_legacy_feature_boundary_count"]
@@ -1898,10 +1889,27 @@ def _backend_overall_evidence(debt_summary: dict[str, Any]) -> str:
         )
     if residual_count:
         return f"{residual_count} residual legacy feature boundaries remain outside app.modules."
+    accepted_open = (
+        [
+            entry["id"]
+            for entry in (debt_inventory or {}).get("entries", [])
+            if entry["category"] == "accepted_architectural_debt" and entry["status"] == "open"
+        ]
+        if debt_inventory is not None
+        else []
+    )
+    if accepted_open:
+        return (
+            f"{len(accepted_open)} accepted architectural debt entries remain open: "
+            + ", ".join(sorted(accepted_open))
+            + "."
+        )
     return "No unmanaged or residual feature-boundary debt remains."
 
 
-def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
+def _backend_overall_risk(
+    debt_summary: dict[str, Any], debt_inventory: dict[str, Any] | None = None
+) -> str:
     if debt_summary["high_risk_unmanaged_feature_surface_count"]:
         return (
             "High-risk unmanaged feature surfaces must not be hidden behind overall backend health."
@@ -1910,10 +1918,22 @@ def _backend_overall_risk(debt_summary: dict[str, Any]) -> str:
         return "Architecture audit must not claim overall GREEN while classified medium or high unmanaged domains remain."
     if debt_summary["residual_legacy_feature_boundary_count"]:
         return "Architecture audit must not claim overall GREEN while residual feature-owned boundaries remain outside canonical modules."
+    accepted_open = (
+        any(
+            entry["category"] == "accepted_architectural_debt" and entry["status"] == "open"
+            for entry in (debt_inventory or {}).get("entries", [])
+        )
+        if debt_inventory is not None
+        else False
+    )
+    if accepted_open:
+        return "Architecture audit must not claim overall GREEN while accepted architectural debt entries (e.g. allowlisted module cycles) remain open."
     return "Low while structure audit checks keep feature ownership classified."
 
 
-def _backend_overall_followup(debt_summary: dict[str, Any]) -> str:
+def _backend_overall_followup(
+    debt_summary: dict[str, Any], debt_inventory: dict[str, Any] | None = None
+) -> str:
     if debt_summary["high_risk_unmanaged_feature_surface_count"]:
         return "Migrate or explicitly reclassify high-risk unmanaged feature surfaces."
     if debt_summary["medium_unmanaged_feature_surface_count"]:
@@ -1922,6 +1942,16 @@ def _backend_overall_followup(debt_summary: dict[str, Any]) -> str:
         return (
             "Migrate linked residual boundaries or reduce legacy paths to behavior-free wrappers."
         )
+    accepted_open = (
+        any(
+            entry["category"] == "accepted_architectural_debt" and entry["status"] == "open"
+            for entry in (debt_inventory or {}).get("entries", [])
+        )
+        if debt_inventory is not None
+        else False
+    )
+    if accepted_open:
+        return "Close documented accepted architectural debt entries (extract shared primitives, drop cycle exceptions)."
     return "Keep drift checks required for structural changes."
 
 
@@ -1954,8 +1984,9 @@ def _unmanaged_debt_followup(unmanaged_debt: list[dict[str, Any]]) -> str:
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
-    debt_entries = report["debt_inventory"]["entries"]
-    debt_summary = report["debt_inventory"]["summary"]
+    debt_inventory = report["debt_inventory"]
+    debt_entries = debt_inventory["entries"]
+    debt_summary = debt_inventory["summary"]
     modules = report["modules"]
     runtime_roles = report["runtime_roles"]
     findings = report["findings"]
@@ -2012,9 +2043,9 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 (
                     "Backend overall",
                     report["backend_overall_status"],
-                    _backend_overall_evidence(debt_summary),
-                    _backend_overall_risk(debt_summary),
-                    _backend_overall_followup(debt_summary),
+                    _backend_overall_evidence(debt_summary, debt_inventory),
+                    _backend_overall_risk(debt_summary, debt_inventory),
+                    _backend_overall_followup(debt_summary, debt_inventory),
                 ),
                 (
                     "Backend modules",

@@ -42,7 +42,7 @@ from app.services.cross_module_load_tracker import current_load, evaluate_thresh
 from app.services.cross_module_load_tracker import SafetyMode as CrossModuleSafetyMode
 from app.services.feature_flags import is_safety_pipeline_v2_enabled
 from app.observability.safety_metrics import SafetyMetrics, safety_metrics
-from app.services.ggr_calculator import calculate_ggr, get_ggr_score
+from app.modules.account_ggr.interfaces import calculate_ggr, get_ggr_score
 from app.services.redis_client import redis_from_url
 
 CACHE_TTL_SECONDS = 60

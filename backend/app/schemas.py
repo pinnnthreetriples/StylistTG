@@ -6,14 +6,14 @@ from typing import Annotated, Any, Literal, cast
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer, field_validator
 
 from app.contracts import accounts as _account_contracts
-from app.contracts import ggr as _ggr_contracts
 from app.contracts import jobs as _job_contracts
 from app.contracts import neuro_commenting as _neuro_commenting_contracts
-from app.contracts import bought_onboarding as _bought_onboarding_contracts
-from app.contracts import human_behavior as _human_behavior_contracts
+from app.modules.account_ggr import contracts as _ggr_contracts
+from app.modules.account_lifecycle import contracts as _account_lifecycle_contracts
 from app.modules.account_safety import gate_contracts as _safety_gate_contracts
 from app.modules.account_safety import read_contracts as _safety_contracts
-from app.modules.account_lifecycle import contracts as _account_lifecycle_contracts
+from app.modules.bought_onboarding import contracts as _bought_onboarding_contracts
+from app.modules.human_behavior import contracts as _human_behavior_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
 TerminalStatus = Literal["none", "banned", "deleted", "suspended"]

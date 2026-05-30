@@ -26,6 +26,12 @@ FASTAPI_IMPORT_ALLOWLIST = {
     APP_ROOT / "modules" / "account_safety" / "status_router.py",
     APP_ROOT / "modules" / "account_lifecycle" / "router.py",
     APP_ROOT / "modules" / "auth" / "dependencies.py",
+    # PR3 canonical modules — story aggregates 3 sub-routers, so each
+    # sub-router file is allowlisted explicitly (the umbrella router.py
+    # under `modules` is already accepted by the test's path heuristic).
+    APP_ROOT / "modules" / "story" / "capabilities_router.py",
+    APP_ROOT / "modules" / "story" / "drafts_router.py",
+    APP_ROOT / "modules" / "story" / "posts_router.py",
 }
 
 

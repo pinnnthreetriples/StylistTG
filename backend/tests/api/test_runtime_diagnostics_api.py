@@ -29,11 +29,11 @@ def _setup_account_with_session(monkeypatch, *, patch_diagnostics: bool = False)
         account_id = account.id
     override_app_session(session_factory)
     monkeypatch.setattr(
-        "app.api.account_runtime_routes.build_profile_execution_adapter",
+        "app.modules.account_shared.runtime.build_profile_execution_adapter",
         lambda: FakeExecutionUsableAdapter(ok=True),
     )
     monkeypatch.setattr(
-        "app.api.account_runtime_routes.build_profile_sync_adapter",
+        "app.modules.account_shared.runtime.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
     if patch_diagnostics:

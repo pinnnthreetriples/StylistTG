@@ -17,6 +17,7 @@ from app.modules.account_profile_completeness.module import (
 from app.modules.account_profile_state.module import module as account_profile_state_module
 from app.modules.account_proxy.module import module as account_proxy_module
 from app.modules.account_safety.module import module as account_safety_module
+from app.modules.account_shared.module import module as account_shared_module
 from app.modules.auth.module import module as auth_module
 from app.modules.bought_onboarding.module import module as bought_onboarding_module
 from app.modules.contracts import FeatureModule, WorkflowSpec
@@ -28,6 +29,7 @@ from app.modules.warmup.module import module as warmup_module
 
 MODULES: tuple[FeatureModule, ...] = (
     auth_module,
+    account_shared_module,
     account_audit_module,
     account_imports_module,
     account_jobs_module,

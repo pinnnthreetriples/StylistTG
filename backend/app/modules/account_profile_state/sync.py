@@ -16,8 +16,7 @@ from app.adapters.tdlib_auth import (
     tdlib_parameters_query,
 )
 from app.config import Settings, settings
-from app.models import AccountProfileState, AccountStoryPost, utc_now
-from app.modules.account_core.interfaces import lookup_account
+from app.models import Account, AccountProfileState, AccountStoryPost, utc_now
 from app.modules.account_profile_state.audio import (
     clear_profile_audio_state,
     upsert_profile_audio_state,
@@ -211,7 +210,7 @@ def sync_account_profile_state(
     *,
     adapter: ProfileSyncAdapter,
 ) -> AccountProfileState:
-    account = lookup_account(session, account_id)
+    account = session.get(Account, account_id)
     if account is None:
         raise ValueError("account not found")
 
@@ -279,7 +278,7 @@ def sync_account_live_story_posts(
     *,
     adapter: ProfileSyncAdapter,
 ) -> list[AccountStoryPost]:
-    account = lookup_account(session, account_id)
+    account = session.get(Account, account_id)
     if account is None:
         raise ValueError("account not found")
 
@@ -294,7 +293,7 @@ def _upsert_profile_state(
     *,
     profile_photo_asset_id: str | None,
 ) -> AccountProfileState:
-    account = lookup_account(session, account_id)
+    account = session.get(Account, account_id)
     if account is None:
         raise ValueError("account not found")
 

@@ -19,7 +19,7 @@ from app.services.jobs import (
     validate_account_for_job,
 )
 from app.services.limits import check_workspace_limit
-from app.services.profile_photo_state import latest_applied_profile_photo_asset_id
+from app.modules.account_profile_state.interfaces import latest_applied_profile_photo_asset_id
 
 
 class AccountEditingRepository:

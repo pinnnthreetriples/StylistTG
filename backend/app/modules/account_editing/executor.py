@@ -8,9 +8,14 @@ from app.db import SessionLocal
 from app.models import Job, JobState, StepStatus, TERMINAL_JOB_STATES
 from app.services.jobs import get_job
 from app.services.operation_logs import log_operation
-from app.services.profile_audio_state import clear_profile_audio_state, upsert_profile_audio_state
-from app.services.story_drafts import delete_story_drafts_for_asset
-from app.services.story_posts import create_story_post_from_result
+from app.modules.account_profile_state.interfaces import (
+    clear_profile_audio_state,
+    upsert_profile_audio_state,
+)
+from app.modules.story.interfaces import (
+    create_story_post_from_result,
+    delete_story_drafts_for_asset,
+)
 from app.services.step_registry import validate_account_update_plan_steps
 from app.workers.profile_jobs import execute_profile_job
 

@@ -7,17 +7,22 @@ from typing import Any
 from app.modules.account_audit.module import module as account_audit_module
 from app.modules.account_core.module import module as account_core_module
 from app.modules.account_editing.module import module as account_editing_module
+from app.modules.account_ggr.module import module as account_ggr_module
 from app.modules.account_imports.module import module as account_imports_module
 from app.modules.account_jobs.module import module as account_jobs_module
 from app.modules.account_lifecycle.module import module as account_lifecycle_module
 from app.modules.account_profile_completeness.module import (
     module as account_profile_completeness_module,
 )
+from app.modules.account_profile_state.module import module as account_profile_state_module
 from app.modules.account_proxy.module import module as account_proxy_module
 from app.modules.account_safety.module import module as account_safety_module
 from app.modules.auth.module import module as auth_module
+from app.modules.bought_onboarding.module import module as bought_onboarding_module
 from app.modules.contracts import FeatureModule, WorkflowSpec
+from app.modules.human_behavior.module import module as human_behavior_module
 from app.modules.neuro_commenting.module import module as neuro_commenting_module
+from app.modules.story.module import module as story_module
 from app.modules.warmup.module import module as warmup_module
 
 
@@ -31,6 +36,14 @@ MODULES: tuple[FeatureModule, ...] = (
     account_lifecycle_module,
     account_profile_completeness_module,
     account_proxy_module,
+    # PR3 canonical modules — specific account-prefixed paths
+    # (account_ggr, bought_onboarding, human_behavior) MUST come before
+    # account_core's `/api/accounts/{account_id}` wildcard.
+    account_ggr_module,
+    bought_onboarding_module,
+    human_behavior_module,
+    account_profile_state_module,
+    story_module,
     warmup_module,
     neuro_commenting_module,
     # account_core MUST be registered last: its accounts_router exposes the

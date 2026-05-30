@@ -6,8 +6,11 @@ Do not add new behavior here.
 
 from __future__ import annotations
 
-import importlib
 import sys
 
-_module = importlib.import_module("app.modules.human_behavior.action_sequencer")
+from app.modules.human_behavior import action_sequencer as _module
+from app.modules.human_behavior.action_sequencer import shuffle
+
+__all__ = ["shuffle"]
+
 sys.modules[__name__] = _module

@@ -24,14 +24,13 @@ from app.modules.account_safety.interfaces import (
     release as release_gate_reservation,
     reserve as reserve_gate_slot,
 )
-from app.services.human_behavior.behavior_profile import (
-    get_or_create_baseline,
-    randomize_for_session,
-)
-from app.services.human_behavior.decoy_actions import DecoyAction, run_before_send
-from app.services.human_behavior.typing_emulator import (
+from app.modules.human_behavior.interfaces import (
+    DecoyAction,
     TypingFragment,
     emit_typing,
+    get_or_create_baseline,
+    randomize_for_session,
+    run_before_send,
     total_duration,
 )
 from app.services.idempotency_keys import (

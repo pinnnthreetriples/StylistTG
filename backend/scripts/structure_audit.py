@@ -513,6 +513,38 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         removal_condition="n/a",
         rationale="Supporting audit, tests, docs, memory, and frontend ownership evidence are tracked separately from backend production domains.",
     ),
+    OwnershipEntry(
+        id="accepted-account-module-cycles",
+        category="accepted_architectural_debt",
+        severity="medium",
+        status="open",
+        owner="account_core_account_safety_cycle",
+        paths=(
+            "backend/tests/architecture/test_dependency_direction.py",
+            "backend/tests/architecture/test_no_cross_module_internal_imports.py",
+        ),
+        target_owner="follow-up #233 (extract shared lookup / runtime composition primitive)",
+        phase="post-PR2",
+        removal_condition=(
+            "Remove this entry only after follow-up #233 collapses the "
+            "account_core <-> account_safety pair and the account_core <-> warmup "
+            "<-> account_safety triangle: DOCUMENTED_CYCLE_EXCEPTIONS in "
+            "backend/tests/architecture/test_dependency_direction.py must be empty "
+            "and the account_core/compat_router -> account_safety/runtime_router "
+            "facade exception in "
+            "backend/tests/architecture/test_no_cross_module_internal_imports.py "
+            "must be deleted."
+        ),
+        rationale=(
+            "PR2 #229 introduced two-way dependencies between account_core and "
+            "account_safety (canonical lookup interface vs. compat runtime proxy) "
+            "and an account_core <-> warmup <-> account_safety triangle (warmup "
+            "status composition + safety gate). The cycles are explicitly "
+            "allowlisted in the named test files; the inventory tracks them as "
+            "open architectural debt until #233 extracts a neutral shared "
+            "primitive."
+        ),
+    ),
 )
 
 
@@ -1379,7 +1411,7 @@ def build_debt_inventory(repo_root: Path, generated_at: str | None = None) -> di
                 ".mex/**",
                 "apps/dashboard/src/**",
             ],
-            "classification_rule": "Every discovered zone is classified as canonical_feature_module, residual_legacy_feature_boundary, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, or supporting_tool_test_documentation_frontend_evidence. Residual legacy feature boundaries remain open modularisation debt until migrated, reduced to behavior-free wrappers, or reclassified with proof.",
+            "classification_rule": "Every discovered zone is classified as canonical_feature_module, residual_legacy_feature_boundary, unmanaged_feature_surface, shared_platform_infrastructure, compatibility_wrapper, runtime_process_ownership, accepted_architectural_debt, or supporting_tool_test_documentation_frontend_evidence. Residual legacy feature boundaries remain open modularisation debt until migrated, reduced to behavior-free wrappers, or reclassified with proof. Accepted architectural debt entries track documented allowlisted cycles or facade exceptions and stay open until the underlying refactor closes them.",
         },
         "entries": entries,
         "summary": _debt_summary(entries),

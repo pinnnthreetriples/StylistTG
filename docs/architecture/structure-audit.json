@@ -1955,7 +1955,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-30T11:16:55Z",
+    "generated_at": "2026-05-30T14:45:38Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2269,7 +2269,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-30T11:16:55Z",
+  "generated_at": "2026-05-30T14:45:38Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4489,7 +4489,7 @@
     },
     {
       "forbidden_imports": [],
-      "has_explicit_all": false,
+      "has_explicit_all": true,
       "imports": [
         "__future__",
         "importlib",
@@ -4520,7 +4520,7 @@
     },
     {
       "forbidden_imports": [],
-      "has_explicit_all": false,
+      "has_explicit_all": true,
       "imports": [
         "__future__",
         "importlib",
@@ -4530,7 +4530,7 @@
     },
     {
       "forbidden_imports": [],
-      "has_explicit_all": false,
+      "has_explicit_all": true,
       "imports": [
         "__future__",
         "importlib",

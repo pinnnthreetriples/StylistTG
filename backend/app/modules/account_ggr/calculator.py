@@ -213,6 +213,7 @@ def _warmup_score(session: Session, account: Account) -> float:
     """Score based on latest WarmupSession status."""
     stmt = (
         select(WarmupSession)
+        .where(WarmupSession.workspace_id == account.workspace_id)
         .where(WarmupSession.account_id == account.id)
         .order_by(WarmupSession.created_at.desc())
         .limit(1)
@@ -400,9 +401,9 @@ def backfill_ggr_scores(session: Session, workspace_id: str) -> int:
 
     Returns the count of newly created records.
     """
-    existing_stmt = select(AccountGgrScore.account_id).where(
-        AccountGgrScore.workspace_id == workspace_id
-    )
+    existing_stmt = select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is in the .where below.
+        AccountGgrScore.account_id
+    ).where(AccountGgrScore.workspace_id == workspace_id)
     existing_ids = set(session.execute(existing_stmt).scalars().all())
 
     accounts_stmt = select(Account).where(Account.workspace_id == workspace_id)

@@ -21,7 +21,7 @@
     "qa:screenshots": "npm --workspace @stylisttg/dashboard run qa:screenshots",
     "quality:slop": "npx -y aislop@latest scan .",
     "quality:slop:json": "npx -y aislop@latest scan . --json",
-    "quality:slop:sarif": "npx -y aislop@latest scan . --sarif > reports/aislop.sarif",
+    "quality:slop:sarif": "mkdir -p reports && npx -y aislop@latest scan . --sarif > reports/aislop.sarif",
     "quality:fallow": "npx -y fallow@latest audit --format json",
     "quality:fallow:health": "npx -y fallow@latest health --score --hotspots --targets",
     "quality:vibe": "npm run lint && npm run typecheck && npm run test && npm run quality:slop",

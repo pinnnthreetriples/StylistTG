@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 
 
 def build_story_capabilities(

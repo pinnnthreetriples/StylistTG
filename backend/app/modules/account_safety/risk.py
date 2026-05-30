@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Account, AccountOperationCooldown, AccountState, Job, JobState, utc_now
-from app.modules.account_core.interfaces import list_workspace_accounts
+from app.modules.account_shared.interfaces import list_workspace_accounts
 
 OPERATION_KEYS = (
     "profile_update",

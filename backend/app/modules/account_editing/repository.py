@@ -9,7 +9,7 @@ from app.modules.account_editing.errors import (
     AccountNotFoundError,
     account_editing_error_from_legacy_message,
 )
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.services.assets import get_asset
 from app.services.execution_policy import ExecutionUsableAdapter
 from app.services.jobs import (

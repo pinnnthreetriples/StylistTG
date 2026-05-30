@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, AccountProxy
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.services.operation_logs import log_operation
 
 SUPPORTED_PROXY_TYPES = {"socks5", "http"}

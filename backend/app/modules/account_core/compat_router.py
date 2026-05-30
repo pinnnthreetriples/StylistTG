@@ -45,9 +45,12 @@ def refresh_runtime_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_mutation_permission),
 ):
-    from app.modules.account_safety.runtime_router import refresh_runtime
+    from app.modules.account_shared.interfaces import refresh_account_runtime
 
-    return refresh_runtime(account_id, session, auth)
+    require_account_in_workspace(session, account_id, auth)
+    return refresh_account_runtime(
+        session, account_id=account_id, workspace_id=auth.workspace_id
+    )
 
 
 @router.get("/runtime-diagnostics", response_model=AccountRuntimeDiagnosticsRead)
@@ -56,9 +59,10 @@ def runtime_diagnostics_from_header(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ):
-    from app.modules.account_safety.runtime_router import runtime_diagnostics
+    from app.modules.account_shared.interfaces import get_runtime_diagnostics
 
-    return runtime_diagnostics(account_id, session, auth)
+    require_account_in_workspace(session, account_id, auth)
+    return get_runtime_diagnostics(session, account_id)
 
 
 @router.get("/jobs", response_model=list[JobSummaryRead])

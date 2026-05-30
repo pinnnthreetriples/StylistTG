@@ -14,7 +14,7 @@ from app.models import (
     new_id,
     utc_now,
 )
-from app.modules.account_core.interfaces import lookup_account
+from app.modules.account_shared.interfaces import lookup_account
 from app.modules.account_safety.cooldowns import ensure_cooldowns_from_recent_failures
 from app.modules.account_safety.read_models import build_account_safety, summarize_account_safety
 from app.services.operation_logs import log_operation

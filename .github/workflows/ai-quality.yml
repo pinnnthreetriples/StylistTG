@@ -42,9 +42,15 @@ jobs:
         continue-on-error: true
       - name: Upload aislop SARIF
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('reports/aislop.sarif') != ''
+        if: always() && github.event_name != 'pull_request' && hashFiles('reports/aislop.sarif') != ''
         with:
           sarif_file: reports/aislop.sarif
+      - name: Upload aislop SARIF artifact
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('reports/aislop.sarif') != ''
+        with:
+          name: aislop-sarif-report
+          path: reports/aislop.sarif
 
   fallow:
     name: fallow audit
@@ -52,6 +58,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}

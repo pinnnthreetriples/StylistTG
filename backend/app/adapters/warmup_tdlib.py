@@ -19,6 +19,7 @@ dispatch tick. Диспетчер обязан вызвать `adapter.close()` 
 
 from __future__ import annotations
 
+import logging
 import random
 import re
 from dataclasses import dataclass, field
@@ -37,6 +38,8 @@ from app.adapters.tdlib_auth import (
 )
 from app.config import Settings, settings
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
+
+_logger = logging.getLogger(__name__)
 
 
 # Поддерживаемые action_type'ы с разбивкой по execution_mode. Используется
@@ -353,8 +356,11 @@ class RealWarmupTdlibAdapter:
             try:
                 client.close()
             except Exception:
-                # лучше потерять клиент, чем уронить весь dispatch tick
-                pass
+                _logger.warning(
+                    "warmup_tdlib_close_failed",
+                    extra={"account_id": account_id},
+                    exc_info=True,
+                )
             self._clients.pop(account_id, None)
 
     def execute_action(

@@ -268,7 +268,8 @@ def _cancel_existing_job(queue: Queue, rq_job_id: str) -> None:
         existing = cast(Any, Job).fetch(rq_job_id, connection=queue.connection)
         existing.delete()
     except NoSuchJobError:
-        pass
+        # Cancellation is idempotent: a missing job means already cancelled/expired.
+        return
 
 
 def _log_enqueue_failure(queue_name: str, job_id: str, error_class: str) -> None:
@@ -291,7 +292,8 @@ def remove_job_from_queue(job_id: str) -> bool:
             try:
                 cast(Any, Job).fetch(job_id, connection=queue.connection).delete()
             except NoSuchJobError:
-                pass
+                # Already removed via queue.remove or registry.remove above.
+                continue
     except RedisError:
         return False
     return True

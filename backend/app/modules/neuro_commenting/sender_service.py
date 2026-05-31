@@ -94,14 +94,18 @@ class _SendContext:
 def _discussion_chat_id(context: _SendContext) -> str:
     assert context.target is not None
     assert context.observed_post is not None
-    discussion_chat_id = context.observed_post.discussion_chat_id or context.target.discussion_chat_id
+    discussion_chat_id = (
+        context.observed_post.discussion_chat_id or context.target.discussion_chat_id
+    )
     if not discussion_chat_id:
         raise NeuroConflictError("target has no discussion", error_code="TARGET_NO_DISCUSSION")
     return str(discussion_chat_id)
 
 
 def _comment_text(context: _SendContext) -> str:
-    return context.comment.final_text or context.comment.edited_text or context.comment.generated_text
+    return (
+        context.comment.final_text or context.comment.edited_text or context.comment.generated_text
+    )
 
 
 @dataclass(frozen=True)

@@ -36,7 +36,9 @@ def validate_warmup_readiness(
     checks.append(_strategy_exists_check(strategy))
     checks.append(_runtime_ready_check(account))
     checks.append(
-        _active_session_check(session, account=account, account_id=account_id, workspace_id=workspace_id)
+        _active_session_check(
+            session, account=account, account_id=account_id, workspace_id=workspace_id
+        )
     )
 
     if account is not None:
@@ -110,7 +112,9 @@ def _runtime_ready_check(account: Account | None) -> WarmupCheckItemRead:
         key="runtime_ready",
         label="Аккаунт готов к выполнению",
         passed=runtime_ready,
-        detail=None if runtime_ready else "Аккаунт не готов: требуется авторизация или проверка runtime",
+        detail=None
+        if runtime_ready
+        else "Аккаунт не готов: требуется авторизация или проверка runtime",
     )
 
 
@@ -156,7 +160,11 @@ def _proxy_status_check(session: Session, account: Account) -> WarmupCheckItemRe
 def _failed_check_messages(
     checks: list[WarmupCheckItemRead], severity: WarmupCheckSeverityRead
 ) -> list[str]:
-    return [item.detail or item.label for item in checks if item.severity == severity and not item.passed]
+    return [
+        item.detail or item.label
+        for item in checks
+        if item.severity == severity and not item.passed
+    ]
 
 
 def _check(

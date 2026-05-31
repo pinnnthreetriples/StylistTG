@@ -502,7 +502,11 @@ def _record_p2p_contact_if_needed(
             session,
             warmup_session,
             "p2p_contact_recorded",
-            {"day": warmup_session.current_day, "receiver_account_id": receiver_account_id, **contact_summary},
+            {
+                "day": warmup_session.current_day,
+                "receiver_account_id": receiver_account_id,
+                **contact_summary,
+            },
         )
     except ValueError as exc:
         write_warmup_event(

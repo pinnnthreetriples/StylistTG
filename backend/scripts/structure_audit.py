@@ -1592,7 +1592,10 @@ def _structure_001_finding(
             recommendation="Migrate or explicitly reclassify high-risk unmanaged feature surfaces before claiming backend health.",
             suggested_phase="next",
         )
-    if summary["unmanaged_feature_surface_count"] or summary["residual_legacy_feature_boundary_count"]:
+    if (
+        summary["unmanaged_feature_surface_count"]
+        or summary["residual_legacy_feature_boundary_count"]
+    ):
         return Finding(
             id="STRUCTURE-001",
             severity="medium",
@@ -1652,7 +1655,10 @@ def _structure_008_finding(
             recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked, overlapping, or unapproved residual-boundary growth.",
             suggested_phase="next",
         )
-    if summary["unmanaged_feature_surface_count"] or summary["residual_legacy_feature_boundary_count"]:
+    if (
+        summary["unmanaged_feature_surface_count"]
+        or summary["residual_legacy_feature_boundary_count"]
+    ):
         return Finding(
             id="STRUCTURE-008",
             severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
@@ -2147,7 +2153,8 @@ def _backend_modules_summary_row(context: dict[str, Any]) -> tuple[str, str, str
     return (
         "Backend modules",
         _backend_modules_status(debt),
-        "Registered modules: " + ", ".join(module["name"] for module in modules if module["registered"]),
+        "Registered modules: "
+        + ", ".join(module["name"] for module in modules if module["registered"]),
         _backend_modules_risk(debt),
         _backend_modules_followup(debt),
     )
@@ -2311,8 +2318,19 @@ def _markdown_required_domains_section(context: dict[str, Any]) -> list[str]:
         "## 4. Required Unmanaged And Residual Domains",
         "",
         _markdown_table(
-            ("Domain", "Category", "Severity", "Current paths", "Target owner", "Removal condition"),
-            [_required_domain_row(entry) for entry in context["debt_entries"] if _is_required_domain(entry)],
+            (
+                "Domain",
+                "Category",
+                "Severity",
+                "Current paths",
+                "Target owner",
+                "Removal condition",
+            ),
+            [
+                _required_domain_row(entry)
+                for entry in context["debt_entries"]
+                if _is_required_domain(entry)
+            ],
         ),
         "",
     ]
@@ -2363,7 +2381,9 @@ def _markdown_guard_status_section(report: dict[str, Any], context: dict[str, An
     ]
 
 
-def _guard_status_rows(report: dict[str, Any], context: dict[str, Any]) -> list[tuple[str, str, str]]:
+def _guard_status_rows(
+    report: dict[str, Any], context: dict[str, Any]
+) -> list[tuple[str, str, str]]:
     return [
         _untracked_backend_guard_row(report),
         _residual_boundary_guard_row(context),
@@ -2382,7 +2402,8 @@ def _untracked_backend_guard_row(report: dict[str, Any]) -> tuple[str, str, str]
     return (
         "Untracked backend/app production files",
         "GREEN" if not issues else "RED",
-        ", ".join(issues) or "All backend/app Python files are classified exactly once by the inventory.",
+        ", ".join(issues)
+        or "All backend/app Python files are classified exactly once by the inventory.",
     )
 
 
@@ -2535,6 +2556,7 @@ def _markdown_next_phases_section(report: dict[str, Any]) -> list[str]:
         ),
         "",
     ]
+
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))

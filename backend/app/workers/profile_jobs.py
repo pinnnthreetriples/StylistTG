@@ -231,7 +231,9 @@ def _run_child_event_loop(
     )
 
 
-def _read_child_stdout(stdout_lines: queue.Queue[str | None], remaining_seconds: float) -> str | None:
+def _read_child_stdout(
+    stdout_lines: queue.Queue[str | None], remaining_seconds: float
+) -> str | None:
     try:
         line = stdout_lines.get(timeout=min(0.2, remaining_seconds))
     except queue.Empty:
@@ -436,8 +438,10 @@ def _mark_account_update_runtime_failure(
     session: Session, job: Job, owner: str, lock_epoch: int, child_result: _ChildRunResult
 ) -> None:
     state = classify_account_update_job_outcome(
-        [{"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
-            for step in job.step_results]
+        [
+            {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
+            for step in job.step_results
+        ]
     )
     _mark_job_terminal(
         session,

@@ -224,7 +224,9 @@ def _score_activity_state(
         AccountState.EXECUTION_USABLE,
         AccountState.AUTHORIZED_READY,
     }:
-        accumulator.add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
+        accumulator.add(
+            10, "profile_not_synced", "info", "Profile snapshot has not been synced yet."
+        )
 
 
 def build_account_readiness_risk(

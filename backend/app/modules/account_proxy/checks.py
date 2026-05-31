@@ -67,14 +67,12 @@ def check_account_proxy(
     tdlib_verified_at = proxy.tdlib_verified_at
     if ok and _should_run_tdlib_proxy_check(config):
         check_scope = "tcp_tdlib"
-        status, tdlib_error_code, tdlib_error_message, tdlib_verified_at = (
-            _tdlib_proxy_check_state(
-                account_id,
-                config=config,
-                tdlib_checker=tdlib_checker,
-                now=now,
-                previous_verified_at=proxy.tdlib_verified_at,
-            )
+        status, tdlib_error_code, tdlib_error_message, tdlib_verified_at = _tdlib_proxy_check_state(
+            account_id,
+            config=config,
+            tdlib_checker=tdlib_checker,
+            now=now,
+            previous_verified_at=proxy.tdlib_verified_at,
         )
     proxy.status = status
     proxy.last_checked_at = now

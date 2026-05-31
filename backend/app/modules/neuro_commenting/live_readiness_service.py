@@ -95,10 +95,10 @@ def _append_campaign_checks(checks: list[_Check], campaign: Any) -> None:
     _append(
         checks,
         campaign.status == NeuroCampaignStatus.RUNNING.value,
-            "CAMPAIGN_RUNNING",
-            "CAMPAIGN_NOT_RUNNING",
-            "campaign is running",
-            "campaign must be running",
+        "CAMPAIGN_RUNNING",
+        "CAMPAIGN_NOT_RUNNING",
+        "campaign is running",
+        "campaign must be running",
     )
     _append(
         checks,
@@ -133,7 +133,9 @@ def _append_active_account_checks(
         account for account in accounts if account.status == NeuroCampaignAccountStatus.ACTIVE.value
     ]
     if not active_accounts:
-        checks.append(_Check("NO_ACTIVE_ACCOUNT", "blocker", "at least one active account is required"))
+        checks.append(
+            _Check("NO_ACTIVE_ACCOUNT", "blocker", "at least one active account is required")
+        )
         return active_accounts
     checks.append(_Check("ACTIVE_ACCOUNT_AVAILABLE", "info", "active account is available"))
     selection = AccountSelector(session=session).select_account(campaign, accounts, None)
@@ -193,9 +195,13 @@ def _append_target_checks(
     session: Session, checks: list[_Check], *, campaign_id: str, workspace_id: str
 ) -> None:
     targets, _total = repository.list_targets(session, campaign_id=campaign_id, page=1, limit=100)
-    active_targets = [target for target in targets if target.status == NeuroTargetStatus.ACTIVE.value]
+    active_targets = [
+        target for target in targets if target.status == NeuroTargetStatus.ACTIVE.value
+    ]
     if not active_targets:
-        checks.append(_Check("NO_ACTIVE_TARGET", "blocker", "at least one active target is required"))
+        checks.append(
+            _Check("NO_ACTIVE_TARGET", "blocker", "at least one active target is required")
+        )
         return
     checks.append(_Check("ACTIVE_TARGET_AVAILABLE", "info", "active target is available"))
     for target in active_targets:
@@ -206,7 +212,9 @@ def _append_target_rule_checks(
     session: Session, checks: list[_Check], *, target: Any, workspace_id: str
 ) -> None:
     if not target.discussion_chat_id:
-        checks.append(_Check("TARGET_NO_DISCUSSION", "blocker", "active target has no discussion chat"))
+        checks.append(
+            _Check("TARGET_NO_DISCUSSION", "blocker", "active target has no discussion chat")
+        )
     rule_status = ChannelRulesService().target_rule_status(
         session, workspace_id=workspace_id, target_ref=target.channel_ref
     )
@@ -231,7 +239,9 @@ def _append_approval_checks(session: Session, checks: list[_Check], *, campaign_
             )
         )
     else:
-        checks.append(_Check("DISCUSSION_MAPPING_READY", "info", "approved comments have discussion mapping"))
+        checks.append(
+            _Check("DISCUSSION_MAPPING_READY", "info", "approved comments have discussion mapping")
+        )
 
 
 def _readiness_response(campaign_id: str, checks: list[_Check]) -> NeuroLiveReadinessRead:

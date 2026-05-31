@@ -307,9 +307,7 @@ class TdlibAuthAdapter:
         )
 
 
-def _auth_state_result(
-    state: _AuthOperationState, result: TdlibAuthResult
-) -> _AuthOperationState:
+def _auth_state_result(state: _AuthOperationState, result: TdlibAuthResult) -> _AuthOperationState:
     return _AuthOperationState(
         client=state.client,
         proxy_applied=state.proxy_applied,

@@ -206,7 +206,9 @@ def _is_general_sensitive_key(compact: str, words: list[str], word_set: set[str]
 
 def _is_tdlib_sensitive_key(word_set: set[str]) -> bool:
     return "tdlib" in word_set and bool(
-        word_set.intersection({"path", "root", "directory", "database", "files", "session", "library"})
+        word_set.intersection(
+            {"path", "root", "directory", "database", "files", "session", "library"}
+        )
     )
 
 

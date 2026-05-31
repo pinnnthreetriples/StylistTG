@@ -46,6 +46,22 @@ class TdlibAuthResult:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class _AuthOperationInput:
+    account_id: str
+    phone_number: str | None
+    code: str | None
+    password: str | None
+
+
+@dataclass(frozen=True)
+class _AuthOperationState:
+    client: "TdlibClient"
+    proxy_applied: bool = False
+    recreated_after_closed: bool = False
+    result: TdlibAuthResult | None = None
+
+
 class TdlibClient(Protocol):
     @property
     def client_id(self) -> int: ...
@@ -213,103 +229,171 @@ class TdlibAuthAdapter:
         code: str | None,
         password: str | None,
     ) -> TdlibAuthResult:
+        auth_input = _AuthOperationInput(
+            account_id=account_id,
+            phone_number=phone_number,
+            code=code,
+            password=password,
+        )
         if not self._config.tdlib_api_id or not self._config.tdlib_api_hash:
-            return TdlibAuthResult(
-                status=TdlibAuthStatus.BROKEN,
-                account_state=AccountState.RUNTIME_BROKEN,
-                runtime_health="missing_tdlib_credentials",
-                needs_code=False,
-                session_present=False,
-                recovery_marker="tdlib_missing_credentials",
-                error="TDLIB_API_ID and TDLIB_API_HASH must be configured",
-            )
+            return _missing_tdlib_credentials_result()
 
         client: TdlibClient | None = None
-        recreated_after_closed = False
-        proxy_applied = False
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
         try:
             client = self._client_factory.create(account_id)
-            log_event(
-                "tdlib_session_reused",
-                account_id=account_id,
-                database_directory=str(
-                    resolve_tdlib_account_dirs(self._config, account_id).database_directory
-                ),
-                files_directory=str(
-                    resolve_tdlib_account_dirs(self._config, account_id).files_directory
-                ),
-            )
+            self._log_session_reused(account_id)
+            state = _AuthOperationState(client=client)
             while time.monotonic() < deadline:
-                event = _receive_client_event(client, self._config.tdlib_receive_timeout_seconds)
-                if event and event.get("@type") == "error":
-                    return map_tdlib_error(event)
-                auth_state = _extract_authorization_state(event)
-                if auth_state is None:
-                    continue
-
-                mapped = map_authorization_state(auth_state)
-                if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
-                    client.send(_tdlib_parameters_query(self._config, account_id))
-                    if self._proxy_applier is not None and not proxy_applied:
-                        self._proxy_applier(client, account_id)
-                        proxy_applied = True
-                    continue
-                if mapped.status == TdlibAuthStatus.WAIT_PHONE_NUMBER and phone_number:
-                    client.send(
-                        {
-                            "@type": "setAuthenticationPhoneNumber",
-                            "phone_number": phone_number,
-                            "settings": None,
-                        }
-                    )
-                    continue
-                if mapped.status == TdlibAuthStatus.WAIT_CODE and code:
-                    client.send({"@type": "checkAuthenticationCode", "code": code})
-                    continue
-                if mapped.status == TdlibAuthStatus.WAIT_PASSWORD and password:
-                    client.send({"@type": "checkAuthenticationPassword", "password": password})
-                    continue
-                if mapped.status == TdlibAuthStatus.READY:
-                    telegram_user_id = _get_current_user_id(client, self._config)
-                    return TdlibAuthResult(
-                        status=TdlibAuthStatus.READY,
-                        account_state=AccountState.AUTHORIZED_READY,
-                        runtime_health="ready",
-                        needs_code=False,
-                        session_present=True,
-                        telegram_user_id=telegram_user_id,
-                        recovery_marker="tdlib_ready",
-                    )
-                if mapped.status == TdlibAuthStatus.CLOSED and not recreated_after_closed:
-                    client.close()
-                    client = self._client_factory.create(account_id)
-                    recreated_after_closed = True
-                    continue
-                return mapped
+                event = _receive_client_event(
+                    state.client, self._config.tdlib_receive_timeout_seconds
+                )
+                state = self._handle_auth_event(state, event, auth_input)
+                client = state.client
+                if state.result is not None:
+                    return state.result
         except Exception as exc:
-            return TdlibAuthResult(
-                status=TdlibAuthStatus.BROKEN,
-                account_state=AccountState.RUNTIME_BROKEN,
-                runtime_health="broken",
-                needs_code=False,
-                session_present=False,
-                recovery_marker="tdlib_runtime_broken",
-                error=str(exc),
-            )
+            return _broken_tdlib_runtime_result(exc)
         finally:
             if client is not None:
                 client.close()
 
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.BROKEN,
-            account_state=AccountState.RUNTIME_BROKEN,
-            runtime_health="timeout",
-            needs_code=False,
-            session_present=False,
-            recovery_marker="tdlib_auth_timeout",
-            error="TDLib auth operation timed out",
+        return _tdlib_auth_timeout_result()
+
+    def _log_session_reused(self, account_id: str) -> None:
+        account_dirs = resolve_tdlib_account_dirs(self._config, account_id)
+        log_event(
+            "tdlib_session_reused",
+            account_id=account_id,
+            database_directory=str(account_dirs.database_directory),
+            files_directory=str(account_dirs.files_directory),
         )
+
+    def _handle_auth_event(
+        self,
+        state: _AuthOperationState,
+        event: JsonDict | None,
+        auth_input: _AuthOperationInput,
+    ) -> _AuthOperationState:
+        if event and event.get("@type") == "error":
+            return _AuthOperationState(
+                client=state.client,
+                proxy_applied=state.proxy_applied,
+                recreated_after_closed=state.recreated_after_closed,
+                result=map_tdlib_error(event),
+            )
+        auth_state = _extract_authorization_state(event)
+        if auth_state is None:
+            return state
+
+        mapped = map_authorization_state(auth_state)
+        if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
+            return self._send_tdlib_parameters(state, auth_input.account_id)
+        if _send_auth_input(state.client, mapped.status, auth_input):
+            return state
+        if mapped.status == TdlibAuthStatus.READY:
+            return _AuthOperationState(
+                client=state.client,
+                proxy_applied=state.proxy_applied,
+                recreated_after_closed=state.recreated_after_closed,
+                result=_ready_tdlib_auth_result(state.client, self._config),
+            )
+        if mapped.status == TdlibAuthStatus.CLOSED and not state.recreated_after_closed:
+            state.client.close()
+            return _AuthOperationState(
+                client=self._client_factory.create(auth_input.account_id),
+                proxy_applied=state.proxy_applied,
+                recreated_after_closed=True,
+            )
+        return _AuthOperationState(
+            client=state.client,
+            proxy_applied=state.proxy_applied,
+            recreated_after_closed=state.recreated_after_closed,
+            result=mapped,
+        )
+
+    def _send_tdlib_parameters(
+        self, state: _AuthOperationState, account_id: str
+    ) -> _AuthOperationState:
+        state.client.send(_tdlib_parameters_query(self._config, account_id))
+        proxy_applied = state.proxy_applied
+        if self._proxy_applier is not None and not proxy_applied:
+            self._proxy_applier(state.client, account_id)
+            proxy_applied = True
+        return _AuthOperationState(
+            client=state.client,
+            proxy_applied=proxy_applied,
+            recreated_after_closed=state.recreated_after_closed,
+        )
+
+
+def _missing_tdlib_credentials_result() -> TdlibAuthResult:
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.BROKEN,
+        account_state=AccountState.RUNTIME_BROKEN,
+        runtime_health="missing_tdlib_credentials",
+        needs_code=False,
+        session_present=False,
+        recovery_marker="tdlib_missing_credentials",
+        error="TDLIB_API_ID and TDLIB_API_HASH must be configured",
+    )
+
+
+def _broken_tdlib_runtime_result(exc: Exception) -> TdlibAuthResult:
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.BROKEN,
+        account_state=AccountState.RUNTIME_BROKEN,
+        runtime_health="broken",
+        needs_code=False,
+        session_present=False,
+        recovery_marker="tdlib_runtime_broken",
+        error=str(exc),
+    )
+
+
+def _tdlib_auth_timeout_result() -> TdlibAuthResult:
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.BROKEN,
+        account_state=AccountState.RUNTIME_BROKEN,
+        runtime_health="timeout",
+        needs_code=False,
+        session_present=False,
+        recovery_marker="tdlib_auth_timeout",
+        error="TDLib auth operation timed out",
+    )
+
+
+def _ready_tdlib_auth_result(client: TdlibClient, config: Settings) -> TdlibAuthResult:
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.READY,
+        account_state=AccountState.AUTHORIZED_READY,
+        runtime_health="ready",
+        needs_code=False,
+        session_present=True,
+        telegram_user_id=_get_current_user_id(client, config),
+        recovery_marker="tdlib_ready",
+    )
+
+
+def _send_auth_input(
+    client: TdlibClient, status: TdlibAuthStatus, auth_input: _AuthOperationInput
+) -> bool:
+    if status == TdlibAuthStatus.WAIT_PHONE_NUMBER and auth_input.phone_number:
+        client.send(
+            {
+                "@type": "setAuthenticationPhoneNumber",
+                "phone_number": auth_input.phone_number,
+                "settings": None,
+            }
+        )
+        return True
+    if status == TdlibAuthStatus.WAIT_CODE and auth_input.code:
+        client.send({"@type": "checkAuthenticationCode", "code": auth_input.code})
+        return True
+    if status == TdlibAuthStatus.WAIT_PASSWORD and auth_input.password:
+        client.send({"@type": "checkAuthenticationPassword", "password": auth_input.password})
+        return True
+    return False
 
 
 def normalize_phone_number(phone_number: str) -> str:
@@ -322,85 +406,100 @@ def normalize_phone_number(phone_number: str) -> str:
     return normalized
 
 
+def _closed_like_result(state_type: str) -> TdlibAuthResult:
+    suffix = state_type.removeprefix("authorizationState").lower()
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.CLOSED,
+        account_state=AccountState.REAUTH_REQUIRED,
+        runtime_health=suffix,
+        needs_code=False,
+        session_present=False,
+        reauth_required=True,
+        recovery_marker=f"tdlib_{suffix}_recreate_required",
+    )
+
+
+def _wait_password_result(state: JsonDict) -> TdlibAuthResult:
+    password_hint = state.get("password_hint", "")
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.WAIT_PASSWORD,
+        account_state=AccountState.AWAITING_PASSWORD,
+        runtime_health="awaiting_password",
+        needs_code=False,
+        needs_password=True,
+        session_present=True,
+        password_hint=password_hint or None,
+        recovery_marker="tdlib_wait_password",
+    )
+
+
+def _unsupported_email_like_result(state_type: str) -> TdlibAuthResult:
+    return TdlibAuthResult(
+        status=TdlibAuthStatus.UNSUPPORTED,
+        account_state=AccountState.MANUAL_INTERVENTION_NEEDED,
+        runtime_health=state_type.removeprefix("authorizationState"),
+        needs_code=False,
+        session_present=True,
+        needs_manual_intervention=True,
+        recovery_marker=f"tdlib_unsupported:{state_type}",
+        error=f"Unsupported TDLib auth branch: {state_type}",
+    )
+
+
+_STATIC_AUTH_STATE_RESULTS: dict[str, TdlibAuthResult] = {
+    "authorizationStateWaitTdlibParameters": TdlibAuthResult(
+        status=TdlibAuthStatus.WAIT_TDLIB_PARAMETERS,
+        account_state=AccountState.AUTH_PENDING,
+        runtime_health="initializing",
+        needs_code=False,
+        session_present=False,
+        recovery_marker="tdlib_wait_parameters",
+    ),
+    "authorizationStateWaitPhoneNumber": TdlibAuthResult(
+        status=TdlibAuthStatus.WAIT_PHONE_NUMBER,
+        account_state=AccountState.AUTH_PENDING,
+        runtime_health="awaiting_phone_number",
+        needs_code=False,
+        session_present=False,
+        recovery_marker="tdlib_wait_phone_number",
+    ),
+    "authorizationStateWaitCode": TdlibAuthResult(
+        status=TdlibAuthStatus.WAIT_CODE,
+        account_state=AccountState.AWAITING_CODE,
+        runtime_health="awaiting_code",
+        needs_code=True,
+        session_present=True,
+        recovery_marker="tdlib_wait_code",
+    ),
+    "authorizationStateReady": TdlibAuthResult(
+        status=TdlibAuthStatus.READY,
+        account_state=AccountState.AUTHORIZED_READY,
+        runtime_health="ready",
+        needs_code=False,
+        session_present=True,
+        recovery_marker="tdlib_ready",
+    ),
+}
+
+_DYNAMIC_AUTH_STATE_HANDLERS: dict[str, Callable[[JsonDict, str], TdlibAuthResult]] = {
+    "authorizationStateWaitPassword": lambda state, _state_type: _wait_password_result(state),
+    "authorizationStateClosed": lambda _state, state_type: _closed_like_result(state_type),
+    "authorizationStateClosing": lambda _state, state_type: _closed_like_result(state_type),
+    "authorizationStateLoggingOut": lambda _state, state_type: _closed_like_result(state_type),
+    "authorizationStateWaitEmailAddress": lambda _state, state_type: _unsupported_email_like_result(state_type),
+    "authorizationStateWaitEmailCode": lambda _state, state_type: _unsupported_email_like_result(state_type),
+    "authorizationStateWaitRegistration": lambda _state, state_type: _unsupported_email_like_result(state_type),
+}
+
+
 def map_authorization_state(state: JsonDict) -> TdlibAuthResult:
-    state_type = state.get("@type")
-    if state_type == "authorizationStateWaitTdlibParameters":
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.WAIT_TDLIB_PARAMETERS,
-            account_state=AccountState.AUTH_PENDING,
-            runtime_health="initializing",
-            needs_code=False,
-            session_present=False,
-            recovery_marker="tdlib_wait_parameters",
-        )
-    if state_type == "authorizationStateWaitPhoneNumber":
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.WAIT_PHONE_NUMBER,
-            account_state=AccountState.AUTH_PENDING,
-            runtime_health="awaiting_phone_number",
-            needs_code=False,
-            session_present=False,
-            recovery_marker="tdlib_wait_phone_number",
-        )
-    if state_type == "authorizationStateWaitCode":
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.WAIT_CODE,
-            account_state=AccountState.AWAITING_CODE,
-            runtime_health="awaiting_code",
-            needs_code=True,
-            session_present=True,
-            recovery_marker="tdlib_wait_code",
-        )
-    if state_type == "authorizationStateReady":
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.READY,
-            account_state=AccountState.AUTHORIZED_READY,
-            runtime_health="ready",
-            needs_code=False,
-            session_present=True,
-            recovery_marker="tdlib_ready",
-        )
-    if state_type in {
-        "authorizationStateClosed",
-        "authorizationStateClosing",
-        "authorizationStateLoggingOut",
-    }:
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.CLOSED,
-            account_state=AccountState.REAUTH_REQUIRED,
-            runtime_health=state_type.removeprefix("authorizationState").lower(),
-            needs_code=False,
-            session_present=False,
-            reauth_required=True,
-            recovery_marker=f"tdlib_{state_type.removeprefix('authorizationState').lower()}_recreate_required",
-        )
-    if state_type == "authorizationStateWaitPassword":
-        password_hint = state.get("password_hint", "")
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.WAIT_PASSWORD,
-            account_state=AccountState.AWAITING_PASSWORD,
-            runtime_health="awaiting_password",
-            needs_code=False,
-            needs_password=True,
-            session_present=True,
-            password_hint=password_hint or None,
-            recovery_marker="tdlib_wait_password",
-        )
-    if state_type in {
-        "authorizationStateWaitEmailAddress",
-        "authorizationStateWaitEmailCode",
-        "authorizationStateWaitRegistration",
-    }:
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.UNSUPPORTED,
-            account_state=AccountState.MANUAL_INTERVENTION_NEEDED,
-            runtime_health=state_type.removeprefix("authorizationState"),
-            needs_code=False,
-            session_present=True,
-            needs_manual_intervention=True,
-            recovery_marker=f"tdlib_unsupported:{state_type}",
-            error=f"Unsupported TDLib auth branch: {state_type}",
-        )
+    state_type = str(state.get("@type") or "")
+    static = _STATIC_AUTH_STATE_RESULTS.get(state_type)
+    if static is not None:
+        return static
+    handler = _DYNAMIC_AUTH_STATE_HANDLERS.get(state_type)
+    if handler is not None:
+        return handler(state, state_type)
     return TdlibAuthResult(
         status=TdlibAuthStatus.BROKEN,
         account_state=AccountState.RUNTIME_BROKEN,

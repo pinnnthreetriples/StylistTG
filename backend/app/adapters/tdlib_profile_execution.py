@@ -34,53 +34,84 @@ def split_name(full_name: str | None) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+def _query_set_name(payload: dict[str, Any]) -> dict[str, Any]:
+    first_name = payload.get("first_name")
+    last_name = payload.get("last_name")
+    if first_name is None and last_name is None:
+        first_name, last_name = split_name(payload.get("name"))
+    return {"@type": "setName", "first_name": first_name or "", "last_name": last_name or ""}
+
+
+def _query_set_bio(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"@type": "setBio", "bio": payload.get("bio") or ""}
+
+
+def _query_set_username(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"@type": "setUsername", "username": payload.get("username") or ""}
+
+
+def _query_set_pinned_channel(payload: dict[str, Any]) -> dict[str, Any]:
+    channel_ref = payload.get("pinned_channel_ref") or ""
+    if not channel_ref:
+        return {"@type": "setPersonalChat", "chat_id": 0}
+    if channel_ref.startswith("@"):
+        return {"@type": "searchPublicChat", "username": channel_ref.lstrip("@")}
+    if channel_ref.lstrip("-").isdigit():
+        return {"@type": "setPersonalChat", "chat_id": int(channel_ref)}
+    return {"@type": "setPersonalChat", "chat_id": 0}
+
+
+def _query_set_profile_photo(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "@type": "setProfilePhoto",
+        "photo": {
+            "@type": "inputChatPhotoStatic",
+            "photo": {
+                "@type": "inputFileLocal",
+                "path": payload["asset_path"],
+            },
+        },
+        "is_public": False,
+    }
+
+
+def _query_add_profile_audio(payload: dict[str, Any]) -> dict[str, Any]:
+    file_id = payload.get("telegram_file_id")
+    if file_id is None:
+        raise ValueError("telegram_file_id is required for add_profile_audio")
+    return {"@type": "addProfileAudio", "file_id": int(file_id)}
+
+
+def _query_remove_profile_audio(payload: dict[str, Any]) -> dict[str, Any]:
+    file_id = payload.get("telegram_file_id")
+    if file_id is None:
+        return {"@type": "getMe"}
+    return {"@type": "removeProfileAudio", "file_id": int(file_id)}
+
+
+def _query_story_noop(_payload: dict[str, Any]) -> dict[str, Any]:
+    return {"@type": "getMe"}
+
+
+_STEP_QUERY_BUILDERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    "set_name": _query_set_name,
+    "set_bio": _query_set_bio,
+    "set_username": _query_set_username,
+    "set_pinned_channel": _query_set_pinned_channel,
+    "set_profile_photo": _query_set_profile_photo,
+    "add_profile_audio": _query_add_profile_audio,
+    "remove_profile_audio": _query_remove_profile_audio,
+    "validate_story_capabilities": _query_story_noop,
+    "prepare_story_media": _query_story_noop,
+}
+
+
 def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
     step_type = step["step_type"]
-    payload = step["payload"]
-    if step_type == "set_name":
-        first_name = payload.get("first_name")
-        last_name = payload.get("last_name")
-        if first_name is None and last_name is None:
-            first_name, last_name = split_name(payload.get("name"))
-        return {"@type": "setName", "first_name": first_name or "", "last_name": last_name or ""}
-    if step_type == "set_bio":
-        return {"@type": "setBio", "bio": payload.get("bio") or ""}
-    if step_type == "set_username":
-        return {"@type": "setUsername", "username": payload.get("username") or ""}
-    if step_type == "set_pinned_channel":
-        channel_ref = payload.get("pinned_channel_ref") or ""
-        if not channel_ref:
-            return {"@type": "setPersonalChat", "chat_id": 0}
-        if channel_ref.startswith("@"):
-            return {"@type": "searchPublicChat", "username": channel_ref.lstrip("@")}
-        if channel_ref.lstrip("-").isdigit():
-            return {"@type": "setPersonalChat", "chat_id": int(channel_ref)}
-        return {"@type": "setPersonalChat", "chat_id": 0}
-    if step_type == "set_profile_photo":
-        return {
-            "@type": "setProfilePhoto",
-            "photo": {
-                "@type": "inputChatPhotoStatic",
-                "photo": {
-                    "@type": "inputFileLocal",
-                    "path": payload["asset_path"],
-                },
-            },
-            "is_public": False,
-        }
-    if step_type == "add_profile_audio":
-        file_id = payload.get("telegram_file_id")
-        if file_id is None:
-            raise ValueError("telegram_file_id is required for add_profile_audio")
-        return {"@type": "addProfileAudio", "file_id": int(file_id)}
-    if step_type == "remove_profile_audio":
-        file_id = payload.get("telegram_file_id")
-        if file_id is None:
-            return {"@type": "getMe"}
-        return {"@type": "removeProfileAudio", "file_id": int(file_id)}
-    if step_type in {"validate_story_capabilities", "prepare_story_media"}:
-        return {"@type": "getMe"}
-    raise ValueError(f"Unsupported profile step type: {step_type}")
+    builder = _STEP_QUERY_BUILDERS.get(step_type)
+    if builder is None:
+        raise ValueError(f"Unsupported profile step type: {step_type}")
+    return builder(step["payload"])
 
 
 def verify_username_result(desired_username: str, me_response: dict[str, Any]) -> dict[str, Any]:

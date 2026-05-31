@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any, Protocol, cast
 
 from app.models import AccountState
@@ -8,6 +8,66 @@ from app.models import AccountState
 ProfileEvent = dict[str, Any]
 ProfilePayload = dict[str, Any]
 ProfileStep = dict[str, Any]
+
+
+def _result_remove_profile_audio(_payload: ProfilePayload, _ctx: dict[str, Any]) -> ProfilePayload:
+    return {"profile_audio_removed": True}
+
+
+def _result_mock_applied(payload: ProfilePayload, _ctx: dict[str, Any]) -> ProfilePayload:
+    return {"mock": True, "applied": payload}
+
+
+def _result_upload_profile_audio(payload: ProfilePayload, ctx: dict[str, Any]) -> ProfilePayload:
+    audio_asset_id = payload.get("audio_asset_id")
+    uploaded_id = f"mock-file-{audio_asset_id}"
+    ctx["uploaded_audio_file_id"] = uploaded_id
+    return {"audio_asset_id": audio_asset_id, "telegram_file_id": uploaded_id}
+
+
+def _result_add_profile_audio(payload: ProfilePayload, ctx: dict[str, Any]) -> ProfilePayload:
+    audio_asset_id = payload.get("audio_asset_id")
+    telegram_file_id = ctx.get("uploaded_audio_file_id") or f"mock-file-{audio_asset_id}"
+    return {
+        "profile_audio": {
+            "source_asset_id": audio_asset_id,
+            "telegram_file_id": telegram_file_id,
+            "title": None,
+            "performer": None,
+            "duration_seconds": None,
+            "mime": None,
+        }
+    }
+
+
+# Mapping of step_type → builder for the `result_payload` of a `step_succeeded`
+# event with default verification (attempted=False). Centralizing here keeps
+# the per-step branches in `execute()` to early-exit cases only.
+_DEFAULT_VERIFICATION_RESULTS: dict[str, Callable[[ProfilePayload, dict[str, Any]], ProfilePayload]] = {
+    "upload_profile_audio": _result_upload_profile_audio,
+    "add_profile_audio": _result_add_profile_audio,
+    "remove_profile_audio": _result_remove_profile_audio,
+    "validate_story_capabilities": _result_mock_applied,
+    "prepare_story_media": _result_mock_applied,
+}
+
+
+def _post_story_result(payload: ProfilePayload, step_type: str) -> ProfilePayload:
+    media_kind = "image" if step_type == "post_story_image" else "video"
+    story_id = f"mock-story-{payload.get('client_id')}"
+    return {
+        "story_post": {
+            "status": "posted",
+            "telegram_story_id": story_id,
+            "temporary_story_id": story_id,
+            "media_kind": media_kind,
+            "asset_id": payload.get("asset_id"),
+            "caption": payload.get("caption"),
+            "privacy_preset": payload.get("privacy_preset"),
+            "active_period_seconds": payload.get("active_period_seconds"),
+            "protect_content": payload.get("protect_content"),
+        }
+    }
 
 
 class ProfileExecutionAdapter(Protocol):
@@ -35,7 +95,7 @@ class MockProfileExecutionAdapter:
         fail_step = payload_json.get("mock_fail_step")
         crash_step = payload_json.get("mock_crash_after_step_started")
         username_verify = payload_json.get("mock_username_verify")
-        uploaded_audio_file_id: str | None = None
+        ctx: dict[str, Any] = {"uploaded_audio_file_id": None}
 
         for step in cast(list[ProfileStep], plan_json_snapshot["steps"]):
             payload = cast(ProfilePayload, step["payload"])
@@ -100,92 +160,23 @@ class MockProfileExecutionAdapter:
                 }
                 continue
 
-            if step_type == "upload_profile_audio":
-                audio_asset_id = payload.get("audio_asset_id")
-                uploaded_audio_file_id = f"mock-file-{audio_asset_id}"
-                yield {
-                    "event": "step_succeeded",
-                    **event,
-                    "verification_attempted": False,
-                    "verification_result": None,
-                    "result_payload": {
-                        "audio_asset_id": audio_asset_id,
-                        "telegram_file_id": uploaded_audio_file_id,
-                    },
-                }
-                continue
-
-            if step_type == "add_profile_audio":
-                audio_asset_id = payload.get("audio_asset_id")
-                yield {
-                    "event": "step_succeeded",
-                    **event,
-                    "verification_attempted": False,
-                    "verification_result": None,
-                    "result_payload": {
-                        "profile_audio": {
-                            "source_asset_id": audio_asset_id,
-                            "telegram_file_id": uploaded_audio_file_id
-                            or f"mock-file-{audio_asset_id}",
-                            "title": None,
-                            "performer": None,
-                            "duration_seconds": None,
-                            "mime": None,
-                        }
-                    },
-                }
-                continue
-
-            if step_type == "remove_profile_audio":
-                yield {
-                    "event": "step_succeeded",
-                    **event,
-                    "verification_attempted": False,
-                    "verification_result": None,
-                    "result_payload": {"profile_audio_removed": True},
-                }
-                continue
-
-            if step_type in {"validate_story_capabilities", "prepare_story_media"}:
-                yield {
-                    "event": "step_succeeded",
-                    **event,
-                    "verification_attempted": False,
-                    "verification_result": None,
-                    "result_payload": {"mock": True, "applied": payload},
-                }
-                continue
-
             if step_type in {"post_story_image", "post_story_video"}:
-                media_kind = "image" if step_type == "post_story_image" else "video"
-                story_id = f"mock-story-{payload.get('client_id')}"
                 yield {
                     "event": "step_succeeded",
                     **event,
                     "verification_attempted": True,
                     "verification_result": {"status": "posted"},
-                    "result_payload": {
-                        "story_post": {
-                            "status": "posted",
-                            "telegram_story_id": story_id,
-                            "temporary_story_id": story_id,
-                            "media_kind": media_kind,
-                            "asset_id": payload.get("asset_id"),
-                            "caption": payload.get("caption"),
-                            "privacy_preset": payload.get("privacy_preset"),
-                            "active_period_seconds": payload.get("active_period_seconds"),
-                            "protect_content": payload.get("protect_content"),
-                        }
-                    },
+                    "result_payload": _post_story_result(payload, step_type),
                 }
                 continue
 
+            builder = _DEFAULT_VERIFICATION_RESULTS.get(step_type, _result_mock_applied)
             yield {
                 "event": "step_succeeded",
                 **event,
                 "verification_attempted": False,
                 "verification_result": None,
-                "result_payload": {"mock": True, "applied": payload},
+                "result_payload": builder(payload, ctx),
             }
 
         yield {"event": "runtime_closed"}

@@ -10,7 +10,7 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/frontend-module-change.md
-last_updated: 2026-05-28
+last_updated: 2026-05-31
 ---
 
 # Frontend
@@ -22,8 +22,8 @@ last_updated: 2026-05-28
 - Shared product UI: `packages/ui`.
 - Shared TypeScript config: `packages/config`.
 - Product module boundaries are under `apps/dashboard/src/modules/`.
-- Current frontend modules include `account-editing`, `auth`, and `warmup`,
-  each exporting through `index.ts`.
+- Current frontend modules include `account-editing`, `auth`,
+  `neuro-commenting`, and `warmup`, each exporting through `index.ts`.
 
 ## Runtime
 
@@ -33,7 +33,7 @@ last_updated: 2026-05-28
 
 ## Routes
 
-Canonical frontend routes include `/home`, `/accounts`, `/accounts/add`, account workspace sections, `/health`, `/jobs`, `/modules/warmup`, `/proxy`, `/settings`, and `/billing`.
+Canonical frontend routes include `/home`, `/accounts`, `/accounts/add`, account workspace sections, `/health`, `/jobs`, `/modules/neuro-commenting`, `/modules/warmup`, `/proxy`, `/settings`, and `/billing`.
 
 ## API/client rules
 

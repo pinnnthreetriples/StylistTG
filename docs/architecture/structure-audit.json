@@ -77,7 +77,7 @@
       ],
       "mentions_ast": true,
       "path": "backend/tests/architecture/test_no_cross_module_internal_imports.py",
-      "test_count": 5
+      "test_count": 6
     },
     {
       "boundary_keywords": [
@@ -1864,6 +1864,7 @@
           "docs/architecture/monorepo.md",
           "docs/architecture/new-module-checklist.md",
           "docs/architecture/production-execution-plane.md",
+          "docs/architecture/public-facade-exceptions.json",
           "docs/architecture/residual-legacy-boundaries.json",
           "docs/architecture/storage-boundary.md",
           "docs/architecture/storage.md",
@@ -1931,6 +1932,7 @@
           "docs/runbooks/safety-pipeline-preflight-checklist.md",
           "docs/runbooks/safety-rollout.md",
           "docs/runbooks/staging-backend-worker-deploy.md",
+          "docs/runbooks/staging-smoke-2026-05-31.md",
           "docs/runbooks/tdlib-runtime.md",
           "docs/runbooks/telegram-auth-flow.md",
           "docs/runbooks/workers-production-plane.md",
@@ -1957,7 +1959,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-30T20:06:39Z",
+    "generated_at": "2026-05-31T09:54:51Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2271,7 +2273,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-30T20:06:39Z",
+  "generated_at": "2026-05-31T09:54:51Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4241,6 +4243,395 @@
       ]
     }
   ],
+  "public_facade_exceptions": {
+    "exceptions": [
+      {
+        "imported_module": "auth",
+        "owner": "account_audit",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-audit router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_audit/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_audit",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-audit router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_audit/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_core",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-core accounts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_core/accounts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_core",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-core accounts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_core/accounts_router.py"
+      },
+      {
+        "imported_module": "warmup",
+        "owner": "account_core",
+        "public_name": "service",
+        "rationale": "Account-core account list/read models still expose warmup status; remove when warmup publishes a dedicated account-summary interface.",
+        "removal_condition": "remove when warmup publishes a dedicated account-summary interface.",
+        "source": "backend/app/modules/account_core/accounts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_core",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-core compatibility router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_core/compat_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_core",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-core compatibility router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_core/compat_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_editing",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_editing/router.py"
+      },
+      {
+        "imported_module": "warmup",
+        "owner": "account_editing",
+        "public_name": "service",
+        "rationale": "Account-editing still asks warmup for warmup-operation lock state; remove when that lock decision is exposed as a dedicated contracts/interfaces boundary.",
+        "removal_condition": "remove when that lock decision is exposed as a dedicated contracts/interfaces boundary.",
+        "source": "backend/app/modules/account_editing/service.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_ggr",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-ggr router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_ggr/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_ggr",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-ggr router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_ggr/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_imports",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-imports router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_imports/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_imports",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-imports router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_imports/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_jobs",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-jobs router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_jobs/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_jobs",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-jobs router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_jobs/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_lifecycle",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-lifecycle router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_lifecycle/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_lifecycle",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-lifecycle router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_lifecycle/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_profile_completeness",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account profile-completeness router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_profile_completeness/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_proxy",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-proxy router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_proxy/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_proxy",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-proxy router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_proxy/router.py"
+      },
+      {
+        "imported_module": "warmup",
+        "owner": "account_proxy",
+        "public_name": "service",
+        "rationale": "Account-proxy changes still consult warmup lock policy; remove when warmup exposes a dedicated operation-lock interface.",
+        "removal_condition": "remove when warmup exposes a dedicated operation-lock interface.",
+        "source": "backend/app/modules/account_proxy/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-safety routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/accounts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-safety routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/accounts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-safety policy router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/policy_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-safety policy router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/policy_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-safety quarantine router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/quarantine_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-safety quarantine router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/quarantine_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-safety runtime router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/runtime_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-safety runtime router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/runtime_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-safety status router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/status_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_safety",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-safety status router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_safety/status_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "bought_onboarding",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical bought-onboarding router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/bought_onboarding/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "bought_onboarding",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical bought-onboarding router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/bought_onboarding/router.py"
+      },
+      {
+        "imported_module": "account_safety",
+        "owner": "bought_onboarding",
+        "public_name": "quarantine",
+        "rationale": "Bought-onboarding orchestrates rest-period quarantine via account_safety; remove when account_safety exposes a dedicated quarantine interface.",
+        "removal_condition": "remove when account_safety exposes a dedicated quarantine interface.",
+        "source": "backend/app/modules/bought_onboarding/service.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "human_behavior",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical human-behavior router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/human_behavior/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "human_behavior",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical human-behavior router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/human_behavior/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "neuro_commenting",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/neuro_commenting/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "neuro_commenting",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/neuro_commenting/router.py"
+      },
+      {
+        "imported_module": "account_core",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "Canonical account_id_header header dependency used by story routers.",
+        "removal_condition": "n/a; accepted account_id_header facade.",
+        "source": "backend/app/modules/story/capabilities_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical story-capabilities router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/capabilities_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical story-capabilities router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/capabilities_router.py"
+      },
+      {
+        "imported_module": "account_core",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "Canonical account_id_header header dependency used by story routers.",
+        "removal_condition": "n/a; accepted account_id_header facade.",
+        "source": "backend/app/modules/story/drafts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical story-drafts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/drafts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical story-drafts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/drafts_router.py"
+      },
+      {
+        "imported_module": "account_core",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "Canonical account_id_header header dependency used by story routers.",
+        "removal_condition": "n/a; accepted account_id_header facade.",
+        "source": "backend/app/modules/story/posts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical story-posts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/posts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "story",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical story-posts router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/story/posts_router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "warmup",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical routers.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/warmup/router.py"
+      }
+    ],
+    "schema_version": 1
+  },
   "queues": [
     {
       "covered_by_roles": [
@@ -4314,7 +4705,8 @@
     }
   ],
   "recommended_next_phases": [
-    "Phase 6C+ - migrate residual legacy feature boundaries linked in #213-#225 before final GREEN architecture closure",
+    "Ongoing - keep architecture drift checks, wrapper audit, docs audit, and benchmark infrastructure healthy",
+    "Ongoing - keep accepted public facade exceptions visible in docs and validated by architecture tests",
     "Ongoing - keep structure audit and boundary checks required for structural changes"
   ],
   "runtime_roles": [
@@ -4672,7 +5064,7 @@
     },
     "docs": {
       "exists": true,
-      "file_count": 98,
+      "file_count": 100,
       "path": "docs"
     },
     "frontend": {

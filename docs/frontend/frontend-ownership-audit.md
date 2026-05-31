@@ -1,8 +1,8 @@
 # Frontend Ownership Audit
 
-Generated snapshot: `2026-05-17T00:00:00Z`
+Generated snapshot: `2026-05-31T00:00:00Z`
 
-This audit records the dashboard ownership surfaces after the Phase 23 cleanup pass. The goal is to move feature-specific code behind module public APIs while keeping old import paths compatible.
+This audit records the dashboard ownership surfaces after the architecture-GREEN cleanup pass. The goal is to keep feature-specific code behind module public APIs while keeping old import paths compatible.
 
 | Current path | Feature owner | Target module | Migration status | Compatibility path | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -38,12 +38,14 @@ This audit records the dashboard ownership surfaces after the Phase 23 cleanup p
 | `apps/dashboard/src/features/health/*` | app-shell | app-shell | deferred | unchanged path | Operational page, not feature-module-owned yet. |
 | `apps/dashboard/src/features/home/*` | app-shell | app-shell | deferred | unchanged path | Home/dashboard route remains app-shell. |
 | `apps/dashboard/src/features/jobs/*` | shared / app-shell | future jobs module | unknown/deferred | unchanged path | Cross-feature job history. |
+| `apps/dashboard/src/features/neuro-commenting/*` | neuro-commenting | `modules/neuro-commenting` | migrated/removed | module route | Neuro-commenting UI now lives under the active module route surface. |
 | `apps/dashboard/src/features/proxy/*` | unknown/deferred | future proxy module | unknown/deferred | unchanged path | Outside current module set. |
 | `apps/dashboard/src/features/settings/*` | app-shell | app-shell | deferred | unchanged path | Settings remains route-level shell. |
 | `apps/dashboard/src/modules/account-editing/*` | account-editing | `modules/account-editing` | active owner | public index `modules/account-editing` | Owns account update API, profile draft hook, labels, types, and mappers. |
 | `apps/dashboard/src/modules/auth/*` | auth | `modules/auth` | active owner | public index `modules/auth` | Owns auth API, batches, hooks, bootstrap, types, and pure labels. |
+| `apps/dashboard/src/modules/neuro-commenting/*` | neuro-commenting | `modules/neuro-commenting` | active owner | public index `modules/neuro-commenting` | Owns campaign/target/comment/attempt/event API helpers, hooks, route module, and section components. |
 | `apps/dashboard/src/modules/warmup/*` | warmup | `modules/warmup` | active owner | public index `modules/warmup` | Most mature module; no ownership changes in this PR. |
-| `apps/dashboard/src/modules/shared/*` | shared | `modules/shared` | started | public index `modules/shared` | Owns feature-neutral UI/API helpers; must not import feature modules, and feature modules must use the public index except tracked legacy deep imports. |
+| `apps/dashboard/src/modules/shared/*` | shared | `modules/shared` | started | public index `modules/shared` | Owns feature-neutral UI, component, API, job, safety, GGR, quarantine, onboarding, and profile-completeness helpers; must not import feature modules, and feature modules must use the public index except tracked legacy deep imports. |
 
 ## Deferred Moves
 

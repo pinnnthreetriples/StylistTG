@@ -23,6 +23,7 @@ FRONTEND_BOUNDARY_POLICY_PATH = Path("docs/architecture/frontend-boundary-policy
 DEFAULT_JSON_OUTPUT = Path("docs/architecture/structure-audit.json")
 DEFAULT_MARKDOWN_OUTPUT = Path("docs/architecture/STRUCTURE_AUDIT.md")
 DEFAULT_DEBT_OUTPUT = Path("docs/architecture/architecture-debt-inventory.json")
+PUBLIC_FACADE_EXCEPTIONS_PATH = Path("docs/architecture/public-facade-exceptions.json")
 RESIDUAL_BOUNDARY_GUARD_PATH = Path("docs/architecture/residual-legacy-boundaries.json")
 RESIDUAL_BOUNDARY_CATEGORY = "residual_legacy_feature_boundary"
 
@@ -762,7 +763,11 @@ def _audit_modules(repo_root: Path) -> list[dict[str, Any]]:
         return modules
 
     for module_dir in sorted(
-        path for path in modules_root.iterdir() if path.is_dir() and path.name != "__pycache__"
+        path
+        for path in modules_root.iterdir()
+        if path.is_dir()
+        and path.name != "__pycache__"
+        and any(child.name != "__pycache__" for child in path.iterdir())
     ):
         module_name = module_dir.name
         files = sorted(
@@ -1803,6 +1808,7 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
     frontend_boundaries = _audit_frontend_boundaries(repo_root)
     forbidden_claims = _forbidden_runtime_claims(workflows, queues)
     debt_inventory = build_debt_inventory(repo_root, generated_at)
+    public_facade_exceptions = _read_json(repo_root / PUBLIC_FACADE_EXCEPTIONS_PATH)
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -1818,12 +1824,14 @@ def build_report(repo_root: Path, generated_at: str | None = None) -> dict[str, 
         "supporting_surfaces": _audit_supporting_surfaces(repo_root),
         "security_checks": _audit_security_checks(repo_root),
         "debt_inventory": debt_inventory,
+        "public_facade_exceptions": public_facade_exceptions,
         "findings": _findings(boundaries, forbidden_claims, debt_inventory, frontend_boundaries),
         "boundaries": boundaries,
         "workflows": workflows,
         "forbidden_runtime_claims": forbidden_claims,
         "recommended_next_phases": [
-            "Phase 6C+ - migrate residual legacy feature boundaries linked in #213-#225 before final GREEN architecture closure",
+            "Ongoing - keep architecture drift checks, wrapper audit, docs audit, and benchmark infrastructure healthy",
+            "Ongoing - keep accepted public facade exceptions visible in docs and validated by architecture tests",
             "Ongoing - keep structure audit and boundary checks required for structural changes",
         ],
     }
@@ -1947,7 +1955,7 @@ def _backend_modules_risk(residual_debt: list[dict[str, Any]]) -> str:
 
 def _backend_modules_followup(residual_debt: list[dict[str, Any]]) -> str:
     if residual_debt:
-        return "Use linked residual-boundary follow-ups before final GREEN closure."
+        return "Use linked residual-boundary follow-ups before restoring GREEN status."
     return "Keep module registry and inventory checks in sync."
 
 
@@ -2297,7 +2305,33 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ],
         ),
         "",
-        "## 9. Recommended Next Implementation Issues",
+        "## 9. Accepted Public Facade Exceptions",
+        "",
+        (
+            "`docs/architecture/public-facade-exceptions.json` lists every accepted "
+            "cross-module public facade exception with owner, rationale, and removal condition. "
+            "The architecture test `test_public_facade_exceptions_doc_matches_allowlist` "
+            "keeps this documentation synchronized with the import allowlist."
+        ),
+        "",
+        _markdown_table(
+            ("Owner", "Accepted exceptions"),
+            sorted(
+                (
+                    owner,
+                    sum(
+                        1
+                        for record in report["public_facade_exceptions"]["exceptions"]
+                        if record["owner"] == owner
+                    ),
+                )
+                for owner in {
+                    record["owner"] for record in report["public_facade_exceptions"]["exceptions"]
+                }
+            ),
+        ),
+        "",
+        "## 10. Recommended Next Implementation Issues",
         "",
         _markdown_table(
             ("Phase", "Scope"),

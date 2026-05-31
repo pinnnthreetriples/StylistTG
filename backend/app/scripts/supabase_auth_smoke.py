@@ -81,7 +81,7 @@ def run_supabase_auth_smoke(
 def _fetch_jwks(report: CheckReport, jwks_url: str, *, fetcher: JwksFetcher | None) -> None:
     try:
         if fetcher is None:
-            with urlopen(jwks_url, timeout=5.0) as response:
+            with urlopen(jwks_url, timeout=5.0) as response:  # nosec B310
                 payload = cast(JsonPayload, json.loads(response.read().decode("utf-8")))
         else:
             payload = fetcher(jwks_url)

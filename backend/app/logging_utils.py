@@ -204,7 +204,7 @@ class _BetterStackHandler(logging.Handler):
                 },
                 method="POST",
             )
-            with request.urlopen(req, timeout=self.timeout_seconds):
+            with request.urlopen(req, timeout=self.timeout_seconds):  # nosec B310
                 pass
         except Exception:
             self._disabled_until = monotonic() + self._failure_backoff_seconds

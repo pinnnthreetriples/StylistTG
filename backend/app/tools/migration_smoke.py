@@ -140,7 +140,7 @@ def _inspect_seeded(
             table_name: [
                 row[0]
                 for row in connection.execute(
-                    text(f"select workspace_id::text from {table_name}")
+                    text(f"select workspace_id::text from {table_name}")  # nosec B608
                 ).all()
             ]
             for table_name in AGGREGATE_TABLES
@@ -163,7 +163,9 @@ def _inspect_seeded(
 
 def _counts(connection: Connection, table_names: list[str]) -> dict[str, int]:
     return {
-        table_name: connection.execute(text(f"select count(*) from {table_name}")).scalar_one()
+        table_name: connection.execute(
+            text(f"select count(*) from {table_name}")  # nosec B608
+        ).scalar_one()
         for table_name in table_names
     }
 

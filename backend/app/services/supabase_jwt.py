@@ -128,7 +128,7 @@ def _load_jwks(url: str, *, timeout_seconds: float = 5.0, max_retries: int = 1) 
     last_error: Exception | None = None
     for _ in range(attempts):
         try:
-            with urlopen(url, timeout=timeout_seconds) as response:
+            with urlopen(url, timeout=timeout_seconds) as response:  # nosec B310
                 return json.loads(response.read().decode("utf-8"))
         except (OSError, URLError, json.JSONDecodeError) as exc:
             last_error = exc

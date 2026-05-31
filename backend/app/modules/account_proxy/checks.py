@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import socket
 from typing import Any, Protocol
 
@@ -66,32 +67,15 @@ def check_account_proxy(
     tdlib_verified_at = proxy.tdlib_verified_at
     if ok and _should_run_tdlib_proxy_check(config):
         check_scope = "tcp_tdlib"
-        tdlib_result = (
-            tdlib_checker or build_tdlib_readonly_validity_adapter(config)
-        ).check_account(account_id)
-        tdlib_status = str(tdlib_result.get("status") or "unknown")
-        if tdlib_status == "valid":
-            status = "tdlib_working"
-            tdlib_verified_at = now
-        elif tdlib_status in {
-            "reauth_required",
-            "awaiting_code",
-            "awaiting_password",
-            "unknown",
-        }:
-            status = "tdlib_unverified"
-            tdlib_error_code = str(tdlib_result.get("error_code") or tdlib_status)
-            tdlib_error_message = str(
-                tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status
+        status, tdlib_error_code, tdlib_error_message, tdlib_verified_at = (
+            _tdlib_proxy_check_state(
+                account_id,
+                config=config,
+                tdlib_checker=tdlib_checker,
+                now=now,
+                previous_verified_at=proxy.tdlib_verified_at,
             )
-        else:
-            status = "tdlib_failed"
-            tdlib_error_code = str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed")
-            tdlib_error_message = str(
-                tdlib_result.get("error")
-                or tdlib_result.get("runtime_health")
-                or "TDLib proxy check failed"
-            )
+        )
     proxy.status = status
     proxy.last_checked_at = now
     proxy.last_check_scope = check_scope
@@ -135,6 +119,39 @@ def _should_run_tdlib_proxy_check(config: Settings) -> bool:
         config.profile_execution_adapter == "tdlib"
         and config.tdlib_api_id
         and config.tdlib_api_hash
+    )
+
+
+def _tdlib_proxy_check_state(
+    account_id: str,
+    *,
+    config: Settings,
+    tdlib_checker: TdlibProxyChecker | None,
+    now: datetime,
+    previous_verified_at: datetime | None,
+) -> tuple[str, str | None, str | None, datetime | None]:
+    tdlib_result = (tdlib_checker or build_tdlib_readonly_validity_adapter(config)).check_account(
+        account_id
+    )
+    tdlib_status = str(tdlib_result.get("status") or "unknown")
+    if tdlib_status == "valid":
+        return "tdlib_working", None, None, now
+    if tdlib_status in {"reauth_required", "awaiting_code", "awaiting_password", "unknown"}:
+        return (
+            "tdlib_unverified",
+            str(tdlib_result.get("error_code") or tdlib_status),
+            str(tdlib_result.get("error") or tdlib_result.get("runtime_health") or tdlib_status),
+            previous_verified_at,
+        )
+    return (
+        "tdlib_failed",
+        str(tdlib_result.get("error_code") or "tdlib_proxy_check_failed"),
+        str(
+            tdlib_result.get("error")
+            or tdlib_result.get("runtime_health")
+            or "TDLib proxy check failed"
+        ),
+        previous_verified_at,
     )
 
 

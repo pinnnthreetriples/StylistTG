@@ -206,130 +206,34 @@ def _process_one_dispatch(
 
     if pending_actions:
         for action_type in pending_actions:
-            action_context: dict[str, Any] = {}
-            if is_live:
-                resolution = _resolve_action_context(
-                    session,
-                    warmup_session=warmup_session,
-                    action_type=action_type,
-                    rng=rng,
-                    text_provider=text_provider,
-                    now=now,
-                )
-                if resolution.skip_reason is not None:
-                    write_warmup_event(
-                        session,
-                        warmup_session,
-                        "task_skipped",
-                        {
-                            "day": warmup_session.current_day,
-                            "action_type": action_type,
-                            "execution_mode": warmup_session.execution_mode,
-                            "reason": resolution.skip_reason,
-                            "metadata": dict(resolution.metadata),
-                        },
-                    )
-                    continue
-                action_context = resolution.context
-                if action_type in WRITE_ACTION_TYPES and not adapter.supports_action(action_type):
-                    # write-уровень не разрешён конфигом → лог + skip без падения
-                    write_warmup_event(
-                        session,
-                        warmup_session,
-                        "task_skipped",
-                        {
-                            "day": warmup_session.current_day,
-                            "action_type": action_type,
-                            "execution_mode": warmup_session.execution_mode,
-                            "reason": "write_action_not_enabled",
-                        },
-                    )
-                    continue
-                result = _execute_live_action(
-                    adapter,
-                    warmup_session=warmup_session,
-                    action_type=action_type,
-                    context=action_context,
-                )
-            else:
-                result = WarmupActionResult(
-                    status="ok",
-                    action_type=action_type,
-                    metadata={"simulated": True},
-                )
+            action_result = _dispatch_action(
+                session,
+                warmup_session=warmup_session,
+                action_type=action_type,
+                is_live=is_live,
+                adapter=adapter,
+                rng=rng,
+                text_provider=text_provider,
+                now=now,
+            )
+            if action_result is None:
+                continue
+            result, action_context = action_result
             if not result.is_ok:
                 failed_actions.append(
-                    {
-                        "action_type": action_type,
-                        "status": result.status,
-                        "error_code": result.error_code,
-                        "error_class": result.error_class,
-                        "retry_after_seconds": result.retry_after_seconds,
-                        "metadata": dict(result.metadata),
-                    }
-                )
-                write_warmup_event(
-                    session,
-                    warmup_session,
-                    "task_failed",
-                    {
-                        "day": warmup_session.current_day,
-                        "action_type": action_type,
-                        "execution_mode": warmup_session.execution_mode,
-                        "status": result.status,
-                        "error_code": result.error_code,
-                        "error_class": result.error_class,
-                        "retry_after_seconds": result.retry_after_seconds,
-                        "metadata": dict(result.metadata),
-                    },
+                    _record_dispatch_action_failure(session, warmup_session, action_type, result)
                 )
                 continue
             counters_for_day[action_type] = counters_for_day.get(action_type, 0) + 1
             performed_actions.append(action_type)
-            # Phase 4 mutual contact recording for successful p2p_send
-            if action_type == "p2p_send" and is_live:
-                receiver_account_id = action_context.get("peer_account_id")
-                if receiver_account_id:
-                    try:
-                        contact_summary = record_p2p_contact(
-                            session,
-                            workspace_id=warmup_session.workspace_id,
-                            sender_account_id=warmup_session.account_id,
-                            receiver_account_id=str(receiver_account_id),
-                            now=now,
-                        )
-                        write_warmup_event(
-                            session,
-                            warmup_session,
-                            "p2p_contact_recorded",
-                            {
-                                "day": warmup_session.current_day,
-                                "receiver_account_id": receiver_account_id,
-                                **contact_summary,
-                            },
-                        )
-                    except ValueError as exc:
-                        write_warmup_event(
-                            session,
-                            warmup_session,
-                            "p2p_contact_recording_failed",
-                            {
-                                "day": warmup_session.current_day,
-                                "receiver_account_id": receiver_account_id,
-                                "error": str(exc),
-                            },
-                        )
-            write_warmup_event(
+            _record_dispatch_action_success(
                 session,
                 warmup_session,
-                "session_action_executed" if is_live else "session_action_simulated",
-                {
-                    "day": warmup_session.current_day,
-                    "action_type": action_type,
-                    "execution_mode": warmup_session.execution_mode,
-                    "simulated": not is_live,
-                    "metadata": dict(result.metadata),
-                },
+                action_type=action_type,
+                result=result,
+                action_context=action_context,
+                is_live=is_live,
+                now=now,
             )
         if performed_actions:
             warmup_session.daily_counters_json = _persist_day_counters(
@@ -432,6 +336,185 @@ def _process_one_dispatch(
     warmup_session.updated_at = now
     session.flush()
     return True
+
+
+def _dispatch_action(
+    session: Session,
+    *,
+    warmup_session: WarmupSession,
+    action_type: str,
+    is_live: bool,
+    adapter: WarmupTdlibAdapter,
+    rng: random.Random,
+    text_provider: WarmupTextProvider,
+    now: datetime,
+) -> tuple[WarmupActionResult, dict[str, Any]] | None:
+    if not is_live:
+        return WarmupActionResult(
+            status="ok", action_type=action_type, metadata={"simulated": True}
+        ), {}
+    resolution = _resolve_action_context(
+        session,
+        warmup_session=warmup_session,
+        action_type=action_type,
+        rng=rng,
+        text_provider=text_provider,
+        now=now,
+    )
+    if resolution.skip_reason is not None:
+        _write_dispatch_skip(session, warmup_session, action_type, resolution)
+        return None
+    if action_type in WRITE_ACTION_TYPES and not adapter.supports_action(action_type):
+        _write_write_action_disabled_skip(session, warmup_session, action_type)
+        return None
+    result = _execute_live_action(
+        adapter,
+        warmup_session=warmup_session,
+        action_type=action_type,
+        context=resolution.context,
+    )
+    return result, resolution.context
+
+
+def _write_dispatch_skip(
+    session: Session,
+    warmup_session: WarmupSession,
+    action_type: str,
+    resolution: "_ActionContextResolution",
+) -> None:
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_skipped",
+        {
+            "day": warmup_session.current_day,
+            "action_type": action_type,
+            "execution_mode": warmup_session.execution_mode,
+            "reason": resolution.skip_reason,
+            "metadata": dict(resolution.metadata),
+        },
+    )
+
+
+def _write_write_action_disabled_skip(
+    session: Session, warmup_session: WarmupSession, action_type: str
+) -> None:
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_skipped",
+        {
+            "day": warmup_session.current_day,
+            "action_type": action_type,
+            "execution_mode": warmup_session.execution_mode,
+            "reason": "write_action_not_enabled",
+        },
+    )
+
+
+def _record_dispatch_action_failure(
+    session: Session,
+    warmup_session: WarmupSession,
+    action_type: str,
+    result: WarmupActionResult,
+) -> dict[str, Any]:
+    failed_action = {
+        "action_type": action_type,
+        "status": result.status,
+        "error_code": result.error_code,
+        "error_class": result.error_class,
+        "retry_after_seconds": result.retry_after_seconds,
+        "metadata": dict(result.metadata),
+    }
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_failed",
+        {
+            "day": warmup_session.current_day,
+            "action_type": action_type,
+            "execution_mode": warmup_session.execution_mode,
+            "status": result.status,
+            "error_code": result.error_code,
+            "error_class": result.error_class,
+            "retry_after_seconds": result.retry_after_seconds,
+            "metadata": dict(result.metadata),
+        },
+    )
+    return failed_action
+
+
+def _record_dispatch_action_success(
+    session: Session,
+    warmup_session: WarmupSession,
+    *,
+    action_type: str,
+    result: WarmupActionResult,
+    action_context: dict[str, Any],
+    is_live: bool,
+    now: datetime,
+) -> None:
+    _record_p2p_contact_if_needed(
+        session,
+        warmup_session,
+        action_type=action_type,
+        action_context=action_context,
+        is_live=is_live,
+        now=now,
+    )
+    write_warmup_event(
+        session,
+        warmup_session,
+        "session_action_executed" if is_live else "session_action_simulated",
+        {
+            "day": warmup_session.current_day,
+            "action_type": action_type,
+            "execution_mode": warmup_session.execution_mode,
+            "simulated": not is_live,
+            "metadata": dict(result.metadata),
+        },
+    )
+
+
+def _record_p2p_contact_if_needed(
+    session: Session,
+    warmup_session: WarmupSession,
+    *,
+    action_type: str,
+    action_context: dict[str, Any],
+    is_live: bool,
+    now: datetime,
+) -> None:
+    if action_type != "p2p_send" or not is_live:
+        return
+    receiver_account_id = action_context.get("peer_account_id")
+    if not receiver_account_id:
+        return
+    try:
+        contact_summary = record_p2p_contact(
+            session,
+            workspace_id=warmup_session.workspace_id,
+            sender_account_id=warmup_session.account_id,
+            receiver_account_id=str(receiver_account_id),
+            now=now,
+        )
+        write_warmup_event(
+            session,
+            warmup_session,
+            "p2p_contact_recorded",
+            {"day": warmup_session.current_day, "receiver_account_id": receiver_account_id, **contact_summary},
+        )
+    except ValueError as exc:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "p2p_contact_recording_failed",
+            {
+                "day": warmup_session.current_day,
+                "receiver_account_id": receiver_account_id,
+                "error": str(exc),
+            },
+        )
 
 
 def _pause_if_blocked_by_safety_gate(

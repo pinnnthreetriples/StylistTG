@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportMissingModuleSource=false
+
 from collections.abc import Generator
 from contextlib import contextmanager, nullcontext
 import hashlib

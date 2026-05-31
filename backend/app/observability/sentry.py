@@ -179,34 +179,47 @@ def _is_sensitive_event_key(key: str) -> bool:
         return True
     if not words:
         return False
-    if compact in {"sessionid", "sessiontoken", "sessioncookie"}:
+    if _is_general_sensitive_key(compact, words, word_set):
         return True
-    if any(word in word_set for word in {"password", "token", "jwt", "secret"}):
+    if _is_tdlib_sensitive_key(word_set):
         return True
-    if _contains_word_sequence(words, ("api", "hash")):
+    if _is_telegram_sensitive_key(word_set):
         return True
-    if _contains_word_sequence(words, ("auth", "code")):
-        return True
-    if _contains_word_sequence(words, ("two", "factor", "password")):
-        return True
-    if "phone" in word_set:
-        return True
-    if "dsn" in word_set and words[-1] == "dsn":
-        return True
-    if "tdlib" in word_set and word_set.intersection(
-        {"path", "root", "directory", "database", "files", "session", "library"}
-    ):
-        return True
-    if "telegram" in word_set and word_set.intersection(
-        {"api", "hash", "phone", "session", "token", "password"}
-    ):
-        return True
-    if word_set.intersection({"s3", "b2", "supabase"}) and word_set.intersection(
-        {"access", "key", "secret", "token", "password", "role", "jwt"}
-    ):
+    if _is_provider_sensitive_key(word_set):
         return True
     return is_sensitive_key(key) and not any(
         safe_fragment in compact for safe_fragment in ("statuscode", "errorcode", "sessioncount")
+    )
+
+
+def _is_general_sensitive_key(compact: str, words: list[str], word_set: set[str]) -> bool:
+    return (
+        compact in {"sessionid", "sessiontoken", "sessioncookie"}
+        or any(word in word_set for word in {"password", "token", "jwt", "secret"})
+        or _contains_word_sequence(words, ("api", "hash"))
+        or _contains_word_sequence(words, ("auth", "code"))
+        or _contains_word_sequence(words, ("two", "factor", "password"))
+        or "phone" in word_set
+        or ("dsn" in word_set and words[-1] == "dsn")
+    )
+
+
+def _is_tdlib_sensitive_key(word_set: set[str]) -> bool:
+    return "tdlib" in word_set and bool(
+        word_set.intersection({"path", "root", "directory", "database", "files", "session", "library"})
+    )
+
+
+def _is_telegram_sensitive_key(word_set: set[str]) -> bool:
+    return "telegram" in word_set and bool(
+        word_set.intersection({"api", "hash", "phone", "session", "token", "password"})
+    )
+
+
+def _is_provider_sensitive_key(word_set: set[str]) -> bool:
+    return bool(
+        word_set.intersection({"s3", "b2", "supabase"})
+        and word_set.intersection({"access", "key", "secret", "token", "password", "role", "jwt"})
     )
 
 

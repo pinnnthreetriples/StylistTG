@@ -456,6 +456,7 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
             "backend/app/services/tdlib*.py",
             "backend/app/services/telegram_auth_sessions.py",
             "backend/app/services/tenant_scope.py",
+            "backend/app/services/url_safety.py",
             "backend/app/services/__init__.py",
             "backend/app/services/users.py",
             "backend/app/services/workspace_onboarding.py",
@@ -1085,11 +1086,7 @@ def _module_name_from_deep_import_key(key: str) -> str | None:
 def _audit_frontend_boundaries(repo_root: Path) -> dict[str, Any]:
     policy = _read_frontend_boundary_policy(repo_root)
     modules_root = repo_root / FRONTEND_MODULES_ROOT
-    module_names = (
-        sorted(path.name for path in modules_root.iterdir() if path.is_dir())
-        if modules_root.exists()
-        else []
-    )
+    module_names = _frontend_module_names(modules_root)
     module_name_set = set(module_names)
     shared_module = str(policy.get("shared_module") or "shared")
     feature_modules = [module for module in module_names if module != shared_module]
@@ -1113,45 +1110,19 @@ def _audit_frontend_boundaries(repo_root: Path) -> dict[str, Any]:
         for item in policy.get("allowed_app_deep_module_imports", [])
     )
 
-    feature_to_feature_deep_imports: list[str] = []
-    feature_to_shared_deep_imports: list[str] = []
-    shared_to_feature_deep_imports: list[str] = []
-    app_deep_module_imports: list[str] = []
-
-    for path in _frontend_source_files(repo_root):
-        try:
-            source_module = path.relative_to(modules_root).parts[0]
-            inside_modules = True
-        except ValueError:
-            source_module = None
-            inside_modules = False
-
-        for import_specifier in _frontend_import_specifiers(path):
-            key = _frontend_deep_module_import_key(
-                repo_root, path, import_specifier, module_name_set
-            )
-            if key is None:
-                continue
-            target_module = _module_name_from_deep_import_key(key)
-            if inside_modules:
-                if source_module == shared_module and target_module in feature_modules:
-                    shared_to_feature_deep_imports.append(key)
-                elif source_module in feature_modules and target_module == shared_module:
-                    feature_to_shared_deep_imports.append(key)
-                elif (
-                    source_module in feature_modules
-                    and target_module in feature_modules
-                    and target_module != source_module
-                ):
-                    feature_to_feature_deep_imports.append(key)
-            else:
-                app_deep_module_imports.append(key)
+    deep_imports = _collect_frontend_deep_imports(
+        repo_root,
+        modules_root=modules_root,
+        module_name_set=module_name_set,
+        shared_module=shared_module,
+        feature_modules=feature_modules,
+    )
 
     unexpected_shared_deep_imports = sorted(
-        set(feature_to_shared_deep_imports) - set(allowed_shared_deep_imports)
+        set(deep_imports["feature_to_shared"]) - set(allowed_shared_deep_imports)
     )
     unexpected_app_deep_module_imports = sorted(
-        set(app_deep_module_imports) - set(allowed_app_deep_module_imports)
+        set(deep_imports["app"]) - set(allowed_app_deep_module_imports)
     )
     return {
         "policy_path": FRONTEND_BOUNDARY_POLICY_PATH.as_posix(),
@@ -1165,23 +1136,92 @@ def _audit_frontend_boundaries(repo_root: Path) -> dict[str, Any]:
         "allowed_app_deep_module_imports": allowed_app_deep_module_imports,
         "allowed_shared_deep_import_details": allowed_shared_deep_import_details,
         "allowed_app_deep_module_import_details": allowed_app_deep_module_import_details,
-        "feature_to_feature_deep_imports": sorted(set(feature_to_feature_deep_imports)),
-        "feature_to_shared_deep_imports": sorted(set(feature_to_shared_deep_imports)),
-        "shared_to_feature_deep_imports": sorted(set(shared_to_feature_deep_imports)),
-        "app_deep_module_imports": sorted(set(app_deep_module_imports)),
+        "feature_to_feature_deep_imports": sorted(set(deep_imports["feature_to_feature"])),
+        "feature_to_shared_deep_imports": sorted(set(deep_imports["feature_to_shared"])),
+        "shared_to_feature_deep_imports": sorted(set(deep_imports["shared_to_feature"])),
+        "app_deep_module_imports": sorted(set(deep_imports["app"])),
         "unexpected_shared_deep_imports": unexpected_shared_deep_imports,
         "unexpected_app_deep_module_imports": unexpected_app_deep_module_imports,
         "deep_import_count": len(
             set(
                 [
-                    *feature_to_feature_deep_imports,
-                    *feature_to_shared_deep_imports,
-                    *shared_to_feature_deep_imports,
-                    *app_deep_module_imports,
+                    *deep_imports["feature_to_feature"],
+                    *deep_imports["feature_to_shared"],
+                    *deep_imports["shared_to_feature"],
+                    *deep_imports["app"],
                 ]
             )
         ),
     }
+
+
+def _frontend_module_names(modules_root: Path) -> list[str]:
+    if not modules_root.exists():
+        return []
+    return sorted(path.name for path in modules_root.iterdir() if path.is_dir())
+
+
+def _collect_frontend_deep_imports(
+    repo_root: Path,
+    *,
+    modules_root: Path,
+    module_name_set: set[str],
+    shared_module: str,
+    feature_modules: list[str],
+) -> dict[str, list[str]]:
+    deep_imports: dict[str, list[str]] = {
+        "feature_to_feature": [],
+        "feature_to_shared": [],
+        "shared_to_feature": [],
+        "app": [],
+    }
+    for path in _frontend_source_files(repo_root):
+        source_module = _frontend_source_module(path, modules_root)
+        for import_specifier in _frontend_import_specifiers(path):
+            key = _frontend_deep_module_import_key(
+                repo_root, path, import_specifier, module_name_set
+            )
+            _append_frontend_deep_import(
+                deep_imports,
+                key=key,
+                source_module=source_module,
+                shared_module=shared_module,
+                feature_modules=feature_modules,
+            )
+    return deep_imports
+
+
+def _frontend_source_module(path: Path, modules_root: Path) -> str | None:
+    try:
+        return path.relative_to(modules_root).parts[0]
+    except ValueError:
+        return None
+
+
+def _append_frontend_deep_import(
+    deep_imports: dict[str, list[str]],
+    *,
+    key: str | None,
+    source_module: str | None,
+    shared_module: str,
+    feature_modules: list[str],
+) -> None:
+    if key is None:
+        return
+    if source_module is None:
+        deep_imports["app"].append(key)
+        return
+    target_module = _module_name_from_deep_import_key(key)
+    if source_module == shared_module and target_module in feature_modules:
+        deep_imports["shared_to_feature"].append(key)
+    elif source_module in feature_modules and target_module == shared_module:
+        deep_imports["feature_to_shared"].append(key)
+    elif (
+        source_module in feature_modules
+        and target_module in feature_modules
+        and target_module != source_module
+    ):
+        deep_imports["feature_to_feature"].append(key)
 
 
 def _audit_supporting_surfaces(repo_root: Path) -> dict[str, Any]:
@@ -1514,25 +1554,14 @@ def _backend_overall_status(debt_inventory: dict[str, Any]) -> str:
     return "GREEN"
 
 
-def _findings(
-    boundaries: dict[str, Any],
-    forbidden_claims: dict[str, list[str]],
-    debt_inventory: dict[str, Any],
-    frontend_boundaries: dict[str, Any],
-) -> list[dict[str, str]]:
-    canonical_modules = sorted(
-        entry["owner"]
-        for entry in debt_inventory["entries"]
-        if entry["category"] == "canonical_feature_module"
-    )
-    summary = debt_inventory["summary"]
-    inventory_classification_issues = [
-        *debt_inventory["untracked_backend_app_python_files"],
-        *debt_inventory["overlapping_backend_app_python_files"].keys(),
-    ]
-    residual_guard_violations = debt_inventory["residual_boundary_guard"]["violations"]
+def _structure_001_finding(
+    canonical_modules: list[str],
+    summary: dict[str, Any],
+    inventory_classification_issues: list[str],
+    residual_guard_violations: list[str],
+) -> Finding:
     if inventory_classification_issues or residual_guard_violations:
-        structure_001 = Finding(
+        return Finding(
             id="STRUCTURE-001",
             severity="high",
             status="open",
@@ -1547,8 +1576,8 @@ def _findings(
             recommendation="Classify each backend/app production file exactly once and update residual-boundary governance only with related issue, rationale, removal condition, and verification scope.",
             suggested_phase="next",
         )
-    elif summary["high_risk_unmanaged_feature_surface_count"]:
-        structure_001 = Finding(
+    if summary["high_risk_unmanaged_feature_surface_count"]:
+        return Finding(
             id="STRUCTURE-001",
             severity="high",
             status="open",
@@ -1563,11 +1592,8 @@ def _findings(
             recommendation="Migrate or explicitly reclassify high-risk unmanaged feature surfaces before claiming backend health.",
             suggested_phase="next",
         )
-    elif (
-        summary["unmanaged_feature_surface_count"]
-        or summary["residual_legacy_feature_boundary_count"]
-    ):
-        structure_001 = Finding(
+    if summary["unmanaged_feature_surface_count"] or summary["residual_legacy_feature_boundary_count"]:
+        return Finding(
             id="STRUCTURE-001",
             severity="medium",
             status="open",
@@ -1584,21 +1610,27 @@ def _findings(
             recommendation="Migrate residual legacy feature boundaries through their linked follow-up issues or reduce old paths to behavior-free wrappers before claiming backend GREEN.",
             suggested_phase="Phase 6C+",
         )
-    else:
-        structure_001 = Finding(
-            id="STRUCTURE-001",
-            severity="info",
-            status="accepted",
-            area="backend-modules",
-            finding="Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
-            evidence=f"app.modules.registry imports {', '.join(canonical_modules)}; no unmanaged feature debt is open.",
-            risk="Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
-            recommendation="Keep structure audit drift checks required for structural changes.",
-            suggested_phase="ongoing",
-        )
+    return Finding(
+        id="STRUCTURE-001",
+        severity="info",
+        status="accepted",
+        area="backend-modules",
+        finding="Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
+        evidence=f"app.modules.registry imports {', '.join(canonical_modules)}; no unmanaged feature debt is open.",
+        risk="Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
+        recommendation="Keep structure audit drift checks required for structural changes.",
+        suggested_phase="ongoing",
+    )
 
+
+def _structure_008_finding(
+    debt_inventory: dict[str, Any],
+    summary: dict[str, Any],
+    inventory_classification_issues: list[str],
+    residual_guard_violations: list[str],
+) -> Finding:
     if inventory_classification_issues or residual_guard_violations:
-        structure_008 = Finding(
+        return Finding(
             id="STRUCTURE-008",
             severity="high",
             status="open",
@@ -1620,11 +1652,8 @@ def _findings(
             recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked, overlapping, or unapproved residual-boundary growth.",
             suggested_phase="next",
         )
-    elif (
-        summary["unmanaged_feature_surface_count"]
-        or summary["residual_legacy_feature_boundary_count"]
-    ):
-        structure_008 = Finding(
+    if summary["unmanaged_feature_surface_count"] or summary["residual_legacy_feature_boundary_count"]:
+        return Finding(
             id="STRUCTURE-008",
             severity="high" if summary["high_risk_unmanaged_feature_surface_count"] else "medium",
             status="open",
@@ -1635,20 +1664,21 @@ def _findings(
             recommendation="Keep residual boundaries open, linked to migration issues, and guarded until migrated or reduced to behavior-free wrappers.",
             suggested_phase="Phase 6C+",
         )
-    else:
-        structure_008 = Finding(
-            id="STRUCTURE-008",
-            severity="info",
-            status="accepted",
-            area="unmanaged-backend-surfaces",
-            finding="Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
-            evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
-            risk="Low while inventory checks keep production files classified.",
-            recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
-            suggested_phase="ongoing",
-        )
+    return Finding(
+        id="STRUCTURE-008",
+        severity="info",
+        status="accepted",
+        area="unmanaged-backend-surfaces",
+        finding="Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
+        evidence=json.dumps(debt_inventory["summary"], sort_keys=True),
+        risk="Low while inventory checks keep production files classified.",
+        recommendation="Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+        suggested_phase="ongoing",
+    )
 
-    frontend_boundary_issues = [
+
+def _frontend_boundary_issues(frontend_boundaries: dict[str, Any]) -> list[str]:
+    issues = [
         *frontend_boundaries["missing_indexes"],
         *frontend_boundaries["feature_to_feature_deep_imports"],
         *frontend_boundaries["shared_to_feature_deep_imports"],
@@ -1656,10 +1686,16 @@ def _findings(
         *frontend_boundaries["unexpected_app_deep_module_imports"],
     ]
     if not frontend_boundaries["module_boundary_test"]:
-        frontend_boundary_issues.append("module boundary test is missing")
+        issues.append("module boundary test is missing")
     if frontend_boundaries["feature_modules"] != frontend_boundaries["expected_feature_modules"]:
-        frontend_boundary_issues.append("feature module set differs from policy")
-    frontend_finding = Finding(
+        issues.append("feature module set differs from policy")
+    return issues
+
+
+def _frontend_boundary_finding(
+    frontend_boundaries: dict[str, Any], frontend_boundary_issues: list[str]
+) -> Finding:
+    return Finding(
         id="STRUCTURE-002",
         severity="high" if frontend_boundary_issues else "info",
         status="open" if frontend_boundary_issues else "accepted",
@@ -1697,6 +1733,36 @@ def _findings(
         ),
         suggested_phase="next" if frontend_boundary_issues else "ongoing",
     )
+
+
+def _findings(
+    boundaries: dict[str, Any],
+    forbidden_claims: dict[str, list[str]],
+    debt_inventory: dict[str, Any],
+    frontend_boundaries: dict[str, Any],
+) -> list[dict[str, str]]:
+    canonical_modules = sorted(
+        entry["owner"]
+        for entry in debt_inventory["entries"]
+        if entry["category"] == "canonical_feature_module"
+    )
+    summary = debt_inventory["summary"]
+    inventory_classification_issues = [
+        *debt_inventory["untracked_backend_app_python_files"],
+        *debt_inventory["overlapping_backend_app_python_files"].keys(),
+    ]
+    residual_guard_violations = debt_inventory["residual_boundary_guard"]["violations"]
+    structure_001 = _structure_001_finding(
+        canonical_modules,
+        summary,
+        inventory_classification_issues,
+        residual_guard_violations,
+    )
+    structure_008 = _structure_008_finding(
+        debt_inventory, summary, inventory_classification_issues, residual_guard_violations
+    )
+    frontend_boundary_issues = _frontend_boundary_issues(frontend_boundaries)
+    frontend_finding = _frontend_boundary_finding(frontend_boundaries, frontend_boundary_issues)
 
     findings = [
         structure_001,
@@ -1972,44 +2038,7 @@ def _unmanaged_debt_followup(unmanaged_debt: list[dict[str, Any]]) -> str:
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
-    debt_inventory = report["debt_inventory"]
-    debt_entries = debt_inventory["entries"]
-    debt_summary = debt_inventory["summary"]
-    modules = report["modules"]
-    runtime_roles = report["runtime_roles"]
-    findings = report["findings"]
-    frontend_boundaries = report["frontend_boundaries"]
-    frontend_boundary_issues = [
-        *frontend_boundaries["missing_indexes"],
-        *frontend_boundaries["feature_to_feature_deep_imports"],
-        *frontend_boundaries["shared_to_feature_deep_imports"],
-        *frontend_boundaries["unexpected_shared_deep_imports"],
-        *frontend_boundaries["unexpected_app_deep_module_imports"],
-    ]
-    high_debt = [
-        entry
-        for entry in debt_entries
-        if entry["category"] == "unmanaged_feature_surface" and entry["severity"] == "high"
-    ]
-    unmanaged_debt = [
-        entry for entry in debt_entries if entry["category"] == "unmanaged_feature_surface"
-    ]
-    residual_debt = [
-        entry for entry in debt_entries if entry["category"] == RESIDUAL_BOUNDARY_CATEGORY
-    ]
-    unmanaged_status = "RED" if high_debt else "YELLOW" if unmanaged_debt else "GREEN"
-    unmanaged_evidence = (
-        ", ".join(entry["owner"] for entry in high_debt)
-        if high_debt
-        else ", ".join(entry["owner"] for entry in unmanaged_debt)
-        or "No untracked unmanaged feature surfaces; residual debt is reported separately."
-    )
-    residual_status = "YELLOW" if residual_debt else "GREEN"
-    residual_evidence = (
-        ", ".join(entry["owner"] for entry in residual_debt)
-        or "No residual legacy feature boundaries."
-    )
-    residual_guard_violations = report["debt_inventory"]["residual_boundary_guard"]["violations"]
+    context = _markdown_report_context(report)
     lines = [
         "# Structure Audit",
         "",
@@ -2023,118 +2052,239 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "- `YELLOW`: transitional but acceptable with documented constraints.",
         "- `RED`: structural risk or contradictory boundary that needs immediate follow-up.",
         "",
+        *_markdown_executive_summary_section(report, context),
+        *_markdown_backend_registry_section(context),
+        *_markdown_ownership_inventory_section(context),
+        *_markdown_required_domains_section(context),
+        *_markdown_runtime_section(context),
+        *_markdown_guard_status_section(report, context),
+        *_markdown_frontend_policy_section(context),
+        *_markdown_risk_register_section(context),
+        *_markdown_facade_exceptions_section(report),
+        *_markdown_next_phases_section(report),
+    ]
+    return "\n".join(lines)
+
+
+def _markdown_report_context(report: dict[str, Any]) -> dict[str, Any]:
+    debt_inventory = report["debt_inventory"]
+    debt_entries = debt_inventory["entries"]
+    frontend_boundaries = report["frontend_boundaries"]
+    high_debt = _debt_entries(debt_entries, category="unmanaged_feature_surface", severity="high")
+    unmanaged_debt = _debt_entries(debt_entries, category="unmanaged_feature_surface")
+    residual_debt = _debt_entries(debt_entries, category=RESIDUAL_BOUNDARY_CATEGORY)
+    return {
+        "debt_inventory": debt_inventory,
+        "debt_entries": debt_entries,
+        "debt_summary": debt_inventory["summary"],
+        "modules": report["modules"],
+        "runtime_roles": report["runtime_roles"],
+        "findings": report["findings"],
+        "frontend_boundaries": frontend_boundaries,
+        "frontend_boundary_issues": _frontend_boundary_issues(frontend_boundaries),
+        "high_debt": high_debt,
+        "unmanaged_debt": unmanaged_debt,
+        "residual_debt": residual_debt,
+        "residual_guard_violations": debt_inventory["residual_boundary_guard"]["violations"],
+    }
+
+
+def _debt_entries(
+    entries: list[dict[str, Any]], *, category: str, severity: str | None = None
+) -> list[dict[str, Any]]:
+    return [
+        entry
+        for entry in entries
+        if entry["category"] == category and (severity is None or entry["severity"] == severity)
+    ]
+
+
+def _markdown_executive_summary_section(
+    report: dict[str, Any], context: dict[str, Any]
+) -> list[str]:
+    return [
         "## 1. Executive Summary",
         "",
         _markdown_table(
             ("Area", "Status", "Evidence", "Risk", "Recommended follow-up"),
-            [
-                (
-                    "Backend overall",
-                    report["backend_overall_status"],
-                    _backend_overall_evidence(debt_summary, debt_inventory),
-                    _backend_overall_risk(debt_summary, debt_inventory),
-                    _backend_overall_followup(debt_summary, debt_inventory),
-                ),
-                (
-                    "Backend modules",
-                    _backend_modules_status([*unmanaged_debt, *residual_debt]),
-                    "Registered modules: "
-                    + ", ".join(module["name"] for module in modules if module["registered"]),
-                    _backend_modules_risk([*unmanaged_debt, *residual_debt]),
-                    _backend_modules_followup([*unmanaged_debt, *residual_debt]),
-                ),
-                (
-                    "Unmanaged feature debt",
-                    unmanaged_status,
-                    unmanaged_evidence,
-                    _unmanaged_debt_risk(unmanaged_debt),
-                    _unmanaged_debt_followup(unmanaged_debt),
-                ),
-                (
-                    "Residual legacy feature boundaries",
-                    residual_status,
-                    residual_evidence,
-                    (
-                        "Feature behavior remains outside canonical modules and must stay visible."
-                        if residual_debt
-                        else "Low while no residual feature behavior remains outside canonical modules."
-                    ),
-                    (
-                        "Migrate through linked follow-up issues or reduce legacy paths to wrappers."
-                        if residual_debt
-                        else "Keep residual-boundary guard active."
-                    ),
-                ),
-                (
-                    "Residual boundary non-growth guard",
-                    "RED" if residual_guard_violations else "GREEN",
-                    "<br>".join(residual_guard_violations)
-                    or (
-                        "Public-surface/non-growth guard covers current residual files, "
-                        "paths, and public route/function/class fingerprints."
-                    ),
-                    (
-                        "Residual feature boundaries can grow silently if the manifest is stale."
-                        if residual_guard_violations
-                        else (
-                            "Low for public-surface growth only; behavior changes inside "
-                            "existing residual files still require migration or an approved "
-                            "architecture exception."
-                        )
-                    ),
-                    (
-                        "Use migration issues for behavior changes; a manifest update alone "
-                        "does not replace canonical migration."
-                    ),
-                ),
-                (
-                    "Generated artifacts",
-                    "GREEN",
-                    "JSON, Markdown, and debt inventory render from one report pipeline.",
-                    "Low while drift tests compare committed artifacts to deterministic renderers.",
-                    "Run `python backend/scripts/structure_audit.py --check` after structural changes.",
-                ),
-                (
-                    "Frontend ownership",
-                    "RED" if frontend_boundary_issues else "GREEN",
-                    "Feature modules: "
-                    + ", ".join(frontend_boundaries["feature_modules"])
-                    + "; accepted app compatibility deep imports: "
-                    + str(len(frontend_boundaries["app_deep_module_imports"]))
-                    + ".",
-                    (
-                        "Frontend module boundary violations are present."
-                        if frontend_boundary_issues
-                        else "Frontend public APIs are enforced; compatibility imports are explicit and bounded."
-                    ),
-                    (
-                        "Remove unexpected deep imports or record them in the frontend boundary policy."
-                        if frontend_boundary_issues
-                        else "Keep frontend boundary policy checks required for module or wrapper changes."
-                    ),
-                ),
-            ],
+            _markdown_executive_summary_rows(report, context),
         ),
         "",
+    ]
+
+
+def _markdown_executive_summary_rows(
+    report: dict[str, Any], context: dict[str, Any]
+) -> list[tuple[str, str, str, str, str]]:
+    debt_summary = context["debt_summary"]
+    debt_inventory = context["debt_inventory"]
+    return [
+        (
+            "Backend overall",
+            report["backend_overall_status"],
+            _backend_overall_evidence(debt_summary, debt_inventory),
+            _backend_overall_risk(debt_summary, debt_inventory),
+            _backend_overall_followup(debt_summary, debt_inventory),
+        ),
+        _backend_modules_summary_row(context),
+        _unmanaged_feature_summary_row(context),
+        _residual_feature_summary_row(context),
+        _residual_guard_summary_row(context),
+        (
+            "Generated artifacts",
+            "GREEN",
+            "JSON, Markdown, and debt inventory render from one report pipeline.",
+            "Low while drift tests compare committed artifacts to deterministic renderers.",
+            "Run `python backend/scripts/structure_audit.py --check` after structural changes.",
+        ),
+        _frontend_ownership_summary_row(context),
+    ]
+
+
+def _backend_modules_summary_row(context: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    debt = [*context["unmanaged_debt"], *context["residual_debt"]]
+    modules = context["modules"]
+    return (
+        "Backend modules",
+        _backend_modules_status(debt),
+        "Registered modules: " + ", ".join(module["name"] for module in modules if module["registered"]),
+        _backend_modules_risk(debt),
+        _backend_modules_followup(debt),
+    )
+
+
+def _unmanaged_feature_summary_row(context: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    high_debt = context["high_debt"]
+    unmanaged_debt = context["unmanaged_debt"]
+    status = "RED" if high_debt else "YELLOW" if unmanaged_debt else "GREEN"
+    evidence = (
+        ", ".join(entry["owner"] for entry in high_debt)
+        if high_debt
+        else ", ".join(entry["owner"] for entry in unmanaged_debt)
+        or "No untracked unmanaged feature surfaces; residual debt is reported separately."
+    )
+    return (
+        "Unmanaged feature debt",
+        status,
+        evidence,
+        _unmanaged_debt_risk(unmanaged_debt),
+        _unmanaged_debt_followup(unmanaged_debt),
+    )
+
+
+def _residual_feature_summary_row(context: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    residual_debt = context["residual_debt"]
+    return (
+        "Residual legacy feature boundaries",
+        "YELLOW" if residual_debt else "GREEN",
+        ", ".join(entry["owner"] for entry in residual_debt)
+        or "No residual legacy feature boundaries.",
+        _residual_feature_risk(residual_debt),
+        _residual_feature_followup(residual_debt),
+    )
+
+
+def _residual_feature_risk(residual_debt: list[dict[str, Any]]) -> str:
+    if residual_debt:
+        return "Feature behavior remains outside canonical modules and must stay visible."
+    return "Low while no residual feature behavior remains outside canonical modules."
+
+
+def _residual_feature_followup(residual_debt: list[dict[str, Any]]) -> str:
+    if residual_debt:
+        return "Migrate through linked follow-up issues or reduce legacy paths to wrappers."
+    return "Keep residual-boundary guard active."
+
+
+def _residual_guard_summary_row(context: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    violations = context["residual_guard_violations"]
+    return (
+        "Residual boundary non-growth guard",
+        "RED" if violations else "GREEN",
+        "<br>".join(violations) or _residual_guard_clean_evidence(),
+        _residual_guard_risk(violations),
+        _residual_guard_followup(violations),
+    )
+
+
+def _residual_guard_clean_evidence() -> str:
+    return (
+        "Public-surface/non-growth guard covers current residual files, "
+        "paths, and public route/function/class fingerprints."
+    )
+
+
+def _residual_guard_risk(violations: list[str]) -> str:
+    if violations:
+        return "Residual feature boundaries can grow silently if the manifest is stale."
+    return (
+        "Low for public-surface growth only; behavior changes inside existing residual files "
+        "still require migration or an approved architecture exception."
+    )
+
+
+def _residual_guard_followup(violations: list[str]) -> str:
+    if violations:
+        return "Update the manifest only with a linked issue, rationale, and removal condition."
+    return (
+        "Use migration issues for behavior changes; a manifest update alone "
+        "does not replace canonical migration."
+    )
+
+
+def _frontend_ownership_summary_row(context: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    frontend_boundaries = context["frontend_boundaries"]
+    issues = context["frontend_boundary_issues"]
+    return (
+        "Frontend ownership",
+        "RED" if issues else "GREEN",
+        "Feature modules: "
+        + ", ".join(frontend_boundaries["feature_modules"])
+        + "; accepted app compatibility deep imports: "
+        + str(len(frontend_boundaries["app_deep_module_imports"]))
+        + ".",
+        _frontend_ownership_risk(issues),
+        _frontend_ownership_followup(issues),
+    )
+
+
+def _frontend_ownership_risk(issues: list[str]) -> str:
+    if issues:
+        return "Frontend module boundary violations are present."
+    return "Frontend public APIs are enforced; compatibility imports are explicit and bounded."
+
+
+def _frontend_ownership_followup(issues: list[str]) -> str:
+    if issues:
+        return "Remove unexpected deep imports or record them in the frontend boundary policy."
+    return "Keep frontend boundary policy checks required for module or wrapper changes."
+
+
+def _markdown_backend_registry_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 2. Backend Module Registry",
         "",
         _markdown_table(
             ("Module", "Registered", "Router", "Workflows", "Status"),
-            [
-                (
-                    module["name"],
-                    module["registered"],
-                    module["router_path"] or "none",
-                    ", ".join(
-                        str(workflow.get("workflow_type")) for workflow in module["workflows"]
-                    )
-                    or "none",
-                    "GREEN" if module["registered"] or module["documentation_only"] else "YELLOW",
-                )
-                for module in modules
-            ],
+            [_backend_registry_row(module) for module in context["modules"]],
         ),
         "",
+    ]
+
+
+def _backend_registry_row(module: dict[str, Any]) -> tuple[str, Any, str, str, str]:
+    workflows = ", ".join(str(workflow.get("workflow_type")) for workflow in module["workflows"])
+    return (
+        module["name"],
+        module["registered"],
+        module["router_path"] or "none",
+        workflows or "none",
+        "GREEN" if module["registered"] or module["documentation_only"] else "YELLOW",
+    )
+
+
+def _markdown_ownership_inventory_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 3. Ownership Inventory",
         "",
         _markdown_table(
@@ -2149,144 +2299,177 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     entry["target_owner"],
                     entry["phase"],
                 )
-                for entry in debt_entries
+                for entry in context["debt_entries"]
             ],
         ),
         "",
+    ]
+
+
+def _markdown_required_domains_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 4. Required Unmanaged And Residual Domains",
         "",
         _markdown_table(
-            (
-                "Domain",
-                "Category",
-                "Severity",
-                "Current paths",
-                "Target owner",
-                "Removal condition",
-            ),
-            [
-                (
-                    entry["owner"],
-                    entry["category"],
-                    entry["severity"],
-                    "<br>".join(entry["paths"]),
-                    entry["target_owner"],
-                    entry["removal_condition"],
-                )
-                for entry in debt_entries
-                if entry["category"] in {"unmanaged_feature_surface", RESIDUAL_BOUNDARY_CATEGORY}
-            ],
+            ("Domain", "Category", "Severity", "Current paths", "Target owner", "Removal condition"),
+            [_required_domain_row(entry) for entry in context["debt_entries"] if _is_required_domain(entry)],
         ),
         "",
+    ]
+
+
+def _is_required_domain(entry: dict[str, Any]) -> bool:
+    return entry["category"] in {"unmanaged_feature_surface", RESIDUAL_BOUNDARY_CATEGORY}
+
+
+def _required_domain_row(entry: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
+    return (
+        entry["owner"],
+        entry["category"],
+        entry["severity"],
+        "<br>".join(entry["paths"]),
+        entry["target_owner"],
+        entry["removal_condition"],
+    )
+
+
+def _markdown_runtime_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 5. Runtime / Process Structure",
         "",
         _markdown_table(
             ("Role", "Queues", "Live TDLib", "Notes"),
-            [
-                (
-                    role["name"],
-                    ", ".join(role.get("queues") or []) or "none",
-                    "Yes" if role.get("allows_live_tdlib") else "No",
-                    role.get("description") or "",
-                )
-                for role in runtime_roles
-            ],
+            [_runtime_role_row(role) for role in context["runtime_roles"]],
         ),
         "",
+    ]
+
+
+def _runtime_role_row(role: dict[str, Any]) -> tuple[str, str, str, str]:
+    return (
+        role["name"],
+        ", ".join(role.get("queues") or []) or "none",
+        "Yes" if role.get("allows_live_tdlib") else "No",
+        role.get("description") or "",
+    )
+
+
+def _markdown_guard_status_section(report: dict[str, Any], context: dict[str, Any]) -> list[str]:
+    return [
         "## 6. Architecture Guard Status",
         "",
-        _markdown_table(
-            ("Guard", "Status", "Evidence"),
-            [
-                (
-                    "Untracked backend/app production files",
-                    "GREEN"
-                    if not report["debt_inventory"]["untracked_backend_app_python_files"]
-                    and not report["debt_inventory"]["overlapping_backend_app_python_files"]
-                    else "RED",
-                    ", ".join(
-                        [
-                            *report["debt_inventory"]["untracked_backend_app_python_files"],
-                            *report["debt_inventory"][
-                                "overlapping_backend_app_python_files"
-                            ].keys(),
-                        ]
-                    )
-                    or "All backend/app Python files are classified exactly once by the inventory.",
-                ),
-                (
-                    "Residual boundary growth",
-                    "GREEN" if not residual_guard_violations else "RED",
-                    "<br>".join(residual_guard_violations)
-                    or (
-                        "Public-surface/non-growth guard covers every current residual "
-                        "file and public route/function/class surface; behavior-changing "
-                        "updates still require migration or an approved architecture exception."
-                    ),
-                ),
-                (
-                    "Forbidden contract imports",
-                    "GREEN"
-                    if not any(report["boundaries"]["contracts_forbidden_imports"].values())
-                    else "RED",
-                    json.dumps(report["boundaries"]["contracts_forbidden_imports"], sort_keys=True),
-                ),
-                (
-                    "Routers importing ORM models",
-                    "GREEN"
-                    if not any(report["boundaries"]["routers_importing_models"].values())
-                    else "RED",
-                    json.dumps(report["boundaries"]["routers_importing_models"], sort_keys=True),
-                ),
-                (
-                    "Forbidden runtime claims",
-                    "GREEN"
-                    if report["forbidden_runtime_claims"] == {"queues": [], "workflows": []}
-                    else "RED",
-                    json.dumps(report["forbidden_runtime_claims"], sort_keys=True),
-                ),
-            ],
-        ),
+        _markdown_table(("Guard", "Status", "Evidence"), _guard_status_rows(report, context)),
         "",
+    ]
+
+
+def _guard_status_rows(report: dict[str, Any], context: dict[str, Any]) -> list[tuple[str, str, str]]:
+    return [
+        _untracked_backend_guard_row(report),
+        _residual_boundary_guard_row(context),
+        _forbidden_contract_imports_row(report),
+        _routers_importing_models_row(report),
+        _forbidden_runtime_claims_row(report),
+    ]
+
+
+def _untracked_backend_guard_row(report: dict[str, Any]) -> tuple[str, str, str]:
+    inventory = report["debt_inventory"]
+    issues = [
+        *inventory["untracked_backend_app_python_files"],
+        *inventory["overlapping_backend_app_python_files"].keys(),
+    ]
+    return (
+        "Untracked backend/app production files",
+        "GREEN" if not issues else "RED",
+        ", ".join(issues) or "All backend/app Python files are classified exactly once by the inventory.",
+    )
+
+
+def _residual_boundary_guard_row(context: dict[str, Any]) -> tuple[str, str, str]:
+    violations = context["residual_guard_violations"]
+    evidence = (
+        "<br>".join(violations)
+        or "Public-surface/non-growth guard covers every current residual file and public route/function/class surface; behavior-changing updates still require migration or an approved architecture exception."
+    )
+    return "Residual boundary growth", "GREEN" if not violations else "RED", evidence
+
+
+def _forbidden_contract_imports_row(report: dict[str, Any]) -> tuple[str, str, str]:
+    imports = report["boundaries"]["contracts_forbidden_imports"]
+    return (
+        "Forbidden contract imports",
+        "GREEN" if not any(imports.values()) else "RED",
+        json.dumps(imports, sort_keys=True),
+    )
+
+
+def _routers_importing_models_row(report: dict[str, Any]) -> tuple[str, str, str]:
+    imports = report["boundaries"]["routers_importing_models"]
+    return (
+        "Routers importing ORM models",
+        "GREEN" if not any(imports.values()) else "RED",
+        json.dumps(imports, sort_keys=True),
+    )
+
+
+def _forbidden_runtime_claims_row(report: dict[str, Any]) -> tuple[str, str, str]:
+    claims = report["forbidden_runtime_claims"]
+    return (
+        "Forbidden runtime claims",
+        "GREEN" if claims == {"queues": [], "workflows": []} else "RED",
+        json.dumps(claims, sort_keys=True),
+    )
+
+
+def _markdown_frontend_policy_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 7. Frontend Boundary Policy",
         "",
-        _markdown_table(
-            ("Check", "Status", "Evidence"),
-            [
-                (
-                    "Public module indexes",
-                    "GREEN" if not frontend_boundaries["missing_indexes"] else "RED",
-                    ", ".join(frontend_boundaries["missing_indexes"])
-                    or "Every module has index.ts.",
-                ),
-                (
-                    "Feature module set",
-                    "GREEN"
-                    if frontend_boundaries["feature_modules"]
-                    == frontend_boundaries["expected_feature_modules"]
-                    else "RED",
-                    ", ".join(frontend_boundaries["feature_modules"]),
-                ),
-                (
-                    "Feature to feature deep imports",
-                    "GREEN"
-                    if not frontend_boundaries["feature_to_feature_deep_imports"]
-                    else "RED",
-                    "<br>".join(frontend_boundaries["feature_to_feature_deep_imports"]) or "None.",
-                ),
-                (
-                    "Feature to shared deep imports",
-                    "GREEN" if not frontend_boundaries["unexpected_shared_deep_imports"] else "RED",
-                    "<br>".join(frontend_boundaries["feature_to_shared_deep_imports"]) or "None.",
-                ),
-                (
-                    "App compatibility deep imports",
-                    "RED" if frontend_boundaries["unexpected_app_deep_module_imports"] else "GREEN",
-                    "<br>".join(frontend_boundaries["app_deep_module_imports"]) or "None.",
-                ),
-            ],
-        ),
+        _markdown_table(("Check", "Status", "Evidence"), _frontend_policy_rows(context)),
         "",
+    ]
+
+
+def _frontend_policy_rows(context: dict[str, Any]) -> list[tuple[str, str, str]]:
+    frontend_boundaries = context["frontend_boundaries"]
+    return [
+        (
+            "Public module indexes",
+            "GREEN" if not frontend_boundaries["missing_indexes"] else "RED",
+            ", ".join(frontend_boundaries["missing_indexes"]) or "Every module has index.ts.",
+        ),
+        (
+            "Feature module set",
+            _feature_module_set_status(frontend_boundaries),
+            ", ".join(frontend_boundaries["feature_modules"]),
+        ),
+        (
+            "Feature to feature deep imports",
+            "GREEN" if not frontend_boundaries["feature_to_feature_deep_imports"] else "RED",
+            "<br>".join(frontend_boundaries["feature_to_feature_deep_imports"]) or "None.",
+        ),
+        (
+            "Feature to shared deep imports",
+            "GREEN" if not frontend_boundaries["unexpected_shared_deep_imports"] else "RED",
+            "<br>".join(frontend_boundaries["feature_to_shared_deep_imports"]) or "None.",
+        ),
+        (
+            "App compatibility deep imports",
+            "RED" if frontend_boundaries["unexpected_app_deep_module_imports"] else "GREEN",
+            "<br>".join(frontend_boundaries["app_deep_module_imports"]) or "None.",
+        ),
+    ]
+
+
+def _feature_module_set_status(frontend_boundaries: dict[str, Any]) -> str:
+    if frontend_boundaries["feature_modules"] == frontend_boundaries["expected_feature_modules"]:
+        return "GREEN"
+    return "RED"
+
+
+def _markdown_risk_register_section(context: dict[str, Any]) -> list[str]:
+    return [
         "## 8. Risk Register",
         "",
         _markdown_table(
@@ -2301,10 +2484,15 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     finding["risk"],
                     finding["recommendation"],
                 )
-                for finding in findings
+                for finding in context["findings"]
             ],
         ),
         "",
+    ]
+
+
+def _markdown_facade_exceptions_section(report: dict[str, Any]) -> list[str]:
+    return [
         "## 9. Accepted Public Facade Exceptions",
         "",
         (
@@ -2331,6 +2519,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ),
         ),
         "",
+    ]
+
+
+def _markdown_next_phases_section(report: dict[str, Any]) -> list[str]:
+    return [
         "## 10. Recommended Next Implementation Issues",
         "",
         _markdown_table(
@@ -2342,8 +2535,6 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ),
         "",
     ]
-    return "\n".join(lines)
-
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))

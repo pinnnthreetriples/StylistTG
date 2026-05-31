@@ -27,6 +27,20 @@ import { PinnedChannelField } from '@/modules/account-editing'
 import { AvatarBlock } from './AvatarBlock'
 
 type ProfileTextField = 'firstName' | 'lastName' | 'username' | 'bio'
+type TextFieldProps = {
+  form: ReturnType<typeof useForm<{
+    firstName: string
+    lastName: string
+    username: string
+    bio: string
+  }>>
+  name: Exclude<ProfileTextField, 'username' | 'bio'>
+  id: string
+  label: string
+  placeholder: string
+  isDirty: boolean
+  onChange: (fieldName: ProfileTextField, value: string) => void
+}
 
 export const ProfileEditor = memo(function ProfileEditor({
   changeItems,
@@ -130,61 +144,24 @@ export const ProfileEditor = memo(function ProfileEditor({
           <div className="flex-grow space-y-3">
             {/* First name + Last name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label
-                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-                  htmlFor="first-name"
-                >
-                  Имя
-                </label>
-                <div className="relative">
-                  <form.Field name="firstName">
-                    {(field) => (
-                      <Input
-                        className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
-                        id="first-name"
-                        onChange={(e) => {
-                          field.handleChange(e.target.value)
-                          updateDraftField('firstName', e.target.value)
-                        }}
-                        onBlur={field.handleBlur}
-                        value={field.state.value}
-                        placeholder="Имя"
-                      />
-                    )}
-                  </form.Field>
-                  {(currentProfile.first_name ?? '') !== draftForm.firstName && (
-                    <DirtyDot />
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-                  htmlFor="last-name"
-                >
-                  Фамилия
-                </label>
-                <div className="relative">
-                  <form.Field name="lastName">
-                    {(field) => (
-                      <Input
-                        className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
-                        id="last-name"
-                        onChange={(e) => {
-                          field.handleChange(e.target.value)
-                          updateDraftField('lastName', e.target.value)
-                        }}
-                        onBlur={field.handleBlur}
-                        value={field.state.value}
-                        placeholder="Фамилия"
-                      />
-                    )}
-                  </form.Field>
-                  {(currentProfile.last_name ?? '') !== draftForm.lastName && <DirtyDot />}
-                </div>
-              </div>
+              <ProfileNameField
+                form={form}
+                name="firstName"
+                id="first-name"
+                label="Имя"
+                placeholder="Имя"
+                isDirty={(currentProfile.first_name ?? '') !== draftForm.firstName}
+                onChange={updateDraftField}
+              />
+              <ProfileNameField
+                form={form}
+                name="lastName"
+                id="last-name"
+                label="Фамилия"
+                placeholder="Фамилия"
+                isDirty={(currentProfile.last_name ?? '') !== draftForm.lastName}
+                onChange={updateDraftField}
+              />
             </div>
 
             {/* Username */}
@@ -319,5 +296,44 @@ export const ProfileEditor = memo(function ProfileEditor({
 function DirtyDot() {
   return (
     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-muted" />
+  )
+}
+
+function ProfileNameField({
+  form,
+  name,
+  id,
+  label,
+  placeholder,
+  isDirty,
+  onChange,
+}: TextFieldProps) {
+  return (
+    <div>
+      <label
+        className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+        htmlFor={id}
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <form.Field name={name}>
+          {(field) => (
+            <Input
+              className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
+              id={id}
+              onChange={(e) => {
+                field.handleChange(e.target.value)
+                onChange(name, e.target.value)
+              }}
+              onBlur={field.handleBlur}
+              value={field.state.value}
+              placeholder={placeholder}
+            />
+          )}
+        </form.Field>
+        {isDirty && <DirtyDot />}
+      </div>
+    </div>
   )
 }

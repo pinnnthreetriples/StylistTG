@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type React from 'react'
 
-import { normalizeError } from '@/lib/appErrors'
 import {
   buildAuthErrorMessage,
   clearStoredAccountId,
@@ -24,6 +23,7 @@ import {
   type AuthPhase,
   type AuthStateResponse,
 } from './api'
+import { applyNormalizedAuthError } from './errorState'
 
 export type { AuthPhase, AuthErrorMessage, AuthStateResponse }
 
@@ -80,6 +80,27 @@ export function useAuthFlow({
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null)
   const [testDcEnabled, setTestDcEnabled] = useState(false)
   const [isUpdatingTestDc, setIsUpdatingTestDc] = useState(false)
+  const applyAuthError = useCallback((error: unknown, step: 'phone' | 'code' | 'password') => {
+    applyNormalizedAuthError(error, step, {
+      setAuthError,
+      setAuthErrorCode,
+      setAuthPhase,
+      setAuthStep,
+    })
+  }, [])
+  const showRuntimeUnavailable = useCallback((description: string) => {
+    setAuthError({
+      title: 'Аккаунт ещё не готов к работе',
+      description,
+    })
+    setAuthErrorCode('RUNTIME_UNUSABLE')
+    setAuthPhase('auth-error')
+  }, [])
+  const enterDashboard = useCallback(() => {
+    setAuthError(null)
+    setAuthErrorCode(null)
+    setAuthPhase('dashboard')
+  }, [])
 
   // ── Fetch runtime-mode on mount (only when not already on dashboard) ────────
   useEffect(() => {
@@ -160,13 +181,9 @@ export function useAuthFlow({
       setOtpCode('')
       applyAuthStateResponse(authState)
     } catch (error) {
-      const normalized = normalizeError(error)
-      setAuthError(buildAuthErrorMessage(normalized))
-      setAuthErrorCode(normalized.error_code)
-      setAuthStep('phone')
-      setAuthPhase('auth-error')
+      applyAuthError(error, 'phone')
     }
-  }, [phoneNumber, applyAccountContext, applyAuthStateResponse])
+  }, [phoneNumber, applyAccountContext, applyAuthStateResponse, applyAuthError])
 
   const handleConfirmOtp = useCallback(async () => {
     if (!accountId) return
@@ -182,27 +199,18 @@ export function useAuthFlow({
       setAuthPhase('auth-refreshing')
       const refresh = await refreshAuthRuntime(accountId)
       if (refresh.is_execution_usable) {
-        setAuthError(null)
-        setAuthErrorCode(null)
-        setAuthPhase('dashboard')
+        enterDashboard()
         return
       }
       const authState = await fetchAuthState(accountId)
       if (applyAuthStateResponse(authState)) return
-      setAuthError({
-        title: 'Аккаунт ещё не готов к работе',
-        description: `Текущее состояние: ${authState.orchestration_state}. Повторите попытку или обновите runtime позже.`,
-      })
-      setAuthErrorCode('RUNTIME_UNUSABLE')
-      setAuthPhase('auth-error')
+      showRuntimeUnavailable(
+        `Текущее состояние: ${authState.orchestration_state}. Повторите попытку или обновите runtime позже.`,
+      )
     } catch (error) {
-      const normalized = normalizeError(error)
-      setAuthError(buildAuthErrorMessage(normalized))
-      setAuthErrorCode(normalized.error_code)
-      setAuthStep('code')
-      setAuthPhase('auth-error')
+      applyAuthError(error, 'code')
     }
-  }, [accountId, otpCode, applyAuthStateResponse])
+  }, [accountId, otpCode, applyAuthStateResponse, applyAuthError, enterDashboard, showRuntimeUnavailable])
 
   const handleSubmitPassword = useCallback(async () => {
     if (!accountId) return
@@ -226,27 +234,16 @@ export function useAuthFlow({
       setAuthPhase('auth-refreshing')
       const refresh = await refreshAuthRuntime(accountId)
       if (refresh.is_execution_usable) {
-        setAuthError(null)
-        setAuthErrorCode(null)
-        setAuthPhase('dashboard')
+        enterDashboard()
         return
       }
       const finalState = await fetchAuthState(accountId)
       if (applyAuthStateResponse(finalState)) return
-      setAuthError({
-        title: 'Аккаунт ещё не готов к работе',
-        description: `Текущее состояние: ${finalState.orchestration_state}`,
-      })
-      setAuthErrorCode('RUNTIME_UNUSABLE')
-      setAuthPhase('auth-error')
+      showRuntimeUnavailable(`Текущее состояние: ${finalState.orchestration_state}`)
     } catch (error) {
-      const normalized = normalizeError(error)
-      setAuthError(buildAuthErrorMessage(normalized))
-      setAuthErrorCode(normalized.error_code)
-      setAuthStep('password')
-      setAuthPhase('auth-error')
+      applyAuthError(error, 'password')
     }
-  }, [accountId, twoFaPassword, applyAuthStateResponse])
+  }, [accountId, twoFaPassword, applyAuthStateResponse, applyAuthError, enterDashboard, showRuntimeUnavailable])
 
   const handleResetAuthPhone = useCallback(() => {
     setOtpCode('')
@@ -272,14 +269,11 @@ export function useAuthFlow({
       setTwoFaPassword('')
       setPasswordHint(null)
     } catch (error) {
-      const normalized = normalizeError(error)
-      setAuthError(buildAuthErrorMessage(normalized))
-      setAuthErrorCode(normalized.error_code)
-      setAuthPhase('auth-error')
+      applyAuthError(error, authStep)
     } finally {
       setIsUpdatingTestDc(false)
     }
-  }, [clearAccountContext])
+  }, [authStep, clearAccountContext, applyAuthError])
 
   // ── Auth bootstrap: fetch state whenever accountId changes ───────────────────
 

@@ -211,7 +211,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             elif event["event"] == "step_failed":
                 runtime_failed = True
                 error_code = event.get("error_code")
-                if _is_tdlib_hard_stop_error(error_code):
+                if is_hard_stop_error(error_code):
                     hard_stop_error_code = error_code
                 record_step_failed(session, job, event)
                 log_event(
@@ -226,7 +226,7 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             elif event["event"] == "runtime_failed":
                 runtime_failed = True
                 error_code = event.get("error_code")
-                if _is_tdlib_hard_stop_error(error_code):
+                if is_hard_stop_error(error_code):
                     hard_stop_error_code = error_code
 
         try:
@@ -434,8 +434,8 @@ def _stderr_summary(stderr_buffer: list[str]) -> str | None:
     return text.strip() or None
 
 
-def run_profile_job(job_id: str) -> int:
-    return execute_profile_job(job_id)
+# Public RQ entrypoint name expected by job_queue.rq and worker tests.
+run_profile_job = execute_profile_job
 
 
 def _handle_lock_contention(session: Session, job: Job, job_id: str) -> int:
@@ -507,10 +507,6 @@ def _sync_profile_state_after_job(session: Session, account_id: str, state: JobS
             account_id=account_id,
             error_class=exc.__class__.__name__,
         )
-
-
-def _is_tdlib_hard_stop_error(error_code: str | None) -> bool:
-    return is_hard_stop_error(error_code)
 
 
 def _mark_account_hard_stopped(session: Session, account: Account, error_code: str) -> None:

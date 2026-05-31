@@ -61,8 +61,9 @@ def _execute_account_update_job(job_id: str, session: Session) -> int:
     return exit_code
 
 
-def run_account_update_job(job_id: str) -> int:
-    return execute_account_update_job(job_id)
+# Legacy alias kept for the worker re-export module and tests that assert
+# symbol identity across the worker boundary.
+run_account_update_job = execute_account_update_job
 
 
 def rematerialize_account_update_job(job_id: str, *, session: Session | None = None) -> bool:

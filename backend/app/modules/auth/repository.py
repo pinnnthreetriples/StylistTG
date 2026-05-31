@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models import User, Workspace, WorkspaceMember
+from app.models import User, WorkspaceMember
 from app.services.users import get_or_create_external_user as _get_or_create_external_user
 from app.services.workspace_onboarding import (
     ensure_personal_workspace as _ensure_personal_workspace,
@@ -10,11 +10,7 @@ from app.services.workspace_onboarding import (
 from app.services.workspace_onboarding import (
     resolve_workspace_membership as _resolve_workspace_membership,
 )
-from app.workspace_bootstrap import ensure_default_workspace as _ensure_default_workspace
-
-
-def ensure_default_workspace(session: Session) -> tuple[User, Workspace, WorkspaceMember]:
-    return _ensure_default_workspace(session)
+from app.workspace_bootstrap import ensure_default_workspace
 
 
 def get_or_create_external_user(

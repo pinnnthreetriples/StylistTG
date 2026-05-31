@@ -170,8 +170,8 @@ def create_job_use_case(
     return AccountUpdateJobSummaryRead(**job_summary(job))
 
 
-def enqueue_job(job_id: str) -> bool:
-    return enqueue_account_update_job(job_id)
+# Public façade name kept stable for the module's use-case API.
+enqueue_job = enqueue_account_update_job
 
 
 def execute_inline_fallback(job_id: str, *, session: Session) -> None:

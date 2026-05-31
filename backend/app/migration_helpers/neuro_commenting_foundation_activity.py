@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
+# pyright: reportReturnType=false, reportUnusedFunction=false
+
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
-uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
-json_type = sa.JSON().with_variant(JSONB(), "postgresql")
+from app.migration_helpers.neuro_commenting_foundation_common import (
+    json_type,
+    timestamp_columns,
+    uuid_string,
+)
 
-
-def _timestamps() -> tuple[sa.Column[sa.DateTime], sa.Column[sa.DateTime]]:
-    return (
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
-        sa.Column(
-            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
-    )
 
 def _create_attempts() -> None:
     op.create_table(
@@ -38,7 +32,7 @@ def _create_attempts() -> None:
         sa.Column("reserved_limit_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("failed_at", sa.DateTime(timezone=True), nullable=True),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(["account_id"], ["account.id"], name="fk_neuro_attempt_account"),
         sa.ForeignKeyConstraint(
             ["campaign_id"], ["neuro_comment_campaigns.id"], name="fk_neuro_attempt_campaign"
@@ -134,7 +128,7 @@ def _create_limits() -> None:
         sa.Column("max_value", sa.Integer(), nullable=False),
         sa.Column("window_seconds", sa.Integer(), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(
             ["campaign_id"], ["neuro_comment_campaigns.id"], name="fk_neuro_limit_campaign"
         ),
@@ -221,5 +215,3 @@ def _create_channel_rules() -> None:
         "neuro_comment_channel_rules",
         ["workspace_id", "target_ref"],
     )
-
-

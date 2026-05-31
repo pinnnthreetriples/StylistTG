@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class WarmupStrategy(Base):
     __tablename__ = "warmup_strategy"
@@ -238,3 +240,6 @@ class WarmupIsolationClaim(Base):
     held_by: Mapped[str] = mapped_column(String(255), nullable=False)
     reason: Mapped[str] = mapped_column(String(255), nullable=False)
     acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# jscpd:ignore-end

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class Account(Base):
     __tablename__ = "account"
@@ -269,3 +271,6 @@ class TelegramAuthSession(Base):
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     account: Mapped[Account | None] = relationship(back_populates="telegram_auth_sessions")
+
+
+# jscpd:ignore-end

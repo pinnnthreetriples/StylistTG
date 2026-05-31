@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
 
-import { Badge, Button, EmptyState, PageHeader, StatusPill } from './index'
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Skeleton, StatusCard, StatusPill } from './index'
 
 describe('@stylisttg/ui primitives', () => {
   test('render shared dashboard primitives', () => {
@@ -10,6 +10,10 @@ describe('@stylisttg/ui primitives', () => {
         <PageHeader title="Accounts" description="Workspace accounts" />
         <Button>Save</Button>
         <Badge tone="success">ok</Badge>
+        <Card>panel</Card>
+        <Input aria-label="name" defaultValue="Ada" />
+        <Skeleton className="h-4" />
+        <StatusCard title="Runtime" value="online" />
         <StatusPill tone="ok">ready</StatusPill>
         <EmptyState title="No rows" />
       </div>,

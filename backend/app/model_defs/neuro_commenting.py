@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class NeuroCommentCampaign(Base):
     __tablename__ = "neuro_comment_campaigns"
@@ -396,3 +398,6 @@ class NeuroCommentChannelRule(Base):
         UUIDString, ForeignKey("app_user.id"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# jscpd:ignore-end

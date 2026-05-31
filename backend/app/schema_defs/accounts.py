@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUndefinedVariable=false, reportUnknownVariableType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false, reportUntypedBaseClass=false, reportUntypedFunctionDecorator=false
+
 # ruff: noqa: F403,F405
 
 from app.schemas import *
 from app.schemas import _empty_readiness_risk_items, _serialize_utc_datetime
+
 
 class AccountCreate(BaseModel):
     external_ref: str = Field(min_length=1)

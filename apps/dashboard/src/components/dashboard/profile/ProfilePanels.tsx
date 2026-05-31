@@ -11,6 +11,11 @@
 import { memo, useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
 
+import type {
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  ReactFormExtendedApi,
+} from '@tanstack/react-form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { type StoryCapabilities, type StoryDraftPayload, type StoryPost } from '@/lib/api'
@@ -27,13 +32,28 @@ import { PinnedChannelField } from '@/modules/account-editing'
 import { AvatarBlock } from './AvatarBlock'
 
 type ProfileTextField = 'firstName' | 'lastName' | 'username' | 'bio'
+type ProfileTextFormData = {
+  firstName: string
+  lastName: string
+  username: string
+  bio: string
+}
+type ProfileTextForm = ReactFormExtendedApi<
+  ProfileTextFormData,
+  FormValidateOrFn<ProfileTextFormData> | undefined,
+  FormValidateOrFn<ProfileTextFormData> | undefined,
+  FormAsyncValidateOrFn<ProfileTextFormData> | undefined,
+  FormValidateOrFn<ProfileTextFormData> | undefined,
+  FormAsyncValidateOrFn<ProfileTextFormData> | undefined,
+  FormValidateOrFn<ProfileTextFormData> | undefined,
+  FormAsyncValidateOrFn<ProfileTextFormData> | undefined,
+  FormValidateOrFn<ProfileTextFormData> | undefined,
+  FormAsyncValidateOrFn<ProfileTextFormData> | undefined,
+  FormAsyncValidateOrFn<ProfileTextFormData> | undefined,
+  unknown
+>
 type TextFieldProps = {
-  form: ReturnType<typeof useForm<{
-    firstName: string
-    lastName: string
-    username: string
-    bio: string
-  }>>
+  form: ProfileTextForm
   name: Exclude<ProfileTextField, 'username' | 'bio'>
   id: string
   label: string

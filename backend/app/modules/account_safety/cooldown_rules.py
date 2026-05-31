@@ -62,7 +62,8 @@ def cooldown_from_failed_step(
         "level": "blocked",
         "reason_code": "recent_flood_wait",
         "started_at": started_at,
-        "retry_after_at": aware_datetime(started_at) + timedelta(seconds=int(match.group("seconds"))),
+        "retry_after_at": aware_datetime(started_at)
+        + timedelta(seconds=int(match.group("seconds"))),
         "source": "job_step_result",
     }
 

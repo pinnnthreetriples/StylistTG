@@ -25,6 +25,7 @@ from app.contracts.neuro_commenting_common import (
     field_validator,
 )
 
+
 class NeuroCampaignCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     description: str | None = None

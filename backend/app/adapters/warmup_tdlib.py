@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from app.adapters.tdlib_auth import RealTdJsonClientFactory, TdlibClientFactory
 from app.adapters.warmup_tdlib_contracts import (
     SUPPORTED_ACTIONS_BY_MODE,

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUnusedFunction=false
+
+# ruff: noqa: E402
+
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -19,40 +23,20 @@ from app.models import (
     new_id,
 )
 
-AutoAction = Literal["paused", "quarantine", "cooldown", "none"]
-TerminalStatus = Literal["banned", "deleted"]
 
-STATUS_MONITOR_BATCH_SIZE = 500
-STATUS_MONITOR_LOCK_KEY = "status_monitor:tick:running"
-STATUS_MONITOR_LOCK_SECONDS = 600
-STATUS_MONITOR_CHECKPOINT_KEY = "status_monitor:last_checkpoint:{workspace_id}"
-IP_CHANGE_COOLDOWN_MINUTES = 30
-STICKY_IP_MAX_DISTINCT_HASHES = 3
-TERMINAL_AUTH_FAILURE_THRESHOLD = 5
-SENSITIVE_WARMUP_EVENT_KEYS = {
-    "api_hash",
-    "api_key",
-    "auth_key",
-    "password",
-    "proxy_password",
-    "session",
-    "session_string",
-    "tdlib_path",
-}
+from app.modules.account_safety.status_monitor import (
+    AccountStatusProbeResult,
+    SENSITIVE_WARMUP_EVENT_KEYS,
+    STATUS_MONITOR_LOCK_KEY,
+    TERMINAL_AUTH_FAILURE_THRESHOLD,
+    StatusMonitorStateStore,
+    TerminalStatus,
+    _AUTH_ERROR_CLASSES,
+    _AUTO_PAUSE_WARMUP_STATUSES,
+    _BANNED_TDLIB_ERROR_MARKERS,
+    _DELETED_TDLIB_ERROR_MARKERS,
+)  # noqa: E402
 
-_AUTHORIZED_STATES = {AccountState.AUTHORIZED_READY.value, AccountState.EXECUTION_USABLE.value}
-_HEALTHY_PROXY_STATUSES = {"ok", "tcp_working", "tdlib_working"}
-_BANNED_TDLIB_ERROR_MARKERS = {"USER_DEACTIVATED_BAN", "AUTH_KEY_UNREGISTERED"}
-_DELETED_TDLIB_ERROR_MARKERS = {"USER_DEACTIVATED"}
-_AUTH_ERROR_CLASSES = {"AUTH", "AUTH_STATE", "AUTHORIZATION", "TDLIB_AUTH"}
-_AUTO_PAUSE_WARMUP_STATUSES = [
-    WarmupStatus.VALIDATING.value,
-    WarmupStatus.SCHEDULED.value,
-    WarmupStatus.ACTIVE.value,
-]
-
-
-from app.modules.account_safety.status_monitor import AccountStatusProbeResult, StatusMonitorStateStore  # noqa: E402
 
 def _status_monitor_workspace_ids(
     session: Session,

@@ -16,6 +16,7 @@ from app.models import (
 )
 from app.modules.neuro_commenting.errors import not_found
 
+
 def list_observed_posts(
     session: Session,
     *,

@@ -30,6 +30,7 @@ from app.storage.base import StorageObject
 from app.storage import LocalStorageService, StorageService
 from app.storage.paths import asset_normalized_key, asset_prefix, asset_source_key
 
+
 def save_profile_photo_asset(
     session: Session,
     *,

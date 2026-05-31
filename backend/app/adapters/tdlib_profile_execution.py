@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from collections.abc import Iterator
 import time
 from typing import Any, Callable, cast

@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
+# pyright: reportReturnType=false, reportUnusedFunction=false
+
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
-uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
-json_type = sa.JSON().with_variant(JSONB(), "postgresql")
+from app.migration_helpers.neuro_commenting_foundation_common import (
+    json_type,
+    timestamp_columns,
+    uuid_string,
+)
 
-
-def _timestamps() -> tuple[sa.Column[sa.DateTime], sa.Column[sa.DateTime]]:
-    return (
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
-        sa.Column(
-            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
-    )
 
 def _create_campaigns() -> None:
     op.create_table(
@@ -59,7 +53,7 @@ def _create_campaigns() -> None:
         sa.Column("safety_enabled", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("stopped_at", sa.DateTime(timezone=True), nullable=True),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(
             ["workspace_id"], ["workspace.id"], name="fk_neuro_campaign_workspace"
         ),
@@ -91,7 +85,7 @@ def _create_campaign_accounts() -> None:
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("cooldown_until", sa.DateTime(timezone=True), nullable=True),
         sa.Column("last_error_code", sa.String(length=128), nullable=True),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(
             ["account_id"], ["account.id"], name="fk_neuro_campaign_account_account"
         ),
@@ -138,7 +132,7 @@ def _create_targets() -> None:
         sa.Column("fail_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("deleted_comment_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("flood_wait_count", sa.Integer(), nullable=False, server_default="0"),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(
             ["campaign_id"], ["neuro_comment_campaigns.id"], name="fk_neuro_target_campaign"
         ),
@@ -171,7 +165,7 @@ def _create_observed_posts() -> None:
             "seen_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
         sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(
             ["campaign_id"], ["neuro_comment_campaigns.id"], name="fk_neuro_observed_campaign"
         ),
@@ -223,7 +217,7 @@ def _create_generated_comments() -> None:
         sa.Column("approved_by", uuid_string, nullable=True),
         sa.Column("approved_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("rejected_reason", sa.Text(), nullable=True),
-        *_timestamps(),
+        *timestamp_columns(),
         sa.ForeignKeyConstraint(["account_id"], ["account.id"], name="fk_neuro_generated_account"),
         sa.ForeignKeyConstraint(
             ["approved_by"], ["app_user.id"], name="fk_neuro_generated_approver"
@@ -251,5 +245,3 @@ def _create_generated_comments() -> None:
         "neuro_comment_generated_comments",
         ["approval_status"],
     )
-
-

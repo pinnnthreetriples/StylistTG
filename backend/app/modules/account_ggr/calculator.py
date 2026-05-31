@@ -21,6 +21,8 @@ Remaining stub signal:
 
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from datetime import timedelta
 
 from sqlalchemy import func, select

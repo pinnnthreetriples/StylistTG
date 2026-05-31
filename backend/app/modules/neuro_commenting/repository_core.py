@@ -12,6 +12,7 @@ from app.models import (
     NeuroCommentTarget,
 )
 
+
 def get_campaign(
     session: Session,
     *,

@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-
 _RESERVE_SCRIPT = """
 -- reserve_limit_v2
 local reservation_key = ARGV[1]
@@ -156,5 +155,3 @@ class RateLimitReservation:
     reason: str | None = None
     retry_after_seconds: int | None = None
     checked_limits: list[str] = field(default_factory=lambda: [])
-
-

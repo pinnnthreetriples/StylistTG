@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUndefinedVariable=false, reportUnknownVariableType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false, reportUntypedBaseClass=false, reportUntypedFunctionDecorator=false
+
 # ruff: noqa: F403,F405
 
 from app.schemas import *
+
 
 class AssetRead(BaseModel):
     id: str

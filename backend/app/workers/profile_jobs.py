@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportArgumentType=false
+
 import json
 import os
 import queue

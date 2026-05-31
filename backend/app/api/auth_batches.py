@@ -130,6 +130,7 @@ def get_batches(
         for batch in list_batches(session, limit=limit, workspace_id=auth.workspace_id)
     ]
 
+
 @router.get("/{batch_id}", response_model=AuthBatchSnapshotRead)
 def get_batch_snapshot(
     batch_id: str,

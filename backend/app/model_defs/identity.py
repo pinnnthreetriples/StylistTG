@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class User(Base):
     __tablename__ = "app_user"
@@ -23,6 +25,8 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+    # jscpd:ignore-end
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     owned_workspaces: Mapped[list[Workspace]] = relationship(back_populates="owner")

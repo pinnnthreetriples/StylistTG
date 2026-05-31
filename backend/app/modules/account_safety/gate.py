@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from datetime import timedelta
 from typing import Any
 from uuid import UUID
@@ -53,6 +55,7 @@ from app.modules.account_safety.gate_helpers import (
     _aggregate_severity,
     _as_utc,
 )
+
 _GATE_REEXPORTS = (AccountSafetyGateAccountNotFound,)
 
 CACHE_TTL_SECONDS = 60
@@ -68,9 +71,6 @@ _CRITICAL_ACCOUNT_STATES = {
     AccountState.RUNTIME_BROKEN.value,
     AccountState.REAUTH_REQUIRED.value,
 }
-
-
-
 
 
 class AccountSafetyGate:

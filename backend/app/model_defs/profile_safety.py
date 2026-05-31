@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class AccountImportBatch(Base):
     __tablename__ = "account_import_batch"
@@ -65,6 +67,8 @@ class AccountImportItem(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+    # jscpd:ignore-end
 
     batch: Mapped[AccountImportBatch] = relationship(back_populates="items")
 

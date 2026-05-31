@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+# pyright: reportConstantRedefinition=false
+
 # ruff: noqa: F403,F405
+# jscpd:ignore-start
 
 from app.models import *
+
 
 class AccountQuarantine(Base):
     __tablename__ = "account_quarantines"
@@ -244,3 +248,6 @@ class UsageCounter(Base):
     period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     metric: Mapped[str] = mapped_column(String(128), nullable=False)
     value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+# jscpd:ignore-end

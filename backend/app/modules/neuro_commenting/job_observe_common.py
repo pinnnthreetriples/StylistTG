@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 
 from sqlalchemy.orm import Session
 
@@ -29,7 +31,6 @@ from app.modules.neuro_commenting.tdlib_observer import (
     TelegramPostObserver,
     build_telegram_post_observer,
 )
-
 
 
 def _resolve_discussion_for_observed_post(
@@ -154,6 +155,7 @@ def refresh_target_metadata(
     session.flush()
     return target
 
+
 def _require_observable_campaign(status: str) -> None:
     if status not in {NeuroCampaignStatus.RUNNING.value, NeuroCampaignStatus.READY.value}:
         raise NeuroConflictError("campaign is not observable", error_code="CAMPAIGN_NOT_OBSERVABLE")
@@ -164,6 +166,7 @@ def _require_campaign_for_job(session: Session, *, campaign_id: str, workspace_i
     if campaign is None:
         raise NeuroNotFoundError("campaign not found", error_code="CAMPAIGN_NOT_FOUND")
     return campaign
+
 
 def _write_observe_failed(
     session: Session,

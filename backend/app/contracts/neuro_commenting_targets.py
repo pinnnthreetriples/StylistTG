@@ -12,6 +12,7 @@ from app.contracts.neuro_commenting_common import (
     field_serializer,
 )
 
+
 class NeuroTargetCreate(BaseModel):
     channel_ref: str = Field(min_length=1, max_length=255)
     channel_id: str | None = None

@@ -1,6 +1,7 @@
 import { Loader2, Plus, Server, Trash2, UserRound, X } from 'lucide-react'
 import { useState } from 'react'
 
+import type React from 'react'
 import type { AccountDeletionPreview, AccountListItem } from '@/lib/api'
 import {
   useAccountAuditEventsQuery,
@@ -12,6 +13,7 @@ import {
   useCreateAccountDeletionRequestMutation,
   useCreateAccountExportRequestMutation,
 } from '@/hooks/queries/useAccountsQueries'
+import { canSubmitDeletionRequest } from './deleteAccountSubmit'
 
 export function EmptyAccounts({ onAddBatch }: { onAddBatch: () => void }) {
   return (
@@ -63,11 +65,14 @@ export function DeleteAccountDialog({
   const [confirmation, setConfirmation] = useState('')
   const isSubmitting = deletionRequestMutation.isPending
   const preview = previewQuery.data
-  const canSubmit =
-    confirmation === 'DELETE' &&
-    reason.trim().length >= 10 &&
-    preview?.can_delete !== false &&
-    !isSubmitting
+  const canSubmit = canSubmitDeletionRequest({
+    confirmation,
+    isPreviewError: previewQuery.isError,
+    isPreviewPending: previewQuery.isPending,
+    isSubmitting,
+    preview,
+    reason,
+  })
 
   async function submitDeletionRequest() {
     onError(null)

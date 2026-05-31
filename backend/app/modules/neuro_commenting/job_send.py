@@ -3,7 +3,6 @@ from __future__ import annotations
 from app.modules.neuro_commenting.job_generate import NeuroCommentJobNotImplementedError
 
 
-
 from app.db import SessionLocal
 
 

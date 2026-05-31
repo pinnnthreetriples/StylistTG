@@ -10,6 +10,7 @@ import type {
 import { dashboardApiClient } from '@/lib/apiClient'
 
 export {
+  cancelTelegramAuthSession as cancelTypedTelegramAuthSession,
   cancelJob as cancelTypedJob,
   checkAccountProxy as checkTypedAccountProxy,
   createAccountDeletionRequest as createTypedAccountDeletionRequest,
@@ -31,6 +32,7 @@ export {
   fetchAccountImportBatch as fetchTypedAccountImportBatch,
   fetchAccountImportBatches as fetchTypedAccountImportBatches,
   fetchAccountOperationLogs as fetchTypedAccountOperationLogs,
+  fetchProfileCompleteness as fetchTypedProfileCompleteness,
   fetchAccountProxy as fetchTypedAccountProxy,
   fetchAccountRisk as fetchTypedAccountRisk,
   fetchAccountRiskSummary as fetchTypedAccountRiskSummary,

@@ -36,6 +36,7 @@ def upgrade() -> None:
     _create_stats()
     _create_channel_rules()
 
+
 def downgrade() -> None:
     op.drop_index(
         "ix_neuro_comment_channel_rule_workspace_ref", table_name="neuro_comment_channel_rules"

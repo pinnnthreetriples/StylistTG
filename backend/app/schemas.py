@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false, reportUnusedImport=false
+
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal, cast  # noqa: F401
 
@@ -16,7 +18,14 @@ from app.modules.bought_onboarding import contracts as _bought_onboarding_contra
 from app.modules.human_behavior import contracts as _human_behavior_contracts
 from app.modules.warmup import contracts as _warmup_contracts
 
-_SCHEMA_COMMON_EXPORTS = (BaseModel, ConfigDict, StrictBool, field_serializer, field_validator, cast)
+_SCHEMA_COMMON_EXPORTS = (
+    BaseModel,
+    ConfigDict,
+    StrictBool,
+    field_serializer,
+    field_validator,
+    cast,
+)
 
 TerminalStatus = Literal["none", "banned", "deleted", "suspended"]
 
@@ -148,7 +157,105 @@ def _serialize_utc_datetime(value: datetime) -> str:
         value = value.replace(tzinfo=UTC)
     return value.isoformat().replace("+00:00", "Z")
 
-from app.schema_defs.accounts import *  # noqa: E402,F403
-from app.schema_defs.auth import *  # noqa: E402,F403
-from app.schema_defs.dashboard_jobs import *  # noqa: E402,F403
-from app.schema_defs.operations import *  # noqa: E402,F403
+
+from app.schema_defs.accounts import (  # noqa: E402,F401
+    AccountCreate,
+    AccountListItemRead,
+    AccountRead,
+    AccountReadinessRiskRead,
+    AccountReadinessRiskReasonRead,
+    AccountReadinessRiskSummaryRead,
+    AccountRuntimeDiagnosticsRead,
+    AccountWarmupInfoRead,
+    ActionGateRead,
+    CurrentUserRead,
+    QueueDescriptorRead,
+    RuntimeRefreshRead,
+    SensitiveAuditEventPageRead,
+    SensitiveAuditEventRead,
+    TdlibRuntimeStatusRead,
+    WorkerDiagnosticsRead,
+    WorkspaceFeatureFlagsUpdate,
+    WorkspaceNotificationSettingsUpdate,
+    WorkspaceRead,
+)
+from app.schema_defs.auth import (  # noqa: E402,F401
+    AuthBatchCreate,
+    AuthBatchEventRead,
+    AuthBatchInvalidItemRead,
+    AuthBatchItemRead,
+    AuthBatchPhoneConflictRead,
+    AuthBatchPhoneInput,
+    AuthBatchPollRead,
+    AuthBatchRead,
+    AuthBatchSnapshotRead,
+    AuthBatchSubmitCodeRequest,
+    AuthBatchSubmitPasswordRequest,
+    AuthBatchValidItemRead,
+    AuthBatchValidatePhoneInput,
+    AuthBatchValidateRead,
+    AuthBatchValidateRequest,
+    AuthRuntimeModeRead,
+    AuthRuntimeModeUpdate,
+    AuthStateRead,
+    ExecutionPolicyRead,
+    ExecutionPolicyUpdate,
+    LivePreflightRead,
+    OtpConfirmRequest,
+    OtpStartRequest,
+    PasswordSubmitRequest,
+)
+from app.schema_defs.dashboard_jobs import (  # noqa: E402,F401
+    AssetRead,
+    DashboardAccountRead,
+    DashboardCurrentProfileRead,
+    DashboardDiagnosticsRead,
+    DashboardEditableFieldsRead,
+    DashboardPipelineRead,
+    DashboardProfileAudioRead,
+    DashboardProfileRead,
+    DashboardStoryPostRead,
+    JobDetailRead,
+    JobRead,
+    JobStepListItemRead,
+    JobStepResultRead,
+    ProfileJobCreate,
+    ProfilePreviewRequest,
+    StoryCapabilitiesRead,
+    StoryDraftCreate,
+    StoryDraftRead,
+    StoryDraftUpdate,
+)
+from app.schema_defs.operations import (  # noqa: E402,F401
+    AccountBatchSafetyItemRead,
+    AccountBatchSafetyPreviewRead,
+    AccountBatchSafetyPreviewRequest,
+    AccountImportBatchConfirm,
+    AccountImportBatchCreate,
+    AccountImportBatchRead,
+    AccountImportBatchValidate,
+    AccountImportItemRead,
+    AccountOperationLogPageRead,
+    AccountOperationLogRead,
+    AccountProxyRead,
+    AccountProxySummaryRead,
+    AccountProxyUpsert,
+    AccountSafetyOverrideCreate,
+    AccountSafetyOverrideRead,
+    AccountValidityCheckRequest,
+    ApiErrorRead,
+    DiagnosticsRead,
+    FieldErrorRead,
+    FrontendDiagnosticsDatabaseRead,
+    FrontendDiagnosticsRedisRead,
+    FrontendDiagnosticsStorageRead,
+    FrontendDiagnosticsSummaryRead,
+    FrontendDiagnosticsTdlibRead,
+    FrontendDiagnosticsWorkersRead,
+    ReadinessRead,
+    RetryPolicyRead,
+    TelegramAuthCodeSubmit,
+    TelegramAuthPasswordSubmit,
+    TelegramAuthSessionCreate,
+    TelegramAuthSessionRead,
+)

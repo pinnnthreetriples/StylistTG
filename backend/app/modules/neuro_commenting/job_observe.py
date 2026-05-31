@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 
 from sqlalchemy.orm import Session
 
@@ -33,6 +35,7 @@ from app.modules.neuro_commenting.job_observe_common import (
     refresh_target_metadata,
 )
 from app.modules.neuro_commenting.job_observe_target import observe_target
+
 
 def observe_campaign(
     session: Session,
@@ -100,6 +103,7 @@ def observe_campaign(
         page += 1
     return created
 
+
 def resolve_observed_post_discussion(
     session: Session,
     *,
@@ -131,6 +135,7 @@ def resolve_observed_post_discussion(
     )
     session.flush()
     return observed
+
 
 def run_observe_campaign(
     campaign_id: str, workspace_id: str, limit: int | None, generate: bool

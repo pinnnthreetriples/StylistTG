@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUnusedFunction=false
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast

@@ -10,6 +10,7 @@ from app.contracts.neuro_commenting_common import (
     field_serializer,
 )
 
+
 class NeuroGeneratedCommentUpdate(BaseModel):
     edited_text: str = Field(min_length=1, max_length=1000)
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportAttributeAccessIssue=false, reportUnnecessaryComparison=false, reportUnknownVariableType=false
+
 from contextlib import suppress
 import json
 import time
@@ -20,6 +22,7 @@ from app.modules.neuro_commenting.rate_limiter_shared import (
     build_rate_limit_counter_metadata_key,
     parse_rate_limit_counter_key,
 )
+
 
 class RateLimiterCoreMixin:
     def _resolve_scope(

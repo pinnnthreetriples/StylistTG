@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedImport=false
+
 import json
 from typing import Any
 
@@ -9,10 +11,15 @@ from app.config import settings
 from app.models import NeuroCommentCampaign, NeuroCommentCampaignAccount, NeuroCommentTarget
 from app.modules.neuro_commenting.rate_limiter_core import RateLimiterCoreMixin
 
-from app.modules.neuro_commenting.rate_limiter_shared import (
+from app.modules.neuro_commenting.rate_limiter_shared import (  # noqa: F401
+    RATE_LIMIT_COUNTER_SCAN_PATTERN,
     RateLimitReservation,
     RateLimitScope,
+    build_rate_limit_counter_key,
+    build_rate_limit_counter_metadata_key,
+    parse_rate_limit_counter_key,
 )
+
 
 class NeuroCommentRateLimiter(RateLimiterCoreMixin):
     def __init__(

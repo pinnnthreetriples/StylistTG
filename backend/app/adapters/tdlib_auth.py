@@ -195,8 +195,7 @@ class TdlibAuthAdapter:
         state.client.send(_tdlib_parameters_query(self._config, account_id))
         proxy_applied = state.proxy_applied
         if self._proxy_applier is not None and not proxy_applied:
-            self._proxy_applier(state.client, account_id)
-            proxy_applied = True
+            proxy_applied = self._proxy_applier(state.client, account_id)
         return _AuthOperationState(
             client=state.client,
             proxy_applied=proxy_applied,

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUndefinedVariable=false, reportUnknownVariableType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false, reportUntypedBaseClass=false, reportUntypedFunctionDecorator=false, reportInvalidTypeForm=false
+
 # ruff: noqa: F403,F405
 
 from app.schemas import *
 from app.schemas import _empty_import_items, _serialize_utc_datetime
+
 
 class TelegramAuthSessionCreate(BaseModel):
     phone_number: str = Field(min_length=3, max_length=64)

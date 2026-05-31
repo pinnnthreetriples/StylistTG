@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 
 from sqlalchemy.orm import Session
 
@@ -40,6 +42,7 @@ from app.modules.neuro_commenting.job_observe_common import (
     _write_observe_failed,
     refresh_target_metadata,
 )
+
 
 def observe_target(
     session: Session,

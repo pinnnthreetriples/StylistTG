@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import hashlib
@@ -376,7 +378,6 @@ def run_account_status_monitor_tick(
             _release_status_monitor_lock(state_store, lock_token)
 
 
-
 from app.modules.account_safety.status_monitor_helpers import (  # noqa: E402
     _status_monitor_workspace_ids,
     _status_monitor_accounts,
@@ -391,4 +392,3 @@ from app.modules.account_safety.status_monitor_helpers import (  # noqa: E402
     _terminal_status_from_probe,
     _auto_pause_account,
 )
-

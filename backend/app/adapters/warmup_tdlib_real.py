@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -109,39 +111,45 @@ class RealWarmupTdlibAdapter:
         if cached is not None:
             return cached
         client = self._client_factory.create(account_id)
-        self._clients[account_id] = client
         proxy_applied = False
-        deadline_loops = max(1, int(self._config.tdlib_auth_timeout_seconds * 2))
-        for _ in range(deadline_loops):
-            event = client.receive(self._config.tdlib_receive_timeout_seconds)
-            if event is None:
-                continue
-            if event.get("@type") == "error":
-                raise _AdapterClientError.from_tdlib_error(event)
-            state = extract_authorization_state(event)
-            if state is None:
-                continue
-            mapped = map_authorization_state(state)
-            if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
-                client.send(tdlib_parameters_query(self._config, account_id))
-                if not proxy_applied:
-                    apply_account_proxy_to_tdlib(client, account_id, config=self._config)
-                    proxy_applied = True
-                continue
-            if mapped.status == TdlibAuthStatus.READY:
-                return client
+        try:
+            deadline_loops = max(1, int(self._config.tdlib_auth_timeout_seconds * 2))
+            for _ in range(deadline_loops):
+                event = client.receive(self._config.tdlib_receive_timeout_seconds)
+                if event is None:
+                    continue
+                if event.get("@type") == "error":
+                    raise _AdapterClientError.from_tdlib_error(event)
+                state = extract_authorization_state(event)
+                if state is None:
+                    continue
+                mapped = map_authorization_state(state)
+                if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
+                    client.send(tdlib_parameters_query(self._config, account_id))
+                    if not proxy_applied:
+                        proxy_applied = apply_account_proxy_to_tdlib(
+                            client, account_id, config=self._config
+                        )
+                    continue
+                if mapped.status == TdlibAuthStatus.READY:
+                    self._clients[account_id] = client
+                    return client
+                raise _AdapterClientError(
+                    status="runtime_broken",
+                    error_code=mapped.recovery_marker or "tdlib_not_ready",
+                    error_class="auth_state",
+                    message=f"tdlib_auth_status={mapped.status.value}",
+                )
             raise _AdapterClientError(
-                status="runtime_broken",
-                error_code=mapped.recovery_marker or "tdlib_not_ready",
-                error_class="auth_state",
-                message=f"tdlib_auth_status={mapped.status.value}",
+                status="network_error",
+                error_code="tdlib_auth_timeout",
+                error_class="timeout",
+                message="tdlib auth state did not converge",
             )
-        raise _AdapterClientError(
-            status="network_error",
-            error_code="tdlib_auth_timeout",
-            error_class="timeout",
-            message="tdlib auth state did not converge",
-        )
+        except Exception:
+            client.close()
+            self._clients.pop(account_id, None)
+            raise
 
     def _action_get_me(self, client: TdlibClient, action_type: str) -> WarmupActionResult:
         response = client.send_query({"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds)

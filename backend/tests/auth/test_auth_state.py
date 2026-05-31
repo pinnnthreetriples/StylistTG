@@ -253,3 +253,51 @@ def test_auth_adapter_applies_proxy_before_phone_submission(tmp_path) -> None:
 
     sent_types = [query.get("@type") for query in client.sent]
     assert sent_types.index("addProxy") < sent_types.index("setAuthenticationPhoneNumber")
+
+
+def test_auth_adapter_does_not_mark_missing_proxy_as_applied(tmp_path) -> None:
+    events = deque(
+        [
+            {
+                "@type": "updateAuthorizationState",
+                "authorization_state": {"@type": "authorizationStateWaitTdlibParameters"},
+            },
+            {
+                "@type": "updateAuthorizationState",
+                "authorization_state": {"@type": "authorizationStateWaitTdlibParameters"},
+            },
+            {
+                "@type": "updateAuthorizationState",
+                "authorization_state": {"@type": "authorizationStateWaitPhoneNumber"},
+            },
+            {
+                "@type": "updateAuthorizationState",
+                "authorization_state": {"@type": "authorizationStateWaitCode"},
+            },
+        ]
+    )
+    client = SharedQueueClient(1, events)
+    proxy_apply_calls = 0
+
+    def apply_proxy(proxy_client, account_id: str) -> bool:
+        nonlocal proxy_apply_calls
+        proxy_apply_calls += 1
+        return False
+
+    adapter = TdlibAuthAdapter(
+        client_factory=SharedQueueClientFactory([client]),
+        config=Settings(
+            tdlib_api_id=1,
+            tdlib_api_hash="hash",
+            tdlib_database_root=tmp_path / "database",
+            tdlib_files_root=tmp_path / "files",
+            tdlib_auth_timeout_seconds=1.0,
+            tdlib_receive_timeout_seconds=0.01,
+        ),
+        proxy_applier=apply_proxy,
+    )
+
+    result = adapter.start_otp("account-1", "+15550102000")
+
+    assert result.status == TdlibAuthStatus.WAIT_CODE
+    assert proxy_apply_calls == 2

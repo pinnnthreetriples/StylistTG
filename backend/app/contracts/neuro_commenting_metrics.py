@@ -18,6 +18,7 @@ from app.contracts.neuro_commenting_common import (
     field_validator,
 )
 
+
 class NeuroEventRead(BaseModel):
     id: str
     workspace_id: str

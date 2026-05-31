@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, cast
 from uuid import UUID
@@ -53,9 +55,9 @@ _CRITICAL_ACCOUNT_STATES = {
 }
 
 
-
 class AccountSafetyGateAccountNotFound(LookupError):
     pass
+
 
 def _commenting_reasons(
     session: Session,
@@ -383,4 +385,3 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
-

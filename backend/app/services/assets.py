@@ -218,7 +218,7 @@ def save_story_video_asset_from_path(
         raise ValueError("uploaded file is not a supported story video")
 
     asset_id = new_id()
-    storage = storage_service or _local_storage(storage_root)
+    storage = storage_service or LocalStorageService(storage_root)
     extension = Path(filename).suffix or ".mp4"
     source_key = asset_source_key(asset_id, f"original{extension}")
     normalized_key = asset_normalized_key(asset_id, "story_video.mp4")
@@ -301,10 +301,6 @@ def _log_asset_uploaded(
         entity_id=asset.id,
         metadata={"kind": asset.kind, "mime": asset.mime},
     )
-
-
-def _local_storage(storage_root: Path) -> LocalStorageService:
-    return LocalStorageService(storage_root)
 
 
 def _apply_storage_metadata(
@@ -475,7 +471,7 @@ def _read_file_prefix(path: Path, size: int = 32) -> bytes:
 def _init_asset_storage(
     storage_root: Path, storage_service: StorageService | None = None
 ) -> tuple[str, StorageService]:
-    return new_id(), storage_service or _local_storage(storage_root)
+    return new_id(), storage_service or LocalStorageService(storage_root)
 
 
 def _finalize_asset(

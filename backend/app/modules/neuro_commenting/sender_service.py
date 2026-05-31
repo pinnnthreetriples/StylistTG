@@ -91,6 +91,23 @@ class _SendContext:
     campaign_account: NeuroCommentCampaignAccount | None
 
 
+def _discussion_chat_id(context: _SendContext) -> str:
+    assert context.target is not None
+    assert context.observed_post is not None
+    discussion_chat_id = (
+        context.observed_post.discussion_chat_id or context.target.discussion_chat_id
+    )
+    if not discussion_chat_id:
+        raise NeuroConflictError("target has no discussion", error_code="TARGET_NO_DISCUSSION")
+    return str(discussion_chat_id)
+
+
+def _comment_text(context: _SendContext) -> str:
+    return (
+        context.comment.final_text or context.comment.edited_text or context.comment.generated_text
+    )
+
+
 @dataclass(frozen=True)
 class BehaviorEmulatorSendPlan:
     typing_fragments: tuple[TypingFragment, ...]
@@ -222,48 +239,11 @@ class SenderService:
         if attempt.status == NeuroAttemptStatus.SENT.value and attempt.telegram_message_id:
             return attempt
         self._validate_context(context)
-        if not self._config.neuro_comment_tdlib_send_enabled:
-            self._analytics.write_event(
-                session,
-                workspace_id=workspace_id,
-                campaign_id=context.campaign.id,
-                account_id=attempt.account_id,
-                target_id=attempt.target_id,
-                generated_comment_id=context.comment.id,
-                attempt_id=attempt.id,
-                event_type="manual_send_blocked",
-                message="TDLib neuro-comment sending is disabled.",
-                data={"error_code": "NEURO_COMMENT_SEND_DISABLED"},
-            )
-            raise NeuroRuntimeDisabledError(
-                "TDLib neuro-comment sending is disabled.",
-                error_code="NEURO_COMMENT_SEND_DISABLED",
-            )
+        self._raise_if_send_disabled(session, workspace_id=workspace_id, context=context)
         if self._block_by_safety_gate(session, workspace_id=workspace_id, context=context):
             return attempt
-        if context.target is not None:
-            decision = ChannelRulesService().evaluate_target_allowed(
-                session, workspace_id=workspace_id, target=context.target
-            )
-            if not decision.allowed:
-                attempt.status = NeuroAttemptStatus.SKIPPED.value
-                attempt.error_code = "CHANNEL_RULE_BLOCKED"
-                attempt.error_message = decision.reason
-                self._analytics.write_event(
-                    session,
-                    workspace_id=workspace_id,
-                    campaign_id=context.campaign.id,
-                    account_id=attempt.account_id,
-                    target_id=attempt.target_id,
-                    observed_post_id=attempt.observed_post_id,
-                    generated_comment_id=context.comment.id,
-                    attempt_id=attempt.id,
-                    event_type="channel_rule_blocked",
-                    event_level=NeuroEventLevel.WARNING,
-                    message=decision.reason or "channel rule blocked send",
-                    data={"matched_rule_id": decision.matched_rule_id},
-                )
-                return attempt
+        if self._block_by_channel_rule(session, workspace_id=workspace_id, context=context):
+            return attempt
         reservation = self._reserve_for_attempt(session, context=context, workspace_id=workspace_id)
         if (
             reservation is None
@@ -273,16 +253,8 @@ class SenderService:
             return attempt
         assert context.target is not None
         assert context.observed_post is not None
-        discussion_chat_id = (
-            context.observed_post.discussion_chat_id or context.target.discussion_chat_id
-        )
-        if not discussion_chat_id:
-            raise NeuroConflictError("target has no discussion", error_code="TARGET_NO_DISCUSSION")
-        final_text = (
-            context.comment.final_text
-            or context.comment.edited_text
-            or context.comment.generated_text
-        )
+        discussion_chat_id = _discussion_chat_id(context)
+        final_text = _comment_text(context)
         idem = generate_idempotency_key(attempt.id)
         attempt.idempotency_key = idem.key
         attempt.status = NeuroAttemptStatus.SENDING.value
@@ -363,12 +335,84 @@ class SenderService:
         finally:
             if not gate_released:
                 self._release_gate_reservation()
+        self._commit_reservation(reservation)
+        self._mark_attempt_sent(
+            session,
+            workspace_id=workspace_id,
+            context=context,
+            result=result,
+            idempotency_key=idem.key,
+        )
+        self._release_gate_reservation()
+        return attempt
+
+    def _raise_if_send_disabled(
+        self, session: Session, *, workspace_id: str, context: _SendContext
+    ) -> None:
+        if self._config.neuro_comment_tdlib_send_enabled:
+            return
+        self._analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=context.attempt.account_id,
+            target_id=context.attempt.target_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=context.attempt.id,
+            event_type="manual_send_blocked",
+            message="TDLib neuro-comment sending is disabled.",
+            data={"error_code": "NEURO_COMMENT_SEND_DISABLED"},
+        )
+        raise NeuroRuntimeDisabledError(
+            "TDLib neuro-comment sending is disabled.",
+            error_code="NEURO_COMMENT_SEND_DISABLED",
+        )
+
+    def _block_by_channel_rule(
+        self, session: Session, *, workspace_id: str, context: _SendContext
+    ) -> bool:
+        if context.target is None:
+            return False
+        decision = ChannelRulesService().evaluate_target_allowed(
+            session, workspace_id=workspace_id, target=context.target
+        )
+        if decision.allowed:
+            return False
+        attempt = context.attempt
+        attempt.status = NeuroAttemptStatus.SKIPPED.value
+        attempt.error_code = "CHANNEL_RULE_BLOCKED"
+        attempt.error_message = decision.reason
+        self._analytics.write_event(
+            session,
+            workspace_id=workspace_id,
+            campaign_id=context.campaign.id,
+            account_id=attempt.account_id,
+            target_id=attempt.target_id,
+            observed_post_id=attempt.observed_post_id,
+            generated_comment_id=context.comment.id,
+            attempt_id=attempt.id,
+            event_type="channel_rule_blocked",
+            event_level=NeuroEventLevel.WARNING,
+            message=decision.reason or "channel rule blocked send",
+            data={"matched_rule_id": decision.matched_rule_id},
+        )
+        return True
+
+    def _mark_attempt_sent(
+        self,
+        session: Session,
+        *,
+        workspace_id: str,
+        context: _SendContext,
+        result: SentCommentResult,
+        idempotency_key: str,
+    ) -> None:
+        attempt = context.attempt
         try:
             attempt.external_message_id_provisional = int(result.telegram_message_id)
         except _INT_COERCION_ERRORS:
-            # Non-numeric message id is acceptable — the canonical id is set below.
+            # Non-numeric message id is acceptable; canonical id is stored below.
             pass
-        self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value
         attempt.telegram_message_id = result.telegram_message_id
         attempt.sent_at = result.sent_at
@@ -381,13 +425,14 @@ class SenderService:
             attempt=attempt,
             telegram_message_id=result.telegram_message_id,
         )
+        assert context.target is not None
         context.target.last_commented_at = result.sent_at
         self._write_outbox_event(
             session,
             workspace_id=workspace_id,
             context=context,
             event_type="comment_sent_provisional",
-            data={"attempt_id": attempt.id, "idempotency_key": idem.key},
+            data={"attempt_id": attempt.id, "idempotency_key": idempotency_key},
         )
         self._analytics.write_event(
             session,
@@ -402,8 +447,6 @@ class SenderService:
             message="manual neuro-comment sent",
             data={"attempt_id": attempt.id},
         )
-        self._release_gate_reservation()
-        return attempt
 
     def send_comment(
         self,

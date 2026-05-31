@@ -123,7 +123,7 @@ def _check_endpoint(
 def _http_get_json(url: str, timeout: float) -> tuple[int, Any]:
     request = Request(url, headers={"Accept": "application/json"})
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout) as response:  # nosec B310
             body = response.read().decode("utf-8")
             return response.status, json.loads(body) if body else None
     except HTTPError as exc:

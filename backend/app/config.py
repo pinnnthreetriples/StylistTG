@@ -194,10 +194,19 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
-        cloud_or_prod = (
+        cloud_or_prod = self._cloud_or_prod()
+        self._validate_auth_settings(cloud_or_prod)
+        self._validate_storage_settings()
+        self._validate_neuro_comment_settings()
+        return self
+
+    def _cloud_or_prod(self) -> bool:
+        return (
             self.app_env not in {"local", "development", "test"}
             or self.db_connection_mode == "neon"
         )
+
+    def _validate_auth_settings(self, cloud_or_prod: bool) -> None:
         if cloud_or_prod and self.auth_mode == "local" and not self.allow_local_auth_in_prod:
             raise ValueError(
                 "AUTH_MODE=local is not allowed in production/cloud mode. "
@@ -226,6 +235,8 @@ class Settings(BaseSettings):
                     "cloud API requires NEURO_COMMENT_AI_PROVIDER!=fake "
                     "(fake provider must not be used in production/cloud mode)"
                 )
+
+    def _validate_storage_settings(self) -> None:
         if self.storage_backend not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be local or s3")
         if self.tdlib_storage_backend != "local":
@@ -240,6 +251,8 @@ class Settings(BaseSettings):
             missing = [name for name, value in required_s3_settings.items() if not value]
             if missing:
                 raise ValueError(f"STORAGE_BACKEND=s3 requires {', '.join(missing)}")
+
+    def _validate_neuro_comment_settings(self) -> None:
         if self.neuro_comment_ai_provider not in {"fake", "openai_compatible"}:
             raise ValueError("NEURO_COMMENT_AI_PROVIDER must be fake or openai_compatible")
         if self.neuro_comment_ai_provider == "openai_compatible":
@@ -259,7 +272,6 @@ class Settings(BaseSettings):
             raise ValueError("NEURO_COMMENT_APPROVAL_TTL_SECONDS must be positive")
         if self.neuro_comment_approval_expirer_interval_seconds <= 0:
             raise ValueError("NEURO_COMMENT_APPROVAL_EXPIRER_INTERVAL_SECONDS must be positive")
-        return self
 
     @staticmethod
     def _validate_fernet_key(key: str) -> None:

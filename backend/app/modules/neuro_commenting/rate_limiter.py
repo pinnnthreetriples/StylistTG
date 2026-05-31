@@ -199,107 +199,144 @@ class NeuroCommentRateLimiter:
     ) -> RateLimitReservation:
         if not self._enabled:
             return RateLimitReservation(None, True)
-        if scope is None:
-            if campaign is None:
-                raise ValueError("campaign is required")
-            scope = RateLimitScope(
-                workspace_id=campaign.workspace_id,
-                campaign_id=campaign.id,
-                account_id=account.account_id if account is not None else None,
-                target_id=target.id if target is not None else None,
-                campaign_account_id=account.id if account is not None else None,
-            )
+        scope = self._resolve_scope(scope, campaign=campaign, account=account, target=target)
         try:
-            redis = self._client()
-            cooldown = self._active_cooldown(redis, scope)
-            if cooldown is not None:
-                return cooldown
-            limits = self._matching_limits(scope)
-            reservation_id = uuid4().hex
-            counter_limits = [
-                item
-                for item in limits
-                if item["limit_type"] not in {"min_delay_between_comments", "max_parallel_attempts"}
-            ]
-            parallel_limits = [
-                item for item in limits if item["limit_type"] == "max_parallel_attempts"
-            ]
-            window_counter_keys = [self._limit_key(scope, limit) for limit in counter_limits]
-            parallel_counter_keys = [self._parallel_key(scope, limit) for limit in parallel_limits]
-            reserve_limits = [
-                *counter_limits,
-                *[
-                    {
-                        **limit,
-                        "window_seconds": min(
-                            int(limit.get("window_seconds") or self._reservation_ttl_seconds),
-                            self._reservation_ttl_seconds,
-                        ),
-                    }
-                    for limit in parallel_limits
-                ],
-            ]
-            reserve_keys = [*window_counter_keys, *parallel_counter_keys]
-            last_comment_keys = [
-                {
-                    "key": (
-                        f"neuro:{scope.workspace_id}:last_comment:"
-                        f"{limit['scope_type']}:{limit['scope_id']}"
-                    ),
-                    "ttl": int(limit["window_seconds"]),
-                    "reserve_ttl": min(
-                        int(limit["window_seconds"]),
-                        self._reservation_ttl_seconds,
-                    ),
-                    "name": self._limit_name(limit),
-                }
-                for limit in limits
-                if limit["limit_type"] == "min_delay_between_comments"
-            ]
-            min_delay_keys = [item["key"] for item in last_comment_keys]
-            reservation_key = self._reservation_key(scope.workspace_id, reservation_id)
-            payload = json.dumps(
-                {
-                    "status": "active",
-                    "counter_keys": reserve_keys,
-                    "commit_release_keys": parallel_counter_keys,
-                    "rollback_counter_keys": reserve_keys,
-                    "last_comment_keys": last_comment_keys,
-                }
-            )
-            result = redis.eval(
-                _RESERVE_SCRIPT,
-                len(reserve_keys) + len(min_delay_keys),
-                *reserve_keys,
-                *min_delay_keys,
-                reservation_key,
-                payload,
-                self._reservation_ttl_seconds,
-                len(reserve_limits),
-                *self._lua_limit_args(reserve_limits),
-                len(last_comment_keys),
-                *self._lua_min_delay_args(last_comment_keys),
-            )
-            if int(result[0]) != 1:
-                denied_name = self._decode_lua_value(result[1])
-                return RateLimitReservation(
-                    None,
-                    False,
-                    reason=self._denied_reason(denied_name),
-                    retry_after_seconds=max(1, int(result[2] or 1)),
-                )
-            self._write_counter_metadata(redis, counter_limits, window_counter_keys)
-            return RateLimitReservation(
-                reservation_id=reservation_id,
-                allowed=True,
-                checked_limits=[self._limit_name(limit) for limit in limits],
-            )
+            return self._reserve_with_redis(scope)
         except RedisError:
             if self._fail_closed:
                 return RateLimitReservation(
                     None, False, reason="rate_limiter_unavailable", retry_after_seconds=60
                 )
             return RateLimitReservation(None, True, reason="rate_limiter_unavailable")
+
+    def _resolve_scope(
+        self,
+        scope: RateLimitScope | None,
+        *,
+        campaign: NeuroCommentCampaign | None,
+        account: NeuroCommentCampaignAccount | None,
+        target: NeuroCommentTarget | None,
+    ) -> RateLimitScope:
+        if scope is not None:
+            return scope
+        if campaign is None:
+            raise ValueError("campaign is required")
+        return RateLimitScope(
+            workspace_id=campaign.workspace_id,
+            campaign_id=campaign.id,
+            account_id=account.account_id if account is not None else None,
+            target_id=target.id if target is not None else None,
+            campaign_account_id=account.id if account is not None else None,
+        )
+
+    def _reserve_with_redis(self, scope: RateLimitScope) -> RateLimitReservation:
+        redis = self._client()
+        cooldown = self._active_cooldown(redis, scope)
+        if cooldown is not None:
+            return cooldown
+        limits = self._matching_limits(scope)
+        reservation_id = uuid4().hex
+        counter_limits, parallel_limits = _split_counter_limits(limits)
+        window_counter_keys = [self._limit_key(scope, limit) for limit in counter_limits]
+        parallel_counter_keys = [self._parallel_key(scope, limit) for limit in parallel_limits]
+        reserve_limits = self._reserve_limits(counter_limits, parallel_limits)
+        reserve_keys = [*window_counter_keys, *parallel_counter_keys]
+        last_comment_keys = self._last_comment_keys(scope, limits)
+        result = self._eval_reservation(
+            redis,
+            scope=scope,
+            reservation_id=reservation_id,
+            reserve_keys=reserve_keys,
+            parallel_counter_keys=parallel_counter_keys,
+            reserve_limits=reserve_limits,
+            last_comment_keys=last_comment_keys,
+        )
+        if int(result[0]) != 1:
+            return self._denied_reservation(result)
+        self._write_counter_metadata(redis, counter_limits, window_counter_keys)
+        return RateLimitReservation(
+            reservation_id=reservation_id,
+            allowed=True,
+            checked_limits=[self._limit_name(limit) for limit in limits],
+        )
+
+    def _reserve_limits(
+        self, counter_limits: list[dict[str, Any]], parallel_limits: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return [
+            *counter_limits,
+            *[
+                {
+                    **limit,
+                    "window_seconds": min(
+                        int(limit.get("window_seconds") or self._reservation_ttl_seconds),
+                        self._reservation_ttl_seconds,
+                    ),
+                }
+                for limit in parallel_limits
+            ],
+        ]
+
+    def _last_comment_keys(
+        self, scope: RateLimitScope, limits: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "key": (
+                    f"neuro:{scope.workspace_id}:last_comment:"
+                    f"{limit['scope_type']}:{limit['scope_id']}"
+                ),
+                "ttl": int(limit["window_seconds"]),
+                "reserve_ttl": min(int(limit["window_seconds"]), self._reservation_ttl_seconds),
+                "name": self._limit_name(limit),
+            }
+            for limit in limits
+            if limit["limit_type"] == "min_delay_between_comments"
+        ]
+
+    def _eval_reservation(
+        self,
+        redis: Any,
+        *,
+        scope: RateLimitScope,
+        reservation_id: str,
+        reserve_keys: list[str],
+        parallel_counter_keys: list[str],
+        reserve_limits: list[dict[str, Any]],
+        last_comment_keys: list[dict[str, Any]],
+    ) -> Any:
+        min_delay_keys = [item["key"] for item in last_comment_keys]
+        payload = json.dumps(
+            {
+                "status": "active",
+                "counter_keys": reserve_keys,
+                "commit_release_keys": parallel_counter_keys,
+                "rollback_counter_keys": reserve_keys,
+                "last_comment_keys": last_comment_keys,
+            }
+        )
+        return redis.eval(
+            _RESERVE_SCRIPT,
+            len(reserve_keys) + len(min_delay_keys),
+            *reserve_keys,
+            *min_delay_keys,
+            self._reservation_key(scope.workspace_id, reservation_id),
+            payload,
+            self._reservation_ttl_seconds,
+            len(reserve_limits),
+            *self._lua_limit_args(reserve_limits),
+            len(last_comment_keys),
+            *self._lua_min_delay_args(last_comment_keys),
+        )
+
+    def _denied_reservation(self, result: Any) -> RateLimitReservation:
+        denied_name = self._decode_lua_value(result[1])
+        return RateLimitReservation(
+            None,
+            False,
+            reason=self._denied_reason(denied_name),
+            retry_after_seconds=max(1, int(result[2] or 1)),
+        )
 
     def commit(self, reservation: RateLimitReservation) -> None:
         if not reservation.allowed or reservation.reservation_id is None:
@@ -550,3 +587,15 @@ class NeuroCommentRateLimiter:
         if isinstance(raw, bytes):
             raw = raw.decode()
         return json.loads(str(raw))
+
+
+def _split_counter_limits(
+    limits: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    counter_limits = [
+        item
+        for item in limits
+        if item["limit_type"] not in {"min_delay_between_comments", "max_parallel_attempts"}
+    ]
+    parallel_limits = [item for item in limits if item["limit_type"] == "max_parallel_attempts"]
+    return counter_limits, parallel_limits

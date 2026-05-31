@@ -56,137 +56,18 @@ class LiveReadinessService:
             session, campaign_id=campaign_id, workspace_id=workspace_id
         )
         checks: list[_Check] = []
-        _append(
-            checks,
-            campaign.status == NeuroCampaignStatus.RUNNING.value,
-            "CAMPAIGN_RUNNING",
-            "CAMPAIGN_NOT_RUNNING",
-            "campaign is running",
-            "campaign must be running",
-        )
-        _append(
-            checks,
-            not campaign.dry_run,
-            "CAMPAIGN_LIVE_MODE",
-            "CAMPAIGN_DRY_RUN",
-            "campaign dry-run is disabled",
-            "campaign dry-run must be disabled",
-        )
-        _append(
-            checks,
-            campaign.send_mode == "manual_approval",
-            "SEND_MODE_MANUAL_APPROVAL",
-            "SEND_MODE_NOT_MANUAL_APPROVAL",
-            "send mode is manual approval",
-            "send mode must be manual_approval",
-        )
-        _append(
-            checks,
-            not campaign.auto_send_enabled,
-            "AUTO_SEND_DISABLED",
-            "AUTO_SEND_ENABLED",
-            "auto-send is disabled",
-            "auto-send must remain disabled",
-        )
+        _append_campaign_checks(checks, campaign)
         accounts = repository.list_campaign_accounts(session, campaign_id=campaign.id)
-        active_accounts = [
-            account
-            for account in accounts
-            if account.status == NeuroCampaignAccountStatus.ACTIVE.value
-        ]
-        if not active_accounts:
-            checks.append(
-                _Check("NO_ACTIVE_ACCOUNT", "blocker", "at least one active account is required")
-            )
-            selected = None
-        else:
-            checks.append(_Check("ACTIVE_ACCOUNT_AVAILABLE", "info", "active account is available"))
-            selection = AccountSelector(session=session).select_account(campaign, accounts, None)
-            selected = selection.account
-            if selected is None:
-                checks.append(
-                    _Check(
-                        "ACCOUNT_RUNTIME_NOT_READY",
-                        "blocker",
-                        "selected account must be execution_usable with ready runtime and session",
-                    )
-                )
-        if selected is not None:
-            account = session.get(Account, selected.account_id)
-            runtime = account.runtime_state if account is not None else None
-            account_ready = bool(
-                account is not None
-                and account.account_state == "execution_usable"
-                and runtime is not None
-                and runtime.runtime_health == "ready"
-                and runtime.session_present
-            )
-            _append(
-                checks,
-                account_ready,
-                "ACCOUNT_RUNTIME_READY",
-                "ACCOUNT_RUNTIME_NOT_READY",
-                "selected account runtime is ready",
-                "selected account must be execution_usable with ready runtime and session",
-            )
-        for campaign_account in active_accounts:
-            _append_account_safety_gate_check(
-                session,
-                checks,
-                workspace_id=workspace_id,
-                account_id=campaign_account.account_id,
-            )
-        targets, _total = repository.list_targets(
-            session, campaign_id=campaign.id, page=1, limit=100
+        active_accounts = _append_active_account_checks(session, checks, campaign, accounts)
+        _append_account_safety_checks(
+            session, checks, active_accounts=active_accounts, workspace_id=workspace_id
         )
-        active_targets = [
-            target for target in targets if target.status == NeuroTargetStatus.ACTIVE.value
-        ]
-        if not active_targets:
-            checks.append(
-                _Check("NO_ACTIVE_TARGET", "blocker", "at least one active target is required")
-            )
-        else:
-            checks.append(_Check("ACTIVE_TARGET_AVAILABLE", "info", "active target is available"))
-        for target in active_targets:
-            if not target.discussion_chat_id:
-                checks.append(
-                    _Check(
-                        "TARGET_NO_DISCUSSION", "blocker", "active target has no discussion chat"
-                    )
-                )
-            rule_status = ChannelRulesService().target_rule_status(
-                session, workspace_id=workspace_id, target_ref=target.channel_ref
-            )
-            if rule_status == "blacklist":
-                checks.append(
-                    _Check(
-                        "CHANNEL_RULE_BLOCKED",
-                        "blocker",
-                        "selected target is blocked by channel rules",
-                    )
-                )
-            elif rule_status == "whitelist":
-                checks.append(
-                    _Check(
-                        "CHANNEL_RULE_ALLOWED", "info", "selected target is explicitly whitelisted"
-                    )
-                )
-        unresolved_count = _approved_unresolved_count(session, campaign_id=campaign.id)
-        if unresolved_count:
-            checks.append(
-                _Check(
-                    "DISCUSSION_MESSAGE_NOT_RESOLVED",
-                    "blocker",
-                    "approved comments require resolved discussion messages before send",
-                )
-            )
-        else:
-            checks.append(
-                _Check(
-                    "DISCUSSION_MAPPING_READY", "info", "approved comments have discussion mapping"
-                )
-            )
+        _append_target_checks(session, checks, campaign_id=campaign.id, workspace_id=workspace_id)
+        _append_approval_checks(session, checks, campaign_id=campaign.id)
+        self._append_send_dependency_checks(checks)
+        return _readiness_response(campaign.id, checks)
+
+    def _append_send_dependency_checks(self, checks: list[_Check]) -> None:
         _append(
             checks,
             bool(self._config.neuro_comment_tdlib_send_enabled),
@@ -208,17 +89,173 @@ class LiveReadinessService:
             "Redis limiter is ready",
             "Redis limiter is required before live send",
         )
-        read_checks = [
-            NeuroLiveReadinessCheckRead(
-                code=check.code,
-                severity=check.severity,
-                message=check.message,
-                details=check.details,
+
+
+def _append_campaign_checks(checks: list[_Check], campaign: Any) -> None:
+    _append(
+        checks,
+        campaign.status == NeuroCampaignStatus.RUNNING.value,
+        "CAMPAIGN_RUNNING",
+        "CAMPAIGN_NOT_RUNNING",
+        "campaign is running",
+        "campaign must be running",
+    )
+    _append(
+        checks,
+        not campaign.dry_run,
+        "CAMPAIGN_LIVE_MODE",
+        "CAMPAIGN_DRY_RUN",
+        "campaign dry-run is disabled",
+        "campaign dry-run must be disabled",
+    )
+    _append(
+        checks,
+        campaign.send_mode == "manual_approval",
+        "SEND_MODE_MANUAL_APPROVAL",
+        "SEND_MODE_NOT_MANUAL_APPROVAL",
+        "send mode is manual approval",
+        "send mode must be manual_approval",
+    )
+    _append(
+        checks,
+        not campaign.auto_send_enabled,
+        "AUTO_SEND_DISABLED",
+        "AUTO_SEND_ENABLED",
+        "auto-send is disabled",
+        "auto-send must remain disabled",
+    )
+
+
+def _append_active_account_checks(
+    session: Session, checks: list[_Check], campaign: Any, accounts: list[Any]
+) -> list[Any]:
+    active_accounts = [
+        account for account in accounts if account.status == NeuroCampaignAccountStatus.ACTIVE.value
+    ]
+    if not active_accounts:
+        checks.append(
+            _Check("NO_ACTIVE_ACCOUNT", "blocker", "at least one active account is required")
+        )
+        return active_accounts
+    checks.append(_Check("ACTIVE_ACCOUNT_AVAILABLE", "info", "active account is available"))
+    selection = AccountSelector(session=session).select_account(campaign, accounts, None)
+    selected = selection.account
+    if selected is None:
+        checks.append(
+            _Check(
+                "ACCOUNT_RUNTIME_NOT_READY",
+                "blocker",
+                "selected account must be execution_usable with ready runtime and session",
             )
-            for check in checks
-        ]
-        ready = not any(check.severity == "blocker" for check in read_checks)
-        return NeuroLiveReadinessRead(campaign_id=campaign.id, ready=ready, checks=read_checks)
+        )
+        return active_accounts
+    _append_selected_account_runtime_check(session, checks, selected.account_id)
+    return active_accounts
+
+
+def _append_selected_account_runtime_check(
+    session: Session, checks: list[_Check], account_id: str
+) -> None:
+    account = session.get(Account, account_id)
+    runtime = account.runtime_state if account is not None else None
+    account_ready = bool(
+        account is not None
+        and account.account_state == "execution_usable"
+        and runtime is not None
+        and runtime.runtime_health == "ready"
+        and runtime.session_present
+    )
+    _append(
+        checks,
+        account_ready,
+        "ACCOUNT_RUNTIME_READY",
+        "ACCOUNT_RUNTIME_NOT_READY",
+        "selected account runtime is ready",
+        "selected account must be execution_usable with ready runtime and session",
+    )
+
+
+def _append_account_safety_checks(
+    session: Session,
+    checks: list[_Check],
+    *,
+    active_accounts: list[Any],
+    workspace_id: str,
+) -> None:
+    for campaign_account in active_accounts:
+        _append_account_safety_gate_check(
+            session,
+            checks,
+            workspace_id=workspace_id,
+            account_id=campaign_account.account_id,
+        )
+
+
+def _append_target_checks(
+    session: Session, checks: list[_Check], *, campaign_id: str, workspace_id: str
+) -> None:
+    targets, _total = repository.list_targets(session, campaign_id=campaign_id, page=1, limit=100)
+    active_targets = [
+        target for target in targets if target.status == NeuroTargetStatus.ACTIVE.value
+    ]
+    if not active_targets:
+        checks.append(
+            _Check("NO_ACTIVE_TARGET", "blocker", "at least one active target is required")
+        )
+        return
+    checks.append(_Check("ACTIVE_TARGET_AVAILABLE", "info", "active target is available"))
+    for target in active_targets:
+        _append_target_rule_checks(session, checks, target=target, workspace_id=workspace_id)
+
+
+def _append_target_rule_checks(
+    session: Session, checks: list[_Check], *, target: Any, workspace_id: str
+) -> None:
+    if not target.discussion_chat_id:
+        checks.append(
+            _Check("TARGET_NO_DISCUSSION", "blocker", "active target has no discussion chat")
+        )
+    rule_status = ChannelRulesService().target_rule_status(
+        session, workspace_id=workspace_id, target_ref=target.channel_ref
+    )
+    if rule_status == "blacklist":
+        checks.append(
+            _Check("CHANNEL_RULE_BLOCKED", "blocker", "selected target is blocked by channel rules")
+        )
+    elif rule_status == "whitelist":
+        checks.append(
+            _Check("CHANNEL_RULE_ALLOWED", "info", "selected target is explicitly whitelisted")
+        )
+
+
+def _append_approval_checks(session: Session, checks: list[_Check], *, campaign_id: str) -> None:
+    unresolved_count = _approved_unresolved_count(session, campaign_id=campaign_id)
+    if unresolved_count:
+        checks.append(
+            _Check(
+                "DISCUSSION_MESSAGE_NOT_RESOLVED",
+                "blocker",
+                "approved comments require resolved discussion messages before send",
+            )
+        )
+    else:
+        checks.append(
+            _Check("DISCUSSION_MAPPING_READY", "info", "approved comments have discussion mapping")
+        )
+
+
+def _readiness_response(campaign_id: str, checks: list[_Check]) -> NeuroLiveReadinessRead:
+    read_checks = [
+        NeuroLiveReadinessCheckRead(
+            code=check.code,
+            severity=check.severity,
+            message=check.message,
+            details=check.details,
+        )
+        for check in checks
+    ]
+    ready = not any(check.severity == "blocker" for check in read_checks)
+    return NeuroLiveReadinessRead(campaign_id=campaign_id, ready=ready, checks=read_checks)
 
 
 def _append(

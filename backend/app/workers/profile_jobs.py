@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -33,6 +34,21 @@ from app.services.profile_sync import build_profile_sync_adapter, sync_account_p
 from app.services.secret_redaction import redact_text
 from app.services.step_policy import classify_account_update_job_outcome, is_hard_stop_error
 from app.services.tenant_scope import assert_job_account_workspace_consistency
+
+
+@dataclass
+class _ChildEventState:
+    runtime_failed: bool = False
+    hard_stop_error_code: str | None = None
+
+
+@dataclass(frozen=True)
+class _ChildRunResult:
+    return_code: int
+    runtime_failed: bool
+    hard_stop_error_code: str | None
+    stderr_summary: str | None
+    terminal_handled: bool = False
 
 
 def execute_profile_job(job_id: str, *, session: Session | None = None) -> int:
@@ -112,8 +128,6 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         lock_epoch=lock_epoch,
         adapter=settings.profile_execution_adapter,
     )
-    runtime_failed = False
-    hard_stop_error_code: str | None = None
     stdout_thread: threading.Thread | None = None
     stderr_thread: threading.Thread | None = None
     try:
@@ -142,227 +156,22 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
         stderr_thread = threading.Thread(target=read_stderr, daemon=True)
         stdout_thread.start()
         stderr_thread.start()
-        while True:
-            _drain_stderr(stderr_lines, stderr_buffer)
-            remaining_seconds = deadline - time.monotonic()
-            if remaining_seconds <= 0:
-                _mark_child_process_timeout(
-                    session,
-                    job,
-                    process,
-                    owner,
-                    lock_epoch,
-                    stderr_summary=_stderr_summary(stderr_buffer),
-                )
-                return 1
-            try:
-                line = stdout_lines.get(timeout=min(0.2, remaining_seconds))
-            except queue.Empty:
-                continue
-            if line is None:
-                break
-            try:
-                event = cast(dict[str, Any], json.loads(line))
-            except json.JSONDecodeError:
-                mark_terminal(
-                    session,
-                    job,
-                    state=JobState.FAILED,
-                    owner=owner,
-                    lock_epoch=lock_epoch,
-                    failure_reason="malformed_child_event",
-                )
-                log_event(
-                    "subprocess_malformed_event",
-                    account_id=job.account_id,
-                    job_id=job_id,
-                    lock_epoch=lock_epoch,
-                )
-                return 1
-            heartbeat_lock(session, job.account_id, owner, lock_epoch)
-            if event["event"] == "step_started":
-                record_step_started(session, job, event)
-                log_event(
-                    "step_started",
-                    account_id=job.account_id,
-                    job_id=job_id,
-                    step_key=event["step_key"],
-                    lock_epoch=lock_epoch,
-                )
-            elif event["event"] == "step_succeeded":
-                record_step_succeeded(session, job, event)
-                log_event(
-                    "step_succeeded",
-                    account_id=job.account_id,
-                    job_id=job_id,
-                    step_key=event["step_key"],
-                    lock_epoch=lock_epoch,
-                )
-            elif event["event"] == "step_uncertain":
-                record_step_uncertain(session, job, event)
-                log_event(
-                    "step_uncertain",
-                    account_id=job.account_id,
-                    job_id=job_id,
-                    step_key=event["step_key"],
-                    lock_epoch=lock_epoch,
-                    runtime_state=job.job_state,
-                )
-            elif event["event"] == "step_failed":
-                runtime_failed = True
-                error_code = event.get("error_code")
-                if _is_tdlib_hard_stop_error(error_code):
-                    hard_stop_error_code = error_code
-                record_step_failed(session, job, event)
-                log_event(
-                    "step_failed",
-                    account_id=job.account_id,
-                    job_id=job_id,
-                    step_key=event["step_key"],
-                    lock_epoch=lock_epoch,
-                    error_class=event.get("error_class"),
-                    error_code=event.get("error_code"),
-                )
-            elif event["event"] == "runtime_failed":
-                runtime_failed = True
-                error_code = event.get("error_code")
-                if _is_tdlib_hard_stop_error(error_code):
-                    hard_stop_error_code = error_code
-
-        try:
-            return_code = process.wait(timeout=max(0, deadline - time.monotonic()))
-        except subprocess.TimeoutExpired:
-            _mark_child_process_timeout(
-                session,
-                job,
-                process,
-                owner,
-                lock_epoch,
-                stderr_summary=_stderr_summary(stderr_buffer),
-            )
-            return 1
-        _drain_stderr(stderr_lines, stderr_buffer)
-        stderr_summary = _stderr_summary(stderr_buffer)
+        child_result = _run_child_event_loop(
+            session,
+            job,
+            process=process,
+            owner=owner,
+            lock_epoch=lock_epoch,
+            deadline=deadline,
+            stdout_lines=stdout_lines,
+            stderr_lines=stderr_lines,
+            stderr_buffer=stderr_buffer,
+        )
+        if child_result.terminal_handled:
+            return child_result.return_code
         session.refresh(job)
-        if return_code == 0 and not runtime_failed:
-            state = _classify_terminal_job_outcome(job)
-            failure_reason = None if state == JobState.COMPLETED else "profile_execution_uncertain"
-            mark_terminal(
-                session,
-                job,
-                state=state,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason=failure_reason,
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=state,
-            )
-            _sync_profile_state_after_job(session, job.account_id, state)
-        elif return_code == 3:
-            state = _classify_terminal_job_outcome(job)
-            mark_terminal(
-                session,
-                job,
-                state=state,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason="profile_execution_uncertain",
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=state,
-            )
-            _sync_profile_state_after_job(session, job.account_id, state)
-        elif return_code == 2:
-            mark_started_steps_uncertain(session, job, "worker_or_child_interrupted")
-            mark_terminal(
-                session,
-                job,
-                state=JobState.MANUAL_INTERVENTION_NEEDED,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason="child_process_interrupted",
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=JobState.MANUAL_INTERVENTION_NEEDED,
-                child_stderr=stderr_summary,
-            )
-        elif hard_stop_error_code:
-            _mark_account_hard_stopped(session, job.account, hard_stop_error_code)
-            mark_terminal(
-                session,
-                job,
-                state=JobState.MANUAL_INTERVENTION_NEEDED,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason=f"tdlib_hard_stop:{hard_stop_error_code}",
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=JobState.MANUAL_INTERVENTION_NEEDED,
-                recovery_marker=f"tdlib_hard_stop:{hard_stop_error_code}",
-                child_stderr=stderr_summary,
-            )
-        elif job.workflow_type == "account_update":
-            state = classify_account_update_job_outcome(
-                [
-                    {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
-                    for step in job.step_results
-                ]
-            )
-            mark_terminal(
-                session,
-                job,
-                state=state,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason="account_update_partially_completed"
-                if state == JobState.PARTIALLY_COMPLETED
-                else "profile_runtime_failed",
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=state,
-                child_stderr=stderr_summary,
-            )
-            _sync_profile_state_after_job(session, job.account_id, state)
-        else:
-            mark_started_steps_uncertain(session, job, "child_process_failed")
-            mark_terminal(
-                session,
-                job,
-                state=JobState.FAILED,
-                owner=owner,
-                lock_epoch=lock_epoch,
-                failure_reason="profile_runtime_failed",
-            )
-            log_event(
-                "job_terminal",
-                account_id=job.account_id,
-                job_id=job_id,
-                lock_epoch=lock_epoch,
-                runtime_state=JobState.FAILED,
-                child_stderr=stderr_summary,
-            )
-        return return_code
+        _finalize_child_result(session, job, owner, lock_epoch, child_result)
+        return child_result.return_code
     finally:
         for stream in (process.stdout, process.stderr):
             close = getattr(stream, "close", None)
@@ -374,6 +183,323 @@ def _execute_profile_job(job_id: str, session: Session) -> int:
             stderr_thread.join(timeout=0.05)
         release_account_lock(session, job.account_id, owner, lock_epoch)
         Path(plan_path).unlink(missing_ok=True)
+
+
+def _run_child_event_loop(
+    session: Session,
+    job: Job,
+    *,
+    process: subprocess.Popen[str],
+    owner: str,
+    lock_epoch: int,
+    deadline: float,
+    stdout_lines: queue.Queue[str | None],
+    stderr_lines: queue.Queue[str | None],
+    stderr_buffer: list[str],
+) -> _ChildRunResult:
+    state = _ChildEventState()
+    while True:
+        _drain_stderr(stderr_lines, stderr_buffer)
+        remaining_seconds = deadline - time.monotonic()
+        if remaining_seconds <= 0:
+            _mark_child_process_timeout(
+                session,
+                job,
+                process,
+                owner,
+                lock_epoch,
+                stderr_summary=_stderr_summary(stderr_buffer),
+            )
+            return _ChildRunResult(1, state.runtime_failed, state.hard_stop_error_code, None, True)
+        line = _read_child_stdout(stdout_lines, remaining_seconds)
+        if line is None:
+            break
+        if line == "":
+            continue
+        if not _handle_child_output_line(session, job, owner, lock_epoch, line, state):
+            return _ChildRunResult(1, state.runtime_failed, state.hard_stop_error_code, None, True)
+    return _wait_for_child_process(
+        session,
+        job,
+        process=process,
+        owner=owner,
+        lock_epoch=lock_epoch,
+        deadline=deadline,
+        stderr_lines=stderr_lines,
+        stderr_buffer=stderr_buffer,
+        state=state,
+    )
+
+
+def _read_child_stdout(
+    stdout_lines: queue.Queue[str | None], remaining_seconds: float
+) -> str | None:
+    try:
+        line = stdout_lines.get(timeout=min(0.2, remaining_seconds))
+    except queue.Empty:
+        return ""
+    return line
+
+
+def _handle_child_output_line(
+    session: Session,
+    job: Job,
+    owner: str,
+    lock_epoch: int,
+    line: str,
+    state: _ChildEventState,
+) -> bool:
+    try:
+        event = cast(dict[str, Any], json.loads(line))
+    except json.JSONDecodeError:
+        _mark_malformed_child_event(session, job, owner, lock_epoch)
+        return False
+    heartbeat_lock(session, job.account_id, owner, lock_epoch)
+    _record_child_event(session, job, event, lock_epoch, state)
+    return True
+
+
+def _mark_malformed_child_event(session: Session, job: Job, owner: str, lock_epoch: int) -> None:
+    mark_terminal(
+        session,
+        job,
+        state=JobState.FAILED,
+        owner=owner,
+        lock_epoch=lock_epoch,
+        failure_reason="malformed_child_event",
+    )
+    log_event(
+        "subprocess_malformed_event",
+        account_id=job.account_id,
+        job_id=job.id,
+        lock_epoch=lock_epoch,
+    )
+
+
+def _record_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    event_name = event["event"]
+    if event_name == "step_started":
+        record_step_started(session, job, event)
+        _log_step_event("step_started", job, event, lock_epoch)
+    elif event_name == "step_succeeded":
+        record_step_succeeded(session, job, event)
+        _log_step_event("step_succeeded", job, event, lock_epoch)
+    elif event_name == "step_uncertain":
+        record_step_uncertain(session, job, event)
+        _log_step_event("step_uncertain", job, event, lock_epoch, runtime_state=job.job_state)
+    elif event_name == "step_failed":
+        state.runtime_failed = True
+        state.hard_stop_error_code = _updated_hard_stop_code(
+            state.hard_stop_error_code, event.get("error_code")
+        )
+        record_step_failed(session, job, event)
+        _log_step_event(
+            "step_failed",
+            job,
+            event,
+            lock_epoch,
+            error_class=event.get("error_class"),
+            error_code=event.get("error_code"),
+        )
+    elif event_name == "runtime_failed":
+        state.runtime_failed = True
+        state.hard_stop_error_code = _updated_hard_stop_code(
+            state.hard_stop_error_code, event.get("error_code")
+        )
+
+
+def _log_step_event(
+    event_name: str,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    **extra: Any,
+) -> None:
+    log_event(
+        event_name,
+        account_id=job.account_id,
+        job_id=job.id,
+        step_key=event["step_key"],
+        lock_epoch=lock_epoch,
+        **extra,
+    )
+
+
+def _updated_hard_stop_code(current: str | None, error_code: object) -> str | None:
+    if isinstance(error_code, str) and _is_tdlib_hard_stop_error(error_code):
+        return error_code
+    return current
+
+
+def _wait_for_child_process(
+    session: Session,
+    job: Job,
+    *,
+    process: subprocess.Popen[str],
+    owner: str,
+    lock_epoch: int,
+    deadline: float,
+    stderr_lines: queue.Queue[str | None],
+    stderr_buffer: list[str],
+    state: _ChildEventState,
+) -> _ChildRunResult:
+    try:
+        return_code = process.wait(timeout=max(0, deadline - time.monotonic()))
+    except subprocess.TimeoutExpired:
+        _mark_child_process_timeout(
+            session,
+            job,
+            process,
+            owner,
+            lock_epoch,
+            stderr_summary=_stderr_summary(stderr_buffer),
+        )
+        return _ChildRunResult(1, state.runtime_failed, state.hard_stop_error_code, None, True)
+    _drain_stderr(stderr_lines, stderr_buffer)
+    return _ChildRunResult(
+        return_code,
+        state.runtime_failed,
+        state.hard_stop_error_code,
+        _stderr_summary(stderr_buffer),
+    )
+
+
+def _finalize_child_result(
+    session: Session, job: Job, owner: str, lock_epoch: int, child_result: _ChildRunResult
+) -> None:
+    if child_result.return_code == 0 and not child_result.runtime_failed:
+        _mark_successful_child_result(session, job, owner, lock_epoch)
+    elif child_result.return_code == 3:
+        _mark_uncertain_child_result(session, job, owner, lock_epoch)
+    elif child_result.return_code == 2:
+        _mark_interrupted_child_result(session, job, owner, lock_epoch, child_result.stderr_summary)
+    elif child_result.hard_stop_error_code:
+        _mark_hard_stop_child_result(session, job, owner, lock_epoch, child_result)
+    elif job.workflow_type == "account_update":
+        _mark_account_update_runtime_failure(session, job, owner, lock_epoch, child_result)
+    else:
+        _mark_profile_runtime_failure(session, job, owner, lock_epoch, child_result.stderr_summary)
+
+
+def _mark_successful_child_result(session: Session, job: Job, owner: str, lock_epoch: int) -> None:
+    state = _classify_terminal_job_outcome(job)
+    failure_reason = None if state == JobState.COMPLETED else "profile_execution_uncertain"
+    _mark_job_terminal(session, job, owner, lock_epoch, state, failure_reason=failure_reason)
+    _sync_profile_state_after_job(session, job.account_id, state)
+
+
+def _mark_uncertain_child_result(session: Session, job: Job, owner: str, lock_epoch: int) -> None:
+    state = _classify_terminal_job_outcome(job)
+    _mark_job_terminal(
+        session, job, owner, lock_epoch, state, failure_reason="profile_execution_uncertain"
+    )
+    _sync_profile_state_after_job(session, job.account_id, state)
+
+
+def _mark_interrupted_child_result(
+    session: Session, job: Job, owner: str, lock_epoch: int, stderr_summary: str | None
+) -> None:
+    mark_started_steps_uncertain(session, job, "worker_or_child_interrupted")
+    _mark_job_terminal(
+        session,
+        job,
+        owner,
+        lock_epoch,
+        JobState.MANUAL_INTERVENTION_NEEDED,
+        failure_reason="child_process_interrupted",
+        child_stderr=stderr_summary,
+    )
+
+
+def _mark_hard_stop_child_result(
+    session: Session, job: Job, owner: str, lock_epoch: int, child_result: _ChildRunResult
+) -> None:
+    assert child_result.hard_stop_error_code is not None
+    _mark_account_hard_stopped(session, job.account, child_result.hard_stop_error_code)
+    _mark_job_terminal(
+        session,
+        job,
+        owner,
+        lock_epoch,
+        JobState.MANUAL_INTERVENTION_NEEDED,
+        failure_reason=f"tdlib_hard_stop:{child_result.hard_stop_error_code}",
+        recovery_marker=f"tdlib_hard_stop:{child_result.hard_stop_error_code}",
+        child_stderr=child_result.stderr_summary,
+    )
+
+
+def _mark_account_update_runtime_failure(
+    session: Session, job: Job, owner: str, lock_epoch: int, child_result: _ChildRunResult
+) -> None:
+    state = classify_account_update_job_outcome(
+        [
+            {"step_key": step.step_key, "step_type": step.step_type, "status": step.status}
+            for step in job.step_results
+        ]
+    )
+    _mark_job_terminal(
+        session,
+        job,
+        owner,
+        lock_epoch,
+        state,
+        failure_reason="account_update_partially_completed"
+        if state == JobState.PARTIALLY_COMPLETED
+        else "profile_runtime_failed",
+        child_stderr=child_result.stderr_summary,
+    )
+    _sync_profile_state_after_job(session, job.account_id, state)
+
+
+def _mark_profile_runtime_failure(
+    session: Session, job: Job, owner: str, lock_epoch: int, stderr_summary: str | None
+) -> None:
+    mark_started_steps_uncertain(session, job, "child_process_failed")
+    _mark_job_terminal(
+        session,
+        job,
+        owner,
+        lock_epoch,
+        JobState.FAILED,
+        failure_reason="profile_runtime_failed",
+        child_stderr=stderr_summary,
+    )
+
+
+def _mark_job_terminal(
+    session: Session,
+    job: Job,
+    owner: str,
+    lock_epoch: int,
+    state: JobState,
+    *,
+    failure_reason: str | None,
+    child_stderr: str | None = None,
+    recovery_marker: str | None = None,
+) -> None:
+    mark_terminal(
+        session,
+        job,
+        state=state,
+        owner=owner,
+        lock_epoch=lock_epoch,
+        failure_reason=failure_reason,
+    )
+    log_event(
+        "job_terminal",
+        account_id=job.account_id,
+        job_id=job.id,
+        lock_epoch=lock_epoch,
+        runtime_state=state,
+        child_stderr=child_stderr,
+        recovery_marker=recovery_marker,
+    )
 
 
 def _mark_child_process_timeout(

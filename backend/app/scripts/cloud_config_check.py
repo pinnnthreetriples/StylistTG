@@ -21,18 +21,19 @@ from app.scripts.common import (
 
 def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     report = CheckReport("cloud_config_check")
+    _check_app_env(report, env)
+    _check_auth_mode(report, env)
+    _check_operator_api(report, env)
+    _check_database_urls(report, env)
+    _check_storage(report, env)
+    _check_redis(report, env)
+    _check_proxy_credentials_key(report, env)
+    _check_tdlib(report, env)
+    return report
+
+
+def _check_app_env(report: CheckReport, env: dict[str, str] | None) -> None:
     app_env = env_value("APP_ENV", env) or "local"
-    auth_mode = env_value("AUTH_MODE", env) or "local"
-    db_mode = env_value("DB_CONNECTION_MODE", env) or "local"
-    allow_local = bool_env("ALLOW_LOCAL_AUTH_IN_PROD", env)
-    enforce_localhost = bool_env("ENFORCE_LOCALHOST_ONLY", env, default=True)
-    api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=False)
-    cors_origins = [
-        origin.strip()
-        for origin in (env_value("CORS_ORIGINS", env) or "").split(",")
-        if origin.strip()
-    ]
-    operator_token = env_value("OPERATOR_API_TOKEN", env)
 
     if app_env not in {"staging", "production"}:
         report.add(
@@ -44,6 +45,10 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     else:
         report.add("app_env", "PASS", "Cloud app env selected", app_env=app_env)
 
+
+def _check_auth_mode(report: CheckReport, env: dict[str, str] | None) -> None:
+    auth_mode = env_value("AUTH_MODE", env) or "local"
+    allow_local = bool_env("ALLOW_LOCAL_AUTH_IN_PROD", env)
     if is_cloud_env(env) and auth_mode == "local" and not allow_local:
         report.add(
             "auth_mode",
@@ -61,6 +66,16 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     else:
         report.add("auth_mode", "PASS", "Supabase JWT auth mode selected")
 
+
+def _check_operator_api(report: CheckReport, env: dict[str, str] | None) -> None:
+    enforce_localhost = bool_env("ENFORCE_LOCALHOST_ONLY", env, default=True)
+    api_stale_reaper = bool_env("STALE_JOB_REAPER_ENABLED", env, default=False)
+    cors_origins = [
+        origin.strip()
+        for origin in (env_value("CORS_ORIGINS", env) or "").split(",")
+        if origin.strip()
+    ]
+    operator_token = env_value("OPERATOR_API_TOKEN", env)
     if is_cloud_env(env) and enforce_localhost:
         report.add("operator_guard", "FAIL", "Cloud API must set ENFORCE_LOCALHOST_ONLY=false")
     else:
@@ -93,6 +108,9 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     _required(report, "SUPABASE_AUTH_JWKS_URL", env)
     _required(report, "SUPABASE_AUTH_ISSUER", env)
 
+
+def _check_database_urls(report: CheckReport, env: dict[str, str] | None) -> None:
+    db_mode = env_value("DB_CONNECTION_MODE", env) or "local"
     runtime_url = env_value("DATABASE_RUNTIME_URL", env) or env_value("DATABASE_URL", env)
     direct_url = env_value("DATABASE_DIRECT_URL", env)
     if not runtime_url:
@@ -153,6 +171,9 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
             db_connection_mode=db_mode,
         )
 
+
+def _check_storage(report: CheckReport, env: dict[str, str] | None) -> None:
+    app_env = env_value("APP_ENV", env) or "local"
     storage_backend = env_value("STORAGE_BACKEND", env) or "local"
     if storage_backend != "s3":
         report.add(
@@ -187,6 +208,8 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
             bucket=bucket,
         )
 
+
+def _check_redis(report: CheckReport, env: dict[str, str] | None) -> None:
     redis_url = env_value("REDIS_URL", env)
     if not redis_url:
         report.add("redis_url", "FAIL", "REDIS_URL is required")
@@ -200,8 +223,8 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     else:
         report.add("redis_url", "PASS", "Cloud Redis URL present", url=sanitized_url(redis_url))
 
-    _check_proxy_credentials_key(report, env)
 
+def _check_tdlib(report: CheckReport, env: dict[str, str] | None) -> None:
     tdlib_db_root = env_value("TDLIB_DATABASE_ROOT", env)
     tdlib_files_root = env_value("TDLIB_FILES_ROOT", env)
     _required(report, "TDLIB_DATABASE_ROOT", env)
@@ -237,7 +260,6 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
             "Profile execution adapter is safe for cloud smoke",
             adapter=adapter,
         )
-    return report
 
 
 def _required(report: CheckReport, name: str, env: dict[str, str] | None) -> None:

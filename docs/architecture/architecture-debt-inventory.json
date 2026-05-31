@@ -951,6 +951,7 @@
         "backend/app/services/tdlib_runtime.py",
         "backend/app/services/telegram_auth_sessions.py",
         "backend/app/services/tenant_scope.py",
+        "backend/app/services/url_safety.py",
         "backend/app/services/users.py",
         "backend/app/services/workspace_onboarding.py",
         "backend/app/storage/__init__.py",
@@ -1048,6 +1049,7 @@
         "backend/app/services/tdlib*.py",
         "backend/app/services/telegram_auth_sessions.py",
         "backend/app/services/tenant_scope.py",
+        "backend/app/services/url_safety.py",
         "backend/app/services/__init__.py",
         "backend/app/services/users.py",
         "backend/app/services/workspace_onboarding.py"
@@ -1703,7 +1705,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-31T09:54:51Z",
+  "generated_at": "2026-05-31T12:49:06Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

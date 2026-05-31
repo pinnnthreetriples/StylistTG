@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.logging_utils import log_event, log_warn
 from app.config import settings
-from app.models import Job, JobState, TERMINAL_JOB_STATES
+from app.models import Account, AccountProfileState, Job, JobState, TERMINAL_JOB_STATES
 from app.services.account_bundle import get_account_dashboard_bundle, get_latest_job_for_account
 from app.services.runtime_diagnostics import account_runtime_diagnostics
 from app.services.profile_audio_state import profile_audio_state_payload
@@ -41,24 +41,10 @@ def build_dashboard_profile(
     real_execution_enabled = settings.profile_execution_adapter == "tdlib"
 
     return {
-        "account": {
-            "account_id": account.id,
-            "display_name": display_name,
-            "username": profile_state.username if profile_state else None,
-            "phone_number": account.external_ref,
-            "telegram_user_id": account.telegram_user_id,
-            "account_state": account.account_state,
-            "runtime_health": account.runtime_state.runtime_health,
-            "reauth_required": account.runtime_state.reauth_required,
-            "is_execution_usable": account.account_state == "execution_usable",
-        },
-        "current_profile": {
-            "first_name": profile_state.first_name if profile_state else None,
-            "last_name": profile_state.last_name if profile_state else None,
-            "bio": profile_state.bio if profile_state else None,
-            "username": profile_state.username if profile_state else None,
-            "profile_photo_asset_id": profile_photo_asset_id,
-        },
+        "account": _dashboard_account_payload(account, display_name),
+        "current_profile": _dashboard_current_profile_payload(
+            profile_state, profile_photo_asset_id
+        ),
         "profile_audio": profile_audio_state_payload(account.profile_audio_state),
         "story_posts": [story_post_payload(post) for post in story_posts],
         "editable_fields": {
@@ -89,6 +75,32 @@ def build_dashboard_profile(
                 and settings.stories_tdlib_live_enabled
             ),
         },
+    }
+
+
+def _dashboard_account_payload(account: Account, display_name: str | None) -> dict[str, Any]:
+    return {
+        "account_id": account.id,
+        "display_name": display_name,
+        "username": account.profile_state.username if account.profile_state else None,
+        "phone_number": account.external_ref,
+        "telegram_user_id": account.telegram_user_id,
+        "account_state": account.account_state,
+        "runtime_health": account.runtime_state.runtime_health,
+        "reauth_required": account.runtime_state.reauth_required,
+        "is_execution_usable": account.account_state == "execution_usable",
+    }
+
+
+def _dashboard_current_profile_payload(
+    profile_state: AccountProfileState | None, profile_photo_asset_id: str | None
+) -> dict[str, Any]:
+    return {
+        "first_name": profile_state.first_name if profile_state else None,
+        "last_name": profile_state.last_name if profile_state else None,
+        "bio": profile_state.bio if profile_state else None,
+        "username": profile_state.username if profile_state else None,
+        "profile_photo_asset_id": profile_photo_asset_id,
     }
 
 

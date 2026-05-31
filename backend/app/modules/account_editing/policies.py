@@ -31,6 +31,44 @@ from app.services.auth import is_account_hard_stopped
 from app.services.jobs import is_profile_job_cooldown_active
 
 
+def _profile_name_changed(
+    profile: dict[str, Any], profile_state: Any, requested_profile_fields: set[str]
+) -> bool:
+    if "name" not in requested_profile_fields:
+        return False
+    current_name = " ".join(
+        part
+        for part in [
+            profile_state.first_name if profile_state else None,
+            profile_state.last_name if profile_state else None,
+        ]
+        if part
+    )
+    return (profile.get("name") or "") != current_name
+
+
+def _profile_text_changed(
+    profile: dict[str, Any],
+    profile_state: Any,
+    requested_profile_fields: set[str],
+    field_name: str,
+) -> bool:
+    if field_name not in requested_profile_fields:
+        return False
+    current_value = (getattr(profile_state, field_name) if profile_state else None) or ""
+    return (profile.get(field_name) or "") != current_value
+
+
+def _pinned_channel_changed(
+    account: Account, profile: dict[str, Any], requested_profile_fields: set[str]
+) -> bool:
+    if "pinned_channel_ref" not in requested_profile_fields:
+        return False
+    desired_ref = profile.get("pinned_channel_ref") or ""
+    current_ref = account.pinned_channel_ref or ""
+    return desired_ref != current_ref
+
+
 class AccountEditingPolicy:
     def __init__(self, session: Any) -> None:
         self._session = session
@@ -130,37 +168,27 @@ class AccountEditingPolicy:
         profile_state = account.profile_state
         steps: set[str] = set()
 
-        if "name" in requested_profile_fields:
-            current_name = " ".join(
-                part
-                for part in [
-                    profile_state.first_name if profile_state else None,
-                    profile_state.last_name if profile_state else None,
-                ]
-                if part
-            )
-            if (profile.get("name") or "") != current_name:
-                steps.add("set_name")
-        if "bio" in requested_profile_fields and (profile.get("bio") or "") != (
-            (profile_state.bio if profile_state else None) or ""
-        ):
+        if _profile_name_changed(profile, profile_state, requested_profile_fields):
+            steps.add("set_name")
+        if _profile_text_changed(profile, profile_state, requested_profile_fields, "bio"):
             steps.add("set_bio")
-        if "username" in requested_profile_fields and (profile.get("username") or "") != (
-            (profile_state.username if profile_state else None) or ""
-        ):
+        if _profile_text_changed(profile, profile_state, requested_profile_fields, "username"):
             steps.add("set_username")
-        if "photo_asset_id" in requested_profile_fields:
-            desired_photo_asset_id = profile.get("photo_asset_id")
-            current_photo_asset_id = self._repo.latest_applied_profile_photo_asset_id(account.id)
-            if desired_photo_asset_id and desired_photo_asset_id != current_photo_asset_id:
-                steps.add("set_profile_photo")
-        if "pinned_channel_ref" in requested_profile_fields:
-            desired_ref = profile.get("pinned_channel_ref") or ""
-            current_ref = account.pinned_channel_ref or ""
-            if desired_ref != current_ref:
-                steps.add("set_pinned_channel")
+        if self._profile_photo_changed(account, profile, requested_profile_fields):
+            steps.add("set_profile_photo")
+        if _pinned_channel_changed(account, profile, requested_profile_fields):
+            steps.add("set_pinned_channel")
 
         return steps
+
+    def _profile_photo_changed(
+        self, account: Account, profile: dict[str, Any], requested_profile_fields: set[str]
+    ) -> bool:
+        if "photo_asset_id" not in requested_profile_fields:
+            return False
+        desired_photo_asset_id = profile.get("photo_asset_id")
+        current_photo_asset_id = self._repo.latest_applied_profile_photo_asset_id(account.id)
+        return bool(desired_photo_asset_id and desired_photo_asset_id != current_photo_asset_id)
 
     def _validate_profile_audio_asset(
         self,

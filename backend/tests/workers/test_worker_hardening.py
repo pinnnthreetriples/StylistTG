@@ -12,6 +12,7 @@ from app.services.account_update_jobs import create_account_update_job
 from app.services.jobs import create_profile_job, find_active_duplicate_job
 from app.workers.account_update_jobs import execute_account_update_job
 from app.workers import profile_jobs
+from app.workers.profile_child_events import _stderr_summary
 
 from conftest import FakeExecutionUsableAdapter, seed_asset, seed_audio_asset, seed_story_asset
 
@@ -71,7 +72,7 @@ def test_malformed_child_event_marks_job_failed(db_session, monkeypatch) -> None
 
 
 def test_child_stderr_summary_is_bounded_and_sanitized() -> None:
-    summary = profile_jobs._stderr_summary(
+    summary = _stderr_summary(
         [
             "line\n",
             "password=secret-token\n",

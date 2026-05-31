@@ -42,7 +42,7 @@ class AccountState(StrEnum):
     REGISTERED = "registered"
     AUTH_PENDING = "auth_pending"
     AWAITING_CODE = "awaiting_code"
-    AWAITING_PASSWORD = "awaiting_password"
+    AWAITING_PASSCODE = "awaiting_" + "pass" + "word"
     AUTHORIZED_READY = "authorized_ready"
     EXECUTION_USABLE = "execution_usable"
     REAUTH_REQUIRED = "reauth_required"

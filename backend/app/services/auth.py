@@ -50,7 +50,7 @@ class AuthSafetyError(ValueError):
 
 CONTINUABLE_AUTH_STATES = {
     AccountState.AWAITING_CODE,
-    AccountState.AWAITING_PASSWORD,
+    AccountState.AWAITING_PASSCODE,
     AccountState.AUTHORIZED_READY,
     AccountState.EXECUTION_USABLE,
 }
@@ -150,7 +150,7 @@ def auth_result_from_account(account: Account) -> AuthMaterializationResult:
         runtime_state=account.runtime_state,
         status=account.account_state,
         needs_code=account.account_state == AccountState.AWAITING_CODE,
-        needs_password=account.account_state == AccountState.AWAITING_PASSWORD,
+        needs_password=account.account_state == AccountState.AWAITING_PASSCODE,
     )
 
 

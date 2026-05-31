@@ -30,6 +30,13 @@ TASK_RUN_STATUSES = ("'started'", "'completed'", "'skipped'", "'failed'")
 
 
 def upgrade() -> None:
+    _create_warmup_strategy()
+    _create_warmup_session()
+    _create_warmup_event()
+    _create_warmup_task_run()
+
+
+def _create_warmup_strategy() -> None:
     op.create_table(
         "warmup_strategy",
         sa.Column("id", uuid_string, nullable=False),
@@ -56,6 +63,8 @@ def upgrade() -> None:
     op.create_index("ix_warmup_strategy_workspace_id", "warmup_strategy", ["workspace_id"])
     op.create_index("ix_warmup_strategy_preset", "warmup_strategy", ["is_preset"])
 
+
+def _create_warmup_session() -> None:
     op.create_table(
         "warmup_session",
         sa.Column("id", uuid_string, nullable=False),
@@ -125,6 +134,8 @@ def upgrade() -> None:
         ),
     )
 
+
+def _create_warmup_event() -> None:
     op.create_table(
         "warmup_event",
         sa.Column("id", uuid_string, nullable=False),
@@ -146,6 +157,8 @@ def upgrade() -> None:
     op.create_index("ix_warmup_event_workspace_id", "warmup_event", ["workspace_id"])
     op.create_index("ix_warmup_event_session_created", "warmup_event", ["session_id", "created_at"])
 
+
+def _create_warmup_task_run() -> None:
     op.create_table(
         "warmup_task_run",
         sa.Column("id", uuid_string, nullable=False),

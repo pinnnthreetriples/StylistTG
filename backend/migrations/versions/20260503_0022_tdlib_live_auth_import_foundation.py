@@ -21,6 +21,12 @@ uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgre
 
 
 def upgrade() -> None:
+    _create_telegram_auth_session()
+    _create_account_import_batch()
+    _create_account_import_item()
+
+
+def _create_telegram_auth_session() -> None:
     op.create_table(
         "telegram_auth_session",
         sa.Column("id", uuid_string, nullable=False),
@@ -61,6 +67,8 @@ def upgrade() -> None:
         ["account_id", "created_at"],
     )
 
+
+def _create_account_import_batch() -> None:
     op.create_table(
         "account_import_batch",
         sa.Column("id", uuid_string, nullable=False),
@@ -93,6 +101,8 @@ def upgrade() -> None:
         "ix_account_import_batch_created", "account_import_batch", ["workspace_id", "created_at"]
     )
 
+
+def _create_account_import_item() -> None:
     op.create_table(
         "account_import_item",
         sa.Column("id", uuid_string, nullable=False),

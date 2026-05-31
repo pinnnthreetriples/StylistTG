@@ -16,6 +16,15 @@ DEFAULT_WORKSPACE_ID = "00000000-0000-4000-8000-000000000002"
 
 
 def upgrade() -> None:
+    _create_owner_tables()
+    _create_workspace_limit_tables()
+    _seed_default_user_and_workspace()
+    _seed_default_membership_and_plan()
+    _attach_workspace_columns()
+    _extend_job_identity()
+
+
+def _create_owner_tables() -> None:
     op.create_table(
         "app_user",
         sa.Column("id", UUID_STRING, primary_key=True),
@@ -58,6 +67,8 @@ def upgrade() -> None:
     op.create_index("ix_workspace_member_workspace_id", "workspace_member", ["workspace_id"])
     op.create_index("ix_workspace_member_user_id", "workspace_member", ["user_id"])
 
+
+def _create_workspace_limit_tables() -> None:
     op.create_table(
         "audit_log",
         sa.Column("id", UUID_STRING, primary_key=True),
@@ -105,6 +116,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_usage_counter_workspace_id", "usage_counter", ["workspace_id"])
 
+
+def _seed_default_user_and_workspace() -> None:
     now = datetime.now(UTC)
     op.bulk_insert(
         sa.table(
@@ -154,6 +167,10 @@ def upgrade() -> None:
             }
         ],
     )
+
+
+def _seed_default_membership_and_plan() -> None:
+    now = datetime.now(UTC)
     op.bulk_insert(
         sa.table(
             "workspace_member",
@@ -205,6 +222,8 @@ def upgrade() -> None:
         ],
     )
 
+
+def _attach_workspace_columns() -> None:
     for table_name in ("account", "auth_batch", "job", "asset", "account_operation_log"):
         op.add_column(
             table_name,
@@ -218,6 +237,8 @@ def upgrade() -> None:
         )
         op.create_index(f"ix_{table_name}_workspace_id", table_name, ["workspace_id"])
 
+
+def _extend_job_identity() -> None:
     op.add_column(
         "job",
         sa.Column("requested_by_user_id", UUID_STRING, sa.ForeignKey("app_user.id"), nullable=True),

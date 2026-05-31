@@ -18,6 +18,14 @@ UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgre
 
 
 def upgrade() -> None:
+    _create_auth_batch()
+    _create_auth_batch_item()
+    _create_auth_attempt()
+    _create_auth_batch_event()
+    _create_idempotency_key()
+
+
+def _create_auth_batch() -> None:
     op.create_table(
         "auth_batch",
         sa.Column("id", UUID_STRING, nullable=False),
@@ -41,6 +49,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_auth_batch_status_created", "auth_batch", ["status", "created_at"])
 
+
+def _create_auth_batch_item() -> None:
     op.create_table(
         "auth_batch_item",
         sa.Column("id", UUID_STRING, nullable=False),
@@ -74,6 +84,8 @@ def upgrade() -> None:
         "ix_auth_batch_item_phone_status", "auth_batch_item", ["phone_number", "status"]
     )
 
+
+def _create_auth_attempt() -> None:
     op.create_table(
         "auth_attempt",
         sa.Column("id", UUID_STRING, nullable=False),
@@ -93,6 +105,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_auth_attempt_batch_item", "auth_attempt", ["batch_item_id"])
 
+
+def _create_auth_batch_event() -> None:
     op.create_table(
         "auth_batch_event",
         sa.Column("id", UUID_STRING, nullable=False),
@@ -113,6 +127,8 @@ def upgrade() -> None:
         "ix_auth_batch_event_item_created", "auth_batch_event", ["batch_item_id", "created_at"]
     )
 
+
+def _create_idempotency_key() -> None:
     op.create_table(
         "idempotency_key",
         sa.Column("key", sa.String(length=128), nullable=False),

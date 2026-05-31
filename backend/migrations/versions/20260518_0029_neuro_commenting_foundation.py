@@ -29,6 +29,19 @@ def _timestamps() -> tuple[sa.Column[sa.DateTime], sa.Column[sa.DateTime]]:
 
 
 def upgrade() -> None:
+    _create_campaigns()
+    _create_campaign_accounts()
+    _create_targets()
+    _create_observed_posts()
+    _create_generated_comments()
+    _create_attempts()
+    _create_events()
+    _create_limits()
+    _create_stats()
+    _create_channel_rules()
+
+
+def _create_campaigns() -> None:
     op.create_table(
         "neuro_comment_campaigns",
         sa.Column("id", uuid_string, nullable=False),
@@ -84,6 +97,8 @@ def upgrade() -> None:
         ["workspace_id", "created_at"],
     )
 
+
+def _create_campaign_accounts() -> None:
     op.create_table(
         "neuro_comment_campaign_accounts",
         sa.Column("id", uuid_string, nullable=False),
@@ -120,6 +135,8 @@ def upgrade() -> None:
         ["account_id"],
     )
 
+
+def _create_targets() -> None:
     op.create_table(
         "neuro_comment_targets",
         sa.Column("id", uuid_string, nullable=False),
@@ -156,6 +173,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_neuro_comment_target_channel_id", "neuro_comment_targets", ["channel_id"])
 
+
+def _create_observed_posts() -> None:
     op.create_table(
         "neuro_comment_observed_posts",
         sa.Column("id", uuid_string, nullable=False),
@@ -199,6 +218,8 @@ def upgrade() -> None:
         ["target_id", "seen_at"],
     )
 
+
+def _create_generated_comments() -> None:
     op.create_table(
         "neuro_comment_generated_comments",
         sa.Column("id", uuid_string, nullable=False),
@@ -252,6 +273,8 @@ def upgrade() -> None:
         ["approval_status"],
     )
 
+
+def _create_attempts() -> None:
     op.create_table(
         "neuro_comment_attempts",
         sa.Column("id", uuid_string, nullable=False),
@@ -298,6 +321,8 @@ def upgrade() -> None:
         "ix_neuro_comment_attempt_comment", "neuro_comment_attempts", ["generated_comment_id"]
     )
 
+
+def _create_events() -> None:
     op.create_table(
         "neuro_comment_events",
         sa.Column("id", uuid_string, nullable=False),
@@ -351,6 +376,8 @@ def upgrade() -> None:
         ["campaign_id", "created_at"],
     )
 
+
+def _create_limits() -> None:
     op.create_table(
         "neuro_comment_limits",
         sa.Column("id", uuid_string, nullable=False),
@@ -373,6 +400,8 @@ def upgrade() -> None:
         ["campaign_id", "scope_type"],
     )
 
+
+def _create_stats() -> None:
     op.create_table(
         "neuro_comment_channel_stats",
         sa.Column("id", uuid_string, nullable=False),
@@ -424,6 +453,8 @@ def upgrade() -> None:
         sa.UniqueConstraint("campaign_id", "account_id", name="uq_neuro_comment_account_stats"),
     )
 
+
+def _create_channel_rules() -> None:
     op.create_table(
         "neuro_comment_channel_rules",
         sa.Column("id", uuid_string, nullable=False),

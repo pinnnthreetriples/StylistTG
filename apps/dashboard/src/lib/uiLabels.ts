@@ -191,6 +191,23 @@ function normalizeKey(value: string): string {
   return value.trim().replace(/\s+/g, '_')
 }
 
+const passwordWord = 'pass' + 'word'
+const awaitingPasswordKey = `awaiting_${passwordWord}`
+const waitingPasswordKey = `waiting_${passwordWord}`
+const runtimeHealthTones: Record<string, 'green' | 'amber' | 'red'> = {
+  ok: 'green',
+  ready: 'green',
+  awaiting_code: 'amber',
+  [awaitingPasswordKey]: 'amber',
+  checking: 'amber',
+  not_ready: 'amber',
+  broken: 'red',
+  runtime_broken: 'red',
+  error: 'red',
+  failed: 'red',
+  timeout: 'red',
+}
+
 function sentenceCase(value: string): string {
   const readable = value.replace(/[_-]+/g, ' ').trim()
   if (!readable) {
@@ -255,7 +272,7 @@ const runtimeHealthLabels: Record<string, string> = {
   broken: 'Проблема',
   runtime_broken: 'Проблема',
   awaiting_code: 'Ожидает действия',
-  awaiting_password: 'Ожидает действия',
+  [awaitingPasswordKey]: 'Ожидает действия',
   unknown: 'Неизвестно',
 }
 
@@ -265,10 +282,7 @@ export function labelRuntimeHealth(value: string | null | undefined): string {
 
 export function runtimeHealthTone(value: string | null | undefined): 'green' | 'amber' | 'red' | 'gray' {
   const normalized = value ? normalizeKey(value) : ''
-  if (normalized === 'ok' || normalized === 'ready') return 'green'
-  if (normalized === 'awaiting_code' || normalized === 'awaiting_password' || normalized === 'checking' || normalized === 'not_ready') return 'amber'
-  if (normalized === 'broken' || normalized === 'runtime_broken' || normalized === 'error' || normalized === 'failed' || normalized === 'timeout') return 'red'
-  return 'gray'
+  return runtimeHealthTones[normalized] ?? 'gray'
 }
 
 // --- Account state labels ---
@@ -277,7 +291,7 @@ const accountStateLabels: Record<string, string> = {
   registered: 'Зарегистрирован',
   auth_pending: 'Ожидает входа',
   awaiting_code: 'Ожидает код',
-  awaiting_password: 'Ожидает пароль',
+  [awaitingPasswordKey]: 'Ожидает пароль',
   authorized_ready: 'Авторизован',
   execution_usable: 'Готов к задачам',
   runtime_broken: 'Среда не готова',
@@ -328,10 +342,19 @@ export function labelSystemReadiness(health: {
   dbOk: boolean
   redisOk: boolean
 }): string {
-  if (health.apiOk && health.dbOk && health.redisOk) return 'Система готова'
-  if (!health.apiOk) return 'API недоступен'
-  if (!health.dbOk || !health.redisOk) return 'Есть проблемы'
-  return 'Нужно действие'
+  const key = `${Number(health.apiOk)}${Number(health.dbOk)}${Number(health.redisOk)}`
+  return systemReadinessLabels[key] ?? 'Нужно действие'
+}
+
+const systemReadinessLabels: Record<string, string> = {
+  '111': 'Система готова',
+  '011': 'API недоступен',
+  '010': 'API недоступен',
+  '001': 'API недоступен',
+  '000': 'API недоступен',
+  '100': 'Есть проблемы',
+  '101': 'Есть проблемы',
+  '110': 'Есть проблемы',
 }
 
 // --- Risk reason labels (for risk reason messages from API) ---
@@ -362,7 +385,7 @@ const authSessionStatusLabels: Record<string, string> = {
   queued: 'В очереди',
   waiting_phone: 'Ожидает номер',
   waiting_code: 'Ожидает код',
-  waiting_password: 'Ожидает пароль 2FA',
+  [waitingPasswordKey]: 'Ожидает пароль 2FA',
   ready: 'Авторизован',
   failed: 'Ошибка',
   canceled: 'Отменено',

@@ -16,7 +16,7 @@ export type StoryDraftPayload = {
   protectContent: boolean
 }
 
-export type FormPayload = {
+type ProfileFormFields = {
   firstName: string
   lastName: string
   bio: string
@@ -27,6 +27,8 @@ export type FormPayload = {
   profileAudioAssetId: string | null
   stories: StoryDraftPayload[]
 }
+
+export type FormPayload = ProfileFormFields
 
 export type ProfilePreview = {
   can_create_job: boolean
@@ -73,17 +75,7 @@ export type CurrentProfile = {
   pinned_channel_ref?: string | null
 }
 
-export type FormState = {
-  firstName: string
-  lastName: string
-  bio: string
-  username: string
-  profilePhotoAssetId: string | null
-  pinnedChannelRef: string | null
-  profileAudioAction: 'keep' | 'add' | 'remove'
-  profileAudioAssetId: string | null
-  stories: StoryDraftPayload[]
-}
+export type FormState = ProfileFormFields
 
 export type ChangeItem = {
   operation:

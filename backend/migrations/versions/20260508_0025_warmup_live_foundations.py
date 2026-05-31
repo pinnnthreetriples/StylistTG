@@ -18,7 +18,15 @@ json_type = sa.JSON().with_variant(JSONB(), "postgresql")
 
 
 def upgrade() -> None:
-    # --- warmup_strategy ------------------------------------------------------
+    _extend_warmup_strategy()
+    _extend_warmup_session()
+    _extend_warmup_task_run()
+    _extend_account_proxy()
+    _create_warmup_trusted_peer()
+    _create_warmup_isolation_claim()
+
+
+def _extend_warmup_strategy() -> None:
     with op.batch_alter_table("warmup_strategy") as batch_op:
         batch_op.add_column(
             sa.Column(
@@ -81,7 +89,8 @@ def upgrade() -> None:
             "duration_days BETWEEN 3 AND 30",
         )
 
-    # --- warmup_session -------------------------------------------------------
+
+def _extend_warmup_session() -> None:
     with op.batch_alter_table("warmup_session") as batch_op:
         batch_op.add_column(
             sa.Column(
@@ -133,7 +142,8 @@ def upgrade() -> None:
             "duration_days BETWEEN 3 AND 30",
         )
 
-    # --- warmup_task_run ------------------------------------------------------
+
+def _extend_warmup_task_run() -> None:
     with op.batch_alter_table("warmup_task_run") as batch_op:
         batch_op.drop_constraint("ck_warmup_task_run_day", type_="check")
         batch_op.create_check_constraint(
@@ -141,7 +151,8 @@ def upgrade() -> None:
             "day BETWEEN 0 AND 30",
         )
 
-    # --- account_proxy --------------------------------------------------------
+
+def _extend_account_proxy() -> None:
     with op.batch_alter_table("account_proxy") as batch_op:
         batch_op.add_column(
             sa.Column(
@@ -152,7 +163,8 @@ def upgrade() -> None:
             )
         )
 
-    # --- warmup_trusted_peer --------------------------------------------------
+
+def _create_warmup_trusted_peer() -> None:
     op.create_table(
         "warmup_trusted_peer",
         sa.Column("id", uuid_string, nullable=False),
@@ -211,7 +223,8 @@ def upgrade() -> None:
         ["workspace_id", "eligible_from"],
     )
 
-    # --- warmup_isolation_claim ----------------------------------------------
+
+def _create_warmup_isolation_claim() -> None:
     op.create_table(
         "warmup_isolation_claim",
         sa.Column("account_id", uuid_string, nullable=False),

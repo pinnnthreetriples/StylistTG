@@ -48,7 +48,7 @@ def test_ambiguous_username_path_becomes_uncertain_and_manual_intervention(
 
 def test_completed_profile_job_syncs_materialized_profile_state(db_session, monkeypatch) -> None:
     monkeypatch.setattr(
-        "app.workers.profile_jobs.build_profile_sync_adapter",
+        "app.workers.profile_child_results.build_profile_sync_adapter",
         lambda: FakeProfileSyncAdapter(),
     )
     account, job = _seed_profile_job(

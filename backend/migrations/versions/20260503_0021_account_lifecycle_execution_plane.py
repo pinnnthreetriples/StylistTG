@@ -21,6 +21,14 @@ uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgre
 
 
 def upgrade() -> None:
+    _create_sensitive_audit_event()
+    _create_account_lifecycle_event()
+    _create_account_deletion_request()
+    _create_account_export_request()
+    _create_job_execution_event()
+
+
+def _create_sensitive_audit_event() -> None:
     op.create_table(
         "sensitive_audit_event",
         sa.Column("id", uuid_string, nullable=False),
@@ -60,6 +68,8 @@ def upgrade() -> None:
         "ix_sensitive_audit_action_created", "sensitive_audit_event", ["action", "created_at"]
     )
 
+
+def _create_account_lifecycle_event() -> None:
     op.create_table(
         "account_lifecycle_event",
         sa.Column("id", uuid_string, nullable=False),
@@ -92,6 +102,8 @@ def upgrade() -> None:
         ["account_id", "created_at"],
     )
 
+
+def _create_account_deletion_request() -> None:
     op.create_table(
         "account_deletion_request",
         sa.Column("id", uuid_string, nullable=False),
@@ -129,6 +141,8 @@ def upgrade() -> None:
         "ix_account_deletion_account_status", "account_deletion_request", ["account_id", "status"]
     )
 
+
+def _create_account_export_request() -> None:
     op.create_table(
         "account_export_request",
         sa.Column("id", uuid_string, nullable=False),
@@ -165,6 +179,8 @@ def upgrade() -> None:
         ["account_id", "requested_at"],
     )
 
+
+def _create_job_execution_event() -> None:
     op.create_table(
         "job_execution_event",
         sa.Column("id", uuid_string, nullable=False),

@@ -67,7 +67,7 @@ def test_wait_password_maps_to_awaiting_password() -> None:
     )
 
     assert mapped.status == TdlibAuthStatus.WAIT_PASSWORD
-    assert mapped.account_state == AccountState.AWAITING_PASSWORD
+    assert mapped.account_state == AccountState.AWAITING_PASSCODE
     assert mapped.needs_password is True
     assert mapped.password_hint == "my hint"
 

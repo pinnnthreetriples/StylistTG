@@ -25,7 +25,9 @@ export type RiskSummaryCardProps = HTMLAttributes<HTMLDivElement> & {
   actions?: ReactNode
 }
 
-export function RiskSummaryCard({ className, level, levelLabel, score, description, actions, ...props }: RiskSummaryCardProps) {
+export function RiskSummaryCard(props: RiskSummaryCardProps) {
+  const { className, level, levelLabel, score, description, actions, ...divProps } = props
+
   return (
     <div
       className={cn(
@@ -34,7 +36,7 @@ export function RiskSummaryCard({ className, level, levelLabel, score, descripti
         bgStyles[level],
         className,
       )}
-      {...props}
+      {...divProps}
     >
       <div className="flex items-start justify-between gap-3">
         <div>

@@ -1,49 +1,34 @@
 from __future__ import annotations
 
-import ctypes
-import json
 import re
 import time
-import uuid
 from dataclasses import dataclass
-from enum import StrEnum
-from pathlib import Path
-from typing import Any, Callable, Protocol, TypeAlias, cast
+from typing import Any, Callable, cast
 
+from app.adapters import tdlib_json_client as _tdlib_json_client
+from app.adapters.tdlib_auth_states import (
+    JsonDict,
+    TdlibAuthResult,
+    TdlibAuthStatus,
+    broken_tdlib_runtime_result,
+    map_authorization_state,
+    map_tdlib_error,
+    missing_tdlib_credentials_result,
+    tdlib_auth_timeout_result,
+)
+from app.adapters.tdlib_json_client import (
+    RealTdJsonClientFactory,
+    TdlibClient,
+    TdlibClientFactory,
+    UnavailableTdlibClientFactory,
+)
 from app.config import Settings, settings
 from app.logging_utils import log_event
 from app.models import AccountState
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 from app.storage.paths import resolve_tdlib_account_dirs
 
-JsonDict: TypeAlias = dict[str, Any]
-
-
-class TdlibAuthStatus(StrEnum):
-    WAIT_TDLIB_PARAMETERS = "wait_tdlib_parameters"
-    WAIT_PHONE_NUMBER = "wait_phone_number"
-    WAIT_CODE = "wait_code"
-    WAIT_PASSWORD = "wait_password"
-    READY = "ready"
-    CLOSED = "closed"
-    UNSUPPORTED = "unsupported"
-    BROKEN = "broken"
-
-
-@dataclass(frozen=True)
-class TdlibAuthResult:
-    status: TdlibAuthStatus
-    account_state: AccountState
-    runtime_health: str
-    needs_code: bool
-    session_present: bool
-    reauth_required: bool = False
-    needs_password: bool = False
-    needs_manual_intervention: bool = False
-    telegram_user_id: str | None = None
-    password_hint: str | None = None
-    recovery_marker: str | None = None
-    error: str | None = None
+RealTdJsonClient = _tdlib_json_client.RealTdJsonClient
 
 
 @dataclass(frozen=True)
@@ -60,23 +45,6 @@ class _AuthOperationState:
     proxy_applied: bool = False
     recreated_after_closed: bool = False
     result: TdlibAuthResult | None = None
-
-
-class TdlibClient(Protocol):
-    @property
-    def client_id(self) -> int: ...
-
-    def send(self, query: JsonDict) -> None: ...
-
-    def receive(self, timeout_seconds: float) -> JsonDict | None: ...
-
-    def send_query(self, query: JsonDict, timeout_seconds: float) -> JsonDict: ...
-
-    def close(self) -> None: ...
-
-
-class TdlibClientFactory(Protocol):
-    def create(self, account_id: str) -> TdlibClient: ...
 
 
 def search_chat_messages(
@@ -112,77 +80,6 @@ def search_chat_messages(
     if random_id is not None:
         messages = [message for message in messages if message.get("random_id") == random_id]
     return messages[: max(1, limit)]
-
-
-class RealTdJsonClient:
-    def __init__(self, library: ctypes.CDLL) -> None:
-        self._library = library
-        self._client = library.td_json_client_create()
-        self._closed = False
-        self._pending_events: list[JsonDict] = []
-
-    @property
-    def client_id(self) -> int:
-        return 0
-
-    def send(self, query: JsonDict) -> None:
-        self._library.td_json_client_send(self._client, json.dumps(query).encode("utf-8"))
-
-    def receive(self, timeout_seconds: float) -> JsonDict | None:
-        if self._pending_events:
-            return self._pending_events.pop(0)
-        return self._receive_raw(timeout_seconds)
-
-    def _receive_raw(self, timeout_seconds: float) -> JsonDict | None:
-        raw = self._library.td_json_client_receive(self._client, timeout_seconds)
-        if not raw:
-            return None
-        raw_value = ctypes.cast(raw, ctypes.c_char_p).value
-        if raw_value is None:
-            return None
-        return cast(JsonDict, json.loads(raw_value.decode("utf-8")))
-
-    def send_query(self, query: JsonDict, timeout_seconds: float) -> JsonDict:
-        extra = str(uuid.uuid4())
-        self.send({**query, "@extra": extra})
-        deadline = time.monotonic() + timeout_seconds
-        while time.monotonic() < deadline:
-            response = self._receive_raw(1.0)
-            if not response:
-                continue
-            if response.get("@extra") == extra:
-                return response
-            self._pending_events.append(response)
-        raise TimeoutError(f"TDLib query timed out: {query.get('@type')}")
-
-    def close(self) -> None:
-        if not self._closed:
-            self._library.td_json_client_destroy(self._client)
-            self._closed = True
-
-
-class RealTdJsonClientFactory:
-    def __init__(self, shared_library_path: Path | None = None) -> None:
-        path = str(shared_library_path) if shared_library_path else _default_tdjson_library_name()
-        self._library = ctypes.CDLL(path)
-        self._library.td_json_client_create.restype = ctypes.c_void_p
-        self._library.td_json_client_send.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-        self._library.td_json_client_receive.argtypes = [ctypes.c_void_p, ctypes.c_double]
-        self._library.td_json_client_receive.restype = ctypes.c_char_p
-        self._library.td_json_client_execute.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-        self._library.td_json_client_execute.restype = ctypes.c_char_p
-        self._library.td_json_client_destroy.argtypes = [ctypes.c_void_p]
-
-    def create(self, account_id: str) -> RealTdJsonClient:
-        return RealTdJsonClient(self._library)
-
-
-class UnavailableTdlibClientFactory:
-    def __init__(self, reason: str) -> None:
-        self._reason = reason
-
-    def create(self, account_id: str) -> TdlibClient:
-        raise RuntimeError(self._reason)
 
 
 class TdlibAuthAdapter:
@@ -231,7 +128,7 @@ class TdlibAuthAdapter:
     ) -> TdlibAuthResult:
         auth_input = _AuthOperationInput(account_id, phone_number, code, password)
         if not self._config.tdlib_api_id or not self._config.tdlib_api_hash:
-            return _missing_tdlib_credentials_result()
+            return missing_tdlib_credentials_result()
 
         client: TdlibClient | None = None
         deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
@@ -248,12 +145,12 @@ class TdlibAuthAdapter:
                 if state.result is not None:
                     return state.result
         except Exception as exc:
-            return _broken_tdlib_runtime_result(exc)
+            return broken_tdlib_runtime_result(exc)
         finally:
             if client is not None:
                 client.close()
 
-        return _tdlib_auth_timeout_result()
+        return tdlib_auth_timeout_result()
 
     def _log_session_reused(self, account_id: str) -> None:
         account_dirs = resolve_tdlib_account_dirs(self._config, account_id)
@@ -316,42 +213,6 @@ def _auth_state_result(state: _AuthOperationState, result: TdlibAuthResult) -> _
     )
 
 
-def _missing_tdlib_credentials_result() -> TdlibAuthResult:
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.BROKEN,
-        account_state=AccountState.RUNTIME_BROKEN,
-        runtime_health="missing_tdlib_credentials",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_missing_credentials",
-        error="TDLIB_API_ID and TDLIB_API_HASH must be configured",
-    )
-
-
-def _broken_tdlib_runtime_result(exc: Exception) -> TdlibAuthResult:
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.BROKEN,
-        account_state=AccountState.RUNTIME_BROKEN,
-        runtime_health="broken",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_runtime_broken",
-        error=str(exc),
-    )
-
-
-def _tdlib_auth_timeout_result() -> TdlibAuthResult:
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.BROKEN,
-        account_state=AccountState.RUNTIME_BROKEN,
-        runtime_health="timeout",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_auth_timeout",
-        error="TDLib auth operation timed out",
-    )
-
-
 def _ready_tdlib_auth_result(client: TdlibClient, config: Settings) -> TdlibAuthResult:
     return TdlibAuthResult(
         status=TdlibAuthStatus.READY,
@@ -393,155 +254,6 @@ def normalize_phone_number(phone_number: str) -> str:
     if not re.fullmatch(r"\+[1-9]\d{7,14}", normalized):
         raise ValueError("phone number must be in international format")
     return normalized
-
-
-def _closed_like_result(state_type: str) -> TdlibAuthResult:
-    suffix = state_type.removeprefix("authorizationState").lower()
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.CLOSED,
-        account_state=AccountState.REAUTH_REQUIRED,
-        runtime_health=suffix,
-        needs_code=False,
-        session_present=False,
-        reauth_required=True,
-        recovery_marker=f"tdlib_{suffix}_recreate_required",
-    )
-
-
-def _wait_password_result(state: JsonDict) -> TdlibAuthResult:
-    password_hint = state.get("password_hint", "")
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.WAIT_PASSWORD,
-        account_state=AccountState.AWAITING_PASSWORD,
-        runtime_health="awaiting_password",
-        needs_code=False,
-        needs_password=True,
-        session_present=True,
-        password_hint=password_hint or None,
-        recovery_marker="tdlib_wait_password",
-    )
-
-
-def _unsupported_email_like_result(state_type: str) -> TdlibAuthResult:
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.UNSUPPORTED,
-        account_state=AccountState.MANUAL_INTERVENTION_NEEDED,
-        runtime_health=state_type.removeprefix("authorizationState"),
-        needs_code=False,
-        session_present=True,
-        needs_manual_intervention=True,
-        recovery_marker=f"tdlib_unsupported:{state_type}",
-        error=f"Unsupported TDLib auth branch: {state_type}",
-    )
-
-
-_STATIC_AUTH_STATE_RESULTS: dict[str, TdlibAuthResult] = {
-    "authorizationStateWaitTdlibParameters": TdlibAuthResult(
-        status=TdlibAuthStatus.WAIT_TDLIB_PARAMETERS,
-        account_state=AccountState.AUTH_PENDING,
-        runtime_health="initializing",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_wait_parameters",
-    ),
-    "authorizationStateWaitPhoneNumber": TdlibAuthResult(
-        status=TdlibAuthStatus.WAIT_PHONE_NUMBER,
-        account_state=AccountState.AUTH_PENDING,
-        runtime_health="awaiting_phone_number",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_wait_phone_number",
-    ),
-    "authorizationStateWaitCode": TdlibAuthResult(
-        status=TdlibAuthStatus.WAIT_CODE,
-        account_state=AccountState.AWAITING_CODE,
-        runtime_health="awaiting_code",
-        needs_code=True,
-        session_present=True,
-        recovery_marker="tdlib_wait_code",
-    ),
-    "authorizationStateReady": TdlibAuthResult(
-        status=TdlibAuthStatus.READY,
-        account_state=AccountState.AUTHORIZED_READY,
-        runtime_health="ready",
-        needs_code=False,
-        session_present=True,
-        recovery_marker="tdlib_ready",
-    ),
-}
-
-_DYNAMIC_AUTH_STATE_HANDLERS: dict[str, Callable[[JsonDict, str], TdlibAuthResult]] = {
-    "authorizationStateWaitPassword": lambda state, _state_type: _wait_password_result(state),
-    "authorizationStateClosed": lambda _state, state_type: _closed_like_result(state_type),
-    "authorizationStateClosing": lambda _state, state_type: _closed_like_result(state_type),
-    "authorizationStateLoggingOut": lambda _state, state_type: _closed_like_result(state_type),
-    "authorizationStateWaitEmailAddress": lambda _state, state_type: _unsupported_email_like_result(
-        state_type
-    ),
-    "authorizationStateWaitEmailCode": lambda _state, state_type: _unsupported_email_like_result(
-        state_type
-    ),
-    "authorizationStateWaitRegistration": lambda _state, state_type: _unsupported_email_like_result(
-        state_type
-    ),
-}
-
-
-def map_authorization_state(state: JsonDict) -> TdlibAuthResult:
-    state_type = str(state.get("@type") or "")
-    static = _STATIC_AUTH_STATE_RESULTS.get(state_type)
-    if static is not None:
-        return static
-    handler = _DYNAMIC_AUTH_STATE_HANDLERS.get(state_type)
-    if handler is not None:
-        return handler(state, state_type)
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.BROKEN,
-        account_state=AccountState.RUNTIME_BROKEN,
-        runtime_health="unexpected_auth_state",
-        needs_code=False,
-        session_present=False,
-        recovery_marker=f"tdlib_unexpected:{state_type}",
-        error=f"Unexpected TDLib auth state: {state_type}",
-    )
-
-
-def map_tdlib_error(error: JsonDict) -> TdlibAuthResult:
-    message = str(error.get("message") or "TDLib error")
-    upper_message = message.upper()
-    if "FROZEN" in upper_message:
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.UNSUPPORTED,
-            account_state=AccountState.MANUAL_INTERVENTION_NEEDED,
-            runtime_health="frozen",
-            needs_code=False,
-            session_present=True,
-            reauth_required=True,
-            needs_manual_intervention=True,
-            recovery_marker=f"tdlib_hard_stop:{upper_message}",
-            error=message,
-        )
-    if "FLOOD" in upper_message:
-        return TdlibAuthResult(
-            status=TdlibAuthStatus.UNSUPPORTED,
-            account_state=AccountState.MANUAL_INTERVENTION_NEEDED,
-            runtime_health="flood",
-            needs_code=False,
-            session_present=True,
-            reauth_required=True,
-            needs_manual_intervention=True,
-            recovery_marker=f"tdlib_hard_stop:{upper_message}",
-            error=message,
-        )
-    return TdlibAuthResult(
-        status=TdlibAuthStatus.BROKEN,
-        account_state=AccountState.RUNTIME_BROKEN,
-        runtime_health="tdlib_error",
-        needs_code=False,
-        session_present=False,
-        recovery_marker="tdlib_error",
-        error=message,
-    )
 
 
 def build_tdlib_auth_adapter(config: Settings = settings) -> TdlibAuthAdapter:
@@ -625,7 +337,3 @@ def _get_current_user_id(client: TdlibClient, config: Settings) -> str | None:
 extract_authorization_state = _extract_authorization_state
 tdlib_parameters_query = _tdlib_parameters_query
 get_current_user_id = _get_current_user_id
-
-
-def _default_tdjson_library_name() -> str:
-    return "tdjson.dll"

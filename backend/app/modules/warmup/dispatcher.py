@@ -232,7 +232,6 @@ def _process_one_dispatch(
                     continue
                 action_context = resolution.context
                 if action_type in WRITE_ACTION_TYPES and not adapter.supports_action(action_type):
-                    # write-уровень не разрешён конфигом → лог + skip без падения
                     write_warmup_event(
                         session,
                         warmup_session,

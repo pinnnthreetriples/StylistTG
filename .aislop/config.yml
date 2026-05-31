@@ -18,8 +18,12 @@ exclude:
   # CLI scripts: print-to-stderr + non-zero exit is the canonical
   # pattern; aislop's swallowed-exception heuristic doesn't model
   # entrypoints. Real bugs in these paths surface via CI exit codes.
+  # Same rationale for console.log in node CLI scripts under
+  # scripts/ and packages/*/scripts/ — output IS the product.
   - "backend/scripts/**"
   - "backend/tools/**"
+  - "scripts/**"
+  - "packages/*/scripts/**"
 
 # Rule IDs follow the namespaces emitted by aislop@0.10.0:
 #   ai-slop/*       — AI-authored code patterns

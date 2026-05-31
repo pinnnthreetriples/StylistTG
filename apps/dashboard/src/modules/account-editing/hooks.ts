@@ -10,13 +10,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import {
   buildAssetContentUrl,
+  createAccountUpdateJob,
   createStoryDraft,
   deleteStoryDraft,
+  previewAccountUpdateJob,
   updateStoryDraft,
   uploadProfileAudio,
   uploadProfilePhoto,
   uploadStoryImage,
   uploadStoryVideo,
+  type FormPayload,
+  type JobSummary,
+  type ProfilePreview,
 } from './api'
 import { normalizeError } from '@/lib/appErrors'
 import {
@@ -33,13 +38,6 @@ import {
 import { buildJobMetrics } from '@/modules/shared'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
-import {
-  createAccountUpdateJob,
-  previewAccountUpdateJob,
-  type FormPayload,
-  type JobSummary,
-  type ProfilePreview,
-} from './api'
 import type { CurrentProfile, FormState } from './types'
 import { invalidateAccountSafetyQueries } from '@/lib/queries'
 

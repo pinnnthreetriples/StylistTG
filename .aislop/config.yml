@@ -1,0 +1,33 @@
+# AI-generated-code quality guardrails.
+# Start with a moderate non-blocking threshold and tighten after triaging false positives.
+ci:
+  failBelow: 70
+
+exclude:
+  - "node_modules"
+  - "dist"
+  - "build"
+  - "coverage"
+  - "backend/.venv"
+  - "backend/reports"
+  - "apps/dashboard/test-results"
+  - "apps/dashboard/playwright-report"
+  - "reports"
+  - "**/*.generated.*"
+  - "packages/api-client/src/generated/**"
+
+# Rule IDs follow the namespaces emitted by aislop@0.10.0:
+#   ai-slop/*       — AI-authored code patterns
+#   code-quality/*  — duplication, unused declarations, repeated chains
+#   complexity/*    — function/file size, nesting, parameter count
+# Unknown rule IDs are silently ignored by aislop's config loader
+# (RulesSchema is z.record(z.string(), severity)), so the spellings here
+# must match the IDs the engines actually emit.
+rules:
+  ai-slop/narrative-comment: warning
+  ai-slop/trivial-comment: warning
+  ai-slop/todo-stub: warning
+  ai-slop/unsafe-type-assertion: warning  # `as any` and friends
+  complexity/function-too-long: warning
+  complexity/file-too-large: warning
+  code-quality/unused-declaration: warning

@@ -15,6 +15,11 @@ exclude:
   - "reports"
   - "**/*.generated.*"
   - "packages/api-client/src/generated/**"
+  # CLI scripts: print-to-stderr + non-zero exit is the canonical
+  # pattern; aislop's swallowed-exception heuristic doesn't model
+  # entrypoints. Real bugs in these paths surface via CI exit codes.
+  - "backend/scripts/**"
+  - "backend/tools/**"
 
 # Rule IDs follow the namespaces emitted by aislop@0.10.0:
 #   ai-slop/*       — AI-authored code patterns
@@ -31,3 +36,7 @@ rules:
   complexity/function-too-long: warning
   complexity/file-too-large: warning
   code-quality/unused-declaration: warning
+  # Auth-state enum string values ("wait_password", "awaiting_password")
+  # match backend protocol strings and trip the heuristic. Real secret
+  # detection is handled by gitleaks/CI; keep aislop as a soft signal.
+  security/hardcoded-secret: warning

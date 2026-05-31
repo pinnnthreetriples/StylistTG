@@ -49,17 +49,17 @@ export function DialogContent({
   className?: string
 }) {
   return (
-    <div
+    <dialog
       aria-modal="true"
       className={cn(
-        'w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-xl',
+        'relative m-0 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card p-0 shadow-xl',
         'animate-[modalIn_0.25s_cubic-bezier(0.4,0,0.2,1)_both]',
         className,
       )}
-      role="dialog"
+      open
     >
       {children}
-    </div>
+    </dialog>
   )
 }
 

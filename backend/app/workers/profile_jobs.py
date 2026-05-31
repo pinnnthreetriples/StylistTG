@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -40,6 +41,9 @@ from app.services.tenant_scope import assert_job_account_workspace_consistency
 class _ChildEventState:
     runtime_failed: bool = False
     hard_stop_error_code: str | None = None
+
+
+_ChildEventHandler = Callable[[Session, Job, dict[str, Any], int, _ChildEventState], None]
 
 
 @dataclass(frozen=True)
@@ -283,35 +287,90 @@ def _record_child_event(
     lock_epoch: int,
     state: _ChildEventState,
 ) -> None:
-    event_name = event["event"]
-    if event_name == "step_started":
-        record_step_started(session, job, event)
-        _log_step_event("step_started", job, event, lock_epoch)
-    elif event_name == "step_succeeded":
-        record_step_succeeded(session, job, event)
-        _log_step_event("step_succeeded", job, event, lock_epoch)
-    elif event_name == "step_uncertain":
-        record_step_uncertain(session, job, event)
-        _log_step_event("step_uncertain", job, event, lock_epoch, runtime_state=job.job_state)
-    elif event_name == "step_failed":
-        state.runtime_failed = True
-        state.hard_stop_error_code = _updated_hard_stop_code(
-            state.hard_stop_error_code, event.get("error_code")
-        )
-        record_step_failed(session, job, event)
-        _log_step_event(
-            "step_failed",
-            job,
-            event,
-            lock_epoch,
-            error_class=event.get("error_class"),
-            error_code=event.get("error_code"),
-        )
-    elif event_name == "runtime_failed":
-        state.runtime_failed = True
-        state.hard_stop_error_code = _updated_hard_stop_code(
-            state.hard_stop_error_code, event.get("error_code")
-        )
+    handler = _CHILD_EVENT_HANDLERS.get(str(event["event"]))
+    if handler is not None:
+        handler(session, job, event, lock_epoch, state)
+
+
+def _record_step_started_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    del state
+    record_step_started(session, job, event)
+    _log_step_event("step_started", job, event, lock_epoch)
+
+
+def _record_step_succeeded_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    del state
+    record_step_succeeded(session, job, event)
+    _log_step_event("step_succeeded", job, event, lock_epoch)
+
+
+def _record_step_uncertain_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    del state
+    record_step_uncertain(session, job, event)
+    _log_step_event("step_uncertain", job, event, lock_epoch, runtime_state=job.job_state)
+
+
+def _record_step_failed_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    state.runtime_failed = True
+    state.hard_stop_error_code = _updated_hard_stop_code(
+        state.hard_stop_error_code, event.get("error_code")
+    )
+    record_step_failed(session, job, event)
+    _log_step_event(
+        "step_failed",
+        job,
+        event,
+        lock_epoch,
+        error_class=event.get("error_class"),
+        error_code=event.get("error_code"),
+    )
+
+
+def _record_runtime_failed_child_event(
+    session: Session,
+    job: Job,
+    event: dict[str, Any],
+    lock_epoch: int,
+    state: _ChildEventState,
+) -> None:
+    del session, job, lock_epoch
+    state.runtime_failed = True
+    state.hard_stop_error_code = _updated_hard_stop_code(
+        state.hard_stop_error_code, event.get("error_code")
+    )
+
+
+_CHILD_EVENT_HANDLERS: dict[str, _ChildEventHandler] = {
+    "step_started": _record_step_started_child_event,
+    "step_succeeded": _record_step_succeeded_child_event,
+    "step_uncertain": _record_step_uncertain_child_event,
+    "step_failed": _record_step_failed_child_event,
+    "runtime_failed": _record_runtime_failed_child_event,
+}
 
 
 def _log_step_event(

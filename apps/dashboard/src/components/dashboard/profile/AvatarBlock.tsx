@@ -79,20 +79,13 @@ export function AvatarBlock({
   return (
     <div className="flex-shrink-0 flex flex-col items-center">
       {/* ── Avatar ring ── */}
-      <div
-        className="relative mb-3 group cursor-pointer"
-        onClick={onChoosePhoto}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            onChoosePhoto()
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label="Изменить фото профиля"
-      >
-        <div className="rounded-full">
+      <div className="relative mb-3 group">
+        <button
+          aria-label="Изменить фото профиля"
+          className="block rounded-full border-0 bg-transparent p-0 cursor-pointer"
+          onClick={onChoosePhoto}
+          type="button"
+        >
           {previewUrl ? (
             <img
               alt="Предпросмотр фото профиля"
@@ -112,7 +105,7 @@ export function AvatarBlock({
           <div className="absolute inset-0 rounded-full bg-foreground/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="text-primary-foreground size-8" />
           </div>
-        </div>
+        </button>
 
         {/* Camera badge */}
         <button

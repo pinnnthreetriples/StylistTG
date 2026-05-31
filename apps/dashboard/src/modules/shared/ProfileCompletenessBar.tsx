@@ -43,14 +43,8 @@ export function ProfileCompletenessBar({ accountId }: ProfileCompletenessBarProp
           <span className="font-medium text-foreground">Profile completeness</span>
           <Badge tone={badgeTone(report.score)}>{percentage}%</Badge>
         </div>
-        <div
-          aria-label="Profile completeness"
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={percentage}
-          className="h-1.5 overflow-hidden rounded-full bg-muted"
-          role="progressbar"
-        >
+        <progress aria-label="Profile completeness" className="sr-only" max={100} value={percentage} />
+        <div aria-hidden="true" className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div className={`h-full rounded-full ${barClass}`} style={{ width: `${percentage}%` }} />
         </div>
       </div>

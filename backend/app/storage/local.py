@@ -141,6 +141,7 @@ class LocalStorageService:
             try:
                 root.rmdir()
             except OSError:
+                # Root may be non-empty (concurrent writer) or already gone — both fine.
                 pass
         return deleted
 

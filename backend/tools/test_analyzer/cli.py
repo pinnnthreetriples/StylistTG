@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 from .analyzer import Analyzer, filter_by_baseline, load_baseline, load_coverage_context
@@ -309,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
             issues = analyzer.analyze(target, base_dir)
     except Exception as e:
         print(f"Error during analysis: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         return 2
 
     if args.baseline:

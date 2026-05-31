@@ -101,4 +101,5 @@ def _cancel_existing_job(queue: Any, rq_job_id: str) -> None:
         existing = cast(Any, Job).fetch(rq_job_id, connection=queue.connection)
         existing.delete()
     except NoSuchJobError:
-        pass
+        # Cancellation is idempotent: a missing job means already cancelled/expired.
+        return

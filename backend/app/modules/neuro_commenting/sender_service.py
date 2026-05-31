@@ -366,6 +366,7 @@ class SenderService:
         try:
             attempt.external_message_id_provisional = int(result.telegram_message_id)
         except _INT_COERCION_ERRORS:
+            # Non-numeric message id is acceptable — the canonical id is set below.
             pass
         self._commit_reservation(reservation)
         attempt.status = NeuroAttemptStatus.SENT.value

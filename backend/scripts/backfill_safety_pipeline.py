@@ -6,6 +6,8 @@ from datetime import timedelta
 import hashlib
 import json
 import socket
+import sys
+import traceback
 from uuid import UUID
 
 from sqlalchemy import select, text
@@ -266,10 +268,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(stats.to_dict(), indent=2, sort_keys=True))
         return 0
     except ValueError as exc:
-        print(str(exc))
+        print(str(exc), file=sys.stderr)
         return 1
     except Exception as exc:
-        print(f"backfill failed: {exc}")
+        print(f"backfill failed: {exc}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         return 2
 
 

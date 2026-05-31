@@ -15,7 +15,9 @@ class EmailNotifier:
         session: Session,
         payload: NotificationPayload,
     ) -> NotificationDeliveryResult:
-        # TODO: wire production mail sender when email infrastructure lands.
+        # Stub channel: logs the delivery attempt instead of sending mail.
+        # Replace with a real SMTP/transactional-email client once that
+        # infrastructure exists in the platform.
         log_event(
             "admin_notification_email_stubbed",
             workspace_id=str(payload.workspace_id),

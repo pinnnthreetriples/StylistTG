@@ -138,7 +138,8 @@ def _ggr_drop(
     workspace_id: str,
     now: datetime,
 ) -> list[NotificationPayload]:
-    # TODO: enable ggr_drop when GGR history persistence/table exists.
+    # Disabled until GGR history persistence lands; re-enable here once
+    # the workspace-level ggr_history table is populated.
     return []
 
 

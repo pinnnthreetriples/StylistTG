@@ -569,6 +569,7 @@ function SearchAndFilters({
         <div className="relative max-w-sm flex-1">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
+          aria-label="Поиск аккаунтов"
           className="search-field w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm transition-all"
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Поиск аккаунтов..."
@@ -1003,6 +1004,7 @@ function DeleteAccountDialog({
             <label className="grid gap-1 text-xs font-semibold text-muted-foreground">
               Reason
               <textarea
+                aria-label="Deletion reason"
                 className="min-h-20 rounded-lg border border-border px-3 py-2 text-sm font-normal text-foreground outline-none focus:border-border"
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Describe why this account lifecycle request is required..."
@@ -1012,6 +1014,7 @@ function DeleteAccountDialog({
             <label className="mt-3 grid gap-1 text-xs font-semibold text-muted-foreground">
               Confirmation
               <input
+                aria-label="Deletion confirmation"
                 className="rounded-lg border border-border px-3 py-2 text-sm font-normal text-foreground outline-none focus:border-border"
                 onChange={(event) => setConfirmation(event.target.value)}
                 placeholder="Type DELETE"

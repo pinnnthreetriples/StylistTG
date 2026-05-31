@@ -170,6 +170,9 @@ def create_job_use_case(
     return AccountUpdateJobSummaryRead(**job_summary(job))
 
 
+# Public façade name kept stable for the module's use-case API; the
+# `def enqueue_job(` signature is asserted by the architecture test in
+# tests/modules/account_editing/test_architecture.py.
 def enqueue_job(job_id: str) -> bool:
     return enqueue_account_update_job(job_id)
 

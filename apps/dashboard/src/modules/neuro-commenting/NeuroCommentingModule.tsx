@@ -49,6 +49,7 @@ export function NeuroCommentingModule({ campaignId }: NeuroCommentingModuleProps
         <label className="grid gap-1 text-sm">
           Campaign ID
           <input
+            aria-label="Campaign ID"
             className="h-9 min-w-80 rounded-md border px-3"
             value={draftCampaignId}
             onChange={(event) => setDraftCampaignId(event.target.value)}

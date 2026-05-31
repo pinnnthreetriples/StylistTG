@@ -423,6 +423,8 @@ class NeuroObservedPostRead(BaseModel):
         "discussion_resolved_at", "seen_at", "processed_at", "created_at", "updated_at"
     )
     def _serialize_datetime(self, value: datetime | None) -> str | None:
+        if value is None:
+            return None
         return _serialize_utc_datetime(value)
 
 

@@ -5,6 +5,47 @@ import { useState } from 'react'
 import { useCreateNeuroCampaign, useNeuroPromptPresets, useUpdateNeuroCampaign } from '../hooks'
 import type { ApprovalMode, CampaignMode, WorkMode } from '../types'
 
+type RadioOption<T extends string> = { value: T; label: string; description: string }
+
+function RadioListField<T extends string>({
+  legend,
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string
+  name: string
+  options: ReadonlyArray<RadioOption<T>>
+  value: T
+  onChange: (next: T) => void
+}) {
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="text-xs font-medium text-foreground">{legend}</legend>
+      {options.map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
+        >
+          <input
+            aria-label={option.label}
+            type="radio"
+            name={name}
+            value={option.value}
+            checked={value === option.value}
+            onChange={() => onChange(option.value)}
+          />
+          <span>
+            <span className="font-medium text-foreground">{option.label}</span>
+            <span className="block text-xs text-muted-foreground">{option.description}</span>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  )
+}
+
 /**
  * Phase 0 Task 4 multi-step campaign creation wizard.
  *
@@ -144,9 +185,11 @@ export function CampaignWizard({
 
       {step === 1 ? (
         <div className="grid gap-3">
-          <label className="grid gap-1 text-xs font-medium text-foreground">
+          <label className="grid gap-1 text-xs font-medium text-foreground" htmlFor="campaign-name">
             Название
             <Input
+              id="campaign-name"
+              aria-label="Название кампании"
               value={state.name}
               onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
               placeholder="Запуск B2B"
@@ -155,6 +198,7 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Описание
             <textarea
+              aria-label="Описание кампании"
               className="min-h-20 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
@@ -166,48 +210,20 @@ export function CampaignWizard({
 
       {step === 2 ? (
         <div className="grid gap-4">
-          <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-foreground">Режим подбора постов</legend>
-            {supportedModes.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
-              >
-                <input
-                  type="radio"
-                  name="mode"
-                  value={option.value}
-                  checked={state.mode === option.value}
-                  onChange={() => setState((s) => ({ ...s, mode: option.value }))}
-                />
-                <span>
-                  <span className="font-medium text-foreground">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.description}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-foreground">Режим работы</legend>
-            {supportedWorkModes.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
-              >
-                <input
-                  type="radio"
-                  name="workMode"
-                  value={option.value}
-                  checked={state.workMode === option.value}
-                  onChange={() => setState((s) => ({ ...s, workMode: option.value }))}
-                />
-                <span>
-                  <span className="font-medium text-foreground">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.description}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
+          <RadioListField
+            legend="Режим подбора постов"
+            name="mode"
+            options={supportedModes}
+            value={state.mode}
+            onChange={(value) => setState((s) => ({ ...s, mode: value }))}
+          />
+          <RadioListField
+            legend="Режим работы"
+            name="workMode"
+            options={supportedWorkModes}
+            value={state.workMode}
+            onChange={(value) => setState((s) => ({ ...s, workMode: value }))}
+          />
         </div>
       ) : null}
 
@@ -216,6 +232,7 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Пресет промпта
             <select
+              aria-label="Пресет промпта"
               className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={selectedPresetId}
               onChange={(event) => {
@@ -238,33 +255,20 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Промпт для AI
             <textarea
+              aria-label="Промпт для AI"
               className="min-h-28 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.promptTemplate}
               onChange={(e) => setState((s) => ({ ...s, promptTemplate: e.target.value }))}
               placeholder="Например: «Напиши короткий нативный комментарий по теме поста, 3-7 слов»"
             />
           </label>
-          <fieldset className="grid gap-2">
-            <legend className="text-xs font-medium text-foreground">Режим одобрения</legend>
-            {supportedApprovalModes.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
-              >
-                <input
-                  type="radio"
-                  name="approvalMode"
-                  value={option.value}
-                  checked={state.approvalMode === option.value}
-                  onChange={() => setState((s) => ({ ...s, approvalMode: option.value }))}
-                />
-                <span>
-                  <span className="font-medium text-foreground">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.description}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
+          <RadioListField
+            legend="Режим одобрения"
+            name="approvalMode"
+            options={supportedApprovalModes}
+            value={state.approvalMode}
+            onChange={(value) => setState((s) => ({ ...s, approvalMode: value }))}
+          />
         </div>
       ) : null}
 

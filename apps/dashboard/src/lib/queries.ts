@@ -43,10 +43,9 @@ import {
   fetchStoryCapabilities,
   fetchStoryDrafts,
   updateWorkspaceSafetyPolicy,
+  type SafetyGateIntent,
 } from '@/lib/api'
-import type { SafetyGateIntent } from '@/lib/api'
-import type { AccountSafetySummary } from '@/lib/accountSafety'
-import type { AccountSafety, AccountValidityCheck } from '@/lib/accountSafety'
+import type { AccountSafety, AccountSafetySummary, AccountValidityCheck } from '@/lib/accountSafety'
 import { fetchAuthRuntimeMode, fetchAuthState } from '@/modules/auth'
 
 export const queryKeys = {

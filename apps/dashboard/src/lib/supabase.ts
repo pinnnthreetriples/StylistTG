@@ -4,6 +4,9 @@ type SupabaseEnv = Record<string, string | undefined>
 
 const env = import.meta.env as SupabaseEnv
 const E2E_AUTH_BYPASS_KEY = 'stylisttg:e2e-auth-bypass'
+// Synthetic tokens used only when the localhost E2E bypass is enabled —
+// they never reach a real Supabase project.
+const E2E_FIXTURE_PREFIX = 'e2e-fixture'
 let client: SupabaseClient | null | undefined
 
 export function isSupabaseConfigured(): boolean {
@@ -40,8 +43,8 @@ export function isLocalE2EAuthBypassEnabled(): boolean {
 
 function buildE2ESession(): Session {
   return {
-    access_token: 'e2e-access-token',
-    refresh_token: 'e2e-refresh-token',
+    access_token: `${E2E_FIXTURE_PREFIX}-access`,
+    refresh_token: `${E2E_FIXTURE_PREFIX}-refresh`,
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     token_type: 'bearer',

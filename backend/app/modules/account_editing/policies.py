@@ -275,7 +275,6 @@ class AccountEditingPolicy:
         }
         return [blocker for blocker in blockers if blocker not in capability_only_blockers]
 
-    # TODO Phase 2.5: после реализации workspace-channels registry проверять что channel разрешён для workspace (Task 18 / future)
     def _invalid_channel_ref_errors(self, *, desired_state: dict[str, Any]) -> list[str]:
         profile = cast(dict[str, Any], desired_state.get("profile") or {})
         channel_ref = (profile.get("pinned_channel_ref") or "").strip()

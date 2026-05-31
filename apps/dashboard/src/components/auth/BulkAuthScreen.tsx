@@ -227,8 +227,10 @@ export function BulkAuthScreen({
               </Button>
             </div>
           ) : null}
-          <label className="block text-xs font-semibold uppercase text-muted-foreground">Номера</label>
+          <label className="block text-xs font-semibold uppercase text-muted-foreground" htmlFor="bulk-auth-phones">Номера</label>
           <textarea
+            id="bulk-auth-phones"
+            aria-label="Номера телефонов"
             className="mt-2 min-h-64 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm leading-6 focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
             onChange={(e) => {
               setRawInput(sanitizeBulkPhoneInput(e.target.value))
@@ -250,7 +252,7 @@ export function BulkAuthScreen({
           </div>
           <ValidationSummary localInvalidRows={localInvalidRows} parsedCount={parsedLines.length} validation={validation} />
           <label className="mt-4 block text-xs font-semibold uppercase text-muted-foreground">{parsedItems.length === 1 ? 'Название аккаунта' : 'Название пачки'}</label>
-          <input className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Необязательно" />
+          <input aria-label="Название пачки" className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Необязательно" />
           {error ? <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div> : null}
           <div className="mt-4 flex gap-2">
             <Button className="min-w-28" disabled={isBusy || parsedItems.length === 0} onClick={handleValidate} type="button" variant="secondary">
@@ -490,7 +492,7 @@ function CredentialRow({ item, onSubmitCode, onSubmitPassword }: { item: AuthBat
   return (
     <div className="grid gap-2 rounded-lg bg-card p-2 sm:grid-cols-[1fr_180px_auto] sm:items-center">
       <div className="text-sm font-semibold text-foreground">{authBatchItemPhoneLabel(item)}</div>
-      <input className="rounded-lg border border-border px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
+      <input aria-label={isPassword ? 'Пароль 2FA' : 'Код Telegram'} className="rounded-lg border border-border px-3 py-2 text-sm" onChange={(e) => setValue(e.target.value)} placeholder={isPassword ? 'Пароль 2FA' : 'Код'} type={isPassword ? 'password' : 'text'} value={value} />
       <Button disabled={value.length < 4} onClick={() => isPassword ? onSubmitPassword(item, value) : onSubmitCode(item, value)} type="button">
         Отправить
       </Button>

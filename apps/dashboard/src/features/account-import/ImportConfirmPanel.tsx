@@ -30,6 +30,7 @@ export function ImportConfirmPanel({
           Проверить
         </Button>
         <input
+          aria-label="Подтверждение импорта"
           className="h-10 flex-1 rounded-md border border-border px-3 text-sm"
           disabled={disabled || !batch}
           onChange={(event) => setConfirmation(event.target.value)}

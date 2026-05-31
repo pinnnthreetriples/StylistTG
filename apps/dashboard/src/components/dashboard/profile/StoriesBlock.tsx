@@ -2,7 +2,7 @@
  * StoriesBlock – stories grid with add / remove / edit modal.
  */
 
-import { AlertTriangle, ImagePlus, Loader2, Trash2, UploadCloud, User, Video, X, Link } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ImagePlus, Loader2, Trash2, UploadCloud, User, Video, X, Link } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -90,38 +90,42 @@ export function StoriesBlock({
         {stories.map((story) => (
           <div
             key={story.clientId}
-            aria-label={`Настроить историю ${story.fileName}`}
-            className="group relative aspect-[9/16] rounded-lg border border-border bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-ring hover:ring-offset-1 transition-all"
-            onClick={() => setEditingStoryId(story.clientId)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                setEditingStoryId(story.clientId)
-              }
-            }}
-            role="button"
-            tabIndex={0}
+            className="group relative aspect-[9/16] rounded-lg border border-border bg-muted overflow-hidden hover:ring-2 hover:ring-ring hover:ring-offset-1 transition-all"
           >
-            {/* Placeholder */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-muted-foreground bg-muted">
-              {story.action === 'post_image' ? (
-                <ImagePlus className="size-6 mb-1 opacity-50" />
-              ) : (
-                <Video className="size-6 mb-1 opacity-50" />
-              )}
-              <span className="text-[9px] font-medium truncate w-full">{story.fileName}</span>
-            </div>
-
-            {/* Privacy badge */}
-            <div className="absolute top-1.5 left-1.5 flex gap-1">
-              <div className="w-5 h-5 rounded-md bg-foreground/60 backdrop-blur-sm flex items-center justify-center text-primary-foreground">
-                {story.privacyPreset === 'public' ? (
-                  <User className="size-3" />
+            <button
+              aria-label={`Настроить историю ${story.fileName}`}
+              className="absolute inset-0 cursor-pointer border-0 bg-transparent p-0 text-left"
+              onClick={() => setEditingStoryId(story.clientId)}
+              type="button"
+            >
+              {/* Placeholder */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-muted-foreground bg-muted">
+                {story.action === 'post_image' ? (
+                  <ImagePlus className="size-6 mb-1 opacity-50" />
                 ) : (
-                  <Link className="size-3" />
+                  <Video className="size-6 mb-1 opacity-50" />
                 )}
+                <span className="text-[9px] font-medium truncate w-full">{story.fileName}</span>
               </div>
-            </div>
+
+              {/* Privacy badge */}
+              <div className="absolute top-1.5 left-1.5 flex gap-1">
+                <div className="w-5 h-5 rounded-md bg-foreground/60 backdrop-blur-sm flex items-center justify-center text-primary-foreground">
+                  {story.privacyPreset === 'public' ? (
+                    <User className="size-3" />
+                  ) : (
+                    <Link className="size-3" />
+                  )}
+                </div>
+              </div>
+
+              {/* Caption overlay */}
+              {story.caption && (
+                <div className="absolute bottom-0 inset-x-0 bg-muted p-2 pt-4">
+                  <p className="text-[9px] text-primary-foreground line-clamp-2 leading-tight">{story.caption}</p>
+                </div>
+              )}
+            </button>
 
             {/* Remove button */}
             <button
@@ -132,13 +136,6 @@ export function StoriesBlock({
             >
               <Trash2 className="size-3" />
             </button>
-
-            {/* Caption overlay */}
-            {story.caption && (
-              <div className="absolute bottom-0 inset-x-0 bg-muted p-2 pt-4">
-                <p className="text-[9px] text-primary-foreground line-clamp-2 leading-tight">{story.caption}</p>
-              </div>
-            )}
           </div>
         ))}
 
@@ -242,9 +239,11 @@ export function StoriesBlock({
       {/* ── Edit modal ── */}
       {editingStory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
+          <button
+            aria-label="Закрыть настройки истории"
             className="absolute inset-0 bg-foreground backdrop-blur-sm"
             onClick={closeModal}
+            type="button"
           />
           <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10">
             {/* Modal header */}
@@ -264,10 +263,12 @@ export function StoriesBlock({
             <div className="p-4 space-y-4">
               {/* Caption */}
               <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="story-caption">
                   Подпись
                 </label>
                 <Input
+                  id="story-caption"
+                  aria-label="Подпись истории"
                   className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
                   maxLength={1024}
                   onChange={(e) => onUpdateStory(editingStory.clientId, { caption: e.target.value })}
@@ -279,35 +280,34 @@ export function StoriesBlock({
               <div className="grid grid-cols-2 gap-3">
                 {/* Privacy */}
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="story-privacy">
                     Приватность
                   </label>
-                  <select
-                    className="w-full h-9 rounded-lg border border-border bg-muted px-2 text-xs text-foreground outline-none transition-colors hover:bg-card focus:bg-card focus:border-border focus:ring-2 focus:ring-ring appearance-none"
-                    onChange={(e) =>
-                      onUpdateStory(editingStory.clientId, {
-                        privacyPreset: e.target.value as StoryDraftPayload['privacyPreset'],
-                      })
-                    }
-                    value={editingStory.privacyPreset}
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 0.5rem center',
-                      backgroundSize: '1em',
-                    }}
-                  >
-                    <option value="contacts">Контакты</option>
-                    <option value="close_friends">Близкие</option>
-                    <option value="public">Публично</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="story-privacy"
+                      aria-label="Приватность истории"
+                      className="w-full h-9 rounded-lg border border-border bg-muted px-2 pr-8 text-xs text-foreground outline-none transition-colors hover:bg-card focus:bg-card focus:border-border focus:ring-2 focus:ring-ring appearance-none"
+                      onChange={(e) =>
+                        onUpdateStory(editingStory.clientId, {
+                          privacyPreset: e.target.value as StoryDraftPayload['privacyPreset'],
+                        })
+                      }
+                      value={editingStory.privacyPreset}
+                    >
+                      <option value="contacts">Контакты</option>
+                      <option value="close_friends">Близкие</option>
+                      <option value="public">Публично</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+                  </div>
                 </div>
 
                 {/* Duration (read-only) */}
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Срок
-                  </label>
+                  </div>
                   <div className="w-full h-9 rounded-lg border border-border bg-muted px-3 flex items-center text-xs text-muted-foreground font-medium">
                     24 часа
                   </div>
@@ -319,6 +319,7 @@ export function StoriesBlock({
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center justify-center">
                     <input
+                      aria-label="Защитить контент от пересылки"
                       type="checkbox"
                       className="peer sr-only"
                       checked={editingStory.protectContent}

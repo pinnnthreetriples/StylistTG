@@ -22,6 +22,7 @@ export function SubmitPasswordForm({
         }}
       >
         <input
+          aria-label="Пароль 2FA"
           autoComplete="current-password"
           className="h-10 flex-1 rounded-md border border-border px-3 text-sm"
           disabled={disabled}

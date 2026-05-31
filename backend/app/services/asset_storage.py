@@ -17,17 +17,13 @@ def asset_normalized_storage_key(asset: Asset) -> str:
     return normalize_storage_key(asset.normalized_key or asset.normalized_path)
 
 
-def build_asset_storage(config: Settings = settings) -> StorageService:
-    return build_storage_service(config)
-
-
 def materialize_asset_to_local_path(
     asset: Asset,
     *,
     config: Settings = settings,
     storage: StorageService | None = None,
 ) -> Path:
-    storage_service = storage or build_asset_storage(config)
+    storage_service = storage or build_storage_service(config)
     key = asset_normalized_storage_key(asset)
     if isinstance(storage_service, LocalStorageService):
         return storage_service.resolve_path(key)
@@ -49,7 +45,7 @@ def get_asset_signed_url(
     config: Settings = settings,
     storage: StorageService | None = None,
 ) -> str:
-    storage_service = storage or build_asset_storage(config)
+    storage_service = storage or build_storage_service(config)
     key = asset_normalized_storage_key(asset)
     if not key.startswith("assets/"):
         raise InvalidStorageKeyError("signed URLs are only available for application assets")

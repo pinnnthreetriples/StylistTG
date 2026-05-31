@@ -83,6 +83,7 @@ export function LoginPageView({
           <label className="grid gap-1.5 text-sm font-semibold text-foreground">
             Email
             <input
+              aria-label="Email"
               autoComplete="email"
               className="h-11 rounded-lg border border-border px-3 text-sm font-medium outline-none transition focus:border-border"
               onChange={(event) => setEmail(event.target.value)}
@@ -94,6 +95,7 @@ export function LoginPageView({
           <label className="grid gap-1.5 text-sm font-semibold text-foreground">
             Пароль
             <input
+              aria-label="Пароль"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               className="h-11 rounded-lg border border-border px-3 text-sm font-medium outline-none transition focus:border-border"
               minLength={6}

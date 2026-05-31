@@ -23,6 +23,7 @@ import logging
 import random
 import re
 from dataclasses import dataclass, field
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from app.adapters.tdlib_auth import (
@@ -384,23 +385,23 @@ class RealWarmupTdlibAdapter:
             client = self._ensure_ready_client(account_id)
         except _AdapterClientError as exc:
             return exc.as_action_result(action_type)
-        try:
-            if action_type == "get_me":
-                return self._action_get_me(client, action_type)
-            if action_type == "ping_proxy":
-                return self._action_ping_proxy(action_type, context)
-            if action_type == "feed_read":
-                return self._action_feed_read(client, action_type)
-            if action_type == "join_chat":
-                return self._action_join_chat(client, action_type, context)
-            if action_type == "p2p_send":
-                return self._action_p2p_send(client, action_type, context)
+        handlers: dict[str, Callable[[], WarmupActionResult]] = {
+            "get_me": lambda: self._action_get_me(client, action_type),
+            "ping_proxy": lambda: self._action_ping_proxy(action_type, context),
+            "feed_read": lambda: self._action_feed_read(client, action_type),
+            "join_chat": lambda: self._action_join_chat(client, action_type, context),
+            "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
+        }
+        handler = handlers.get(action_type)
+        if handler is None:
             return WarmupActionResult(
                 status="unsupported",
                 action_type=action_type,
                 error_code="action_not_supported_in_passive",
                 error_class="contract",
             )
+        try:
+            return handler()
         except Exception as exc:
             # последний рубеж защиты — мы не хотим, чтобы TDLib-исключение
             # роняло worker. Отдаём как network_error, чтобы circuit-breaker

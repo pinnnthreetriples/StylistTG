@@ -109,6 +109,7 @@ export function QuarantineStateBanner({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Reason
             <textarea
+              aria-label="Quarantine reason"
               className="min-h-20 rounded-lg border border-border p-2 text-sm"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -116,6 +117,7 @@ export function QuarantineStateBanner({
           </label>
           <label className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted p-2 text-xs text-muted-foreground">
             <input
+              aria-label="Override safety gate block"
               type="checkbox"
               className="mt-0.5 h-4 w-4 rounded border-border text-muted-foreground"
               checked={overrideGateBlock}

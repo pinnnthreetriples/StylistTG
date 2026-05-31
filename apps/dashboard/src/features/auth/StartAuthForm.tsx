@@ -30,6 +30,7 @@ export function StartAuthForm({
         <label className="grid gap-1 text-sm font-medium text-foreground">
           Номер телефона
           <input
+            aria-label="Номер телефона"
             className="h-10 rounded-md border border-border px-3 text-sm"
             disabled={disabled}
             onChange={(event) => setPhoneNumber(event.target.value)}
@@ -40,6 +41,7 @@ export function StartAuthForm({
         <label className="grid gap-1 text-sm font-medium text-foreground">
           Название
           <input
+            aria-label="Название пакета авторизации"
             className="h-10 rounded-md border border-border px-3 text-sm"
             disabled={disabled}
             onChange={(event) => setLabel(event.target.value)}

@@ -35,15 +35,6 @@ def split_name(full_name: str | None) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
-def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
-    step_type = step["step_type"]
-    payload = step["payload"]
-    query_builder = _STEP_QUERY_BUILDERS.get(step_type)
-    if query_builder is not None:
-        return query_builder(payload)
-    raise ValueError(f"Unsupported profile step type: {step_type}")
-
-
 def _query_set_name(payload: dict[str, Any]) -> dict[str, Any]:
     first_name = payload.get("first_name")
     last_name = payload.get("last_name")
@@ -103,7 +94,7 @@ def _query_get_me(_payload: dict[str, Any]) -> dict[str, Any]:
     return {"@type": "getMe"}
 
 
-_STEP_QUERY_BUILDERS = {
+_STEP_QUERY_BUILDERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "set_name": _query_set_name,
     "set_bio": _query_set_bio,
     "set_username": _query_set_username,
@@ -114,6 +105,15 @@ _STEP_QUERY_BUILDERS = {
     "validate_story_capabilities": _query_get_me,
     "prepare_story_media": _query_get_me,
 }
+
+
+def map_step_to_tdlib_query(step: dict[str, Any]) -> dict[str, Any]:
+    step_type = step["step_type"]
+    payload = step["payload"]
+    query_builder = _STEP_QUERY_BUILDERS.get(step_type)
+    if query_builder is not None:
+        return query_builder(payload)
+    raise ValueError(f"Unsupported profile step type: {step_type}")
 
 
 def verify_username_result(desired_username: str, me_response: dict[str, Any]) -> dict[str, Any]:

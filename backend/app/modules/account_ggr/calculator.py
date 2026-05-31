@@ -90,9 +90,10 @@ def _origin_score(session: Session, account: Account) -> float:
     return mapping.get(account.origin, 0.7)
 
 
-# TODO: requires SpamBlock log infrastructure; not on the current roadmap.
+# Returns a constant 1.0 until the SpamBlock-log infrastructure exists;
+# tracked in the GGR roadmap, not currently scheduled.
 def _history_score(session: Session, account: Account) -> float:
-    """Score based on spamblock history. Hardcoded 1.0 until spamblock log infrastructure lands."""
+    """Score based on spamblock history. Constant 1.0 until the spamblock log table is wired up."""
     return 1.0
 
 

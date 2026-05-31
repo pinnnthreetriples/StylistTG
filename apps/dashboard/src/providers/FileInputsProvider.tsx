@@ -41,6 +41,7 @@ export function FileInputsProvider({
       {children}
       <input
         accept="image/png,image/jpeg"
+        aria-label="Загрузить фото профиля"
         className="hidden"
         onChange={(e) => onPhotoChange(e.target.files?.[0] ?? null)}
         ref={fileInputRef}
@@ -48,6 +49,7 @@ export function FileInputsProvider({
       />
       <input
         accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
+        aria-label="Загрузить медиа для сторис"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0] ?? null
@@ -60,6 +62,7 @@ export function FileInputsProvider({
       />
       <input
         accept="audio/mpeg,audio/mp4,.mp3,.m4a"
+        aria-label="Загрузить аудио профиля"
         className="hidden"
         onChange={(e) => onAudioChange(e.target.files?.[0] ?? null)}
         ref={audioInputRef}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 
 class AccountEditingError(ValueError):
     """Base typed domain error for account editing."""
@@ -158,25 +160,20 @@ class StoriesTdlibLiveDisabledError(AccountEditingError):
         )
 
 
-def account_editing_error_from_legacy_message(message: str) -> AccountEditingError | None:
-    if message == "account not found":
-        return AccountNotFoundError()
-    if message == "account requires manual intervention":
-        return AccountManualInterventionRequiredError()
-    if message == "account is not execution_usable":
-        return AccountRuntimeUnusableError()
-    if message == "profile job cooldown active":
-        return ProfileJobCooldownActiveError()
-    if message == "asset not found":
-        return AccountAssetNotFoundError()
-    if message == "asset kind is not profile_photo":
-        return AccountAssetKindInvalidError()
-    if message == "asset is not ready for profile photo execution":
-        return AccountAssetNotReadyError()
-    if message == "profile audio must be MP3 or M4A":
-        return ProfileAudioUnsupportedFormatError()
-    if message == "stories are disabled":
-        return StoriesDisabledError()
-    if message == "stories live TDLib execution is not enabled":
-        return StoriesTdlibLiveDisabledError()
-    return None
+_LEGACY_MESSAGE_TO_ERROR_FACTORY: dict[str, Callable[[], "AccountEditingError"]] = {
+    "account not found": AccountNotFoundError,
+    "account requires manual intervention": AccountManualInterventionRequiredError,
+    "account is not execution_usable": AccountRuntimeUnusableError,
+    "profile job cooldown active": ProfileJobCooldownActiveError,
+    "asset not found": AccountAssetNotFoundError,
+    "asset kind is not profile_photo": AccountAssetKindInvalidError,
+    "asset is not ready for profile photo execution": AccountAssetNotReadyError,
+    "profile audio must be MP3 or M4A": ProfileAudioUnsupportedFormatError,
+    "stories are disabled": StoriesDisabledError,
+    "stories live TDLib execution is not enabled": StoriesTdlibLiveDisabledError,
+}
+
+
+def account_editing_error_from_legacy_message(message: str) -> "AccountEditingError | None":
+    factory = _LEGACY_MESSAGE_TO_ERROR_FACTORY.get(message)
+    return factory() if factory is not None else None

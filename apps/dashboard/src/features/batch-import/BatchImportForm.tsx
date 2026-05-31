@@ -36,6 +36,7 @@ export function BatchImportForm() {
             <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Batch label
               <input
+                aria-label="Batch label"
                 className="rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
@@ -51,6 +52,7 @@ export function BatchImportForm() {
             <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Source type
               <select
+                aria-label="Source type"
                 className="rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value as BatchImportSourceType)}
@@ -71,6 +73,7 @@ export function BatchImportForm() {
             <label className="grid gap-1.5 text-sm font-semibold text-foreground">
               Notes
               <textarea
+                aria-label="Notes"
                 className="min-h-24 rounded-lg border border-border px-3 py-2 text-sm font-normal"
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
@@ -84,6 +87,7 @@ export function BatchImportForm() {
           {(field) => (
             <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <input
+                aria-label="Dry run only"
                 checked={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.checked)}

@@ -215,6 +215,7 @@ export function SettingsPanel() {
                     />
                   </span>
                   <input
+                    aria-label="Максимальный возраст проверки в минутах"
                     className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-right text-xs font-semibold text-foreground"
                     disabled={updatePolicyMutation.isPending}
                     min={1}
@@ -226,7 +227,7 @@ export function SettingsPanel() {
                   />
                 </label>
                 <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2">
-                  <label className="flex items-center justify-between gap-3 text-xs">
+                  <label className="flex items-center justify-between gap-3 text-xs" htmlFor="manual-hard-blocker-override">
                     <span>
                       <span className="flex items-center gap-1.5 font-semibold text-destructive">
                         <span>Ручной разбор жёстких блокировок</span>
@@ -240,6 +241,8 @@ export function SettingsPanel() {
                       </span>
                     </span>
                     <input
+                      id="manual-hard-blocker-override"
+                      aria-label="Ручной разбор жёстких блокировок"
                       checked={settings.policy.manual_hard_blocker_override_enabled}
                       disabled={updatePolicyMutation.isPending}
                       onChange={(event) =>

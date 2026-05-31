@@ -214,7 +214,7 @@ export function JobStepPanel({
               Измените профиль, чтобы увидеть план.
             </div>
           ) : (
-            <ol className="space-y-1" role="list">
+            <ol className="space-y-1">
               {items.map((item) => (
                 <JobMonitorRow currentJobId={currentJob?.job_id ?? null} item={item} key={item.key} />
               ))}
@@ -323,26 +323,22 @@ function JobProgressBlock({
   summary: JobResultSummary
 }) {
   return (
-    <div className="mt-2" role="status" aria-live="polite">
+    <output className="mt-2 block" aria-live="polite">
       <div className="flex justify-end">
         <span className="text-[10px] font-semibold text-muted-foreground">{progress.label}</span>
       </div>
       {progress.total > 0 ? (
-        <div
-          aria-label={progress.label}
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={progress.progressValue}
-          className="mt-2 h-1 overflow-hidden rounded-full bg-muted"
-          role="progressbar"
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${jobProgressBarClass(summary.tone)}`}
-            style={{ width: `${progress.progressValue}%` }}
-          />
-        </div>
+        <>
+          <progress aria-label={progress.label} className="sr-only" max={100} value={progress.progressValue} />
+          <div aria-hidden="true" className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${jobProgressBarClass(summary.tone)}`}
+              style={{ width: `${progress.progressValue}%` }}
+            />
+          </div>
+        </>
       ) : null}
-    </div>
+    </output>
   )
 }
 

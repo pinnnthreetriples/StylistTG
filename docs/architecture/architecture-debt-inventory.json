@@ -1608,6 +1608,7 @@
         "docs/architecture/monorepo.md",
         "docs/architecture/new-module-checklist.md",
         "docs/architecture/production-execution-plane.md",
+        "docs/architecture/public-facade-exceptions.json",
         "docs/architecture/residual-legacy-boundaries.json",
         "docs/architecture/storage-boundary.md",
         "docs/architecture/storage.md",
@@ -1675,6 +1676,7 @@
         "docs/runbooks/safety-pipeline-preflight-checklist.md",
         "docs/runbooks/safety-rollout.md",
         "docs/runbooks/staging-backend-worker-deploy.md",
+        "docs/runbooks/staging-smoke-2026-05-31.md",
         "docs/runbooks/tdlib-runtime.md",
         "docs/runbooks/telegram-auth-flow.md",
         "docs/runbooks/workers-production-plane.md",
@@ -1701,7 +1703,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-05-30T20:06:39Z",
+  "generated_at": "2026-05-31T09:53:07Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

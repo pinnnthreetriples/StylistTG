@@ -23,6 +23,18 @@ Nightly CI first runs the same benchmark tests once with
 `--benchmark-disable -q` as a smoke check, then runs the benchmark-only
 performance gate.
 
+## CI Baseline Policy
+
+Nightly CI does not compare the GitHub-hosted runner output against the checked-in
+`pytest-benchmark` baseline file. Those saved baseline files include
+machine/Python/OS metadata, so comparing a Linux/Python runner with a local
+Windows baseline can fail before product performance is evaluated.
+
+CI writes a fresh benchmark JSON on the current runner and enforces the absolute
+SLOs above with `tools/check_benchmark_budget.py`. Local/developer baseline
+comparison remains useful for manual triage when the baseline was produced on the
+same runner family and Python version.
+
 ## Local Run
 
 From `backend/`:
@@ -49,11 +61,12 @@ outliers, rounds, and iterations. Use `median`/`iqr` to judge noise, `mean` for
 the committed regression gate, and p95/p99 from the saved JSON when writing PR
 notes.
 
-The nightly gate compares the current run against
-`backend/tests/benchmarks/baselines/safety_gate_baseline.json` and fails on
-`mean:20%` regression. The absolute SLOs above remain the product budget even
-when the relative comparison passes; `tools/check_benchmark_budget.py` enforces
-those absolute limits from the saved JSON.
+The nightly gate writes `backend/reports/safety_gate_benchmark.json` on the
+current GitHub runner and fails only when `tools/check_benchmark_budget.py`
+detects an absolute SLO violation. This avoids `pytest-benchmark`
+`machine_info` mismatches while still making failures actionable. The workflow
+comments on an existing open benchmark issue with the same title/label instead
+of opening duplicates for the same root cause.
 
 ## Regression Triage
 

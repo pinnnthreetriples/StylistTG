@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import ast
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
 
 APP_ROOT = Path("app")
 MODULES_ROOT = APP_ROOT / "modules"
+PUBLIC_FACADE_EXCEPTIONS_PATH = Path("../docs/architecture/public-facade-exceptions.json")
+if not PUBLIC_FACADE_EXCEPTIONS_PATH.exists():
+    PUBLIC_FACADE_EXCEPTIONS_PATH = Path("docs/architecture/public-facade-exceptions.json")
 PUBLIC_SUBMODULES = {
     "contracts",
     "events",
@@ -496,6 +500,34 @@ def test_documented_public_facade_exceptions_have_rationale_and_existing_source(
     ]
 
     assert violations == []
+
+
+def test_public_facade_exceptions_doc_matches_allowlist() -> None:
+    records = json.loads(PUBLIC_FACADE_EXCEPTIONS_PATH.read_text(encoding="utf-8"))
+    assert records["schema_version"] == 1
+
+    expected = {
+        (
+            (Path("backend") / exception.source).as_posix(),
+            exception.imported_module,
+            exception.public_name,
+            exception.rationale,
+        )
+        for exception in DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS
+    }
+    documented = {
+        (
+            record["source"],
+            record["imported_module"],
+            record["public_name"],
+            record["rationale"],
+        )
+        for record in records["exceptions"]
+    }
+
+    assert documented == expected
+    assert all(record["owner"] and record["owner"] != "unknown" for record in records["exceptions"])
+    assert all(len(record.get("removal_condition", "")) >= 3 for record in records["exceptions"])
 
 
 def test_module_packages_define_explicit_public_exports() -> None:

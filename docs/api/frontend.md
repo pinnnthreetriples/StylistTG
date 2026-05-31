@@ -39,6 +39,7 @@ Canonical frontend routes are:
 - `/accounts/$accountId/risk`
 - `/health`
 - `/jobs`
+- `/modules/neuro-commenting`
 - `/modules/warmup`
 - `/settings`
 - `/proxy`
@@ -50,6 +51,18 @@ Compatibility routes:
 - `/operations`
 
 Legacy query URLs are compatibility redirects only.
+
+Neuro-commenting frontend/backend contract:
+
+- Frontend route: `/modules/neuro-commenting`.
+- Backend API prefix: `/api/neuro-commenting`, registered through
+  `app.modules.registry.iter_routers()` via `app.modules.neuro_commenting.router`.
+- The dashboard uses the generated OpenAPI client types plus
+  `apps/dashboard/src/modules/neuro-commenting/api.ts` and hooks for campaigns,
+  targets, generated comments, attempts, events, live readiness, stats, and
+  manual approval/send paths.
+- Live TDLib send/observer behavior remains disabled unless the explicit
+  neuro-commenting live feature gates are enabled.
 
 ## Error DTO
 
@@ -524,6 +537,7 @@ Canonical frontend routes:
 - `/accounts/$accountId/debug`
 - `/health`
 - `/jobs`
+- `/modules/neuro-commenting`
 - `/modules/warmup`
 - `/proxy`
 - `/billing`
@@ -543,6 +557,7 @@ Route components are code-split at product boundaries through TanStack Router:
 
 - accounts/settings route area
 - batch auth route
+- neuro-commenting route
 - warmup route
 - account workspace route
 

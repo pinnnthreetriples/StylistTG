@@ -6,61 +6,41 @@ The backend uses business modules under `backend/app/modules/` so new feature
 work can be organized by domain instead of spreading code across `api/`,
 `services/`, `workers/`, and `job_queue/`.
 
-Architecture Epic Phase 6C corrects the Phase 6B closure claim: remaining
-legacy feature boundaries are explicit and guarded, but they are still open
-residual modularisation debt until they move behind canonical modules, become
-behavior-free compatibility wrappers, or are reclassified with proof. Existing
-public API paths, job models, job states, workflow identifiers, and worker
-behavior remain the compatibility contract.
+Architecture Epic closure is GREEN: residual legacy feature boundaries are `0`,
+and remaining compatibility paths are either canonical module surfaces or
+behavior-free wrappers. Existing public API paths, job models, job states,
+workflow identifiers, and worker behavior remain the compatibility contract.
 
-## Current Phase: Residual Boundary Governance
+## Current Phase: Architecture GREEN Governance
 
-The current backend has canonical modules for account editing, account
-lifecycle, account profile completeness, account safety, auth, neuro commenting,
-and warmup. Warmup is split into canonical contracts, repository, policies,
-errors, query/read-model, command, router, worker, and dispatcher modules. This
-remains compatibility-first: public routes, workflow identifiers, models, queues,
-deterministic job ids, no-arg handlers, and worker behavior remain the
-compatibility contract.
+The current backend has canonical modules for account audit, account core,
+account editing, account GGR, account imports, account jobs, account lifecycle,
+account profile completeness, account profile state, account proxy, account
+safety, auth, bought onboarding, human behavior, neuro commenting, story, and
+warmup. This remains compatibility-first: public routes, workflow identifiers,
+models, queues, deterministic job ids, no-arg handlers, and worker behavior
+remain the compatibility contract.
 
 - `FeatureModule` stores lazy `router_path` strings, not `APIRouter` objects.
 - `main.py` registers module routers through `app.modules.registry.iter_routers()`.
-- Existing API routers remain the public entrypoints.
+- Registered module routers are production API entrypoints; remaining manual
+  router includes are platform/API compatibility surfaces.
 - Account update legacy service and worker modules remain as compatibility wrappers.
 - Warmup legacy service and worker modules remain as compatibility wrappers.
 - `app.services.auth_context` remains a compatibility wrapper around
   `app.modules.auth`.
 - Module names may differ from workflow types.
 
-The generated structure audit intentionally reports backend overall `YELLOW`
-while these active feature-owned residual boundaries remain outside
-`backend/app/modules`:
+The generated structure audit reports backend overall `GREEN` while
+`open_count` and `residual_legacy_feature_boundary_count` are both `0`.
+`docs/architecture/residual-legacy-boundaries.json` stays in the repo as an
+empty non-growth guard so any new residual owner/path must be reviewed instead
+of silently reappearing.
 
-- `account_audit` -> follow-up #213
-- `account_core` -> follow-up #214
-- `account_ggr` -> follow-up #215
-- `account_imports` -> follow-up #216
-- `account_jobs` -> follow-up #217
-- `account_profile_state` -> follow-up #218
-- `account_proxy` -> follow-up #219
-- `account_quarantine` -> follow-up #220
-- `account_runtime_status` -> follow-up #221
-- `account_validity` -> follow-up #222
-- `bought_onboarding` -> follow-up #223
-- `human_behavior` -> follow-up #224
-- `story` -> follow-up #225
-
-`docs/architecture/residual-legacy-boundaries.json` records each residual
-owner, current paths, related issue, removal condition, verification scope, and
-public route/function/class fingerprint. Any new residual path or new public
-surface in those paths must update that manifest with reviewable governance or
-move the behavior into a canonical module.
-
-This guard is a public-surface/non-growth control. It does not prove that
-runtime behavior inside residual legacy files has been migrated. Behavior
-changes or feature enhancements in residual boundaries require the matching
-migration issue/implementation PR or a separately approved architecture
-exception; a manifest update alone is not a substitute for canonical migration.
+Accepted public facade exceptions are tracked in
+`docs/architecture/public-facade-exceptions.json` and validated by
+`backend/tests/architecture/test_no_cross_module_internal_imports.py`. These are
+accepted governance notes, not open debt.
 
 ## Module Rules
 
@@ -210,7 +190,7 @@ modules. Non-module routers are still manually registered in `main.py`.
 | Reference | Location | Category | Keep or migrate later | Reason |
 | --- | --- | --- | --- | --- |
 | `/api/account-update` router | `backend/app/api/account_update.py` | Public API compatibility | Keep | Public route remains stable while it calls the module facade. |
-| `account_update_router` include | `backend/app/main.py` | Public API compatibility | Keep | Router registry is intentionally not enabled yet. |
+| `account_editing` router registry entry | `backend/app/modules/account_editing/module.py` | Public API compatibility | Keep | `main.py` registers module routers through `app.modules.registry.iter_routers()`. |
 | `enqueue_account_update_job` | `backend/app/job_queue/rq.py` | Public API compatibility | Keep as compatibility wrapper | Existing imports can still call it; it delegates to `app.modules.account_editing.enqueue`. |
 | `reenqueue_job_with_delay(..., workflow_type="account_update")` | `backend/app/job_queue/rq.py` | Candidate for future cleanup | Keep for now | Retry API is shared worker infrastructure; account_update branch now uses workflow metadata. |
 | `account_editing.module` workflow metadata | `backend/app/modules/account_editing/module.py` | Workflow metadata | Keep | Declares stable `account_update` workflow metadata. |

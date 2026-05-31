@@ -17,6 +17,10 @@ class PostDetector:
     def __init__(self, *, random_seed: str = "neuro-commenting") -> None:
         self._random_seed = random_seed
 
+    @property
+    def random_seed(self) -> str:
+        return self._random_seed
+
     def match(
         self,
         *,
@@ -57,7 +61,7 @@ def _match_keyword(
 def _match_random(
     detector: PostDetector, _normalized: str, post_text: str | None, _keywords: list[str]
 ) -> PostMatchDecision:
-    digest = hashlib.sha256(f"{detector._random_seed}:{post_text or ''}".encode()).digest()
+    digest = hashlib.sha256(f"{detector.random_seed}:{post_text or ''}".encode()).digest()
     matched = digest[0] < 128
     return PostMatchDecision(
         matched,

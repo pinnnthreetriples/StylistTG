@@ -210,7 +210,33 @@ def _write_reports(
             print(report)
 
 
-def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    if args.explain:
+        return _print_rule_explanation(str(args.explain))
+    if not args.path:
+        parser.error("--path is required (or use --explain RULE_ID)")
+
+    try:
+        issues = _analyze_from_args(args)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"Error during analysis: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        return 2
+
+    if args.baseline:
+        baseline = load_baseline(Path(args.baseline))
+        issues = filter_by_baseline(issues, baseline)
+
+    return _write_filtered_reports(parser, args, issues)
+
+
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="test-quality-analyzer",
         description="Static test quality analyzer for pytest suites",
@@ -251,36 +277,35 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
         metavar="REF",
         help="Only analyze test files changed vs REF (e.g. origin/main)",
     )
+    return parser
 
-    args = parser.parse_args(argv)
 
-    if args.explain:
-        rule_id = args.explain.upper()
-        info = RULE_EXPLANATIONS.get(rule_id)
-        if not info:
-            found = next((r for r in ALL_RULES if r.id == rule_id), None)
-            if found:
-                print(f"Rule: {found.id}")
-                print(f"Type: {found.type}")
-                print(f"Severity: {found.default_severity.name}")
-                print("(No detailed explanation available yet)")
-            else:
-                print(f"Unknown rule: {rule_id}", file=sys.stderr)
-                return 2
-            return 0
-        print(f"Rule: {rule_id}")
-        print(f"Summary: {info['summary']}")
-        print("\n✗ Bad:")
-        print(f"  {info['bad']}")
-        print("\n✓ Good:")
-        print(f"  {info['good']}")
-        print("\nSuppress:")
-        print(f"  {info['suppress']}")
+def _print_rule_explanation(rule_name: str) -> int:
+    rule_id = rule_name.upper()
+    info = RULE_EXPLANATIONS.get(rule_id)
+    if not info:
+        found = next((r for r in ALL_RULES if r.id == rule_id), None)
+        if found:
+            print(f"Rule: {found.id}")
+            print(f"Type: {found.type}")
+            print(f"Severity: {found.default_severity.name}")
+            print("(No detailed explanation available yet)")
+        else:
+            print(f"Unknown rule: {rule_id}", file=sys.stderr)
+            return 2
         return 0
+    print(f"Rule: {rule_id}")
+    print(f"Summary: {info['summary']}")
+    print("\n✗ Bad:")
+    print(f"  {info['bad']}")
+    print("\n✓ Good:")
+    print(f"  {info['good']}")
+    print("\nSuppress:")
+    print(f"  {info['suppress']}")
+    return 0
 
-    if not args.path:
-        parser.error("--path is required (or use --explain RULE_ID)")
 
+def _analyze_from_args(args: argparse.Namespace) -> list[Issue]:
     config_path = Path(args.config) if args.config else Path("test-quality.toml")
     if config_path.exists():
         config = AnalyzerConfig.from_toml(config_path)
@@ -289,8 +314,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
 
     target = Path(args.path)
     if not target.exists():
-        print(f"Error: path '{args.path}' does not exist", file=sys.stderr)
-        return 2
+        raise ValueError(f"path '{args.path}' does not exist")
 
     base_dir = target if target.is_dir() else target.parent
 
@@ -299,24 +323,28 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0915
         coverage_data = load_coverage_context(Path(args.coverage))
 
     analyzer = Analyzer(config, coverage_data=coverage_data)
-    try:
-        if args.changed:
-            changed_files = _get_changed_files(args.changed)
-            issues: list[Issue] = []
-            for f in changed_files:
-                if f.is_relative_to(target):
-                    issues.extend(analyzer.analyze_file(f, base_dir))
-        else:
-            issues = analyzer.analyze(target, base_dir)
-    except Exception as e:
-        print(f"Error during analysis: {e}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        return 2
+    if args.changed:
+        issues = _analyze_changed_files(analyzer, args.changed, target, base_dir)
+    else:
+        issues = analyzer.analyze(target, base_dir)
+    return issues
 
-    if args.baseline:
-        baseline = load_baseline(Path(args.baseline))
-        issues = filter_by_baseline(issues, baseline)
 
+def _analyze_changed_files(
+    analyzer: Analyzer, changed_ref: str, target: Path, base_dir: Path
+) -> list[Issue]:
+    issues: list[Issue] = []
+    for changed_file in _get_changed_files(changed_ref):
+        if changed_file.is_relative_to(target):
+            issues.extend(analyzer.analyze_file(changed_file, base_dir))
+    return issues
+
+
+def _write_filtered_reports(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+    issues: list[Issue],
+) -> int:
     report_min_severity = Severity.from_str(args.severity)
     fail_min_severity = Severity.from_str(args.fail_on_severity or args.severity)
     reported_issues = [i for i in issues if i.severity >= report_min_severity]

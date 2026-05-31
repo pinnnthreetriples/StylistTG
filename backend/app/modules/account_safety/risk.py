@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy import func, select
@@ -22,6 +23,21 @@ OPERATION_KEYS = (
 
 RISK_ORDER = {"low": 0, "unknown": 1, "medium": 2, "high": 3, "blocked": 4}
 READINESS_LEVELS = ("low", "medium", "high", "critical")
+
+
+def _empty_readiness_reasons() -> list[dict[str, str]]:
+    return []
+
+
+@dataclass
+class _ReadinessAccumulator:
+    score: int = 0
+    reasons: list[dict[str, str]] = field(default_factory=_empty_readiness_reasons)
+
+    def add(self, points: int, code: str, severity: str, message: str) -> None:
+        if code not in {reason["code"] for reason in self.reasons}:
+            self.reasons.append({"code": code, "severity": severity, "message": message})
+        self.score += points
 
 
 def build_risk_by_operation(
@@ -100,80 +116,21 @@ def _score_readiness_risk(
     has_cooldown: bool,
     failure_count: int,
 ) -> dict[str, Any]:
-    score = 0
-    reasons: list[dict[str, str]] = []
-    runtime = account.runtime_state
+    accumulator = _ReadinessAccumulator()
+    _score_auth_state(account, accumulator)
+    _score_runtime_state(account, accumulator)
+    _score_account_state(account, accumulator)
+    _score_proxy_state(account, accumulator)
+    _score_activity_state(
+        account,
+        accumulator,
+        has_cooldown=has_cooldown,
+        failure_count=failure_count,
+    )
 
-    def add(points: int, code: str, severity: str, message: str) -> None:
-        nonlocal score
-        if code not in {reason["code"] for reason in reasons}:
-            reasons.append({"code": code, "severity": severity, "message": message})
-        score += points
-
-    if account.account_state == AccountState.REAUTH_REQUIRED or bool(
-        runtime and runtime.reauth_required
-    ):
-        add(
-            80,
-            "reauth_required",
-            "critical",
-            "Account requires reauthorization before profile jobs.",
-        )
-    elif account.account_state in {
-        AccountState.AWAITING_CODE,
-        AccountState.AWAITING_PASSWORD,
-        AccountState.AUTH_PENDING,
-        AccountState.REGISTERED,
-    }:
-        add(45, "auth_incomplete", "warning", "Account authorization is not complete.")
-
-    if not runtime or not runtime.session_present:
-        add(65, "missing_session", "critical", "Account has no usable TDLib session snapshot.")
-
-    runtime_health = runtime.runtime_health if runtime else "unknown"
-    if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
-        severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
-        add(
-            45 if severity == "critical" else 25,
-            "runtime_unhealthy",
-            severity,
-            "Account runtime is not ready.",
-        )
-
-    if account.account_state in {
-        AccountState.RUNTIME_BROKEN,
-        AccountState.DISABLED,
-        AccountState.MANUAL_INTERVENTION_NEEDED,
-    }:
-        add(45, "account_locked", "critical", "Account state blocks automated work.")
-    elif account.account_state not in {
-        AccountState.EXECUTION_USABLE,
-        AccountState.AUTHORIZED_READY,
-        AccountState.REAUTH_REQUIRED,
-    }:
-        add(25, "unknown_state", "warning", "Account state needs operator review.")
-
-    proxy = account.proxy
-    if proxy and proxy.status in {"failed", "error"}:
-        add(25, "proxy_problem", "warning", "Proxy health check failed.")
-    if proxy and proxy.tdlib_last_error_code:
-        add(25, "proxy_problem", "warning", "TDLib proxy verification failed.")
-
-    if has_cooldown:
-        add(35, "cooldown_active", "warning", "Account has active operation cooldowns.")
-
-    if failure_count >= 2:
-        add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
-
-    if account.profile_state is None and account.account_state in {
-        AccountState.EXECUTION_USABLE,
-        AccountState.AUTHORIZED_READY,
-    }:
-        add(10, "profile_not_synced", "info", "Profile snapshot has not been synced yet.")
-
-    score = min(max(score, 0), 100)
-    if not reasons:
-        reasons.append(
+    score = min(max(accumulator.score, 0), 100)
+    if not accumulator.reasons:
+        accumulator.reasons.append(
             {
                 "code": "ready",
                 "severity": "info",
@@ -185,10 +142,91 @@ def _score_readiness_risk(
         "account_id": account.id,
         "score": score,
         "level": level,
-        "reasons": reasons,
-        "recommended_action": _recommended_action(level, reasons),
+        "reasons": accumulator.reasons,
+        "recommended_action": _recommended_action(level, accumulator.reasons),
         "computed_at": computed,
     }
+
+
+def _score_auth_state(account: Account, accumulator: _ReadinessAccumulator) -> None:
+    runtime = account.runtime_state
+    if account.account_state == AccountState.REAUTH_REQUIRED or bool(
+        runtime and runtime.reauth_required
+    ):
+        accumulator.add(
+            80,
+            "reauth_required",
+            "critical",
+            "Account requires reauthorization before profile jobs.",
+        )
+    elif account.account_state in {
+        AccountState.AWAITING_CODE,
+        AccountState.AWAITING_PASSWORD,
+        AccountState.AUTH_PENDING,
+        AccountState.REGISTERED,
+    }:
+        accumulator.add(45, "auth_incomplete", "warning", "Account authorization is not complete.")
+
+
+def _score_runtime_state(account: Account, accumulator: _ReadinessAccumulator) -> None:
+    runtime = account.runtime_state
+    if not runtime or not runtime.session_present:
+        accumulator.add(
+            65, "missing_session", "critical", "Account has no usable TDLib session snapshot."
+        )
+
+    runtime_health = runtime.runtime_health if runtime else "unknown"
+    if runtime_health not in {"ready", "awaiting_code", "awaiting_password"}:
+        severity = "critical" if runtime_health in {"broken", "closed"} else "warning"
+        accumulator.add(
+            45 if severity == "critical" else 25,
+            "runtime_unhealthy",
+            severity,
+            "Account runtime is not ready.",
+        )
+
+
+def _score_account_state(account: Account, accumulator: _ReadinessAccumulator) -> None:
+    if account.account_state in {
+        AccountState.RUNTIME_BROKEN,
+        AccountState.DISABLED,
+        AccountState.MANUAL_INTERVENTION_NEEDED,
+    }:
+        accumulator.add(45, "account_locked", "critical", "Account state blocks automated work.")
+    elif account.account_state not in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+        AccountState.REAUTH_REQUIRED,
+    }:
+        accumulator.add(25, "unknown_state", "warning", "Account state needs operator review.")
+
+
+def _score_proxy_state(account: Account, accumulator: _ReadinessAccumulator) -> None:
+    proxy = account.proxy
+    if proxy and proxy.status in {"failed", "error"}:
+        accumulator.add(25, "proxy_problem", "warning", "Proxy health check failed.")
+    if proxy and proxy.tdlib_last_error_code:
+        accumulator.add(25, "proxy_problem", "warning", "TDLib proxy verification failed.")
+
+
+def _score_activity_state(
+    account: Account,
+    accumulator: _ReadinessAccumulator,
+    *,
+    has_cooldown: bool,
+    failure_count: int,
+) -> None:
+    if has_cooldown:
+        accumulator.add(35, "cooldown_active", "warning", "Account has active operation cooldowns.")
+    if failure_count >= 2:
+        accumulator.add(25, "recent_job_failures", "warning", "Recent jobs failed repeatedly.")
+    if account.profile_state is None and account.account_state in {
+        AccountState.EXECUTION_USABLE,
+        AccountState.AUTHORIZED_READY,
+    }:
+        accumulator.add(
+            10, "profile_not_synced", "info", "Profile snapshot has not been synced yet."
+        )
 
 
 def build_account_readiness_risk(

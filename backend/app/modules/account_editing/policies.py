@@ -31,6 +31,44 @@ from app.services.auth import is_account_hard_stopped
 from app.services.jobs import is_profile_job_cooldown_active
 
 
+def _profile_name_changed(
+    profile: dict[str, Any], profile_state: Any, requested_profile_fields: set[str]
+) -> bool:
+    if "name" not in requested_profile_fields:
+        return False
+    current_name = " ".join(
+        part
+        for part in [
+            profile_state.first_name if profile_state else None,
+            profile_state.last_name if profile_state else None,
+        ]
+        if part
+    )
+    return (profile.get("name") or "") != current_name
+
+
+def _profile_text_changed(
+    profile: dict[str, Any],
+    profile_state: Any,
+    requested_profile_fields: set[str],
+    field_name: str,
+) -> bool:
+    if field_name not in requested_profile_fields:
+        return False
+    current_value = (getattr(profile_state, field_name) if profile_state else None) or ""
+    return (profile.get(field_name) or "") != current_value
+
+
+def _pinned_channel_changed(
+    account: Account, profile: dict[str, Any], requested_profile_fields: set[str]
+) -> bool:
+    if "pinned_channel_ref" not in requested_profile_fields:
+        return False
+    desired_ref = profile.get("pinned_channel_ref") or ""
+    current_ref = account.pinned_channel_ref or ""
+    return desired_ref != current_ref
+
+
 class AccountEditingPolicy:
     def __init__(self, session: Any) -> None:
         self._session = session
@@ -132,22 +170,19 @@ class AccountEditingPolicy:
 
         if _profile_name_changed(profile, profile_state, requested_profile_fields):
             steps.add("set_name")
-        if _profile_field_changed(profile, profile_state, requested_profile_fields, "bio"):
+        if _profile_text_changed(profile, profile_state, requested_profile_fields, "bio"):
             steps.add("set_bio")
-        if _profile_field_changed(profile, profile_state, requested_profile_fields, "username"):
+        if _profile_text_changed(profile, profile_state, requested_profile_fields, "username"):
             steps.add("set_username")
-        if self._profile_photo_changed(profile, account, requested_profile_fields):
+        if self._profile_photo_changed(account, profile, requested_profile_fields):
             steps.add("set_profile_photo")
-        if _pinned_channel_changed(profile, account, requested_profile_fields):
+        if _pinned_channel_changed(account, profile, requested_profile_fields):
             steps.add("set_pinned_channel")
 
         return steps
 
     def _profile_photo_changed(
-        self,
-        profile: dict[str, Any],
-        account: Account,
-        requested_profile_fields: set[str],
+        self, account: Account, profile: dict[str, Any], requested_profile_fields: set[str]
     ) -> bool:
         if "photo_asset_id" not in requested_profile_fields:
             return False
@@ -259,45 +294,3 @@ class AccountEditingPolicy:
             return ""
         title = Path(filename).stem.strip()
         return title[:64]
-
-
-def _profile_name_changed(
-    profile: dict[str, Any],
-    profile_state: Any,
-    requested_profile_fields: set[str],
-) -> bool:
-    if "name" not in requested_profile_fields:
-        return False
-    current_name = " ".join(
-        part
-        for part in [
-            profile_state.first_name if profile_state else None,
-            profile_state.last_name if profile_state else None,
-        ]
-        if part
-    )
-    return (profile.get("name") or "") != current_name
-
-
-def _profile_field_changed(
-    profile: dict[str, Any],
-    profile_state: Any,
-    requested_profile_fields: set[str],
-    field: str,
-) -> bool:
-    if field not in requested_profile_fields:
-        return False
-    current_value = (getattr(profile_state, field) if profile_state else None) or ""
-    return (profile.get(field) or "") != current_value
-
-
-def _pinned_channel_changed(
-    profile: dict[str, Any],
-    account: Account,
-    requested_profile_fields: set[str],
-) -> bool:
-    if "pinned_channel_ref" not in requested_profile_fields:
-        return False
-    desired_ref = profile.get("pinned_channel_ref") or ""
-    current_ref = account.pinned_channel_ref or ""
-    return desired_ref != current_ref

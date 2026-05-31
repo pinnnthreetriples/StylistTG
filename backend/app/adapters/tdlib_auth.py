@@ -229,12 +229,7 @@ class TdlibAuthAdapter:
         code: str | None,
         password: str | None,
     ) -> TdlibAuthResult:
-        auth_input = _AuthOperationInput(
-            account_id=account_id,
-            phone_number=phone_number,
-            code=code,
-            password=password,
-        )
+        auth_input = _AuthOperationInput(account_id, phone_number, code, password)
         if not self._config.tdlib_api_id or not self._config.tdlib_api_hash:
             return _missing_tdlib_credentials_result()
 
@@ -276,12 +271,7 @@ class TdlibAuthAdapter:
         auth_input: _AuthOperationInput,
     ) -> _AuthOperationState:
         if event and event.get("@type") == "error":
-            return _AuthOperationState(
-                client=state.client,
-                proxy_applied=state.proxy_applied,
-                recreated_after_closed=state.recreated_after_closed,
-                result=map_tdlib_error(event),
-            )
+            return _auth_state_result(state, map_tdlib_error(event))
         auth_state = _extract_authorization_state(event)
         if auth_state is None:
             return state
@@ -292,12 +282,7 @@ class TdlibAuthAdapter:
         if _send_auth_input(state.client, mapped.status, auth_input):
             return state
         if mapped.status == TdlibAuthStatus.READY:
-            return _AuthOperationState(
-                client=state.client,
-                proxy_applied=state.proxy_applied,
-                recreated_after_closed=state.recreated_after_closed,
-                result=_ready_tdlib_auth_result(state.client, self._config),
-            )
+            return _auth_state_result(state, _ready_tdlib_auth_result(state.client, self._config))
         if mapped.status == TdlibAuthStatus.CLOSED and not state.recreated_after_closed:
             state.client.close()
             return _AuthOperationState(
@@ -305,12 +290,7 @@ class TdlibAuthAdapter:
                 proxy_applied=state.proxy_applied,
                 recreated_after_closed=True,
             )
-        return _AuthOperationState(
-            client=state.client,
-            proxy_applied=state.proxy_applied,
-            recreated_after_closed=state.recreated_after_closed,
-            result=mapped,
-        )
+        return _auth_state_result(state, mapped)
 
     def _send_tdlib_parameters(
         self, state: _AuthOperationState, account_id: str
@@ -325,6 +305,15 @@ class TdlibAuthAdapter:
             proxy_applied=proxy_applied,
             recreated_after_closed=state.recreated_after_closed,
         )
+
+
+def _auth_state_result(state: _AuthOperationState, result: TdlibAuthResult) -> _AuthOperationState:
+    return _AuthOperationState(
+        client=state.client,
+        proxy_applied=state.proxy_applied,
+        recreated_after_closed=state.recreated_after_closed,
+        result=result,
+    )
 
 
 def _missing_tdlib_credentials_result() -> TdlibAuthResult:
@@ -486,9 +475,15 @@ _DYNAMIC_AUTH_STATE_HANDLERS: dict[str, Callable[[JsonDict, str], TdlibAuthResul
     "authorizationStateClosed": lambda _state, state_type: _closed_like_result(state_type),
     "authorizationStateClosing": lambda _state, state_type: _closed_like_result(state_type),
     "authorizationStateLoggingOut": lambda _state, state_type: _closed_like_result(state_type),
-    "authorizationStateWaitEmailAddress": lambda _state, state_type: _unsupported_email_like_result(state_type),
-    "authorizationStateWaitEmailCode": lambda _state, state_type: _unsupported_email_like_result(state_type),
-    "authorizationStateWaitRegistration": lambda _state, state_type: _unsupported_email_like_result(state_type),
+    "authorizationStateWaitEmailAddress": lambda _state, state_type: _unsupported_email_like_result(
+        state_type
+    ),
+    "authorizationStateWaitEmailCode": lambda _state, state_type: _unsupported_email_like_result(
+        state_type
+    ),
+    "authorizationStateWaitRegistration": lambda _state, state_type: _unsupported_email_like_result(
+        state_type
+    ),
 }
 
 

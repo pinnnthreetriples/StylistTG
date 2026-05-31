@@ -43,7 +43,9 @@ def _result_add_profile_audio(payload: ProfilePayload, ctx: dict[str, Any]) -> P
 # Mapping of step_type → builder for the `result_payload` of a `step_succeeded`
 # event with default verification (attempted=False). Centralizing here keeps
 # the per-step branches in `execute()` to early-exit cases only.
-_DEFAULT_VERIFICATION_RESULTS: dict[str, Callable[[ProfilePayload, dict[str, Any]], ProfilePayload]] = {
+_DEFAULT_VERIFICATION_RESULTS: dict[
+    str, Callable[[ProfilePayload, dict[str, Any]], ProfilePayload]
+] = {
     "upload_profile_audio": _result_upload_profile_audio,
     "add_profile_audio": _result_add_profile_audio,
     "remove_profile_audio": _result_remove_profile_audio,

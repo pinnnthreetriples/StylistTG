@@ -52,6 +52,18 @@ def build_account_capabilities(
     if hard_blocked:
         return capabilities
 
+    _apply_story_post_capability(capabilities, config, checked_at)
+    _apply_story_delete_capability(capabilities, account, checked_at)
+    _apply_sync_capability(capabilities, account, checked_at)
+    _apply_operation_specific_capabilities(capabilities, reasons, checked_at)
+    return capabilities
+
+
+def _apply_story_post_capability(
+    capabilities: dict[str, dict[str, Any]],
+    config: Settings,
+    checked_at: datetime | None,
+) -> None:
     story_reasons: list[str] = []
     if not config.stories_enabled:
         story_reasons.append("stories_disabled")
@@ -63,6 +75,12 @@ def build_account_capabilities(
     if story_reasons:
         capabilities["story_post"] = _capability("blocked", story_reasons, checked_at=checked_at)
 
+
+def _apply_story_delete_capability(
+    capabilities: dict[str, dict[str, Any]],
+    account: Account,
+    checked_at: datetime | None,
+) -> None:
     if not account.story_posts:
         capabilities["story_delete"] = _capability(
             "unknown", ["no_known_story_posts"], checked_at=checked_at
@@ -72,11 +90,23 @@ def build_account_capabilities(
             "limited", ["story_delete_not_confirmed"], checked_at=checked_at
         )
 
+
+def _apply_sync_capability(
+    capabilities: dict[str, dict[str, Any]],
+    account: Account,
+    checked_at: datetime | None,
+) -> None:
     if account.profile_state is None:
         capabilities["sync"] = _capability(
             "limited", ["profile_sync_unknown"], checked_at=checked_at
         )
 
+
+def _apply_operation_specific_capabilities(
+    capabilities: dict[str, dict[str, Any]],
+    reasons: list[dict[str, Any]],
+    checked_at: datetime | None,
+) -> None:
     reason_codes = _reason_codes(reasons)
     if "username_recently_rejected" in reason_codes:
         capabilities["username"] = _capability(
@@ -97,8 +127,6 @@ def build_account_capabilities(
         capabilities["story_post"] = _capability(
             "limited", story_limit_reasons, checked_at=checked_at
         )
-
-    return capabilities
 
 
 def _capability(

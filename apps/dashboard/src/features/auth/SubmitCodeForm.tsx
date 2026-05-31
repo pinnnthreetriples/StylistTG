@@ -22,6 +22,7 @@ export function SubmitCodeForm({
         }}
       >
         <input
+          aria-label="Код Telegram"
           autoComplete="one-time-code"
           className="h-10 flex-1 rounded-md border border-border px-3 text-sm"
           disabled={disabled}

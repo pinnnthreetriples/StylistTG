@@ -37,6 +37,7 @@ export function ImportUploadForm({
         <label className="grid gap-1 text-sm font-medium text-foreground">
           Название пакета
           <input
+            aria-label="Название пакета"
             className="h-10 rounded-md border border-border px-3 text-sm"
             disabled={disabled}
             onChange={(event) => setLabel(event.target.value)}

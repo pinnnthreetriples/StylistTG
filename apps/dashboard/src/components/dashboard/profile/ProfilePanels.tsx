@@ -283,9 +283,9 @@ export const ProfileEditor = memo(function ProfileEditor({
 
       {/* ════════ BLOCK 4: CHANGE SUMMARY ════════ */}
       <div className="bg-card rounded-xl border border-border p-4">
-        <label className="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Сводка изменений
-        </label>
+        </div>
         {changeItems.filter((c) => c.changed).length === 0 ? (
           <div className="text-xs text-muted-foreground">Нет изменений</div>
         ) : (

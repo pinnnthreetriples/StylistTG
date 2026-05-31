@@ -246,9 +246,11 @@ export function StoriesBlock({
       {/* ── Edit modal ── */}
       {editingStory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
+          <button
+            aria-label="Закрыть настройки истории"
             className="absolute inset-0 bg-foreground backdrop-blur-sm"
             onClick={closeModal}
+            type="button"
           />
           <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10">
             {/* Modal header */}
@@ -268,10 +270,12 @@ export function StoriesBlock({
             <div className="p-4 space-y-4">
               {/* Caption */}
               <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="story-caption">
                   Подпись
                 </label>
                 <Input
+                  id="story-caption"
+                  aria-label="Подпись истории"
                   className="h-9 rounded-lg border-border bg-muted hover:bg-card focus:bg-card px-3 text-sm transition-colors"
                   maxLength={1024}
                   onChange={(e) => onUpdateStory(editingStory.clientId, { caption: e.target.value })}
@@ -283,10 +287,12 @@ export function StoriesBlock({
               <div className="grid grid-cols-2 gap-3">
                 {/* Privacy */}
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="story-privacy">
                     Приватность
                   </label>
                   <select
+                    id="story-privacy"
+                    aria-label="Приватность истории"
                     className="w-full h-9 rounded-lg border border-border bg-muted px-2 text-xs text-foreground outline-none transition-colors hover:bg-card focus:bg-card focus:border-border focus:ring-2 focus:ring-ring appearance-none"
                     onChange={(e) =>
                       onUpdateStory(editingStory.clientId, {
@@ -309,9 +315,9 @@ export function StoriesBlock({
 
                 {/* Duration (read-only) */}
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Срок
-                  </label>
+                  </div>
                   <div className="w-full h-9 rounded-lg border border-border bg-muted px-3 flex items-center text-xs text-muted-foreground font-medium">
                     24 часа
                   </div>
@@ -323,6 +329,7 @@ export function StoriesBlock({
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center justify-center">
                     <input
+                      aria-label="Защитить контент от пересылки"
                       type="checkbox"
                       className="peer sr-only"
                       checked={editingStory.protectContent}

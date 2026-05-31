@@ -10,7 +10,7 @@ export function DashboardTabs({
   onChange: (tabId: DashboardTabId) => void
 }) {
   return (
-    <nav aria-label="Разделы панели" className="hidden items-center gap-1 md:flex" role="tablist">
+    <div aria-label="Разделы панели" className="hidden items-center gap-1 md:flex" role="tablist">
       {dashboardTabs.map((tab) => {
         const active = tab.id === activeTab
 
@@ -33,7 +33,7 @@ export function DashboardTabs({
           </button>
         )
       })}
-    </nav>
+    </div>
   )
 }
 

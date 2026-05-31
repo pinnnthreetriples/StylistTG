@@ -144,9 +144,11 @@ export function CampaignWizard({
 
       {step === 1 ? (
         <div className="grid gap-3">
-          <label className="grid gap-1 text-xs font-medium text-foreground">
+          <label className="grid gap-1 text-xs font-medium text-foreground" htmlFor="campaign-name">
             Название
             <Input
+              id="campaign-name"
+              aria-label="Название кампании"
               value={state.name}
               onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
               placeholder="Запуск B2B"
@@ -155,6 +157,7 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Описание
             <textarea
+              aria-label="Описание кампании"
               className="min-h-20 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
@@ -174,6 +177,7 @@ export function CampaignWizard({
                 className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
+                  aria-label={option.label}
                   type="radio"
                   name="mode"
                   value={option.value}
@@ -195,6 +199,7 @@ export function CampaignWizard({
                 className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
+                  aria-label={option.label}
                   type="radio"
                   name="workMode"
                   value={option.value}
@@ -216,6 +221,7 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Пресет промпта
             <select
+              aria-label="Пресет промпта"
               className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={selectedPresetId}
               onChange={(event) => {
@@ -238,6 +244,7 @@ export function CampaignWizard({
           <label className="grid gap-1 text-xs font-medium text-foreground">
             Промпт для AI
             <textarea
+              aria-label="Промпт для AI"
               className="min-h-28 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
               value={state.promptTemplate}
               onChange={(e) => setState((s) => ({ ...s, promptTemplate: e.target.value }))}
@@ -252,6 +259,7 @@ export function CampaignWizard({
                 className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-2 text-sm has-[input:checked]:border-border has-[input:checked]:bg-muted"
               >
                 <input
+                  aria-label={option.label}
                   type="radio"
                   name="approvalMode"
                   value={option.value}

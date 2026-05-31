@@ -86,6 +86,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
         <FormField label="Prompt" error={formError} htmlFor="neuro-campaign-prompt">
           <textarea
             id="neuro-campaign-prompt"
+            aria-label="Prompt"
             className="min-h-24 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
             maxLength={5000}
             value={editorForm.promptTemplate}
@@ -175,6 +176,7 @@ export function CampaignDetailSection({ campaignId }: { campaignId: string }) {
         <div className="flex flex-wrap items-center gap-3">
           <label className="inline-flex items-center gap-2 text-sm text-foreground">
             <input
+              aria-label="Safety enabled"
               checked={editorForm.safetyEnabled}
               className="size-4"
               type="checkbox"

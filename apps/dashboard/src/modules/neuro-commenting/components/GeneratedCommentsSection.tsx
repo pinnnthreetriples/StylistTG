@@ -47,6 +47,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                 <div className="mb-2 flex items-start justify-between gap-2">
                   {editingCommentId === comment.id ? (
                     <textarea
+                      aria-label="Текст комментария"
                       className="min-h-20 flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
                       value={editedText}
                       onChange={(event) => setEditedText(event.target.value)}
@@ -130,6 +131,7 @@ export function GeneratedCommentsSection({ campaignId }: { campaignId: string | 
                     Отклонить
                   </Button>
                   <input
+                    aria-label="Причина отклонения"
                     className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-1 text-xs focus:border-border focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="Причина отклонения"
                     value={rejectReason}

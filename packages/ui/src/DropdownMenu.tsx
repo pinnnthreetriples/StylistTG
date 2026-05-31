@@ -28,9 +28,15 @@ export function DropdownMenu({ trigger, children, align = 'end', className }: Dr
 
   return (
     <div className={cn('relative inline-flex', className)} ref={ref}>
-      <div onClick={() => setOpen((v) => !v)} role="button" tabIndex={0}>
+      <button
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex"
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+      >
         {trigger}
-      </div>
+      </button>
       {open ? (
         <div
           className={cn(
@@ -39,7 +45,11 @@ export function DropdownMenu({ trigger, children, align = 'end', className }: Dr
             align === 'end' ? 'right-0' : 'left-0',
           )}
           onClick={() => setOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setOpen(false)
+          }}
           role="menu"
+          tabIndex={-1}
         >
           {children}
         </div>
@@ -78,5 +88,5 @@ export function DropdownMenuItem({ children, onClick, disabled, destructive, cla
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="my-1 h-px bg-muted" role="separator" />
+  return <hr aria-orientation="horizontal" className="my-1 h-px border-0 bg-muted" />
 }

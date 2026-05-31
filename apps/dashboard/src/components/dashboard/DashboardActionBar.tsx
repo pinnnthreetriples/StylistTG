@@ -112,6 +112,7 @@ function OperationSafetyStrip({
         {overridable && onCreateOverride ? (
           <span className="ml-auto flex min-w-0 items-center gap-1.5">
             <input
+              aria-label="Причина ручного разбора"
               className="w-56 rounded-lg border border-border bg-card px-2 py-1 text-[11px]"
               onChange={(event) => setReason(event.currentTarget.value)}
               placeholder="Причина ручного разбора"

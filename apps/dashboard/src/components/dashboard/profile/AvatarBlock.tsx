@@ -43,8 +43,6 @@ function safePhotoPreviewUrl(photoPreviewUrl: string | null): SafePhotoPreviewUr
   } catch {
     return null
   }
-
-  return null
 }
 
 function safeAssetContentPath(pathname: string): string | null {
@@ -81,7 +79,19 @@ export function AvatarBlock({
   return (
     <div className="flex-shrink-0 flex flex-col items-center">
       {/* ── Avatar ring ── */}
-      <div className="relative mb-3 group cursor-pointer" onClick={onChoosePhoto}>
+      <div
+        className="relative mb-3 group cursor-pointer"
+        onClick={onChoosePhoto}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onChoosePhoto()
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Изменить фото профиля"
+      >
         <div className="rounded-full">
           {previewUrl ? (
             <img

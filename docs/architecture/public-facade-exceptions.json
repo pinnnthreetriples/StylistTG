@@ -44,14 +44,6 @@
     {
       "source": "backend/app/modules/account_core/compat_router.py",
       "owner": "account_core",
-      "imported_module": "account_safety",
-      "public_name": "runtime_router",
-      "rationale": "Compatibility wrapper for legacy /api/accounts header-based runtime endpoints; the canonical implementation lives in account_safety after PR1's runtime migration.",
-      "removal_condition": "Remove when account_core no longer exposes compatibility runtime endpoints."
-    },
-    {
-      "source": "backend/app/modules/account_core/compat_router.py",
-      "owner": "account_core",
       "imported_module": "auth",
       "public_name": "context",
       "rationale": "FastAPI auth context facade used by canonical account-core compatibility router.",

@@ -1959,7 +1959,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-05-31T09:53:07Z",
+    "generated_at": "2026-05-31T09:54:51Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2273,7 +2273,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-05-31T09:53:07Z",
+  "generated_at": "2026-05-31T09:54:51Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4284,14 +4284,6 @@
         "rationale": "Account-core account list/read models still expose warmup status; remove when warmup publishes a dedicated account-summary interface.",
         "removal_condition": "remove when warmup publishes a dedicated account-summary interface.",
         "source": "backend/app/modules/account_core/accounts_router.py"
-      },
-      {
-        "imported_module": "account_safety",
-        "owner": "account_core",
-        "public_name": "runtime_router",
-        "rationale": "Compatibility wrapper for legacy /api/accounts header-based runtime endpoints; the canonical implementation lives in account_safety after PR1's runtime migration.",
-        "removal_condition": "Remove when account_core no longer exposes compatibility runtime endpoints.",
-        "source": "backend/app/modules/account_core/compat_router.py"
       },
       {
         "imported_module": "auth",

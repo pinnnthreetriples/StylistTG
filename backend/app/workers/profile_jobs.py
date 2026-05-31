@@ -393,6 +393,7 @@ def _mark_child_process_timeout(
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
+            # Already SIGKILLed; let the OS reap. Job is marked terminal below.
             pass
     mark_started_steps_uncertain(session, job, "child_process_timeout")
     mark_terminal(

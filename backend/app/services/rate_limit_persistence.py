@@ -240,6 +240,7 @@ def _window_seconds_for_counter(redis: Any, parsed: dict[str, Any]) -> int:
             if window_seconds > 0:
                 return window_seconds
         except ValueError:
+            # Corrupt metadata value — fall back to the scope-key default below.
             pass
     return _window_seconds_for_scope_key(parsed["scope_key"])
 

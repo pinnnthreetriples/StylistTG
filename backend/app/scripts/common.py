@@ -166,5 +166,6 @@ def main_guard(fn: Callable[[], None]) -> None:
     try:
         fn()
     except KeyboardInterrupt:
+        # SIGINT (130) — surface the interrupt to the operator and exit cleanly.
         print("Interrupted", file=sys.stderr)
         raise SystemExit(130) from None

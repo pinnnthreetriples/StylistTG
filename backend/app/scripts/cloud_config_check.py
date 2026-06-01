@@ -138,11 +138,19 @@ def _check_neuro_comment_ai(report: CheckReport, env: dict[str, str] | None) -> 
             provider=provider,
         )
         return
-    if is_cloud_env(env) and provider == "fake":
+    app_env = env_value("APP_ENV", env) or "local"
+    if app_env == "production" and provider == "fake":
         report.add(
             "neuro_comment_ai_provider",
             "FAIL",
-            "Cloud API requires NEURO_COMMENT_AI_PROVIDER!=fake",
+            "Production API requires NEURO_COMMENT_AI_PROVIDER!=fake",
+        )
+        return
+    if is_cloud_env(env) and provider == "fake":
+        report.add(
+            "neuro_comment_ai_provider",
+            "WARN",
+            "Staging API is using fake neuro-commenting AI provider",
         )
         return
     report.add(

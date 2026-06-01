@@ -116,8 +116,16 @@ def test_cloud_config_rejects_inline_queue_fallback() -> None:
     assert _statuses(report)["queue_inline_fallback"] == "FAIL"
 
 
-def test_cloud_config_requires_real_neuro_comment_ai_provider() -> None:
+def test_cloud_config_warns_for_fake_neuro_comment_ai_provider_in_staging() -> None:
     report = validate_cloud_config(_valid_cloud_env(NEURO_COMMENT_AI_PROVIDER="fake"))
+
+    assert _statuses(report)["neuro_comment_ai_provider"] == "WARN"
+
+
+def test_cloud_config_rejects_fake_neuro_comment_ai_provider_in_production() -> None:
+    report = validate_cloud_config(
+        _valid_cloud_env(APP_ENV="production", NEURO_COMMENT_AI_PROVIDER="fake")
+    )
 
     assert _statuses(report)["neuro_comment_ai_provider"] == "FAIL"
 

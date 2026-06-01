@@ -62,11 +62,7 @@ services:
       - key: QUEUE_INLINE_FALLBACK_ENABLED
         value: "false"
       - key: NEURO_COMMENT_AI_PROVIDER
-        value: openai_compatible
-      - key: NEURO_COMMENT_AI_BASE_URL
-        sync: false
-      - key: NEURO_COMMENT_AI_API_KEY
-        sync: false
+        value: fake
 
   - type: worker
     name: stylisttg-worker-staging
@@ -131,8 +127,4 @@ services:
       - key: QUEUE_INLINE_FALLBACK_ENABLED
         value: "false"
       - key: NEURO_COMMENT_AI_PROVIDER
-        value: openai_compatible
-      - key: NEURO_COMMENT_AI_BASE_URL
-        sync: false
-      - key: NEURO_COMMENT_AI_API_KEY
-        sync: false
+        value: fake

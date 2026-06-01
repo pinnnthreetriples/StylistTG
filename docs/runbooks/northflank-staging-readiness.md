@@ -89,10 +89,12 @@ QUEUE_INLINE_FALLBACK_ENABLED=false
 SCHEDULER_ENABLED=false
 REAPER_ENABLED=false
 REAPER_MODE=dry_run
-NEURO_COMMENT_AI_PROVIDER=openai_compatible
-NEURO_COMMENT_AI_BASE_URL=<OpenAI-compatible API base URL>
-NEURO_COMMENT_AI_API_KEY=<secret>
+NEURO_COMMENT_AI_PROVIDER=fake
 ```
+
+`NEURO_COMMENT_AI_PROVIDER=fake` is staging-only until a paid OpenAI-compatible
+API key is configured. Production must use `openai_compatible` with
+`NEURO_COMMENT_AI_BASE_URL` and `NEURO_COMMENT_AI_API_KEY`.
 
 API service observability env:
 

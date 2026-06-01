@@ -24,6 +24,13 @@ curl -s https://<staging>/ready | jq .
 # Expected: { "status": "ok" } — no connection strings, no internal details
 ```
 
+For endpoint-only triage without reading local cloud env files:
+
+```powershell
+cd backend
+python -m app.scripts.staging_smoke --base-url https://<staging> --endpoint-only --json
+```
+
 ### 2. Authentication
 
 ```bash

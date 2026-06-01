@@ -231,6 +231,8 @@ host directly:
 
 ```powershell
 Invoke-WebRequest https://<northflank-api-host>/health
+cd backend
+python -m app.scripts.staging_smoke --base-url https://<northflank-api-host> --endpoint-only --json
 ```
 
 `503` with `upstream connect error` or `Connection refused` means the Northflank

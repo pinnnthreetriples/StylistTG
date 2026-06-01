@@ -8,12 +8,11 @@ import { Plus, CheckCircle2, AlertTriangle, ShieldAlert, Activity, ArrowRight, L
 import { AnimatedPage } from '@/components/ui/AnimatedPage'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { EMPTY_ACCOUNT_RISK_SUMMARY } from '@/features/accounts/accountRisk'
-import { fetchReady } from '@/lib/api'
+import { fetchReady, fetchWorkerQueues } from '@/lib/api'
 import {
   accountsQueryOptions,
   accountRiskSummaryQueryOptions,
   frontendDiagnosticsQueryOptions,
-  workerDiagnosticsQueryOptions,
 } from '@/lib/queries'
 import { getLiveStatus } from '@/lib/liveStatus'
 import { labelHealthDependency } from '@/lib/uiLabels'
@@ -23,7 +22,10 @@ export function HomePage() {
   const accountsQuery = useQuery(accountsQueryOptions())
   const riskQuery = useQuery(accountRiskSummaryQueryOptions())
   const diagnosticsQuery = useQuery(frontendDiagnosticsQueryOptions())
-  const workerDiagnosticsQuery = useQuery(workerDiagnosticsQueryOptions())
+  const workerQueuesQuery = useQuery({
+    queryKey: ['home', 'workers', 'queues'],
+    queryFn: fetchWorkerQueues,
+  })
   const readyQuery = useQuery({
     queryKey: ['home', 'ready'],
     queryFn: fetchReady,
@@ -38,7 +40,7 @@ export function HomePage() {
   const dataUnavailable = accountsQuery.isError || riskQuery.isError || readyQuery.isError
   const dbStatus = diagnosticsQuery.data?.db.status
   const apiReadiness = getHomeApiReadinessStatus(readyQuery.data, readyQuery.isError)
-  const liveStatus = getLiveStatus(diagnosticsQuery.data, workerDiagnosticsQuery.data)
+  const liveStatus = getLiveStatus(diagnosticsQuery.data)
   const heroTitle =
     accounts.length === 0
       ? 'Добавьте первый аккаунт'
@@ -85,8 +87,8 @@ export function HomePage() {
           dataUnavailable={dataUnavailable}
           dbStatus={dbStatus}
           liveStatus={liveStatus}
-          workerAvailable={Boolean(workerDiagnosticsQuery.data)}
-          workerError={workerDiagnosticsQuery.isError}
+          workerAvailable={Boolean(workerQueuesQuery.data)}
+          workerError={workerQueuesQuery.isError}
         />
         <FutureModules />
 

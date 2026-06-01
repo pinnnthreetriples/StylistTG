@@ -1,8 +1,9 @@
 from fastapi.testclient import TestClient
+from starlette.datastructures import Headers
 
 from app.config import settings
 from app.db import Base
-from app.main import app, _configured_cors_origins, _is_local_client
+from app.main import app, _configured_cors_origins, _is_cors_preflight, _is_local_client
 from app.models import User, Workspace, WorkspaceMember, WorkspacePlan
 from app.services.database import create_sqlite_test_session_factory
 
@@ -27,6 +28,21 @@ class LocalIpv4MappedRequest:
     client = LocalIpv4MappedClient()
 
 
+class DummyCorsRequest:
+    method = "OPTIONS"
+    headers = Headers(
+        {
+            "Origin": "https://stylisttg-dashboard-git.pages.dev",
+            "Access-Control-Request-Method": "GET",
+        }
+    )
+
+
+class DummyBareOptionsRequest:
+    method = "OPTIONS"
+    headers = Headers({})
+
+
 def test_operator_guard_marks_remote_client_non_local() -> None:
     assert _is_local_client(DummyRequest()) is False
 
@@ -39,6 +55,11 @@ def test_operator_guard_uses_configurable_allowed_hosts(monkeypatch) -> None:
     monkeypatch.setattr(settings, "operator_allowed_client_hosts", "203.0.113.10")
 
     assert _is_local_client(DummyRequest()) is True
+
+
+def test_cors_preflight_detection_requires_browser_preflight_headers() -> None:
+    assert _is_cors_preflight(DummyCorsRequest()) is True
+    assert _is_cors_preflight(DummyBareOptionsRequest()) is False
 
 
 def test_operator_token_required_for_mutating_requests(monkeypatch) -> None:

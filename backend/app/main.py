@@ -252,6 +252,14 @@ def _route_methods_for_path(path: str) -> set[str] | None:
     return allowed_methods
 
 
+def _is_cors_preflight(request: Request) -> bool:
+    return (
+        request.method == "OPTIONS"
+        and "origin" in request.headers
+        and "access-control-request-method" in request.headers
+    )
+
+
 def custom_openapi() -> dict[str, Any]:
     return build_custom_openapi(app)
 
@@ -281,6 +289,8 @@ async def metrics_scrape_guard_middleware(
 async def static_route_method_guard_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
+    if _is_cors_preflight(request):
+        return await call_next(request)
     allowed_methods = _route_methods_for_path(request.url.path)
     if allowed_methods is not None and request.method not in allowed_methods:
         return JSONResponse(

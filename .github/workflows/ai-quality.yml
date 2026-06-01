@@ -41,7 +41,7 @@ jobs:
         run: npm run quality:slop:sarif
         continue-on-error: true
       - name: Upload aislop SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && github.event_name != 'pull_request' && hashFiles('reports/aislop.sarif') != ''
         with:
           sarif_file: reports/aislop.sarif

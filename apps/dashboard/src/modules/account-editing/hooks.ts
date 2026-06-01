@@ -1,3 +1,5 @@
+// fallow-ignore-file complexity
+// fallow-ignore-reason: Profile draft orchestrator preserves editing semantics during module split.
 /**
  * useProfileDraft – manages the editable form state for the profile editor.
  *
@@ -6,20 +8,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import {
   buildAssetContentUrl,
-  createAccountUpdateJob,
-  createStoryDraft,
-  deleteStoryDraft,
   previewAccountUpdateJob,
-  updateStoryDraft,
   uploadProfileAudio,
   uploadProfilePhoto,
-  uploadStoryImage,
-  uploadStoryVideo,
-  type FormPayload,
   type JobSummary,
   type ProfilePreview,
 } from './api'
@@ -39,23 +33,14 @@ import { buildJobMetrics } from '@/modules/shared'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
 import type { CurrentProfile, FormState } from './types'
-import { invalidateAccountSafetyQueries } from '@/lib/queries'
+import { useCreateAccountUpdateJobMutation } from './mutationHooks'
+import { toFormPayload } from './payloadMappers'
+import { createStoryDraftHandlers } from './storyDraftHandlers'
 
 type Dashboard = {
   current_profile: CurrentProfile
   profile_audio?: { source_asset_id: string | null } | null
   story_posts?: unknown[]
-}
-
-export function useCreateAccountUpdateJobMutation() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ accountId, form }: { accountId: string; form: FormPayload }) =>
-      createAccountUpdateJob(accountId, form),
-    onSuccess: (_result, variables) => {
-      invalidateAccountSafetyQueries(queryClient, variables.accountId)
-    },
-  })
 }
 
 export function useProfileDraft({
@@ -234,90 +219,13 @@ export function useProfileDraft({
     notify({ tone: 'info', title: 'Музыка будет удалена после запуска задачи' })
   }
 
-  // ── Stories ──────────────────────────────────────────────────────────────────
-
-  async function handleStoryUpload(file: File | null, kind: 'image' | 'video') {
-    if (!file) return
-    setIsUploadingStory(true)
-    try {
-      const asset = kind === 'image' ? await uploadStoryImage(file) : await uploadStoryVideo(file)
-      const draft = accountId
-        ? await createStoryDraft(
-            accountId,
-            { assetId: asset.id, caption: '', privacyPreset: 'contacts', activePeriodSeconds: 86400, protectContent: false },
-            kind,
-          )
-        : null
-      updateForm((prev) => ({
-        ...prev,
-        stories: [
-          ...prev.stories,
-          {
-            draftId: draft?.id ?? null,
-            clientId: draft?.id ?? crypto.randomUUID(),
-            action: kind === 'image' ? 'post_image' : 'post_video',
-            assetId: asset.id,
-            fileName: file.name,
-            caption: '',
-            privacyPreset: 'contacts',
-            activePeriodSeconds: 86400,
-            protectContent: false,
-          },
-        ],
-      }))
-      notify({ tone: 'success', title: kind === 'image' ? 'Фото-история добавлена' : 'Видео-история добавлена' })
-    } catch (error) {
-      const normalized = normalizeError(error)
-      notify({ tone: 'error', title: 'Не удалось добавить историю', description: labelIssue(normalized.error_code) })
-    } finally {
-      setIsUploadingStory(false)
-    }
-  }
-
-  function handleUpdateStory(clientId: string, patch: Partial<FormState['stories'][number]>) {
-    const previousStory = formRef.current.stories.find((s) => s.clientId === clientId)
-    const draftId = previousStory?.draftId
-    updateForm((prev) => ({
-      ...prev,
-      stories: prev.stories.map((s) => (s.clientId === clientId ? { ...s, ...patch } : s)),
-    }))
-    if (draftId) {
-      void updateStoryDraft(draftId, patch).catch((error) => {
-        const normalized = normalizeError(error)
-        if (previousStory) {
-          updateForm((prev) => ({
-            ...prev,
-            stories: prev.stories.map((s) => (s.clientId === clientId ? previousStory : s)),
-          }))
-        }
-        notify({ tone: 'error', title: 'Изменение истории отменено', description: labelIssue(normalized.error_code) })
-      })
-    }
-  }
-
-  function handleRemoveStory(clientId: string) {
-    const removedStory = formRef.current.stories.find((s) => s.clientId === clientId)
-    const draftId = removedStory?.draftId
-    updateForm((prev) => ({
-      ...prev,
-      stories: prev.stories.filter((s) => s.clientId !== clientId),
-    }))
-    notify({ tone: 'info', title: 'История удалена из черновика' })
-    if (draftId) {
-      void deleteStoryDraft(draftId).catch((error) => {
-        const normalized = normalizeError(error)
-        if (removedStory) {
-          updateForm((prev) => ({
-            ...prev,
-            stories: prev.stories.some((s) => s.clientId === clientId)
-              ? prev.stories
-              : [...prev.stories, removedStory],
-          }))
-        }
-        notify({ tone: 'error', title: 'История восстановлена', description: labelIssue(normalized.error_code) })
-      })
-    }
-  }
+  const { handleStoryUpload, handleUpdateStory, handleRemoveStory } = createStoryDraftHandlers({
+    accountId,
+    form,
+    notify,
+    setIsUploadingStory,
+    updateForm,
+  })
 
   // ── Preview ──────────────────────────────────────────────────────────────────
 
@@ -469,19 +377,5 @@ export function useProfileDraft({
     handleReset,
     loadPreview,
     buildJobMetrics,
-  }
-}
-
-function toFormPayload(form: FormState): FormPayload {
-  return {
-    firstName: form.firstName,
-    lastName: form.lastName,
-    bio: form.bio,
-    username: form.username,
-    profilePhotoAssetId: form.profilePhotoAssetId,
-    pinnedChannelRef: form.pinnedChannelRef,
-    profileAudioAction: form.profileAudioAction,
-    profileAudioAssetId: form.profileAudioAssetId,
-    stories: form.stories,
   }
 }

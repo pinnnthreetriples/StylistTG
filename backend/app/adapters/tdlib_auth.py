@@ -303,6 +303,52 @@ def _receive_client_event(client: TdlibClient, timeout_seconds: float) -> JsonDi
     return None
 
 
+def wait_for_tdlib_authorization_result(
+    client: TdlibClient,
+    *,
+    account_id: str,
+    config: Settings,
+    proxy_applier: Callable[[TdlibClient, str], object] | None = None,
+) -> TdlibAuthResult | None:
+    proxy_applied = False
+    deadline = time.monotonic() + config.tdlib_auth_timeout_seconds
+    while time.monotonic() < deadline:
+        event = client.receive(config.tdlib_receive_timeout_seconds)
+        state = _extract_authorization_state(event)
+        if state is None:
+            continue
+        mapped = map_authorization_state(state)
+        if mapped.status == TdlibAuthStatus.WAIT_TDLIB_PARAMETERS:
+            client.send(_tdlib_parameters_query(config, account_id))
+            if proxy_applier is not None and not proxy_applied:
+                proxy_applier(client, account_id)
+                proxy_applied = True
+            continue
+        return mapped
+    return None
+
+
+def ensure_tdlib_ready(
+    client: TdlibClient,
+    *,
+    account_id: str,
+    config: Settings,
+    proxy_applier: Callable[[TdlibClient, str], object] | None = None,
+    timeout_message: str,
+) -> None:
+    mapped = wait_for_tdlib_authorization_result(
+        client,
+        account_id=account_id,
+        config=config,
+        proxy_applier=proxy_applier,
+    )
+    if mapped is not None and mapped.status == TdlibAuthStatus.READY:
+        return
+    if mapped is not None:
+        raise RuntimeError(mapped.error or mapped.runtime_health)
+    raise TimeoutError(timeout_message)
+
+
 def _tdlib_parameters_query(config: Settings, account_id: str) -> JsonDict:
     dirs = resolve_tdlib_account_dirs(config, account_id)
     return {

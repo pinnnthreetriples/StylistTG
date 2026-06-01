@@ -1,4 +1,5 @@
 // fallow-ignore-file unused-file
+// fallow-ignore-reason: Shared UI primitive is retained for downstream app composition.
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

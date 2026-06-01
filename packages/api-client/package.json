@@ -11,7 +11,7 @@
   },
   "scripts": {
     "generate:openapi": "node ./scripts/export-openapi.mjs --out ./openapi.json",
-    "generate:types": "openapi-typescript ./openapi.json -o ./src/generated/schema.d.ts",
+    "generate:types": "openapi-typescript ./openapi.json -o ./src/generated/schema.d.ts && node ./scripts/mark-generated-schema.mjs",
     "generate:api": "npm run generate:openapi && npm run generate:types",
     "check:api": "node ./scripts/check-openapi-drift.mjs",
     "build": "tsc -p tsconfig.json",

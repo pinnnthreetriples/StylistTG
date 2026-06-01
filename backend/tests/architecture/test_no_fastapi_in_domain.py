@@ -32,6 +32,16 @@ FASTAPI_IMPORT_ALLOWLIST = {
     APP_ROOT / "modules" / "story" / "capabilities_router.py",
     APP_ROOT / "modules" / "story" / "drafts_router.py",
     APP_ROOT / "modules" / "story" / "posts_router.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_attempts_events.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_base.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_campaign_accounts.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_campaigns.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_comments.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_common.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_lifecycle.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_limits_rules.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_observe.py",
+    APP_ROOT / "modules" / "neuro_commenting" / "router_targets.py",
 }
 
 

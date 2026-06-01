@@ -290,7 +290,7 @@
       "removal_condition": "n/a; accepted stable FastAPI/platform facade."
     },
     {
-      "source": "backend/app/modules/neuro_commenting/router.py",
+      "source": "backend/app/modules/neuro_commenting/router_common.py",
       "owner": "neuro_commenting",
       "imported_module": "auth",
       "public_name": "context",
@@ -298,7 +298,7 @@
       "removal_condition": "n/a; accepted stable FastAPI/platform facade."
     },
     {
-      "source": "backend/app/modules/neuro_commenting/router.py",
+      "source": "backend/app/modules/neuro_commenting/router_common.py",
       "owner": "neuro_commenting",
       "imported_module": "auth",
       "public_name": "dependencies",

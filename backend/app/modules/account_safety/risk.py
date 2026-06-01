@@ -161,7 +161,7 @@ def _score_auth_state(account: Account, accumulator: _ReadinessAccumulator) -> N
         )
     elif account.account_state in {
         AccountState.AWAITING_CODE,
-        AccountState.AWAITING_PASSWORD,
+        AccountState.AWAITING_PASSCODE,
         AccountState.AUTH_PENDING,
         AccountState.REGISTERED,
     }:

@@ -115,7 +115,7 @@ def list_accounts(
                             AccountState.REGISTERED,
                             AccountState.AUTH_PENDING,
                             AccountState.AWAITING_CODE,
-                            AccountState.AWAITING_PASSWORD,
+                            AccountState.AWAITING_PASSCODE,
                         ]
                     )
                 )

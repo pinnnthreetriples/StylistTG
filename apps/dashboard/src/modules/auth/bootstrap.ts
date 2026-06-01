@@ -2,9 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import type React from 'react'
 
-import { normalizeError } from '@/lib/appErrors'
 import {
-  buildAuthErrorMessage,
   nextAuthPhaseFromState,
   shouldClearStoredAccountForAuthState,
   shouldRunAuthBootstrap,
@@ -15,6 +13,7 @@ import {
 import type { ApiError } from '@/lib/http'
 import type { FormState } from '@/modules/account-editing'
 import { authStateQueryOptions } from '@/lib/queries'
+import { applyNormalizedAuthError } from './errorState'
 
 export function useAuthBootstrap({
   accountId,
@@ -114,11 +113,12 @@ export function useAuthBootstrap({
         applyAuthStateResponse(authState)
       } catch (error) {
         if (!active) return
-        const normalized = normalizeError(error)
-        setAuthError(buildAuthErrorMessage(normalized))
-        setAuthErrorCode(normalized.error_code)
-        setAuthStep('phone')
-        setAuthPhase('auth-error')
+        applyNormalizedAuthError(error, 'phone', {
+          setAuthError,
+          setAuthErrorCode,
+          setAuthPhase,
+          setAuthStep,
+        })
       } finally {
         if (active) setIsBootRefreshing(false)
       }
@@ -129,24 +129,9 @@ export function useAuthBootstrap({
       window.clearTimeout(visualStateTimeout)
     }
   }, [
-    accountId,
-    applyAuthStateResponse,
-    authPhase,
-    clearAccountContext,
-    dashboardReadyRef,
-    formBaselineRef,
-    formInitializedRef,
-    formRef,
-    loadDashboardState,
-    queryClient,
-    setApiError,
-    setAuthError,
-    setAuthErrorCode,
-    setAuthPhase,
-    setAuthStep,
-    setForm,
-    setIsBootRefreshing,
-    setPhoneNumber,
-    skipNextAuthBootstrapRef,
+    accountId, applyAuthStateResponse, authPhase, clearAccountContext, dashboardReadyRef,
+    formBaselineRef, formInitializedRef, formRef, loadDashboardState, queryClient,
+    setApiError, setAuthError, setAuthErrorCode, setAuthPhase, setAuthStep,
+    setForm, setIsBootRefreshing, setPhoneNumber, skipNextAuthBootstrapRef,
   ])
 }

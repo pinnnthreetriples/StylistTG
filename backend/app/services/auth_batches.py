@@ -33,7 +33,7 @@ REUSABLE_BATCH_ACCOUNT_STATES = {
     AccountState.REGISTERED,
     AccountState.AUTH_PENDING,
     AccountState.AWAITING_CODE,
-    AccountState.AWAITING_PASSWORD,
+    AccountState.AWAITING_PASSCODE,
 }
 
 

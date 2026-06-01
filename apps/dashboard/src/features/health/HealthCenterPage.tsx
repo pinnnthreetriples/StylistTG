@@ -17,6 +17,7 @@ import {
 } from '@/lib/queries'
 import { getLiveStatus, liveStatusCardTone } from '@/lib/liveStatus'
 import { labelHealthDependency, labelSystemReadiness } from '@/lib/uiLabels'
+import { hasConfiguredRateLimits } from '@/lib/workerDiagnostics'
 
 export function HealthCenterPage() {
   const healthQuery = useQuery({
@@ -193,6 +194,8 @@ function QueueHealthSection({
   jobPolicyCount: number | null
   workerDiagnostics: WorkerDiagnostics | undefined
 }) {
+  const rateLimitsConfigured = hasConfiguredRateLimits(workerDiagnostics)
+
   return (
     <SectionCard title="Очереди и задачи">
       <div className="grid gap-3 md:grid-cols-3">
@@ -204,8 +207,8 @@ function QueueHealthSection({
         />
         <StatusCard
           label="Лимиты операций"
-          value={workerDiagnostics?.rate_limits.enabled ? 'Настроены' : 'Проверка...'}
-          tone={workerDiagnostics?.rate_limits.enabled ? 'ok' : 'neutral'}
+          value={rateLimitsConfigured ? 'Настроены' : 'Проверка...'}
+          tone={rateLimitsConfigured ? 'ok' : 'neutral'}
         />
         <StatusCard label="Политики повторов" value={jobPolicyCount ?? 'Проверка...'} tone="info" />
       </div>

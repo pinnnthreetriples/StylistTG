@@ -47,7 +47,7 @@ from app.logging_utils import configure_logging, generate_request_id, log_event,
 from app.modules.registry import iter_routers
 from app.observability import init_api_observability
 from app.observability.safety_metrics import safety_metrics
-from app.openapi_schema import build_custom_openapi
+from app.openapi_document import build_custom_openapi
 from app.schemas import ReadinessRead
 from app.services.auth_batch_recovery import recover_auth_batches
 from app.services.runtime_diagnostics import build_runtime_diagnostics

@@ -10,6 +10,9 @@ from redis.exceptions import RedisError
 from sqlalchemy.orm import Session
 
 from app.modules.account_safety.cache import (
+    InMemorySafetyGateCache,
+    NullSafetyGateCache,
+    RedisSafetyGateCache,
     SafetyGateCache,
 )
 from app.modules.account_safety.gate_contracts import (
@@ -56,7 +59,12 @@ from app.modules.account_safety.gate_helpers import (
     _as_utc,
 )
 
-_GATE_REEXPORTS = (AccountSafetyGateAccountNotFound,)
+_GATE_REEXPORTS = (
+    AccountSafetyGateAccountNotFound,
+    InMemorySafetyGateCache,
+    NullSafetyGateCache,
+    RedisSafetyGateCache,
+)
 
 CACHE_TTL_SECONDS = 60
 STALE_CACHE_TTL_SECONDS = 300

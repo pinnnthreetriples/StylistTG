@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.db import SessionLocal
 from app.models import (
     NeuroCommentGeneratedComment,
     new_id,
@@ -12,7 +11,6 @@ from app.models import (
 from app.modules.neuro_commenting.account_selector import AccountSelector
 from app.modules.neuro_commenting.ai_comment_generator import (
     AICommentGenerationError,
-    build_ai_comment_generator,
 )
 from app.modules.neuro_commenting.analytics_service import AnalyticsService
 from app.modules.neuro_commenting.enums import (
@@ -105,7 +103,9 @@ def generate_comment(
     )
     prompt = PromptBuilder().build(campaign=campaign, observed_post=observed_post)
     try:
-        generated = build_ai_comment_generator().generate(prompt)
+        from app.modules.neuro_commenting import job_handlers
+
+        generated = job_handlers.build_ai_comment_generator().generate(prompt)
     except AICommentGenerationError as exc:
         observed_post.status = NeuroObservedPostStatus.FAILED.value
         observed_post.processed_at = utc_now()
@@ -189,7 +189,9 @@ def generate_comment(
 def run_generate_comment(
     campaign_id: str, workspace_id: str, observed_post_id: str, force: bool = False
 ) -> str:
-    with SessionLocal() as session:
+    from app.modules.neuro_commenting import job_handlers
+
+    with job_handlers.SessionLocal() as session:
         try:
             comment = generate_comment(
                 session,

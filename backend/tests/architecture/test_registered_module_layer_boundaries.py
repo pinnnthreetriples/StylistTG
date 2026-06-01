@@ -84,6 +84,7 @@ DECLARED_LAYER_FILES: dict[str, tuple[Path, ...]] = {
         Path("neuro_commenting/rules_policy.py"),
         Path("neuro_commenting/safety_policy.py"),
     ),
+    "domain_support": (Path("account_safety/cooldown_rules.py"),),
     "facade": (Path("account_safety/policy.py"),),
     "repository": (
         Path("repository.py"),

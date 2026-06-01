@@ -24,7 +24,6 @@ from app.modules.neuro_commenting.errors import (
 )
 from app.modules.neuro_commenting.discussion_resolver import (
     DiscussionMessageResolver,
-    build_discussion_message_resolver,
 )
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.tdlib_observer import (
@@ -43,7 +42,9 @@ def _resolve_discussion_for_observed_post(
     resolver: DiscussionMessageResolver | None,
     analytics: AnalyticsService,
 ) -> None:
-    active_resolver = resolver or build_discussion_message_resolver()
+    from app.modules.neuro_commenting import job_handlers
+
+    active_resolver = resolver or job_handlers.build_discussion_message_resolver()
     resolution = active_resolver.resolve(
         account_id=account_id,
         target=target,

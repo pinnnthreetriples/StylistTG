@@ -3,9 +3,6 @@ from __future__ import annotations
 from app.modules.neuro_commenting.job_generate import NeuroCommentJobNotImplementedError
 
 
-from app.db import SessionLocal
-
-
 def prepare_send(*args: object, **kwargs: object) -> None:
     raise NeuroCommentJobNotImplementedError("prepare_send is planned for a later phase")
 
@@ -15,9 +12,10 @@ def send_comment(*args: object, **kwargs: object) -> None:
 
 
 def run_send_attempt(attempt_id: str, workspace_id: str) -> str:
+    from app.modules.neuro_commenting import job_handlers
     from app.modules.neuro_commenting.sender_service import SenderService
 
-    with SessionLocal() as session:
+    with job_handlers.SessionLocal() as session:
         attempt = SenderService().send_attempt(
             session,
             attempt_id=attempt_id,

@@ -381,6 +381,7 @@ def run_account_status_monitor_tick(
 from app.modules.account_safety.status_monitor_helpers import (  # noqa: E402
     _status_monitor_workspace_ids,
     _status_monitor_accounts,
+    _supports_skip_locked as _status_monitor_supports_skip_locked,
     _state_store_text,
     _release_status_monitor_lock,
     _get_account,
@@ -392,3 +393,5 @@ from app.modules.account_safety.status_monitor_helpers import (  # noqa: E402
     _terminal_status_from_probe,
     _auto_pause_account,
 )
+
+_supports_skip_locked = _status_monitor_supports_skip_locked

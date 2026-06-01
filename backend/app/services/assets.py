@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 import hashlib
 import tempfile
 from io import BytesIO
@@ -11,7 +13,9 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, settings
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, Asset, AssetKind, AssetStatus, new_id, utc_now
+from app.services import asset_validation as _asset_validation
 from app.services.asset_validation import (
+    MAX_IMAGE_PIXELS as _DEFAULT_MAX_IMAGE_PIXELS,
     PROFILE_AUDIO_EXECUTION_MIMES,
     STORY_VIDEO_ALLOWED_MIMES,
     audio_extension_for_mime,
@@ -29,6 +33,17 @@ from app.services.audit_logs import log_audit_event
 from app.storage.base import StorageObject
 from app.storage import LocalStorageService, StorageService
 from app.storage.paths import asset_normalized_key, asset_prefix, asset_source_key
+
+MAX_IMAGE_PIXELS = _DEFAULT_MAX_IMAGE_PIXELS
+
+
+def _open_verified_image(content: bytes, *, error_message: str) -> Image.Image:
+    previous_limit = _asset_validation.MAX_IMAGE_PIXELS
+    _asset_validation.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+    try:
+        return open_verified_image(content, error_message=error_message)
+    finally:
+        _asset_validation.MAX_IMAGE_PIXELS = previous_limit
 
 
 def save_profile_photo_asset(

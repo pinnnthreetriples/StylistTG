@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.db import SessionLocal
 from app.models import (
     NeuroCommentObservedPost,
 )
@@ -140,7 +139,9 @@ def resolve_observed_post_discussion(
 def run_observe_campaign(
     campaign_id: str, workspace_id: str, limit: int | None, generate: bool
 ) -> list[str]:
-    with SessionLocal() as session:
+    from app.modules.neuro_commenting import job_handlers
+
+    with job_handlers.SessionLocal() as session:
         try:
             posts = observe_campaign(
                 session,
@@ -159,7 +160,9 @@ def run_observe_campaign(
 def run_observe_target(
     campaign_id: str, target_id: str, workspace_id: str, limit: int | None, generate: bool
 ) -> list[str]:
-    with SessionLocal() as session:
+    from app.modules.neuro_commenting import job_handlers
+
+    with job_handlers.SessionLocal() as session:
         try:
             posts = observe_target(
                 session,
@@ -177,7 +180,9 @@ def run_observe_target(
 
 
 def run_refresh_target_metadata(campaign_id: str, target_id: str, workspace_id: str) -> str:
-    with SessionLocal() as session:
+    from app.modules.neuro_commenting import job_handlers
+
+    with job_handlers.SessionLocal() as session:
         target = refresh_target_metadata(
             session,
             campaign_id=campaign_id,

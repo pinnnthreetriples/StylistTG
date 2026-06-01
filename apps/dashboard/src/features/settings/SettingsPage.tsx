@@ -146,6 +146,8 @@ function CooldownPolicySection({ policy }: { policy: SettingsBundle['policy'] | 
 }
 
 function LiveModeSection({ liveStatus }: { liveStatus: ReturnType<typeof getLiveStatus> }) {
+  const liveModeLabel = liveStatus.enabled ? 'Включён' : 'Отключён'
+
   return (
     <SectionCard title="Live-режим">
       <div className="grid gap-3 text-sm">
@@ -154,7 +156,7 @@ function LiveModeSection({ liveStatus }: { liveStatus: ReturnType<typeof getLive
             <div className="font-medium text-foreground">Live-режим Telegram</div>
             <p className="mt-0.5 text-xs text-muted-foreground">Реальное выполнение задач через Telegram.</p>
           </div>
-          <Switch checked={false} disabled onCheckedChange={() => {}} label="Отключён" />
+          <Switch checked={liveStatus.enabled} disabled onCheckedChange={() => {}} label={liveModeLabel} />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Среда исполнения</span>

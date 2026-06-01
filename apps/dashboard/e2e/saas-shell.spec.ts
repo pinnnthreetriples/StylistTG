@@ -66,7 +66,86 @@ test('mobile shell renders without a blank screen', async ({ page, isMobile }, t
   await page.screenshot({ path: testInfo.outputPath('mobile-shell.png'), fullPage: true })
 })
 
+test('account jobs keeps hidden job panel hidden across same-route browser rerenders', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'desktop job panel interaction is covered by the chromium project')
+  await page.addInitScript(() => {
+    const testWindow = window as typeof window & { __scrollIntoViewCalls?: number }
+    const originalScrollIntoView = Element.prototype.scrollIntoView
+    testWindow.__scrollIntoViewCalls = 0
+    Element.prototype.scrollIntoView = function scrollIntoView(...args) {
+      testWindow.__scrollIntoViewCalls = (testWindow.__scrollIntoViewCalls ?? 0) + 1
+      return originalScrollIntoView.apply(this, args)
+    }
+  })
+
+  await page.goto('/accounts/acc_1/jobs?e2e_active_job=1')
+  await expect(page.getByRole('heading', { name: 'План и выполнение' }).first()).toBeVisible()
+  const scrollCallsAfterRoute = await scrollIntoViewCalls(page)
+
+  await page.getByRole('button', { name: 'Убрать панель задачи' }).last().click()
+  await expect(page.getByRole('heading', { name: 'План и выполнение' })).toHaveCount(0)
+  const scrollCallsAfterHide = await scrollIntoViewCalls(page)
+
+  await triggerSameRouteBrowserRerender(page)
+  await expect(page).toHaveURL(/route_render_nonce=1/)
+  await expect(page.getByRole('heading', { name: 'План и выполнение' })).toHaveCount(0)
+  expect(await scrollIntoViewCalls(page)).toBe(scrollCallsAfterHide)
+  expect(scrollCallsAfterHide).toBeGreaterThanOrEqual(scrollCallsAfterRoute)
+})
+
+async function scrollIntoViewCalls(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const testWindow = window as typeof window & { __scrollIntoViewCalls?: number }
+    return testWindow.__scrollIntoViewCalls ?? 0
+  })
+}
+
+async function triggerSameRouteBrowserRerender(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set('route_render_nonce', '1')
+    window.history.pushState({}, '', nextUrl)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  })
+}
+
 async function mockApi(page: Page) {
+  const activeJobSummary = {
+    job_id: 'job_active',
+    job_state: 'running',
+    execution_intent_hash: 'job-active-hash',
+    plan_summary: ['set_name'],
+    created_at: '2026-05-03T00:00:00Z',
+    message: null,
+  }
+  const activeJobDetail = {
+    job_id: 'job_active',
+    job_state: 'running',
+    account_id: 'acc_1',
+    execution_intent_hash: 'job-active-hash',
+    started_at: '2026-05-03T00:00:00Z',
+    finished_at: null,
+    failure_reason: null,
+    can_retry: false,
+    can_refresh_runtime: true,
+    step_counts: { running: 1 },
+  }
+  const activeJobSteps = [
+    {
+      step_key: 'set_name',
+      step_type: 'set_name',
+      status: 'running',
+      verification_attempted: false,
+      verification_result: null,
+      uncertain_reason: null,
+      error_code: null,
+      error_class: null,
+      result_payload_json: null,
+      started_at: '2026-05-03T00:00:00Z',
+      finished_at: null,
+    },
+  ]
+  const hasActiveJob = () => page.url().includes('e2e_active_job=1')
   const accounts = [
     {
       account_id: 'acc_1',
@@ -252,11 +331,11 @@ async function mockApi(page: Page) {
           username: 'demo',
         },
         pipeline: {
-          has_active_job: false,
-          latest_job: null,
+          has_active_job: hasActiveJob(),
+          latest_job: hasActiveJob() ? activeJobSummary : null,
           latest_job_finished_at: null,
-          latest_job_id: null,
-          latest_job_state: null,
+          latest_job_id: hasActiveJob() ? activeJobSummary.job_id : null,
+          latest_job_state: hasActiveJob() ? activeJobSummary.job_state : null,
           unsaved_changes_supported: true,
         },
         profile_audio: null,
@@ -266,9 +345,11 @@ async function mockApi(page: Page) {
   )
   await page.route('**/api/accounts/acc_1/jobs**', (route) =>
     route.request().url().endsWith('/latest')
-      ? route.fulfill({ json: null })
-      : route.fulfill({ json: [] }),
+      ? route.fulfill({ json: hasActiveJob() ? activeJobSummary : null })
+      : route.fulfill({ json: hasActiveJob() ? [activeJobSummary] : [] }),
   )
+  await page.route('**/api/jobs/job_active', (route) => route.fulfill({ json: activeJobDetail }))
+  await page.route('**/api/jobs/job_active/steps', (route) => route.fulfill({ json: activeJobSteps }))
   await page.route('**/api/story-drafts/acc_1', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/story-capabilities/acc_1', (route) =>
     route.fulfill({ json: { can_post: false, reason_code: 'stories_live_disabled', warnings: [] } }),

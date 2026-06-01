@@ -230,10 +230,10 @@ class Settings(BaseSettings):
             if not self.proxy_credentials_encryption_key:
                 raise ValueError("cloud API requires PROXY_CREDENTIALS_ENCRYPTION_KEY (Fernet key)")
             self._validate_fernet_key(self.proxy_credentials_encryption_key)
-            if self.neuro_comment_ai_provider == "fake":
+            if self.app_env == "production" and self.neuro_comment_ai_provider == "fake":
                 raise ValueError(
                     "cloud API requires NEURO_COMMENT_AI_PROVIDER!=fake "
-                    "(fake provider must not be used in production/cloud mode)"
+                    "(fake provider must not be used in production mode)"
                 )
 
     def _validate_storage_settings(self) -> None:

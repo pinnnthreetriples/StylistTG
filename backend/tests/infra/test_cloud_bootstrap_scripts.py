@@ -116,8 +116,16 @@ def test_cloud_config_rejects_inline_queue_fallback() -> None:
     assert _statuses(report)["queue_inline_fallback"] == "FAIL"
 
 
-def test_cloud_config_requires_real_neuro_comment_ai_provider() -> None:
+def test_cloud_config_warns_for_fake_neuro_comment_ai_provider_in_staging() -> None:
     report = validate_cloud_config(_valid_cloud_env(NEURO_COMMENT_AI_PROVIDER="fake"))
+
+    assert _statuses(report)["neuro_comment_ai_provider"] == "WARN"
+
+
+def test_cloud_config_rejects_fake_neuro_comment_ai_provider_in_production() -> None:
+    report = validate_cloud_config(
+        _valid_cloud_env(APP_ENV="production", NEURO_COMMENT_AI_PROVIDER="fake")
+    )
 
     assert _statuses(report)["neuro_comment_ai_provider"] == "FAIL"
 
@@ -384,6 +392,44 @@ def test_staging_smoke_checks_health_and_ready_when_base_url_provided() -> None:
         ("https://staging.example.com/health", 5.0),
         ("https://staging.example.com/ready", 5.0),
     ]
+
+
+def test_staging_smoke_classifies_gateway_connection_refused() -> None:
+    def _fetcher(_url: str, _timeout: float):
+        return (
+            503,
+            "upstream connect error or disconnect/reset before headers: Connection refused",
+        )
+
+    report = run_staging_smoke(
+        base_url="https://staging.example.com/",
+        env=_valid_cloud_env(),
+        http_fetcher=_fetcher,
+        cloud_config_runner=lambda env: validate_cloud_config(env),
+        neon_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        supabase_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        redis_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+        storage_runner=lambda **_kwargs: type("Report", (), {"results": []})(),
+    )
+
+    health = next(item for item in report.results if item.name == "health_endpoint")
+
+    assert health.status == "FAIL"
+    assert health.details["failure_hint"] == "api_container_not_listening"
+
+
+def test_staging_smoke_endpoint_only_skips_env_dependent_checks() -> None:
+    def _fetcher(_url: str, _timeout: float):
+        return 200, {"status": "ok"}
+
+    report = run_staging_smoke(
+        base_url="https://staging.example.com/",
+        endpoint_only=True,
+        http_fetcher=_fetcher,
+    )
+
+    assert report.has_errors is False
+    assert [item.name for item in report.results] == ["health_endpoint", "ready_endpoint"]
 
 
 def test_staging_smoke_storage_write_requires_explicit_flag() -> None:

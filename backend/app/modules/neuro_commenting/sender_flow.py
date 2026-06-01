@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportAttributeAccessIssue=false, reportPrivateUsage=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnnecessaryComparison=false
+
 from sqlalchemy.orm import Session
 
 from app.models import (

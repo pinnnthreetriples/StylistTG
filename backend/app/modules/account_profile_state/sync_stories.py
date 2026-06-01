@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 from datetime import datetime
 
 from sqlalchemy import select

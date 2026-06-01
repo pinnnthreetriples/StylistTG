@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 import random
 from datetime import UTC, datetime, time, timedelta
 from typing import Any, cast

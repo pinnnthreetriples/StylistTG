@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from typing import cast
 
 from sqlalchemy.orm import Session

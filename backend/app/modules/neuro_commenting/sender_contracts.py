@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol

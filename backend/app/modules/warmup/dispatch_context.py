@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 import hashlib
 import random
 from dataclasses import dataclass, field

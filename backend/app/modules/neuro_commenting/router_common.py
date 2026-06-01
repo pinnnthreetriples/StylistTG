@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 import sys
 
 from fastapi import HTTPException, Request, status

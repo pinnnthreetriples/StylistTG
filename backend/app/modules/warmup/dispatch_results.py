@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUnusedFunction=false
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 

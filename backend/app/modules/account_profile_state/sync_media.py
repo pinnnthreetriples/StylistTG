@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false, reportUnusedFunction=false
+
 from pathlib import Path
 from typing import cast
 

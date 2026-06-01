@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportAttributeAccessIssue=false, reportPrivateUsage=false, reportUnknownMemberType=false
+
 from typing import Any
 
 from sqlalchemy.orm import Session

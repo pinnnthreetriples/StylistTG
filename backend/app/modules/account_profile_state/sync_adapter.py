@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from typing import Callable, cast
 
 from app.adapters.tdlib_auth import (

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnusedFunction=false
+
 from typing import cast
 
 from app.adapters.tdlib_auth import TdlibClient

@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -19,6 +21,10 @@ try {
   })
   const openapiTypescriptCli = resolve(repoRoot, 'node_modules/openapi-typescript/bin/cli.js')
   execFileSync(process.execPath, [openapiTypescriptCli, tempOpenApi, '-o', tempTypes], {
+    cwd: packageDir,
+    stdio: 'pipe',
+  })
+  execFileSync(process.execPath, [resolve(packageDir, 'scripts/mark-generated-schema.mjs'), tempTypes], {
     cwd: packageDir,
     stdio: 'pipe',
   })

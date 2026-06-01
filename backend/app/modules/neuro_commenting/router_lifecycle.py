@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 from uuid import UUID
 from fastapi import Depends
 from sqlalchemy.orm import Session

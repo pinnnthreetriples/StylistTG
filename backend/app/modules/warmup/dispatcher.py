@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+
 import random
 from datetime import datetime
 
@@ -13,13 +15,57 @@ from app.adapters.warmup_tdlib import WarmupTdlibAdapter, build_warmup_tdlib_ada
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, utc_now
 
+from .dispatch_actions import _execute_live_action
+from .dispatch_context import (
+    _ActionContextResolution,
+    _derive_text_seed,
+    _resolve_action_context,
+    _select_chat_target,
+)
 from .dispatch_processor import _process_one_dispatch
-from .dispatch_schedule import DEFAULT_ACTION_PRIORITY, MAX_ACTIONS_PER_MICRO_SESSION
+from .dispatch_results import _complete_dispatch_session
+from .dispatch_schedule import (
+    DEFAULT_ACTION_PRIORITY,
+    MAX_ACTIONS_PER_MICRO_SESSION,
+    _is_day_complete,
+    _is_hour_in_quiet_window,
+    _is_in_quiet_hours,
+    _local_hour,
+    _max_retry_after_seconds,
+    _next_day_first_window,
+    _next_quiet_hours_end,
+    _persist_day_counters,
+    _resolve_day_counters,
+    _resolve_day_plan,
+    _resolve_timezone,
+    _schedule_within_day,
+    _select_actions_for_window,
+)
 
 __all__ = [
     "DEFAULT_ACTION_PRIORITY",
     "MAX_ACTIONS_PER_MICRO_SESSION",
+    "_ActionContextResolution",
+    "_complete_dispatch_session",
+    "_derive_text_seed",
+    "_execute_live_action",
+    "_is_day_complete",
+    "_is_hour_in_quiet_window",
+    "_is_in_quiet_hours",
     "_isolation_owner",
+    "_local_hour",
+    "_max_retry_after_seconds",
+    "_next_day_first_window",
+    "_next_quiet_hours_end",
+    "_persist_day_counters",
+    "_process_one_dispatch",
+    "_resolve_action_context",
+    "_resolve_day_counters",
+    "_resolve_day_plan",
+    "_resolve_timezone",
+    "_schedule_within_day",
+    "_select_actions_for_window",
+    "_select_chat_target",
     "process_due_warmup_dispatches",
 ]
 

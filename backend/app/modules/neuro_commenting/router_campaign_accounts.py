@@ -22,6 +22,7 @@ from .router_common import (
     _reject_unknown_list_query_params,
 )
 
+
 @router.post(
     "/campaigns/{campaign_id}/accounts",
     response_model=NeuroCampaignAccountRead,

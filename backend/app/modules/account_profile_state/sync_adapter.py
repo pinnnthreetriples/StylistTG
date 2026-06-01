@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import time
 from typing import Callable, cast
 
 from app.adapters.tdlib_auth import (
     RealTdJsonClientFactory,
     TdlibClient,
-    extract_authorization_state,
-    map_authorization_state,
-    tdlib_parameters_query,
+    ensure_tdlib_ready,
 )
 from app.config import Settings, settings
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
@@ -148,24 +145,13 @@ class TdlibProfileSyncAdapter:
                 client.close()
 
     def _wait_until_ready(self, client: TdlibClient, account_id: str) -> None:
-        proxy_applied = False
-        deadline = time.monotonic() + self._config.tdlib_auth_timeout_seconds
-        while time.monotonic() < deadline:
-            event = client.receive(self._config.tdlib_receive_timeout_seconds)
-            state = extract_authorization_state(event)
-            if state is None:
-                continue
-            mapped = map_authorization_state(state)
-            if mapped.status.value == "wait_tdlib_parameters":
-                client.send(tdlib_parameters_query(self._config, account_id))
-                if self._proxy_applier is not None and not proxy_applied:
-                    self._proxy_applier(client, account_id)
-                    proxy_applied = True
-                continue
-            if mapped.status.value == "ready":
-                return
-            raise RuntimeError(mapped.error or mapped.runtime_health)
-        raise TimeoutError("TDLib profile sync readiness timed out")
+        ensure_tdlib_ready(
+            client,
+            account_id=account_id,
+            config=self._config,
+            proxy_applier=self._proxy_applier,
+            timeout_message="TDLib profile sync readiness timed out",
+        )
 
 
 def build_profile_sync_adapter(config: Settings = settings) -> ProfileSyncAdapter:
@@ -181,6 +167,7 @@ def build_profile_sync_adapter(config: Settings = settings) -> ProfileSyncAdapte
         )
     except OSError as exc:
         return UnavailableProfileSyncAdapter(str(exc))
+
 
 def _current_user_chat_id(client: TdlibClient, user_id: object, config: Settings) -> int | None:
     if user_id is None:

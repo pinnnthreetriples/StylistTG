@@ -220,7 +220,7 @@ export function useProfileDraft({
 
   const { handleStoryUpload, handleUpdateStory, handleRemoveStory } = createStoryDraftHandlers({
     accountId,
-    formRef,
+    form,
     notify,
     setIsUploadingStory,
     updateForm,

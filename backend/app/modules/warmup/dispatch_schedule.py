@@ -25,6 +25,7 @@ def _max_retry_after_seconds(failed_actions: list[dict[str, Any]]) -> int | None
             continue
     return max(values) if values else None
 
+
 def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
     """Read daily_action_limits for the current day from the strategy snapshot.
 
@@ -49,6 +50,7 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
             continue
     return plan
 
+
 def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:
     counters = warmup_session.daily_counters_json or {}
     raw = counters.get(str(warmup_session.current_day))
@@ -63,6 +65,7 @@ def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:
             continue
     return out
 
+
 def _persist_day_counters(
     counters_json: dict[str, Any] | None,
     current_day: int,
@@ -71,6 +74,7 @@ def _persist_day_counters(
     counters = dict(counters_json or {})
     counters[str(current_day)] = dict(counters_for_day)
     return counters
+
 
 def _select_actions_for_window(
     plan: dict[str, int],

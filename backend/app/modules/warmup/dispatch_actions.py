@@ -51,6 +51,7 @@ def _dispatch_action(
     )
     return result, resolution.context
 
+
 def _execute_live_action(
     adapter: WarmupTdlibAdapter,
     *,

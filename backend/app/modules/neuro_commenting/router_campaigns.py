@@ -35,6 +35,7 @@ from .router_common import (
     _reject_unknown_list_query_params,
 )
 
+
 @router.post("/campaigns", response_model=NeuroCampaignRead, status_code=status.HTTP_201_CREATED)
 def post_campaign(
     payload: NeuroCampaignCreate,
@@ -54,6 +55,8 @@ def post_campaign(
     except ValueError as exc:
         session.rollback()
         raise _neuro_error(exc) from exc
+
+
 @router.get("/campaigns", response_model=NeuroCampaignPageRead)
 def get_campaigns(
     page: int = Query(default=1, ge=1, le=10000),

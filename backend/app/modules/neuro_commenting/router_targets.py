@@ -138,6 +138,7 @@ def get_campaign_targets(
         limit=limit,
     )
 
+
 @router.post("/targets/{target_id}/pause", response_model=NeuroTargetRead)
 def post_target_pause(
     target_id: UUID,

@@ -17,7 +17,7 @@ import { compactOperationLogLabel, type OperationLog } from '@/lib/operationLogs
 import { getLiveStatus } from '@/lib/liveStatus'
 import { SafetyPolicyPanel } from '@/features/settings/SafetyPolicyPanel'
 import type { SettingsBundle } from '@/lib/queryTypes'
-import type { WorkerDiagnostics } from '@/lib/api'
+import type { FrontendDiagnosticsSummary, WorkerDiagnostics } from '@/lib/api'
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds} сек`
@@ -39,8 +39,8 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
   const operationLogsQuery = useQuery(globalOperationLogsQueryOptions(50))
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
-  const diagnostics = diagnosticsQuery.data
   const settings = settingsQuery.data
+  const diagnostics = diagnosticsQuery.data
   const policy = settings?.policy
   const liveStatus = getLiveStatus(diagnostics, workerDiagnosticsQuery.data)
 
@@ -78,7 +78,7 @@ export function SettingsPage({ includeSafetyPolicy = false }: SettingsPageProps)
   )
 }
 
-function WorkspaceSettingsSection({ diagnostics }: { diagnostics: SettingsBundle['runtime'] | undefined }) {
+function WorkspaceSettingsSection({ diagnostics }: { diagnostics: FrontendDiagnosticsSummary | undefined }) {
   return (
     <SectionCard title="Рабочая область">
       <div className="grid gap-3 text-sm">

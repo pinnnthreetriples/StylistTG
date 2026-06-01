@@ -84,6 +84,7 @@ def get_generated_comment(
     except ValueError as exc:
         raise _neuro_error(exc) from exc
 
+
 @router.patch("/generated-comments/{comment_id}", response_model=NeuroGeneratedCommentRead)
 def patch_generated_comment(
     comment_id: UUID,

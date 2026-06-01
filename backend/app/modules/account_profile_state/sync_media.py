@@ -125,6 +125,7 @@ def _audio_filename(audio: JsonDict) -> str:
         return f"{title}.mp3"
     return "telegram-profile-audio.mp3"
 
+
 def _save_synced_profile_photo(
     session: Session,
     *,

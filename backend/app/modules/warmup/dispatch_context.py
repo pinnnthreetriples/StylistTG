@@ -14,6 +14,7 @@ from app.modules.account_safety.interfaces import evaluate as evaluate_safety_ga
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
+
 def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) -> str | None:
     """Pick РѕРґРЅРѕ РїСѓР±Р»РёС‡РЅРѕРµ channel-username РёР· strategy.target_channels_json."""
     targets = warmup_session.strategy.target_channels_json or []
@@ -30,7 +31,6 @@ def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) ->
 def _derive_text_seed(warmup_session: WarmupSession, action_type: str) -> str:
     raw = f"{warmup_session.id}|{warmup_session.current_day}|{action_type}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:32]
-
 
 
 def _pause_if_blocked_by_safety_gate(

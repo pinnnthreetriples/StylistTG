@@ -13,7 +13,7 @@ import { operationSafetyLabel, type OperationSafety } from '@/lib/accountSafety'
 import { proxyErrorLabel, validateProxyInput, type AccountProxyInput } from '@/lib/proxy'
 import type { AppRouteState } from '@/lib/routes'
 import { appRoutes } from '@/lib/routes'
-import type { AuthPhase } from '@/modules/auth'
+import type { AuthErrorMessage, AuthPhase } from '@/modules/auth'
 import { useAuthBootstrap } from '@/modules/auth'
 import { useProfileDraft } from '@/modules/account-editing'
 import type { FormState } from '@/modules/account-editing'
@@ -46,9 +46,9 @@ type AuthBridge = {
   applyAccountContext: (accountId: string) => void
   applyAuthStateResponse: Parameters<typeof useAuthBootstrap>[0]['applyAuthStateResponse']
   clearAccountContext: () => void
-  setAuthError: (message: string | null) => void
-  setAuthErrorCode: (code: string | null) => void
-  setAuthPhase: (phase: AuthPhase) => void
+  setAuthError: React.Dispatch<React.SetStateAction<AuthErrorMessage | null>>
+  setAuthErrorCode: React.Dispatch<React.SetStateAction<string | null>>
+  setAuthPhase: React.Dispatch<React.SetStateAction<AuthPhase>>
   setAuthStep: Parameters<typeof useAuthBootstrap>[0]['setAuthStep']
   setOtpCode: (code: string) => void
   setPhoneNumber: (phone: string) => void
@@ -57,7 +57,7 @@ type AuthBridge = {
 }
 type WorkspaceRouteParams = {
   route: AccountRouteState
-  setApiError: (error: ApiError | null) => void
+  setApiError: React.Dispatch<React.SetStateAction<ApiError | null>>
   setHiddenJobPanelKey: (key: string | null) => void
   setIsRealExecutionConfirmOpen: (value: boolean) => void
   setSubmittedPreview: (preview: ProfilePreview | null) => void
@@ -314,7 +314,7 @@ function useWorkspaceActions({
   localState: ReturnType<typeof useWorkspaceLocalState>
   navigateToRoute: (href: string) => void
   notify: Notify
-  setApiError: (error: ApiError | null) => void
+  setApiError: React.Dispatch<React.SetStateAction<ApiError | null>>
   workspace: ReturnType<typeof useDashboard>
 }) {
   const actions = useDashboardActions({

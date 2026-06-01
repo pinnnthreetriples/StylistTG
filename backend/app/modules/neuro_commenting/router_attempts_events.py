@@ -74,6 +74,7 @@ def get_attempt(
     except NeuroCommentingError as exc:
         raise _neuro_domain_error(exc) from exc
 
+
 @router.get("/events", response_model=NeuroEventPageRead)
 def get_events(
     campaign_id: UUID | None = Query(default=None),

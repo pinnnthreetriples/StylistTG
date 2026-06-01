@@ -14,13 +14,13 @@ import type { FormState } from './types'
 
 export function createStoryDraftHandlers({
   accountId,
-  formRef,
+  form,
   notify,
   setIsUploadingStory,
   updateForm,
 }: {
   accountId: string | null
-  formRef: React.MutableRefObject<FormState>
+  form: FormState
   notify: (toast: Omit<ToastItem, 'id'>) => void
   setIsUploadingStory: (value: boolean) => void
   updateForm: (next: FormState | ((prev: FormState) => FormState)) => void
@@ -64,7 +64,7 @@ export function createStoryDraftHandlers({
   }
 
   function handleUpdateStory(clientId: string, patch: Partial<FormState['stories'][number]>) {
-    const previousStory = formRef.current.stories.find((s) => s.clientId === clientId)
+    const previousStory = form.stories.find((s) => s.clientId === clientId)
     const draftId = previousStory?.draftId
     updateForm((prev) => ({
       ...prev,
@@ -85,7 +85,7 @@ export function createStoryDraftHandlers({
   }
 
   function handleRemoveStory(clientId: string) {
-    const removedStory = formRef.current.stories.find((s) => s.clientId === clientId)
+    const removedStory = form.stories.find((s) => s.clientId === clientId)
     const draftId = removedStory?.draftId
     updateForm((prev) => ({
       ...prev,

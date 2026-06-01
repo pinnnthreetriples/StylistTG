@@ -14,6 +14,14 @@ from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, utc_now
 
 from .dispatch_processor import _process_one_dispatch
+from .dispatch_schedule import DEFAULT_ACTION_PRIORITY, MAX_ACTIONS_PER_MICRO_SESSION
+
+__all__ = [
+    "DEFAULT_ACTION_PRIORITY",
+    "MAX_ACTIONS_PER_MICRO_SESSION",
+    "_isolation_owner",
+    "process_due_warmup_dispatches",
+]
 
 
 def _isolation_owner(session_id: str) -> str:

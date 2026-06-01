@@ -163,6 +163,7 @@ def _record_p2p_contact_if_needed(
             },
         )
 
+
 def _complete_dispatch_session(
     session: Session, warmup_session: WarmupSession, *, now: datetime
 ) -> None:

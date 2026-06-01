@@ -23,18 +23,24 @@ def engine_kwargs(database_url: str) -> dict[str, Any]:
     }
     url = make_url(database_url)
     if url.get_backend_name() == "postgresql":
+        connect_args: dict[str, Any] = {
+            "connect_timeout": settings.db_connect_timeout_seconds,
+        }
+        if not _is_neon_pooler_url(url):
+            connect_args["options"] = f"-c statement_timeout={settings.db_query_timeout_ms}"
         kwargs.update(
             {
                 "pool_size": settings.db_pool_size,
                 "max_overflow": settings.db_max_overflow,
                 "pool_recycle": settings.db_pool_recycle_seconds,
-                "connect_args": {
-                    "connect_timeout": settings.db_connect_timeout_seconds,
-                    "options": f"-c statement_timeout={settings.db_query_timeout_ms}",
-                },
+                "connect_args": connect_args,
             }
         )
     return kwargs
+
+
+def _is_neon_pooler_url(url: Any) -> bool:
+    return url.host is not None and "-pooler." in url.host.lower()
 
 
 def _record_db_pool_saturation(db_engine: Engine) -> None:

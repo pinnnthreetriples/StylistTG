@@ -24,6 +24,8 @@ def validate_cloud_config(env: dict[str, str] | None = None) -> CheckReport:
     _check_app_env(report, env)
     _check_auth_mode(report, env)
     _check_operator_api(report, env)
+    _check_queue_policy(report, env)
+    _check_neuro_comment_ai(report, env)
     _check_database_urls(report, env)
     _check_storage(report, env)
     _check_redis(report, env)
@@ -107,6 +109,53 @@ def _check_operator_api(report: CheckReport, env: dict[str, str] | None) -> None
 
     _required(report, "SUPABASE_AUTH_JWKS_URL", env)
     _required(report, "SUPABASE_AUTH_ISSUER", env)
+
+
+def _check_queue_policy(report: CheckReport, env: dict[str, str] | None) -> None:
+    inline_fallback = bool_env("QUEUE_INLINE_FALLBACK_ENABLED", env, default=False)
+    if is_cloud_env(env) and inline_fallback:
+        report.add(
+            "queue_inline_fallback",
+            "FAIL",
+            "Cloud API must set QUEUE_INLINE_FALLBACK_ENABLED=false",
+        )
+    else:
+        report.add(
+            "queue_inline_fallback",
+            "PASS",
+            "Queue inline fallback is compatible with this contour",
+            enabled=inline_fallback,
+        )
+
+
+def _check_neuro_comment_ai(report: CheckReport, env: dict[str, str] | None) -> None:
+    provider = env_value("NEURO_COMMENT_AI_PROVIDER", env) or "fake"
+    if provider not in {"fake", "openai_compatible"}:
+        report.add(
+            "neuro_comment_ai_provider",
+            "FAIL",
+            "NEURO_COMMENT_AI_PROVIDER must be fake or openai_compatible",
+            provider=provider,
+        )
+        return
+    if is_cloud_env(env) and provider == "fake":
+        report.add(
+            "neuro_comment_ai_provider",
+            "FAIL",
+            "Cloud API requires NEURO_COMMENT_AI_PROVIDER!=fake",
+        )
+        return
+    report.add(
+        "neuro_comment_ai_provider",
+        "PASS",
+        "Neuro-commenting AI provider is compatible with this contour",
+        provider=provider,
+    )
+
+    if provider != "openai_compatible":
+        return
+    _required(report, "NEURO_COMMENT_AI_BASE_URL", env)
+    _required(report, "NEURO_COMMENT_AI_API_KEY", env)
 
 
 def _check_database_urls(report: CheckReport, env: dict[str, str] | None) -> None:

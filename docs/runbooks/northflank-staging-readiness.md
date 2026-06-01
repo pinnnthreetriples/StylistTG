@@ -59,6 +59,9 @@ Set these on both API and worker unless noted otherwise:
 APP_ENV=staging
 AUTH_MODE=supabase_jwt
 DB_CONNECTION_MODE=neon
+ENFORCE_LOCALHOST_ONLY=false
+OPERATOR_API_TOKEN=<secret>
+CORS_ORIGINS=https://<dashboard-domain>
 DATABASE_URL=<Neon pooled runtime URL>
 DATABASE_RUNTIME_URL=<Neon pooled runtime URL>
 SUPABASE_AUTH_JWKS_URL=<Supabase JWKS URL>
@@ -73,6 +76,7 @@ STORAGE_S3_ACCESS_KEY_ID=<secret>
 STORAGE_S3_SECRET_ACCESS_KEY=<secret>
 STORAGE_S3_FORCE_PATH_STYLE=true
 STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS=300
+PROXY_CREDENTIALS_ENCRYPTION_KEY=<Fernet.generate_key() value>
 PROFILE_EXECUTION_ADAPTER=mock
 TDLIB_LIVE_ENABLED=false
 TDLIB_RUNTIME_MODE=mock
@@ -80,9 +84,14 @@ TDLIB_READONLY_SMOKE_ENABLED=false
 TDLIB_DATABASE_ROOT=/var/lib/stylisttg/tdlib/database
 TDLIB_FILES_ROOT=/var/lib/stylisttg/tdlib/files
 ACCOUNT_DELETION_ALLOW_HARD_DELETE=false
+STALE_JOB_REAPER_ENABLED=false
+QUEUE_INLINE_FALLBACK_ENABLED=false
 SCHEDULER_ENABLED=false
 REAPER_ENABLED=false
 REAPER_MODE=dry_run
+NEURO_COMMENT_AI_PROVIDER=openai_compatible
+NEURO_COMMENT_AI_BASE_URL=<OpenAI-compatible API base URL>
+NEURO_COMMENT_AI_API_KEY=<secret>
 ```
 
 API service observability env:
@@ -159,6 +168,7 @@ Neon:
 - API and worker use the pooled runtime URL.
 - Migration job uses the direct URL.
 - Alembic command: `python -m alembic upgrade head`.
+- `alembic current` in smoke must be run with `DATABASE_DIRECT_URL`, never the pooled runtime URL.
 
 Supabase:
 
@@ -213,3 +223,21 @@ Stop and investigate if any of these occur:
 - `TDLIB_LIVE_ENABLED=true` without explicit reviewed live validation.
 - `PROFILE_EXECUTION_ADAPTER=tdlib` in normal staging.
 - Scheduler/reaper destructive mode is enabled.
+
+## Troubleshooting
+
+If the dashboard loads but sections report `No backend connection`, check the API
+host directly:
+
+```powershell
+Invoke-WebRequest https://<northflank-api-host>/health
+```
+
+`503` with `upstream connect error` or `Connection refused` means the Northflank
+gateway is reachable, but the API container is not listening. Inspect API startup
+logs first for `cloud API requires ...` configuration errors, then confirm the API
+command still binds to the provider port:
+
+```text
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```

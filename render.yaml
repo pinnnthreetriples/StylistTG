@@ -29,6 +29,8 @@ services:
         sync: false
       - key: DATABASE_RUNTIME_URL
         sync: false
+      - key: DATABASE_DIRECT_URL
+        sync: false
       - key: SUPABASE_AUTH_JWKS_URL
         sync: false
       - key: SUPABASE_AUTH_ISSUER
@@ -53,6 +55,18 @@ services:
         sync: false
       - key: STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS
         value: "300"
+      - key: OPERATOR_API_TOKEN
+        sync: false
+      - key: PROXY_CREDENTIALS_ENCRYPTION_KEY
+        sync: false
+      - key: QUEUE_INLINE_FALLBACK_ENABLED
+        value: "false"
+      - key: NEURO_COMMENT_AI_PROVIDER
+        value: openai_compatible
+      - key: NEURO_COMMENT_AI_BASE_URL
+        sync: false
+      - key: NEURO_COMMENT_AI_API_KEY
+        sync: false
 
   - type: worker
     name: stylisttg-worker-staging
@@ -84,6 +98,8 @@ services:
         sync: false
       - key: DATABASE_RUNTIME_URL
         sync: false
+      - key: DATABASE_DIRECT_URL
+        sync: false
       - key: SUPABASE_AUTH_JWKS_URL
         sync: false
       - key: SUPABASE_AUTH_ISSUER
@@ -108,3 +124,15 @@ services:
         sync: false
       - key: STORAGE_S3_SIGNED_URL_EXPIRES_SECONDS
         value: "300"
+      - key: OPERATOR_API_TOKEN
+        sync: false
+      - key: PROXY_CREDENTIALS_ENCRYPTION_KEY
+        sync: false
+      - key: QUEUE_INLINE_FALLBACK_ENABLED
+        value: "false"
+      - key: NEURO_COMMENT_AI_PROVIDER
+        value: openai_compatible
+      - key: NEURO_COMMENT_AI_BASE_URL
+        sync: false
+      - key: NEURO_COMMENT_AI_API_KEY
+        sync: false

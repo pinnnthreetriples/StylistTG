@@ -6,8 +6,8 @@ The backend Docker image is intentionally generic. Production deployments should
 
 Northflank staging may keep two physical services:
 
-- `stylistg-staging-api`
-- `stylistg-staging-worker`
+- `stylisttg-staging-api`
+- `stylisttg-staging-worker`
 
 The worker service may use raw queue mode and consume multiple queues without
 `--role`, including grouped reserved queues. This is accepted for

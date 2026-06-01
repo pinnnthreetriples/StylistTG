@@ -16,6 +16,7 @@ import {
 } from '@/lib/queries'
 import { compactOperationLogLabel, type OperationLog } from '@/lib/operationLogs'
 import { getLiveStatus } from '@/lib/liveStatus'
+import { hasConfiguredRateLimits } from '@/lib/workerDiagnostics'
 import { SafetyPolicyPanel } from '@/features/settings/SafetyPolicyPanel'
 import type { SettingsBundle } from '@/lib/queryTypes'
 import type { FrontendDiagnosticsSummary, WorkerDiagnostics } from '@/lib/api'
@@ -246,13 +247,15 @@ function OperationLogRow({ log }: { log: OperationLog }) {
 }
 
 function WorkerDiagnosticsSection({ workerDiagnostics }: { workerDiagnostics: WorkerDiagnostics | undefined }) {
+  const rateLimitsConfigured = hasConfiguredRateLimits(workerDiagnostics)
+
   return (
     <div>
       <h3 className="mb-2 text-sm font-bold text-foreground">Диагностика воркеров</h3>
       <div className="grid gap-2 sm:grid-cols-3">
         <StatusCard label="Планировщик" value={workerDiagnostics?.scheduler.enabled ? 'Включён' : 'Отключён'} tone={workerDiagnostics?.scheduler.enabled ? 'warning' : 'ok'} />
         <StatusCard label="Очиститель" value={workerDiagnostics?.reaper.enabled ? 'Включён' : 'Отключён'} tone="ok" />
-        <StatusCard label="Лимиты операций" value={workerDiagnostics?.rate_limits.enabled ? 'Настроены' : 'Проверка...'} tone={workerDiagnostics?.rate_limits.enabled ? 'ok' : 'neutral'} />
+        <StatusCard label="Лимиты операций" value={rateLimitsConfigured ? 'Настроены' : 'Проверка...'} tone={rateLimitsConfigured ? 'ok' : 'neutral'} />
       </div>
     </div>
   )

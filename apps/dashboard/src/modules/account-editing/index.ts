@@ -1,4 +1,5 @@
 // fallow-ignore-file unused-export, unused-type, circular-dependency
+// fallow-ignore-reason: Public module barrel preserves legacy imports while consumers migrate.
 export {
   buildAssetContentUrl,
   createAccountUpdateJob,

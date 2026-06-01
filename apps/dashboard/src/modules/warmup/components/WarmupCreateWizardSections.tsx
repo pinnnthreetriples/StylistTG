@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Form section renderer keeps wizard field layout colocated with validation copy.
 import { Alert, Badge, Button, Select } from '@stylisttg/ui'
 import { AlertTriangle, CheckCircle2, PlayCircle, Search, ShieldCheck } from 'lucide-react'
 

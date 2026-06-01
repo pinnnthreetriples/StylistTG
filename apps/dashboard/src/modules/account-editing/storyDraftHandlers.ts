@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Story draft state machine is intentionally colocated to preserve editor behavior.
 import type { ToastItem } from '@/components/ui/toast'
 import { normalizeError } from '@/lib/appErrors'
 import { labelIssue } from '@/lib/uiLabels'

@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: App-level route composition root; feature logic lives in split modules and hooks.
 /**
  * App – root application controller for account workspace.
  *

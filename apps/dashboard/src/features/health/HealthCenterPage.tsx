@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Health dashboard composition surface; checks stay declarative for scanability.
 import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, MetricCard, PageHeader, PageShell, SectionCard, StatusCard, StatusPill } from '@stylisttg/ui'
 import { AlertTriangle, CheckCircle2, RefreshCw, XCircle } from 'lucide-react'

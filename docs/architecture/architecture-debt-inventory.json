@@ -1184,6 +1184,8 @@
         "apps/dashboard/src/app/AppShell.test.tsx",
         "apps/dashboard/src/app/AppShell.tsx",
         "apps/dashboard/src/app/RootFrame.tsx",
+        "apps/dashboard/src/app/accountWorkspaceRouteEffects.test.ts",
+        "apps/dashboard/src/app/accountWorkspaceRouteEffects.ts",
         "apps/dashboard/src/app/navigation.test.ts",
         "apps/dashboard/src/app/navigation.ts",
         "apps/dashboard/src/assets/hero.png",
@@ -1821,7 +1823,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-01T15:14:28Z",
+  "generated_at": "2026-06-01T16:24:10Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

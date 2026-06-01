@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Settings page composition root; policy panels remain split below this shell.
 import { useQuery } from '@tanstack/react-query'
 import { Button, PageHeader, PageShell, SectionCard, StatusCard, StatusPill, Switch } from '@stylisttg/ui'
 import { ChevronDown } from 'lucide-react'

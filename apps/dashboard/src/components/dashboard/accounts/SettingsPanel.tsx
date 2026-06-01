@@ -1,4 +1,5 @@
 // fallow-ignore-file unused-file, unused-export, complexity
+// fallow-ignore-reason: Compatibility panel kept for dashboard imports while account settings split lands.
 import { CircleHelp, RefreshCw, Server, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type React from 'react'

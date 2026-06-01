@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Wizard composition shell; step sections are split into dedicated components.
 import { useQuery } from '@tanstack/react-query'
 import { Alert, SectionCard } from '@stylisttg/ui'
 import { useMemo, useState } from 'react'

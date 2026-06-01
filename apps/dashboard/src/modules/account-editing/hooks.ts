@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Profile draft orchestrator preserves editing semantics during module split.
 /**
  * useProfileDraft – manages the editable form state for the profile editor.
  *

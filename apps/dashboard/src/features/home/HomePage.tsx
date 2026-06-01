@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Home overview composition surface; card-level logic stays in local helpers.
 import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, Card, MetricCard, PageHeader, PageShell, ProductEmptyState, StatusPill } from '@stylisttg/ui'

@@ -1,7 +1,13 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Transitional workspace composition shell; route effect semantics are covered by accountWorkspaceRouteEffects.test.ts.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 
+import {
+  shouldResetWorkspaceSectionState,
+  workspaceSectionIdForSection,
+  type AccountRouteState,
+} from '@/app/accountWorkspaceRouteEffects'
 import { AccountDashboardView } from '@/components/workspace/AccountDashboardView'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 import { FileInputsProvider } from '@/providers/FileInputsProvider'
@@ -11,7 +17,6 @@ import type { ProfilePreview } from '@/lib/api'
 import type { ApiError } from '@/lib/dashboard'
 import { operationSafetyLabel, type OperationSafety } from '@/lib/accountSafety'
 import { proxyErrorLabel, validateProxyInput, type AccountProxyInput } from '@/lib/proxy'
-import type { AppRouteState } from '@/lib/routes'
 import { appRoutes } from '@/lib/routes'
 import type { AuthErrorMessage, AuthPhase } from '@/modules/auth'
 import { useAuthBootstrap } from '@/modules/auth'
@@ -39,7 +44,6 @@ import {
   useSaveAccountProxyMutation,
 } from '@/hooks/queries/useAccountsQueries'
 
-type AccountRouteState = Extract<AppRouteState, { screen: 'account' }>
 type Notify = (toast: Omit<ToastItem, 'id'>) => void
 type AuthBridge = {
   accountId: string | null
@@ -71,13 +75,6 @@ type RouteEffectsParams = WorkspaceRouteParams & {
   authPhase: AuthPhase
   dashboardReady: boolean
   draft: ReturnType<typeof useProfileDraft>
-}
-
-function workspaceSectionId(route: AccountRouteState): string | null {
-  if (route.section === 'profile') return null
-  if (route.section === 'jobs') return 'account-workspace-jobs'
-  if (route.section === 'debug') return 'account-workspace-debug'
-  return `account-workspace-${route.section}`
 }
 
 function useWorkspaceLocalState(activeAccountId: string | null) {
@@ -193,38 +190,122 @@ function useBootstrapRefreshAndRouteEffects({
 }
 
 function useRouteEffects(params: RouteEffectsParams) {
+  useAccountRouteSwitchEffect(params)
+  useWorkspaceSectionRouteEffect(params)
+  useDashboardLazyLoadEffect(params)
+}
+
+function useAccountRouteSwitchEffect({
+  auth,
+  draft,
+  route,
+  setApiError,
+  setHiddenJobPanelKey,
+  setIsRealExecutionConfirmOpen,
+  setSubmittedPreview,
+  transitionToPhase,
+}: RouteEffectsParams) {
+  const authAccountId = auth.accountId
+  const applyAccountContext = auth.applyAccountContext
+  const clearSelectedPhotoPreview = draft.clearSelectedPhotoPreview
+  const routeAccountId = route.accountId
+  const setIsRefreshingRuntime = draft.setIsRefreshingRuntime
+
   useEffect(() => {
-    if (params.auth.accountId === params.route.accountId) return
+    if (authAccountId === routeAccountId) return
     const id = window.setTimeout(() => {
-      params.draft.clearSelectedPhotoPreview()
-      params.setSubmittedPreview(null)
-      params.setApiError(null)
-      params.setHiddenJobPanelKey(null)
-      params.setIsRealExecutionConfirmOpen(false)
-      params.draft.setIsRefreshingRuntime(false)
-      params.auth.applyAccountContext(params.route.accountId)
-      params.transitionToPhase('auth-loading')
+      clearSelectedPhotoPreview()
+      setSubmittedPreview(null)
+      setApiError(null)
+      setHiddenJobPanelKey(null)
+      setIsRealExecutionConfirmOpen(false)
+      setIsRefreshingRuntime(false)
+      applyAccountContext(routeAccountId)
+      transitionToPhase('auth-loading')
     }, 0)
     return () => window.clearTimeout(id)
-  }, [params])
+  }, [
+    applyAccountContext,
+    authAccountId,
+    clearSelectedPhotoPreview,
+    routeAccountId,
+    setApiError,
+    setHiddenJobPanelKey,
+    setIsRealExecutionConfirmOpen,
+    setIsRefreshingRuntime,
+    setSubmittedPreview,
+    transitionToPhase,
+  ])
+}
+
+function useWorkspaceSectionRouteEffect({
+  dashboardReady,
+  route,
+  setHiddenJobPanelKey,
+}: RouteEffectsParams) {
+  const lastSectionRouteRef = useRef<AccountRouteState | null>(null)
+  const routeAccountId = route.accountId
+  const routeSection = route.section
+
   useEffect(() => {
-    if (!params.dashboardReady) return
-    const targetId = workspaceSectionId(params.route)
+    const nextRoute = {
+      screen: 'account',
+      accountId: routeAccountId,
+      section: routeSection,
+    } satisfies AccountRouteState
+    if (!shouldResetWorkspaceSectionState(lastSectionRouteRef.current, nextRoute)) return
+    lastSectionRouteRef.current = nextRoute
+    setHiddenJobPanelKey(null)
+  }, [routeAccountId, routeSection, setHiddenJobPanelKey])
+
+  useEffect(() => {
+    if (!dashboardReady) return
+    const targetId = workspaceSectionIdForSection(routeSection)
     if (!targetId) return
     const id = window.setTimeout(() => {
-      if (params.route.section === 'jobs' || params.route.section === 'debug') params.setHiddenJobPanelKey(null)
       document.getElementById(targetId)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     }, 0)
     return () => window.clearTimeout(id)
-  }, [params])
+  }, [dashboardReady, routeAccountId, routeSection])
+}
+
+function useDashboardLazyLoadEffect({
+  activeAccountId,
+  authPhase,
+  dashboardReady,
+  draft,
+  workspace,
+}: RouteEffectsParams) {
+  const formBaselineRef = draft.formBaselineRef
+  const formInitializedRef = draft.formInitializedRef
+  const formRef = draft.formRef
+  const loadDashboardState = workspace.loadDashboardState
+  const setForm = draft.setForm
+
   useEffect(() => {
-    if (!params.activeAccountId || params.authPhase !== 'dashboard' || params.dashboardReady) return
+    if (!activeAccountId || authPhase !== 'dashboard' || dashboardReady) return
     const id = window.setTimeout(
-      () => void params.workspace.loadDashboardState(params.activeAccountId!, params.draft.formRef, params.draft.formBaselineRef, params.draft.formInitializedRef, params.draft.setForm),
+      () =>
+        void loadDashboardState(
+          activeAccountId,
+          formRef,
+          formBaselineRef,
+          formInitializedRef,
+          setForm,
+        ),
       0,
     )
     return () => window.clearTimeout(id)
-  }, [params])
+  }, [
+    activeAccountId,
+    authPhase,
+    dashboardReady,
+    formBaselineRef,
+    formInitializedRef,
+    formRef,
+    loadDashboardState,
+    setForm,
+  ])
 }
 
 function useAccountOperationHandlers({

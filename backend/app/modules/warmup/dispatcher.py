@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # pyright: reportPrivateUsage=false
 
+import logging
 import random
 from datetime import datetime
 
@@ -42,6 +43,8 @@ from .dispatch_schedule import (
     _schedule_within_day,
     _select_actions_for_window,
 )
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "DEFAULT_ACTION_PRIORITY",
@@ -132,6 +135,6 @@ def process_due_warmup_dispatches(
     finally:
         try:
             adapter.close()
-        except Exception:  # adapter cleanup must never break the worker
-            pass
+        except Exception as exc:
+            logger.debug("Warmup adapter cleanup failed: %s", exc, exc_info=True)
     return processed

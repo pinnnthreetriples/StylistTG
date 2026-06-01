@@ -1,4 +1,5 @@
 // fallow-ignore-file code-duplication
+// fallow-ignore-reason: Drift checker compares generated artifacts with repeated normalization.
 
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'

@@ -1,4 +1,5 @@
 // fallow-ignore-file complexity
+// fallow-ignore-reason: Campaign detail composition stays centralized to preserve route-level UX behavior.
 import { Button, Card, Skeleton } from '@stylisttg/ui'
 import { Eye, Pause, Play, Square } from 'lucide-react'
 import { useState, type FormEvent } from 'react'

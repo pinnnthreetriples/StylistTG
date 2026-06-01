@@ -6,6 +6,8 @@ Post-deploy smoke checks for staging environment.
 
 - Staging deployment is complete and healthy
 - You have admin credentials (Supabase JWT or operator token)
+- Runtime env matches `docs/runbooks/northflank-staging-readiness.md`, including
+  cloud API guard vars, proxy credential encryption key, and direct migration URL
 - `curl` or HTTP client available
 
 ## Smoke Steps

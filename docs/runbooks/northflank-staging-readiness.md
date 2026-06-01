@@ -223,3 +223,21 @@ Stop and investigate if any of these occur:
 - `TDLIB_LIVE_ENABLED=true` without explicit reviewed live validation.
 - `PROFILE_EXECUTION_ADAPTER=tdlib` in normal staging.
 - Scheduler/reaper destructive mode is enabled.
+
+## Troubleshooting
+
+If the dashboard loads but sections report `No backend connection`, check the API
+host directly:
+
+```powershell
+Invoke-WebRequest https://<northflank-api-host>/health
+```
+
+`503` with `upstream connect error` or `Connection refused` means the Northflank
+gateway is reachable, but the API container is not listening. Inspect API startup
+logs first for `cloud API requires ...` configuration errors, then confirm the API
+command still binds to the provider port:
+
+```text
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```

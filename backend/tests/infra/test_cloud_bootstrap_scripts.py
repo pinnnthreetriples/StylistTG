@@ -110,6 +110,26 @@ def test_cloud_config_rejects_api_owned_stale_job_reaper() -> None:
     assert _statuses(report)["api_stale_job_reaper"] == "FAIL"
 
 
+def test_cloud_config_rejects_inline_queue_fallback() -> None:
+    report = validate_cloud_config(_valid_cloud_env(QUEUE_INLINE_FALLBACK_ENABLED="true"))
+
+    assert _statuses(report)["queue_inline_fallback"] == "FAIL"
+
+
+def test_cloud_config_requires_real_neuro_comment_ai_provider() -> None:
+    report = validate_cloud_config(_valid_cloud_env(NEURO_COMMENT_AI_PROVIDER="fake"))
+
+    assert _statuses(report)["neuro_comment_ai_provider"] == "FAIL"
+
+
+def test_cloud_config_requires_neuro_comment_ai_endpoint_and_key() -> None:
+    missing_base_url = validate_cloud_config(_valid_cloud_env(NEURO_COMMENT_AI_BASE_URL=""))
+    missing_api_key = validate_cloud_config(_valid_cloud_env(NEURO_COMMENT_AI_API_KEY=""))
+
+    assert _statuses(missing_base_url)["neuro_comment_ai_base_url"] == "FAIL"
+    assert _statuses(missing_api_key)["neuro_comment_ai_api_key"] == "FAIL"
+
+
 def test_cloud_config_missing_s3_secret_fails_without_printing_secret() -> None:
     env = _valid_cloud_env()
     del env["STORAGE_S3_SECRET_ACCESS_KEY"]

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.errors import AppError
 from app.modules.auth.context import AuthContext
+from app.modules.auth.dependencies import require_authenticated, require_mutation_permission
 from app.modules.neuro_commenting.campaign_service import CampaignService
 from app.modules.neuro_commenting.channel_rules_service import ChannelRulesService
 from app.modules.neuro_commenting.errors import NeuroCommentingError
@@ -20,6 +21,8 @@ _GENERATED_QUERY_PARAMS = {"campaign_id", "page", "limit"}
 _OBSERVED_QUERY_PARAMS = {"campaign_id", "target_id", "page", "limit"}
 _ATTEMPT_QUERY_PARAMS = {"campaign_id", "generated_comment_id", "page", "limit"}
 _EVENT_QUERY_PARAMS = {"campaign_id", "page", "limit"}
+
+__all__ = ["AuthContext", "require_authenticated", "require_mutation_permission"]
 
 
 def _runtime_api():

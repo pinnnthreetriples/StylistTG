@@ -4,6 +4,7 @@ from typing import Any
 
 from app.config import Settings, settings
 from app.modules.account_safety.interfaces import SafetyGateReservation
+from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.neuro_commenting.analytics_service import AnalyticsService
 from app.modules.neuro_commenting.sender_contracts import (
     BehaviorEmulatorBeforeSendHook,
@@ -60,4 +61,5 @@ __all__ = [
     "TelegramCommentSendError",
     "TelegramCommentSender",
     "build_telegram_comment_sender",
+    "evaluate_safety_gate",
 ]

@@ -142,13 +142,13 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         rationale="FastAPI auth dependency facade used by canonical routers.",
     ),
     CrossModuleFacadeException(
-        source=MODULES_ROOT / "neuro_commenting" / "router.py",
+        source=MODULES_ROOT / "neuro_commenting" / "router_common.py",
         imported_module="auth",
         public_name="context",
         rationale="FastAPI auth context facade used by canonical routers.",
     ),
     CrossModuleFacadeException(
-        source=MODULES_ROOT / "neuro_commenting" / "router.py",
+        source=MODULES_ROOT / "neuro_commenting" / "router_common.py",
         imported_module="auth",
         public_name="dependencies",
         rationale="FastAPI auth dependency facade used by canonical routers.",

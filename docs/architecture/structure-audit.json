@@ -2091,7 +2091,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-01T14:18:43Z",
+    "generated_at": "2026-06-01T14:57:12Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2140,14 +2140,14 @@
     },
     {
       "area": "frontend",
-      "evidence": "{\"app_deep_module_imports\": [\"../hooks/queries/useDashboardMutations.ts -> @/modules/account-editing/mutationHooks\", \"../lib/auth.ts -> @/modules/auth/api\", \"../lib/authBatches.ts -> @/modules/auth/batches\"], \"feature_modules\": [\"account-editing\", \"auth\", \"neuro-commenting\", \"warmup\"], \"missing_indexes\": [], \"module_boundary_test\": true, \"shared_module\": \"shared\", \"unexpected_app_deep_module_imports\": [\"../hooks/queries/useDashboardMutations.ts -> @/modules/account-editing/mutationHooks\"], \"unexpected_shared_deep_imports\": [\"./account-editing/hooks.ts -> @/modules/shared/jobs\"]}",
-      "finding": "Frontend module public-boundary policy has violations.",
+      "evidence": "{\"app_deep_module_imports\": [\"../lib/auth.ts -> @/modules/auth/api\", \"../lib/authBatches.ts -> @/modules/auth/batches\"], \"feature_modules\": [\"account-editing\", \"auth\", \"neuro-commenting\", \"warmup\"], \"missing_indexes\": [], \"module_boundary_test\": true, \"shared_module\": \"shared\", \"unexpected_app_deep_module_imports\": [], \"unexpected_shared_deep_imports\": []}",
+      "finding": "Frontend modules expose enforced public indexes and only accepted compatibility deep imports remain.",
       "id": "STRUCTURE-002",
-      "recommendation": "Remove unexpected frontend deep imports or add explicit compatibility-policy debt before merging.",
-      "risk": "High. New frontend code can bypass module public APIs if boundary violations are allowed to drift.",
-      "severity": "high",
-      "status": "open",
-      "suggested_phase": "next"
+      "recommendation": "Keep frontend boundary policy checks required for module or compatibility wrapper changes.",
+      "risk": "Low. Allowed app compatibility imports are explicit, bounded, and documented with removal conditions.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     },
     {
       "area": "storage-contracts",
@@ -2246,11 +2246,10 @@
     "allowed_shared_deep_import_details": [],
     "allowed_shared_deep_imports": [],
     "app_deep_module_imports": [
-      "../hooks/queries/useDashboardMutations.ts -> @/modules/account-editing/mutationHooks",
       "../lib/auth.ts -> @/modules/auth/api",
       "../lib/authBatches.ts -> @/modules/auth/batches"
     ],
-    "deep_import_count": 4,
+    "deep_import_count": 2,
     "expected_feature_modules": [
       "account-editing",
       "auth",
@@ -2264,21 +2263,15 @@
       "warmup"
     ],
     "feature_to_feature_deep_imports": [],
-    "feature_to_shared_deep_imports": [
-      "./account-editing/hooks.ts -> @/modules/shared/jobs"
-    ],
+    "feature_to_shared_deep_imports": [],
     "missing_indexes": [],
     "module_boundary_test": true,
     "policy_path": "docs/architecture/frontend-boundary-policy.json",
     "policy_schema_version": 1,
     "shared_module": "shared",
     "shared_to_feature_deep_imports": [],
-    "unexpected_app_deep_module_imports": [
-      "../hooks/queries/useDashboardMutations.ts -> @/modules/account-editing/mutationHooks"
-    ],
-    "unexpected_shared_deep_imports": [
-      "./account-editing/hooks.ts -> @/modules/shared/jobs"
-    ]
+    "unexpected_app_deep_module_imports": [],
+    "unexpected_shared_deep_imports": []
   },
   "frontend_modules": [
     {
@@ -2418,7 +2411,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-01T14:18:43Z",
+  "generated_at": "2026-06-01T14:57:12Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4724,7 +4717,7 @@
         "public_name": "context",
         "rationale": "FastAPI auth context facade used by canonical routers.",
         "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
-        "source": "backend/app/modules/neuro_commenting/router.py"
+        "source": "backend/app/modules/neuro_commenting/router_common.py"
       },
       {
         "imported_module": "auth",
@@ -4732,7 +4725,7 @@
         "public_name": "dependencies",
         "rationale": "FastAPI auth dependency facade used by canonical routers.",
         "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
-        "source": "backend/app/modules/neuro_commenting/router.py"
+        "source": "backend/app/modules/neuro_commenting/router_common.py"
       },
       {
         "imported_module": "account_core",

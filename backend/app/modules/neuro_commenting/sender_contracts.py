@@ -18,10 +18,7 @@ from app.models import (
     NeuroCommentTarget,
     utc_now,
 )
-from app.modules.account_safety.interfaces import (
-    SafetyGateVerdict,
-    evaluate as evaluate_safety_gate,
-)
+from app.modules.account_safety.interfaces import SafetyGateVerdict
 from app.modules.human_behavior.interfaces import DecoyAction, TypingFragment
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.errors import NeuroConflictError
@@ -187,7 +184,9 @@ def _evaluate_commenting_gate(
     account_id = context.attempt.account_id or context.comment.account_id
     if account_id is None:
         return None
-    return evaluate_safety_gate(
+    from app.modules.neuro_commenting import sender_service
+
+    return sender_service.evaluate_safety_gate(
         session,
         workspace_id=workspace_id,
         account_id=account_id,

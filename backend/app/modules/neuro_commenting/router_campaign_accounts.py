@@ -12,16 +12,16 @@ from app.schemas import (
     NeuroCampaignAccountPageRead,
     NeuroCampaignAccountRead,
 )
-from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated
-from app.modules.auth.dependencies import require_mutation_permission
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.campaign_account_service import CampaignAccountService
 
 from .router_base import router
 from .router_common import (
+    AuthContext,
     _neuro_error,
     _reject_unknown_list_query_params,
+    require_authenticated,
+    require_mutation_permission,
 )
 
 

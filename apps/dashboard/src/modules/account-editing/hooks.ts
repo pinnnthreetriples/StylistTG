@@ -28,7 +28,7 @@ import {
   resolvePhotoPreview,
   resolveProfilePhotoPreviewUrl,
 } from './mappers'
-import { buildJobMetrics } from '@/modules/shared/jobs'
+import { buildJobMetrics } from '@/modules/shared'
 import { labelIssue } from '@/lib/uiLabels'
 import type { ToastItem } from '@/components/ui/toast'
 import type { CurrentProfile, FormState } from './types'

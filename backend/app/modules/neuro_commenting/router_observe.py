@@ -16,9 +16,6 @@ from app.schemas import (
     NeuroObservedPostPageRead,
     NeuroObservedPostRead,
 )
-from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated
-from app.modules.auth.dependencies import require_mutation_permission
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.analytics_service import AnalyticsService
 from app.modules.neuro_commenting.enums import NeuroEventLevel
@@ -27,11 +24,14 @@ from app.modules.neuro_commenting.jobs import resolve_observed_post_discussion
 
 from .router_base import router
 from .router_common import (
+    AuthContext,
     _neuro_domain_error,
     _neuro_error,
     _raise_queue_unavailable,
     _reject_unknown_observed_query_params,
     _runtime_api,
+    require_authenticated,
+    require_mutation_permission,
 )
 
 

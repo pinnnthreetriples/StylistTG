@@ -8,11 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.schemas import NeuroCampaignRead
-from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_mutation_permission
 
 from .router_base import router
-from .router_common import _campaign_lifecycle
+from .router_common import AuthContext, _campaign_lifecycle, require_mutation_permission
 
 
 @router.post("/campaigns/{campaign_id}/start", response_model=NeuroCampaignRead)

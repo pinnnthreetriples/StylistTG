@@ -13,17 +13,17 @@ from app.schemas import (
     NeuroEventPageRead,
     NeuroEventRead,
 )
-from app.modules.auth.context import AuthContext
-from app.modules.auth.dependencies import require_authenticated
 from app.modules.neuro_commenting import repository
 from app.modules.neuro_commenting.errors import NeuroCommentingError
 
 from .router_base import router
 from .router_common import (
+    AuthContext,
     _neuro_domain_error,
     _neuro_error,
     _reject_unknown_attempt_query_params,
     _reject_unknown_event_query_params,
+    require_authenticated,
 )
 
 

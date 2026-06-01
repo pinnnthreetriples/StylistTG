@@ -56,9 +56,7 @@ def test_fake_ai_provider_rejected_in_cloud_mode() -> None:
 
 
 def test_fake_ai_provider_accepted_in_staging_cloud_mode() -> None:
-    config = Settings(
-        **_cloud_kwargs(app_env="staging", neuro_comment_ai_provider="fake")
-    )
+    config = Settings(**_cloud_kwargs(app_env="staging", neuro_comment_ai_provider="fake"))
 
     assert config.neuro_comment_ai_provider == "fake"
     assert config.app_env == "staging"

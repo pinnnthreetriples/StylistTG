@@ -10,6 +10,7 @@ from redis.exceptions import RedisError
 from app.config import settings
 from app.models import NeuroCommentCampaign, NeuroCommentCampaignAccount, NeuroCommentTarget
 from app.modules.neuro_commenting.rate_limiter_core import RateLimiterCoreMixin
+from app.services.redis_client import redis_from_url
 
 from app.modules.neuro_commenting.rate_limiter_shared import (  # noqa: F401
     RATE_LIMIT_COUNTER_SCAN_PATTERN,
@@ -42,6 +43,11 @@ class NeuroCommentRateLimiter(RateLimiterCoreMixin):
             if reservation_ttl_seconds is None
             else reservation_ttl_seconds
         )
+
+    def _client(self) -> Any:
+        if self._redis is None:
+            self._redis = redis_from_url()
+        return self._redis
 
     def reserve(
         self,

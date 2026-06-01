@@ -22,6 +22,19 @@ def test_engine_kwargs_add_postgres_pool_and_timeout_settings(monkeypatch) -> No
     }
 
 
+def test_engine_kwargs_omits_statement_timeout_startup_option_for_neon_pooler(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(db.settings, "db_connect_timeout_seconds", 7)
+    monkeypatch.setattr(db.settings, "db_query_timeout_ms", 12000)
+
+    kwargs = db.engine_kwargs(
+        "postgresql+psycopg://user:pass@ep-demo-pooler.us-east-1.aws.neon.tech/db"
+    )
+
+    assert kwargs["connect_args"] == {"connect_timeout": 7}
+
+
 def test_engine_kwargs_omits_postgres_only_settings_for_sqlite() -> None:
     kwargs = db.engine_kwargs("sqlite+pysqlite:///:memory:")
 

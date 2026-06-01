@@ -5,7 +5,8 @@ import {
   refreshRuntime,
 } from '@/lib/api'
 import { invalidateAccountSafetyQueries } from '@/lib/queries'
-export { useCreateAccountUpdateJobMutation } from '@/modules/account-editing'
+// fallow-ignore-next-line unused-export
+export { useCreateAccountUpdateJobMutation } from '@/modules/account-editing/mutationHooks'
 
 export function useRefreshRuntimeMutation() {
   const queryClient = useQueryClient()

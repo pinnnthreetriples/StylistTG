@@ -1,3 +1,4 @@
+// fallow-ignore-file unused-file, unused-export, complexity
 import { CircleHelp, RefreshCw, Server, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type React from 'react'
@@ -11,6 +12,13 @@ import type { ExecutionPolicyUpdate } from '@/lib/api'
 import type { FreshValidityPolicy, RecentFailurePolicy, UnknownCapabilityPolicy } from '@/lib/accountSafety'
 import { buildDiagnosticItems } from '@/lib/diagnostics'
 import { buildPreflightItems, formatCooldown, type SettingsStatusItem } from '@/lib/settings'
+import type { SettingsBundle } from '@/lib/queryTypes'
+
+type PolicyControlProps = {
+  disabled: boolean
+  onPolicyPatch: (update: ExecutionPolicyUpdate) => void
+  policy: SettingsBundle['policy']
+}
 
 export function SettingsPanel() {
   const settingsQuery = useSettingsBundleQuery()
@@ -92,176 +100,239 @@ export function SettingsPanel() {
       </SettingsCard>
 
       <SettingsCard icon={<ShieldCheck className="size-4 text-primary" />} title="Паузы безопасности">
-        {settings?.policy ? (
-          <div className="space-y-2">
-            <div className="rounded-xl bg-muted px-3 py-2">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <span>Пауза между задачами профиля</span>
-                <HelpTip
-                  label="Пауза между задачами профиля"
-                  text="Это минимальная пауза между задачами изменения профиля. Например: если стоит 5 минут, новую задачу профиля нельзя запустить сразу после предыдущей."
-                />
-              </div>
-              <div className="mt-1 text-sm font-semibold text-foreground">
-                {formatCooldown(settings.policy.profile_job_cooldown_seconds)}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {[0, ...settings.policy.allowed_profile_job_cooldown_seconds].map((seconds) => (
-                  <button
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
-                      settings.policy.profile_job_cooldown_seconds === seconds
-                        ? 'border-border bg-muted text-primary'
-                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
-                    }`}
-                    disabled={updatePolicyMutation.isPending}
-                    key={seconds}
-                    onClick={() => void handleCooldownChange(seconds)}
-                    type="button"
-                  >
-                    {formatCooldown(seconds)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {productCooldownControls.map((item) => (
-              <CooldownRow
-                disabled={updatePolicyMutation.isPending}
-                help={item.help}
-                key={item.key}
-                label={item.label}
-                onChange={(seconds) => void handlePolicyPatch({ [item.key]: seconds })}
-                value={settings.policy[item.key]}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState />
-        )}
+        <CooldownSettings
+          disabled={updatePolicyMutation.isPending}
+          policy={settings?.policy}
+          onCooldownChange={(seconds) => void handleCooldownChange(seconds)}
+          onPolicyPatch={(update) => void handlePolicyPatch(update)}
+        />
       </SettingsCard>
 
       <SettingsCard icon={<ShieldCheck className="size-4 text-muted-foreground" />} title="Расширенные настройки">
-        {settings?.authMode ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-foreground">Тестовая среда Telegram</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {settings.authMode.tdlib_use_test_dc
-                    ? 'Только для разработки. Обычные Telegram-аккаунты здесь не авторизуются.'
-                    : 'Обычный Telegram. Для рабочей авторизации держите этот режим.'}
-                </div>
-              </div>
-              <button
-                aria-checked={settings.authMode.tdlib_use_test_dc}
-                aria-label="Переключить Test DC"
-                className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                  settings.authMode.tdlib_use_test_dc ? 'border-border bg-muted' : 'border-border bg-muted'
-                } ${updateAuthModeMutation.isPending ? 'opacity-60' : 'hover:border-border'}`}
-                disabled={updateAuthModeMutation.isPending}
-                onClick={() => void handleTestDcChange(!settings.authMode.tdlib_use_test_dc)}
-                role="switch"
-                type="button"
-              >
-                <span
-                  className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-card shadow-sm transition-transform ${
-                    settings.authMode.tdlib_use_test_dc ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {settings.policy ? (
-              <div className="space-y-2 rounded-xl bg-muted px-3 py-2">
-                <PolicySelect
-                  disabled={updatePolicyMutation.isPending}
-                  help="Что делать, если приложение пока не знает, можно ли выполнить действие. Например: музыка ещё не проверялась, поэтому можно только предупредить или запретить реальный запуск."
-                  label="Неизвестная возможность"
-                  onChange={(value) => void handlePolicyPatch({ unknown_capability_policy: value as UnknownCapabilityPolicy })}
-                  options={[
-                    ['warning_only', 'Только предупреждать'],
-                    ['block_live_execution', 'Блокировать реальный запуск'],
-                  ]}
-                  value={settings.policy.unknown_capability_policy}
-                />
-                <PolicySelect
-                  disabled={updatePolicyMutation.isPending}
-                  help="Что делать после недавней ошибки. Например: если Telegram отказал в смене имени пользователя, можно показать предупреждение или временно поставить это действие на паузу."
-                  label="Недавние ошибки"
-                  onChange={(value) => void handlePolicyPatch({ recent_failure_policy: value as RecentFailurePolicy })}
-                  options={[
-                    ['warning_only', 'Только предупреждать'],
-                    ['cooldown', 'Создавать паузу'],
-                  ]}
-                  value={settings.policy.recent_failure_policy}
-                />
-                <PolicySelect
-                  disabled={updatePolicyMutation.isPending}
-                  help="Когда нужна свежая проверка аккаунта. Например: если проверка была давно, приложение попросит проверить аккаунт перед реальным запуском."
-                  label="Актуальность проверки"
-                  onChange={(value) => void handlePolicyPatch({ fresh_validity_required: value as FreshValidityPolicy })}
-                  options={[
-                    ['never', 'Не требовать'],
-                    ['if_stale', 'Если проверка устарела'],
-                    ['always_for_live', 'Всегда перед реальным запуском'],
-                  ]}
-                  value={settings.policy.fresh_validity_required}
-                />
-                <label className="flex items-center justify-between gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-                    <span>Макс. возраст проверки</span>
-                    <HelpTip
-                      label="Максимальный возраст проверки"
-                      text="Сколько минут проверка считается свежей. Например: 30 значит, что проверка старше 30 минут будет считаться устаревшей."
-                    />
-                  </span>
-                  <input
-                    aria-label="Максимальный возраст проверки в минутах"
-                    className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-right text-xs font-semibold text-foreground"
-                    disabled={updatePolicyMutation.isPending}
-                    min={1}
-                    onBlur={(event) =>
-                      void handlePolicyPatch({ fresh_validity_max_age_minutes: Number(event.currentTarget.value) })
-                    }
-                    type="number"
-                    defaultValue={settings.policy.fresh_validity_max_age_minutes}
-                  />
-                </label>
-                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2">
-                  <label className="flex items-center justify-between gap-3 text-xs" htmlFor="manual-hard-blocker-override">
-                    <span>
-                      <span className="flex items-center gap-1.5 font-semibold text-destructive">
-                        <span>Ручной разбор жёстких блокировок</span>
-                        <HelpTip
-                          label="Ручной разбор жёстких блокировок"
-                          text="Это не отключает защиту автоматически. Например: если сессия отозвана, задачу всё равно нельзя запускать, пока аккаунт снова не войдёт."
-                        />
-                      </span>
-                      <span className="block text-destructive">
-                        Критические блокировки всё равно останутся защищены.
-                      </span>
-                    </span>
-                    <input
-                      id="manual-hard-blocker-override"
-                      aria-label="Ручной разбор жёстких блокировок"
-                      checked={settings.policy.manual_hard_blocker_override_enabled}
-                      disabled={updatePolicyMutation.isPending}
-                      onChange={(event) =>
-                        void handlePolicyPatch({ manual_hard_blocker_override_enabled: event.currentTarget.checked })
-                      }
-                      type="checkbox"
-                    />
-                  </label>
-                </div>
-                <div className="text-[11px] leading-5 text-muted-foreground">
-                  Всегда защищены: {formatHardBlockers(settings.policy.non_overridable_blockers)}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <EmptyState />
-        )}
+        <AdvancedSettings
+          authMode={settings?.authMode}
+          authModePending={updateAuthModeMutation.isPending}
+          policy={settings?.policy}
+          policyPending={updatePolicyMutation.isPending}
+          onPolicyPatch={(update) => void handlePolicyPatch(update)}
+          onTestDcChange={(enabled) => void handleTestDcChange(enabled)}
+        />
       </SettingsCard>
+    </div>
+  )
+}
+
+function CooldownSettings({
+  disabled,
+  onCooldownChange,
+  onPolicyPatch,
+  policy,
+}: {
+  disabled: boolean
+  onCooldownChange: (seconds: number) => void
+  onPolicyPatch: (update: ExecutionPolicyUpdate) => void
+  policy: SettingsBundle['policy'] | undefined
+}) {
+  if (!policy) return <EmptyState />
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-xl bg-muted px-3 py-2">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <span>Пауза между задачами профиля</span>
+          <HelpTip
+            label="Пауза между задачами профиля"
+            text="Это минимальная пауза между задачами изменения профиля. Например: если стоит 5 минут, новую задачу профиля нельзя запустить сразу после предыдущей."
+          />
+        </div>
+        <div className="mt-1 text-sm font-semibold text-foreground">
+          {formatCooldown(policy.profile_job_cooldown_seconds)}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[0, ...policy.allowed_profile_job_cooldown_seconds].map((seconds) => (
+            <button
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+                policy.profile_job_cooldown_seconds === seconds
+                  ? 'border-border bg-muted text-primary'
+                  : 'border-border bg-card text-muted-foreground hover:bg-muted'
+              }`}
+              disabled={disabled}
+              key={seconds}
+              onClick={() => onCooldownChange(seconds)}
+              type="button"
+            >
+              {formatCooldown(seconds)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {productCooldownControls.map((item) => (
+        <CooldownRow
+          disabled={disabled}
+          help={item.help}
+          key={item.key}
+          label={item.label}
+          onChange={(seconds) => onPolicyPatch({ [item.key]: seconds })}
+          value={policy[item.key]}
+        />
+      ))}
+    </div>
+  )
+}
+
+function AdvancedSettings({
+  authMode,
+  authModePending,
+  onPolicyPatch,
+  onTestDcChange,
+  policy,
+  policyPending,
+}: {
+  authMode: SettingsBundle['authMode'] | undefined
+  authModePending: boolean
+  onPolicyPatch: (update: ExecutionPolicyUpdate) => void
+  onTestDcChange: (enabled: boolean) => void
+  policy: SettingsBundle['policy'] | undefined
+  policyPending: boolean
+}) {
+  if (!authMode) return <EmptyState />
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-foreground">Тестовая среда Telegram</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {authMode.tdlib_use_test_dc
+              ? 'Только для разработки. Обычные Telegram-аккаунты здесь не авторизуются.'
+              : 'Обычный Telegram. Для рабочей авторизации держите этот режим.'}
+          </div>
+        </div>
+        <button
+          aria-checked={authMode.tdlib_use_test_dc}
+          aria-label="Переключить Test DC"
+          className={`relative h-6 w-11 shrink-0 rounded-full border border-border bg-muted transition-colors ${
+            authModePending ? 'opacity-60' : 'hover:border-border'
+          }`}
+          disabled={authModePending}
+          onClick={() => onTestDcChange(!authMode.tdlib_use_test_dc)}
+          role="switch"
+          type="button"
+        >
+          <span className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-card shadow-sm transition-transform ${authMode.tdlib_use_test_dc ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+      </div>
+      {policy ? (
+        <AdvancedPolicyControls disabled={policyPending} policy={policy} onPolicyPatch={onPolicyPatch} />
+      ) : null}
+    </div>
+  )
+}
+
+function AdvancedPolicyControls({
+  disabled,
+  onPolicyPatch,
+  policy,
+}: PolicyControlProps) {
+  return (
+    <div className="space-y-2 rounded-xl bg-muted px-3 py-2">
+      <PolicySelect
+        disabled={disabled}
+        help="Что делать, если приложение пока не знает, можно ли выполнить действие. Например: музыка ещё не проверялась, поэтому можно только предупредить или запретить реальный запуск."
+        label="Неизвестная возможность"
+        onChange={(value) => onPolicyPatch({ unknown_capability_policy: value as UnknownCapabilityPolicy })}
+        options={[
+          ['warning_only', 'Только предупреждать'],
+          ['block_live_execution', 'Блокировать реальный запуск'],
+        ]}
+        value={policy.unknown_capability_policy}
+      />
+      <PolicySelect
+        disabled={disabled}
+        help="Что делать после недавней ошибки. Например: если Telegram отказал в смене имени пользователя, можно показать предупреждение или временно поставить это действие на паузу."
+        label="Недавние ошибки"
+        onChange={(value) => onPolicyPatch({ recent_failure_policy: value as RecentFailurePolicy })}
+        options={[
+          ['warning_only', 'Только предупреждать'],
+          ['cooldown', 'Создавать паузу'],
+        ]}
+        value={policy.recent_failure_policy}
+      />
+      <PolicySelect
+        disabled={disabled}
+        help="Когда нужна свежая проверка аккаунта. Например: если проверка была давно, приложение попросит проверить аккаунт перед реальным запуском."
+        label="Актуальность проверки"
+        onChange={(value) => onPolicyPatch({ fresh_validity_required: value as FreshValidityPolicy })}
+        options={[
+          ['never', 'Не требовать'],
+          ['if_stale', 'Если проверка устарела'],
+          ['always_for_live', 'Всегда перед реальным запуском'],
+        ]}
+        value={policy.fresh_validity_required}
+      />
+      <FreshValidityAgeControl disabled={disabled} policy={policy} onPolicyPatch={onPolicyPatch} />
+      <ManualBlockerOverrideControl disabled={disabled} policy={policy} onPolicyPatch={onPolicyPatch} />
+      <div className="text-[11px] leading-5 text-muted-foreground">
+        Всегда защищены: {formatHardBlockers(policy.non_overridable_blockers)}
+      </div>
+    </div>
+  )
+}
+
+function FreshValidityAgeControl({
+  disabled,
+  onPolicyPatch,
+  policy,
+}: PolicyControlProps) {
+  return (
+    <label className="flex items-center justify-between gap-3 text-xs">
+      <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+        <span>Макс. возраст проверки</span>
+        <HelpTip
+          label="Максимальный возраст проверки"
+          text="Сколько минут проверка считается свежей. Например: 30 значит, что проверка старше 30 минут будет считаться устаревшей."
+        />
+      </span>
+      <input
+        aria-label="Максимальный возраст проверки в минутах"
+        className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-right text-xs font-semibold text-foreground"
+        disabled={disabled}
+        min={1}
+        onBlur={(event) => onPolicyPatch({ fresh_validity_max_age_minutes: Number(event.currentTarget.value) })}
+        type="number"
+        defaultValue={policy.fresh_validity_max_age_minutes}
+      />
+    </label>
+  )
+}
+
+function ManualBlockerOverrideControl({
+  disabled,
+  onPolicyPatch,
+  policy,
+}: PolicyControlProps) {
+  return (
+    <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2">
+      <label className="flex items-center justify-between gap-3 text-xs" htmlFor="manual-hard-blocker-override">
+        <span>
+          <span className="flex items-center gap-1.5 font-semibold text-destructive">
+            <span>Ручной разбор жёстких блокировок</span>
+            <HelpTip
+              label="Ручной разбор жёстких блокировок"
+              text="Это не отключает защиту автоматически. Например: если сессия отозвана, задачу всё равно нельзя запускать, пока аккаунт снова не войдёт."
+            />
+          </span>
+          <span className="block text-destructive">Критические блокировки всё равно останутся защищены.</span>
+        </span>
+        <input
+          id="manual-hard-blocker-override"
+          aria-label="Ручной разбор жёстких блокировок"
+          checked={policy.manual_hard_blocker_override_enabled}
+          disabled={disabled}
+          onChange={(event) => onPolicyPatch({ manual_hard_blocker_override_enabled: event.currentTarget.checked })}
+          type="checkbox"
+        />
+      </label>
     </div>
   )
 }

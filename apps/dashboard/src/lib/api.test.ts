@@ -10,6 +10,7 @@ import {
   fetchAccountAuditEvents,
   fetchAccountDeletionPreview,
   fetchWorkerDiagnostics,
+  fetchWorkerQueues,
   fetchAccounts,
   fetchStoryCapabilities,
   fetchStoryDrafts,
@@ -225,6 +226,16 @@ describe('story draft api contract', () => {
 
     const request = requestDetails(fetchMock.mock.calls[0])
     expect(request.url).toBe('/api/workers/diagnostics')
+    expect(request.method).toBe('GET')
+  })
+
+  it('fetches worker queues from the authenticated queue descriptor endpoint', async () => {
+    const fetchMock = mockFetch([])
+
+    await fetchWorkerQueues()
+
+    const request = requestDetails(fetchMock.mock.calls[0])
+    expect(request.url).toBe('/api/workers/queues')
     expect(request.method).toBe('GET')
   })
 

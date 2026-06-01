@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 
 from app.adapters.warmup_text_provider import TextVariationRequest, WarmupTextProvider
 from app.models import WarmupSession, WarmupStatus
-from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
@@ -42,7 +41,9 @@ def _pause_if_blocked_by_safety_gate(
     now: datetime,
     worker_id: str,
 ) -> bool:
-    verdict = evaluate_safety_gate(
+    from app.modules.warmup import dispatcher
+
+    verdict = dispatcher.evaluate_safety_gate(
         session,
         workspace_id=warmup_session.workspace_id,
         account_id=warmup_session.account_id,

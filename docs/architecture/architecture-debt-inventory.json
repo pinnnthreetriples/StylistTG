@@ -441,6 +441,7 @@
         "backend/app/modules/neuro_commenting/sender_preflight.py",
         "backend/app/modules/neuro_commenting/sender_reservations.py",
         "backend/app/modules/neuro_commenting/sender_results.py",
+        "backend/app/modules/neuro_commenting/sender_runtime.py",
         "backend/app/modules/neuro_commenting/sender_service.py",
         "backend/app/modules/neuro_commenting/service.py",
         "backend/app/modules/neuro_commenting/target_health_service.py",
@@ -1820,7 +1821,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-01T14:57:12Z",
+  "generated_at": "2026-06-01T15:14:28Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

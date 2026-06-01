@@ -14,6 +14,7 @@ from app.adapters.warmup_text_provider import WarmupTextProvider, build_warmup_t
 from app.adapters.warmup_tdlib import WarmupTdlibAdapter, build_warmup_tdlib_adapter
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, utc_now
+from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 
 from .dispatch_actions import _execute_live_action
 from .dispatch_context import (
@@ -49,6 +50,7 @@ __all__ = [
     "_complete_dispatch_session",
     "_derive_text_seed",
     "_execute_live_action",
+    "evaluate_safety_gate",
     "_is_day_complete",
     "_is_hour_in_quiet_window",
     "_is_in_quiet_hours",

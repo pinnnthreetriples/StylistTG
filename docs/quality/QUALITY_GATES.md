@@ -41,6 +41,32 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## Analyzer rule coverage
+
+The test analyzer (`tools.test_analyzer`) catches weak/flaky test
+patterns before review. Most rules are AST-based and parse the Python
+file's syntax tree, which avoids false positives from comments or
+docstring mentions of the same patterns.
+
+Coverage classes:
+
+- **Assertions** — zero-assertion tests, `assert True`, self-equality,
+  too-many-asserts, `pytest.raises` without `match=`, manual try/except,
+  bare `assert response.json()` truthiness (TQA050), `assert "key" in
+  response.json()` membership-only (TQA051).
+- **Flaky** — uncontrolled clock, RNG without seed, network without
+  marker, filesystem writes outside `tmp_path`.
+- **Mocks** — mocks created without verifying calls, patch.start without
+  stop, monkeypatch ordering.
+- **Project (StylistTG)** — dependency-overrides without finally,
+  TestClient without `app_client`, 4xx without typed error body
+  (STG003), live tests without env guard.
+
+Adding a new rule: subclass `Rule`, implement `check`, add a bad/good
+sample pair to `backend/tests/tools/test_test_analyzer.py` (or a
+dedicated test file), and register the instance in
+`backend/tools/test_analyzer/rules/__init__.py::ALL_RULES`.
+
 ## RBAC endpoint matrix coverage
 
 Every mutating `/api/` or `/diagnostics/` route (POST / PATCH / PUT /

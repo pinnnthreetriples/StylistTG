@@ -1886,8 +1886,10 @@
           "backend/tests/runtime/test_runtime_preflight.py",
           "backend/tests/runtime/test_runtime_roles.py",
           "backend/tests/scripts/test_backfill_safety_pipeline.py",
-          "backend/tests/scripts/test_coverage_gate.py",
+          "backend/tests/scripts/test_coverage_gate_branch_validation.py",
           "backend/tests/scripts/test_report_slow_tests.py",
+          "backend/tests/security/rbac_matrix_baseline.json",
+          "backend/tests/security/test_endpoint_matrix_completeness.py",
           "backend/tests/security/test_operator_guard.py",
           "backend/tests/security/test_pii_leak_guard.py",
           "backend/tests/security/test_property_security_helpers.py",
@@ -2108,7 +2110,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T01:49:07Z",
+    "generated_at": "2026-06-02T15:10:41Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2428,7 +2430,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T01:49:07Z",
+  "generated_at": "2026-06-02T15:10:41Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5306,7 +5308,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 228,
+      "file_count": 230,
       "path": "backend/tests"
     },
     "docs": {

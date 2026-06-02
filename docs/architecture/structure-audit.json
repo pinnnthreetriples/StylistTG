@@ -1530,7 +1530,6 @@
           "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
           "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
           "apps/dashboard/src/features/accounts/accountColumns.tsx",
-          "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
           "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
           "apps/dashboard/src/features/accounts/accountRisk.test.ts",
           "apps/dashboard/src/features/accounts/accountRisk.ts",
@@ -1786,7 +1785,6 @@
           "backend/tests/api/__init__.py",
           "backend/tests/api/test_account_contracts.py",
           "backend/tests/api/test_account_import_contracts.py",
-          "backend/tests/api/test_account_onboarding_api.py",
           "backend/tests/api/test_account_update_api.py",
           "backend/tests/api/test_api_contracts.py",
           "backend/tests/api/test_auth_api_contracts.py",
@@ -2113,7 +2111,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T15:56:28Z",
+    "generated_at": "2026-06-02T14:26:05Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2432,7 +2430,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 49,
-        "apps/dashboard/src/features": 49,
+        "apps/dashboard/src/features": 48,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 67
       },
@@ -2443,7 +2441,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T15:56:28Z",
+  "generated_at": "2026-06-02T14:26:05Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5355,7 +5353,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 226,
+      "file_count": 225,
       "path": "backend/tests"
     },
     "docs": {
@@ -5365,7 +5363,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 293,
+      "file_count": 292,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {

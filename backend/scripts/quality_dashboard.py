@@ -50,17 +50,26 @@ def _coverage_totals(coverage: dict | None) -> dict[str, Any]:
     if not coverage:
         return {"available": False}
     totals = coverage.get("totals") or {}
+    num_branches = int(totals.get("num_branches") or 0)
+    covered_branches = int(totals.get("covered_branches") or 0)
+    missing_branches = int(totals.get("missing_branches") or 0)
+    # Recompute branch percentage from raw counts — percent_covered_display
+    # is a *display* rounding of LINE coverage in coverage.py and is not
+    # a branch metric; mixing it in here under-reported branch progress.
+    if num_branches > 0:
+        percent_branch: float = (covered_branches / num_branches) * 100.0
+    else:
+        percent_branch = 100.0
     return {
         "available": True,
         "branch_coverage": bool((coverage.get("meta") or {}).get("branch_coverage")),
         "percent_covered": float(totals.get("percent_covered") or 0.0),
-        "percent_branch": float(
-            totals.get("percent_covered_display") or totals.get("percent_covered") or 0.0
-        ),
+        "percent_branch": round(percent_branch, 1),
         "num_statements": int(totals.get("num_statements") or 0),
         "missing_lines": int(totals.get("missing_lines") or 0),
-        "num_branches": int(totals.get("num_branches") or 0),
-        "missing_branches": int(totals.get("missing_branches") or 0),
+        "num_branches": num_branches,
+        "covered_branches": covered_branches,
+        "missing_branches": missing_branches,
     }
 
 
@@ -118,23 +127,55 @@ def _mutation_totals(report: Any) -> dict[str, Any]:
     }
 
 
-def build_snapshot(reports_dir: Path) -> dict[str, Any]:
+# Per-profile required reports. A profile's status is "incomplete" if any
+# required report is absent — the dashboard must not silently hide missing
+# data behind `available: false`.
+REQUIRED_REPORTS: dict[str, tuple[str, ...]] = {
+    "pr": ("coverage", "analyzer", "slow_tests"),
+    "nightly": ("coverage", "analyzer", "slow_tests", "mutation"),
+}
+
+
+def _load_analyzer(reports_dir: Path) -> Any:
+    # The CLI default filename is `test-quality.json`. Fall back to the
+    # historical/alt name `test-analyzer.json` for resilience.
+    for name in ("test-quality.json", "test-analyzer.json"):
+        report = _load_json(reports_dir / name)
+        if report is not None:
+            return report
+    return None
+
+
+def build_snapshot(reports_dir: Path, *, profile: str = "pr") -> dict[str, Any]:
     coverage = _load_json(reports_dir / "coverage.json")
-    analyzer = _load_json(reports_dir / "test-quality.json")
+    analyzer = _load_analyzer(reports_dir)
     slow = _load_json(reports_dir / "slow-tests.json")
     mutation = _load_json(reports_dir / "mutation-report.json")
 
-    return {
-        "schema_version": 1,
-        "generated_at": datetime.now(UTC).isoformat(),
-        "git_sha": os.environ.get("GITHUB_SHA", "")[:12] or None,
-        "git_ref": os.environ.get("GITHUB_REF", "") or None,
-        "workflow": os.environ.get("GITHUB_WORKFLOW", "") or None,
-        "run_id": os.environ.get("GITHUB_RUN_ID", "") or None,
+    sections: dict[str, dict[str, Any]] = {
         "coverage": _coverage_totals(coverage),
         "analyzer": _analyzer_totals(analyzer),
         "slow_tests": _slow_test_totals(slow),
         "mutation": _mutation_totals(mutation),
+    }
+
+    required = REQUIRED_REPORTS.get(profile, ())
+    missing_required = sorted(
+        section for section in required if not sections[section].get("available")
+    )
+    status = "ok" if not missing_required else "incomplete"
+
+    return {
+        "schema_version": 2,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "profile": profile,
+        "status": status,
+        "missing_required_reports": missing_required,
+        "git_sha": os.environ.get("GITHUB_SHA", "")[:12] or None,
+        "git_ref": os.environ.get("GITHUB_REF", "") or None,
+        "workflow": os.environ.get("GITHUB_WORKFLOW", "") or None,
+        "run_id": os.environ.get("GITHUB_RUN_ID", "") or None,
+        **sections,
     }
 
 
@@ -158,6 +199,14 @@ def render_markdown(snapshot: dict[str, Any]) -> str:
         lines.append(f"_sha_ `{snapshot['git_sha']}`")
     lines.append("")
 
+    if snapshot.get("status") == "incomplete":
+        lines.append(
+            "> :warning: **status: incomplete** — required reports missing: "
+            f"`{', '.join(snapshot.get('missing_required_reports') or [])}`. "
+            "The PR/nightly profile should fail until they are produced."
+        )
+        lines.append("")
+
     if coverage.get("available"):
         lines.append("## Coverage")
         lines.append("")
@@ -165,6 +214,7 @@ def render_markdown(snapshot: dict[str, Any]) -> str:
             _table(
                 [
                     ("Line %", f"{coverage['percent_covered']:.1f}%"),
+                    ("Branch %", f"{coverage['percent_branch']:.1f}%"),
                     ("Branch enabled", "yes" if coverage.get("branch_coverage") else "no"),
                     ("Statements", str(coverage["num_statements"])),
                     ("Missing", str(coverage["missing_lines"])),
@@ -237,16 +287,41 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reports-dir", default="reports")
     parser.add_argument("--output-json", default="reports/quality-snapshot.json")
     parser.add_argument("--output-md", default="reports/quality-summary.md")
+    parser.add_argument(
+        "--profile",
+        default="pr",
+        choices=sorted(REQUIRED_REPORTS),
+        help="Required-report set for this run (pr|nightly). Missing required "
+        "reports flip status to 'incomplete' and (with --fail-on-incomplete) "
+        "exit non-zero.",
+    )
+    parser.add_argument(
+        "--fail-on-incomplete",
+        action="store_true",
+        help=(
+            "Exit 2 when status='incomplete'. Set this in PR/nightly "
+            "workflows so a missing required report fails the dashboard "
+            "step instead of producing a green page with `available: false`."
+        ),
+    )
     args = parser.parse_args(argv)
 
     reports_dir = Path(args.reports_dir)
-    snapshot = build_snapshot(reports_dir)
+    snapshot = build_snapshot(reports_dir, profile=args.profile)
 
     Path(args.output_json).write_text(
         json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     Path(args.output_md).write_text(render_markdown(snapshot), encoding="utf-8")
     print(f"wrote {args.output_json} and {args.output_md}")
+
+    if args.fail_on_incomplete and snapshot["status"] != "ok":
+        print(
+            f"FAIL: quality snapshot status={snapshot['status']}, missing "
+            f"required reports: {snapshot['missing_required_reports']}",
+            file=sys.stderr,
+        )
+        return 2
     return 0
 
 

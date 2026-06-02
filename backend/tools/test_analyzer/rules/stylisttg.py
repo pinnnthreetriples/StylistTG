@@ -281,14 +281,58 @@ class RateLimitWithoutExceededCase(Rule):
 
 
 class RBACRouteNotInMatrix(Rule):
+    """STG008 — flag new API route declarations that aren't tested via the matrix.
+
+    Heuristic: a Python file under ``app/api/`` (or any ``router.py``) that
+    declares ``@router.<method>`` decorators for POST / PATCH / PUT / DELETE
+    must be paired with a matching tuple in
+    ``tests/security/test_security_endpoint_matrix.ENDPOINT_MATRIX`` or with
+    a documented entry in ``tests/security/rbac_matrix_baseline.json``.
+
+    The real completeness gate lives in
+    ``tests/security/test_endpoint_matrix_completeness.py`` (run on every PR);
+    this analyzer rule is the "soft" companion that nudges developers at
+    review time when they add a router file that introduces mutating routes.
+    Because the completeness gate is authoritative, this rule emits at INFO
+    severity and only fires on test/router source files that *declare*
+    mutating routes.
+    """
+
     id = "STG008"
     type = "project"
-    default_severity = Severity.WARNING
+    default_severity = Severity.INFO
 
     def check(self, ctx: FileContext, config: AnalyzerConfig) -> list[Issue]:
-        if "ENDPOINT_MATRIX" not in ctx.source:
+        rel = ctx.relative_path.replace("\\", "/")
+        # Only consider router-style modules under app/api or app/modules.
+        if "/api/" not in rel and "/modules/" not in rel:
             return []
-        return []
+        src = ctx.source
+        if "@router." not in src and "APIRouter" not in src:
+            return []
+        # Routers that don't declare mutating verbs don't need matrix coverage.
+        if not any(f"@router.{verb}" in src for verb in ("post", "patch", "put", "delete")):
+            return []
+        return [
+            Issue(
+                rule_id=self.id,
+                rule_type=self.type,
+                severity=self.default_severity,
+                file=ctx.relative_path,
+                line=1,
+                message=(
+                    f"Router-style file {ctx.relative_path} declares mutating routes; "
+                    "ensure tests/security/test_security_endpoint_matrix.ENDPOINT_MATRIX "
+                    "covers each new route (#269)."
+                ),
+                recommendation=(
+                    "Add new (method, path, min_role, is_mutation) entries to "
+                    "tests/security/test_security_endpoint_matrix.ENDPOINT_MATRIX; "
+                    "the completeness gate in test_endpoint_matrix_completeness.py "
+                    "will then turn green."
+                ),
+            )
+        ]
 
 
 class RuntimeRandomSecret(Rule):

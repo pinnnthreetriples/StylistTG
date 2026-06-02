@@ -1525,7 +1525,6 @@
           "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
           "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
           "apps/dashboard/src/features/accounts/accountColumns.tsx",
-          "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
           "apps/dashboard/src/features/accounts/accountRisk.test.ts",
           "apps/dashboard/src/features/accounts/accountRisk.ts",
           "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1885,7 +1884,6 @@
           "backend/tests/runtime/test_runtime_preflight.py",
           "backend/tests/runtime/test_runtime_roles.py",
           "backend/tests/scripts/test_backfill_safety_pipeline.py",
-          "backend/tests/scripts/test_coverage_gate_branch_validation.py",
           "backend/tests/scripts/test_report_slow_tests.py",
           "backend/tests/security/test_operator_guard.py",
           "backend/tests/security/test_pii_leak_guard.py",
@@ -2107,7 +2105,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T14:19:41Z",
+    "generated_at": "2026-06-02T15:37:35Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2416,7 +2414,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 49,
-        "apps/dashboard/src/features": 48,
+        "apps/dashboard/src/features": 47,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 67
       },
@@ -2427,7 +2425,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T14:19:41Z",
+  "generated_at": "2026-06-02T15:37:35Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -3960,26 +3958,6 @@
     },
     {
       "documentation_only": false,
-      "files": [],
-      "has_contracts": false,
-      "has_enqueue": false,
-      "has_errors": false,
-      "has_explicit_all": false,
-      "has_init": false,
-      "has_jobs": false,
-      "has_policies": false,
-      "has_repository": false,
-      "has_router": false,
-      "has_service_facade": false,
-      "name": "account_onboarding",
-      "registered": false,
-      "router_path": null,
-      "template_files_are_non_runtime": null,
-      "tests_present": false,
-      "workflows": []
-    },
-    {
-      "documentation_only": false,
       "files": [
         "backend/app/modules/account_profile_completeness/__init__.py",
         "backend/app/modules/account_profile_completeness/contracts.py",
@@ -5325,7 +5303,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 226,
+      "file_count": 225,
       "path": "backend/tests"
     },
     "docs": {
@@ -5335,7 +5313,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 292,
+      "file_count": 291,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {

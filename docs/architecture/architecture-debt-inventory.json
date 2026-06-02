@@ -1834,7 +1834,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T15:37:35Z",
+  "generated_at": "2026-06-02T15:20:16Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

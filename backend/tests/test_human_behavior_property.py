@@ -18,7 +18,9 @@ from app.services.human_behavior.typing_emulator import emit_typing
 from app.services.human_behavior.typing_emulator import total_duration
 from app.services.human_behavior.typo_generator import maybe_typo
 
-pytestmark = pytest.mark.property
+# Statistical / calibration property tests — assigned to the nightly heavy bucket
+# per the profile split in #264. Run via --run-property in the nightly profile.
+pytestmark = pytest.mark.property_heavy
 
 _ACTIONS = ["view_profile", "scroll", "react", "comment", "read_messages"]
 

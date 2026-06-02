@@ -77,13 +77,18 @@ jobs:
           uv sync --locked --extra test
       - name: Prepare database
         run: uv run python -m alembic upgrade head
+      - name: Resolve canonical nightly marker expression
+        # Single source of truth (#264): scripts/pytest_profiles.py.
+        run: |
+          NIGHTLY_MARKER_EXPR="$(uv run python -m scripts.pytest_profiles nightly-slow-property-markers)"
+          echo "NIGHTLY_MARKER_EXPR=${NIGHTLY_MARKER_EXPR}" | tee -a "$GITHUB_ENV"
       - name: Run slow and property tests
         run: |
           mkdir -p reports
           set +e
           uv run pytest tests \
             --ignore=tests/contract \
-            -m "slow or property" \
+            -m "${NIGHTLY_MARKER_EXPR}" \
             --run-property \
             --hypothesis-show-statistics \
             -p no:randomly \
@@ -92,8 +97,11 @@ jobs:
             --junit-xml=reports/nightly-slow-property-junit.xml \
             -q
           rc=$?
+          # Exit code 5 (no tests collected) is acceptable for the nightly heavy
+          # bucket when the suite has not yet been reclassified into
+          # property_heavy/property_pr; remove this carve-out once #264 D lands.
           if [ "$rc" -eq 5 ]; then
-            echo "No slow/property tests selected."
+            echo "No slow/property_heavy/nightly tests selected."
             exit 0
           fi
           exit "$rc"

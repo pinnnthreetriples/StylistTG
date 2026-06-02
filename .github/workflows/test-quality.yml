@@ -113,6 +113,12 @@ jobs:
           uv sync --locked --extra test
       - name: Prepare reports directory
         run: mkdir -p reports
+      - name: Resolve canonical PR marker expression
+        # Single source of truth (#264): scripts/pytest_profiles.py.
+        run: |
+          PR_MARKER_EXPR="$(uv run python -m scripts.pytest_profiles pr-markers)"
+          echo "PR_MARKER_EXPR=${PR_MARKER_EXPR}" | tee -a "$GITHUB_ENV"
+          echo "pr_marker_expr=${PR_MARKER_EXPR}" | tee reports/pytest-runtime-summary.txt
       - name: Run tests with coverage
         run: |
           set -o pipefail
@@ -120,12 +126,12 @@ jobs:
             echo "pytest_profile=${PYTEST_PROFILE}"
             echo "pytest_workers=${PYTEST_WORKERS}"
             echo "pytest_dist=${PYTEST_DIST}"
-          } | tee reports/pytest-runtime-summary.txt
+          } | tee -a reports/pytest-runtime-summary.txt
           /usr/bin/time -f "pytest_total_seconds=%e" -o reports/pytest-time.txt \
             uv run pytest tests \
               --ignore=tests/contract \
               -n "${PYTEST_WORKERS}" --dist="${PYTEST_DIST}" \
-              -m "not contract and not live and not integration and not slow" \
+              -m "${PR_MARKER_EXPR}" \
               --cov=app --cov=tools --cov-branch --cov-context=test \
               --cov-report=json:reports/coverage.json \
               --cov-report=xml:reports/coverage.xml \
@@ -148,6 +154,14 @@ jobs:
               --threshold 5 \
               --threshold 10
           cat reports/slow-report-time.txt | tee -a reports/pytest-runtime-summary.txt
+      - name: Enforce slow-test budget (#264)
+        # PR profile budget: unmarked tests exceeding 3s call / 2s setup fail.
+        run: |
+          uv run python scripts/enforce_slow_test_budget.py \
+            --report reports/slow-tests.json \
+            --max-call-seconds 3 \
+            --max-setup-seconds 2 \
+            --profile pr
       - name: Audit fixture usage
         # Zero-soft-fail policy (#262): fixture audit hard-fails. Artifact upload below
         # uses `if: always()` to preserve the JSON for diagnosis when this step fails.

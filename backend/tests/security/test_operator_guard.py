@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 from starlette.datastructures import Headers
 
@@ -223,8 +222,7 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
                     role_body = response.json()
                     if expected == 403:
                         assert isinstance(role_body, dict) and (
-                            role_body.get("error_code") == "ROLE_FORBIDDEN"
-                            or "detail" in role_body
+                            role_body.get("error_code") == "ROLE_FORBIDDEN" or "detail" in role_body
                         ), f"role={role} 403 for {endpoint} had unexpected envelope: {role_body!r}"
                     else:
                         assert isinstance(role_body, dict) and role_body, (

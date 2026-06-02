@@ -9,6 +9,11 @@ import shutil
 import shlex
 import subprocess
 import sys
+
+from scripts.mutation_allowlist import (
+    MutationAllowlistExpiredError,
+    validate_allowlist,
+)
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +132,18 @@ def main() -> int:
     parser.add_argument("--min-score", type=float, default=65.0)
     parser.add_argument("--soft", action="store_true", help="report failures without failing")
     args = parser.parse_args()
+
+    # Mutation allowlist must be valid (no expired entries) before any work
+    # starts — expired equivalent-mutant exceptions are a hard gate failure,
+    # not a soft pass (#267 review). The loader raises on expired entries.
+    try:
+        validate_allowlist()
+    except MutationAllowlistExpiredError as exc:
+        print(f"FAIL: {exc}", file=sys.stderr)
+        return 1
+    except (ValueError, OSError) as exc:
+        print(f"FAIL: mutation allowlist invalid: {exc}", file=sys.stderr)
+        return 1
 
     reports_dir = (REPO_ROOT / args.reports_dir).resolve()
     reports_dir.mkdir(parents=True, exist_ok=True)

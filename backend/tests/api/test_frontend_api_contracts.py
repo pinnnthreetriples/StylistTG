@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -379,7 +380,12 @@ def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> Non
         )
 
     assert response.status_code == 422
-    assert response.json()
+    body = response.json()
+    assert body["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert any(
+        "profile_job_cooldown_seconds" in (entry.get("field") or "")
+        for entry in body["field_errors"]
+    ), f"expected profile_job_cooldown_seconds field error, got body={body!r}"
 
 
 def test_profile_preview_returns_validation_plan_and_dedup(monkeypatch) -> None:

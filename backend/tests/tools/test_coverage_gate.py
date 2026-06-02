@@ -12,6 +12,8 @@ def _write_coverage(tmp_path: Path, files: dict[str, dict[str, int]]) -> None:
     reports = tmp_path / "reports"
     reports.mkdir()
     payload = {
+        # Strict branch-coverage gate (#265) validates meta.branch_coverage.
+        "meta": {"branch_coverage": True},
         "files": {
             path: {
                 "summary": {
@@ -22,7 +24,7 @@ def _write_coverage(tmp_path: Path, files: dict[str, dict[str, int]]) -> None:
                 }
             }
             for path, values in files.items()
-        }
+        },
     }
     (reports / "coverage.json").write_text(json.dumps(payload), encoding="utf-8")
 

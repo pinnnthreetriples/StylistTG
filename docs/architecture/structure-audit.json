@@ -1530,7 +1530,6 @@
           "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
           "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
           "apps/dashboard/src/features/accounts/accountColumns.tsx",
-          "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
           "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
           "apps/dashboard/src/features/accounts/accountRisk.test.ts",
           "apps/dashboard/src/features/accounts/accountRisk.ts",
@@ -1753,14 +1752,12 @@
           "backend/scripts/check.py",
           "backend/scripts/check.sh",
           "backend/scripts/coverage_gate.py",
-          "backend/scripts/enforce_slow_test_budget.py",
           "backend/scripts/flaky_detection.py",
           "backend/scripts/legacy_wrapper_audit.py",
           "backend/scripts/migration_replay.py",
           "backend/scripts/mutation_gate.py",
           "backend/scripts/mutation_suite.py",
           "backend/scripts/nightly_randomized.py",
-          "backend/scripts/pytest_profiles.py",
           "backend/scripts/report_slow_tests.py",
           "backend/scripts/require_tests_for_new_backend_files.py",
           "backend/scripts/seed_safety_replay_dataset.py",
@@ -1786,7 +1783,6 @@
           "backend/tests/api/__init__.py",
           "backend/tests/api/test_account_contracts.py",
           "backend/tests/api/test_account_import_contracts.py",
-          "backend/tests/api/test_account_onboarding_api.py",
           "backend/tests/api/test_account_update_api.py",
           "backend/tests/api/test_api_contracts.py",
           "backend/tests/api/test_auth_api_contracts.py",
@@ -1970,7 +1966,6 @@
           "backend/tests/tools/test_migration_lint.py",
           "backend/tests/tools/test_mutation_suite.py",
           "backend/tests/tools/test_nightly_randomized.py",
-          "backend/tests/tools/test_pytest_profiles.py",
           "backend/tests/tools/test_strict_enforcement_262.py",
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
@@ -2111,7 +2106,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T14:36:44Z",
+    "generated_at": "2026-06-02T14:24:57Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2430,7 +2425,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 49,
-        "apps/dashboard/src/features": 49,
+        "apps/dashboard/src/features": 48,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 67
       },
@@ -2441,7 +2436,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T14:36:44Z",
+  "generated_at": "2026-06-02T14:24:57Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5348,12 +5343,12 @@
   "supporting_surfaces": {
     "backend_scripts": {
       "exists": true,
-      "file_count": 20,
+      "file_count": 18,
       "path": "backend/scripts"
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 224,
+      "file_count": 222,
       "path": "backend/tests"
     },
     "docs": {
@@ -5363,7 +5358,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 293,
+      "file_count": 292,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {

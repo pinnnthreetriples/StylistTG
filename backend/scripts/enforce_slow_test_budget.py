@@ -99,7 +99,11 @@ def _filter_unbudgeted(
     for entry in slow_entries:
         nodeid = str(entry.get("nodeid", ""))
         phase = str(entry.get("phase", "call"))
-        seconds = float(entry.get("seconds", 0.0))
+        # report_slow_tests.py emits SlowTestEntry.duration_seconds; older
+        # synthetic inputs used the unqualified `seconds` key — accept both
+        # so the gate stays honest when the producer schema evolves.
+        raw_seconds = entry.get("duration_seconds", entry.get("seconds", 0.0))
+        seconds = float(raw_seconds or 0.0)
 
         budget = max_call if phase == "call" else max_setup if phase == "setup" else None
         if budget is None or seconds <= budget:

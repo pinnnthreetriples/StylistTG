@@ -155,3 +155,36 @@ def test_enforce_slow_test_budget_exempts_marked_test(tmp_path: Path) -> None:
         ["--report", str(report), "--max-call-seconds", "1.0"]
     )
     assert exit_code == 0
+
+
+def test_enforce_slow_test_budget_accepts_report_slow_tests_schema(tmp_path: Path) -> None:
+    """report_slow_tests.py emits {"tests": [...]} with duration_seconds.
+
+    The budget script must consume that schema directly — silently mapping
+    duration_seconds to 0 would let a slow test pass the gate. Pins the
+    cross-script contract.
+    """
+    report = tmp_path / "slow-tests.json"
+    report.write_text(
+        json.dumps(
+            {
+                "summary": {"reported_tests": 1, "thresholds_seconds": [3.0]},
+                "tests": [
+                    {
+                        "nodeid": "tests/does_not_exist.py::test_slow",
+                        "phase": "call",
+                        "duration_seconds": 12.5,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    exit_code = enforce_slow_test_budget.main(
+        ["--report", str(report), "--max-call-seconds", "1.0"]
+    )
+    assert exit_code == 1, (
+        "duration_seconds=12.5 must flag a budget violation; if exit_code == 0 "
+        "the budget script is mis-reading report_slow_tests.py output and would "
+        "silently disable the gate."
+    )

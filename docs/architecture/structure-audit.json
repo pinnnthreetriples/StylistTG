@@ -1973,7 +1973,6 @@
           "backend/tests/tools/test_strict_enforcement_262.py",
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
-          "backend/tests/tools/test_weak_response_rules.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
           "backend/tests/warmup/test_warmup_dispatch.py",
           "backend/tests/warmup/test_warmup_foundation.py",
@@ -2111,7 +2110,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T15:11:20Z",
+    "generated_at": "2026-06-02T09:37:32Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2431,7 +2430,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T15:11:20Z",
+  "generated_at": "2026-06-02T09:37:32Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5309,7 +5308,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 231,
+      "file_count": 230,
       "path": "backend/tests"
     },
     "docs": {

@@ -95,19 +95,44 @@ def _analyzer_totals(report: Any) -> dict[str, Any]:
 
 
 def _slow_test_totals(report: Any) -> dict[str, Any]:
+    """Compute slow-test totals from a ``slow-tests.json`` payload.
+
+    ``report_slow_tests.py`` emits ``{"summary": ..., "tests": [...]}`` with
+    ``duration_seconds`` keys. Older synthetic tests used ``{"entries":
+    [...]}`` and ``seconds``. Accept both so the dashboard reports
+    ``available: True`` against either schema — silently degrading to
+    ``available: False`` against the real producer is exactly the loophole
+    the review wants closed.
+    """
     if not report:
         return {"available": False, "total": 0}
-    entries = report.get("entries") if isinstance(report, dict) else report
+    if isinstance(report, dict):
+        entries = report.get("entries") or report.get("tests") or []
+    else:
+        entries = report
     if not isinstance(entries, list):
         return {"available": False, "total": 0}
+    if not entries:
+        # Producer ran but reported zero slow tests — that's a healthy result.
+        return {"available": True, "total": 0, "max_call_seconds": 0.0}
+
+    def _seconds(entry: Any) -> float:
+        if not isinstance(entry, dict):
+            return 0.0
+        raw = entry.get("duration_seconds", entry.get("seconds", 0.0))
+        try:
+            return float(raw or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
     return {
         "available": True,
         "total": len(entries),
         "max_call_seconds": max(
             (
-                float(e.get("seconds") or 0.0)
+                _seconds(e)
                 for e in entries
-                if str(e.get("phase", "call")) == "call"
+                if isinstance(e, dict) and str(e.get("phase", "call")) == "call"
             ),
             default=0.0,
         ),

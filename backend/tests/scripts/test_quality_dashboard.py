@@ -192,3 +192,38 @@ def test_main_writes_both_outputs(tmp_path: Path) -> None:
     assert out_md.is_file()
     payload = json.loads(out_json.read_text())
     assert payload["schema_version"] == 2
+
+
+def test_build_snapshot_accepts_report_slow_tests_schema(tmp_path: Path) -> None:
+    """Producer schema: {"summary": ..., "tests": [{"duration_seconds": ...}]}.
+
+    The dashboard MUST report ``available: True`` against the real
+    ``report_slow_tests.py`` output — silently degrading to
+    ``available: False`` would re-open the missing-required-report loophole
+    that #275's --fail-on-incomplete is meant to close.
+    """
+    _write(
+        tmp_path / "slow-tests.json",
+        {
+            "summary": {"reported_tests": 2, "thresholds_seconds": [3.0, 5.0, 10.0]},
+            "tests": [
+                {"nodeid": "tests/test_a.py::t", "phase": "call", "duration_seconds": 4.5},
+                {"nodeid": "tests/test_b.py::t", "phase": "setup", "duration_seconds": 1.2},
+            ],
+        },
+    )
+    slow = quality_dashboard.build_snapshot(tmp_path)["slow_tests"]
+    assert slow["available"] is True
+    assert slow["total"] == 2
+    assert slow["max_call_seconds"] == 4.5
+
+
+def test_build_snapshot_empty_tests_list_is_available(tmp_path: Path) -> None:
+    """A run with zero slow tests is a healthy result, not 'missing'."""
+    _write(
+        tmp_path / "slow-tests.json",
+        {"summary": {"reported_tests": 0, "thresholds_seconds": [3.0]}, "tests": []},
+    )
+    snapshot = quality_dashboard.build_snapshot(tmp_path)
+    assert snapshot["slow_tests"]["available"] is True
+    assert snapshot["slow_tests"]["total"] == 0

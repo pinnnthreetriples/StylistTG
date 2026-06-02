@@ -184,10 +184,27 @@ tests.
 
 ### Suppression policy
 
-Inline analyzer suppressions are allowed only when an exact assertion is
-impossible (e.g. unstable third-party field, intentionally generic match) and
-must include `reason="…"`. Suppressions tied to deferred work must reference
-a tracking issue. The analyzer flags missing `reason=` as META001.
+Inline analyzer suppressions use a three-field format and are validated by
+`tools.test_analyzer`:
+
+```python
+# test-analyzer: disable=TQA050 reason="…" issue="#263" expires="2026-08-31"
+```
+
+- `reason="…"` — required. Missing → **META001** WARNING.
+- `issue="#NNN"` — recommended for deferred work, optional for permanent
+  false-positive carve-outs. The format is `#` followed by digits.
+- `expires="YYYY-MM-DD"` — recommended for deferred work. Past expiry
+  fires **META003** CRITICAL — the analyzer hard-fails CI when an
+  expiring suppression has lapsed. Malformed dates also fire META003.
+
+Permanent suppressions (analyzer false positives on patterns that are
+already strict, e.g. exception-attribute checks the rule does not yet
+understand) may omit `issue=`/`expires=`. They MUST still include a
+`reason=` that names the false-positive and identifies the underlying
+rule limitation, so a future analyzer improvement can clean them up.
+
+The same three-field format also applies to `disable-file=`.
 
 Helpers live in `backend/tests/helpers/assertions.py`; their behaviour is
 pinned by `backend/tests/helpers/test_assertions.py`.

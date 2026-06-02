@@ -114,7 +114,9 @@ def test_clear_terminal_status_short_reason_returns_422(admin_client, db_session
     # field_errors must mention the offending reason field so the UI can render it.
     assert len(body["field_errors"]) >= 1
     field_names = {entry.get("field") for entry in body["field_errors"]}
-    assert "reason" in field_names, f"expected `reason` in field_errors, got {body['field_errors']!r}"
+    assert "reason" in field_names, (
+        f"expected `reason` in field_errors, got {body['field_errors']!r}"
+    )
 
 
 def test_clear_terminal_status_cross_tenant_returns_404(app_client, db_session) -> None:

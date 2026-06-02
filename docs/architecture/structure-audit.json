@@ -169,7 +169,7 @@
       "test_count": 9
     }
   ],
-  "backend_overall_status": "RED",
+  "backend_overall_status": "GREEN",
   "boundaries": {
     "contracts_forbidden_imports": {
       "backend/app/contracts/__init__.py": [],
@@ -198,7 +198,6 @@
       "backend/app/modules/account_editing/contracts.py": [],
       "backend/app/modules/account_ggr/contracts.py": [],
       "backend/app/modules/account_lifecycle/contracts.py": [],
-      "backend/app/modules/account_onboarding/contracts.py": [],
       "backend/app/modules/account_profile_completeness/contracts.py": [],
       "backend/app/modules/account_safety/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
@@ -212,8 +211,6 @@
     "fastapi_outside_router_or_auth_dependencies": [
       "backend/app/modules/account_core/accounts_router.py",
       "backend/app/modules/account_core/compat_router.py",
-      "backend/app/modules/account_onboarding/errors.py",
-      "backend/app/modules/account_onboarding/service.py",
       "backend/app/modules/account_safety/quarantine_router.py",
       "backend/app/modules/account_safety/runtime_router.py",
       "backend/app/modules/account_safety/status_router.py",
@@ -260,7 +257,6 @@
       "backend/app/modules/account_imports/router.py": [],
       "backend/app/modules/account_jobs/router.py": [],
       "backend/app/modules/account_lifecycle/router.py": [],
-      "backend/app/modules/account_onboarding/router.py": [],
       "backend/app/modules/account_profile_completeness/router.py": [],
       "backend/app/modules/account_proxy/router.py": [],
       "backend/app/modules/account_safety/accounts_router.py": [],
@@ -1153,7 +1149,6 @@
           "backend/app/migration_helpers/neuro_commenting_foundation_common.py",
           "backend/app/migration_helpers/neuro_commenting_foundation_core.py",
           "backend/app/model_defs/__init__.py",
-          "backend/app/model_defs/account_onboarding.py",
           "backend/app/model_defs/account_runtime.py",
           "backend/app/model_defs/auth.py",
           "backend/app/model_defs/identity.py",
@@ -1530,8 +1525,6 @@
           "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
           "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
           "apps/dashboard/src/features/accounts/accountColumns.tsx",
-          "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
-          "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
           "apps/dashboard/src/features/accounts/accountRisk.test.ts",
           "apps/dashboard/src/features/accounts/accountRisk.ts",
           "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1786,7 +1779,6 @@
           "backend/tests/api/__init__.py",
           "backend/tests/api/test_account_contracts.py",
           "backend/tests/api/test_account_import_contracts.py",
-          "backend/tests/api/test_account_onboarding_api.py",
           "backend/tests/api/test_account_update_api.py",
           "backend/tests/api/test_api_contracts.py",
           "backend/tests/api/test_auth_api_contracts.py",
@@ -2119,7 +2111,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T14:40:09Z",
+    "generated_at": "2026-06-02T09:38:17Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2152,29 +2144,19 @@
       "residual_legacy_feature_boundary_count": 0,
       "unmanaged_feature_surface_count": 0
     },
-    "untracked_backend_app_python_files": [
-      "backend/app/modules/account_onboarding/__init__.py",
-      "backend/app/modules/account_onboarding/artifacts.py",
-      "backend/app/modules/account_onboarding/contracts.py",
-      "backend/app/modules/account_onboarding/errors.py",
-      "backend/app/modules/account_onboarding/module.py",
-      "backend/app/modules/account_onboarding/router.py",
-      "backend/app/modules/account_onboarding/service.py",
-      "backend/app/modules/account_onboarding/state.py",
-      "backend/app/modules/account_onboarding/workers.py"
-    ]
+    "untracked_backend_app_python_files": []
   },
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; classification issues: backend/app/modules/account_onboarding/__init__.py, backend/app/modules/account_onboarding/artifacts.py, backend/app/modules/account_onboarding/contracts.py, backend/app/modules/account_onboarding/errors.py, backend/app/modules/account_onboarding/module.py, backend/app/modules/account_onboarding/router.py, backend/app/modules/account_onboarding/service.py, backend/app/modules/account_onboarding/state.py, backend/app/modules/account_onboarding/workers.py; residual guard violations: none.",
-      "finding": "Backend has unclassified, overlapping, or silently expanded production boundaries in backend/app.",
+      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; no unmanaged feature debt is open.",
+      "finding": "Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
       "id": "STRUCTURE-001",
-      "recommendation": "Classify each backend/app production file exactly once and update residual-boundary governance only with related issue, rationale, removal condition, and verification scope.",
-      "risk": "High. Architecture audit must not report overall backend GREEN while production files are unclassified, multiply owned, or residual legacy feature boundaries have grown without governance.",
-      "severity": "high",
-      "status": "open",
-      "suggested_phase": "next"
+      "recommendation": "Keep structure audit drift checks required for structural changes.",
+      "risk": "Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     },
     {
       "area": "frontend",
@@ -2244,14 +2226,14 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"overlapping_backend_app_python_files\": {}, \"residual_boundary_guard_violations\": [], \"untracked_backend_app_python_files\": [\"backend/app/modules/account_onboarding/__init__.py\", \"backend/app/modules/account_onboarding/artifacts.py\", \"backend/app/modules/account_onboarding/contracts.py\", \"backend/app/modules/account_onboarding/errors.py\", \"backend/app/modules/account_onboarding/module.py\", \"backend/app/modules/account_onboarding/router.py\", \"backend/app/modules/account_onboarding/service.py\", \"backend/app/modules/account_onboarding/state.py\", \"backend/app/modules/account_onboarding/workers.py\"]}",
-      "finding": "Machine-readable inventory found unclassified, overlapping, or silently expanded backend/app production files.",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [], \"medium_residual_legacy_feature_boundary_count\": 0, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 0, \"residual_legacy_feature_boundaries\": [], \"residual_legacy_feature_boundary_count\": 0, \"unmanaged_feature_surface_count\": 0}",
+      "finding": "Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
       "id": "STRUCTURE-008",
-      "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked, overlapping, or unapproved residual-boundary growth.",
-      "risk": "High if new feature-owned code can appear outside app.modules without exactly one inventory owner and reviewed residual-boundary governance.",
-      "severity": "high",
-      "status": "open",
-      "suggested_phase": "next"
+      "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+      "risk": "Low while inventory checks keep production files classified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     }
   ],
   "forbidden_runtime_claims": {
@@ -2438,7 +2420,7 @@
       "files": [],
       "global_file_counts": {
         "apps/dashboard/src/components": 49,
-        "apps/dashboard/src/features": 49,
+        "apps/dashboard/src/features": 47,
         "apps/dashboard/src/hooks": 13,
         "apps/dashboard/src/lib": 67
       },
@@ -2449,7 +2431,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T14:40:09Z",
+  "generated_at": "2026-06-02T09:38:17Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -3983,40 +3965,6 @@
     {
       "documentation_only": false,
       "files": [
-        "backend/app/modules/account_onboarding/__init__.py",
-        "backend/app/modules/account_onboarding/artifacts.py",
-        "backend/app/modules/account_onboarding/contracts.py",
-        "backend/app/modules/account_onboarding/errors.py",
-        "backend/app/modules/account_onboarding/module.py",
-        "backend/app/modules/account_onboarding/router.py",
-        "backend/app/modules/account_onboarding/service.py",
-        "backend/app/modules/account_onboarding/state.py",
-        "backend/app/modules/account_onboarding/workers.py"
-      ],
-      "has_contracts": true,
-      "has_enqueue": false,
-      "has_errors": true,
-      "has_explicit_all": true,
-      "has_init": true,
-      "has_jobs": false,
-      "has_policies": false,
-      "has_repository": false,
-      "has_router": true,
-      "has_service_facade": true,
-      "name": "account_onboarding",
-      "registered": false,
-      "router_path": "app.modules.account_onboarding.router:router",
-      "template_files_are_non_runtime": null,
-      "tests_present": false,
-      "workflows": [
-        {
-          "module": "account_onboarding"
-        }
-      ]
-    },
-    {
-      "documentation_only": false,
-      "files": [
         "backend/app/modules/account_profile_completeness/__init__.py",
         "backend/app/modules/account_profile_completeness/contracts.py",
         "backend/app/modules/account_profile_completeness/interfaces.py",
@@ -5361,7 +5309,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 232,
+      "file_count": 231,
       "path": "backend/tests"
     },
     "docs": {
@@ -5371,7 +5319,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 293,
+      "file_count": 291,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {
@@ -5388,9 +5336,6 @@
       "module": "account_editing",
       "queue_name": "profile_jobs",
       "workflow_type": "account_update"
-    },
-    {
-      "module": "account_onboarding"
     },
     {
       "args_mode": "CUSTOM",

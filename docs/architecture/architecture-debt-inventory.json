@@ -1255,6 +1255,7 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
+        "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
         "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
@@ -1510,6 +1511,7 @@
         "backend/tests/api/__init__.py",
         "backend/tests/api/test_account_contracts.py",
         "backend/tests/api/test_account_import_contracts.py",
+        "backend/tests/api/test_account_onboarding_api.py",
         "backend/tests/api/test_account_update_api.py",
         "backend/tests/api/test_api_contracts.py",
         "backend/tests/api/test_auth_api_contracts.py",
@@ -1615,6 +1617,7 @@
         "backend/tests/runtime/test_runtime_preflight.py",
         "backend/tests/runtime/test_runtime_roles.py",
         "backend/tests/scripts/test_backfill_safety_pipeline.py",
+        "backend/tests/scripts/test_coverage_gate_branch_validation.py",
         "backend/tests/scripts/test_report_slow_tests.py",
         "backend/tests/security/test_operator_guard.py",
         "backend/tests/security/test_pii_leak_guard.py",
@@ -1836,7 +1839,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T14:26:05Z",
+  "generated_at": "2026-06-02T14:38:02Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

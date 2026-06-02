@@ -41,6 +41,36 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## Mutation testing policy
+
+Mutation testing runs nightly only (the `mutation-selected` job in
+`Nightly Backend Quality`) and **hard-fails** on survived non-equivalent
+mutants — the `continue-on-error: true` carve-out and `--soft` argument
+were both removed in #262.
+
+Genuinely equivalent mutants can be allowlisted via
+`backend/scripts/mutation_allowlist.json`. Every entry requires:
+
+- `module` — file path of the mutated module;
+- `mutant_signature` — the mutmut signature, e.g.
+  `secret_redaction.py:42:replace_=_with_!=`;
+- `reason` — non-empty explanation;
+- `owner` — `@GitHubHandle`;
+- `follow_up_issue` — `#NN` tracking ticket;
+- `expires_at` — ISO date; after expiry the loader treats the entry
+  as invalid so the gate fires again.
+
+`backend/scripts/mutation_allowlist.py::load_allowlist` parses the JSON
+and `active_entries(today=...)` returns only the non-expired set.
+Behaviour is pinned by
+`backend/tests/scripts/test_mutation_allowlist.py` (8 regression tests:
+well-formed, every field validation, expiry filter, shipped-default
+loads cleanly). The default registry ships empty.
+
+Staged thresholds and mutmut target-list expansion are tracked in
+follow-ups; this slice ships the policy + loader so allowlist entries
+have a schema as soon as the first equivalent-mutant arises.
+
 ## Determinism policy
 
 PR-selected tests must be deterministic. Forbidden patterns:

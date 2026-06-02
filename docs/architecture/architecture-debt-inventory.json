@@ -1479,6 +1479,8 @@
         "backend/scripts/flaky_detection.py",
         "backend/scripts/legacy_wrapper_audit.py",
         "backend/scripts/migration_replay.py",
+        "backend/scripts/mutation_allowlist.json",
+        "backend/scripts/mutation_allowlist.py",
         "backend/scripts/mutation_gate.py",
         "backend/scripts/mutation_suite.py",
         "backend/scripts/nightly_randomized.py",
@@ -1617,7 +1619,8 @@
         "backend/tests/runtime/test_runtime_preflight.py",
         "backend/tests/runtime/test_runtime_roles.py",
         "backend/tests/scripts/test_backfill_safety_pipeline.py",
-        "backend/tests/scripts/test_coverage_gate.py",
+        "backend/tests/scripts/test_coverage_gate_branch_validation.py",
+        "backend/tests/scripts/test_mutation_allowlist.py",
         "backend/tests/scripts/test_report_slow_tests.py",
         "backend/tests/security/rbac_matrix_baseline.json",
         "backend/tests/security/test_endpoint_matrix_completeness.py",
@@ -1842,7 +1845,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T02:00:37Z",
+  "generated_at": "2026-06-02T09:40:18Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

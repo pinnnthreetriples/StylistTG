@@ -1,5 +1,3 @@
-# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check; replaced with exact body assertion in the #263 sweep" issue="#263" expires="2026-08-31"
-
 from tests.helpers.app import app_client
 from tests.helpers.factories import make_session
 

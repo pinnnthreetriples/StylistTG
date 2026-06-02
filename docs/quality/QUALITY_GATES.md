@@ -41,52 +41,6 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
-## Determinism policy
-
-PR-selected tests must be deterministic. Forbidden patterns:
-
-- `datetime.now()` / `time.time()` without a frozen clock — use
-  `tests.helpers.determinism.frozen_clock` or `freezegun.freeze_time`.
-- `random.random()` / `random.choice(...)` / similar without a seed —
-  use `tests.helpers.determinism.seeded_rng()`.
-- `requests.get(...)` / `httpx.get(...)` against real hosts — use the
-  FastAPI `TestClient` or a `respx` / `responses` mock.
-- File writes outside `tmp_path` / `tmp_path_factory`.
-- Background tasks without an explicit fake worker / `freeze_time`.
-
-The analyzer rules in `tools.test_analyzer.rules.flaky` catch the most
-common violations (`TimeSleep`, `RandomWithoutSeed`, `DatetimeNow`,
-`ExternalHTTPWithoutMarker`, `FilesystemWriteOutsideTmp`). New tests
-should reach for the helpers in `tests/helpers/determinism.py` rather
-than re-rolling local frozen-clock or seed primitives — the helpers are
-pinned by `tests/helpers/test_determinism.py`.
-
-## Analyzer rule coverage
-
-The test analyzer (`tools.test_analyzer`) catches weak/flaky test
-patterns before review. Most rules are AST-based and parse the Python
-file's syntax tree, which avoids false positives from comments or
-docstring mentions of the same patterns.
-
-Coverage classes:
-
-- **Assertions** — zero-assertion tests, `assert True`, self-equality,
-  too-many-asserts, `pytest.raises` without `match=`, manual try/except,
-  bare `assert response.json()` truthiness (TQA050), `assert "key" in
-  response.json()` membership-only (TQA051).
-- **Flaky** — uncontrolled clock, RNG without seed, network without
-  marker, filesystem writes outside `tmp_path`.
-- **Mocks** — mocks created without verifying calls, patch.start without
-  stop, monkeypatch ordering.
-- **Project (StylistTG)** — dependency-overrides without finally,
-  TestClient without `app_client`, 4xx without typed error body
-  (STG003), live tests without env guard.
-
-Adding a new rule: subclass `Rule`, implement `check`, add a bad/good
-sample pair to `backend/tests/tools/test_test_analyzer.py` (or a
-dedicated test file), and register the instance in
-`backend/tools/test_analyzer/rules/__init__.py::ALL_RULES`.
-
 ## RBAC endpoint matrix coverage
 
 Every mutating `/api/` or `/diagnostics/` route (POST / PATCH / PUT /

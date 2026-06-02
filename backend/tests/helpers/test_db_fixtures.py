@@ -40,6 +40,22 @@ def test_transactional_session_isolates_from_previous_test(transactional_db_sess
 
 def test_flushed_but_uncommitted_writes_do_not_leak(transactional_db_session) -> None:
     # Sanity: an uncommitted write made by a previous test is rolled back
-    # before this test begins. (Tests that explicitly call .commit() should
-    # not use this fixture — see the docstring on transactional_db_session.)
+    # before this test begins. The fixture intentionally disallows commit
+    # (see ``test_commit_raises_dbfixture_commit_not_supported`` below).
     assert transactional_db_session.query(Workspace).count() == 0
+
+
+def test_commit_raises_dbfixture_commit_not_supported(transactional_db_session) -> None:
+    """Calling ``session.commit()`` on the transactional fixture must raise.
+
+    SQLite-on-StaticPool does not fully restore connection state after a
+    commit-as-savepoint-release across tests, so allowing commits would
+    silently leak rows into subsequent tests. Tests that need a real
+    commit must use the per-engine ``db_session`` fixture.
+    """
+    from tests.helpers.db_fixtures import DBFixtureCommitNotSupportedError
+
+    _seed_workspace(transactional_db_session, "commit-not-supported")
+
+    with pytest.raises(DBFixtureCommitNotSupportedError, match="does not support session.commit"):
+        transactional_db_session.commit()

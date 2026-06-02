@@ -1750,6 +1750,8 @@
           "backend/scripts/flaky_detection.py",
           "backend/scripts/legacy_wrapper_audit.py",
           "backend/scripts/migration_replay.py",
+          "backend/scripts/mutation_allowlist.json",
+          "backend/scripts/mutation_allowlist.py",
           "backend/scripts/mutation_gate.py",
           "backend/scripts/mutation_suite.py",
           "backend/scripts/nightly_randomized.py",
@@ -1821,6 +1823,8 @@
           "backend/tests/conftest.py",
           "backend/tests/contract/__init__.py",
           "backend/tests/contract/security/__init__.py",
+          "backend/tests/contract/security/exclusions.py",
+          "backend/tests/contract/security/test_exclusions_policy.py",
           "backend/tests/contract/security/test_operator_token_contract.py",
           "backend/tests/contract/test_openapi_contract_regressions.py",
           "backend/tests/contract/test_openapi_fuzz.py",
@@ -1840,10 +1844,12 @@
           "backend/tests/helpers/app.py",
           "backend/tests/helpers/assertions.py",
           "backend/tests/helpers/db_fixtures.py",
+          "backend/tests/helpers/determinism.py",
           "backend/tests/helpers/factories.py",
           "backend/tests/helpers/query_count.py",
           "backend/tests/helpers/test_assertions.py",
           "backend/tests/helpers/test_db_fixtures.py",
+          "backend/tests/helpers/test_determinism.py",
           "backend/tests/helpers/warmup.py",
           "backend/tests/infra/test_cloud_bootstrap_scripts.py",
           "backend/tests/infra/test_config_validation.py",
@@ -1884,7 +1890,11 @@
           "backend/tests/runtime/test_runtime_preflight.py",
           "backend/tests/runtime/test_runtime_roles.py",
           "backend/tests/scripts/test_backfill_safety_pipeline.py",
+          "backend/tests/scripts/test_coverage_gate_branch_validation.py",
+          "backend/tests/scripts/test_mutation_allowlist.py",
           "backend/tests/scripts/test_report_slow_tests.py",
+          "backend/tests/security/rbac_matrix_baseline.json",
+          "backend/tests/security/test_endpoint_matrix_completeness.py",
           "backend/tests/security/test_operator_guard.py",
           "backend/tests/security/test_pii_leak_guard.py",
           "backend/tests/security/test_property_security_helpers.py",
@@ -1968,6 +1978,7 @@
           "backend/tests/tools/test_strict_enforcement_262.py",
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
+          "backend/tests/tools/test_weak_response_rules.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
           "backend/tests/warmup/test_warmup_dispatch.py",
           "backend/tests/warmup/test_warmup_foundation.py",
@@ -2105,7 +2116,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T15:20:16Z",
+    "generated_at": "2026-06-02T16:17:44Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2425,7 +2436,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T15:20:16Z",
+  "generated_at": "2026-06-02T16:17:44Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5298,12 +5309,12 @@
   "supporting_surfaces": {
     "backend_scripts": {
       "exists": true,
-      "file_count": 20,
+      "file_count": 22,
       "path": "backend/scripts"
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 225,
+      "file_count": 234,
       "path": "backend/tests"
     },
     "docs": {

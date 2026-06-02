@@ -23,6 +23,7 @@ from .flaky import (
     TimeSleep,
 )
 from .mocks import MockWithoutAssert, MonkeypatchAfterCall, PatchStartWithoutStop
+from .weak_response import AssertKeyInResponseJson, AssertResponseJsonTruthiness
 from .stylisttg import (
     AmbiguousStatusCode,
     API4xxWithoutErrorCode,
@@ -42,6 +43,8 @@ ALL_RULES: list[Rule] = [
     AssertTrue(),
     AssertSelfEquality(),
     TooManyAssertions(),
+    AssertResponseJsonTruthiness(),
+    AssertKeyInResponseJson(),
     UnittestAssertTrue(),
     ManualExceptionCatch(),
     PytestRaisesWithoutMatch(),

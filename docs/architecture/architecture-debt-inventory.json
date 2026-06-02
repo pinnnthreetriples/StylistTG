@@ -1571,10 +1571,12 @@
         "backend/tests/helpers/app.py",
         "backend/tests/helpers/assertions.py",
         "backend/tests/helpers/db_fixtures.py",
+        "backend/tests/helpers/determinism.py",
         "backend/tests/helpers/factories.py",
         "backend/tests/helpers/query_count.py",
         "backend/tests/helpers/test_assertions.py",
         "backend/tests/helpers/test_db_fixtures.py",
+        "backend/tests/helpers/test_determinism.py",
         "backend/tests/helpers/warmup.py",
         "backend/tests/infra/test_cloud_bootstrap_scripts.py",
         "backend/tests/infra/test_config_validation.py",
@@ -1840,7 +1842,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T09:38:17Z",
+  "generated_at": "2026-06-02T09:39:50Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

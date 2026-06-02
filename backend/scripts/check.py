@@ -129,11 +129,12 @@ NIGHTLY_CHECKS: list[Check] = [
         [sys.executable, "scripts/nightly_randomized.py"],
         REPO_ROOT,
     ),
+    # Zero-soft-fail policy (#262): mutation runs in nightly only, but must hard-fail
+    # when it runs. Mutation-score hardening (allowlist, staged thresholds) is #267.
     Check(
         "mutation",
-        [sys.executable, "scripts/mutation_suite.py", "--soft"],
+        [sys.executable, "scripts/mutation_suite.py"],
         REPO_ROOT,
-        soft=True,
     ),
 ]
 

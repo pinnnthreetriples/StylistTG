@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA040 reason="contract/registration test file; module-public-boundary checks have no error path to exercise here. Negative coverage lives in test_account_safety.py and friends."
+
 import importlib
 
 from app.modules.account_safety import contracts, interfaces, service

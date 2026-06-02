@@ -241,6 +241,7 @@ class TestCrossWorkspaceReadBlocked:
         assert r.status_code == 404
         assert self._ids["job"] not in r.text
 
+    # test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
     def test_foreign_story_drafts_returns_404_without_leaks(self):
         r = self._client.get(f"/api/story-drafts/{self._ids['account']}")
         assert r.status_code == 404, (

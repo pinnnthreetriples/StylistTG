@@ -227,6 +227,7 @@ pytest_add_cli_args = ["-p", "no:randomly"]
 pythonpath = ["."]
 testpaths = ["tests"]
 # Strict mode: typo'd markers, unknown config keys, and xfail-that-pass become errors.
+# See docs/quality/QUALITY_GATES.md "Zero-warning / zero-soft-fail policy".
 strict_config = true
 strict_markers = true
 xfail_strict = true
@@ -238,14 +239,17 @@ addopts = [
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
+# Each ignore must include a `Why:` line and either a fix plan or a tracking issue.
 # Anything new = build red until either fixed or explicitly ignored with justification.
 filterwarnings = [
   "error",
-  # ResourceWarning fires asynchronously from GC of unclosed SQLite connections in
-  # in-memory test factories. Ignored project-wide; fixing the leaks is tracked
-  # separately (per-fixture engine.dispose()). Real DeprecationWarnings still error.
+  # Why: ResourceWarning fires asynchronously from GC of unclosed SQLite connections
+  # in in-memory test factories. Fixing the leaks (per-fixture engine.dispose()) is
+  # tracked in the DB-fixture optimization issue #268.
   "ignore::ResourceWarning",
-  # Pytest informational warnings are not actionable for us.
+  # Why: pytest emits PytestUnraisableExceptionWarning for exceptions raised inside
+  # __del__ that are otherwise unobservable. Not actionable for application tests;
+  # actual application errors still surface via the underlying exception.
   "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 markers = [
@@ -255,13 +259,18 @@ markers = [
   "worker: RQ/background-worker tests with deterministic queues and no live services",
   "architecture: structural tests for boundaries, imports, and layering",
   "property: Hypothesis/property-based tests; heavier cases run in nightly when marked slow",
+  "property_pr: short Hypothesis profile allowed in the PR profile (#264)",
+  "property_heavy: expensive Hypothesis/statistical tests for nightly only (#264)",
   "contract: API/OpenAPI/client contract tests and Schemathesis fuzz",
+  "contract_security: hard security-sensitive contract subset (PR profile must run this)",
   "slow: expensive tests that should normally run only in nightly/full CI",
   "integration: integration tests requiring real service boundaries or non-trivial infrastructure",
   "live: live environment smoke or verification tests that require external services",
   "postgres: requires real PostgreSQL",
   "redis: requires real Redis",
   "benchmark: performance budget benchmarks; disabled by default and run in nightly/manual",
+  "mutation: mutation-testing helpers/profile (see #267)",
+  "nightly: tests intended only for scheduled/manual heavy workflows",
   "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
   "requires_metrics: requires prometheus_client (skip when not installed)",
   "requires_fakeredis: requires fakeredis package (skip when not installed)",

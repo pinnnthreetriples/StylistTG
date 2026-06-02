@@ -35,7 +35,11 @@ STG004 = true
 STG005 = true
 STG006 = true
 STG007 = true
-STG008 = true
+# STG008 (RBACRouteNotInMatrix) is disabled until #269 implements real detection.
+# The placeholder check currently returns no issues, so leaving it enabled would
+# violate the zero-no-op-rule policy from #262. Re-enable in #269 with bad/good
+# sample tests in backend/tests/tools/.
+STG008 = false
 STG009 = true
 STG010 = true
 TQA010 = true

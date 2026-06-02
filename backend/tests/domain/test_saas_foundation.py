@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA008 reason="manual try/except pattern; replaced with pytest.raises(match=...) in #263"
+
 from fastapi.testclient import TestClient
 
 from app.config import Settings

@@ -139,6 +139,34 @@ def test_pyproject_markers_cover_all_pytestmark_usages() -> None:
     )
 
 
+def test_pyproject_filterwarnings_forbids_broad_ignores() -> None:
+    """No `ignore::Category` entry without a non-empty message+module regex.
+
+    Pytest filter spec is `action:message:category:module:lineno`. A broad
+    `ignore::ResourceWarning` matches every ResourceWarning in any module —
+    including production code paths the zero-warning policy must keep red.
+    Each ignore must pin the source module (and ideally the message).
+    """
+    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    entries = data["tool"]["pytest"]["ini_options"]["filterwarnings"]
+    offenders: list[str] = []
+    for entry in entries:
+        if entry == "error" or not entry.startswith("ignore"):
+            continue
+        # Split on `:` — at most 5 fields per pytest's filterwarnings parser.
+        parts = entry.split(":")
+        # action[0]  message[1]  category[2]  module[3]  lineno[4]
+        message = parts[1] if len(parts) > 1 else ""
+        module = parts[3] if len(parts) > 3 else ""
+        if not message.strip() and not module.strip():
+            offenders.append(entry)
+    assert not offenders, (
+        f"broad warning ignores forbidden — each `ignore` filter must pin "
+        f"either a message regex (field 1) or a module regex (field 3). "
+        f"Offending entries: {offenders}"
+    )
+
+
 # ---- C. No enabled no-op project rules --------------------------------------
 
 

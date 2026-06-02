@@ -239,18 +239,21 @@ addopts = [
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
-# Each ignore must include a `Why:` line and either a fix plan or a tracking issue.
-# Anything new = build red until either fixed or explicitly ignored with justification.
+# Each ignore MUST use the full 5-field form `action:message:category:module:lineno`
+# (message + module regex non-empty). Broad ignores like `ignore::ResourceWarning`
+# are forbidden — `backend/tests/tools/test_strict_enforcement_262.py` enforces this.
+# Each ignore MUST also include a `Why:` line and a tracking issue.
 filterwarnings = [
   "error",
-  # Why: ResourceWarning fires asynchronously from GC of unclosed SQLite connections
-  # in in-memory test factories. Fixing the leaks (per-fixture engine.dispose()) is
-  # tracked in the DB-fixture optimization issue #268.
-  "ignore::ResourceWarning",
-  # Why: pytest emits PytestUnraisableExceptionWarning for exceptions raised inside
-  # __del__ that are otherwise unobservable. Not actionable for application tests;
-  # actual application errors still surface via the underlying exception.
-  "ignore::pytest.PytestUnraisableExceptionWarning",
+  # Why: GC of unclosed sqlite3.Connection in in-memory test factories fires
+  # ResourceWarning asynchronously, before per-fixture engine.dispose() lands
+  # (tracked in #268). Narrow to the exact sqlite3 source so leaks elsewhere
+  # still fail the run.
+  "ignore:unclosed database in:ResourceWarning:sqlite3:",
+  # Why: pytest emits PytestUnraisableExceptionWarning when an exception escapes
+  # an unraisable hook (typically __del__ during GC). Match the exact source
+  # module so application warnings of the same class still fail.
+  "ignore::pytest.PytestUnraisableExceptionWarning:_pytest.unraisableexception:",
 ]
 markers = [
   "unit: isolated unit-level tests — no HTTP, DB, network, or external services",

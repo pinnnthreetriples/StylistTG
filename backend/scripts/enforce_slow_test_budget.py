@@ -129,8 +129,7 @@ def main(argv: list[str] | None = None) -> int:
         # docs/architecture/* drift — they cannot be moved to `slow` without
         # losing that signal.
         default=(
-            "slow,integration,postgres,redis,benchmark,property_heavy,"
-            "nightly,live,architecture"
+            "slow,integration,postgres,redis,benchmark,property_heavy,nightly,live,architecture"
         ),
         help="Comma-separated markers that exempt a test from the budget.",
     )

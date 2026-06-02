@@ -123,7 +123,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-setup-seconds", type=float, default=2.0)
     parser.add_argument(
         "--allow-marked",
-        default="slow,integration,postgres,redis,benchmark,property_heavy,nightly,live",
+        # `architecture` exempts the structure-audit drift tests in
+        # tests/architecture/. Each spawns a subprocess to regenerate the
+        # audit (~40-80s each) by design and must run on every PR to catch
+        # docs/architecture/* drift — they cannot be moved to `slow` without
+        # losing that signal.
+        default=(
+            "slow,integration,postgres,redis,benchmark,property_heavy,"
+            "nightly,live,architecture"
+        ),
         help="Comma-separated markers that exempt a test from the budget.",
     )
     parser.add_argument(

@@ -5,7 +5,9 @@ from __future__ import annotations
 import pytest
 
 from app.models import User, Workspace
-from tests.helpers.db_fixtures import shared_test_engine, transactional_db_session  # noqa: F401
+
+# Fixtures (shared_test_engine, transactional_db_session) are auto-discovered
+# via backend/tests/conftest.py — no explicit import required here.
 
 pytestmark = pytest.mark.unit
 

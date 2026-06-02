@@ -32,6 +32,10 @@ from app.models import (
     AssetStatus,
 )
 from app.services.database import dispose_sqlite_test_engines
+from tests.helpers.db_fixtures import (
+    shared_test_engine as shared_test_engine,  # noqa: F401, PLC0414  # re-export for test discovery
+    transactional_db_session as transactional_db_session,  # noqa: F401, PLC0414  # re-export
+)
 from tests.helpers.factories import seed_job as seed_job  # noqa: F401, PLC0414  # re-export
 
 _LOG_MESSAGE_ERRORS = (TypeError, ValueError)

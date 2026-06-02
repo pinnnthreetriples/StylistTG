@@ -127,12 +127,29 @@ def main(argv: list[str] | None = None) -> int:
         default="pr",
         help="Profile name used in failure messages.",
     )
+    parser.add_argument(
+        "--require-report",
+        action="store_true",
+        help=(
+            "Fail with exit 2 when the slow-test report is missing. Required in CI "
+            "(set in .github/workflows/test-quality.yml) so a broken report "
+            "generator cannot silently disable the runtime-budget gate."
+        ),
+    )
     args = parser.parse_args(argv)
 
     report_path = REPO_ROOT / args.report
     if not report_path.is_file():
-        # An absent report is acceptable when pytest is also absent — surface a
-        # clear signal but do not fail.
+        if args.require_report:
+            print(
+                f"slow-test report missing at {report_path}; --require-report set, "
+                f"failing the budget gate (exit 2). Generate the report with "
+                f"`scripts/report_slow_tests.py` before invoking this script.",
+                file=sys.stderr,
+            )
+            return 2
+        # Local/manual invocation without a report — emit a clear signal but
+        # do not fail.
         print(f"slow-test report not found at {report_path}, skipping budget check.")
         return 0
 

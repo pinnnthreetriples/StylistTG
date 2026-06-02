@@ -93,6 +93,25 @@ def test_enforce_slow_test_budget_skips_missing_report(tmp_path: Path) -> None:
     assert exit_code == 0
 
 
+def test_enforce_slow_test_budget_require_report_fails_when_missing(tmp_path: Path) -> None:
+    exit_code = enforce_slow_test_budget.main(
+        ["--report", str(tmp_path / "missing.json"), "--require-report"]
+    )
+    assert exit_code == 2, (
+        "--require-report must exit 2 when the report is absent so a broken "
+        "report generator cannot silently disable the runtime-budget gate in CI"
+    )
+
+
+def test_enforce_slow_test_budget_require_report_passes_when_present(tmp_path: Path) -> None:
+    report = tmp_path / "slow-tests.json"
+    report.write_text(json.dumps({"entries": []}), encoding="utf-8")
+    exit_code = enforce_slow_test_budget.main(
+        ["--report", str(report), "--require-report", "--max-call-seconds", "1.0"]
+    )
+    assert exit_code == 0
+
+
 def test_enforce_slow_test_budget_flags_unmarked_violation(tmp_path: Path) -> None:
     report = tmp_path / "slow-tests.json"
     report.write_text(

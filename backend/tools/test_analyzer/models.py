@@ -119,58 +119,124 @@ class Rule:
 # Helpers
 # ---------------------------------------------------------------------------
 
-_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable=(\w+)(?:\s+reason=\"([^\"]*)\")?")
-_FILE_SUPPRESSION_RE = re.compile(
-    r"#\s*test-analyzer:\s*disable-file=(\w+)(?:\s+reason=\"([^\"]*)\")?"
-)
+_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable=(\w+)\b(.*)$")
+_FILE_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable-file=(\w+)\b(.*)$")
+_FIELD_REASON_RE = re.compile(r'reason="([^"]*)"')
+_FIELD_ISSUE_RE = re.compile(r'issue="(#\d+)"')
+# Permissive `expires="..."` regex: any quoted value is captured so a
+# malformed date still reaches `_maybe_expiry_warning`, which then emits
+# META003. A strict `\d{4}-\d{2}-\d{2}` regex would let bad values slip
+# through silently — exactly the loophole the policy must close.
+_FIELD_EXPIRES_RE = re.compile(r'expires="([^"]*)"')
+
+
+def _parse_suppression_fields(tail: str) -> tuple[str, str, str]:
+    """Return ``(reason, issue, expires)`` from the trailing portion of a comment.
+
+    Missing fields are returned as empty strings — callers decide which
+    fields are required for which rule type.
+    """
+    reason_match = _FIELD_REASON_RE.search(tail)
+    issue_match = _FIELD_ISSUE_RE.search(tail)
+    expires_match = _FIELD_EXPIRES_RE.search(tail)
+    return (
+        reason_match.group(1) if reason_match else "",
+        issue_match.group(1) if issue_match else "",
+        expires_match.group(1) if expires_match else "",
+    )
+
+
+def _maybe_expiry_warning(
+    rule_id: str, expires: str, *, relative_path: str, line: int
+) -> Issue | None:
+    """Return META003 if ``expires`` is set and in the past."""
+    if not expires:
+        return None
+    from datetime import date
+
+    try:
+        expiry = date.fromisoformat(expires)
+    except ValueError:
+        return Issue(
+            rule_id="META003",
+            rule_type="meta",
+            severity=Severity.CRITICAL,
+            file=relative_path,
+            line=line,
+            message=(
+                f"Suppression for {rule_id} has malformed expires={expires!r}; "
+                f"must be ISO YYYY-MM-DD."
+            ),
+            recommendation='Use expires="YYYY-MM-DD" with a valid ISO date.',
+        )
+    if date.today() > expiry:
+        return Issue(
+            rule_id="META003",
+            rule_type="meta",
+            severity=Severity.CRITICAL,
+            file=relative_path,
+            line=line,
+            message=(
+                f"Suppression for {rule_id} expired on {expires}; remove the "
+                f"suppression or renew the expiry after re-justifying."
+            ),
+            recommendation="Replace the suppressed code with a strict assertion.",
+        )
+    return None
 
 
 def parse_suppressions(
     lines: list[str],
     relative_path: str,
 ) -> tuple[dict[str, set[str]], set[str], list[Issue]]:
-    """Parse inline and file-level suppressions, return (line_supprs, file_supprs, warnings)."""
+    """Parse inline and file-level suppressions, return (line_supprs, file_supprs, warnings).
+
+    Each suppression comment supports three fields:
+
+    - ``reason="..."`` (required; missing → META001 WARNING),
+    - ``issue="#NNN"`` (optional; recommended for deferred work),
+    - ``expires="YYYY-MM-DD"`` (optional; past expiry → META003 CRITICAL).
+
+    The fields can appear in any order. Unrecognised fields are ignored.
+    """
     line_suppressions: dict[str, set[str]] = {}
     file_suppressions: set[str] = set()
     warnings: list[Issue] = []
+
+    def _emit_warnings(rule_id: str, reason: str, expires: str, line_no: int) -> None:
+        if not reason:
+            warnings.append(
+                Issue(
+                    rule_id="META001",
+                    rule_type="meta",
+                    severity=Severity.WARNING,
+                    file=relative_path,
+                    line=line_no,
+                    message=f"Suppression for {rule_id} without reason=",
+                    recommendation='Add reason="..." to suppression comment',
+                )
+            )
+        expiry_issue = _maybe_expiry_warning(
+            rule_id, expires, relative_path=relative_path, line=line_no
+        )
+        if expiry_issue is not None:
+            warnings.append(expiry_issue)
 
     for i, line in enumerate(lines, 1):
         m = _FILE_SUPPRESSION_RE.search(line)
         if m:
             rule_id = m.group(1)
-            reason = m.group(2)
+            reason, _issue, expires = _parse_suppression_fields(m.group(2))
             file_suppressions.add(rule_id)
-            if not reason:
-                warnings.append(
-                    Issue(
-                        rule_id="META001",
-                        rule_type="meta",
-                        severity=Severity.WARNING,
-                        file=relative_path,
-                        line=i,
-                        message=f"Suppression for {rule_id} without reason=",
-                        recommendation='Add reason="..." to suppression comment',
-                    )
-                )
+            _emit_warnings(rule_id, reason, expires, i)
             continue
         m = _SUPPRESSION_RE.search(line)
         if m:
             rule_id = m.group(1)
-            reason = m.group(2)
+            reason, _issue, expires = _parse_suppression_fields(m.group(2))
             key = str(i + 1)  # suppression applies to next line
             line_suppressions.setdefault(key, set()).add(rule_id)
-            if not reason:
-                warnings.append(
-                    Issue(
-                        rule_id="META001",
-                        rule_type="meta",
-                        severity=Severity.WARNING,
-                        file=relative_path,
-                        line=i,
-                        message=f"Suppression for {rule_id} without reason=",
-                        recommendation='Add reason="..." to suppression comment',
-                    )
-                )
+            _emit_warnings(rule_id, reason, expires, i)
     return line_suppressions, file_suppressions, warnings
 
 

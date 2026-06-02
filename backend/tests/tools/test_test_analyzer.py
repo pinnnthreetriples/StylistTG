@@ -6,6 +6,7 @@
 # test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification"
 # test-analyzer: disable-file=STG006 reason="test samples intentionally contain Stubber literal strings for rule verification"
 # test-analyzer: disable-file=META001 reason="test fixture literal contains disable=RULE without reason= to verify META001 rule fires"
+# test-analyzer: disable-file=META003 reason="test fixture literals contain expired/malformed expires= dates to verify META003 rule fires"
 # test-analyzer: disable-file=TQA030 reason="rule-verification tests share textwrap.dedent(...) + _analyze_source(...) pattern by design"
 from __future__ import annotations
 
@@ -726,6 +727,68 @@ def test_suppression_without_reason_emits_warning() -> None:
     meta = [i for i in issues if i.rule_id == "META001"]
     assert len(meta) == 1
     assert "without reason" in meta[0].message
+
+
+def test_suppression_with_future_expiry_does_not_emit_meta003() -> None:
+    """A suppression with a non-expired `expires=` value passes the gate."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="placeholder" issue="#999" expires="2099-12-31"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    assert [i for i in issues if i.rule_id == "META003"] == []
+
+
+def test_suppression_with_past_expiry_emits_meta003_critical() -> None:
+    """An expired suppression fires META003 with CRITICAL severity."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="placeholder" issue="#999" expires="2020-01-01"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    meta = [i for i in issues if i.rule_id == "META003"]
+    assert len(meta) == 1
+    assert "expired on 2020-01-01" in meta[0].message
+    assert meta[0].severity.name == "CRITICAL"
+
+
+def test_suppression_with_malformed_expiry_emits_meta003() -> None:
+    """Both unparseable strings and structurally-impossible dates fire META003.
+
+    Previously the field regex required ``\\d{4}-\\d{2}-\\d{2}``, so a value
+    like ``not-a-date`` was silently ignored — meaning a typo could create an
+    effectively immortal suppression. The parser now captures any quoted
+    value and validates it inside ``_maybe_expiry_warning`` so both
+    unparseable strings and impossible dates surface as CRITICAL findings.
+    Empty `expires=""` is treated as "no expiry set" (policy-allowed for
+    permanent false-positive carve-outs) and intentionally does NOT fire.
+    """
+    for bad in ("not-a-date", "2026-99-99", "tomorrow"):
+        source = textwrap.dedent(f"""\
+            # test-analyzer: disable=TQA001 reason="placeholder" expires="{bad}"
+            def test_smoke():
+                run_app()
+        """)
+        issues = _analyze_source(source)
+        meta = [i for i in issues if i.rule_id == "META003"]
+        assert len(meta) == 1, (
+            f"expected META003 for malformed expires={bad!r}, got {[i.message for i in meta]!r}"
+        )
+        assert "malformed" in meta[0].message
+        assert meta[0].severity.name == "CRITICAL"
+
+
+def test_suppression_with_empty_expires_value_is_silent() -> None:
+    """`expires=""` is policy-allowed shorthand for 'no expiry', not malformed."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="permanent false positive" expires=""
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    assert [i for i in issues if i.rule_id == "META003"] == []
 
 
 # ---------------------------------------------------------------------------

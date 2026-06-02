@@ -41,6 +41,32 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## Analyzer rule coverage
+
+The test analyzer (`tools.test_analyzer`) catches weak/flaky test
+patterns before review. Most rules are AST-based and parse the Python
+file's syntax tree, which avoids false positives from comments or
+docstring mentions of the same patterns.
+
+Coverage classes:
+
+- **Assertions** — zero-assertion tests, `assert True`, self-equality,
+  too-many-asserts, `pytest.raises` without `match=`, manual try/except,
+  bare `assert response.json()` truthiness (TQA050), `assert "key" in
+  response.json()` membership-only (TQA051).
+- **Flaky** — uncontrolled clock, RNG without seed, network without
+  marker, filesystem writes outside `tmp_path`.
+- **Mocks** — mocks created without verifying calls, patch.start without
+  stop, monkeypatch ordering.
+- **Project (StylistTG)** — dependency-overrides without finally,
+  TestClient without `app_client`, 4xx without typed error body
+  (STG003), live tests without env guard.
+
+Adding a new rule: subclass `Rule`, implement `check`, add a bad/good
+sample pair to `backend/tests/tools/test_test_analyzer.py` (or a
+dedicated test file), and register the instance in
+`backend/tools/test_analyzer/rules/__init__.py::ALL_RULES`.
+
 ## RBAC endpoint matrix coverage
 
 Every mutating `/api/` or `/diagnostics/` route (POST / PATCH / PUT /
@@ -158,10 +184,31 @@ tests.
 
 ### Suppression policy
 
-Inline analyzer suppressions are allowed only when an exact assertion is
-impossible (e.g. unstable third-party field, intentionally generic match) and
-must include `reason="…"`. Suppressions tied to deferred work must reference
-a tracking issue. The analyzer flags missing `reason=` as META001.
+Inline analyzer suppressions use a three-field format and are validated by
+`tools.test_analyzer`:
+
+```python
+# test-analyzer: disable=TQA050 reason="…" issue="#263" expires="2026-08-31"
+```
+
+- `reason="…"` — required. Missing → **META001** WARNING.
+- `issue="#NNN"` — recommended for deferred work, optional for permanent
+  false-positive carve-outs. The format is `#` followed by digits.
+- `expires="YYYY-MM-DD"` — recommended for deferred work. Past expiry
+  fires **META003** CRITICAL — the analyzer hard-fails CI when an
+  expiring suppression has lapsed. The field regex is permissive
+  (any quoted value), so unparseable values like
+  `expires="not-a-date"` / `expires="2026-99-99"` ALSO fire META003
+  instead of being silently dropped — a typo cannot turn a suppression
+  into an immortal one.
+
+Permanent suppressions (analyzer false positives on patterns that are
+already strict, e.g. exception-attribute checks the rule does not yet
+understand) may omit `issue=`/`expires=`. They MUST still include a
+`reason=` that names the false-positive and identifies the underlying
+rule limitation, so a future analyzer improvement can clean them up.
+
+The same three-field format also applies to `disable-file=`.
 
 Helpers live in `backend/tests/helpers/assertions.py`; their behaviour is
 pinned by `backend/tests/helpers/test_assertions.py`.

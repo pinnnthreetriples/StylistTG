@@ -41,6 +41,30 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## Coverage policy
+
+Backend coverage is **branch-first**: every required pytest run uses
+`--cov-branch`, and `scripts/coverage_gate.py` aborts with exit 2 if the
+generated `coverage.json` was not produced with branch coverage enabled.
+Missing branch data is never silently treated as 100% — the gate forces
+the pipeline to be fixed at source.
+
+Three layers of enforcement:
+
+1. **Per-package** thresholds (`THRESHOLDS`) anchor each backend
+   directory at its current measured floor. Lowering a threshold
+   requires explicit reviewer approval and an inline comment.
+2. **Critical file** thresholds (`CRITICAL_FILE_THRESHOLDS`) prevent
+   small high-risk files from being hidden by their package average.
+   The gate fails if a critical file is missing from the report at all.
+3. **Coverage ratchet** — thresholds are anchored at measured floors;
+   any regression breaks the build, any improvement should be reflected
+   by raising the threshold in the same PR.
+
+The gate's behavior is pinned by `backend/tests/scripts/test_coverage_gate.py`
+(10 regression tests covering missing report, missing meta block, branch
+coverage disabled, critical file absence, and threshold math).
+
 ## DB fixture strategy
 
 The default `db_session` fixture in `backend/tests/conftest.py` builds a

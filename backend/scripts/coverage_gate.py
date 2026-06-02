@@ -179,15 +179,36 @@ def _check_critical_file_thresholds(files: dict[str, dict]) -> list[str]:
     return failures
 
 
-def main() -> int:
-    report_path = Path("reports/coverage.json")
-    if not report_path.exists():
-        print(
-            f"ERROR: {report_path} not found. Run pytest with --cov-branch first.", file=sys.stderr
+def _validate_branch_data(data: dict[str, object]) -> str | None:
+    """Return an error message if the coverage report wasn't built with --cov-branch.
+
+    Per #265: missing branch data must not be silently treated as 100%; the
+    gate must surface a configuration error so reviewers can fix the pipeline.
+    """
+    meta = data.get("meta") or {}
+    if not isinstance(meta, dict):
+        return "coverage.json has no 'meta' block — was pytest run with --cov-report=json?"
+    if not meta.get("branch_coverage"):
+        return (
+            "coverage.json was generated without branch coverage. "
+            "Add `--cov-branch` to the pytest invocation; the gate cannot trust "
+            "branch percentages otherwise."
         )
+    return None
+
+
+def main(report_path: str | Path = "reports/coverage.json") -> int:
+    path = Path(report_path)
+    if not path.exists():
+        print(f"ERROR: {path} not found. Run pytest with --cov-branch first.", file=sys.stderr)
         return 2
 
-    data = json.loads(report_path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    branch_error = _validate_branch_data(data)
+    if branch_error:
+        print(f"ERROR: {branch_error}", file=sys.stderr)
+        return 2
+
     files = {_normalize(path): info for path, info in data["files"].items()}
     failures = [
         *_check_package_thresholds(_aggregate_packages(files)),

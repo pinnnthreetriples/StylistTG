@@ -2,6 +2,45 @@
 
 Mandatory and optional checks before merging StylistTG PRs.
 
+## Test profile model
+
+The canonical pytest marker expressions for each profile are exposed by
+`backend/scripts/pytest_profiles.py`. GitHub Actions and `scripts/check.py`
+resolve them at runtime so workflows, local commands, and docs cannot drift.
+
+| Profile | Markers | When it runs | Hard-fail? |
+|---|---|---|---|
+| `pr` | `not contract and not live and not integration and not postgres and not redis and not slow and not benchmark and not mutation and not property_heavy and not nightly` | PR `backend-tests` job | Yes |
+| `contract-security` | `contract and contract_security` | PR `contract-security` job + nightly | Yes |
+| `nightly-slow-property` | `slow or property_heavy or nightly` | Scheduled `Nightly Backend Quality` | Yes |
+| `nightly-contract` | `contract` | Scheduled fuzz job (`SCHEMATHESIS_MAX_EXAMPLES=100`) | Yes |
+| `nightly-postgres-redis` | `postgres or redis or integration` | Scheduled service-container job | Yes |
+| `nightly-mutation` | (driven by `scripts/mutation_suite.py`) | Scheduled mutation job | Yes (no `--soft`) |
+| `benchmark` | `benchmark` | Manual `Pytest Benchmark` workflow only | N/A |
+| `live` | `live` | Operator-only, manual | N/A |
+
+Resolve a marker expression from the shell:
+
+```bash
+uv run python -m scripts.pytest_profiles pr-markers
+uv run python -m scripts.pytest_profiles nightly-slow-property-markers
+```
+
+### Property test split
+
+`@pytest.mark.property` is no longer used. Fast Hypothesis tests stay
+inline with their feature/unit marker (no extra marker needed); calibration
+and statistical property tests carry `@pytest.mark.property_heavy` and run
+only in the nightly profile via `--run-property`.
+
+### PR runtime budget
+
+`backend/scripts/enforce_slow_test_budget.py` reads `reports/slow-tests.json`
+and fails the PR `backend-tests` job if any **unmarked** test exceeds the
+call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
+Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
+`benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
+
 ## Strict assertion policy
 
 Backend tests must assert the behaviour that matters, not just that an

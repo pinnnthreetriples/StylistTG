@@ -7,6 +7,15 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+# Structure-audit drift tests spawn a subprocess to regenerate the audit;
+# each takes ~40-80s by design. They must run on every PR to catch
+# docs/architecture/* drift — marking them `slow` would deselect them
+# from the PR profile. The `architecture` marker keeps them on PR but
+# exempts them from the runtime budget in enforce_slow_test_budget.py.
+pytestmark = pytest.mark.architecture
+
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = BACKEND_ROOT.parent

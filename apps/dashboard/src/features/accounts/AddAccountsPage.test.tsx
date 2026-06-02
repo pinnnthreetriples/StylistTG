@@ -3,45 +3,28 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
 
 import { AddAccountsPage } from '@/features/accounts/AddAccountsPage'
-import { queryKeys } from '@/lib/queries'
 
 function renderPage() {
   const queryClient = new QueryClient()
-  queryClient.setQueryData(queryKeys.workers.diagnostics, {
-    tdlib: {
-      execution_plane_ready: true,
-      live_enabled: true,
-    },
-  })
-
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
-      <AddAccountsPage
-        onTestDcChange={() => undefined}
-        testDcEnabled={false}
-        testDcPending={false}
-      />
+      <AddAccountsPage onTestDcChange={() => undefined} testDcEnabled={false} testDcPending={false} />
     </QueryClientProvider>,
   )
 }
 
 describe('AddAccountsPage', () => {
-  test('renders one connected account-add page without mode tabs', () => {
+  test('renders canonical account onboarding wizard as first screen', () => {
     const html = renderPage()
 
-    expect(html).toContain('Введите один или несколько номеров для запуска авторизации.')
+    expect(html).toContain('Добавление аккаунтов')
     expect(html).toContain('Номера')
-    expect(html).toContain('Live-режим включён')
-    expect(html).not.toContain('Один аккаунт')
-    expect(html).not.toContain('Список номеров')
-  })
-
-  test('keeps package import on the same collapsed page', () => {
-    const html = renderPage()
-
-    expect(html).toContain('<details')
-    expect(html).not.toContain('<details open')
-    expect(html).toContain('Импорт пакета')
-    expect(html).toContain('Введите IMPORT для подтверждения')
+    expect(html).toContain('TDLib')
+    expect(html).toContain('tdata')
+    expect(html).toContain('Session')
+    expect(html).toContain('Полная поддержка')
+    expect(html).toContain('0 номеров')
+    expect(html).not.toContain('<details')
+    expect(html).not.toContain('BulkAuthScreen')
   })
 })

@@ -56,6 +56,9 @@ def error_response(
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
+    details = exc.details
+    if exc.error_class == "account_onboarding" and isinstance(details, dict):
+        details = {**details, "request_id": request_id}
     log_fn = log_error if exc.status_code >= 500 else log_warn
     log_fn(
         "app_error",
@@ -71,7 +74,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         error_code=exc.error_code,
         error_class=exc.error_class,
         message=exc.message,
-        details=exc.details,
+        details=details,
         field_errors=exc.field_errors,
         request_id=request_id,
     )

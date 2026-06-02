@@ -31,6 +31,7 @@ tdlib/
 tdlib_database/
 tdlib_files/
 /storage/
+backend/storage/
 !backend/app/storage/
 local_storage/
 uploads/

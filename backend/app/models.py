@@ -274,6 +274,12 @@ from app.model_defs.auth import (  # noqa: E402,F401
     AuthBatchItem,
     IdempotencyKey,
 )
+from app.model_defs.account_onboarding import (  # noqa: E402,F401
+    AccountOnboardingArtifact,
+    AccountOnboardingBatch,
+    AccountOnboardingEvent,
+    AccountOnboardingItem,
+)
 from app.model_defs.identity import (  # noqa: E402,F401
     AdminNotificationLog,
     AuditLog,

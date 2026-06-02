@@ -878,7 +878,6 @@
         "backend/app/migration_helpers/neuro_commenting_foundation_common.py",
         "backend/app/migration_helpers/neuro_commenting_foundation_core.py",
         "backend/app/model_defs/__init__.py",
-        "backend/app/model_defs/account_onboarding.py",
         "backend/app/model_defs/account_runtime.py",
         "backend/app/model_defs/auth.py",
         "backend/app/model_defs/identity.py",
@@ -1255,7 +1254,6 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
-        "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
         "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1477,14 +1475,12 @@
         "backend/scripts/check.py",
         "backend/scripts/check.sh",
         "backend/scripts/coverage_gate.py",
-        "backend/scripts/enforce_slow_test_budget.py",
         "backend/scripts/flaky_detection.py",
         "backend/scripts/legacy_wrapper_audit.py",
         "backend/scripts/migration_replay.py",
         "backend/scripts/mutation_gate.py",
         "backend/scripts/mutation_suite.py",
         "backend/scripts/nightly_randomized.py",
-        "backend/scripts/pytest_profiles.py",
         "backend/scripts/report_slow_tests.py",
         "backend/scripts/require_tests_for_new_backend_files.py",
         "backend/scripts/seed_safety_replay_dataset.py",
@@ -1693,7 +1689,6 @@
         "backend/tests/tools/test_migration_lint.py",
         "backend/tests/tools/test_mutation_suite.py",
         "backend/tests/tools/test_nightly_randomized.py",
-        "backend/tests/tools/test_pytest_profiles.py",
         "backend/tests/tools/test_strict_enforcement_262.py",
         "backend/tests/tools/test_test_analyzer.py",
         "backend/tests/tools/test_test_analyzer_cli_outputs.py",
@@ -1834,7 +1829,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T14:25:30Z",
+  "generated_at": "2026-06-02T01:34:02Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1867,15 +1862,5 @@
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0
   },
-  "untracked_backend_app_python_files": [
-    "backend/app/modules/account_onboarding/__init__.py",
-    "backend/app/modules/account_onboarding/artifacts.py",
-    "backend/app/modules/account_onboarding/contracts.py",
-    "backend/app/modules/account_onboarding/errors.py",
-    "backend/app/modules/account_onboarding/module.py",
-    "backend/app/modules/account_onboarding/router.py",
-    "backend/app/modules/account_onboarding/service.py",
-    "backend/app/modules/account_onboarding/state.py",
-    "backend/app/modules/account_onboarding/workers.py"
-  ]
+  "untracked_backend_app_python_files": []
 }

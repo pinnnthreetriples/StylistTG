@@ -41,6 +41,30 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## RBAC endpoint matrix coverage
+
+Every mutating `/api/` or `/diagnostics/` route (POST / PATCH / PUT /
+DELETE) must appear in
+`backend/tests/security/test_security_endpoint_matrix.ENDPOINT_MATRIX`.
+The completeness gate
+`backend/tests/security/test_endpoint_matrix_completeness.py` walks the
+FastAPI route table on every PR and fails if a new mutating route is
+missing.
+
+The 53 pre-existing matrix gaps when this gate landed are pinned in
+`backend/tests/security/rbac_matrix_baseline.json` (the ratchet
+baseline). The baseline is **read-only**: entries can be removed when
+the matrix grows, but additions are forbidden — new routes must land
+in `ENDPOINT_MATRIX` directly. `test_baseline_does_not_grow` enforces
+the rule and also flags baseline entries that no longer exist in the
+app.
+
+The companion analyzer rule `STG008 RBACRouteNotInMatrix` stays
+disabled in `backend/test-quality.toml`: the pytest gate is
+authoritative. The rule body is now a real heuristic stub instead of
+the no-op placeholder it carried before, so future PRs can enable it
+for soft pre-review hints without re-implementing it.
+
 ## Contract-security policy
 
 The PR `contract-security` profile runs the narrow hard subset of

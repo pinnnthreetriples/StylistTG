@@ -55,10 +55,14 @@ live in `backend/tests/contract/security/exclusions.py` and provide:
 - a precise path pattern + HTTP method;
 - a `reason` for the exclusion;
 - an `@owner` GitHub handle;
-- a `#follow_up_issue` link.
+- a `#follow_up_issue` link;
+- an `expires_at` ISO date (`YYYY-MM-DD`). Past expiry fails the gate;
+  recommended cap is `MAX_EXCLUSION_DAYS` (90 days) — longer requires a
+  renewed justification.
 
-`test_exclusions_policy.py` enforces the schema. The registry is empty
-by default — adding an entry requires a passing regression test.
+`test_exclusions_policy.py` enforces the schema and the non-expired
+contract. The registry is empty by default — adding an entry requires
+a passing regression test.
 
 ## Coverage policy
 

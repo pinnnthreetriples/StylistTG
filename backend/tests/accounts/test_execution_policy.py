@@ -1,3 +1,5 @@
+# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check; tightened to exact body assertion in #263 sweep"
+
 from tests.helpers.app import app_client
 from tests.helpers.factories import make_session
 

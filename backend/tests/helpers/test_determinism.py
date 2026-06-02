@@ -47,7 +47,37 @@ def test_seeded_rng_accepts_explicit_seed() -> None:
     assert custom == expected
 
 
-def test_seeded_numpy_rng_returns_none_without_numpy() -> None:
-    # NumPy is not in the backend test extra; the helper must degrade cleanly.
-    result = seeded_numpy_rng()
-    assert result is None
+def test_seeded_numpy_rng_returns_none_when_import_fails(monkeypatch) -> None:
+    """Helper must degrade to ``None`` when NumPy cannot be imported.
+
+    The test forces the ImportError path via a monkeypatched
+    ``builtins.__import__`` so the contract holds regardless of whether
+    NumPy is actually installed in the test environment.
+    """
+    import builtins
+
+    real_import = builtins.__import__
+
+    def _fake_import(name: str, *args, **kwargs):
+        if name == "numpy" or name.startswith("numpy."):
+            raise ImportError("numpy intentionally hidden for this test")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _fake_import)
+    assert seeded_numpy_rng() is None
+
+
+def test_seeded_numpy_rng_returns_deterministic_generator_when_available() -> None:
+    """When NumPy is installed, the helper returns a seeded ``Generator``.
+
+    Skipped when NumPy is absent — the negative-path contract is covered
+    by ``test_seeded_numpy_rng_returns_none_when_import_fails``.
+    """
+    numpy = pytest.importorskip("numpy")
+
+    rng_a = seeded_numpy_rng()
+    rng_b = seeded_numpy_rng()
+    assert rng_a is not None and rng_b is not None
+    # Determinism: two generators built with the same default seed produce
+    # the same sequence on the same NumPy version.
+    assert numpy.array_equal(rng_a.standard_normal(5), rng_b.standard_normal(5))

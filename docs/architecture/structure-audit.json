@@ -1842,10 +1842,12 @@
           "backend/tests/helpers/app.py",
           "backend/tests/helpers/assertions.py",
           "backend/tests/helpers/db_fixtures.py",
+          "backend/tests/helpers/determinism.py",
           "backend/tests/helpers/factories.py",
           "backend/tests/helpers/query_count.py",
           "backend/tests/helpers/test_assertions.py",
           "backend/tests/helpers/test_db_fixtures.py",
+          "backend/tests/helpers/test_determinism.py",
           "backend/tests/helpers/warmup.py",
           "backend/tests/infra/test_cloud_bootstrap_scripts.py",
           "backend/tests/infra/test_config_validation.py",
@@ -1888,6 +1890,8 @@
           "backend/tests/scripts/test_backfill_safety_pipeline.py",
           "backend/tests/scripts/test_coverage_gate.py",
           "backend/tests/scripts/test_report_slow_tests.py",
+          "backend/tests/security/rbac_matrix_baseline.json",
+          "backend/tests/security/test_endpoint_matrix_completeness.py",
           "backend/tests/security/test_operator_guard.py",
           "backend/tests/security/test_pii_leak_guard.py",
           "backend/tests/security/test_property_security_helpers.py",
@@ -1971,6 +1975,7 @@
           "backend/tests/tools/test_strict_enforcement_262.py",
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
+          "backend/tests/tools/test_weak_response_rules.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
           "backend/tests/warmup/test_warmup_dispatch.py",
           "backend/tests/warmup/test_warmup_foundation.py",
@@ -2108,7 +2113,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T01:49:07Z",
+    "generated_at": "2026-06-02T02:00:37Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2428,7 +2433,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T01:49:07Z",
+  "generated_at": "2026-06-02T02:00:37Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5306,7 +5311,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 228,
+      "file_count": 233,
       "path": "backend/tests"
     },
     "docs": {

@@ -878,7 +878,6 @@
         "backend/app/migration_helpers/neuro_commenting_foundation_common.py",
         "backend/app/migration_helpers/neuro_commenting_foundation_core.py",
         "backend/app/model_defs/__init__.py",
-        "backend/app/model_defs/account_onboarding.py",
         "backend/app/model_defs/account_runtime.py",
         "backend/app/model_defs/auth.py",
         "backend/app/model_defs/identity.py",
@@ -1255,8 +1254,6 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
-        "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
-        "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
         "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1511,7 +1508,6 @@
         "backend/tests/api/__init__.py",
         "backend/tests/api/test_account_contracts.py",
         "backend/tests/api/test_account_import_contracts.py",
-        "backend/tests/api/test_account_onboarding_api.py",
         "backend/tests/api/test_account_update_api.py",
         "backend/tests/api/test_api_contracts.py",
         "backend/tests/api/test_auth_api_contracts.py",
@@ -1621,6 +1617,8 @@
         "backend/tests/scripts/test_backfill_safety_pipeline.py",
         "backend/tests/scripts/test_coverage_gate_branch_validation.py",
         "backend/tests/scripts/test_report_slow_tests.py",
+        "backend/tests/security/rbac_matrix_baseline.json",
+        "backend/tests/security/test_endpoint_matrix_completeness.py",
         "backend/tests/security/test_operator_guard.py",
         "backend/tests/security/test_pii_leak_guard.py",
         "backend/tests/security/test_property_security_helpers.py",
@@ -1841,7 +1839,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T14:38:41Z",
+  "generated_at": "2026-06-02T15:39:22Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1874,15 +1872,5 @@
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0
   },
-  "untracked_backend_app_python_files": [
-    "backend/app/modules/account_onboarding/__init__.py",
-    "backend/app/modules/account_onboarding/artifacts.py",
-    "backend/app/modules/account_onboarding/contracts.py",
-    "backend/app/modules/account_onboarding/errors.py",
-    "backend/app/modules/account_onboarding/module.py",
-    "backend/app/modules/account_onboarding/router.py",
-    "backend/app/modules/account_onboarding/service.py",
-    "backend/app/modules/account_onboarding/state.py",
-    "backend/app/modules/account_onboarding/workers.py"
-  ]
+  "untracked_backend_app_python_files": []
 }

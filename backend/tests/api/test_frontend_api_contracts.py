@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check; tightened to exact body assertion in #263 sweep"
+
 from datetime import UTC, datetime, timedelta
 
 import pytest

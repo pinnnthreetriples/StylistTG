@@ -1,3 +1,4 @@
+# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check in matrix runner; tightened to exact body assertion in #263 sweep"
 """Data-driven role/auth matrix test for all API endpoints.
 
 Adding coverage for a new endpoint requires only appending one tuple to

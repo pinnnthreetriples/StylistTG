@@ -1254,7 +1254,6 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
-        "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
         "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1551,6 +1550,8 @@
         "backend/tests/conftest.py",
         "backend/tests/contract/__init__.py",
         "backend/tests/contract/security/__init__.py",
+        "backend/tests/contract/security/exclusions.py",
+        "backend/tests/contract/security/test_exclusions_policy.py",
         "backend/tests/contract/security/test_operator_token_contract.py",
         "backend/tests/contract/test_openapi_contract_regressions.py",
         "backend/tests/contract/test_openapi_fuzz.py",
@@ -1836,7 +1837,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T14:19:41Z",
+  "generated_at": "2026-06-02T15:10:05Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

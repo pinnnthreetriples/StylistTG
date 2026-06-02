@@ -1,5 +1,4 @@
 {
-  "_comment": "Branch-protection ruleset for refs/heads/main (issue #272). Apply with `gh api -X PUT repos/pinnnthreetriples/StylistTG/branches/main/protection --input .github/branch-protection.main.json` from a token with admin:repo scope.",
   "required_status_checks": {
     "strict": true,
     "contexts": [

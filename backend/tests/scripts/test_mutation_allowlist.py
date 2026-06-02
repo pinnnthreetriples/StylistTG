@@ -148,3 +148,59 @@ def test_default_allowlist_loads_without_error() -> None:
     # The shipped default lives at backend/scripts/mutation_allowlist.json.
     entries = mutation_allowlist.load_allowlist()
     assert isinstance(entries, list)
+
+
+def test_validate_allowlist_raises_on_expired_entries(tmp_path: Path) -> None:
+    """validate_allowlist must fail loudly when an entry has expired —
+    expired equivalent-mutant exceptions are a hard gate failure, not a
+    silent filter (issue #267 review)."""
+    path = tmp_path / "allow.json"
+    _write(
+        path,
+        {
+            "entries": [
+                {
+                    "module": "app/x.py",
+                    "mutant_signature": "expired-sig",
+                    "reason": "stale exception",
+                    "owner": "@o",
+                    "follow_up_issue": "#1",
+                    "expires_at": "2020-01-01",
+                }
+            ]
+        },
+    )
+    with pytest.raises(
+        mutation_allowlist.MutationAllowlistExpiredError, match="expired-sig"
+    ) as exc_info:
+        mutation_allowlist.validate_allowlist(path, today=date(2026, 6, 2))
+    assert len(exc_info.value.expired) == 1
+    assert exc_info.value.expired[0].mutant_signature == "expired-sig"
+
+
+def test_validate_allowlist_returns_entries_when_all_valid(tmp_path: Path) -> None:
+    path = tmp_path / "allow.json"
+    _write(
+        path,
+        {
+            "entries": [
+                {
+                    "module": "app/x.py",
+                    "mutant_signature": "fresh",
+                    "reason": "current exception",
+                    "owner": "@o",
+                    "follow_up_issue": "#1",
+                    "expires_at": "2099-01-01",
+                }
+            ]
+        },
+    )
+    entries = mutation_allowlist.validate_allowlist(path, today=date(2026, 6, 2))
+    assert [e.mutant_signature for e in entries] == ["fresh"]
+
+
+def test_validate_allowlist_passes_on_empty_registry(tmp_path: Path) -> None:
+    # The shipped default registry is empty; the validator must accept it.
+    path = tmp_path / "allow.json"
+    _write(path, {"entries": []})
+    assert mutation_allowlist.validate_allowlist(path) == []

@@ -105,10 +105,48 @@ def load_allowlist(
     return [_parse_entry(entry) for entry in entries_raw]
 
 
+class MutationAllowlistExpiredError(ValueError):
+    """Raised when the mutation allowlist contains one or more expired entries."""
+
+    def __init__(self, expired: list[MutationAllowlistEntry]) -> None:
+        self.expired = tuple(expired)
+        summary = ", ".join(
+            f"{e.module}@{e.mutant_signature} (expired {e.expires_at})" for e in expired
+        )
+        super().__init__(
+            f"{len(expired)} mutation allowlist entry(ies) expired: {summary}. "
+            "Remove or renew with a fresh justification — expired entries are "
+            "NOT silently dropped."
+        )
+
+
+def validate_allowlist(
+    path: Path | str = DEFAULT_ALLOWLIST_PATH,
+    *,
+    today: date | None = None,
+) -> list[MutationAllowlistEntry]:
+    """Load the allowlist and raise if any entry has expired.
+
+    The mutation gate must call this BEFORE using ``active_entries`` so an
+    expired equivalent-mutant exception breaks the build instead of
+    silently disappearing into a soft pass.
+    """
+    entries = load_allowlist(path)
+    expired = [e for e in entries if e.is_expired(today)]
+    if expired:
+        raise MutationAllowlistExpiredError(expired)
+    return entries
+
+
 def active_entries(
     path: Path | str = DEFAULT_ALLOWLIST_PATH,
     *,
     today: date | None = None,
 ) -> list[MutationAllowlistEntry]:
-    """Return non-expired allowlist entries; raise on malformed JSON."""
+    """Return non-expired allowlist entries; raise on malformed JSON.
+
+    Callers that need a fail-fast guarantee on expiry should call
+    :func:`validate_allowlist` first. This function exists for callers
+    that already validated and need to enumerate the live exceptions.
+    """
     return [e for e in load_allowlist(path) if not e.is_expired(today)]

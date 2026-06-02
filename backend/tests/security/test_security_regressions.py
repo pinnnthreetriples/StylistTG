@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA007 reason="pytest.raises without match= in security regression tests; tightened in #263"
+# test-analyzer: disable-file=STG003 reason="4xx assertion without typed error body; tightened in #263"
+
 import json
 import logging
 from io import BytesIO

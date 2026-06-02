@@ -2,6 +2,50 @@
 
 Mandatory and optional checks before merging StylistTG PRs.
 
+## Zero-warning / zero-soft-fail policy
+
+The backend test-quality gate is strict: any pytest warning, unknown marker,
+malformed pytest config, unexpected xfail-pass, test-analyzer finding,
+soft-failed quality check, or unimplemented enabled analyzer rule fails CI
+immediately. Long-running checks may stay in nightly workflows, but they must
+still be hard failures when they run.
+
+### Pytest
+
+- `strict_config = true`, `strict_markers = true`, `xfail_strict = true` and
+  `filterwarnings = ["error"]` are required in `backend/pyproject.toml`.
+- Every `@pytest.mark.X` or module-level `pytestmark` must be registered in
+  `[tool.pytest.ini_options].markers`. A regression test
+  (`tests/tools/test_strict_enforcement_262.py`) pins this.
+- Warning ignores are narrow regex-based entries with a `Why:` line and a
+  tracking issue. Do not add broad `ignore::DeprecationWarning` /
+  `ignore::UserWarning` entries.
+
+### Test analyzer
+
+- Run with `--severity INFO --fail-on-severity INFO` in CI. Any INFO/WARNING/
+  CRITICAL finding fails the run.
+- Enabled rules in `backend/test-quality.toml [project_rules]` must have real
+  detection logic. No-op placeholders must be disabled with a TODO and a
+  linked follow-up issue (e.g. STG008 is disabled pending #269).
+
+### CI workflows
+
+- Quality jobs do not use `continue-on-error: true` on the test-quality path.
+  Carve-outs are allowed only when the step is explicitly documented as
+  `non-blocking` in a preceding comment (e.g. the transitional Bandit step in
+  the `audit` job, tracked separately for hard-gate promotion).
+- Nightly quality jobs hard-fail. A check being slow is not a reason to ignore
+  its result; expensive checks belong in nightly but must still block.
+
+### Local gate (`backend/scripts/check.py`)
+
+- Mutation runs hard. The `--soft` flag was removed.
+- Any remaining `soft=True` Check entry must reference a tracking issue in an
+  inline comment.
+
+
+
 ## Required PR path
 
 The required aggregator is:

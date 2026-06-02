@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA008 reason="manual try/except pattern; replaced with pytest.raises(match=...) in #263"
+# test-analyzer: disable-file=STG003 reason="4xx assertion without typed error body; tightened in #263"
+
 from app.models import User, Workspace, WorkspaceMember, WorkspacePlan
 from app.services.auth_context import get_current_auth_context
 

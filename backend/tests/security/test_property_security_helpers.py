@@ -5,6 +5,8 @@ Uses Hypothesis with constrained max_examples for CI speed.
 
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA007 reason="pytest.raises without match= in property-based security helpers; tightened in #263"
+
 import string
 import tempfile
 import zipfile

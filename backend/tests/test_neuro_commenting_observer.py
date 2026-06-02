@@ -1,6 +1,8 @@
 # pyright: reportUnknownVariableType=false, reportUnknownParameterType=false, reportMissingParameterType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportArgumentType=false
 from __future__ import annotations
 
+# test-analyzer: disable-file=TQA008 reason="manual try/except pattern in test_foreign_workspace_cannot_observe; replaced with pytest.raises(match=...) in #263"
+
 from app.models import (
     AccountState,
     DEFAULT_LOCAL_WORKSPACE_ID,

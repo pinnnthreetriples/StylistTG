@@ -227,6 +227,7 @@ pytest_add_cli_args = ["-p", "no:randomly"]
 pythonpath = ["."]
 testpaths = ["tests"]
 # Strict mode: typo'd markers, unknown config keys, and xfail-that-pass become errors.
+# See docs/quality/QUALITY_GATES.md "Zero-warning / zero-soft-fail policy".
 strict_config = true
 strict_markers = true
 xfail_strict = true
@@ -238,15 +239,21 @@ addopts = [
   "--showlocals",                 # locals in tracebacks help debug AI-written tests
 ]
 # Treat warnings as errors. Add targeted ignores ONLY for known-safe third-party noise.
-# Anything new = build red until either fixed or explicitly ignored with justification.
+# Each ignore MUST use the full 5-field form `action:message:category:module:lineno`
+# (message + module regex non-empty). Broad ignores like `ignore::ResourceWarning`
+# are forbidden — `backend/tests/tools/test_strict_enforcement_262.py` enforces this.
+# Each ignore MUST also include a `Why:` line and a tracking issue.
 filterwarnings = [
   "error",
-  # ResourceWarning fires asynchronously from GC of unclosed SQLite connections in
-  # in-memory test factories. Ignored project-wide; fixing the leaks is tracked
-  # separately (per-fixture engine.dispose()). Real DeprecationWarnings still error.
-  "ignore::ResourceWarning",
-  # Pytest informational warnings are not actionable for us.
-  "ignore::pytest.PytestUnraisableExceptionWarning",
+  # Why: GC of unclosed sqlite3.Connection in in-memory test factories fires
+  # ResourceWarning asynchronously, before per-fixture engine.dispose() lands
+  # (tracked in #268). Narrow to the exact sqlite3 source so leaks elsewhere
+  # still fail the run.
+  "ignore:unclosed database in:ResourceWarning:sqlite3:",
+  # Why: pytest emits PytestUnraisableExceptionWarning when an exception escapes
+  # an unraisable hook (typically __del__ during GC). Match the exact source
+  # module so application warnings of the same class still fail.
+  "ignore::pytest.PytestUnraisableExceptionWarning:_pytest.unraisableexception:",
 ]
 markers = [
   "unit: isolated unit-level tests — no HTTP, DB, network, or external services",
@@ -255,13 +262,18 @@ markers = [
   "worker: RQ/background-worker tests with deterministic queues and no live services",
   "architecture: structural tests for boundaries, imports, and layering",
   "property: Hypothesis/property-based tests; heavier cases run in nightly when marked slow",
+  "property_pr: short Hypothesis profile allowed in the PR profile (#264)",
+  "property_heavy: expensive Hypothesis/statistical tests for nightly only (#264)",
   "contract: API/OpenAPI/client contract tests and Schemathesis fuzz",
+  "contract_security: hard security-sensitive contract subset (PR profile must run this)",
   "slow: expensive tests that should normally run only in nightly/full CI",
   "integration: integration tests requiring real service boundaries or non-trivial infrastructure",
   "live: live environment smoke or verification tests that require external services",
   "postgres: requires real PostgreSQL",
   "redis: requires real Redis",
   "benchmark: performance budget benchmarks; disabled by default and run in nightly/manual",
+  "mutation: mutation-testing helpers/profile (see #267)",
+  "nightly: tests intended only for scheduled/manual heavy workflows",
   "allow_pii_in_logs: opt out of the autouse PII-leak guard (only for tests that verify redaction)",
   "requires_metrics: requires prometheus_client (skip when not installed)",
   "requires_fakeredis: requires fakeredis package (skip when not installed)",

@@ -41,6 +41,29 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## Contract-security policy
+
+The PR `contract-security` profile runs the narrow hard subset of
+`tests/contract/security/`, which protects auth, operator-token,
+workspace/object authorization, diagnostics, metrics, and asset
+contracts. Broad OpenAPI fuzz lives in the nightly `nightly-contract`
+profile and uses `SCHEMATHESIS_MAX_EXAMPLES=100`.
+
+Every intentional exclusion from the contract-security profile must
+live in `backend/tests/contract/security/exclusions.py` and provide:
+
+- a precise path pattern + HTTP method;
+- a `reason` for the exclusion;
+- an `@owner` GitHub handle;
+- a `#follow_up_issue` link;
+- an `expires_at` ISO date (`YYYY-MM-DD`). Past expiry fails the gate;
+  recommended cap is `MAX_EXCLUSION_DAYS` (90 days) — longer requires a
+  renewed justification.
+
+`test_exclusions_policy.py` enforces the schema and the non-expired
+contract. The registry is empty by default — adding an entry requires
+a passing regression test.
+
 ## Coverage policy
 
 Backend coverage is **branch-first**: every required pytest run uses

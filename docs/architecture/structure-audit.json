@@ -1821,6 +1821,8 @@
           "backend/tests/conftest.py",
           "backend/tests/contract/__init__.py",
           "backend/tests/contract/security/__init__.py",
+          "backend/tests/contract/security/exclusions.py",
+          "backend/tests/contract/security/test_exclusions_policy.py",
           "backend/tests/contract/security/test_operator_token_contract.py",
           "backend/tests/contract/test_openapi_contract_regressions.py",
           "backend/tests/contract/test_openapi_fuzz.py",
@@ -2106,7 +2108,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T21:46:56Z",
+    "generated_at": "2026-06-02T21:47:27Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2426,7 +2428,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T21:46:56Z",
+  "generated_at": "2026-06-02T21:47:27Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5304,7 +5306,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 226,
+      "file_count": 228,
       "path": "backend/tests"
     },
     "docs": {

@@ -163,7 +163,6 @@ def test_account_risk_endpoint_scores_reauth_and_missing_session_high() -> None:
     assert "missing_session" in {reason["code"] for reason in missing_response.json()["reasons"]}
 
 
-# test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
 def test_account_risk_summary_is_workspace_scoped() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -203,7 +202,10 @@ def test_account_risk_summary_is_workspace_scoped() -> None:
     assert payload["low"] == 1
     assert payload["critical"] == 0
     assert len(payload["items"]) == 1
+    # Foreign-workspace probe: must return 404 and must not leak the foreign id
+    # (workspace isolation contract — see tests/helpers/assertions.py).
     assert hidden_detail.status_code == 404
+    assert hidden_id not in hidden_detail.text
 
 
 @freeze_time("2026-01-15 12:00:00")

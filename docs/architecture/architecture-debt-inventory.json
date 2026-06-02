@@ -167,6 +167,39 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_onboarding/__init__.py",
+        "backend/app/modules/account_onboarding/adapters/__init__.py",
+        "backend/app/modules/account_onboarding/adapters/base.py",
+        "backend/app/modules/account_onboarding/adapters/json_metadata.py",
+        "backend/app/modules/account_onboarding/adapters/phone.py",
+        "backend/app/modules/account_onboarding/adapters/session_file.py",
+        "backend/app/modules/account_onboarding/adapters/tdata.py",
+        "backend/app/modules/account_onboarding/adapters/tdlib_directory.py",
+        "backend/app/modules/account_onboarding/artifacts.py",
+        "backend/app/modules/account_onboarding/contracts.py",
+        "backend/app/modules/account_onboarding/errors.py",
+        "backend/app/modules/account_onboarding/jobs.py",
+        "backend/app/modules/account_onboarding/module.py",
+        "backend/app/modules/account_onboarding/router.py",
+        "backend/app/modules/account_onboarding/service.py",
+        "backend/app/modules/account_onboarding/state.py",
+        "backend/app/modules/account_onboarding/workers.py"
+      ],
+      "id": "canonical-account-onboarding",
+      "owner": "account_onboarding",
+      "paths": [
+        "backend/app/modules/account_onboarding/**"
+      ],
+      "phase": "PR291",
+      "rationale": "Account onboarding route, service, adapters, private artifacts, and workflow metadata ownership is canonical.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_onboarding"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/account_profile_completeness/__init__.py",
         "backend/app/modules/account_profile_completeness/contracts.py",
         "backend/app/modules/account_profile_completeness/interfaces.py",
@@ -1255,6 +1288,7 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
+        "apps/dashboard/src/features/accounts/accountOnboardingWizard.test.ts",
         "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
@@ -1510,6 +1544,7 @@
         "backend/tests/api/__init__.py",
         "backend/tests/api/test_account_contracts.py",
         "backend/tests/api/test_account_import_contracts.py",
+        "backend/tests/api/test_account_onboarding_api.py",
         "backend/tests/api/test_account_update_api.py",
         "backend/tests/api/test_api_contracts.py",
         "backend/tests/api/test_auth_api_contracts.py",
@@ -1735,6 +1770,7 @@
         "docs/architecture/WARMUP_MODULE.md",
         "docs/architecture/WORKFLOW_REGISTRY.md",
         "docs/architecture/account-lifecycle.md",
+        "docs/architecture/account-onboarding.md",
         "docs/architecture/account-risk.md",
         "docs/architecture/api-client-and-openapi.md",
         "docs/architecture/api-error-model.md",
@@ -1798,6 +1834,7 @@
         "docs/runbooks/account-deletion-policy.md",
         "docs/runbooks/account-deletion.md",
         "docs/runbooks/account-import.md",
+        "docs/runbooks/account-onboarding.md",
         "docs/runbooks/account-preparation.md",
         "docs/runbooks/audit-log.md",
         "docs/runbooks/backfill-safety-pipeline.md",
@@ -1823,6 +1860,7 @@
         "docs/runbooks/workers-production-plane.md",
         "docs/runtime/deployment-processes.md",
         "docs/runtime/runtime-boundaries.md",
+        "docs/security/account-onboarding-artifacts.md",
         "docs/security/security-baseline.md",
         "docs/security/telegram-session-handling.md"
       ],
@@ -1844,7 +1882,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T14:21:40Z",
+  "generated_at": "2026-06-02T23:03:44Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1877,12 +1915,5 @@
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0
   },
-  "untracked_backend_app_python_files": [
-    "backend/app/modules/account_onboarding/__init__.py",
-    "backend/app/modules/account_onboarding/artifacts.py",
-    "backend/app/modules/account_onboarding/contracts.py",
-    "backend/app/modules/account_onboarding/errors.py",
-    "backend/app/modules/account_onboarding/module.py",
-    "backend/app/modules/account_onboarding/state.py"
-  ]
+  "untracked_backend_app_python_files": []
 }

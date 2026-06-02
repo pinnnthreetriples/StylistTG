@@ -10,7 +10,7 @@ from rq.job import Job
 from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
 from app.logging_utils import log_warn
-from app.modules.account_onboarding.workers import run_onboarding_item
+from app.modules.account_onboarding.jobs import run_onboarding_item
 from app.services.redis_client import redis_from_url
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
@@ -139,7 +139,9 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
     return True
 
 
-def enqueue_account_onboarding_item(item_id: str, retry_count: int, *, delay_seconds: int = 0) -> bool:
+def enqueue_account_onboarding_item(
+    item_id: str, retry_count: int, *, delay_seconds: int = 0
+) -> bool:
     queue = get_auth_queue()
     job_id = f"account-onboarding-{item_id}-retry-{retry_count}"
     try:

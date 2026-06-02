@@ -23,9 +23,14 @@ test('SaaS shell loads and captures the primary pages', async ({ page, isMobile 
 
   await page.goto('/accounts/add')
   await expect(page.getByRole('heading', { name: 'Добавление аккаунтов' })).toBeVisible()
-  await expect(page.getByText('Введите один или несколько номеров для запуска авторизации.')).toBeVisible()
+  await expect(page.getByText('Способ')).toBeVisible()
   await expect(page.getByText('Номера', { exact: true })).toBeVisible()
-  await expect(page.getByText('Импорт пакета')).toBeVisible()
+  await expect(page.getByText('JSON', { exact: true })).toBeVisible()
+  await expect(page.getByText('TDLib', { exact: true })).toBeVisible()
+  await expect(page.getByText('tdata', { exact: true })).toBeVisible()
+  await expect(page.getByText('Session', { exact: true })).toBeVisible()
+  await expect(page.getByText('Ввод или загрузка')).toBeVisible()
+  await expect(page.getByRole('button', { name: /Preview/ })).toBeDisabled()
 
   await page.goto('/accounts/acc_1/profile')
   await expect(page.getByText('Demo Account').first()).toBeVisible()

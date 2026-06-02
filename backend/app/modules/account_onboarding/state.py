@@ -1,11 +1,25 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from app.models import AccountOnboardingBatch, AccountOnboardingEvent, AccountOnboardingItem, utc_now
+from app.models import (
+    AccountOnboardingBatch,
+    AccountOnboardingEvent,
+    AccountOnboardingItem,
+    utc_now,
+)
 from app.modules.account_onboarding.errors import invalid_state
 
-TERMINAL_ITEM_STATUSES = {"ready", "failed", "cancelled", "duplicate", "existing", "unsupported", "blocked", "requires_reauth"}
+TERMINAL_ITEM_STATUSES = {
+    "ready",
+    "failed",
+    "cancelled",
+    "duplicate",
+    "existing",
+    "unsupported",
+    "blocked",
+    "requires_reauth",
+}
 
 _BATCH_TRANSITIONS = {
     "created": {"validating", "uploaded", "cancelled", "expired"},
@@ -20,7 +34,16 @@ _BATCH_TRANSITIONS = {
 
 _ITEM_TRANSITIONS = {
     "pending": {"validating", "cancelled"},
-    "validating": {"valid", "duplicate", "existing", "unsupported", "blocked", "requires_reauth", "failed", "cancelled"},
+    "validating": {
+        "valid",
+        "duplicate",
+        "existing",
+        "unsupported",
+        "blocked",
+        "requires_reauth",
+        "failed",
+        "cancelled",
+    },
     "valid": {"queued", "requires_reauth", "cancelled"},
     "queued": {"starting_auth", "importing_session", "checking_session", "failed", "cancelled"},
     "starting_auth": {"waiting_code", "waiting_2fa", "checking_session", "ready", "failed"},
@@ -33,7 +56,14 @@ _ITEM_TRANSITIONS = {
 }
 
 
-def transition_batch(batch: AccountOnboardingBatch, new_status: str, *, actor_user_id: str | None = None, actor_type: str = "system", payload: dict[str, Any] | None = None) -> AccountOnboardingEvent:
+def transition_batch(
+    batch: AccountOnboardingBatch,
+    new_status: str,
+    *,
+    actor_user_id: str | None = None,
+    actor_type: str = "system",
+    payload: dict[str, Any] | None = None,
+) -> AccountOnboardingEvent:
     if batch.status != new_status and new_status not in _BATCH_TRANSITIONS.get(batch.status, set()):
         raise invalid_state(f"Cannot transition batch from {batch.status} to {new_status}.")
     before = batch.status
@@ -50,10 +80,23 @@ def transition_batch(batch: AccountOnboardingBatch, new_status: str, *, actor_us
         batch.completed_at = now
     elif new_status == "cancelled":
         batch.cancelled_at = now
-    return event(batch, "batch.status_changed", actor_user_id=actor_user_id, actor_type=actor_type, payload={"from": before, "to": new_status, **(payload or {})})
+    return event(
+        batch,
+        "batch.status_changed",
+        actor_user_id=actor_user_id,
+        actor_type=actor_type,
+        payload={"from": before, "to": new_status, **(payload or {})},
+    )
 
 
-def transition_item(item: AccountOnboardingItem, new_status: str, *, actor_user_id: str | None = None, actor_type: str = "system", payload: dict[str, Any] | None = None) -> AccountOnboardingEvent:
+def transition_item(
+    item: AccountOnboardingItem,
+    new_status: str,
+    *,
+    actor_user_id: str | None = None,
+    actor_type: str = "system",
+    payload: dict[str, Any] | None = None,
+) -> AccountOnboardingEvent:
     if item.status != new_status and new_status not in _ITEM_TRANSITIONS.get(item.status, set()):
         raise invalid_state(f"Cannot transition item from {item.status} to {new_status}.")
     before = item.status
@@ -73,7 +116,14 @@ def transition_item(item: AccountOnboardingItem, new_status: str, *, actor_user_
     if new_status == "requires_reauth":
         item.requires_reauth = True
     recalculate_batch_counters(item.batch)
-    return event(item.batch, "item.status_changed", item=item, actor_user_id=actor_user_id, actor_type=actor_type, payload={"from": before, "to": new_status, **(payload or {})})
+    return event(
+        item.batch,
+        "item.status_changed",
+        item=item,
+        actor_user_id=actor_user_id,
+        actor_type=actor_type,
+        payload={"from": before, "to": new_status, **(payload or {})},
+    )
 
 
 def recalculate_batch_counters(batch: AccountOnboardingBatch) -> None:
@@ -83,7 +133,9 @@ def recalculate_batch_counters(batch: AccountOnboardingBatch) -> None:
     batch.ready_count = sum(1 for item in items if item.status == "ready")
     batch.failed_count = sum(1 for item in items if item.status == "failed")
     batch.blocked_count = sum(1 for item in items if item.status in {"blocked", "unsupported"})
-    batch.requires_reauth_count = sum(1 for item in items if item.status == "requires_reauth" or item.requires_reauth)
+    batch.requires_reauth_count = sum(
+        1 for item in items if item.status == "requires_reauth" or item.requires_reauth
+    )
 
 
 def maybe_finish_batch(batch: AccountOnboardingBatch) -> None:
@@ -99,8 +151,25 @@ def maybe_finish_batch(batch: AccountOnboardingBatch) -> None:
         transition_batch(batch, "failed")
 
 
-def event(batch: AccountOnboardingBatch, event_type: str, *, item: AccountOnboardingItem | None = None, actor_user_id: str | None = None, actor_type: str = "system", payload: dict[str, Any] | None = None) -> AccountOnboardingEvent:
-    row = AccountOnboardingEvent(workspace_id=batch.workspace_id, batch_id=batch.id, item_id=item.id if item else None, event_type=event_type, actor_user_id=actor_user_id, actor_type=actor_type, safe_payload_json=_safe_payload(payload or {}))
+def event(
+    batch: AccountOnboardingBatch,
+    event_type: str,
+    *,
+    item: AccountOnboardingItem | None = None,
+    actor_user_id: str | None = None,
+    actor_type: str = "system",
+    payload: dict[str, Any] | None = None,
+) -> AccountOnboardingEvent:
+    safe_payload = _safe_payload(payload if payload is not None else {})
+    row = AccountOnboardingEvent(
+        workspace_id=batch.workspace_id,
+        batch_id=batch.id,
+        item_id=item.id if item else None,
+        event_type=event_type,
+        actor_user_id=actor_user_id,
+        actor_type=actor_type,
+        safe_payload_json=safe_payload,
+    )
     batch.events.append(row)
     return row
 
@@ -112,8 +181,7 @@ def _safe_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if any(token in key.lower() for token in blocked):
             out[key] = "[redacted]"
         elif isinstance(value, dict):
-            out[key] = _safe_payload(value)
+            out[key] = _safe_payload(cast(dict[str, Any], value))
         else:
             out[key] = value
     return out
-

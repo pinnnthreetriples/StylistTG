@@ -66,6 +66,22 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Import batches
     ("GET", "/api/account-import-batches", "viewer", False),
     ("POST", "/api/account-import-batches", "operator", True),
+    # Account onboarding
+    ("GET", "/api/account-onboarding-batches", "viewer", False),
+    ("POST", "/api/account-onboarding-artifacts", "operator", True),
+    ("POST", "/api/account-onboarding-batches", "operator", True),
+    ("GET", "/api/account-onboarding-batches/{batch_id}", "viewer", False),
+    ("POST", "/api/account-onboarding-batches/{batch_id}/validate", "operator", True),
+    ("POST", "/api/account-onboarding-batches/{batch_id}/confirm", "operator", True),
+    ("POST", "/api/account-onboarding-batches/{batch_id}/cancel", "operator", True),
+    ("POST", "/api/account-onboarding-batches/{batch_id}/items/{item_id}/retry", "operator", True),
+    ("POST", "/api/account-onboarding-batches/{batch_id}/items/{item_id}/code", "operator", True),
+    (
+        "POST",
+        "/api/account-onboarding-batches/{batch_id}/items/{item_id}/password",
+        "operator",
+        True,
+    ),
     # Auth batches
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
@@ -377,6 +393,8 @@ def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
         "limit_id": "00000000-0000-4000-8000-000000000106",
         "rule_id": "00000000-0000-4000-8000-000000000107",
         "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
+        "batch_id": "00000000-0000-4000-8000-000000000108",
+        "item_id": "00000000-0000-4000-8000-000000000109",
     }
     if "{account_id}" in path:
         account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")

@@ -138,8 +138,8 @@ def test_account_onboarding_artifact_rejects_invalid_base64(app_client) -> None:
         },
     )
 
-    assert response.status_code == 400
-    assert response.json()["details"]["validation_code"] == "archive_invalid"
+    assert response.status_code == 422
+    assert "content_base64" in response.text
 
 
 def test_account_onboarding_artifact_rejects_archive_symlink(app_client) -> None:
@@ -163,7 +163,9 @@ def test_account_onboarding_artifact_rejects_archive_symlink(app_client) -> None
     assert response.json()["details"]["validation_code"] == "archive_rejected_symlink"
 
 
-def test_account_onboarding_artifact_rejects_too_many_archive_files(app_client, monkeypatch) -> None:
+def test_account_onboarding_artifact_rejects_too_many_archive_files(
+    app_client, monkeypatch
+) -> None:
     monkeypatch.setattr(onboarding_artifacts, "MAX_ARCHIVE_FILES", 1)
 
     response = app_client.post(
@@ -197,7 +199,9 @@ def test_account_onboarding_artifact_rejects_too_deep_archive(app_client, monkey
     assert response.json()["details"]["validation_code"] == "archive_rejected_too_deep"
 
 
-def test_account_onboarding_artifact_rejects_too_large_uncompressed_archive(app_client, monkeypatch) -> None:
+def test_account_onboarding_artifact_rejects_too_large_uncompressed_archive(
+    app_client, monkeypatch
+) -> None:
     monkeypatch.setattr(onboarding_artifacts, "MAX_ARCHIVE_UNCOMPRESSED_BYTES", 4)
 
     response = app_client.post(
@@ -206,7 +210,9 @@ def test_account_onboarding_artifact_rejects_too_large_uncompressed_archive(app_
             "idempotency_key": "artifact-too-large-expanded",
             "source_type": "tdlib_directory",
             "filename": "tdlib.zip",
-            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "too-large"})).decode("ascii"),
+            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "too-large"})).decode(
+                "ascii"
+            ),
         },
     )
 
@@ -320,7 +326,9 @@ def test_account_onboarding_create_idempotency_conflict(app_client) -> None:
     assert second.json()["error_code"] == "ONBOARDING_INVALID_STATE"
 
 
-def test_account_onboarding_queue_unavailable_persists_safe_failure(app_client, monkeypatch) -> None:
+def test_account_onboarding_queue_unavailable_persists_safe_failure(
+    app_client, monkeypatch
+) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: False)
     created = app_client.post(
         "/api/account-onboarding-batches",
@@ -382,7 +390,9 @@ def test_account_onboarding_retry_respects_cooldown(app_client, db_session) -> N
     assert response.json()["details"]["request_id"] == response.json()["request_id"]
 
 
-def test_account_onboarding_phone_execution_links_backend_auth_session(app_client, db_session, monkeypatch) -> None:
+def test_account_onboarding_phone_execution_links_backend_auth_session(
+    app_client, db_session, monkeypatch
+) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
     created = app_client.post(
         "/api/account-onboarding-batches",
@@ -433,7 +443,9 @@ def test_account_onboarding_phone_execution_links_backend_auth_session(app_clien
     assert "12345" not in code.text
 
 
-def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(app_client, monkeypatch) -> None:
+def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
+    app_client, monkeypatch
+) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
     upload = app_client.post(
         "/api/account-onboarding-artifacts",
@@ -441,7 +453,9 @@ def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(app_c
             "idempotency_key": "tdlib-exec-upload",
             "source_type": "tdlib_directory",
             "filename": "tdlib.zip",
-            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "safe"})).decode("ascii"),
+            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "safe"})).decode(
+                "ascii"
+            ),
         },
     ).json()
     created = app_client.post(

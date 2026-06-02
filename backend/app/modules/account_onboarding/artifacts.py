@@ -38,7 +38,9 @@ def decode_upload(content_base64: str) -> bytes:
     return data
 
 
-def store_private_artifact(*, workspace_id: str, artifact_id: str, filename: str, source_type: str, data: bytes) -> StoredArtifact:
+def store_private_artifact(
+    *, workspace_id: str, artifact_id: str, filename: str, source_type: str, data: bytes
+) -> StoredArtifact:
     if source_type in {"tdlib_directory", "tdata_archive", "session_file"}:
         validate_archive_if_zip(filename, data)
     digest = hashlib.sha256(data).hexdigest()
@@ -70,7 +72,12 @@ def validate_archive_if_zip(filename: str, data: bytes) -> None:
     for info in infos:
         name = info.filename.replace("\\", "/")
         path = PurePosixPath(name)
-        if not name or name.startswith("/") or path.is_absolute() or any(part == ".." for part in path.parts):
+        if (
+            not name
+            or name.startswith("/")
+            or path.is_absolute()
+            or any(part == ".." for part in path.parts)
+        ):
             raise artifact_unsafe("archive_rejected_unsafe_path", "Archive contains unsafe paths.")
         if len([part for part in path.parts if part not in {"", "."}]) > MAX_ARCHIVE_DEPTH:
             raise artifact_unsafe("archive_rejected_too_deep", "Archive nesting is too deep.")
@@ -79,5 +86,6 @@ def validate_archive_if_zip(filename: str, data: bytes) -> None:
             raise artifact_unsafe("archive_rejected_symlink", "Archive contains symlinks.")
         total += info.file_size
         if total > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
-            raise artifact_unsafe("archive_rejected_too_large", "Archive uncompressed size is too large.")
-
+            raise artifact_unsafe(
+                "archive_rejected_too_large", "Archive uncompressed size is too large."
+            )

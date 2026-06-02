@@ -433,6 +433,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account-onboarding-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Account Onboarding Batches */
+        get: operations["list_account_onboarding_batches_api_account_onboarding_batches_get"];
+        put?: never;
+        /** Create Account Onboarding Batch */
+        post: operations["create_account_onboarding_batch_api_account_onboarding_batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Onboarding Batch */
+        get: operations["get_account_onboarding_batch_api_account_onboarding_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Account Onboarding Batch */
+        post: operations["validate_account_onboarding_batch_api_account_onboarding_batches__batch_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Account Onboarding Batch */
+        post: operations["confirm_account_onboarding_batch_api_account_onboarding_batches__batch_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Account Onboarding Batch */
+        post: operations["cancel_account_onboarding_batch_api_account_onboarding_batches__batch_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/items/{item_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Account Onboarding Item */
+        post: operations["retry_account_onboarding_item_api_account_onboarding_batches__batch_id__items__item_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/items/{item_id}/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Account Onboarding Code */
+        post: operations["submit_account_onboarding_code_api_account_onboarding_batches__batch_id__items__item_id__code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-batches/{batch_id}/items/{item_id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Account Onboarding Password */
+        post: operations["submit_account_onboarding_password_api_account_onboarding_batches__batch_id__items__item_id__password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-onboarding-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Account Onboarding Artifact */
+        post: operations["upload_account_onboarding_artifact_api_account_onboarding_artifacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/jobs": {
         parameters: {
             query?: never;
@@ -3099,6 +3253,223 @@ export interface components {
             updated_at: string;
             warmup?: components["schemas"]["AccountWarmupInfoRead"] | null;
         };
+        /** AccountOnboardingArtifactCreate */
+        AccountOnboardingArtifactCreate: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file" | "reauth";
+            /** Filename */
+            filename: string;
+            /** Content Base64 */
+            content_base64: string;
+        };
+        /** AccountOnboardingArtifactRead */
+        AccountOnboardingArtifactRead: {
+            /** Id */
+            id: string;
+            /** Source Type */
+            source_type: string;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Content Type Detected */
+            content_type_detected: string;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Failure Code */
+            failure_code: string | null;
+            /** Failure Message */
+            failure_message: string | null;
+        };
+        /** AccountOnboardingBatchCreate */
+        AccountOnboardingBatchCreate: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file" | "reauth";
+            /** Label */
+            label?: string | null;
+            /** Phone Items */
+            phone_items?: components["schemas"]["PhoneOnboardingInput"][];
+            /** Metadata Json */
+            metadata_json?: unknown | null;
+            /** Artifact Id */
+            artifact_id?: string | null;
+            /** Filename */
+            filename?: string | null;
+        };
+        /** AccountOnboardingBatchRead */
+        AccountOnboardingBatchRead: {
+            /** Id */
+            id: string;
+            /** Source Type */
+            source_type: string;
+            /** Status */
+            status: string;
+            /** Label */
+            label: string | null;
+            counters: components["schemas"]["AccountOnboardingCountersRead"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Consent Confirmed At */
+            consent_confirmed_at: string | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /** Queued At */
+            queued_at: string | null;
+            /** Started At */
+            started_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Failure Code */
+            failure_code: string | null;
+            /** Failure Message */
+            failure_message: string | null;
+        };
+        /** AccountOnboardingCodeRequest */
+        AccountOnboardingCodeRequest: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Code */
+            code: string;
+        };
+        /** AccountOnboardingConfirmRequest */
+        AccountOnboardingConfirmRequest: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "ADD_ACCOUNTS";
+            /** Consent Accepted */
+            consent_accepted: boolean;
+            /** Consent Version */
+            consent_version: string;
+        };
+        /** AccountOnboardingCountersRead */
+        AccountOnboardingCountersRead: {
+            /** Total Count */
+            total_count: number;
+            /** Valid Count */
+            valid_count: number;
+            /** Ready Count */
+            ready_count: number;
+            /** Failed Count */
+            failed_count: number;
+            /** Blocked Count */
+            blocked_count: number;
+            /** Requires Reauth Count */
+            requires_reauth_count: number;
+        };
+        /** AccountOnboardingItemRead */
+        AccountOnboardingItemRead: {
+            /** Id */
+            id: string;
+            /** Batch Id */
+            batch_id: string;
+            /** Account Id */
+            account_id: string | null;
+            /** Auth Session Id */
+            auth_session_id: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Position */
+            position: number;
+            /** Status */
+            status: string;
+            /** Phone Hint */
+            phone_hint: string | null;
+            /** Username Hint */
+            username_hint: string | null;
+            /** Telegram User Id Hint */
+            telegram_user_id_hint: string | null;
+            /** Label */
+            label: string | null;
+            /** Validation Code */
+            validation_code: string | null;
+            /** Validation Message */
+            validation_message: string | null;
+            /** Risk Level */
+            risk_level: string;
+            /** Requires Reauth */
+            requires_reauth: boolean;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Last Error Message */
+            last_error_message: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Next Retry At */
+            next_retry_at: string | null;
+            /** Next Action */
+            next_action?: string | null;
+        };
+        /** AccountOnboardingMutationRequest */
+        AccountOnboardingMutationRequest: {
+            /** Idempotency Key */
+            idempotency_key: string;
+        };
+        /** AccountOnboardingPasswordRequest */
+        AccountOnboardingPasswordRequest: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Password */
+            password: string;
+        };
+        /** AccountOnboardingSnapshotRead */
+        AccountOnboardingSnapshotRead: {
+            batch: components["schemas"]["AccountOnboardingBatchRead"];
+            /** Items */
+            items: components["schemas"]["AccountOnboardingItemRead"][];
+            /** Capabilities */
+            capabilities: components["schemas"]["OnboardingCapabilityRead"][];
+            /** Poll Again In Ms */
+            poll_again_in_ms: number;
+            /** Next Action */
+            next_action?: string | null;
+        };
+        /** AccountOnboardingValidateRequest */
+        AccountOnboardingValidateRequest: {
+            /** Idempotency Key */
+            idempotency_key: string;
+        };
         /** AccountOperationCooldownRead */
         AccountOperationCooldownRead: {
             /** Id */
@@ -5675,6 +6046,36 @@ export interface components {
             /** Updated At */
             updated_at: string | null;
         };
+        /** OnboardingCapabilityRead */
+        OnboardingCapabilityRead: {
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file" | "reauth";
+            /** Can Preview */
+            can_preview: boolean;
+            /** Can Validate Structure */
+            can_validate_structure: boolean;
+            /** Can Materialize Session */
+            can_materialize_session: boolean;
+            /** Requires Reauth */
+            requires_reauth: boolean;
+            /** Supports Bulk */
+            supports_bulk: boolean;
+            /** Supports Artifact Upload */
+            supports_artifact_upload: boolean;
+            /**
+             * Risk Level
+             * @enum {string}
+             */
+            risk_level: "low" | "medium" | "high";
+            /**
+             * User Facing Support Level
+             * @enum {string}
+             */
+            user_facing_support_level: "full" | "preview_only" | "requires_reauth" | "unsupported";
+        };
         /** OtpConfirmRequest */
         OtpConfirmRequest: {
             /** Account Id */
@@ -5693,6 +6094,18 @@ export interface components {
             account_id: string;
             /** Password */
             password: string;
+        };
+        /** PhoneOnboardingInput */
+        PhoneOnboardingInput: {
+            /** Phone Number */
+            phone_number: string;
+            /** Label */
+            label?: string | null;
+            /**
+             * Position
+             * @default 0
+             */
+            position: number;
         };
         /**
          * ProfileAudioAction
@@ -8284,6 +8697,626 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountImportBatchRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_account_onboarding_batches_api_account_onboarding_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingBatchRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    create_account_onboarding_batch_api_account_onboarding_batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingBatchCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingSnapshotRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_onboarding_batch_api_account_onboarding_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingSnapshotRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_account_onboarding_batch_api_account_onboarding_batches__batch_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingValidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingSnapshotRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_account_onboarding_batch_api_account_onboarding_batches__batch_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingSnapshotRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_account_onboarding_batch_api_account_onboarding_batches__batch_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingSnapshotRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_account_onboarding_item_api_account_onboarding_batches__batch_id__items__item_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingItemRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_account_onboarding_code_api_account_onboarding_batches__batch_id__items__item_id__code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingItemRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_account_onboarding_password_api_account_onboarding_batches__batch_id__items__item_id__password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingItemRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_account_onboarding_artifact_api_account_onboarding_artifacts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOnboardingArtifactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOnboardingArtifactRead"];
                 };
             };
             /** @description Bad Request */

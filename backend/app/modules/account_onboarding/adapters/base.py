@@ -54,14 +54,13 @@ class ExecutionOutcome:
 class AccountOnboardingAdapter(Protocol):
     source_type: str
 
-    def capability(self) -> OnboardingCapabilityRead:
-        ...
+    def capability(self) -> OnboardingCapabilityRead: ...
 
-    def preview(self, session: Session, *, workspace_id: str, body: dict[str, Any]) -> list[PreviewItem]:
-        ...
+    def preview(
+        self, session: Session, *, workspace_id: str, body: dict[str, object]
+    ) -> list[PreviewItem]: ...
 
-    def execute(self, item: Any) -> ExecutionOutcome:
-        ...
+    def execute(self, item: Any) -> ExecutionOutcome: ...
 
 
 def hash_value(value: object) -> str:

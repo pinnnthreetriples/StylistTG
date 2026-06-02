@@ -1254,6 +1254,7 @@
         "apps/dashboard/src/features/accounts/AddAccountsPage.test.tsx",
         "apps/dashboard/src/features/accounts/AddAccountsPage.tsx",
         "apps/dashboard/src/features/accounts/accountColumns.tsx",
+        "apps/dashboard/src/features/accounts/accountOnboardingWizard.ts",
         "apps/dashboard/src/features/accounts/accountRisk.test.ts",
         "apps/dashboard/src/features/accounts/accountRisk.ts",
         "apps/dashboard/src/features/accounts/accountsViewStorage.ts",
@@ -1835,7 +1836,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T09:54:51Z",
+  "generated_at": "2026-06-02T14:19:41Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

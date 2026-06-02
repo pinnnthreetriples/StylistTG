@@ -61,7 +61,7 @@ Three layers of enforcement:
    any regression breaks the build, any improvement should be reflected
    by raising the threshold in the same PR.
 
-The gate's behavior is pinned by `backend/tests/scripts/test_coverage_gate.py`
+The gate's behavior is pinned by `backend/tests/scripts/test_coverage_gate_branch_validation.py`
 (10 regression tests covering missing report, missing meta block, branch
 coverage disabled, critical file absence, and threshold math).
 

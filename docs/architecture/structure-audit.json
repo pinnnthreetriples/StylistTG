@@ -1884,6 +1884,7 @@
           "backend/tests/runtime/test_runtime_preflight.py",
           "backend/tests/runtime/test_runtime_roles.py",
           "backend/tests/scripts/test_backfill_safety_pipeline.py",
+          "backend/tests/scripts/test_coverage_gate_branch_validation.py",
           "backend/tests/scripts/test_report_slow_tests.py",
           "backend/tests/security/test_operator_guard.py",
           "backend/tests/security/test_pii_leak_guard.py",
@@ -2105,7 +2106,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T19:24:11Z",
+    "generated_at": "2026-06-02T19:50:04Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2425,7 +2426,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T19:24:11Z",
+  "generated_at": "2026-06-02T19:50:04Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5303,7 +5304,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 225,
+      "file_count": 226,
       "path": "backend/tests"
     },
     "docs": {

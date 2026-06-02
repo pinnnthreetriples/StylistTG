@@ -1839,9 +1839,11 @@
           "backend/tests/helpers/__init__.py",
           "backend/tests/helpers/app.py",
           "backend/tests/helpers/assertions.py",
+          "backend/tests/helpers/db_fixtures.py",
           "backend/tests/helpers/factories.py",
           "backend/tests/helpers/query_count.py",
           "backend/tests/helpers/test_assertions.py",
+          "backend/tests/helpers/test_db_fixtures.py",
           "backend/tests/helpers/warmup.py",
           "backend/tests/infra/test_cloud_bootstrap_scripts.py",
           "backend/tests/infra/test_config_validation.py",
@@ -2103,7 +2105,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T19:49:06Z",
+    "generated_at": "2026-06-02T21:46:25Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2423,7 +2425,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T19:49:06Z",
+  "generated_at": "2026-06-02T21:46:25Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5301,7 +5303,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 223,
+      "file_count": 225,
       "path": "backend/tests"
     },
     "docs": {

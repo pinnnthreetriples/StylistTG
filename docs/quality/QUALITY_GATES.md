@@ -41,6 +41,24 @@ call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
 Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
 `benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
 
+## DB fixture strategy
+
+The default `db_session` fixture in `backend/tests/conftest.py` builds a
+fresh in-memory SQLite engine **and** the full schema for every test. It
+gives maximum isolation at the cost of repeated `Base.metadata.create_all`
+work.
+
+For DB-heavy tests that do not commit at the test layer, the opt-in
+`transactional_db_session` fixture in `backend/tests/helpers/db_fixtures.py`
+keeps the engine and schema across the whole pytest session and wraps
+each test in a SAVEPOINT-backed transaction that rolls back at teardown.
+Tests migrate by renaming `db_session` → `transactional_db_session`.
+
+The fixture's isolation contract is pinned by
+`backend/tests/helpers/test_db_fixtures.py`. Tests that need real commits
+visible from a separate engine (e.g. cross-process or multi-connection
+scenarios) must stay on the per-engine `db_session` fixture.
+
 ## Strict assertion policy
 
 Backend tests must assert the behaviour that matters, not just that an

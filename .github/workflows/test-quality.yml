@@ -204,6 +204,21 @@ jobs:
               --severity INFO \
               --fail-on-severity INFO
           cat reports/changed-test-analyzer-time.txt | tee -a reports/pytest-runtime-summary.txt
+      - name: Build quality snapshot + summary (#275)
+        # PR profile requires coverage/analyzer/slow_tests; missing reports
+        # flip status='incomplete' and --fail-on-incomplete returns exit 2,
+        # so a broken upstream step cannot leave a green dashboard page.
+        if: always()
+        run: |
+          uv run python scripts/quality_dashboard.py \
+            --reports-dir reports \
+            --output-json reports/quality-snapshot.json \
+            --output-md reports/quality-summary.md \
+            --profile pr \
+            --fail-on-incomplete
+          if [ -f reports/quality-summary.md ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            cat reports/quality-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload backend test reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -218,6 +233,8 @@ jobs:
             backend/reports/slow-tests.json
             backend/reports/fixture-audit.json
             backend/reports/pytest-runtime-summary.txt
+            backend/reports/quality-snapshot.json
+            backend/reports/quality-summary.md
         if: always()
 
   audit:

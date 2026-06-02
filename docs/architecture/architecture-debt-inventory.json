@@ -1485,6 +1485,7 @@
         "backend/scripts/mutation_suite.py",
         "backend/scripts/nightly_randomized.py",
         "backend/scripts/pytest_profiles.py",
+        "backend/scripts/quality_dashboard.py",
         "backend/scripts/report_slow_tests.py",
         "backend/scripts/require_tests_for_new_backend_files.py",
         "backend/scripts/seed_safety_replay_dataset.py",
@@ -1621,6 +1622,7 @@
         "backend/tests/scripts/test_backfill_safety_pipeline.py",
         "backend/tests/scripts/test_coverage_gate_branch_validation.py",
         "backend/tests/scripts/test_mutation_allowlist.py",
+        "backend/tests/scripts/test_quality_dashboard.py",
         "backend/tests/scripts/test_report_slow_tests.py",
         "backend/tests/security/rbac_matrix_baseline.json",
         "backend/tests/security/test_endpoint_matrix_completeness.py",
@@ -1847,7 +1849,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-02T22:05:56Z",
+  "generated_at": "2026-06-02T22:11:21Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

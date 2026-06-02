@@ -43,7 +43,7 @@ uv run pytest tests \
   --cov-report=term-missing:skip-covered \
   --benchmark-disable \
   --durations=50 --durations-min=0.5 \
-  -q
+  -q 2>&1 | tee reports/pytest.log
 
 # Coverage gate (per-package + critical-file branch coverage, #265).
 uv run python scripts/coverage_gate.py
@@ -57,15 +57,17 @@ uv run python -m tools.test_analyzer \
   --severity INFO \
   --fail-on-severity INFO
 
-# Slow-test budget (#264). Reports are produced by report_slow_tests.py
-# during the pytest invocation above.
+# Slow-test budget (#264). report_slow_tests.py parses the pytest log
+# that was captured via `tee reports/pytest.log` above; --require-report
+# matches the CI invocation so a missing log fails the budget gate.
 uv run python scripts/report_slow_tests.py \
   --log reports/pytest.log \
   --output reports/slow-tests.json \
   --threshold 3
 uv run python scripts/enforce_slow_test_budget.py \
   --report reports/slow-tests.json \
-  --profile pr
+  --profile pr \
+  --require-report
 
 # Contract-security narrow subset (#266).
 uv run pytest tests/contract/security \

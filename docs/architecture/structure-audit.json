@@ -1746,14 +1746,12 @@
           "backend/scripts/check.py",
           "backend/scripts/check.sh",
           "backend/scripts/coverage_gate.py",
-          "backend/scripts/enforce_slow_test_budget.py",
           "backend/scripts/flaky_detection.py",
           "backend/scripts/legacy_wrapper_audit.py",
           "backend/scripts/migration_replay.py",
           "backend/scripts/mutation_gate.py",
           "backend/scripts/mutation_suite.py",
           "backend/scripts/nightly_randomized.py",
-          "backend/scripts/pytest_profiles.py",
           "backend/scripts/report_slow_tests.py",
           "backend/scripts/require_tests_for_new_backend_files.py",
           "backend/scripts/seed_safety_replay_dataset.py",
@@ -1839,11 +1837,9 @@
           "backend/tests/helpers/__init__.py",
           "backend/tests/helpers/app.py",
           "backend/tests/helpers/assertions.py",
-          "backend/tests/helpers/db_fixtures.py",
           "backend/tests/helpers/factories.py",
           "backend/tests/helpers/query_count.py",
           "backend/tests/helpers/test_assertions.py",
-          "backend/tests/helpers/test_db_fixtures.py",
           "backend/tests/helpers/warmup.py",
           "backend/tests/infra/test_cloud_bootstrap_scripts.py",
           "backend/tests/infra/test_config_validation.py",
@@ -1964,7 +1960,6 @@
           "backend/tests/tools/test_migration_lint.py",
           "backend/tests/tools/test_mutation_suite.py",
           "backend/tests/tools/test_nightly_randomized.py",
-          "backend/tests/tools/test_pytest_profiles.py",
           "backend/tests/tools/test_strict_enforcement_262.py",
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
@@ -2105,7 +2100,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T15:37:35Z",
+    "generated_at": "2026-06-02T15:19:13Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2425,7 +2420,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T15:37:35Z",
+  "generated_at": "2026-06-02T15:19:13Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5298,12 +5293,12 @@
   "supporting_surfaces": {
     "backend_scripts": {
       "exists": true,
-      "file_count": 20,
+      "file_count": 18,
       "path": "backend/scripts"
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 225,
+      "file_count": 222,
       "path": "backend/tests"
     },
     "docs": {

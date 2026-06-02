@@ -1,5 +1,3 @@
-# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check; replaced with exact body assertion in the #263 sweep" issue="#263" expires="2026-08-31"
-
 from tests.helpers.app import app_client
 from tests.helpers.factories import make_session
 
@@ -54,4 +52,11 @@ def test_execution_policy_keeps_legacy_profile_job_cooldown_upper_bound(monkeypa
         )
 
     assert response.status_code == 422
-    assert response.json()
+    body = response.json()
+    # StylistTG validation envelope: error_code + field_errors[].field naming
+    # the offending request field.
+    assert body["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert any(
+        "profile_job_cooldown_seconds" in (entry.get("field") or "")
+        for entry in body["field_errors"]
+    ), f"expected profile_job_cooldown_seconds field error, got body={body!r}"

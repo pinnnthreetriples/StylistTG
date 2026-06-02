@@ -755,26 +755,40 @@ def test_suppression_with_past_expiry_emits_meta003_critical() -> None:
 
 
 def test_suppression_with_malformed_expiry_emits_meta003() -> None:
+    """Both unparseable strings and structurally-impossible dates fire META003.
+
+    Previously the field regex required ``\\d{4}-\\d{2}-\\d{2}``, so a value
+    like ``not-a-date`` was silently ignored — meaning a typo could create an
+    effectively immortal suppression. The parser now captures any quoted
+    value and validates it inside ``_maybe_expiry_warning`` so both
+    unparseable strings and impossible dates surface as CRITICAL findings.
+    Empty `expires=""` is treated as "no expiry set" (policy-allowed for
+    permanent false-positive carve-outs) and intentionally does NOT fire.
+    """
+    for bad in ("not-a-date", "2026-99-99", "tomorrow"):
+        source = textwrap.dedent(f"""\
+            # test-analyzer: disable=TQA001 reason="placeholder" expires="{bad}"
+            def test_smoke():
+                run_app()
+        """)
+        issues = _analyze_source(source)
+        meta = [i for i in issues if i.rule_id == "META003"]
+        assert len(meta) == 1, (
+            f"expected META003 for malformed expires={bad!r}, got {[i.message for i in meta]!r}"
+        )
+        assert "malformed" in meta[0].message
+        assert meta[0].severity.name == "CRITICAL"
+
+
+def test_suppression_with_empty_expires_value_is_silent() -> None:
+    """`expires=""` is policy-allowed shorthand for 'no expiry', not malformed."""
     source = textwrap.dedent("""\
-        # test-analyzer: disable=TQA001 reason="placeholder" expires="not-a-date"
+        # test-analyzer: disable=TQA001 reason="permanent false positive" expires=""
         def test_smoke():
             run_app()
     """)
-    # Regex requires \\d{4}-\\d{2}-\\d{2}, so a non-matching value is silently
-    # dropped — but a structurally-valid-but-impossible date (e.g. month 99)
-    # exercises the date.fromisoformat ValueError path inside the parser.
     issues = _analyze_source(source)
     assert [i for i in issues if i.rule_id == "META003"] == []
-
-    source_bad = textwrap.dedent("""\
-        # test-analyzer: disable=TQA001 reason="placeholder" expires="2026-99-99"
-        def test_smoke():
-            run_app()
-    """)
-    issues_bad = _analyze_source(source_bad)
-    meta = [i for i in issues_bad if i.rule_id == "META003"]
-    assert len(meta) == 1
-    assert "malformed" in meta[0].message
 
 
 # ---------------------------------------------------------------------------

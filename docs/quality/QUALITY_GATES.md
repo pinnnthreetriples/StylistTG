@@ -196,7 +196,11 @@ Inline analyzer suppressions use a three-field format and are validated by
   false-positive carve-outs. The format is `#` followed by digits.
 - `expires="YYYY-MM-DD"` — recommended for deferred work. Past expiry
   fires **META003** CRITICAL — the analyzer hard-fails CI when an
-  expiring suppression has lapsed. Malformed dates also fire META003.
+  expiring suppression has lapsed. The field regex is permissive
+  (any quoted value), so unparseable values like
+  `expires="not-a-date"` / `expires="2026-99-99"` ALSO fire META003
+  instead of being silently dropped — a typo cannot turn a suppression
+  into an immortal one.
 
 Permanent suppressions (analyzer false positives on patterns that are
 already strict, e.g. exception-attribute checks the rule does not yet

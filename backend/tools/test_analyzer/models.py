@@ -123,7 +123,11 @@ _SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable=(\w+)\b(.*)$")
 _FILE_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable-file=(\w+)\b(.*)$")
 _FIELD_REASON_RE = re.compile(r'reason="([^"]*)"')
 _FIELD_ISSUE_RE = re.compile(r'issue="(#\d+)"')
-_FIELD_EXPIRES_RE = re.compile(r'expires="(\d{4}-\d{2}-\d{2})"')
+# Permissive `expires="..."` regex: any quoted value is captured so a
+# malformed date still reaches `_maybe_expiry_warning`, which then emits
+# META003. A strict `\d{4}-\d{2}-\d{2}` regex would let bad values slip
+# through silently — exactly the loophole the policy must close.
+_FIELD_EXPIRES_RE = re.compile(r'expires="([^"]*)"')
 
 
 def _parse_suppression_fields(tail: str) -> tuple[str, str, str]:

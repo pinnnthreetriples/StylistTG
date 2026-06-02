@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check in matrix runner; replaced with exact body assertion in the #263 sweep" issue="#263" expires="2026-08-31"
+# test-analyzer: disable-file=TQA030 reason="matrix-runner shares parametrize/_role_test_client setup across 150 cases by design; assertion bodies are individual"
 """Data-driven role/auth matrix test for all API endpoints.
 
 Adding coverage for a new endpoint requires only appending one tuple to
@@ -447,7 +447,10 @@ class TestViewerCannotMutate:
             assert response.status_code == 403, (
                 f"viewer {method} {path} returned {response.status_code}, expected 403"
             )
-            assert response.json()
+            body = response.json()
+            assert isinstance(body, dict) and body.get("error_code") == "ROLE_FORBIDDEN", (
+                f"viewer {method} {path} returned 403 with unexpected envelope: {body!r}"
+            )
 
 
 @pytest.mark.security
@@ -486,7 +489,10 @@ class TestOperatorAdminEndpoints:
             assert response.status_code == 403, (
                 f"operator {method} {path} returned {response.status_code}, expected 403"
             )
-            assert response.json()
+            body = response.json()
+            assert isinstance(body, dict) and body.get("error_code") == "ROLE_FORBIDDEN", (
+                f"operator {method} {path} returned 403 with unexpected envelope: {body!r}"
+            )
 
 
 @pytest.mark.security

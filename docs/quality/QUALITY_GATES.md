@@ -2,6 +2,42 @@
 
 Mandatory and optional checks before merging StylistTG PRs.
 
+## Strict assertion policy
+
+Backend tests must assert the behaviour that matters, not just that an
+endpoint returned some status code. Status-only API tests, "detail in body"
+checks, `assert result is not None`, `assert mock.called`, and manual
+`try/except` capture patterns are prohibited in security/auth/API/storage
+tests.
+
+### Required patterns
+
+- **Exact error envelope.** Every 4xx/5xx test asserts the exact body shape,
+  including `error_code`/`detail`. Use `tests.helpers.assertions.assert_error_response`.
+- **Side-effect safety.** Every failure-path test asserts that no rows were
+  written and no queue mock was called. Use `assert_no_jobs_created` and
+  `assert_queue_not_called` helpers.
+- **Workspace isolation.** Workspace-scoped tests cover both own- and
+  foreign-workspace paths. Foreign probes must return 404 and must not leak
+  the foreign id; use `assert_foreign_workspace_denied`.
+- **Exceptions.** Unit/security/domain tests use `pytest.raises(..., match=...)`
+  with an exact exception type assertion. Manual `try/except` capture
+  patterns are forbidden — they hide which branch executed.
+- **Datetime.** Response timestamps go through `assert_rfc3339_aware`, not
+  `endswith("Z") or "+" in value`.
+- **Mocks.** `assert_called_once_with(...)` / `assert_exact_calls(...)` /
+  `assert_not_called()`, never `assert mock.called` / `mock.call_count > 0`.
+
+### Suppression policy
+
+Inline analyzer suppressions are allowed only when an exact assertion is
+impossible (e.g. unstable third-party field, intentionally generic match) and
+must include `reason="…"`. Suppressions tied to deferred work must reference
+a tracking issue. The analyzer flags missing `reason=` as META001.
+
+Helpers live in `backend/tests/helpers/assertions.py`; their behaviour is
+pinned by `backend/tests/helpers/test_assertions.py`.
+
 ## Zero-warning / zero-soft-fail policy
 
 The backend test-quality gate is strict: any pytest warning, unknown marker,

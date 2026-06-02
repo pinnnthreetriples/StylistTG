@@ -2103,7 +2103,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T01:38:39Z",
+    "generated_at": "2026-06-02T16:12:51Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2423,7 +2423,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T01:38:39Z",
+  "generated_at": "2026-06-02T16:12:51Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",

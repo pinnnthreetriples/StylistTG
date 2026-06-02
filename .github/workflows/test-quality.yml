@@ -156,12 +156,16 @@ jobs:
           cat reports/slow-report-time.txt | tee -a reports/pytest-runtime-summary.txt
       - name: Enforce slow-test budget (#264)
         # PR profile budget: unmarked tests exceeding 3s call / 2s setup fail.
+        # --require-report guarantees the budget gate fails (exit 2) if
+        # report_slow_tests.py is broken, so a missing report cannot silently
+        # disable the gate.
         run: |
           uv run python scripts/enforce_slow_test_budget.py \
             --report reports/slow-tests.json \
             --max-call-seconds 3 \
             --max-setup-seconds 2 \
-            --profile pr
+            --profile pr \
+            --require-report
       - name: Audit fixture usage
         # Zero-soft-fail policy (#262): fixture audit hard-fails. Artifact upload below
         # uses `if: always()` to preserve the JSON for diagnosis when this step fails.

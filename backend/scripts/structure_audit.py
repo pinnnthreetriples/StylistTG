@@ -235,6 +235,18 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Account import route and service ownership is canonical; old API/service paths are compatibility wrappers.",
     ),
     OwnershipEntry(
+        id="canonical-account-onboarding",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="account_onboarding",
+        paths=("backend/app/modules/account_onboarding/**",),
+        target_owner="app.modules.account_onboarding",
+        phase="PR291",
+        removal_condition="n/a",
+        rationale="Account onboarding route, service, adapters, private artifacts, and workflow metadata ownership is canonical.",
+    ),
+    OwnershipEntry(
         id="canonical-account-jobs",
         category="canonical_feature_module",
         severity="info",

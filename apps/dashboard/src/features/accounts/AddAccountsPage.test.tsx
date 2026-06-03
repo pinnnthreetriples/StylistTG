@@ -1,47 +1,69 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { AddAccountsPage } from '@/features/accounts/AddAccountsPage'
-import { queryKeys } from '@/lib/queries'
+import { canConfirmOnboardingBatch } from '@/features/accounts/accountOnboardingWizard'
+
+const DRAFT_KEY = 'stylisttg.account_onboarding_draft'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 function renderPage() {
   const queryClient = new QueryClient()
-  queryClient.setQueryData(queryKeys.workers.diagnostics, {
-    tdlib: {
-      execution_plane_ready: true,
-      live_enabled: true,
-    },
-  })
-
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
-      <AddAccountsPage
-        onTestDcChange={() => undefined}
-        testDcEnabled={false}
-        testDcPending={false}
-      />
+      <AddAccountsPage onTestDcChange={() => undefined} testDcEnabled={false} testDcPending={false} />
     </QueryClientProvider>,
   )
 }
 
 describe('AddAccountsPage', () => {
-  test('renders one connected account-add page without mode tabs', () => {
+  test('renders canonical account onboarding wizard as first screen', () => {
     const html = renderPage()
 
-    expect(html).toContain('Введите один или несколько номеров для запуска авторизации.')
+    expect(html).toContain('Добавление аккаунтов')
     expect(html).toContain('Номера')
-    expect(html).toContain('Live-режим включён')
-    expect(html).not.toContain('Один аккаунт')
-    expect(html).not.toContain('Список номеров')
+    expect(html).toContain('TDLib')
+    expect(html).toContain('tdata')
+    expect(html).toContain('Session')
+    expect(html).toContain('Требуется ручная авторизация')
+    expect(html).toContain('0 номеров')
+    expect(html).toContain('Метка')
+    expect(html).toContain('Предпросмотр')
+    expect(html).not.toContain('<details')
+    expect(html).not.toContain('BulkAuthScreen')
   })
 
-  test('keeps package import on the same collapsed page', () => {
+  test('reads saved draft raw input on first render', () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) =>
+          key === DRAFT_KEY
+            ? JSON.stringify({
+                sourceType: 'phone_bulk',
+                label: 'Saved',
+                rawInput: '+15550102000 Saved label',
+                jsonInput: '{}',
+              })
+            : null,
+        removeItem: () => undefined,
+        setItem: () => undefined,
+      },
+    })
+
     const html = renderPage()
 
-    expect(html).toContain('<details')
-    expect(html).not.toContain('<details open')
-    expect(html).toContain('Импорт пакета')
-    expect(html).toContain('Введите IMPORT для подтверждения')
+    expect(html).toContain('+15550102000 Saved label')
+    expect(html).toContain('1 номеров')
+  })
+
+  test('blocks confirm until explicit consent is checked', () => {
+    expect(canConfirmOnboardingBatch('preview_ready', false, false)).toBe(false)
+    expect(canConfirmOnboardingBatch('preview_ready', true, true)).toBe(false)
+    expect(canConfirmOnboardingBatch('created', true, false)).toBe(false)
+    expect(canConfirmOnboardingBatch('preview_ready', true, false)).toBe(true)
   })
 })

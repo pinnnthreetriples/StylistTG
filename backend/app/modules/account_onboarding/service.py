@@ -808,9 +808,10 @@ def _hash(value: object) -> str:
 
 
 def _secret_hash(value: str) -> str:
-    salt = os.getenv("ACCOUNT_ONBOARDING_PASSWORD_HASH_SALT", "account-onboarding-default-salt").encode(
-        "utf-8"
-    )
+    salt = os.getenv(
+        "ACCOUNT_ONBOARDING_PASSWORD_HASH_SALT",
+        "account-onboarding-default-salt",
+    ).encode("utf-8")
     derived = hashlib.pbkdf2_hmac("sha256", value.encode("utf-8"), salt, 600_000)
     return derived.hex()
 

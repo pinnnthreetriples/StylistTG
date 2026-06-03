@@ -21,7 +21,7 @@ import {
 
 import { dashboardApiClient } from '@/lib/apiClient'
 import { normalizeError } from '@/lib/appErrors'
-import { makeOnboardingKey, parseOnboardingPhones } from '@/features/accounts/accountOnboardingWizard'
+import { canConfirmOnboardingBatch, makeOnboardingKey, parseOnboardingPhones } from '@/features/accounts/accountOnboardingWizard'
 
 const DRAFT_KEY = 'stylisttg.account_onboarding_draft'
 const ACTIVE_BATCH_KEY = 'stylisttg.account_onboarding_active_batch_id'
@@ -210,7 +210,7 @@ export function AddAccountsPage(_props: {
 
       <section className="border-b border-border py-4">
         <div className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Ввод или загрузка</div>
-        <input className="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Label" value={label} onChange={(event) => setLabel(event.target.value)} />
+        <input className="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Метка" value={label} onChange={(event) => setLabel(event.target.value)} />
         {sourceType === 'phone_bulk' ? (
           <>
             <Textarea value={rawInput} onChange={(event) => setRawInput(event.target.value)} placeholder={'+15550102000 Alice\n+15550102001; +15550102002'} rows={6} />
@@ -224,10 +224,10 @@ export function AddAccountsPage(_props: {
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex min-h-16 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border p-4 text-sm text-foreground" onDragOver={(event) => event.preventDefault()} onDrop={onArtifactDrop}><Upload className="h-4 w-4" />{artifact ? `${artifactFilename ?? artifact.content_type_detected} · ${Math.round(artifact.size_bytes / 1024)} KB` : 'Выбрать или перетащить приватный artifact'}<input className="sr-only" type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(file) }} /></label>
-            {artifact ? <Button variant="secondary" onClick={() => { setArtifact(null); setArtifactFilename(null) }} type="button"><XCircle className="mr-2 h-4 w-4" />Remove</Button> : null}
+            {artifact ? <Button variant="secondary" onClick={() => { setArtifact(null); setArtifactFilename(null) }} type="button"><XCircle className="mr-2 h-4 w-4" />Удалить</Button> : null}
           </div>
         )}
-        <Button className="mt-4" disabled={!canCreate || busy} onClick={() => void createPreview()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}Preview</Button>
+        <Button className="mt-4" disabled={!canCreate || busy} onClick={() => void createPreview()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}Предпросмотр</Button>
       </section>
 
       {error ? <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
@@ -242,18 +242,18 @@ function Results({ snapshot, busy, run, setSnapshot }: { snapshot: AccountOnboar
   return (
     <section className="rounded-lg border border-border bg-background p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div><div className="text-sm font-semibold text-foreground">3. Preview / Progress</div><div className="text-xs text-muted-foreground">{snapshot.batch.status} · ready {snapshot.batch.counters.ready_count}/{snapshot.batch.counters.total_count}</div></div>
+        <div><div className="text-sm font-semibold text-foreground">3. Предпросмотр / выполнение</div><div className="text-xs text-muted-foreground">{snapshot.batch.status} · ready {snapshot.batch.counters.ready_count}/{snapshot.batch.counters.total_count}</div></div>
         <div className="flex flex-col items-end gap-2 sm:max-w-md">
           <Checkbox checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} label="Я подтверждаю, что имею право добавлять и управлять этими Telegram аккаунтами." />
           <div className="flex gap-2">
-          <Button disabled={busy || snapshot.batch.status !== 'preview_ready' || !consentAccepted} onClick={() => void run(() => confirmAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('confirm'), confirmation: 'ADD_ACCOUNTS', consent_accepted: consentAccepted, consent_version: CONSENT_VERSION }))}><ShieldCheck className="mr-2 h-4 w-4" />ADD_ACCOUNTS</Button>
-          <Button disabled={busy} variant="secondary" onClick={() => void run(() => cancelAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('cancel') }))}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
+          <Button disabled={!canConfirmOnboardingBatch(snapshot.batch.status, consentAccepted, busy)} onClick={() => void run(() => confirmAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('confirm'), confirmation: 'ADD_ACCOUNTS', consent_accepted: consentAccepted, consent_version: CONSENT_VERSION }))}><ShieldCheck className="mr-2 h-4 w-4" />ADD_ACCOUNTS</Button>
+          <Button disabled={busy} variant="secondary" onClick={() => void run(() => cancelAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('cancel') }))}><XCircle className="mr-2 h-4 w-4" />Отменить</Button>
           </div>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-sm">
-          <thead className="border-b border-border text-left text-xs text-muted-foreground"><tr><th className="py-2">Hint</th><th>Status</th><th>Source</th><th>Risk</th><th>Message</th><th>Action</th></tr></thead>
+          <thead className="border-b border-border text-left text-xs text-muted-foreground"><tr><th className="py-2">Аккаунт</th><th>Статус</th><th>Источник</th><th>Риск</th><th>Сообщение</th><th>Действие</th></tr></thead>
           <tbody>{snapshot.items.map((item) => <tr className="border-b border-border/60" key={item.id}><td className="py-2">{item.phone_hint ?? item.username_hint ?? item.telegram_user_id_hint ?? item.label ?? 'metadata'}</td><td>{item.status}</td><td>{item.source_type}</td><td>{item.risk_level}</td><td>{itemMessage(item)}</td><td><ItemAction item={item} batchId={snapshot.batch.id} onAction={updateItem} /></td></tr>)}</tbody>
         </table>
       </div>
@@ -270,13 +270,13 @@ function ItemAction({ item, batchId, onAction }: { item: AccountOnboardingItem; 
     return <InlineSubmit label="2FA" value={value} setValue={setValue} onSubmit={() => void submitAccountOnboardingPassword(dashboardApiClient, batchId, item.id, { idempotency_key: makeOnboardingKey('password'), password: value }).then(onAction)} />
   }
   if (item.next_action === 'retry') {
-    return <Button size="sm" variant="secondary" onClick={() => void retryAccountOnboardingItem(dashboardApiClient, batchId, item.id, { idempotency_key: makeOnboardingKey('retry') }).then(onAction)}><RotateCcw className="mr-2 h-4 w-4" />Retry</Button>
+    return <Button size="sm" variant="secondary" onClick={() => void retryAccountOnboardingItem(dashboardApiClient, batchId, item.id, { idempotency_key: makeOnboardingKey('retry') }).then(onAction)}><RotateCcw className="mr-2 h-4 w-4" />Повторить</Button>
   }
   return <span className="text-xs text-muted-foreground">{item.next_action ?? ''}</span>
 }
 
 function InlineSubmit({ label, value, setValue, onSubmit }: { label: string; value: string; setValue: (value: string) => void; onSubmit: () => void }) {
-  return <span className="flex gap-2"><input className="w-28 rounded-md border border-border px-2 py-1 text-sm" placeholder={label} value={value} onChange={(event) => setValue(event.target.value)} /><Button size="sm" onClick={onSubmit}>Send</Button></span>
+  return <span className="flex gap-2"><input className="w-28 rounded-md border border-border px-2 py-1 text-sm" placeholder={label} value={value} onChange={(event) => setValue(event.target.value)} /><Button size="sm" onClick={onSubmit}>Отправить</Button></span>
 }
 
 function supportLabel(level: string): string {
@@ -285,7 +285,7 @@ function supportLabel(level: string): string {
 
 function itemMessage(item: AccountOnboardingItem): string {
   const base = item.validation_message ?? item.last_error_message ?? ''
-  return item.next_retry_at ? `${base} Retry after ${new Date(item.next_retry_at).toLocaleString()}` : base
+  return item.next_retry_at ? `${base} Повтор после ${new Date(item.next_retry_at).toLocaleString()}` : base
 }
 
 function isSnapshot(value: unknown): value is AccountOnboardingSnapshot {

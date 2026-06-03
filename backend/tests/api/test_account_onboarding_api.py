@@ -15,6 +15,7 @@ from app.models import (
     AccountOnboardingBatch,
     AccountOnboardingEvent,
     AccountOnboardingItem,
+    IdempotencyKey,
     Workspace,
     new_id,
     utc_now,
@@ -333,6 +334,52 @@ def test_account_onboarding_json_metadata_extracts_phone_hint(app_client) -> Non
     assert response.json()["items"][0]["phone_hint"] == "***2000"
 
 
+def test_account_onboarding_json_metadata_array_within_limit_works(app_client) -> None:
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "metadata-array-create",
+            "source_type": "json_metadata",
+            "metadata_json": [{"username": "demo-a"}, {"phone": "+15550102000"}],
+        },
+    )
+
+    assert created.status_code == 201
+    assert created.json()["batch"]["counters"]["total_count"] == 2
+
+
+def test_account_onboarding_json_metadata_rejects_too_many_items(app_client) -> None:
+    response = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "metadata-too-many-create",
+            "source_type": "json_metadata",
+            "metadata_json": [{"username": f"user-{index}"} for index in range(501)],
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert response.json()["field_errors"][0]["field"] == "metadata_json"
+
+
+def test_account_onboarding_json_metadata_rejects_too_large_payload(app_client) -> None:
+    sensitive_value = "secret-metadata-value"
+    response = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "metadata-too-large-create",
+            "source_type": "json_metadata",
+            "metadata_json": {"username": "demo", "blob": sensitive_value * 20_000},
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert response.json()["details"]["errors"][0]["input"] == "[redacted]"
+    assert sensitive_value not in response.text
+
+
 def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_client) -> None:
     response = app_client.post(
         "/api/account-onboarding-batches",
@@ -417,6 +464,76 @@ def test_account_onboarding_create_rejects_artifact_source_mismatch(app_client) 
     assert response.json()["details"]["validation_code"] == "artifact_source_mismatch"
 
 
+def test_account_onboarding_create_rejects_already_attached_artifact(app_client) -> None:
+    uploaded = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "double-attach-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.zip",
+            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "safe"})).decode(
+                "ascii"
+            ),
+        },
+    ).json()
+    first = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "double-attach-first-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": uploaded["id"],
+            "filename": "tdlib.zip",
+        },
+    )
+
+    second = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "double-attach-second-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": uploaded["id"],
+            "filename": "tdlib.zip",
+        },
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 409
+    assert second.json()["details"]["validation_code"] == "artifact_already_attached"
+
+
+def test_account_onboarding_create_idempotency_returns_cached_after_artifact_rejected(
+    app_client, db_session
+) -> None:
+    uploaded = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "cached-after-reject-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.zip",
+            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "safe"})).decode(
+                "ascii"
+            ),
+        },
+    ).json()
+    payload = {
+        "idempotency_key": "cached-after-reject-create",
+        "source_type": "tdlib_directory",
+        "artifact_id": uploaded["id"],
+        "filename": "tdlib.zip",
+    }
+    first = app_client.post("/api/account-onboarding-batches", json=payload)
+    artifact = db_session.get(AccountOnboardingArtifact, uploaded["id"])
+    assert artifact is not None
+    artifact.status = "rejected"
+    db_session.commit()
+
+    second = app_client.post("/api/account-onboarding-batches", json=payload)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.json()["batch"]["id"] == first.json()["batch"]["id"]
+
+
 def test_account_onboarding_validate_rejects_artifact_that_became_rejected(
     app_client, db_session
 ) -> None:
@@ -469,6 +586,31 @@ def test_account_onboarding_create_idempotency_conflict(app_client) -> None:
     assert first.status_code == 201
     assert second.status_code == 409
     assert second.json()["error_code"] == "ONBOARDING_INVALID_STATE"
+
+
+def test_account_onboarding_create_accepts_max_length_idempotency_key(
+    app_client, db_session
+) -> None:
+    idempotency_key = "x" * 128
+    payload = {
+        "idempotency_key": idempotency_key,
+        "source_type": "phone",
+        "phone_items": [{"phone_number": "+15550102000"}],
+    }
+
+    first = app_client.post("/api/account-onboarding-batches", json=payload)
+    second = app_client.post("/api/account-onboarding-batches", json=payload)
+    assert first.status_code == 201
+    assert second.status_code == 201
+    row = (
+        db_session.query(IdempotencyKey)
+        .filter_by(entity_id=first.json()["batch"]["id"], operation="create_batch")
+        .one()
+    )
+
+    assert second.json()["batch"]["id"] == first.json()["batch"]["id"]
+    assert len(row.key) <= 128
+    assert idempotency_key not in row.key
 
 
 def test_account_onboarding_queue_unavailable_persists_safe_failure(

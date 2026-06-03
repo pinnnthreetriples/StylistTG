@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -25,6 +26,8 @@ CreatableSourceType = Literal[
     "session_file",
 ]
 BASE64_PATTERN = r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+MAX_METADATA_JSON_ITEMS = 500
+MAX_METADATA_JSON_BYTES = 256 * 1024
 
 
 class OnboardingCapabilityRead(BaseModel):
@@ -73,6 +76,24 @@ class AccountOnboardingBatchCreate(BaseModel):
         if len(value) > 500:
             raise ValueError("maximum 500 phone items")
         return value
+
+    @field_validator("metadata_json")
+    @classmethod
+    def _limit_metadata_json(cls, value: Any | None) -> Any | None:
+        if value is None:
+            return None
+        if isinstance(value, list):
+            metadata_items = cast(list[Any], value)
+            if len(metadata_items) > MAX_METADATA_JSON_ITEMS:
+                raise ValueError("maximum 500 metadata items")
+        size = len(
+            json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
+            )
+        )
+        if size > MAX_METADATA_JSON_BYTES:
+            raise ValueError("metadata_json is too large")
+        return cast(Any | None, value)
 
 
 class AccountOnboardingMutationRequest(BaseModel):

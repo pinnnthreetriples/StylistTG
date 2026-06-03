@@ -78,6 +78,12 @@ def create_batch(
         body["source_type"] = "phone_bulk"
     if body["source_type"] not in {adapter.source_type for adapter in adapters()}:
         raise unsupported_source(str(body["source_type"]))
+    digest = _payload_hash(body)
+    cached = _load_idempotent(
+        session, workspace_id, "create_batch", payload.idempotency_key, digest
+    )
+    if cached:
+        return AccountOnboardingSnapshotRead.model_validate(cached), False
     artifact = None
     if body.get("artifact_id"):
         artifact = _require_usable_artifact(
@@ -86,12 +92,6 @@ def create_batch(
             artifact_id=str(body["artifact_id"]),
             source_type=str(body["source_type"]),
         )
-    digest = _payload_hash(body)
-    cached = _load_idempotent(
-        session, workspace_id, "create_batch", payload.idempotency_key, digest
-    )
-    if cached:
-        return AccountOnboardingSnapshotRead.model_validate(cached), False
     batch = AccountOnboardingBatch(
         id=new_id(),
         workspace_id=workspace_id,
@@ -744,10 +744,16 @@ def _require_usable_artifact(
     workspace_id: str,
     artifact_id: str,
     source_type: str,
+    expected_batch_id: str | None = None,
 ) -> AccountOnboardingArtifact:
     artifact = session.get(AccountOnboardingArtifact, artifact_id)
     if artifact is None or artifact.workspace_id != workspace_id:
         raise artifact_not_found()
+    if artifact.batch_id is not None and artifact.batch_id != expected_batch_id:
+        raise artifact_unusable(
+            "artifact_already_attached",
+            "Artifact is already attached to another onboarding batch.",
+        )
     if artifact.source_type != source_type:
         raise artifact_unusable(
             "artifact_source_mismatch",
@@ -800,6 +806,7 @@ def _ensure_batch_artifacts_still_usable(session: Session, batch: AccountOnboard
             workspace_id=batch.workspace_id,
             artifact_id=str(artifact_id),
             source_type=batch.source_type,
+            expected_batch_id=batch.id,
         )
 
 
@@ -823,7 +830,7 @@ def _payload_hash(payload: dict[str, Any]) -> str:
 
 
 def _key(operation: str, key: str) -> str:
-    return f"account_onboarding:{operation}:{key}"
+    return f"account_onboarding:{operation}:{hashlib.sha256(key.encode('utf-8')).hexdigest()}"
 
 
 def _load_idempotent(

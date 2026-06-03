@@ -33,7 +33,7 @@ All lookups must include `workspace_id`. Frontend responses expose ids, statuses
 
 Batch statuses:
 
-`created`, `uploaded`, `validating`, `preview_ready`, `confirmed`, `queued`, `running`, `partially_completed`, `completed`, `failed`, `cancelled`, `expired`.
+`created`, `uploaded`, `validating`, `preview_ready`, `confirmed`, `queued`, `running`, `partially_completed`, `completed`, `requires_reauth`, `failed`, `cancelled`, `expired`.
 
 Item statuses:
 
@@ -47,7 +47,7 @@ Capability levels are exposed to the wizard:
 
 | Source | Support | Notes |
 | --- | --- | --- |
-| `phone` / `phone_bulk` | `full` | One phone and many phones are the same batch flow. Backend validates normalization, duplicates, existing accounts, and active conflicts. Worker execution links each authorized item to backend `TelegramAuthSession` state without exposing TDLib storage paths. |
+| `phone` / `phone_bulk` | `requires_reauth` in this base PR | One phone and many phones are the same batch flow. Phone preview validates normalization, duplicates, existing accounts, and active conflicts. Live Telegram authorization remains in the dedicated legacy Telegram auth flow until wrapper/delegation is implemented. |
 | `json_metadata` | `requires_reauth` | Metadata preview only. It never creates an execution-usable session or claims `session_present=true`. |
 | `tdlib_directory` | `preview_only` until imported-artifact materialization and readonly verification are wired | Requires private artifact, quarantine validation, isolated materialization, then readonly verification before readiness. It must not be displayed as full support until the backend can actually verify imported TDLib material. |
 | `tdata_archive` | `requires_reauth` | Full tdata conversion/materialization is not implemented. It must not be displayed as full support. |
@@ -93,9 +93,9 @@ Retries are bounded. Retry decisions use the shared retry policy categories, set
 
 ## Legacy Migration
 
-Legacy surfaces remain compatibility-only while `/accounts/add` becomes canonical:
+Legacy surfaces remain compatibility-only while `/accounts/add` becomes the canonical foundation and preview entrypoint:
 
-- `AuthBatch`: phone onboarding behavior migrates into Account Onboarding phone batches.
+- `AuthBatch`: live phone authorization remains there until Account Onboarding wrapper/delegation is implemented.
 - `AccountImportBatch`: import preview behavior migrates into source adapters and artifact pipeline.
 - `TelegramAuthSession` / OTP routes: remain compatibility routes and reauth primitives, not independent add-account UI flows.
 

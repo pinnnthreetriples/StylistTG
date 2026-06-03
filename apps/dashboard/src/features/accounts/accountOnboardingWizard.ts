@@ -35,6 +35,14 @@ export function makeOnboardingKey(prefix: string): string {
   return `${prefix}-${newIdempotencyKey()}`
 }
 
+export function canConfirmOnboardingBatch(
+  batchStatus: string,
+  consentAccepted: boolean,
+  busy: boolean,
+): boolean {
+  return batchStatus === 'preview_ready' && consentAccepted && !busy
+}
+
 function normalizePhoneToken(value: string): string | null {
   const digits = value.replace(/\D/g, '')
   if (digits.length < 10) return null

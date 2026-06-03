@@ -50,8 +50,8 @@ Capability levels are exposed to the wizard:
 | `phone` / `phone_bulk` | `requires_reauth` in this base PR | One phone and many phones are the same batch flow. Phone preview validates normalization, duplicates, existing accounts, and active conflicts. Live Telegram authorization remains in the dedicated legacy Telegram auth flow until wrapper/delegation is implemented. |
 | `json_metadata` | `requires_reauth` | Metadata preview only. It never creates an execution-usable session or claims `session_present=true`. |
 | `tdlib_directory` | `preview_only` until imported-artifact materialization and readonly verification are wired | Requires private artifact, quarantine validation, isolated materialization, then readonly verification before readiness. It must not be displayed as full support until the backend can actually verify imported TDLib material. |
-| `tdata_archive` | `requires_reauth` | Full tdata conversion/materialization is not implemented. It must not be displayed as full support. |
-| `session_file` | `preview_only` | Only whitelisted formats may be previewed. Unknown formats are unsupported/requires reauth and are never silently attached. |
+| `tdata_archive` | `requires_reauth` | Full tdata conversion/materialization is not implemented in the foundation path. The UI must present it as reauth/manual work until a verified converter exists. |
+| `session_file` | `preview_only` | Only explicitly whitelisted preview formats may be inspected. Unknown formats are unsupported/requires reauth and are never silently materialized or attached. |
 
 ## Artifact Security
 
@@ -68,6 +68,8 @@ Archive validation rejects:
 - excessive uncompressed size.
 
 Artifacts are not unpacked into TDLib storage during upload. TDLib materialization must use quarantine -> isolated backend-only storage -> readonly verification.
+
+Physical artifact cleanup is a separate maintenance workflow. It may delete bytes only for expired, cancelled, or rejected onboarding artifacts whose `object_key` stays inside the backend-private `account-onboarding/` namespace. Cleanup must not delete final TDLib live storage, must not expose object keys or filesystem paths, and records only safe event metadata.
 
 ## Consent Gate
 

@@ -20,6 +20,13 @@ module = FeatureModule(
             args_mode=WorkflowArgsMode.CUSTOM,
             description="Expire private onboarding artifacts.",
         ),
+        WorkflowSpec(
+            workflow_type="account_onboarding.artifacts.cleanup_files",
+            queue_name=MAINTENANCE_QUEUE_NAME,
+            handler_path="app.modules.account_onboarding.jobs:cleanup_onboarding_artifact_files",
+            args_mode=WorkflowArgsMode.CUSTOM,
+            description="Delete expired or rejected private onboarding artifact bytes.",
+        ),
     ),
     router_path="app.modules.account_onboarding.router:router",
 )

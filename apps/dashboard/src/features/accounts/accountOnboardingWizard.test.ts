@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest'
 
-import { parseOnboardingPhones } from '@/features/accounts/accountOnboardingWizard'
+import {
+  isTerminalOnboardingBatchStatus,
+  onboardingRiskLabel,
+  onboardingSourceLabel,
+  onboardingStatusLabel,
+  parseOnboardingPhones,
+} from '@/features/accounts/accountOnboardingWizard'
 
 describe('parseOnboardingPhones', () => {
   test('parses single and pasted bulk phones without making the second phone a label', () => {
@@ -12,5 +18,18 @@ describe('parseOnboardingPhones', () => {
       { phone_number: '+15550102002', label: 'Batch', position: 2, raw: '+15550102002' },
     ])
   })
-})
 
+  test('maps technical onboarding values to user-facing Russian labels', () => {
+    expect(onboardingStatusLabel('waiting_code')).toBe('Ожидает код Telegram')
+    expect(onboardingStatusLabel('requires_reauth')).toBe('Нужна ручная авторизация')
+    expect(onboardingSourceLabel('session_file')).toBe('Файл сессии')
+    expect(onboardingRiskLabel('medium')).toBe('Средний')
+  })
+
+  test('detects terminal batch states for active draft cleanup', () => {
+    expect(isTerminalOnboardingBatchStatus('completed')).toBe(true)
+    expect(isTerminalOnboardingBatchStatus('requires_reauth')).toBe(true)
+    expect(isTerminalOnboardingBatchStatus('partially_completed')).toBe(false)
+    expect(isTerminalOnboardingBatchStatus('running')).toBe(false)
+  })
+})

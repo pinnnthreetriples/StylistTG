@@ -3,7 +3,11 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db import SessionLocal
-from app.modules.account_onboarding.service import execute_item, expire_artifacts
+from app.modules.account_onboarding.service import (
+    cleanup_artifact_files,
+    execute_item,
+    expire_artifacts,
+)
 
 
 def run_onboarding_item(
@@ -20,4 +24,16 @@ def expire_onboarding_artifacts(*, session_factory: sessionmaker[Session] | None
         return expire_artifacts(session)
 
 
-__all__ = ["expire_onboarding_artifacts", "run_onboarding_item"]
+def cleanup_onboarding_artifact_files(
+    *, session_factory: sessionmaker[Session] | None = None
+) -> int:
+    factory = session_factory or SessionLocal
+    with factory() as session:
+        return cleanup_artifact_files(session)
+
+
+__all__ = [
+    "cleanup_onboarding_artifact_files",
+    "expire_onboarding_artifacts",
+    "run_onboarding_item",
+]

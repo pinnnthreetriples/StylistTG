@@ -2162,7 +2162,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-03T00:30:08Z",
+    "generated_at": "2026-06-03T19:41:15Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2482,7 +2482,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-03T00:30:08Z",
+  "generated_at": "2026-06-03T19:41:15Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4045,6 +4045,14 @@
       "workflows": [
         {
           "args_mode": "CUSTOM",
+          "description": "Delete expired or rejected private onboarding artifact bytes.",
+          "handler_path": "app.modules.account_onboarding.jobs:cleanup_onboarding_artifact_files",
+          "module": "account_onboarding",
+          "queue_name": "maintenance_jobs",
+          "workflow_type": "account_onboarding.artifacts.cleanup_files"
+        },
+        {
+          "args_mode": "CUSTOM",
           "description": "Expire private onboarding artifacts.",
           "handler_path": "app.modules.account_onboarding.jobs:expire_onboarding_artifacts",
           "module": "account_onboarding",
@@ -5443,6 +5451,14 @@
       "module": "account_editing",
       "queue_name": "profile_jobs",
       "workflow_type": "account_update"
+    },
+    {
+      "args_mode": "CUSTOM",
+      "description": "Delete expired or rejected private onboarding artifact bytes.",
+      "handler_path": "app.modules.account_onboarding.jobs:cleanup_onboarding_artifact_files",
+      "module": "account_onboarding",
+      "queue_name": "maintenance_jobs",
+      "workflow_type": "account_onboarding.artifacts.cleanup_files"
     },
     {
       "args_mode": "CUSTOM",

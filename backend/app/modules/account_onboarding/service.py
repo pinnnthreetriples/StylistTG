@@ -19,7 +19,11 @@ from app.models import (
     utc_now,
 )
 from app.modules.account_onboarding.adapters import adapters, get_adapter
-from app.modules.account_onboarding.artifacts import decode_upload, store_private_artifact
+from app.modules.account_onboarding.artifacts import (
+    delete_private_artifact_bytes,
+    decode_upload,
+    store_private_artifact,
+)
 from app.modules.account_onboarding.contracts import (
     AccountOnboardingArtifactCreate,
     AccountOnboardingArtifactRead,
@@ -60,6 +64,7 @@ from app.services.retry_policy import classify_error_category, retry_policy_for
 MAX_ONBOARDING_RETRY_ATTEMPTS = 3
 EXPIRABLE_ARTIFACT_STATUSES = {"uploaded", "quarantined", "validated", "rejected"}
 USABLE_ARTIFACT_STATUSES = {"uploaded", "quarantined", "validated"}
+CLEANUP_ARTIFACT_STATUSES = {"expired", "cancelled", "rejected"}
 
 
 def capability_matrix() -> list[OnboardingCapabilityRead]:
@@ -536,6 +541,47 @@ def expire_artifacts(session: Session, *, workspace_id: str | None = None, limit
             )
     session.commit()
     return len(rows)
+
+
+def cleanup_artifact_files(
+    session: Session, *, workspace_id: str | None = None, limit: int = 100
+) -> int:
+    query = (
+        select(AccountOnboardingArtifact)
+        .where(AccountOnboardingArtifact.status.in_(CLEANUP_ARTIFACT_STATUSES))
+        .order_by(AccountOnboardingArtifact.updated_at.asc())
+        .limit(limit)
+    )
+    if workspace_id is not None:
+        query = query.where(AccountOnboardingArtifact.workspace_id == workspace_id)
+    rows = list(session.execute(query).scalars())
+    deleted = 0
+    for artifact in rows:
+        try:
+            removed = delete_private_artifact_bytes(artifact.object_key)
+        except ValueError:
+            artifact.failure_code = "artifact_cleanup_unsafe_key"
+            artifact.failure_message = "Artifact object key is outside the private namespace."
+            artifact.updated_at = utc_now()
+            continue
+        if not removed:
+            continue
+        artifact.status = "deleted"
+        artifact.failure_code = artifact.failure_code or "artifact_bytes_deleted"
+        artifact.failure_message = (
+            artifact.failure_message or "Private artifact bytes were deleted."
+        )
+        artifact.updated_at = utc_now()
+        deleted += 1
+        if artifact.batch is not None:
+            event(
+                artifact.batch,
+                "artifact.bytes_deleted",
+                actor_type="system",
+                payload={"artifact_id": artifact.id, "source_type": artifact.source_type},
+            )
+    session.commit()
+    return deleted
 
 
 def execute_item(session: Session, *, item_id: str) -> AccountOnboardingItem:

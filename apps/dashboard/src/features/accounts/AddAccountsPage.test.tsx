@@ -33,6 +33,7 @@ describe('AddAccountsPage', () => {
     expect(html).toContain('0 номеров')
     expect(html).toContain('Метка')
     expect(html).toContain('Предпросмотр')
+    expect(html).toContain('Очистить черновик')
     expect(html).not.toContain('<details')
     expect(html).not.toContain('BulkAuthScreen')
   })

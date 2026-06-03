@@ -43,6 +43,56 @@ export function canConfirmOnboardingBatch(
   return batchStatus === 'preview_ready' && consentAccepted && !busy
 }
 
+export function isTerminalOnboardingBatchStatus(status: string): boolean {
+  return ['completed', 'failed', 'cancelled', 'expired', 'requires_reauth'].includes(status)
+}
+
+export function onboardingStatusLabel(status: string): string {
+  return ({
+    created: 'Создан',
+    uploaded: 'Файл загружен',
+    validating: 'Проверка',
+    preview_ready: 'Готово к подтверждению',
+    confirmed: 'Подтверждено',
+    queued: 'В очереди',
+    running: 'Выполняется',
+    partially_completed: 'Частично готово',
+    completed: 'Готово',
+    requires_reauth: 'Нужна ручная авторизация',
+    pending: 'Ожидает проверки',
+    valid: 'Можно добавить',
+    duplicate: 'Дубликат',
+    existing: 'Уже есть',
+    unsupported: 'Не поддерживается',
+    blocked: 'Заблокировано',
+    starting_auth: 'Запуск авторизации',
+    waiting_code: 'Ожидает код Telegram',
+    waiting_2fa: 'Ожидает пароль 2FA',
+    importing_session: 'Импорт сессии',
+    checking_session: 'Проверка сессии',
+    ready: 'Готов',
+    failed: 'Ошибка',
+    cancelled: 'Отменено',
+    expired: 'Истекло',
+  } as Record<string, string>)[status] ?? status
+}
+
+export function onboardingSourceLabel(sourceType: string): string {
+  return ({
+    phone: 'Номера',
+    phone_bulk: 'Номера',
+    json_metadata: 'JSON-метаданные',
+    tdlib_directory: 'TDLib',
+    tdata_archive: 'tdata',
+    session_file: 'Файл сессии',
+    reauth: 'Повторная авторизация',
+  } as Record<string, string>)[sourceType] ?? sourceType
+}
+
+export function onboardingRiskLabel(risk: string): string {
+  return ({ low: 'Низкий', medium: 'Средний', high: 'Высокий' } as Record<string, string>)[risk] ?? risk
+}
+
 function normalizePhoneToken(value: string): string | null {
   const digits = value.replace(/\D/g, '')
   if (digits.length < 10) return null

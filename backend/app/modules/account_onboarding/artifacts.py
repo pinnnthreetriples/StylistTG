@@ -6,6 +6,7 @@ import hashlib
 import io
 import mimetypes
 from dataclasses import dataclass
+from pathlib import Path
 from pathlib import PurePosixPath
 from zipfile import BadZipFile, ZipFile
 
@@ -18,6 +19,7 @@ MAX_ARCHIVE_FILES = 2000
 MAX_ARCHIVE_DEPTH = 16
 MAX_ARCHIVE_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
 ZIP_REQUIRED_SOURCE_TYPES = {"tdlib_directory", "tdata_archive"}
+PRIVATE_ARTIFACT_PREFIX = "account-onboarding/"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,11 +55,28 @@ def store_private_artifact(
     if source_type in {"tdlib_directory", "tdata_archive", "session_file"}:
         validate_archive_if_zip(filename, data)
     digest = hashlib.sha256(data).hexdigest()
-    object_key = f"account-onboarding/{workspace_id}/{artifact_id}/{digest}"
-    path = settings.storage_root / "private" / object_key
+    object_key = f"{PRIVATE_ARTIFACT_PREFIX}{workspace_id}/{artifact_id}/{digest}"
+    path = private_artifact_path(object_key)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return StoredArtifact(object_key, digest, len(data), detect_content_type(filename, data))
+
+
+def private_artifact_path(object_key: str) -> Path:
+    root = (settings.storage_root / "private").resolve()
+    path = (root / object_key).resolve()
+    path.relative_to(root)
+    return path
+
+
+def delete_private_artifact_bytes(object_key: str) -> bool:
+    if not object_key.startswith(PRIVATE_ARTIFACT_PREFIX):
+        return False
+    path = private_artifact_path(object_key)
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
 
 
 def detect_content_type(filename: str, data: bytes) -> str:

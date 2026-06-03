@@ -833,6 +833,66 @@ def test_account_onboarding_expire_artifacts_marks_metadata_only(db_session) -> 
     assert "private-key" not in repr([event.safe_payload_json for event in events])
 
 
+def test_account_onboarding_cleanup_deletes_expired_private_artifact_bytes(
+    app_client, db_session
+) -> None:
+    uploaded = _upload_session_artifact(app_client, idempotency_key="cleanup-expired-upload")
+    artifact = db_session.get(AccountOnboardingArtifact, uploaded["id"])
+    assert artifact is not None
+    path = onboarding_artifacts.private_artifact_path(artifact.object_key)
+    assert path.exists()
+    artifact.status = "expired"
+    db_session.commit()
+
+    deleted = onboarding_service.cleanup_artifact_files(db_session)
+
+    assert deleted == 1
+    assert not path.exists()
+    assert artifact.status == "deleted"
+    assert "object_key" not in repr(
+        [event.safe_payload_json for event in db_session.query(AccountOnboardingEvent).all()]
+    )
+
+
+def test_account_onboarding_cleanup_keeps_validated_artifact_bytes(app_client, db_session) -> None:
+    uploaded = _upload_session_artifact(app_client, idempotency_key="cleanup-validated-upload")
+    artifact = db_session.get(AccountOnboardingArtifact, uploaded["id"])
+    assert artifact is not None
+    path = onboarding_artifacts.private_artifact_path(artifact.object_key)
+    artifact.status = "validated"
+    db_session.commit()
+
+    deleted = onboarding_service.cleanup_artifact_files(db_session)
+
+    assert deleted == 0
+    assert path.exists()
+    assert artifact.status == "validated"
+
+
+def test_account_onboarding_cleanup_rejects_unsafe_object_key(db_session, tmp_path) -> None:
+    outside = tmp_path / "outside.txt"
+    outside.write_text("do-not-delete", encoding="utf-8")
+    artifact = AccountOnboardingArtifact(
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        source_type="session_file",
+        object_key="account-onboarding/../../outside.txt",
+        sha256="0" * 64,
+        size_bytes=10,
+        content_type_detected="application/octet-stream",
+        status="expired",
+        expires_at=utc_now() - timedelta(seconds=1),
+    )
+    db_session.add(artifact)
+    db_session.commit()
+
+    deleted = onboarding_service.cleanup_artifact_files(db_session)
+
+    assert deleted == 0
+    assert outside.read_text(encoding="utf-8") == "do-not-delete"
+    assert artifact.status == "expired"
+    assert artifact.failure_code == "artifact_cleanup_unsafe_key"
+
+
 def _zip_bytes(entries: dict[str, str]) -> bytes:
     buffer = io.BytesIO()
     with ZipFile(buffer, "w") as archive:
@@ -858,6 +918,18 @@ def _post_account_onboarding_artifact(
             "content_base64": content_base64,
         },
     )
+
+
+def _upload_session_artifact(app_client, *, idempotency_key: str) -> dict[str, object]:
+    return app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": idempotency_key,
+            "source_type": "session_file",
+            "filename": "fixture.session.json",
+            "content_base64": base64.b64encode(b'{"session":"fixture"}').decode("ascii"),
+        },
+    ).json()
 
 
 def _artifact_row(

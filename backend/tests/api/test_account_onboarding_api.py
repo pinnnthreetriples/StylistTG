@@ -583,6 +583,33 @@ def test_account_onboarding_phone_preview_is_honest_about_manual_auth(
     assert item_id == body["items"][0]["id"]
 
 
+def test_account_onboarding_phone_execute_does_not_create_fake_auth_session(
+    app_client, db_session
+) -> None:
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "phone-no-fake-auth-create",
+            "source_type": "phone",
+            "phone_items": [{"phone_number": "+15550102000", "label": "Primary"}],
+        },
+    ).json()
+    item = db_session.get(AccountOnboardingItem, created["items"][0]["id"])
+    batch = db_session.get(AccountOnboardingBatch, created["batch"]["id"])
+    assert item is not None
+    assert batch is not None
+    batch.consent_confirmed_at = utc_now()
+    batch.status = "queued"
+    item.status = "queued"
+    db_session.commit()
+
+    executed = onboarding_service.execute_item(db_session, item_id=item.id)
+
+    assert executed.status == "requires_reauth"
+    assert executed.auth_session_id is None
+    assert executed.last_error_code == "phone_requires_live_auth"
+
+
 def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
     app_client, monkeypatch
 ) -> None:

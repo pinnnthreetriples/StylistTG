@@ -14,7 +14,6 @@ from app.models import (
     AccountOnboardingBatch,
     AccountOnboardingItem,
     IdempotencyKey,
-    TelegramAuthSession,
     new_id,
     utc_now,
 )
@@ -55,7 +54,6 @@ from app.modules.account_onboarding.state import (
     transition_item,
 )
 from app.services.retry_policy import classify_error_category, retry_policy_for
-from app.services.tdlib_paths import build_auth_session_tdlib_paths
 
 
 MAX_ONBOARDING_RETRY_ATTEMPTS = 3
@@ -551,8 +549,8 @@ def execute_item(session: Session, *, item_id: str) -> AccountOnboardingItem:
     adapter = get_adapter(item.batch.source_type)
     outcome = adapter.execute(item)
     if item.batch.source_type == "phone_bulk":
-        _ensure_auth_session_for_item(session, item)
-        transition_item(item, "starting_auth")
+        item.last_error_code = outcome.code
+        item.last_error_message = outcome.message
         transition_item(item, outcome.status, payload=outcome.payload or {"outcome": outcome.code})
     elif item.batch.source_type == "tdlib_directory":
         transition_item(item, "checking_session")
@@ -654,57 +652,6 @@ def item_read(item: AccountOnboardingItem) -> AccountOnboardingItemRead:
         next_retry_at=_as_optional_aware(item.next_retry_at),
         next_action=next_action,
     )
-
-
-def _ensure_auth_session_for_item(
-    session: Session, item: AccountOnboardingItem
-) -> TelegramAuthSession:
-    if item.auth_session_id:
-        existing = session.get(TelegramAuthSession, item.auth_session_id)
-        if existing is not None and existing.workspace_id == item.workspace_id:
-            return existing
-    auth_session_id = new_id()
-    paths = build_auth_session_tdlib_paths(
-        workspace_id=item.workspace_id, auth_session_id=auth_session_id
-    )
-    row = TelegramAuthSession(
-        id=auth_session_id,
-        workspace_id=item.workspace_id,
-        phone_hint=item.phone_hint,
-        label=item.label,
-        status="created",
-        source="account_onboarding",
-        tdlib_storage_key=paths.storage_key,
-        requires_code=True,
-        requires_password=False,
-        created_by_user_id=item.batch.created_by_user_id,
-        created_at=utc_now(),
-        updated_at=utc_now(),
-    )
-    session.add(row)
-    item.auth_session_id = row.id
-    event(
-        item.batch,
-        "item.auth_session_linked",
-        item=item,
-        actor_type="system",
-        payload={"auth_session_id": row.id, "tdlib_storage_isolated": True},
-    )
-    return row
-
-
-def _mark_auth_secret_submitted(
-    session: Session, item: AccountOnboardingItem, *, secret_type: str
-) -> None:
-    if not item.auth_session_id:
-        return
-    row = session.get(TelegramAuthSession, item.auth_session_id)
-    if row is None or row.workspace_id != item.workspace_id:
-        return
-    row.status = "checking_session"
-    row.requires_code = False if secret_type == "code" else row.requires_code
-    row.requires_password = False if secret_type == "password" else row.requires_password
-    row.updated_at = utc_now()
 
 
 def artifact_read(artifact: AccountOnboardingArtifact) -> AccountOnboardingArtifactRead:

@@ -90,16 +90,11 @@ def test_account_onboarding_artifact_rejects_zip_slip_and_hides_object_key(app_c
     buffer = io.BytesIO()
     with ZipFile(buffer, "w") as archive:
         archive.writestr("../tdlib/session", "unsafe")
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
 
-    response = app_client.post(
-        "/api/account-onboarding-artifacts",
-        json={
-            "idempotency_key": "artifact-unsafe-1",
-            "source_type": "tdlib_directory",
-            "filename": "tdlib.zip",
-            "content_base64": encoded,
-        },
+    response = _post_account_onboarding_artifact(
+        app_client,
+        idempotency_key="artifact-unsafe-1",
+        content_base64=base64.b64encode(buffer.getvalue()).decode("ascii"),
     )
 
     assert response.status_code == 400
@@ -111,16 +106,11 @@ def test_account_onboarding_artifact_rejects_absolute_archive_paths(app_client) 
     buffer = io.BytesIO()
     with ZipFile(buffer, "w") as archive:
         archive.writestr("/tdlib/session", "unsafe")
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
 
-    response = app_client.post(
-        "/api/account-onboarding-artifacts",
-        json={
-            "idempotency_key": "artifact-absolute-1",
-            "source_type": "tdlib_directory",
-            "filename": "tdlib.zip",
-            "content_base64": encoded,
-        },
+    response = _post_account_onboarding_artifact(
+        app_client,
+        idempotency_key="artifact-absolute-1",
+        content_base64=base64.b64encode(buffer.getvalue()).decode("ascii"),
     )
 
     assert response.status_code == 400
@@ -128,14 +118,10 @@ def test_account_onboarding_artifact_rejects_absolute_archive_paths(app_client) 
 
 
 def test_account_onboarding_artifact_rejects_invalid_base64(app_client) -> None:
-    response = app_client.post(
-        "/api/account-onboarding-artifacts",
-        json={
-            "idempotency_key": "artifact-invalid-base64",
-            "source_type": "tdlib_directory",
-            "filename": "tdlib.zip",
-            "content_base64": "not-base64!",
-        },
+    response = _post_account_onboarding_artifact(
+        app_client,
+        idempotency_key="artifact-invalid-base64",
+        content_base64="not-base64!",
     )
 
     assert response.status_code == 422
@@ -362,7 +348,7 @@ def test_account_onboarding_queue_unavailable_persists_safe_failure(
     assert "phone_number" not in detail.text
 
 
-def test_account_onboarding_retry_respects_cooldown(app_client, db_session) -> None:
+def test_account_onboarding_retry_denied_when_cooldown_active(app_client, db_session) -> None:
     created = app_client.post(
         "/api/account-onboarding-batches",
         json={
@@ -530,6 +516,25 @@ def _zip_bytes(entries: dict[str, str]) -> bytes:
         for name, content in entries.items():
             archive.writestr(name, content)
     return buffer.getvalue()
+
+
+def _post_account_onboarding_artifact(
+    app_client,
+    *,
+    idempotency_key: str,
+    content_base64: str,
+    source_type: str = "tdlib_directory",
+    filename: str = "tdlib.zip",
+):
+    return app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": idempotency_key,
+            "source_type": source_type,
+            "filename": filename,
+            "content_base64": content_base64,
+        },
+    )
 
 
 def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, db_session) -> None:

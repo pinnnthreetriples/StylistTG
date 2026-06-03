@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from typing import Any
@@ -860,7 +861,11 @@ def _hash(value: object) -> str:
 
 
 def _secret_hash(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    salt = os.getenv("ACCOUNT_ONBOARDING_PASSWORD_HASH_SALT", "account-onboarding-default-salt").encode(
+        "utf-8"
+    )
+    derived = hashlib.pbkdf2_hmac("sha256", value.encode("utf-8"), salt, 600_000)
+    return derived.hex()
 
 
 def _payload_hash(payload: dict[str, Any]) -> str:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -39,7 +40,7 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
-# test-analyzer: disable=TQA004 reason="aggregated payload contract test — verifies many fields in single response"
+# test-analyzer: disable=TQA004 reason="aggregated payload contract test — verifies many fields in single response" permanent="true"
 def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -379,7 +380,12 @@ def test_execution_policy_rejects_too_small_nonzero_cooldown(monkeypatch) -> Non
         )
 
     assert response.status_code == 422
-    assert response.json()
+    body = response.json()
+    assert body["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert any(
+        "profile_job_cooldown_seconds" in (entry.get("field") or "")
+        for entry in body["field_errors"]
+    ), f"expected profile_job_cooldown_seconds field error, got body={body!r}"
 
 
 def test_profile_preview_returns_validation_plan_and_dedup(monkeypatch) -> None:
@@ -583,7 +589,7 @@ def test_profile_job_create_returns_dedup_blocked_payload(monkeypatch) -> None:
 
 
 @freeze_time("2026-01-15 12:00:00")
-# test-analyzer: disable=TQA004 reason="polling contract test — verifies job/step fields needed by dashboard"
+# test-analyzer: disable=TQA004 reason="polling contract test — verifies job/step fields needed by dashboard" permanent="true"
 def test_job_details_and_steps_are_polling_friendly() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

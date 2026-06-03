@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-# test-analyzer: disable-file=TQA008 reason="manual try/except pattern; replaced with pytest.raises(match=...) in #263"
-# test-analyzer: disable-file=STG003 reason="4xx assertion without typed error body; tightened in #263"
+# STG003 suppressed file-wide: the rejection tests assert on AppError
+# attributes (exc_info.value.status_code + error_code), not on a response
+# body. That is the strict exception-equivalent of the body check STG003
+# looks for.
+# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — strict exception equivalent of body assertion" permanent="true"
 
+import pytest
 from fastapi.testclient import TestClient
+
+from app.errors import AppError
 
 from app.config import settings
 from app.db import Base
@@ -64,17 +70,11 @@ def test_supabase_auth_context_rejects_foreign_workspace_header(db_session, monk
         lambda settings: FakeVerifier(),
     )
 
-    try:
+    with pytest.raises(AppError, match="workspace access denied") as exc_info:
         get_current_auth_context(DummyRequest(), db_session)
-    except Exception as exc:
-        status_code = getattr(exc, "status_code", None)
-        code = getattr(exc, "error_code", "")
-    else:
-        status_code = None
-        code = ""
 
-    assert status_code == 403
-    assert code == "WORKSPACE_ACCESS_DENIED"
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.error_code == "WORKSPACE_ACCESS_DENIED"
 
 
 def test_get_me_returns_supabase_user_and_workspace(monkeypatch) -> None:

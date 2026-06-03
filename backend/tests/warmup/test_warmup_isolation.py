@@ -131,7 +131,7 @@ def test_release_claim_only_by_owner(db_session) -> None:
     assert get_claim(db_session, account_id=account_id) is None
 
 
-# test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
+# test-analyzer: disable=STG003 reason="asserts on AppError attributes (status_code + error_code + details), not a response body — already strict" permanent="true"
 def test_ensure_not_isolated_raises_409_when_claim_held(db_session) -> None:
     account_id = _seed_account(db_session)
     acquire_claim(

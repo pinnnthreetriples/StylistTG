@@ -3,7 +3,7 @@
 Query-count ceilings lock in the optimizations from PRs 1-5.
 """
 
-# test-analyzer: disable-file=TQA040 reason="performance/ceiling regression tests; error paths covered in dedicated security/api test files"
+# test-analyzer: disable-file=TQA040 reason="performance/ceiling regression tests; error paths covered in dedicated security/api test files" permanent="true"
 from __future__ import annotations
 
 from datetime import UTC, datetime

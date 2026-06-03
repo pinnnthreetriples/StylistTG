@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA040 reason="contract test - verifies proxy is configured before TDLib network calls; failure paths covered by test_tdlib_runtime_validation"
+# test-analyzer: disable-file=TQA040 reason="contract test - verifies proxy is configured before TDLib network calls; failure paths covered by test_tdlib_runtime_validation" permanent="true"
 from collections import deque
 
 from app.adapters.tdlib_auth import TdlibAuthAdapter

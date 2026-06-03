@@ -90,6 +90,25 @@ def unsupported_source(source_type: str) -> OnboardingError:
     )
 
 
+def artifact_not_found() -> OnboardingError:
+    return OnboardingError(
+        "ONBOARDING_ARTIFACT_NOT_FOUND",
+        "Account onboarding artifact not found.",
+        HTTPStatus.NOT_FOUND,
+        "Artifact not found",
+    )
+
+
+def artifact_unusable(code: str, message: str) -> OnboardingError:
+    return OnboardingError(
+        "ONBOARDING_ARTIFACT_UNUSABLE",
+        message,
+        HTTPStatus.CONFLICT,
+        "Artifact unusable",
+        safe_details={"validation_code": code},
+    )
+
+
 def artifact_too_large(limit_bytes: int) -> OnboardingError:
     return OnboardingError(
         "ONBOARDING_ARTIFACT_TOO_LARGE",

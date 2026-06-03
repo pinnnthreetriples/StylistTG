@@ -37,6 +37,8 @@ from app.modules.account_onboarding.contracts import (
 )
 from app.modules.account_onboarding.errors import (
     OnboardingError,
+    artifact_not_found,
+    artifact_unusable,
     batch_not_found,
     consent_required,
     invalid_state,
@@ -58,6 +60,7 @@ from app.services.tdlib_paths import build_auth_session_tdlib_paths
 
 MAX_ONBOARDING_RETRY_ATTEMPTS = 3
 EXPIRABLE_ARTIFACT_STATUSES = {"uploaded", "quarantined", "validated", "rejected"}
+USABLE_ARTIFACT_STATUSES = {"uploaded", "quarantined", "validated"}
 
 
 def capability_matrix() -> list[OnboardingCapabilityRead]:
@@ -76,6 +79,14 @@ def create_batch(
         body["source_type"] = "phone_bulk"
     if body["source_type"] not in {adapter.source_type for adapter in adapters()}:
         raise unsupported_source(str(body["source_type"]))
+    artifact = None
+    if body.get("artifact_id"):
+        artifact = _require_usable_artifact(
+            session,
+            workspace_id=workspace_id,
+            artifact_id=str(body["artifact_id"]),
+            source_type=str(body["source_type"]),
+        )
     digest = _payload_hash(body)
     cached = _load_idempotent(
         session, workspace_id, "create_batch", payload.idempotency_key, digest
@@ -94,6 +105,9 @@ def create_batch(
     )
     session.add(batch)
     session.flush()
+    if artifact is not None:
+        artifact.batch_id = batch.id
+        artifact.updated_at = utc_now()
     _add_preview_items(session, batch, body)
     recalculate_batch_counters(batch)
     event(
@@ -157,11 +171,13 @@ def validate_batch(
     )
     if cached:
         return AccountOnboardingSnapshotRead.model_validate(cached)
+    _ensure_batch_artifacts_still_usable(session, batch)
     transition_batch(batch, "validating", actor_user_id=user_id, actor_type="user")
     for item in batch.items:
         transition_item(item, "validating", actor_user_id=user_id, actor_type="user")
         transition_item(item, _target_status(item), actor_user_id=user_id, actor_type="user")
     transition_batch(batch, "preview_ready", actor_user_id=user_id, actor_type="user")
+    _mark_attached_artifacts_after_validation(session, batch)
     recalculate_batch_counters(batch)
     snapshot = snapshot_read(batch)
     _save_idempotent(
@@ -349,13 +365,14 @@ def submit_code(
     payload: AccountOnboardingCodeRequest,
 ) -> AccountOnboardingItemRead:
     item = _require_item(session, workspace_id, batch_id, item_id)
-    digest = _payload_hash({"batch_id": batch_id, "item_id": item_id, "code": "[redacted]"})
+    digest = _payload_hash(
+        {"batch_id": batch_id, "item_id": item_id, "code_sha256": _secret_hash(payload.code)}
+    )
     cached = _load_idempotent(session, workspace_id, "submit_code", payload.idempotency_key, digest)
     if cached:
         return AccountOnboardingItemRead.model_validate(cached)
     if item.status != "waiting_code":
         raise invalid_state("Item is not waiting for code.")
-    _mark_auth_secret_submitted(session, item, secret_type="code")
     event(
         item.batch,
         "item.code_received",
@@ -364,7 +381,11 @@ def submit_code(
         actor_type="user",
         payload={"code": "[redacted]"},
     )
-    transition_item(item, "checking_session")
+    item.last_error_code = "auth_continuation_not_enabled"
+    item.last_error_message = (
+        "Account onboarding does not continue Telegram auth from submitted codes yet."
+    )
+    transition_item(item, "failed", payload={"reason": "auth_continuation_not_enabled"})
     read = item_read(item)
     _save_idempotent(
         session,
@@ -389,7 +410,13 @@ def submit_password(
     payload: AccountOnboardingPasswordRequest,
 ) -> AccountOnboardingItemRead:
     item = _require_item(session, workspace_id, batch_id, item_id)
-    digest = _payload_hash({"batch_id": batch_id, "item_id": item_id, "password": "[redacted]"})
+    digest = _payload_hash(
+        {
+            "batch_id": batch_id,
+            "item_id": item_id,
+            "password_sha256": _secret_hash(payload.password),
+        }
+    )
     cached = _load_idempotent(
         session, workspace_id, "submit_password", payload.idempotency_key, digest
     )
@@ -397,7 +424,6 @@ def submit_password(
         return AccountOnboardingItemRead.model_validate(cached)
     if item.status != "waiting_2fa":
         raise invalid_state("Item is not waiting for 2FA password.")
-    _mark_auth_secret_submitted(session, item, secret_type="password")
     event(
         item.batch,
         "item.password_received",
@@ -406,7 +432,11 @@ def submit_password(
         actor_type="user",
         payload={"password": "[redacted]"},
     )
-    transition_item(item, "checking_session")
+    item.last_error_code = "auth_continuation_not_enabled"
+    item.last_error_message = (
+        "Account onboarding does not continue Telegram auth from submitted passwords yet."
+    )
+    transition_item(item, "failed", payload={"reason": "auth_continuation_not_enabled"})
     read = item_read(item)
     _save_idempotent(
         session,
@@ -457,7 +487,7 @@ def upload_artifact(
         sha256=stored.sha256,
         size_bytes=stored.size_bytes,
         content_type_detected=stored.content_type_detected,
-        status="validated",
+        status="quarantined",
         created_by_user_id=user_id,
         expires_at=utc_now() + timedelta(days=7),
     )
@@ -760,8 +790,77 @@ def _require_item(
     return item
 
 
+def _require_usable_artifact(
+    session: Session,
+    *,
+    workspace_id: str,
+    artifact_id: str,
+    source_type: str,
+) -> AccountOnboardingArtifact:
+    artifact = session.get(AccountOnboardingArtifact, artifact_id)
+    if artifact is None or artifact.workspace_id != workspace_id:
+        raise artifact_not_found()
+    if artifact.source_type != source_type:
+        raise artifact_unusable(
+            "artifact_source_mismatch",
+            "Artifact source type does not match the onboarding source.",
+        )
+    if _as_aware(artifact.expires_at) <= utc_now():
+        raise artifact_unusable("artifact_expired", "Artifact has expired.")
+    if artifact.status not in USABLE_ARTIFACT_STATUSES:
+        raise artifact_unusable(
+            "artifact_status_unusable",
+            "Artifact is not in a usable upload state.",
+        )
+    return artifact
+
+
+def _mark_attached_artifacts_after_validation(
+    session: Session, batch: AccountOnboardingBatch
+) -> None:
+    artifact_ids = {item.artifact_id for item in batch.items if item.artifact_id}
+    if not artifact_ids:
+        return
+    failed_artifact_ids = {
+        item.artifact_id
+        for item in batch.items
+        if item.artifact_id and item.status in {"blocked", "unsupported", "failed"}
+    }
+    rows = session.execute(
+        select(AccountOnboardingArtifact).where(
+            AccountOnboardingArtifact.workspace_id == batch.workspace_id,
+            AccountOnboardingArtifact.id.in_(artifact_ids),
+        )
+    ).scalars()
+    for artifact in rows:
+        if artifact.id in failed_artifact_ids:
+            artifact.status = "rejected"
+            artifact.failure_code = "artifact_validation_failed"
+            artifact.failure_message = "Artifact failed source-specific onboarding validation."
+        else:
+            artifact.status = "validated"
+            artifact.failure_code = None
+            artifact.failure_message = None
+        artifact.batch_id = batch.id
+        artifact.updated_at = utc_now()
+
+
+def _ensure_batch_artifacts_still_usable(session: Session, batch: AccountOnboardingBatch) -> None:
+    for artifact_id in {item.artifact_id for item in batch.items if item.artifact_id}:
+        _require_usable_artifact(
+            session,
+            workspace_id=batch.workspace_id,
+            artifact_id=str(artifact_id),
+            source_type=batch.source_type,
+        )
+
+
 def _hash(value: object) -> str:
     return hashlib.sha256(str(value).encode("utf-8")).hexdigest()
+
+
+def _secret_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _payload_hash(payload: dict[str, Any]) -> str:

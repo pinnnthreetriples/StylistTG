@@ -22,7 +22,7 @@ describe('AddAccountsPage', () => {
     expect(html).toContain('TDLib')
     expect(html).toContain('tdata')
     expect(html).toContain('Session')
-    expect(html).toContain('Полная поддержка')
+    expect(html).toContain('Требуется ручная авторизация')
     expect(html).toContain('0 номеров')
     expect(html).not.toContain('<details')
     expect(html).not.toContain('BulkAuthScreen')

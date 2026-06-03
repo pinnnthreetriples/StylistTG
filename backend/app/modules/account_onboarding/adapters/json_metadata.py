@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.models import AccountOnboardingItem
 from app.modules.account_onboarding.adapters.base import ExecutionOutcome, PreviewItem
 from app.modules.account_onboarding.contracts import OnboardingCapabilityRead
+from app.modules.account_onboarding.adapters.phone import normalize_phone
+from app.services.phone_hints import phone_hint
 
 
 class JsonMetadataAdapter:
@@ -59,6 +61,7 @@ class JsonMetadataAdapter:
             PreviewItem(
                 source_ref=f"json:{i}",
                 position=i,
+                phone_hint=_phone_hint_from_metadata(row),
                 username_hint=str(row.get("username")) if row.get("username") else None,
                 telegram_user_id_hint=str(row.get("telegram_user_id"))
                 if row.get("telegram_user_id")
@@ -76,3 +79,11 @@ class JsonMetadataAdapter:
             code="metadata_requires_reauth",
             message="Metadata-only accounts require manual authorization.",
         )
+
+
+def _phone_hint_from_metadata(row: dict[str, object]) -> str | None:
+    raw = row.get("phone_number") or row.get("phone")
+    if not raw:
+        return None
+    normalized = normalize_phone(str(raw))
+    return phone_hint(normalized) if normalized else None

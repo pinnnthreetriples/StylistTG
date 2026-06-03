@@ -2,7 +2,7 @@ import { ArrowRight, FileJson, FolderArchive, KeyRound, Loader2, Phone, RotateCc
 import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 
-import { Button, Tabs, TabsList, TabsTrigger, Textarea } from '@stylisttg/ui'
+import { Button, Checkbox, Tabs, TabsList, TabsTrigger, Textarea } from '@stylisttg/ui'
 import {
   cancelAccountOnboardingBatch,
   confirmAccountOnboardingBatch,
@@ -37,8 +37,8 @@ const sourceOptions: Array<{ type: AccountOnboardingSourceType; label: string; i
 ]
 
 const fallbackSupport: Partial<Record<AccountOnboardingSourceType, SupportLevel>> = {
-  phone: 'full',
-  phone_bulk: 'full',
+  phone: 'requires_reauth',
+  phone_bulk: 'requires_reauth',
   json_metadata: 'requires_reauth',
   tdlib_directory: 'preview_only',
   tdata_archive: 'requires_reauth',
@@ -237,14 +237,18 @@ export function AddAccountsPage(_props: {
 }
 
 function Results({ snapshot, busy, run, setSnapshot }: { snapshot: AccountOnboardingSnapshot; busy: boolean; run: <T>(action: () => Promise<T>, quiet?: boolean) => Promise<T | null>; setSnapshot: (snapshot: AccountOnboardingSnapshot) => void }) {
+  const [consentAccepted, setConsentAccepted] = useState(false)
   const updateItem = (next: AccountOnboardingItem) => setSnapshot({ ...snapshot, items: snapshot.items.map((item) => item.id === next.id ? next : item) })
   return (
     <section className="rounded-lg border border-border bg-background p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div><div className="text-sm font-semibold text-foreground">3. Preview / Progress</div><div className="text-xs text-muted-foreground">{snapshot.batch.status} · ready {snapshot.batch.counters.ready_count}/{snapshot.batch.counters.total_count}</div></div>
-        <div className="flex gap-2">
-          <Button disabled={busy || snapshot.batch.status !== 'preview_ready'} onClick={() => void run(() => confirmAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('confirm'), confirmation: 'ADD_ACCOUNTS', consent_accepted: true, consent_version: CONSENT_VERSION }))}><ShieldCheck className="mr-2 h-4 w-4" />ADD_ACCOUNTS</Button>
+        <div className="flex flex-col items-end gap-2 sm:max-w-md">
+          <Checkbox checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} label="Я подтверждаю, что имею право добавлять и управлять этими Telegram аккаунтами." />
+          <div className="flex gap-2">
+          <Button disabled={busy || snapshot.batch.status !== 'preview_ready' || !consentAccepted} onClick={() => void run(() => confirmAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('confirm'), confirmation: 'ADD_ACCOUNTS', consent_accepted: consentAccepted, consent_version: CONSENT_VERSION }))}><ShieldCheck className="mr-2 h-4 w-4" />ADD_ACCOUNTS</Button>
           <Button disabled={busy} variant="secondary" onClick={() => void run(() => cancelAccountOnboardingBatch(dashboardApiClient, snapshot.batch.id, { idempotency_key: makeOnboardingKey('cancel') }))}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
+          </div>
         </div>
       </div>
       <div className="overflow-x-auto">

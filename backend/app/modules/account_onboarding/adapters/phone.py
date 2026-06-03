@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from typing import cast
 
 from sqlalchemy import select
@@ -11,6 +9,7 @@ from app.models import Account, AccountOnboardingBatch, AccountOnboardingItem
 from app.modules.account_onboarding.adapters.base import ExecutionOutcome, PreviewItem, hash_value
 from app.modules.account_onboarding.contracts import OnboardingCapabilityRead
 from app.modules.account_onboarding.state import TERMINAL_ITEM_STATUSES
+from app.adapters.tdlib_auth import normalize_phone_number
 from app.services.phone_hints import phone_hint
 
 ACTIVE_BATCH_STATUSES = {
@@ -34,11 +33,11 @@ class PhoneListAdapter:
             can_preview=True,
             can_validate_structure=True,
             can_materialize_session=False,
-            requires_reauth=False,
+            requires_reauth=True,
             supports_bulk=True,
             supports_artifact_upload=False,
             risk_level="medium",
-            user_facing_support_level="full",
+            user_facing_support_level="requires_reauth",
         )
 
     def preview(
@@ -115,22 +114,31 @@ class PhoneListAdapter:
                             phone=phone,
                             phone_hint=phone_hint(phone),
                             position=position,
-                            validation_message="Ready for authorization.",
+                            validation_code="phone_requires_live_auth",
+                            validation_message=(
+                                "Phone import is preview-only here; use the dedicated "
+                                "Telegram auth flow to authorize the account."
+                            ),
                             label=label,
                             risk_level="medium",
+                            requires_reauth=True,
                         )
                     )
         return out
 
     def execute(self, item: AccountOnboardingItem) -> ExecutionOutcome:
         return ExecutionOutcome(
-            status="waiting_code", code="waiting_code", message="Authorization code is required."
+            status="requires_reauth",
+            code="phone_requires_live_auth",
+            message="Phone import requires the dedicated Telegram auth flow.",
         )
 
 
 def normalize_phone(value: str) -> str | None:
-    digits = re.sub(r"\D+", "", value)
-    return f"+{digits}" if len(digits) >= 10 else None
+    try:
+        return normalize_phone_number(value)
+    except ValueError:
+        return None
 
 
 def _invalid(position: int, label: str | None) -> PreviewItem:

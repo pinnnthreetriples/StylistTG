@@ -13,9 +13,11 @@ from app.config import settings
 from app.modules.account_onboarding.errors import artifact_too_large, artifact_unsafe
 
 MAX_ARTIFACT_BYTES = 25 * 1024 * 1024
+MAX_ARTIFACT_BASE64_CHARS = ((MAX_ARTIFACT_BYTES + 2) // 3) * 4
 MAX_ARCHIVE_FILES = 2000
 MAX_ARCHIVE_DEPTH = 16
 MAX_ARCHIVE_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
+ZIP_REQUIRED_SOURCE_TYPES = {"tdlib_directory", "tdata_archive"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +29,8 @@ class StoredArtifact:
 
 
 def decode_upload(content_base64: str) -> bytes:
+    if len(content_base64) > MAX_ARTIFACT_BASE64_CHARS:
+        raise artifact_too_large(MAX_ARTIFACT_BYTES)
     try:
         data = base64.b64decode(content_base64, validate=True)
     except (binascii.Error, ValueError) as exc:
@@ -41,6 +45,11 @@ def decode_upload(content_base64: str) -> bytes:
 def store_private_artifact(
     *, workspace_id: str, artifact_id: str, filename: str, source_type: str, data: bytes
 ) -> StoredArtifact:
+    if source_type in ZIP_REQUIRED_SOURCE_TYPES and not _looks_like_zip(filename, data):
+        raise artifact_unsafe(
+            "archive_required",
+            "TDLib and tdata artifacts must be uploaded as ZIP archives.",
+        )
     if source_type in {"tdlib_directory", "tdata_archive", "session_file"}:
         validate_archive_if_zip(filename, data)
     digest = hashlib.sha256(data).hexdigest()
@@ -59,7 +68,7 @@ def detect_content_type(filename: str, data: bytes) -> str:
 
 
 def validate_archive_if_zip(filename: str, data: bytes) -> None:
-    if not (filename.lower().endswith(".zip") or data.startswith(b"PK")):
+    if not _looks_like_zip(filename, data):
         return
     try:
         with ZipFile(io.BytesIO(data)) as archive:
@@ -89,3 +98,7 @@ def validate_archive_if_zip(filename: str, data: bytes) -> None:
             raise artifact_unsafe(
                 "archive_rejected_too_large", "Archive uncompressed size is too large."
             )
+
+
+def _looks_like_zip(filename: str, data: bytes) -> bool:
+    return filename.lower().endswith(".zip") or data.startswith(b"PK")

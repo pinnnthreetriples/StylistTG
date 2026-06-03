@@ -15,8 +15,8 @@ from app.models import (
     AccountOnboardingBatch,
     AccountOnboardingEvent,
     AccountOnboardingItem,
-    TelegramAuthSession,
     Workspace,
+    new_id,
     utc_now,
 )
 from app.modules.account_onboarding import service as onboarding_service
@@ -50,7 +50,8 @@ def test_account_onboarding_phone_batch_validates_as_canonical_flow(app_client) 
     body = validate.json()
     assert body["batch"]["source_type"] == "phone_bulk"
     assert body["batch"]["status"] == "preview_ready"
-    assert body["items"][0]["status"] == "valid"
+    assert body["items"][0]["status"] == "requires_reauth"
+    assert body["items"][0]["validation_code"] == "phone_requires_live_auth"
     assert body["items"][0]["phone_hint"] == "***2000"
     assert "phone_number" not in body["items"][0]
 
@@ -221,9 +222,43 @@ def test_account_onboarding_artifact_success_response_is_frontend_safe(app_clien
 
     assert response.status_code == 201
     body = response.json()
-    assert body["status"] == "validated"
+    assert body["status"] == "quarantined"
     assert "object_key" not in body
     assert "path" not in response.text
+
+
+def test_account_onboarding_tdlib_artifact_rejects_non_zip(app_client) -> None:
+    response = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "tdlib-non-zip-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.bin",
+            "content_base64": base64.b64encode(b"not a zip").decode("ascii"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["details"]["validation_code"] == "archive_required"
+
+
+def test_account_onboarding_artifact_rejects_large_base64_before_decode(
+    app_client, monkeypatch
+) -> None:
+    monkeypatch.setattr(onboarding_artifacts, "MAX_ARTIFACT_BASE64_CHARS", 4)
+
+    response = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "artifact-encoded-too-large",
+            "source_type": "session_file",
+            "filename": "fixture.session.json",
+            "content_base64": "QUFBQUE=",
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error_code"] == "ONBOARDING_ARTIFACT_TOO_LARGE"
 
 
 def test_account_onboarding_session_file_unknown_format_is_unsupported(app_client) -> None:
@@ -279,6 +314,25 @@ def test_account_onboarding_json_metadata_scalar_is_blocked(app_client) -> None:
     assert item["validation_code"] == "metadata_invalid"
 
 
+def test_account_onboarding_json_metadata_extracts_phone_hint(app_client) -> None:
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "metadata-phone-hint-create",
+            "source_type": "json_metadata",
+            "metadata_json": {"username": "demo", "phone_number": "+15550102000"},
+        },
+    ).json()
+
+    response = app_client.post(
+        f"/api/account-onboarding-batches/{created['batch']['id']}/validate",
+        json={"idempotency_key": "metadata-phone-hint-validate"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["phone_hint"] == "***2000"
+
+
 def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_client) -> None:
     response = app_client.post(
         "/api/account-onboarding-batches",
@@ -291,8 +345,113 @@ def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_cli
 
     assert response.status_code == 201
     capabilities = {item["source_type"]: item for item in response.json()["capabilities"]}
+    assert capabilities["phone_bulk"]["can_materialize_session"] is False
+    assert capabilities["phone_bulk"]["user_facing_support_level"] == "requires_reauth"
     assert capabilities["tdlib_directory"]["can_materialize_session"] is False
     assert capabilities["tdlib_directory"]["user_facing_support_level"] == "preview_only"
+
+
+def test_account_onboarding_create_rejects_missing_artifact(app_client) -> None:
+    response = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "missing-artifact-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": "00000000-0000-4000-8000-000000000001",
+            "filename": "tdlib.zip",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "ONBOARDING_ARTIFACT_NOT_FOUND"
+
+
+def test_account_onboarding_create_rejects_cross_workspace_artifact(app_client, db_session) -> None:
+    foreign_workspace = Workspace(
+        name="Foreign artifact",
+        slug="foreign-artifact",
+        owner_user_id=DEFAULT_LOCAL_USER_ID,
+    )
+    db_session.add(foreign_workspace)
+    db_session.flush()
+    artifact = _artifact_row(workspace_id=foreign_workspace.id, source_type="tdlib_directory")
+    db_session.add(artifact)
+    db_session.commit()
+
+    response = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "foreign-artifact-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": artifact.id,
+            "filename": "tdlib.zip",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "ONBOARDING_ARTIFACT_NOT_FOUND"
+
+
+def test_account_onboarding_create_rejects_artifact_source_mismatch(app_client) -> None:
+    uploaded = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "source-mismatch-upload",
+            "source_type": "session_file",
+            "filename": "fixture.session.json",
+            "content_base64": base64.b64encode(b'{"session":"fixture"}').decode("ascii"),
+        },
+    ).json()
+
+    response = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "source-mismatch-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": uploaded["id"],
+            "filename": "tdlib.zip",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["details"]["validation_code"] == "artifact_source_mismatch"
+
+
+def test_account_onboarding_validate_rejects_artifact_that_became_rejected(
+    app_client, db_session
+) -> None:
+    uploaded = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "stale-artifact-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.zip",
+            "content_base64": base64.b64encode(_zip_bytes({"tdlib/session": "safe"})).decode(
+                "ascii"
+            ),
+        },
+    ).json()
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "stale-artifact-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": uploaded["id"],
+            "filename": "tdlib.zip",
+        },
+    ).json()
+    artifact = db_session.get(AccountOnboardingArtifact, uploaded["id"])
+    assert artifact is not None
+    artifact.status = "rejected"
+    db_session.commit()
+
+    response = app_client.post(
+        f"/api/account-onboarding-batches/{created['batch']['id']}/validate",
+        json={"idempotency_key": "stale-artifact-validate"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["details"]["validation_code"] == "artifact_status_unusable"
 
 
 def test_account_onboarding_create_idempotency_conflict(app_client) -> None:
@@ -313,7 +472,7 @@ def test_account_onboarding_create_idempotency_conflict(app_client) -> None:
 
 
 def test_account_onboarding_queue_unavailable_persists_safe_failure(
-    app_client, monkeypatch
+    app_client, db_session, monkeypatch
 ) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: False)
     created = app_client.post(
@@ -329,6 +488,13 @@ def test_account_onboarding_queue_unavailable_persists_safe_failure(
         f"/api/account-onboarding-batches/{batch_id}/validate",
         json={"idempotency_key": "queue-unavailable-validate"},
     )
+    item = db_session.get(AccountOnboardingItem, created["items"][0]["id"])
+    assert item is not None
+    item.status = "valid"
+    item.requires_reauth = False
+    item.validation_code = None
+    item.validation_message = "Ready for queue failure test."
+    db_session.commit()
 
     confirm = app_client.post(
         f"/api/account-onboarding-batches/{batch_id}/confirm",
@@ -376,7 +542,7 @@ def test_account_onboarding_retry_denied_when_cooldown_active(app_client, db_ses
     assert response.json()["details"]["request_id"] == response.json()["request_id"]
 
 
-def test_account_onboarding_phone_execution_links_backend_auth_session(
+def test_account_onboarding_phone_preview_is_honest_about_manual_auth(
     app_client, db_session, monkeypatch
 ) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
@@ -405,28 +571,16 @@ def test_account_onboarding_phone_execution_links_backend_auth_session(
     item_id = confirmed["items"][0]["id"]
 
     item = onboarding_service.execute_item(db_session, item_id=item_id)
-    assert item.auth_session_id is not None
-    auth_session = db_session.get(TelegramAuthSession, item.auth_session_id)
-    assert auth_session is not None
-    assert auth_session.source == "account_onboarding"
-    assert auth_session.requires_code is True
-    assert auth_session.tdlib_storage_key is not None
+    assert item.auth_session_id is None
+    assert item.status == "requires_reauth"
 
     detail = app_client.get(f"/api/account-onboarding-batches/{batch_id}")
     body = detail.json()
-    assert body["items"][0]["auth_session_id"] == auth_session.id
+    assert body["batch"]["status"] == "requires_reauth"
+    assert body["items"][0]["auth_session_id"] is None
+    assert body["items"][0]["validation_code"] == "phone_requires_live_auth"
     assert "tdlib_storage_key" not in detail.text
-
-    code = app_client.post(
-        f"/api/account-onboarding-batches/{batch_id}/items/{item_id}/code",
-        json={"idempotency_key": "auth-session-link-code", "code": "12345"},
-    )
-    db_session.refresh(auth_session)
-
-    assert code.status_code == 200
-    assert auth_session.status == "checking_session"
-    assert auth_session.requires_code is False
-    assert "12345" not in code.text
+    assert item_id == body["items"][0]["id"]
 
 
 def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
@@ -471,7 +625,7 @@ def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
     ).json()
     detail = app_client.get(f"/api/account-onboarding-batches/{batch_id}")
 
-    assert confirmed["batch"]["status"] == "failed"
+    assert confirmed["batch"]["status"] == "requires_reauth"
     assert detail.json()["items"][0]["status"] == "requires_reauth"
     assert detail.json()["items"][0]["validation_code"] == "tdlib_artifact_verifier_not_enabled"
     assert "object_key" not in detail.text
@@ -537,25 +691,55 @@ def _post_account_onboarding_artifact(
     )
 
 
-def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, db_session) -> None:
+def _artifact_row(
+    *,
+    workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    source_type: str,
+    status: str = "quarantined",
+) -> AccountOnboardingArtifact:
+    return AccountOnboardingArtifact(
+        id=new_id(),
+        workspace_id=workspace_id,
+        source_type=source_type,
+        object_key="account-onboarding/test/artifact/private-key",
+        sha256="0" * 64,
+        size_bytes=10,
+        content_type_detected="application/zip",
+        status=status,
+        expires_at=utc_now() + timedelta(days=1),
+    )
+
+
+def _create_waiting_auth_item(
+    app_client,
+    db_session,
+    *,
+    idempotency_key: str,
+    status: str,
+) -> tuple[str, str]:
     created = app_client.post(
         "/api/account-onboarding-batches",
         json={
-            "idempotency_key": "onboarding-code-create",
+            "idempotency_key": idempotency_key,
             "source_type": "phone",
             "phone_items": [{"phone_number": "+15550102000"}],
         },
     ).json()
-    batch_id = created["batch"]["id"]
-    app_client.post(
-        f"/api/account-onboarding-batches/{batch_id}/validate",
-        json={"idempotency_key": "onboarding-code-validate"},
-    )
     item_id = created["items"][0]["id"]
     item = db_session.get(AccountOnboardingItem, item_id)
     assert item is not None
-    item.status = "waiting_code"
+    item.status = status
     db_session.commit()
+    return created["batch"]["id"], item_id
+
+
+def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, db_session) -> None:
+    batch_id, item_id = _create_waiting_auth_item(
+        app_client,
+        db_session,
+        idempotency_key="onboarding-code-create",
+        status="waiting_code",
+    )
 
     body = {"idempotency_key": "onboarding-code-submit", "code": "12345"}
     first = app_client.post(
@@ -569,9 +753,45 @@ def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, d
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert first.json()["status"] == second.json()["status"] == "checking_session"
+    assert first.json()["status"] == second.json()["status"] == "failed"
+    assert first.json()["last_error_code"] == "auth_continuation_not_enabled"
     events = db_session.query(AccountOnboardingEvent).all()
     assert "12345" not in repr([event.safe_payload_json for event in events])
+
+
+@pytest.mark.parametrize(
+    ("status", "route", "field", "first_secret", "second_secret"),
+    [
+        ("waiting_code", "code", "code", "12345", "99999"),
+        ("waiting_2fa", "password", "password", "first-secret", "second-secret"),
+    ],
+)
+def test_account_onboarding_secret_idempotency_conflicts_on_different_payload(
+    app_client, db_session, status, route, field, first_secret, second_secret
+) -> None:
+    batch_id, item_id = _create_waiting_auth_item(
+        app_client,
+        db_session,
+        idempotency_key=f"onboarding-{route}-conflict-create",
+        status=status,
+    )
+
+    path = f"/api/account-onboarding-batches/{batch_id}/items/{item_id}/{route}"
+    first = app_client.post(
+        path,
+        json={"idempotency_key": f"onboarding-{route}-conflict", field: first_secret},
+    )
+    assert first.status_code == 200
+    assert first.json()["last_error_code"] == "auth_continuation_not_enabled"
+
+    second = app_client.post(
+        path,
+        json={"idempotency_key": f"onboarding-{route}-conflict", field: second_secret},
+    )
+
+    assert second.status_code == 409
+    assert second.json()["error_code"] == "ONBOARDING_INVALID_STATE"
+    assert second_secret not in second.text
 
 
 def test_account_onboarding_detail_is_workspace_scoped(app_client, db_session) -> None:

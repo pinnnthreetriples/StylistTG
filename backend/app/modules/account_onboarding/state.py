@@ -27,9 +27,10 @@ _BATCH_TRANSITIONS = {
     "validating": {"preview_ready", "failed", "cancelled", "expired"},
     "preview_ready": {"confirmed", "cancelled", "expired", "validating"},
     "confirmed": {"queued", "failed", "cancelled"},
-    "queued": {"running", "failed", "cancelled"},
-    "running": {"partially_completed", "completed", "failed", "cancelled"},
-    "partially_completed": {"running", "completed", "failed", "cancelled"},
+    "queued": {"running", "failed", "cancelled", "requires_reauth"},
+    "running": {"partially_completed", "completed", "failed", "cancelled", "requires_reauth"},
+    "partially_completed": {"running", "completed", "failed", "cancelled", "requires_reauth"},
+    "requires_reauth": {"cancelled", "validating"},
 }
 
 _ITEM_TRANSITIONS = {
@@ -147,6 +148,8 @@ def maybe_finish_batch(batch: AccountOnboardingBatch) -> None:
         transition_batch(batch, "partially_completed")
     elif batch.ready_count == batch.total_count:
         transition_batch(batch, "completed")
+    elif batch.requires_reauth_count and batch.requires_reauth_count == batch.total_count:
+        transition_batch(batch, "requires_reauth")
     else:
         transition_batch(batch, "failed")
 

@@ -122,38 +122,96 @@ class Rule:
 _SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable=(\w+)\b(.*)$")
 _FILE_SUPPRESSION_RE = re.compile(r"#\s*test-analyzer:\s*disable-file=(\w+)\b(.*)$")
 _FIELD_REASON_RE = re.compile(r'reason="([^"]*)"')
-_FIELD_ISSUE_RE = re.compile(r'issue="(#\d+)"')
+# Permissive: capture any value so malformed `issue="abc"` still reaches the
+# validator (which emits META002). A strict `#\d+` regex would silently
+# drop typos — the same loophole the expiry field used to have.
+_FIELD_ISSUE_RE_PERMISSIVE = re.compile(r'issue="([^"]*)"')
+_ISSUE_VALID_RE = re.compile(r"^#\d+$")
 # Permissive `expires="..."` regex: any quoted value is captured so a
 # malformed date still reaches `_maybe_expiry_warning`, which then emits
 # META003. A strict `\d{4}-\d{2}-\d{2}` regex would let bad values slip
 # through silently — exactly the loophole the policy must close.
 _FIELD_EXPIRES_RE = re.compile(r'expires="([^"]*)"')
+# `permanent="true"` (or any non-empty value) opts the suppression out of
+# the issue/expires requirement. Use sparingly for genuine analyzer false
+# positives — `reason=` is still required, and reviewers see the field
+# explicitly in the diff.
+_FIELD_PERMANENT_RE = re.compile(r'permanent="([^"]*)"')
 
 
-def _parse_suppression_fields(tail: str) -> tuple[str, str, str]:
-    """Return ``(reason, issue, expires)`` from the trailing portion of a comment.
+def _parse_suppression_fields(
+    tail: str,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """Return ``(reason, issue, expires, permanent)`` from the comment tail.
 
-    Missing fields are returned as empty strings — callers decide which
-    fields are required for which rule type.
+    Each element is the raw captured value if the field is present (possibly
+    empty string for ``field=""``), or ``None`` if the field is absent.
+    Distinguishing absent vs empty is required by the strict suppression
+    policy: missing/empty/malformed values all fail the gate.
     """
     reason_match = _FIELD_REASON_RE.search(tail)
-    issue_match = _FIELD_ISSUE_RE.search(tail)
+    issue_match = _FIELD_ISSUE_RE_PERMISSIVE.search(tail)
     expires_match = _FIELD_EXPIRES_RE.search(tail)
+    permanent_match = _FIELD_PERMANENT_RE.search(tail)
     return (
-        reason_match.group(1) if reason_match else "",
-        issue_match.group(1) if issue_match else "",
-        expires_match.group(1) if expires_match else "",
+        reason_match.group(1) if reason_match else None,
+        issue_match.group(1) if issue_match else None,
+        expires_match.group(1) if expires_match else None,
+        permanent_match.group(1) if permanent_match else None,
     )
 
 
 def _maybe_expiry_warning(
-    rule_id: str, expires: str, *, relative_path: str, line: int
+    rule_id: str, expires: str | None, *, relative_path: str, line: int
 ) -> Issue | None:
-    """Return META003 if ``expires`` is set and in the past."""
-    if not expires:
-        return None
+    """Return META003 unless ``expires`` is a valid future ISO date.
+
+    Strict contract (suppressions must expire, not linger):
+
+    - ``expires`` is ``None`` (field absent)        → META003 CRITICAL
+    - ``expires`` is ``""`` (field present, empty)  → META003 CRITICAL
+    - ``expires`` is not ISO YYYY-MM-DD             → META003 CRITICAL
+    - ``expires`` is a past date                    → META003 CRITICAL
+    - ``expires`` is today or any future date       → clean
+
+    ``permanent="..."`` suppressions skip this check entirely by not
+    invoking ``_maybe_expiry_warning`` at the caller level.
+    """
     from datetime import date
 
+    if expires is None:
+        return Issue(
+            rule_id="META003",
+            rule_type="meta",
+            severity=Severity.CRITICAL,
+            file=relative_path,
+            line=line,
+            message=(
+                f"Suppression for {rule_id} is missing required expires=. "
+                f"Strict policy: every suppression must expire."
+            ),
+            recommendation=(
+                'Add expires="YYYY-MM-DD" with a real future date, or '
+                'mark the suppression as permanent="true" (for analyzer false '
+                "positives only; see docs/quality/QUALITY_GATES.md)."
+            ),
+        )
+    if not expires.strip():
+        return Issue(
+            rule_id="META003",
+            rule_type="meta",
+            severity=Severity.CRITICAL,
+            file=relative_path,
+            line=line,
+            message=(
+                f'Suppression for {rule_id} has empty expires=""; strict '
+                f"policy forbids unbounded suppressions."
+            ),
+            recommendation=(
+                'Replace expires="" with a real future ISO date, or use '
+                'permanent="true" for documented false positives.'
+            ),
+        )
     try:
         expiry = date.fromisoformat(expires)
     except ValueError:
@@ -191,11 +249,17 @@ def parse_suppressions(
 ) -> tuple[dict[str, set[str]], set[str], list[Issue]]:
     """Parse inline and file-level suppressions, return (line_supprs, file_supprs, warnings).
 
-    Each suppression comment supports three fields:
+    Each suppression comment supports four fields:
 
-    - ``reason="..."`` (required; missing → META001 WARNING),
-    - ``issue="#NNN"`` (optional; recommended for deferred work),
-    - ``expires="YYYY-MM-DD"`` (optional; past expiry → META003 CRITICAL).
+    - ``reason="..."`` — required; missing → **META001** WARNING.
+    - ``issue="#NNN"`` — required unless ``permanent="true"``; missing or
+      malformed → **META002** CRITICAL.
+    - ``expires="YYYY-MM-DD"`` — required unless ``permanent="true"``;
+      missing, empty, malformed, or past expiry → **META003** CRITICAL.
+    - ``permanent="..."`` — optional opt-out for *analyzer false positives*.
+      When non-empty, ``issue=``/``expires=`` are no longer required, but
+      ``reason=`` still is. Use sparingly; reviewers see the explicit field
+      in the diff.
 
     The fields can appear in any order. Unrecognised fields are ignored.
     """
@@ -203,7 +267,14 @@ def parse_suppressions(
     file_suppressions: set[str] = set()
     warnings: list[Issue] = []
 
-    def _emit_warnings(rule_id: str, reason: str, expires: str, line_no: int) -> None:
+    def _emit_warnings(
+        rule_id: str,
+        reason: str | None,
+        issue: str | None,
+        expires: str | None,
+        permanent: str | None,
+        line_no: int,
+    ) -> None:
         if not reason:
             warnings.append(
                 Issue(
@@ -216,6 +287,43 @@ def parse_suppressions(
                     recommendation='Add reason="..." to suppression comment',
                 )
             )
+        # `permanent="<non-empty>"` opts out of issue/expires requirements.
+        if permanent and permanent.strip():
+            return
+        # Strict issue= check.
+        if issue is None:
+            warnings.append(
+                Issue(
+                    rule_id="META002",
+                    rule_type="meta",
+                    severity=Severity.CRITICAL,
+                    file=relative_path,
+                    line=line_no,
+                    message=(
+                        f"Suppression for {rule_id} is missing required issue=. "
+                        f"Every deferred suppression must reference a tracking issue."
+                    ),
+                    recommendation=(
+                        'Add issue="#NNN" pointing at the follow-up issue, or '
+                        'mark as permanent="true" for analyzer false positives.'
+                    ),
+                )
+            )
+        elif not _ISSUE_VALID_RE.match(issue):
+            warnings.append(
+                Issue(
+                    rule_id="META002",
+                    rule_type="meta",
+                    severity=Severity.CRITICAL,
+                    file=relative_path,
+                    line=line_no,
+                    message=(
+                        f"Suppression for {rule_id} has malformed issue={issue!r}; "
+                        f"expected '#NNN' (e.g. '#263')."
+                    ),
+                    recommendation='Use issue="#NNN" referencing a real tracking issue.',
+                )
+            )
         expiry_issue = _maybe_expiry_warning(
             rule_id, expires, relative_path=relative_path, line=line_no
         )
@@ -226,17 +334,17 @@ def parse_suppressions(
         m = _FILE_SUPPRESSION_RE.search(line)
         if m:
             rule_id = m.group(1)
-            reason, _issue, expires = _parse_suppression_fields(m.group(2))
+            reason, issue, expires, permanent = _parse_suppression_fields(m.group(2))
             file_suppressions.add(rule_id)
-            _emit_warnings(rule_id, reason, expires, i)
+            _emit_warnings(rule_id, reason, issue, expires, permanent, i)
             continue
         m = _SUPPRESSION_RE.search(line)
         if m:
             rule_id = m.group(1)
-            reason, _issue, expires = _parse_suppression_fields(m.group(2))
+            reason, issue, expires, permanent = _parse_suppression_fields(m.group(2))
             key = str(i + 1)  # suppression applies to next line
             line_suppressions.setdefault(key, set()).add(rule_id)
-            _emit_warnings(rule_id, reason, expires, i)
+            _emit_warnings(rule_id, reason, issue, expires, permanent, i)
     return line_suppressions, file_suppressions, warnings
 
 

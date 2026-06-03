@@ -25,7 +25,7 @@ random strings that may match credential patterns by coincidence), this
 module uses the @pytest.mark.allow_pii_in_logs opt-out.
 """
 
-# test-analyzer: disable-file=STG007 reason="contract fuzz is not a rate-limit suite"
+# test-analyzer: disable-file=STG007 reason="contract fuzz is not a rate-limit suite" permanent="true"
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Tests for the mutation-allowlist loader (issue #267)."""
 
-# test-analyzer: disable-file=TQA030 reason="schema-validation tests deliberately repeat similar JSON payloads"
+# test-analyzer: disable-file=TQA030 reason="schema-validation tests deliberately repeat similar JSON payloads" permanent="true"
 
 from __future__ import annotations
 

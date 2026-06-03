@@ -184,31 +184,46 @@ tests.
 
 ### Suppression policy
 
-Inline analyzer suppressions use a three-field format and are validated by
+Inline analyzer suppressions are **strict by default** and validated by
 `tools.test_analyzer`:
 
 ```python
 # test-analyzer: disable=TQA050 reason="…" issue="#263" expires="2026-08-31"
 ```
 
-- `reason="…"` — required. Missing → **META001** WARNING.
-- `issue="#NNN"` — recommended for deferred work, optional for permanent
-  false-positive carve-outs. The format is `#` followed by digits.
-- `expires="YYYY-MM-DD"` — recommended for deferred work. Past expiry
-  fires **META003** CRITICAL — the analyzer hard-fails CI when an
-  expiring suppression has lapsed. The field regex is permissive
-  (any quoted value), so unparseable values like
-  `expires="not-a-date"` / `expires="2026-99-99"` ALSO fire META003
-  instead of being silently dropped — a typo cannot turn a suppression
-  into an immortal one.
+- `reason="…"` — **required**. Missing → **META001** WARNING.
+- `issue="#NNN"` — **required** (unless `permanent="true"`). Missing or
+  malformed → **META002** CRITICAL. The format is `#` followed by digits.
+- `expires="YYYY-MM-DD"` — **required** (unless `permanent="true"`). The
+  field regex is permissive (any quoted value), so each of:
+  - missing field (no `expires=` at all),
+  - empty value (`expires=""`),
+  - malformed date (`expires="not-a-date"`, `expires="2026-99-99"`),
+  - past date (`expires="2020-01-01"`),
 
-Permanent suppressions (analyzer false positives on patterns that are
-already strict, e.g. exception-attribute checks the rule does not yet
-understand) may omit `issue=`/`expires=`. They MUST still include a
-`reason=` that names the false-positive and identifies the underlying
-rule limitation, so a future analyzer improvement can clean them up.
+  fires **META003** CRITICAL. A typo cannot turn a suppression into an
+  immortal one, and `expires=""` is **not** a silent escape hatch.
 
-The same three-field format also applies to `disable-file=`.
+#### Permanent opt-out
+
+For genuine **analyzer false positives** — where the underlying assertion
+is already strict but the rule lacks the context to see that (e.g.
+`exc_info.value.status_code` checks flagged by STG003) — use:
+
+```python
+# test-analyzer: disable=STG003 reason="STG003 false positive — exc_info.value.* check is strict" permanent="true"
+```
+
+`permanent="true"` (or any non-empty value) opts the suppression out of
+the `issue=` / `expires=` requirements. `reason=` is **still** required
+and MUST name the false-positive and the rule's limitation, so a future
+analyzer improvement can find and remove the suppression.
+
+Reviewers see the literal `permanent=` field in the diff: treat every
+new `permanent=` line as a small architectural decision that deserves
+explicit approval.
+
+The same four-field format also applies to `disable-file=`.
 
 Helpers live in `backend/tests/helpers/assertions.py`; their behaviour is
 pinned by `backend/tests/helpers/test_assertions.py`.

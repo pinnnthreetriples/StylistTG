@@ -99,7 +99,7 @@ def test_clear_terminal_status_non_admin_returns_403(app_client, db_session) -> 
     assert body["error_code"] == "ROLE_FORBIDDEN"
 
 
-# test-analyzer: disable=STG003 reason="STG003 false positive — body asserts field_errors length and the expected `reason` field name; rule does not yet recognise field_errors-based contract"
+# test-analyzer: disable=STG003 reason="STG003 false positive — body asserts field_errors length and the expected `reason` field name; rule does not yet recognise field_errors-based contract" permanent="true"
 def test_clear_terminal_status_short_reason_returns_422(admin_client, db_session) -> None:
     account = seed_account(db_session)
     _set_terminal_status(db_session, account.id, "banned")

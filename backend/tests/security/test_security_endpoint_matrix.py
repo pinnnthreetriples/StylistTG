@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA030 reason="matrix-runner shares parametrize/_role_test_client setup across 150 cases by design; assertion bodies are individual"
+# test-analyzer: disable-file=TQA030 reason="matrix-runner shares parametrize/_role_test_client setup across 150 cases by design; assertion bodies are individual" permanent="true"
 """Data-driven role/auth matrix test for all API endpoints.
 
 Adding coverage for a new endpoint requires only appending one tuple to

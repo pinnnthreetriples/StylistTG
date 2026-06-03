@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# test-analyzer: disable-file=STG007 reason="checks typed error metadata, not rate-limit counters"
+# test-analyzer: disable-file=STG007 reason="checks typed error metadata, not rate-limit counters" permanent="true"
 
 from app.modules.account_editing.errors import (
     AccountAssetKindInvalidError,

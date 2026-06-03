@@ -4,7 +4,7 @@ from __future__ import annotations
 # assert against the raised `AppError` exception (exc_info.value.error_code +
 # status_code), not against a response body. STG003's pattern matcher does
 # not recognise that distinction; the assertions are already strict.
-# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — equivalent to strict body assertion for raised exceptions"
+# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — equivalent to strict body assertion for raised exceptions" permanent="true"
 
 import json
 import logging

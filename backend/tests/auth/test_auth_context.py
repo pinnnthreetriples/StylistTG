@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# test-analyzer: disable-file=STG003 reason="STG003 over-fires on exc_info.value.status_code attribute checks; these tests assert the exact AppError type, error_code, and status_code via pytest.raises(match=...) plus exc_info.value.* — the strict equivalent of a 4xx-with-body check for raised exceptions."
+# test-analyzer: disable-file=STG003 reason="STG003 over-fires on exc_info.value.status_code attribute checks; these tests assert the exact AppError type, error_code, and status_code via pytest.raises(match=...) plus exc_info.value.* — the strict equivalent of a 4xx-with-body check for raised exceptions." permanent="true"
 
 import pytest
 

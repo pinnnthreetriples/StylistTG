@@ -40,7 +40,7 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
-# test-analyzer: disable=TQA004 reason="aggregated payload contract test — verifies many fields in single response"
+# test-analyzer: disable=TQA004 reason="aggregated payload contract test — verifies many fields in single response" permanent="true"
 def test_dashboard_profile_returns_aggregated_payload(monkeypatch) -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)
@@ -589,7 +589,7 @@ def test_profile_job_create_returns_dedup_blocked_payload(monkeypatch) -> None:
 
 
 @freeze_time("2026-01-15 12:00:00")
-# test-analyzer: disable=TQA004 reason="polling contract test — verifies job/step fields needed by dashboard"
+# test-analyzer: disable=TQA004 reason="polling contract test — verifies job/step fields needed by dashboard" permanent="true"
 def test_job_details_and_steps_are_polling_friendly() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

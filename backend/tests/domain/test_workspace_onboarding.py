@@ -4,7 +4,7 @@ from __future__ import annotations
 # attributes (exc_info.value.status_code + error_code), not on a response
 # body. That is the strict exception-equivalent of the body check STG003
 # looks for.
-# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — strict exception equivalent of body assertion"
+# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — strict exception equivalent of body assertion" permanent="true"
 
 import pytest
 from fastapi.testclient import TestClient

@@ -1,13 +1,14 @@
 """Unit tests for tools.test_analyzer package."""
 
-# test-analyzer: disable-file=STG001 reason="test samples intentionally contain dependency_overrides patterns"
-# test-analyzer: disable-file=STG002 reason="test samples intentionally contain TestClient(app) + dependency_overrides patterns"
-# test-analyzer: disable-file=STG003 reason="test samples intentionally contain 4xx-without-body snippets for rule verification"
-# test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification"
-# test-analyzer: disable-file=STG006 reason="test samples intentionally contain Stubber literal strings for rule verification"
-# test-analyzer: disable-file=META001 reason="test fixture literal contains disable=RULE without reason= to verify META001 rule fires"
-# test-analyzer: disable-file=META003 reason="test fixture literals contain expired/malformed expires= dates to verify META003 rule fires"
-# test-analyzer: disable-file=TQA030 reason="rule-verification tests share textwrap.dedent(...) + _analyze_source(...) pattern by design"
+# test-analyzer: disable-file=STG001 reason="test samples intentionally contain dependency_overrides patterns" permanent="true"
+# test-analyzer: disable-file=STG002 reason="test samples intentionally contain TestClient(app) + dependency_overrides patterns" permanent="true"
+# test-analyzer: disable-file=STG003 reason="test samples intentionally contain 4xx-without-body snippets for rule verification" permanent="true"
+# test-analyzer: disable-file=TQA020 reason="test samples intentionally contain Mock() literal strings for rule verification" permanent="true"
+# test-analyzer: disable-file=STG006 reason="test samples intentionally contain Stubber literal strings for rule verification" permanent="true"
+# test-analyzer: disable-file=META001 reason="test fixture literal contains disable=RULE without reason= to verify META001 rule fires" permanent="true"
+# test-analyzer: disable-file=META002 reason="test fixture literals contain missing/malformed issue= values to verify META002 rule fires" permanent="true"
+# test-analyzer: disable-file=META003 reason="test fixture literals contain expired/malformed expires= dates to verify META003 rule fires" permanent="true"
+# test-analyzer: disable-file=TQA030 reason="rule-verification tests share textwrap.dedent(...) + _analyze_source(...) pattern by design" permanent="true"
 from __future__ import annotations
 
 import json
@@ -708,7 +709,7 @@ def test_baseline_passes_new_issues(tmp_path: Path) -> None:
 
 def test_suppression_with_reason_hides_issue() -> None:
     source = textwrap.dedent("""\
-        # test-analyzer: disable=TQA001 reason="intentional smoke test"
+        # test-analyzer: disable=TQA001 reason="intentional smoke test" permanent="true"
         def test_smoke():
             run_app()
     """)
@@ -730,14 +731,67 @@ def test_suppression_without_reason_emits_warning() -> None:
 
 
 def test_suppression_with_future_expiry_does_not_emit_meta003() -> None:
-    """A suppression with a non-expired `expires=` value passes the gate."""
+    """Future expires= + valid issue= passes the strict gate cleanly."""
     source = textwrap.dedent("""\
         # test-analyzer: disable=TQA001 reason="placeholder" issue="#999" expires="2099-12-31"
         def test_smoke():
             run_app()
     """)
     issues = _analyze_source(source)
-    assert [i for i in issues if i.rule_id == "META003"] == []
+    assert [i for i in issues if i.rule_id in ("META001", "META002", "META003")] == []
+
+
+def test_permanent_suppression_skips_issue_and_expires_requirements() -> None:
+    """permanent="true" carve-outs only need reason= — for analyzer false positives."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="rule false-positive on x" permanent="true"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    assert [i for i in issues if i.rule_id in ("META001", "META002", "META003")] == []
+
+
+def test_suppression_without_issue_emits_meta002() -> None:
+    """Strict policy: every non-permanent suppression must reference a tracking issue."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="placeholder" expires="2099-12-31"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    meta = [i for i in issues if i.rule_id == "META002"]
+    assert len(meta) == 1
+    assert "missing required issue=" in meta[0].message
+    assert meta[0].severity.name == "CRITICAL"
+
+
+def test_suppression_with_malformed_issue_emits_meta002() -> None:
+    """issue= must be `#NNN`; typos / wrong shapes fail META002."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="placeholder" issue="see-jira" expires="2099-12-31"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    meta = [i for i in issues if i.rule_id == "META002"]
+    assert len(meta) == 1
+    assert "malformed issue='see-jira'" in meta[0].message
+    assert meta[0].severity.name == "CRITICAL"
+
+
+def test_suppression_without_expires_emits_meta003() -> None:
+    """Strict policy: every non-permanent suppression must expire."""
+    source = textwrap.dedent("""\
+        # test-analyzer: disable=TQA001 reason="placeholder" issue="#999"
+        def test_smoke():
+            run_app()
+    """)
+    issues = _analyze_source(source)
+    meta = [i for i in issues if i.rule_id == "META003"]
+    assert len(meta) == 1
+    assert "missing required expires=" in meta[0].message
+    assert meta[0].severity.name == "CRITICAL"
 
 
 def test_suppression_with_past_expiry_emits_meta003_critical() -> None:
@@ -757,17 +811,14 @@ def test_suppression_with_past_expiry_emits_meta003_critical() -> None:
 def test_suppression_with_malformed_expiry_emits_meta003() -> None:
     """Both unparseable strings and structurally-impossible dates fire META003.
 
-    Previously the field regex required ``\\d{4}-\\d{2}-\\d{2}``, so a value
-    like ``not-a-date`` was silently ignored — meaning a typo could create an
-    effectively immortal suppression. The parser now captures any quoted
-    value and validates it inside ``_maybe_expiry_warning`` so both
-    unparseable strings and impossible dates surface as CRITICAL findings.
-    Empty `expires=""` is treated as "no expiry set" (policy-allowed for
-    permanent false-positive carve-outs) and intentionally does NOT fire.
+    Strict policy: a typo cannot turn a suppression into an immortal one.
+    The parser captures any quoted value and validates it inside
+    ``_maybe_expiry_warning`` so unparseable strings and impossible dates
+    both surface as CRITICAL findings.
     """
     for bad in ("not-a-date", "2026-99-99", "tomorrow"):
         source = textwrap.dedent(f"""\
-            # test-analyzer: disable=TQA001 reason="placeholder" expires="{bad}"
+            # test-analyzer: disable=TQA001 reason="placeholder" issue="#999" expires="{bad}"
             def test_smoke():
                 run_app()
         """)
@@ -780,15 +831,22 @@ def test_suppression_with_malformed_expiry_emits_meta003() -> None:
         assert meta[0].severity.name == "CRITICAL"
 
 
-def test_suppression_with_empty_expires_value_is_silent() -> None:
-    """`expires=""` is policy-allowed shorthand for 'no expiry', not malformed."""
+def test_suppression_with_empty_expires_value_emits_meta003() -> None:
+    """``expires=""`` is forbidden — strict policy: no unbounded suppressions.
+
+    The earlier permissive contract treated empty as "no expiry"; the review
+    closed that loophole. Now empty-string expires must fail the gate.
+    """
     source = textwrap.dedent("""\
-        # test-analyzer: disable=TQA001 reason="permanent false positive" expires=""
+        # test-analyzer: disable=TQA001 reason="placeholder" issue="#999" expires=""
         def test_smoke():
             run_app()
     """)
     issues = _analyze_source(source)
-    assert [i for i in issues if i.rule_id == "META003"] == []
+    meta = [i for i in issues if i.rule_id == "META003"]
+    assert len(meta) == 1
+    assert "empty expires" in meta[0].message
+    assert meta[0].severity.name == "CRITICAL"
 
 
 # ---------------------------------------------------------------------------

@@ -2,6 +2,232 @@
 
 Mandatory and optional checks before merging StylistTG PRs.
 
+## Test profile model
+
+The canonical pytest marker expressions for each profile are exposed by
+`backend/scripts/pytest_profiles.py`. GitHub Actions and `scripts/check.py`
+resolve them at runtime so workflows, local commands, and docs cannot drift.
+
+| Profile | Markers | When it runs | Hard-fail? |
+|---|---|---|---|
+| `pr` | `not contract and not live and not integration and not postgres and not redis and not slow and not benchmark and not mutation and not property_heavy and not nightly` | PR `backend-tests` job | Yes |
+| `contract-security` | `contract and contract_security` | PR `contract-security` job + nightly | Yes |
+| `nightly-slow-property` | `slow or property_heavy or nightly` | Scheduled `Nightly Backend Quality` | Yes |
+| `nightly-contract` | `contract` | Scheduled fuzz job (`SCHEMATHESIS_MAX_EXAMPLES=100`) | Yes |
+| `nightly-postgres-redis` | `postgres or redis or integration` | Scheduled service-container job | Yes |
+| `nightly-mutation` | (driven by `scripts/mutation_suite.py`) | Scheduled mutation job | Yes (no `--soft`) |
+| `benchmark` | `benchmark` | Manual `Pytest Benchmark` workflow only | N/A |
+| `live` | `live` | Operator-only, manual | N/A |
+
+Resolve a marker expression from the shell:
+
+```bash
+uv run python -m scripts.pytest_profiles pr-markers
+uv run python -m scripts.pytest_profiles nightly-slow-property-markers
+```
+
+### Property test split
+
+`@pytest.mark.property` is no longer used. Fast Hypothesis tests stay
+inline with their feature/unit marker (no extra marker needed); calibration
+and statistical property tests carry `@pytest.mark.property_heavy` and run
+only in the nightly profile via `--run-property`.
+
+### PR runtime budget
+
+`backend/scripts/enforce_slow_test_budget.py` reads `reports/slow-tests.json`
+and fails the PR `backend-tests` job if any **unmarked** test exceeds the
+call/setup budget (`--max-call-seconds 3 --max-setup-seconds 2` by default).
+Tests carrying any of `slow`, `integration`, `postgres`, `redis`,
+`benchmark`, `property_heavy`, `nightly`, or `live` are exempt.
+
+## Analyzer rule coverage
+
+The test analyzer (`tools.test_analyzer`) catches weak/flaky test
+patterns before review. Most rules are AST-based and parse the Python
+file's syntax tree, which avoids false positives from comments or
+docstring mentions of the same patterns.
+
+Coverage classes:
+
+- **Assertions** — zero-assertion tests, `assert True`, self-equality,
+  too-many-asserts, `pytest.raises` without `match=`, manual try/except,
+  bare `assert response.json()` truthiness (TQA050), `assert "key" in
+  response.json()` membership-only (TQA051).
+- **Flaky** — uncontrolled clock, RNG without seed, network without
+  marker, filesystem writes outside `tmp_path`.
+- **Mocks** — mocks created without verifying calls, patch.start without
+  stop, monkeypatch ordering.
+- **Project (StylistTG)** — dependency-overrides without finally,
+  TestClient without `app_client`, 4xx without typed error body
+  (STG003), live tests without env guard.
+
+Adding a new rule: subclass `Rule`, implement `check`, add a bad/good
+sample pair to `backend/tests/tools/test_test_analyzer.py` (or a
+dedicated test file), and register the instance in
+`backend/tools/test_analyzer/rules/__init__.py::ALL_RULES`.
+
+## RBAC endpoint matrix coverage
+
+Every mutating `/api/` or `/diagnostics/` route (POST / PATCH / PUT /
+DELETE) must appear in
+`backend/tests/security/test_security_endpoint_matrix.ENDPOINT_MATRIX`.
+The completeness gate
+`backend/tests/security/test_endpoint_matrix_completeness.py` walks the
+FastAPI route table on every PR and fails if a new mutating route is
+missing.
+
+The 53 pre-existing matrix gaps when this gate landed are pinned in
+`backend/tests/security/rbac_matrix_baseline.json` (the ratchet
+baseline). The baseline is **read-only**: entries can be removed when
+the matrix grows, but additions are forbidden — new routes must land
+in `ENDPOINT_MATRIX` directly. `test_baseline_does_not_grow` enforces
+the rule and also flags baseline entries that no longer exist in the
+app.
+
+The companion analyzer rule `STG008 RBACRouteNotInMatrix` stays
+disabled in `backend/test-quality.toml`: the pytest gate is
+authoritative. The rule body is now a real heuristic stub instead of
+the no-op placeholder it carried before, so future PRs can enable it
+for soft pre-review hints without re-implementing it.
+
+## Contract-security policy
+
+The PR `contract-security` profile runs the narrow hard subset of
+`tests/contract/security/`, which protects auth, operator-token,
+workspace/object authorization, diagnostics, metrics, and asset
+contracts. Broad OpenAPI fuzz lives in the nightly `nightly-contract`
+profile and uses `SCHEMATHESIS_MAX_EXAMPLES=100`.
+
+Every intentional exclusion from the contract-security profile must
+live in `backend/tests/contract/security/exclusions.py` and provide:
+
+- a precise path pattern + HTTP method;
+- a `reason` for the exclusion;
+- an `@owner` GitHub handle;
+- a `#follow_up_issue` link;
+- an `expires_at` ISO date (`YYYY-MM-DD`). Past expiry fails the gate;
+  recommended cap is `MAX_EXCLUSION_DAYS` (90 days) — longer requires a
+  renewed justification.
+
+`test_exclusions_policy.py` enforces the schema and the non-expired
+contract. The registry is empty by default — adding an entry requires
+a passing regression test.
+
+## Coverage policy
+
+Backend coverage is **branch-first**: every required pytest run uses
+`--cov-branch`, and `scripts/coverage_gate.py` aborts with exit 2 if the
+generated `coverage.json` was not produced with branch coverage enabled.
+Missing branch data is never silently treated as 100% — the gate forces
+the pipeline to be fixed at source.
+
+Three layers of enforcement:
+
+1. **Per-package** thresholds (`THRESHOLDS`) anchor each backend
+   directory at its current measured floor. Lowering a threshold
+   requires explicit reviewer approval and an inline comment.
+2. **Critical file** thresholds (`CRITICAL_FILE_THRESHOLDS`) prevent
+   small high-risk files from being hidden by their package average.
+   The gate fails if a critical file is missing from the report at all.
+3. **Coverage ratchet** — thresholds are anchored at measured floors;
+   any regression breaks the build, any improvement should be reflected
+   by raising the threshold in the same PR.
+
+The gate's behavior is pinned by `backend/tests/scripts/test_coverage_gate_branch_validation.py`
+(10 regression tests covering missing report, missing meta block, branch
+coverage disabled, critical file absence, and threshold math).
+
+## DB fixture strategy
+
+The default `db_session` fixture in `backend/tests/conftest.py` builds a
+fresh in-memory SQLite engine **and** the full schema for every test. It
+gives maximum isolation at the cost of repeated `Base.metadata.create_all`
+work.
+
+For DB-heavy tests that do not commit at the test layer, the opt-in
+`transactional_db_session` fixture in `backend/tests/helpers/db_fixtures.py`
+keeps the engine and schema across the whole pytest session and wraps
+each test in a SAVEPOINT-backed transaction that rolls back at teardown.
+Tests migrate by renaming `db_session` → `transactional_db_session`.
+
+The fixture's isolation contract is pinned by
+`backend/tests/helpers/test_db_fixtures.py`. Tests that need real commits
+visible from a separate engine (e.g. cross-process or multi-connection
+scenarios) must stay on the per-engine `db_session` fixture.
+
+## Strict assertion policy
+
+Backend tests must assert the behaviour that matters, not just that an
+endpoint returned some status code. Status-only API tests, "detail in body"
+checks, `assert result is not None`, `assert mock.called`, and manual
+`try/except` capture patterns are prohibited in security/auth/API/storage
+tests.
+
+### Required patterns
+
+- **Exact error envelope.** Every 4xx/5xx test asserts the exact body shape,
+  including `error_code`/`detail`. Use `tests.helpers.assertions.assert_error_response`.
+- **Side-effect safety.** Every failure-path test asserts that no rows were
+  written and no queue mock was called. Use `assert_no_jobs_created` and
+  `assert_queue_not_called` helpers.
+- **Workspace isolation.** Workspace-scoped tests cover both own- and
+  foreign-workspace paths. Foreign probes must return 404 and must not leak
+  the foreign id; use `assert_foreign_workspace_denied`.
+- **Exceptions.** Unit/security/domain tests use `pytest.raises(..., match=...)`
+  with an exact exception type assertion. Manual `try/except` capture
+  patterns are forbidden — they hide which branch executed.
+- **Datetime.** Response timestamps go through `assert_rfc3339_aware`, not
+  `endswith("Z") or "+" in value`.
+- **Mocks.** `assert_called_once_with(...)` / `assert_exact_calls(...)` /
+  `assert_not_called()`, never `assert mock.called` / `mock.call_count > 0`.
+
+### Suppression policy
+
+Inline analyzer suppressions are **strict by default** and validated by
+`tools.test_analyzer`:
+
+```python
+# test-analyzer: disable=TQA050 reason="…" issue="#263" expires="2026-08-31"
+```
+
+- `reason="…"` — **required**. Missing → **META001** WARNING.
+- `issue="#NNN"` — **required** (unless `permanent="true"`). Missing or
+  malformed → **META002** CRITICAL. The format is `#` followed by digits.
+- `expires="YYYY-MM-DD"` — **required** (unless `permanent="true"`). The
+  field regex is permissive (any quoted value), so each of:
+  - missing field (no `expires=` at all),
+  - empty value (`expires=""`),
+  - malformed date (`expires="not-a-date"`, `expires="2026-99-99"`),
+  - past date (`expires="2020-01-01"`),
+
+  fires **META003** CRITICAL. A typo cannot turn a suppression into an
+  immortal one, and `expires=""` is **not** a silent escape hatch.
+
+#### Permanent opt-out
+
+For genuine **analyzer false positives** — where the underlying assertion
+is already strict but the rule lacks the context to see that (e.g.
+`exc_info.value.status_code` checks flagged by STG003) — use:
+
+```python
+# test-analyzer: disable=STG003 reason="STG003 false positive — exc_info.value.* check is strict" permanent="true"
+```
+
+`permanent="true"` (or any non-empty value) opts the suppression out of
+the `issue=` / `expires=` requirements. `reason=` is **still** required
+and MUST name the false-positive and the rule's limitation, so a future
+analyzer improvement can find and remove the suppression.
+
+Reviewers see the literal `permanent=` field in the diff: treat every
+new `permanent=` line as a small architectural decision that deserves
+explicit approval.
+
+The same four-field format also applies to `disable-file=`.
+
+Helpers live in `backend/tests/helpers/assertions.py`; their behaviour is
+pinned by `backend/tests/helpers/test_assertions.py`.
+
 ## Zero-warning / zero-soft-fail policy
 
 The backend test-quality gate is strict: any pytest warning, unknown marker,

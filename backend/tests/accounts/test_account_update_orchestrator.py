@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA040 reason="orchestrator happy-path materialization tests; negative paths covered by test_account_update_api.py + test_worker_hardening.py"
+# test-analyzer: disable-file=TQA040 reason="orchestrator happy-path materialization tests; negative paths covered by test_account_update_api.py + test_worker_hardening.py" permanent="true"
 from app.models import AccountProfileAudioState, AccountStoryPost, JobState, StepStatus
 from app.services.account_update_jobs import create_account_update_job
 from app.services.account_update_plan import profile_payload_to_account_update_desired_state

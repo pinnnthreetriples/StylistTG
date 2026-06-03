@@ -30,6 +30,23 @@ def _calls_response_json(node: ast.AST) -> bool:
     )
 
 
+def _calls_response_json_get(node: ast.AST) -> bool:
+    """Return True if ``node`` is ``<something>.json().get(...)``.
+
+    Without this helper, TQA051 silently passes the weak idiom
+    ``assert "x" in response.json().get("detail", "")`` even though the
+    rule's docstring claims it catches both forms. The narrow shape check
+    (attribute chain ``.json()`` → ``.get``) avoids flagging plain
+    ``dict.get`` membership probes elsewhere.
+    """
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and _calls_response_json(node.func.value)
+    )
+
+
 class AssertResponseJsonTruthiness(Rule):
     id = "TQA050"
     type = "assertions"
@@ -76,7 +93,8 @@ class AssertKeyInResponseJson(Rule):
                 if not isinstance(node, ast.Assert):
                     continue
                 # Match `assert <const> in <something>.json()` and
-                # `assert <const> in <something>.json().get(...)` lightly.
+                # `assert <const> in <something>.json().get(...)` — both
+                # are key-membership probes that don't pin the value.
                 test = node.test
                 if (
                     isinstance(test, ast.Compare)
@@ -84,7 +102,10 @@ class AssertKeyInResponseJson(Rule):
                     and isinstance(test.ops[0], ast.In)
                     and isinstance(test.left, ast.Constant)
                     and isinstance(test.left.value, str)
-                    and _calls_response_json(test.comparators[0])
+                    and (
+                        _calls_response_json(test.comparators[0])
+                        or _calls_response_json_get(test.comparators[0])
+                    )
                 ):
                     issues.append(
                         Issue(

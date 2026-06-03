@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-# test-analyzer: disable-file=TQA008 reason="manual try/except pattern; replaced with pytest.raises(match=...) in #263"
+import pytest
+
+from app.errors import AppError
 
 from fastapi.testclient import TestClient
 
@@ -285,14 +287,10 @@ def test_supabase_jwt_verifier_rejects_unsupported_algorithm(monkeypatch) -> Non
         lambda url, **kwargs: {"keys": [_rsa_jwk("k")]},
     )
 
-    try:
+    with pytest.raises(AppError, match="unsupported JWT algorithm") as exc_info:
         verifier.verify("token")
-    except Exception as exc:
-        code = getattr(exc, "error_code", "")
-    else:
-        code = ""
 
-    assert code == "JWT_ALG_UNSUPPORTED"
+    assert exc_info.value.error_code == "JWT_ALG_UNSUPPORTED"
 
 
 def test_supabase_jwt_verifier_uses_jwks_cache(monkeypatch) -> None:
@@ -409,14 +407,10 @@ def test_supabase_jwt_verifier_rejects_unknown_kid_after_refresh(monkeypatch) ->
         "app.services.supabase_jwt._load_jwks", lambda url, **kwargs: {"keys": [_rsa_jwk("other")]}
     )
 
-    try:
+    with pytest.raises(AppError, match="JWT signing key was not found") as exc_info:
         verifier.verify("token")
-    except Exception as exc:
-        code = getattr(exc, "error_code", "")
-    else:
-        code = ""
 
-    assert code == "JWT_KEY_NOT_FOUND"
+    assert exc_info.value.error_code == "JWT_KEY_NOT_FOUND"
 
 
 def test_supabase_jwt_verifier_rejects_invalid_issuer_and_audience(monkeypatch) -> None:
@@ -445,30 +439,22 @@ def test_supabase_jwt_verifier_rejects_invalid_issuer_and_audience(monkeypatch) 
         "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
     )
 
-    try:
+    with pytest.raises(AppError, match="JWT issuer is invalid") as exc_info:
         verifier.verify("token")
-    except Exception as exc:
-        code = getattr(exc, "error_code", "")
-    else:
-        code = ""
 
-    assert code == "JWT_ISSUER_INVALID"
+    assert exc_info.value.error_code == "JWT_ISSUER_INVALID"
 
 
 def test_supabase_jwt_verifier_rejects_invalid_audience(monkeypatch) -> None:
     payload = {"sub": "u", "exp": 9999999999, "iss": "issuer", "aud": "bad"}
     verifier = _prepare_jwt_verifier_with_fake_pubkey(monkeypatch, payload=payload)
-    try:
+    with pytest.raises(AppError, match="JWT audience is invalid") as exc_info:
         verifier.verify("token")
-    except Exception as exc:
-        code = getattr(exc, "error_code", "")
-    else:
-        code = ""
 
-    assert code == "JWT_AUDIENCE_INVALID"
+    assert exc_info.value.error_code == "JWT_AUDIENCE_INVALID"
 
 
-def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch) -> None:
+def _build_jwt_verifier_with_fake_signature(monkeypatch) -> SupabaseJwtVerifier:
     clear_jwks_cache()
     verifier = SupabaseJwtVerifier(jwks_url="https://example.test/jwks")
     monkeypatch.setattr(
@@ -482,30 +468,33 @@ def test_supabase_jwt_verifier_rejects_expired_token_and_missing_sub(monkeypatch
     monkeypatch.setattr(
         "app.services.supabase_jwt._rsa_public_key_from_jwk", lambda jwk: FakePublicKey()
     )
+    return verifier
+
+
+def test_supabase_jwt_verifier_rejects_expired_token(monkeypatch) -> None:
+    verifier = _build_jwt_verifier_with_fake_signature(monkeypatch)
     monkeypatch.setattr(
         "app.services.supabase_jwt._split_jwt",
         lambda token: ({"alg": "RS256", "kid": "k"}, {"sub": "u", "exp": 1}, b"sig", b"a.b"),
     )
-    try:
-        verifier.verify("expired")
-    except Exception as exc:
-        expired_code = getattr(exc, "error_code", "")
-    else:
-        expired_code = ""
 
+    with pytest.raises(AppError, match="JWT is expired") as exc_info:
+        verifier.verify("expired")
+
+    assert exc_info.value.error_code == "JWT_EXPIRED"
+
+
+def test_supabase_jwt_verifier_rejects_missing_sub(monkeypatch) -> None:
+    verifier = _build_jwt_verifier_with_fake_signature(monkeypatch)
     monkeypatch.setattr(
         "app.services.supabase_jwt._split_jwt",
         lambda token: ({"alg": "RS256", "kid": "k"}, {"exp": 9999999999}, b"sig", b"a.b"),
     )
-    try:
-        verifier.verify("missing-sub")
-    except Exception as exc:
-        missing_sub_code = getattr(exc, "error_code", "")
-    else:
-        missing_sub_code = ""
 
-    assert expired_code == "JWT_EXPIRED"
-    assert missing_sub_code == "JWT_SUB_MISSING"
+    with pytest.raises(AppError, match="JWT subject is missing") as exc_info:
+        verifier.verify("missing-sub")
+
+    assert exc_info.value.error_code == "JWT_SUB_MISSING"
 
 
 def test_supabase_jwt_verifier_rejects_network_failure(monkeypatch) -> None:
@@ -530,14 +519,10 @@ def test_supabase_jwt_verifier_rejects_network_failure(monkeypatch) -> None:
         "app.services.supabase_jwt.urlopen", lambda *args, **kwargs: fail_fetch(*args, **kwargs)
     )
 
-    try:
+    with pytest.raises(AppError, match="JWKS fetch failed") as exc_info:
         verifier.verify("token")
-    except Exception as exc:
-        code = getattr(exc, "error_code", "")
-    else:
-        code = ""
 
-    assert code == "JWT_JWKS_FETCH_FAILED"
+    assert exc_info.value.error_code == "JWT_JWKS_FETCH_FAILED"
 
 
 def test_account_endpoint_blocks_foreign_workspace_account() -> None:

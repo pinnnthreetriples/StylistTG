@@ -1,6 +1,6 @@
 """Bad/good sample tests for the AST-based weak-response rules (issue #270)."""
 
-# test-analyzer: disable-file=TQA040 reason="rule-testing fixtures, not behaviour tests"
+# test-analyzer: disable-file=TQA040 reason="rule-testing fixtures, not behaviour tests" permanent="true"
 
 from __future__ import annotations
 
@@ -84,5 +84,39 @@ def test_key_in_rule_ignores_exact_value_assertion() -> None:
 
 def test_key_in_rule_ignores_membership_against_non_json_call() -> None:
     source = 'def test_thing():\n    seen = set()\n    assert "item" in seen\n'
+    issues = AssertKeyInResponseJson().check(_ctx(source), _config())
+    assert issues == []
+
+
+def test_key_in_rule_flags_key_membership_against_response_json_get() -> None:
+    """TQA051 must catch ``assert "x" in response.json().get(...)`` too.
+
+    The docstring claims both forms are caught; this test pins the
+    behaviour so a future regression is impossible. Previously the
+    rule only matched the bare ``.json()`` call and silently passed
+    the ``.get(...)`` variant.
+    """
+    source = (
+        "def test_thing():\n"
+        "    response = call()\n"
+        '    assert "missing token" in response.json().get("detail", "")\n'
+    )
+    issues = AssertKeyInResponseJson().check(_ctx(source), _config())
+    assert len(issues) == 1
+    assert issues[0].rule_id == "TQA051"
+    assert "missing token" in issues[0].message
+
+
+def test_key_in_rule_ignores_plain_dict_get() -> None:
+    """Near-miss: plain dict.get() membership must NOT trigger TQA051.
+
+    The rule narrowly chains ``.json()`` → ``.get`` to avoid flagging
+    unrelated dict-membership idioms elsewhere in tests.
+    """
+    source = (
+        "def test_thing():\n"
+        '    payload = {"detail": "ok"}\n'
+        '    assert "ok" in payload.get("detail", "")\n'
+    )
     issues = AssertKeyInResponseJson().check(_ctx(source), _config())
     assert issues == []

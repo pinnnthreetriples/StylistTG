@@ -25,7 +25,7 @@ from app.services.database import create_sqlite_test_session_factory
 from conftest import override_app_session
 
 
-# test-analyzer: disable=TQA004 reason="PII/leak contract test — verifies many fields are absent from safe summary"
+# test-analyzer: disable=TQA004 reason="PII/leak contract test — verifies many fields are absent from safe summary" permanent="true"
 def test_frontend_diagnostics_summary_is_safe(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.api.diagnostics.build_runtime_diagnostics",
@@ -163,7 +163,6 @@ def test_account_risk_endpoint_scores_reauth_and_missing_session_high() -> None:
     assert "missing_session" in {reason["code"] for reason in missing_response.json()["reasons"]}
 
 
-# test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
 def test_account_risk_summary_is_workspace_scoped() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

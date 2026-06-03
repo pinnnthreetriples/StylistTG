@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA040 reason="static packaging contract tests (Dockerfile/.dockerignore/render.yaml); no runtime error paths to test"
+# test-analyzer: disable-file=TQA040 reason="static packaging contract tests (Dockerfile/.dockerignore/render.yaml); no runtime error paths to test" permanent="true"
 from pathlib import Path
 
 

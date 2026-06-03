@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# test-analyzer: disable-file=TQA020 reason="false positive: tests exercise the assert_exact_calls/assert_queue_not_called helpers themselves; verification is the assertion helper under test."
+# test-analyzer: disable-file=TQA020 reason="false positive: tests exercise the assert_exact_calls/assert_queue_not_called helpers themselves; verification is the assertion helper under test." permanent="true"
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

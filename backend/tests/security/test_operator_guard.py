@@ -205,7 +205,12 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
                 for endpoint in endpoints:
                     response = client.get(endpoint)
                     assert response.status_code == 401
-                    assert response.json()
+                    unauth_body = response.json()
+                    assert isinstance(unauth_body, dict)
+                    # 401 envelope must name the missing-auth contract.
+                    assert ("detail" in unauth_body) or ("error_code" in unauth_body), (
+                        f"401 for {endpoint} had no detail/error_code: {unauth_body!r}"
+                    )
 
                     response = client.get(
                         endpoint,
@@ -214,8 +219,17 @@ def test_admin_diagnostics_endpoints_enforce_supabase_roles(monkeypatch) -> None
                             "X-Workspace-Id": workspace.id,
                         },
                     )
-                    assert response.status_code == (200 if role == "admin" else 403)
-                    assert response.json()
+                    expected = 200 if role == "admin" else 403
+                    assert response.status_code == expected
+                    role_body = response.json()
+                    if expected == 403:
+                        assert isinstance(role_body, dict) and (
+                            role_body.get("error_code") == "ROLE_FORBIDDEN" or "detail" in role_body
+                        ), f"role={role} 403 for {endpoint} had unexpected envelope: {role_body!r}"
+                    else:
+                        assert isinstance(role_body, dict) and role_body, (
+                            f"role=admin 200 for {endpoint} returned empty body"
+                        )
         finally:
             app.dependency_overrides.clear()
 

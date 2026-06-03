@@ -1,4 +1,4 @@
-# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check in matrix runner; replaced with exact body assertion in the #263 sweep" issue="#263" expires="2026-08-31"
+# test-analyzer: disable-file=TQA030 reason="matrix-runner shares parametrize/_role_test_client setup across 150 cases by design; assertion bodies are individual" permanent="true"
 """Data-driven role/auth matrix test for all API endpoints.
 
 Adding coverage for a new endpoint requires only appending one tuple to
@@ -392,9 +392,9 @@ def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
         "attempt_id": "00000000-0000-4000-8000-000000000105",
         "limit_id": "00000000-0000-4000-8000-000000000106",
         "rule_id": "00000000-0000-4000-8000-000000000107",
-        "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
         "batch_id": "00000000-0000-4000-8000-000000000108",
         "item_id": "00000000-0000-4000-8000-000000000109",
+        "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
     }
     if "{account_id}" in path:
         account_id = (ids or {}).get("account", "00000000-0000-4000-8000-000000000001")
@@ -465,7 +465,10 @@ class TestViewerCannotMutate:
             assert response.status_code == 403, (
                 f"viewer {method} {path} returned {response.status_code}, expected 403"
             )
-            assert response.json()
+            body = response.json()
+            assert isinstance(body, dict) and body.get("error_code") == "ROLE_FORBIDDEN", (
+                f"viewer {method} {path} returned 403 with unexpected envelope: {body!r}"
+            )
 
 
 @pytest.mark.security
@@ -504,7 +507,10 @@ class TestOperatorAdminEndpoints:
             assert response.status_code == 403, (
                 f"operator {method} {path} returned {response.status_code}, expected 403"
             )
-            assert response.json()
+            body = response.json()
+            assert isinstance(body, dict) and body.get("error_code") == "ROLE_FORBIDDEN", (
+                f"operator {method} {path} returned 403 with unexpected envelope: {body!r}"
+            )
 
 
 @pytest.mark.security

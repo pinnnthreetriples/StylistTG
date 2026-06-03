@@ -1,6 +1,6 @@
 """Tests for the determinism helpers (issue #271)."""
 
-# test-analyzer: disable-file=TQA012 reason="datetime.now() is called inside frozen_clock(); the assertion verifies the helper works"
+# test-analyzer: disable-file=TQA012 reason="datetime.now() is called inside frozen_clock(); the assertion verifies the helper works" permanent="true"
 
 from __future__ import annotations
 

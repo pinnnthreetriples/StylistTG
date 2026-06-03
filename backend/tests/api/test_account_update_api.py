@@ -348,7 +348,7 @@ def test_account_update_error_preserves_legacy_value_error_mapping(
     assert app_error.field_errors == field_errors
 
 
-# test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
+# test-analyzer: disable=STG003 reason="asserts on AppError attributes (status_code + error_code + field_errors), not a response body" permanent="true"
 def test_account_update_error_uses_typed_field_errors() -> None:
     app_error = _account_update_error(AccountAssetNotFoundError(field="stories"))
 

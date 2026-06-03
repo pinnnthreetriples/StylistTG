@@ -99,7 +99,11 @@ def _filter_unbudgeted(
     for entry in slow_entries:
         nodeid = str(entry.get("nodeid", ""))
         phase = str(entry.get("phase", "call"))
-        seconds = float(entry.get("seconds", 0.0))
+        # report_slow_tests.py emits SlowTestEntry.duration_seconds; older
+        # synthetic inputs used the unqualified `seconds` key — accept both
+        # so the gate stays honest when the producer schema evolves.
+        raw_seconds = entry.get("duration_seconds", entry.get("seconds", 0.0))
+        seconds = float(raw_seconds or 0.0)
 
         budget = max_call if phase == "call" else max_setup if phase == "setup" else None
         if budget is None or seconds <= budget:
@@ -119,7 +123,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-setup-seconds", type=float, default=2.0)
     parser.add_argument(
         "--allow-marked",
-        default="slow,integration,postgres,redis,benchmark,property_heavy,nightly,live",
+        # `architecture` exempts the structure-audit drift tests in
+        # tests/architecture/. Each spawns a subprocess to regenerate the
+        # audit (~40-80s each) by design and must run on every PR to catch
+        # docs/architecture/* drift — they cannot be moved to `slow` without
+        # losing that signal.
+        default=(
+            "slow,integration,postgres,redis,benchmark,property_heavy,nightly,live,architecture"
+        ),
         help="Comma-separated markers that exempt a test from the budget.",
     )
     parser.add_argument(

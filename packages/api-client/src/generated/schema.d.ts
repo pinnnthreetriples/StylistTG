@@ -3261,7 +3261,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file" | "reauth";
+            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file";
             /** Filename */
             filename: string;
             /** Content Base64 */
@@ -3304,7 +3304,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file" | "reauth";
+            source_type: "phone" | "phone_bulk" | "json_metadata" | "tdlib_directory" | "tdata_archive" | "session_file";
             /** Label */
             label?: string | null;
             /** Phone Items */

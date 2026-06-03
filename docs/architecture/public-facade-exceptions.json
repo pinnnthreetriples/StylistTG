@@ -106,6 +106,14 @@
       "removal_condition": "n/a; accepted stable FastAPI/platform facade."
     },
     {
+      "source": "backend/app/modules/account_onboarding/router.py",
+      "owner": "account_onboarding",
+      "imported_module": "auth",
+      "public_name": "dependencies",
+      "rationale": "FastAPI auth dependency facade used by canonical account-onboarding router.",
+      "removal_condition": "n/a; accepted stable FastAPI/platform facade."
+    },
+    {
       "source": "backend/app/modules/account_jobs/router.py",
       "owner": "account_jobs",
       "imported_module": "auth",

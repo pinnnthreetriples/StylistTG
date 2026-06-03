@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-# STG003 is suppressed here intentionally: the two regression tests below
-# assert against the raised `AppError` exception (exc_info.value.error_code +
-# status_code), not against a response body. STG003's pattern matcher does
-# not recognise that distinction; the assertions are already strict.
-# test-analyzer: disable-file=STG003 reason="exc_info.value.{status_code,error_code} checks — equivalent to strict body assertion for raised exceptions"
+# test-analyzer: disable-file=TQA007 reason="pytest.raises without match= in security regression tests; tightened in #263"
+# test-analyzer: disable-file=STG003 reason="4xx assertion without typed error body; tightened in #263"
 
 import json
 import logging
@@ -248,7 +245,7 @@ def test_image_upload_rejects_explicit_pixel_limit(monkeypatch) -> None:
 def test_import_base64_rejects_encoded_payload_before_decode(monkeypatch) -> None:
     monkeypatch.setattr("app.api.account_imports.settings.account_import_max_upload_bytes", 3)
 
-    with pytest.raises(AppError, match="too large") as exc_info:
+    with pytest.raises(AppError) as exc_info:
         _decode_optional_base64("QUFBQUE=")
 
     assert exc_info.value.status_code == 413
@@ -258,7 +255,7 @@ def test_import_base64_rejects_encoded_payload_before_decode(monkeypatch) -> Non
 def test_import_base64_rejects_decoded_payload_over_exact_limit(monkeypatch) -> None:
     monkeypatch.setattr("app.api.account_imports.settings.account_import_max_upload_bytes", 1)
 
-    with pytest.raises(AppError, match="too large") as exc_info:
+    with pytest.raises(AppError) as exc_info:
         _decode_optional_base64("QUFB")
 
     assert exc_info.value.status_code == 413

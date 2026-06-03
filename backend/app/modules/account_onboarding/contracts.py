@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.contracts.types import UuidString
 
@@ -15,6 +15,14 @@ SourceType = Literal[
     "tdata_archive",
     "session_file",
     "reauth",
+]
+CreatableSourceType = Literal[
+    "phone",
+    "phone_bulk",
+    "json_metadata",
+    "tdlib_directory",
+    "tdata_archive",
+    "session_file",
 ]
 BASE64_PATTERN = r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
 
@@ -35,7 +43,14 @@ class PhoneOnboardingInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     phone_number: str = Field(min_length=1, max_length=64)
     label: str | None = Field(default=None, max_length=255)
-    position: StrictInt = Field(default=0, ge=0)
+    position: int = Field(default=0, ge=0)
+
+    @field_validator("position", mode="before")
+    @classmethod
+    def _reject_bool_position(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("position must be an integer")
+        return value
 
 
 def _empty_phone_items() -> list[PhoneOnboardingInput]:
@@ -45,7 +60,7 @@ def _empty_phone_items() -> list[PhoneOnboardingInput]:
 class AccountOnboardingBatchCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     idempotency_key: str = Field(min_length=8, max_length=128)
-    source_type: SourceType
+    source_type: CreatableSourceType
     label: str | None = Field(default=None, max_length=255)
     phone_items: list[PhoneOnboardingInput] = Field(default_factory=_empty_phone_items)
     metadata_json: Any | None = None
@@ -86,7 +101,7 @@ class AccountOnboardingPasswordRequest(AccountOnboardingMutationRequest):
 class AccountOnboardingArtifactCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     idempotency_key: str = Field(min_length=8, max_length=128)
-    source_type: SourceType
+    source_type: CreatableSourceType
     filename: str = Field(min_length=1, max_length=255)
     content_base64: str = Field(min_length=4, pattern=BASE64_PATTERN)
 

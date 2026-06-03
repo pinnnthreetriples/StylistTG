@@ -163,6 +163,7 @@ def test_account_risk_endpoint_scores_reauth_and_missing_session_high() -> None:
     assert "missing_session" in {reason["code"] for reason in missing_response.json()["reasons"]}
 
 
+# test-analyzer: disable=STG003 reason="4xx assertion without typed error body; tightened in #263"
 def test_account_risk_summary_is_workspace_scoped() -> None:
     session_factory, engine = create_sqlite_test_session_factory()
     Base.metadata.create_all(engine)

@@ -15960,8 +15960,7 @@
               "json_metadata",
               "tdlib_directory",
               "tdata_archive",
-              "session_file",
-              "reauth"
+              "session_file"
             ],
             "title": "Source Type"
           },
@@ -16078,8 +16077,7 @@
               "json_metadata",
               "tdlib_directory",
               "tdata_archive",
-              "session_file",
-              "reauth"
+              "session_file"
             ],
             "title": "Source Type"
           },

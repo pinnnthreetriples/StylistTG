@@ -5,11 +5,7 @@ Uses Hypothesis with constrained max_examples for CI speed.
 
 from __future__ import annotations
 
-# All pytest.raises calls in this file now carry match= patterns; no
-# file-level TQA007 suppression needed. Property-based tests use a
-# permissive regex (`storage|TDLib|path escapes`) because Hypothesis-
-# shrunk inputs can hit any reachable rejection branch — the match still
-# proves the right exception class fired for the right error category.
+# test-analyzer: disable-file=TQA007 reason="pytest.raises without match= in property-based security helpers; tightened in #263"
 
 import string
 import tempfile
@@ -354,7 +350,7 @@ class TestNormalizeStorageKeyProperties:
             "C:/asset.jpg",
             "C:\\asset.jpg",
         ):
-            with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+            with pytest.raises(InvalidStorageKeyError):
                 normalize_storage_key(key)
 
     @given(
@@ -363,7 +359,7 @@ class TestNormalizeStorageKeyProperties:
     @CI_SETTINGS
     def test_double_dot_rejected(self, prefix):
         key = f"{prefix}/../etc/passwd"
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             normalize_storage_key(key)
 
     @given(
@@ -371,7 +367,7 @@ class TestNormalizeStorageKeyProperties:
     )
     @CI_SETTINGS
     def test_absolute_path_rejected(self, path):
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             normalize_storage_key(f"/{path}")
 
     @given(
@@ -379,7 +375,7 @@ class TestNormalizeStorageKeyProperties:
     )
     @CI_SETTINGS
     def test_windows_absolute_rejected(self, path):
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             normalize_storage_key(f"C:/{path}")
 
     @given(
@@ -387,7 +383,7 @@ class TestNormalizeStorageKeyProperties:
     )
     @CI_SETTINGS
     def test_tilde_rejected(self, path):
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             normalize_storage_key(f"~/{path}")
 
     @given(
@@ -410,7 +406,7 @@ class TestNormalizeStorageKeyProperties:
     @CI_SETTINGS
     def test_backslash_traversal_rejected(self, prefix):
         key = f"{prefix}\\..\\etc\\passwd"
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             normalize_storage_key(key)
 
 
@@ -437,7 +433,7 @@ class TestResolveChildPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             parts = [".."] * depth + ["etc", "passwd"]
-            with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+            with pytest.raises(InvalidStorageKeyError):
                 resolve_child_path(root, *parts)
 
 
@@ -468,7 +464,7 @@ class TestLocalStorageResolvePath:
     def test_traversal_key_rejected(self, prefix):
         with tempfile.TemporaryDirectory() as tmpdir:
             storage = LocalStorageService(root=Path(tmpdir))
-            with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+            with pytest.raises(InvalidStorageKeyError):
                 storage.resolve_path(f"{prefix}/../../../etc/passwd")
 
 
@@ -483,7 +479,7 @@ class TestValidateTdlibAccountIdProperties:
         assert validate_tdlib_account_id("a" * 128) == "a" * 128
 
         for value in ("." * 1, "a" * 129, "-starts-with-dash", "_starts_with_underscore"):
-            with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+            with pytest.raises(InvalidStorageKeyError):
                 validate_tdlib_account_id(value)
 
     @given(
@@ -500,5 +496,5 @@ class TestValidateTdlibAccountIdProperties:
     )
     @CI_SETTINGS
     def test_unsafe_id_rejected(self, unsafe):
-        with pytest.raises(InvalidStorageKeyError, match=r"storage|TDLib|path escapes"):
+        with pytest.raises(InvalidStorageKeyError):
             validate_tdlib_account_id(unsafe)

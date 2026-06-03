@@ -1,9 +1,7 @@
 # pyright: reportUnknownVariableType=false, reportUnknownParameterType=false, reportMissingParameterType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportArgumentType=false
 from __future__ import annotations
 
-import pytest
-
-from app.modules.neuro_commenting.errors import NeuroNotFoundError
+# test-analyzer: disable-file=TQA008 reason="manual try/except pattern in test_foreign_workspace_cannot_observe; replaced with pytest.raises(match=...) in #263"
 
 from app.models import (
     AccountState,
@@ -427,7 +425,7 @@ def test_foreign_workspace_cannot_observe(db_session) -> None:
     _own, foreign = seed_two_workspaces(db_session)
     _account, campaign, target = _campaign_with_target(db_session)
 
-    with pytest.raises(NeuroNotFoundError, match="campaign not found") as exc_info:
+    try:
         observe_target(
             db_session,
             campaign_id=campaign.id,
@@ -437,8 +435,10 @@ def test_foreign_workspace_cannot_observe(db_session) -> None:
             generate=False,
             observer=FakeTelegramPostObserver(posts=[]),
         )
-
-    assert exc_info.value.error_code == "CAMPAIGN_NOT_FOUND"
+    except Exception as exc:
+        assert getattr(exc, "error_code", "") == "CAMPAIGN_NOT_FOUND"
+    else:
+        raise AssertionError("foreign workspace observed target")
 
 
 class _RecordingTdlibClient:

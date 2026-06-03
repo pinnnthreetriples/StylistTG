@@ -2155,7 +2155,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-02T23:03:44Z",
+    "generated_at": "2026-06-03T00:15:01Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2475,7 +2475,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-02T23:03:44Z",
+  "generated_at": "2026-06-03T00:15:01Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4639,6 +4639,14 @@
         "rationale": "FastAPI auth dependency facade used by canonical account-imports router.",
         "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
         "source": "backend/app/modules/account_imports/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_onboarding",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-onboarding router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_onboarding/router.py"
       },
       {
         "imported_module": "auth",

@@ -139,31 +139,70 @@ def test_pyproject_markers_cover_all_pytestmark_usages() -> None:
     )
 
 
-def test_pyproject_filterwarnings_forbids_broad_ignores() -> None:
-    """No `ignore::Category` entry without a non-empty message+module regex.
+def _is_broad_ignore(entry: str) -> bool:
+    """Return True if a filterwarnings entry is a forbidden bare-category ignore.
 
-    Pytest filter spec is `action:message:category:module:lineno`. A broad
-    `ignore::ResourceWarning` matches every ResourceWarning in any module —
-    including production code paths the zero-warning policy must keep red.
-    Each ignore must pin the source module (and ideally the message).
+    Pytest filter spec is ``action:message:category:module:lineno``. A bare
+    ``ignore::ResourceWarning`` (or ``ignore::pytest.PytestUnraisableExceptionWarning``)
+    matches every warning of that class in any module — including production
+    paths the zero-warning policy must keep red. Each ``ignore`` MUST pin
+    either a message regex (field 1) or a module regex (field 3).
     """
+    if entry == "error" or not entry.startswith("ignore"):
+        return False
+    parts = entry.split(":")
+    # action[0]  message[1]  category[2]  module[3]  lineno[4]
+    message = parts[1] if len(parts) > 1 else ""
+    module = parts[3] if len(parts) > 3 else ""
+    return not message.strip() and not module.strip()
+
+
+def test_pyproject_filterwarnings_forbids_broad_ignores() -> None:
+    """The shipped pyproject.toml has no broad `ignore::Category` entry."""
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     entries = data["tool"]["pytest"]["ini_options"]["filterwarnings"]
-    offenders: list[str] = []
-    for entry in entries:
-        if entry == "error" or not entry.startswith("ignore"):
-            continue
-        # Split on `:` — at most 5 fields per pytest's filterwarnings parser.
-        parts = entry.split(":")
-        # action[0]  message[1]  category[2]  module[3]  lineno[4]
-        message = parts[1] if len(parts) > 1 else ""
-        module = parts[3] if len(parts) > 3 else ""
-        if not message.strip() and not module.strip():
-            offenders.append(entry)
+    offenders = [entry for entry in entries if _is_broad_ignore(entry)]
     assert not offenders, (
         f"broad warning ignores forbidden — each `ignore` filter must pin "
         f"either a message regex (field 1) or a module regex (field 3). "
         f"Offending entries: {offenders}"
+    )
+
+
+@pytest.mark.parametrize(
+    "broad_entry",
+    [
+        "ignore::ResourceWarning",
+        "ignore::DeprecationWarning",
+        "ignore::UserWarning",
+        "ignore::pytest.PytestUnraisableExceptionWarning",
+    ],
+)
+def test_broad_ignore_validator_rejects_known_bad_patterns(broad_entry: str) -> None:
+    """``_is_broad_ignore`` must flag every bare-category form the policy bans.
+
+    Pins the validator against the literal patterns the review highlights so
+    future loosening of either the pyproject filters or the validator regex
+    fails this test instead of silently re-opening the gate.
+    """
+    assert _is_broad_ignore(broad_entry), (
+        f"validator missed broad ignore pattern: {broad_entry!r}. "
+        f"The bare-category form is exactly what the zero-warning policy bans."
+    )
+
+
+@pytest.mark.parametrize(
+    "narrow_entry",
+    [
+        "ignore:unclosed database in:ResourceWarning:sqlite3:",
+        "ignore::pytest.PytestUnraisableExceptionWarning:_pytest.unraisableexception:",
+        "ignore:.*deprecated.*:DeprecationWarning:third_party.legacy:",
+    ],
+)
+def test_broad_ignore_validator_accepts_narrow_patterns(narrow_entry: str) -> None:
+    """The validator must accept properly-narrow filters (message OR module)."""
+    assert not _is_broad_ignore(narrow_entry), (
+        f"validator falsely flagged a narrow filter as broad: {narrow_entry!r}"
     )
 
 

@@ -1,54 +1,55 @@
 from __future__ import annotations
 
-# test-analyzer: disable-file=STG003 reason="STG003 over-fires on exc_info.value.status_code attribute checks; these tests assert the exact AppError type, error_code, and status_code via pytest.raises(match=...) plus exc_info.value.* — the strict equivalent of a 4xx-with-body check for raised exceptions."
+# test-analyzer: disable-file=TQA008 reason="manual try/except pattern; replaced with pytest.raises(match=...) in #263"
+# test-analyzer: disable-file=STG003 reason="4xx assertion without typed error body; tightened in #263"
 
-import pytest
-
-from app.errors import AppError
 from app.models import User, Workspace, WorkspaceMember, WorkspacePlan
-from app.modules.auth.dependencies import get_current_auth_context
+from app.services.auth_context import get_current_auth_context
 
 
 def test_supabase_auth_context_requires_bearer_token(db_session, monkeypatch) -> None:
     class DummyRequest:
         headers: dict[str, str] = {}
 
-    monkeypatch.setattr("app.modules.auth.service.settings.auth_mode", "supabase_jwt")
+    monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
 
-    with pytest.raises(AppError, match="authorization bearer token is required") as exc_info:
+    try:
         get_current_auth_context(DummyRequest(), db_session)
+    except Exception as exc:
+        status_code = getattr(exc, "status_code", None)
+        code = getattr(exc, "error_code", "")
+    else:
+        status_code = None
+        code = ""
 
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.error_code == "AUTH_REQUIRED"
+    assert status_code == 401
+    assert code == "AUTH_REQUIRED"
 
 
 def test_supabase_auth_context_blocks_disabled_user(db_session, monkeypatch) -> None:
     user, workspace = _seed_supabase_identity(db_session, user_status="disabled")
 
-    exc_info = _supabase_context_raises(db_session, monkeypatch, workspace.id)
+    context_error = _supabase_context_error(db_session, monkeypatch, workspace.id)
 
     assert user.status == "disabled"
-    assert exc_info.value.status_code == 403
-    assert exc_info.value.error_code == "USER_DISABLED"
+    assert context_error == (403, "USER_DISABLED")
 
 
 def test_supabase_auth_context_blocks_disabled_workspace(db_session, monkeypatch) -> None:
     _, workspace = _seed_supabase_identity(db_session, workspace_status="disabled")
 
-    exc_info = _supabase_context_raises(db_session, monkeypatch, workspace.id)
+    context_error = _supabase_context_error(db_session, monkeypatch, workspace.id)
 
     assert workspace.status == "disabled"
-    assert exc_info.value.status_code == 403
-    assert exc_info.value.error_code == "WORKSPACE_DISABLED"
+    assert context_error == (403, "WORKSPACE_DISABLED")
 
 
 def test_supabase_auth_context_blocks_invalid_role(db_session, monkeypatch) -> None:
     _, workspace = _seed_supabase_identity(db_session, role="superuser")
 
-    exc_info = _supabase_context_raises(db_session, monkeypatch, workspace.id)
+    context_error = _supabase_context_error(db_session, monkeypatch, workspace.id)
 
-    assert exc_info.value.status_code == 403
-    assert exc_info.value.error_code == "ROLE_INVALID"
+    assert context_error == (403, "ROLE_INVALID")
 
 
 def _seed_supabase_identity(
@@ -80,9 +81,7 @@ def _seed_supabase_identity(
     return user, workspace
 
 
-def _supabase_context_raises(
-    db_session, monkeypatch, workspace_id: str
-) -> pytest.ExceptionInfo[AppError]:
+def _supabase_context_error(db_session, monkeypatch, workspace_id: str) -> tuple[int | None, str]:
     class DummyRequest:
         headers = {
             "Authorization": "Bearer token",
@@ -93,12 +92,14 @@ def _supabase_context_raises(
         def verify(self, _token: str) -> dict:
             return {"sub": "supabase-user", "email": "user@example.test"}
 
-    monkeypatch.setattr("app.modules.auth.service.settings.auth_mode", "supabase_jwt")
+    monkeypatch.setattr("app.services.auth_context.settings.auth_mode", "supabase_jwt")
     monkeypatch.setattr(
-        "app.modules.auth.service.SupabaseJwtVerifier.from_settings",
+        "app.services.auth_context.SupabaseJwtVerifier.from_settings",
         lambda _settings: FakeVerifier(),
     )
 
-    with pytest.raises(AppError) as exc_info:
+    try:
         get_current_auth_context(DummyRequest(), db_session)
-    return exc_info
+    except Exception as exc:
+        return getattr(exc, "status_code", None), getattr(exc, "error_code", "")
+    return None, ""

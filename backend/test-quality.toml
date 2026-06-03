@@ -35,13 +35,10 @@ STG004 = true
 STG005 = true
 STG006 = true
 STG007 = true
-# STG008 (RBACRouteNotInMatrix) stays disabled: #269 ships the authoritative
-# completeness gate as a pytest test
-# (tests/security/test_endpoint_matrix_completeness.py) backed by a ratchet
-# baseline (tests/security/rbac_matrix_baseline.json). The rule body in
-# tools.test_analyzer.rules.stylisttg.RBACRouteNotInMatrix is now a real
-# heuristic stub that can be enabled if the project later wants soft
-# pre-review hints in addition to the hard PR gate.
+# STG008 (RBACRouteNotInMatrix) is disabled until #269 implements real detection.
+# The placeholder check currently returns no issues, so leaving it enabled would
+# violate the zero-no-op-rule policy from #262. Re-enable in #269 with bad/good
+# sample tests in backend/tests/tools/.
 STG008 = false
 STG009 = true
 STG010 = true

@@ -33,12 +33,16 @@ feature-boundary debt.
 - FastAPI routers in `backend/app/api` validate auth/workspace context and call services in `backend/app/services`.
 - Services write authoritative state to PostgreSQL through SQLAlchemy models in `backend/app/models.py`.
 - RQ workers execute queued auth/profile/warmup jobs and write final truth back to the database.
+- Account Onboarding uses `auth_jobs` for item execution and `maintenance_jobs` for private artifact expiry metadata.
 - TDLib child/runtime code must not become the final database writer.
 
 ## Source-of-truth rules
 
 - `account_profile_state` is the source of truth for current profile state.
 - `warmup_session` is the source of truth for account-preparation state.
+- `account_onboarding_batch`, `account_onboarding_item`,
+  `account_onboarding_artifact`, and `account_onboarding_event` are the
+  source of truth for the canonical account-addition flow at `/accounts/add`.
 - PostgreSQL is the dedup/persistence source of truth, not Redis.
 - Redis/RQ is execution infrastructure and may be absent in tests unless explicitly required.
 
@@ -55,4 +59,5 @@ feature-boundary debt.
 - `docs/architecture/STRUCTURE_AUDIT.md`
 - `docs/runtime/runtime-boundaries.md`
 - `docs/architecture/frontend-saas-foundation.md`
+- `docs/architecture/account-onboarding.md`
 - `docs/api/frontend.md`

@@ -10,6 +10,7 @@ from rq.job import Job
 from rq.registry import DeferredJobRegistry, FailedJobRegistry, StartedJobRegistry
 
 from app.logging_utils import log_warn
+from app.modules.account_onboarding.jobs import run_onboarding_item
 from app.services.redis_client import redis_from_url
 from app.workers.auth_batch_jobs import run_batch_start_auth
 from app.workers.telegram_auth_jobs import run_telegram_auth_job
@@ -43,6 +44,7 @@ __all__ = [
     "WARMUP_DISPATCH_QUEUE_NAME",
     "WARMUP_QUEUE_NAME",
     "enqueue_account_update_job",
+    "enqueue_account_onboarding_item",
     "enqueue_batch_start_auth",
     "enqueue_telegram_auth_action",
     "enqueue_profile_job",
@@ -130,6 +132,32 @@ def enqueue_batch_start_auth(item_id: str, attempt_count: int, *, delay_seconds:
         else:
             cast(Any, queue).enqueue_call(
                 func=run_batch_start_auth, args=(item_id,), job_id=job_id, unique=True
+            )
+    except RedisError:
+        _log_enqueue_failure(queue.name, job_id, "RedisError")
+        return False
+    return True
+
+
+def enqueue_account_onboarding_item(
+    item_id: str, retry_count: int, *, delay_seconds: int = 0
+) -> bool:
+    queue = get_auth_queue()
+    job_id = f"account-onboarding-{item_id}-retry-{retry_count}"
+    try:
+        if delay_seconds > 0:
+            cast(Any, queue).enqueue_in(
+                timedelta(seconds=delay_seconds),
+                run_onboarding_item,
+                args=(item_id,),
+                job_id=job_id,
+            )
+        else:
+            cast(Any, queue).enqueue_call(
+                func=run_onboarding_item,
+                args=(item_id,),
+                job_id=job_id,
+                unique=True,
             )
     except RedisError:
         _log_enqueue_failure(queue.name, job_id, "RedisError")

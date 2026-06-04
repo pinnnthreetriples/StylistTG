@@ -9,6 +9,7 @@ from app.modules.account_core.module import module as account_core_module
 from app.modules.account_editing.module import module as account_editing_module
 from app.modules.account_ggr.module import module as account_ggr_module
 from app.modules.account_imports.module import module as account_imports_module
+from app.modules.account_onboarding.module import module as account_onboarding_module
 from app.modules.account_jobs.module import module as account_jobs_module
 from app.modules.account_lifecycle.module import module as account_lifecycle_module
 from app.modules.account_profile_completeness.module import (
@@ -32,6 +33,7 @@ MODULES: tuple[FeatureModule, ...] = (
     account_shared_module,
     account_audit_module,
     account_imports_module,
+    account_onboarding_module,
     account_jobs_module,
     account_safety_module,
     account_editing_module,

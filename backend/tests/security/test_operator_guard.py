@@ -1,3 +1,5 @@
+# test-analyzer: disable-file=TQA050 reason="bare response.json() truthiness check; replaced with exact body assertion in the #263 sweep" issue="#263" expires="2026-08-31"
+
 from fastapi.testclient import TestClient
 from starlette.datastructures import Headers
 

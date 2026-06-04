@@ -453,6 +453,76 @@ Possible errors:
 
 ## Batch Auth
 
+## Account Onboarding
+
+`/accounts/add` is the canonical account-addition UI. It uses the Account Onboarding APIs:
+
+- `POST /api/account-onboarding-batches`
+- `GET /api/account-onboarding-batches`
+- `GET /api/account-onboarding-batches/{batch_id}`
+- `POST /api/account-onboarding-batches/{batch_id}/validate`
+- `POST /api/account-onboarding-batches/{batch_id}/confirm`
+- `POST /api/account-onboarding-batches/{batch_id}/cancel`
+- `POST /api/account-onboarding-batches/{batch_id}/items/{item_id}/retry`
+- `POST /api/account-onboarding-batches/{batch_id}/items/{item_id}/code`
+- `POST /api/account-onboarding-batches/{batch_id}/items/{item_id}/password`
+- `POST /api/account-onboarding-artifacts`
+
+Frontend responses are safe: batch status/source/label, counters, timestamps, item ids, safe hints, validation code/message, risk, `requires_reauth`, `poll_again_in_ms`, and `next_action`. Responses must not expose raw session data, TDLib paths, OTP, 2FA passwords, API hash, proxy passwords, private object keys, or public artifact URLs.
+
+Phone onboarding exposes status, safe phone hints, `next_action`, and `account_id` when ready. AuthBatch linkage, TDLib storage keys, runtime paths, raw phone numbers, OTP codes, and 2FA passwords remain backend-only.
+
+Source capability support levels:
+
+- `full`
+- `preview_only`
+- `requires_reauth`
+- `unsupported`
+
+Expected source behavior:
+
+| Source | Frontend support behavior |
+| --- | --- |
+| `phone` / `phone_bulk` | Treat as one canonical phone-batch flow. |
+| `json_metadata` | Preview metadata only; show manual authorization required. |
+| `tdlib_directory` | Use backend capability response. Current imported-artifact support is preview-only until backend materialization and readonly verification are wired. |
+| `tdata_archive` | Show requires reauth unless a future backend capability says otherwise. |
+| `session_file` | Preview whitelisted formats only; unknown formats are unsupported. |
+
+Dangerous mutations require idempotency keys. Confirm requires:
+
+```json
+{
+  "confirmation": "ADD_ACCOUNTS",
+  "consent_accepted": true,
+  "consent_version": "account-onboarding-v1"
+}
+```
+
+Onboarding errors use the global API error envelope and include Problem Details-like `details`:
+
+```json
+{
+  "error_code": "ONBOARDING_CONSENT_REQUIRED",
+  "error_class": "account_onboarding",
+  "message": "Explicit ADD_ACCOUNTS consent is required before account addition starts.",
+  "details": {
+    "type": "https://stylisttg.local/problems/onboarding_consent_required",
+    "title": "Consent required",
+    "status": 409,
+    "detail": "Explicit ADD_ACCOUNTS consent is required before account addition starts.",
+    "code": "ONBOARDING_CONSENT_REQUIRED",
+    "request_id": "..."
+  },
+  "field_errors": [],
+  "request_id": "..."
+}
+```
+
+`ONBOARDING_RATE_LIMITED` includes `details.retry_after_seconds`; keep the item in its current status and retry after `next_retry_at`.
+
+Legacy batch auth and import endpoints remain compatibility-only and should not be used for new `/accounts/add` UI.
+
 ### POST /api/auth-batches/validate-phones
 
 Validates phone numbers before creating a batch.

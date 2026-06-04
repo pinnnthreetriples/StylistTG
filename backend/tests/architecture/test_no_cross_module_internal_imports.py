@@ -97,6 +97,12 @@ DOCUMENTED_PUBLIC_FACADE_EXCEPTIONS = {
         rationale="FastAPI auth dependency facade used by canonical account-imports router.",
     ),
     CrossModuleFacadeException(
+        source=MODULES_ROOT / "account_onboarding" / "router.py",
+        imported_module="auth",
+        public_name="dependencies",
+        rationale="FastAPI auth dependency facade used by canonical account-onboarding router.",
+    ),
+    CrossModuleFacadeException(
         source=MODULES_ROOT / "account_jobs" / "router.py",
         imported_module="auth",
         public_name="context",

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Account, AccountOnboardingBatch, AccountOnboardingItem
+from app.models import AuthBatch, AuthBatchItem
 from app.modules.account_onboarding.adapters.base import ExecutionOutcome, PreviewItem, hash_value
 from app.modules.account_onboarding.contracts import OnboardingCapabilityRead
 from app.modules.account_onboarding.state import TERMINAL_ITEM_STATUSES
@@ -32,12 +33,12 @@ class PhoneListAdapter:
             source_type="phone_bulk",
             can_preview=True,
             can_validate_structure=True,
-            can_materialize_session=False,
-            requires_reauth=True,
+            can_materialize_session=True,
+            requires_reauth=False,
             supports_bulk=True,
             supports_artifact_upload=False,
             risk_level="medium",
-            user_facing_support_level="requires_reauth",
+            user_facing_support_level="full",
         )
 
     def preview(
@@ -114,23 +115,17 @@ class PhoneListAdapter:
                             phone=phone,
                             phone_hint=phone_hint(phone),
                             position=position,
-                            validation_code="phone_requires_live_auth",
-                            validation_message=(
-                                "Phone import is preview-only here; use the dedicated "
-                                "Telegram auth flow to authorize the account."
-                            ),
                             label=label,
                             risk_level="medium",
-                            requires_reauth=True,
                         )
                     )
         return out
 
     def execute(self, item: AccountOnboardingItem) -> ExecutionOutcome:
         return ExecutionOutcome(
-            status="requires_reauth",
-            code="phone_requires_live_auth",
-            message="Phone import requires the dedicated Telegram auth flow.",
+            status="failed",
+            code="phone_auth_bridge_not_started",
+            message="Phone auth bridge was not started for this item.",
         )
 
 
@@ -153,7 +148,7 @@ def _invalid(position: int, label: str | None) -> PreviewItem:
 
 
 def _has_active_conflict(session: Session, workspace_id: str, phone: str) -> bool:
-    return (
+    onboarding_conflict = (
         session.execute(
             select(AccountOnboardingItem.id)
             .join(
@@ -164,6 +159,23 @@ def _has_active_conflict(session: Session, workspace_id: str, phone: str) -> boo
                 AccountOnboardingItem.phone_normalized_hash == hash_value(phone),
                 AccountOnboardingBatch.status.in_(ACTIVE_BATCH_STATUSES),
                 AccountOnboardingItem.status.notin_(TERMINAL_ITEM_STATUSES),
+            )
+            .limit(1)
+        ).scalar_one_or_none()
+        is not None
+    )
+    if onboarding_conflict:
+        return True
+    return (
+        session.execute(
+            select(AuthBatchItem.id)
+            .join(AuthBatch, AuthBatch.id == AuthBatchItem.batch_id)
+            .where(
+                AuthBatch.workspace_id == workspace_id,
+                AuthBatchItem.phone_number == phone,
+                AuthBatchItem.status.notin_(
+                    {"authorized", "failed", "cancelled", "skipped", "timed_out"}
+                ),
             )
             .limit(1)
         ).scalar_one_or_none()

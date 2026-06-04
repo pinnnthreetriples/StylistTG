@@ -47,7 +47,7 @@ Capability levels are exposed to the wizard:
 
 | Source | Support | Notes |
 | --- | --- | --- |
-| `phone` / `phone_bulk` | `requires_reauth` in this base PR | One phone and many phones are the same batch flow. Phone preview validates normalization, duplicates, existing accounts, and active conflicts. Live Telegram authorization remains in the dedicated legacy Telegram auth flow until wrapper/delegation is implemented. |
+| `phone` / `phone_bulk` | `full` | One phone and many phones are the same batch flow. Phone preview validates normalization, duplicates, existing accounts, and active conflicts. After consent, Account Onboarding creates an internal `AuthBatch`, starts the existing TDLib authorization worker path, and mirrors `waiting_code`, `waiting_2fa`, and `ready` back onto onboarding items. Raw phone numbers and auth batch links stay backend-only. |
 | `json_metadata` | `requires_reauth` | Metadata preview only. It never creates an execution-usable session or claims `session_present=true`. |
 | `tdlib_directory` | `preview_only` until imported-artifact materialization and readonly verification are wired | Requires private artifact, quarantine validation, isolated materialization, then readonly verification before readiness. It must not be displayed as full support until the backend can actually verify imported TDLib material. |
 | `tdata_archive` | `requires_reauth` | Full tdata conversion/materialization is not implemented in the foundation path. The UI must present it as reauth/manual work until a verified converter exists. |
@@ -87,7 +87,7 @@ The backend stores `consent_confirmed_at`, `consent_actor_user_id`, and `consent
 
 ## Worker Execution
 
-Confirm stores intent and queues item jobs on `auth_jobs`; it does not run long TDLib work synchronously. Worker payloads contain item ids, not raw OTP/2FA/session bytes. Final state is written back to PostgreSQL.
+Confirm stores intent and queues item jobs on `auth_jobs`; it does not run long TDLib work synchronously. For phone onboarding, item execution delegates to the existing `AuthBatch` TDLib worker path and polling syncs the linked auth item state back into the onboarding snapshot. Worker payloads contain item ids, not raw OTP/2FA/session bytes. Final state is written back to PostgreSQL.
 
 Queue unavailable must be surfaced safely through `ONBOARDING_QUEUE_UNAVAILABLE` and non-secret failure state.
 
@@ -97,7 +97,7 @@ Retries are bounded. Retry decisions use the shared retry policy categories, set
 
 Legacy surfaces remain compatibility-only while `/accounts/add` becomes the canonical foundation and preview entrypoint:
 
-- `AuthBatch`: live phone authorization remains there until Account Onboarding wrapper/delegation is implemented.
+- `AuthBatch`: live phone authorization remains the execution engine; Account Onboarding owns the `/accounts/add` UX and delegates phone items to internal auth batches after consent.
 - `AccountImportBatch`: import preview behavior migrates into source adapters and artifact pipeline.
 - `TelegramAuthSession` / OTP routes: remain compatibility routes and reauth primitives, not independent add-account UI flows.
 

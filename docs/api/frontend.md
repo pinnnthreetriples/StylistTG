@@ -470,7 +470,7 @@ Possible errors:
 
 Frontend responses are safe: batch status/source/label, counters, timestamps, item ids, safe hints, validation code/message, risk, `requires_reauth`, `poll_again_in_ms`, and `next_action`. Responses must not expose raw session data, TDLib paths, OTP, 2FA passwords, API hash, proxy passwords, private object keys, or public artifact URLs.
 
-Phone onboarding items may include a backend `auth_session_id` for status correlation and code/2FA continuation. This id is safe metadata; TDLib storage keys and runtime paths remain backend-only.
+Phone onboarding exposes status, safe phone hints, `next_action`, and `account_id` when ready. AuthBatch linkage, TDLib storage keys, runtime paths, raw phone numbers, OTP codes, and 2FA passwords remain backend-only.
 
 Source capability support levels:
 

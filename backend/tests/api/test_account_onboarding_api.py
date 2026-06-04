@@ -9,6 +9,7 @@ import pytest
 
 from app.config import settings
 from app.models import (
+    AuthBatchItem,
     DEFAULT_LOCAL_USER_ID,
     DEFAULT_LOCAL_WORKSPACE_ID,
     AccountOnboardingArtifact,
@@ -22,6 +23,7 @@ from app.models import (
 )
 from app.modules.account_onboarding import service as onboarding_service
 from app.modules.account_onboarding import artifacts as onboarding_artifacts
+from conftest import FakeTdlibAuthAdapter
 
 
 @pytest.fixture(autouse=True)
@@ -51,8 +53,8 @@ def test_account_onboarding_phone_batch_validates_as_canonical_flow(app_client) 
     body = validate.json()
     assert body["batch"]["source_type"] == "phone_bulk"
     assert body["batch"]["status"] == "preview_ready"
-    assert body["items"][0]["status"] == "requires_reauth"
-    assert body["items"][0]["validation_code"] == "phone_requires_live_auth"
+    assert body["items"][0]["status"] == "valid"
+    assert body["items"][0]["validation_code"] is None
     assert body["items"][0]["phone_hint"] == "***2000"
     assert "phone_number" not in body["items"][0]
 
@@ -380,7 +382,9 @@ def test_account_onboarding_json_metadata_rejects_too_large_payload(app_client) 
     assert sensitive_value not in response.text
 
 
-def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_client) -> None:
+def test_account_onboarding_phone_is_full_support_but_tdlib_import_is_preview_only(
+    app_client,
+) -> None:
     response = app_client.post(
         "/api/account-onboarding-batches",
         json={
@@ -392,8 +396,8 @@ def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_cli
 
     assert response.status_code == 201
     capabilities = {item["source_type"]: item for item in response.json()["capabilities"]}
-    assert capabilities["phone_bulk"]["can_materialize_session"] is False
-    assert capabilities["phone_bulk"]["user_facing_support_level"] == "requires_reauth"
+    assert capabilities["phone_bulk"]["can_materialize_session"] is True
+    assert capabilities["phone_bulk"]["user_facing_support_level"] == "full"
     assert capabilities["tdlib_directory"]["can_materialize_session"] is False
     assert capabilities["tdlib_directory"]["user_facing_support_level"] == "preview_only"
 
@@ -684,10 +688,17 @@ def test_account_onboarding_retry_denied_when_cooldown_active(app_client, db_ses
     assert response.json()["details"]["request_id"] == response.json()["request_id"]
 
 
-def test_account_onboarding_phone_preview_is_honest_about_manual_auth(
+def test_account_onboarding_phone_auth_runs_through_auth_batch_bridge(
     app_client, db_session, monkeypatch
 ) -> None:
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
+    enqueued: list[str] = []
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
+        lambda item_id, attempt_count, delay_seconds=0: enqueued.append(item_id) or True,
+    )
+    adapter = FakeTdlibAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
     created = app_client.post(
         "/api/account-onboarding-batches",
         json={
@@ -713,21 +724,39 @@ def test_account_onboarding_phone_preview_is_honest_about_manual_auth(
     item_id = confirmed["items"][0]["id"]
 
     item = onboarding_service.execute_item(db_session, item_id=item_id)
-    assert item.auth_session_id is None
-    assert item.status == "requires_reauth"
+    assert item.status == "starting_auth"
+    assert item.auth_batch_id is not None
+    assert item.auth_batch_item_id is not None
+    assert enqueued == [item.auth_batch_item_id]
 
+    from app.services.auth_batch_tdlib import run_batch_start_auth
+
+    run_batch_start_auth(db_session, item.auth_batch_item_id)
     detail = app_client.get(f"/api/account-onboarding-batches/{batch_id}")
     body = detail.json()
-    assert body["batch"]["status"] == "requires_reauth"
-    assert body["items"][0]["auth_session_id"] is None
-    assert body["items"][0]["validation_code"] == "phone_requires_live_auth"
+    assert body["batch"]["status"] == "running"
+    assert body["items"][0]["status"] == "waiting_code"
+    assert body["items"][0]["next_action"] == "submit_code"
     assert "tdlib_storage_key" not in detail.text
-    assert item_id == body["items"][0]["id"]
+
+    submitted = app_client.post(
+        f"/api/account-onboarding-batches/{batch_id}/items/{item_id}/code",
+        json={"idempotency_key": "auth-session-link-code", "code": "999888"},
+    )
+
+    assert submitted.status_code == 200
+    assert submitted.json()["status"] == "ready"
+    assert submitted.json()["account_id"] == item.account_id
+    assert adapter.confirmed == [(str(item.account_id), "999888")]
 
 
-def test_account_onboarding_phone_execute_does_not_create_fake_auth_session(
-    app_client, db_session
+def test_account_onboarding_phone_execute_links_auth_batch_not_fake_auth_session(
+    app_client, db_session, monkeypatch
 ) -> None:
+    monkeypatch.setattr(
+        "app.services.auth_batch_dispatcher.enqueue_batch_start_auth",
+        lambda item_id, attempt_count, delay_seconds=0: True,
+    )
     created = app_client.post(
         "/api/account-onboarding-batches",
         json={
@@ -747,9 +776,10 @@ def test_account_onboarding_phone_execute_does_not_create_fake_auth_session(
 
     executed = onboarding_service.execute_item(db_session, item_id=item.id)
 
-    assert executed.status == "requires_reauth"
+    assert executed.status == "starting_auth"
     assert executed.auth_session_id is None
-    assert executed.last_error_code == "phone_requires_live_auth"
+    assert executed.auth_batch_id is not None
+    assert executed.auth_batch_item_id is not None
 
 
 def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
@@ -969,12 +999,19 @@ def _create_waiting_auth_item(
     item_id = created["items"][0]["id"]
     item = db_session.get(AccountOnboardingItem, item_id)
     assert item is not None
+    auth_item = db_session.get(AuthBatchItem, item.auth_batch_item_id)
+    assert auth_item is not None
     item.status = status
+    auth_item.status = "waiting_2fa" if status == "waiting_2fa" else "waiting_code"
     db_session.commit()
     return created["batch"]["id"], item_id
 
 
-def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, db_session) -> None:
+def test_account_onboarding_submit_code_is_idempotent_and_redacted(
+    app_client, db_session, monkeypatch
+) -> None:
+    adapter = FakeTdlibAuthAdapter()
+    monkeypatch.setattr("app.services.auth_batch_tdlib.build_tdlib_auth_adapter", lambda: adapter)
     batch_id, item_id = _create_waiting_auth_item(
         app_client,
         db_session,
@@ -994,10 +1031,10 @@ def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, d
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert first.json()["status"] == second.json()["status"] == "failed"
-    assert first.json()["last_error_code"] == "auth_continuation_not_enabled"
+    assert first.json()["status"] == second.json()["status"] == "ready"
     events = db_session.query(AccountOnboardingEvent).all()
     assert "12345" not in repr([event.safe_payload_json for event in events])
+    assert adapter.confirmed == [(first.json()["account_id"], "12345")]
 
 
 @pytest.mark.parametrize(
@@ -1008,8 +1045,12 @@ def test_account_onboarding_submit_code_is_idempotent_and_redacted(app_client, d
     ],
 )
 def test_account_onboarding_secret_idempotency_conflicts_on_different_payload(
-    app_client, db_session, status, route, field, first_secret, second_secret
+    app_client, db_session, monkeypatch, status, route, field, first_secret, second_secret
 ) -> None:
+    monkeypatch.setattr(
+        "app.services.auth_batch_tdlib.build_tdlib_auth_adapter",
+        lambda: FakeTdlibAuthAdapter(),
+    )
     batch_id, item_id = _create_waiting_auth_item(
         app_client,
         db_session,
@@ -1023,7 +1064,7 @@ def test_account_onboarding_secret_idempotency_conflicts_on_different_payload(
         json={"idempotency_key": f"onboarding-{route}-conflict", field: first_secret},
     )
     assert first.status_code == 200
-    assert first.json()["last_error_code"] == "auth_continuation_not_enabled"
+    assert first.json()["status"] == "ready"
 
     second = app_client.post(
         path,

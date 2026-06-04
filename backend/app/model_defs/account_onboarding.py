@@ -91,6 +91,12 @@ class AccountOnboardingItem(Base):
     account_id: Mapped[str | None] = mapped_column(
         UUIDString, ForeignKey("account.id"), nullable=True
     )
+    auth_batch_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("auth_batch.id"), nullable=True
+    )
+    auth_batch_item_id: Mapped[str | None] = mapped_column(
+        UUIDString, ForeignKey("auth_batch_item.id"), nullable=True
+    )
     auth_session_id: Mapped[str | None] = mapped_column(
         UUIDString, ForeignKey("telegram_auth_session.id"), nullable=True
     )
@@ -100,6 +106,7 @@ class AccountOnboardingItem(Base):
     source_ref_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="pending")
+    phone_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     phone_hint: Mapped[str | None] = mapped_column(String(32), nullable=True)
     phone_normalized_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     username_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -126,6 +133,8 @@ class AccountOnboardingItem(Base):
     batch: Mapped[AccountOnboardingBatch] = relationship(back_populates="items")
     artifact: Mapped[AccountOnboardingArtifact | None] = relationship(foreign_keys=[artifact_id])
     account: Mapped[Account | None] = relationship()
+    auth_batch: Mapped[AuthBatch | None] = relationship(foreign_keys=[auth_batch_id])
+    auth_batch_item: Mapped[AuthBatchItem | None] = relationship(foreign_keys=[auth_batch_item_id])
 
 
 class AccountOnboardingArtifact(Base):

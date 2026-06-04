@@ -45,8 +45,8 @@ const sourceOptions: Array<{ type: AccountOnboardingSourceType; label: string; i
 ]
 
 const fallbackSupport: Partial<Record<AccountOnboardingSourceType, SupportLevel>> = {
-  phone: 'requires_reauth',
-  phone_bulk: 'requires_reauth',
+  phone: 'full',
+  phone_bulk: 'full',
   json_metadata: 'requires_reauth',
   tdlib_directory: 'preview_only',
   tdata_archive: 'requires_reauth',

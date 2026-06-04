@@ -26,6 +26,7 @@ from app.models import (
 )
 from app.modules.account_onboarding import service as onboarding_service
 from app.modules.account_onboarding import artifacts as onboarding_artifacts
+from app.modules.account_onboarding.tdlib_verification import TdlibImportVerification
 from conftest import FakeTdlibAuthAdapter
 
 
@@ -838,17 +839,14 @@ def test_account_onboarding_tdlib_import_materializes_verified_account(
     app_client, db_session, monkeypatch, tmp_path
 ) -> None:
     _enable_tdlib_import(monkeypatch, tmp_path)
-    verifier = _FakeReadonlyVerifier(
-        {
-            "status": "valid",
-            "runtime_health": "ready",
-            "telegram_user_id": "424242",
-            "profile": {"username": "imported"},
-        }
+    verifier = _FakeImportVerifier(
+        TdlibImportVerification(
+            outcome="verified_ready",
+            telegram_user_id="424242",
+            profile={"username": "imported"},
+        )
     )
-    monkeypatch.setattr(
-        onboarding_service, "build_tdlib_readonly_validity_adapter", lambda: verifier
-    )
+    monkeypatch.setattr(onboarding_service, "verify_imported_tdlib_session", verifier)
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
     upload = app_client.post(
         "/api/account-onboarding-artifacts",
@@ -894,7 +892,7 @@ def test_account_onboarding_tdlib_import_materializes_verified_account(
 
     assert executed.status == "ready"
     assert executed.account_id is not None
-    assert verifier.checked_account_id == executed.account_id
+    _assert_staging_promoted(verifier, final_account_id=executed.account_id)
     _assert_verified_import_account(db_session, account_id=executed.account_id)
     assert (settings.tdlib_database_root / executed.account_id / "td.bin").exists()
     assert (settings.tdlib_files_root / executed.account_id / "avatar.jpg").exists()
@@ -907,12 +905,13 @@ def test_account_onboarding_tdlib_import_requires_reauth_without_creating_accoun
     app_client, db_session, monkeypatch, tmp_path
 ) -> None:
     _enable_tdlib_import(monkeypatch, tmp_path)
-    verifier = _FakeReadonlyVerifier(
-        {"status": "reauth_required", "error_code": "auth_key_unregistered"}
+    verifier = _FakeImportVerifier(
+        TdlibImportVerification(
+            outcome="requires_reauth",
+            error_code="auth_key_unregistered",
+        )
     )
-    monkeypatch.setattr(
-        onboarding_service, "build_tdlib_readonly_validity_adapter", lambda: verifier
-    )
+    monkeypatch.setattr(onboarding_service, "verify_imported_tdlib_session", verifier)
     monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
     upload = app_client.post(
         "/api/account-onboarding-artifacts",
@@ -1142,13 +1141,17 @@ class _TdlibRuntimeReady:
     readonly_smoke_available = True
 
 
-class _FakeReadonlyVerifier:
-    def __init__(self, result: dict[str, object]) -> None:
+class _FakeImportVerifier:
+    def __init__(self, result: TdlibImportVerification) -> None:
         self._result = result
         self.checked_account_id: str | None = None
+        self.expected_telegram_user_id: str | None = None
 
-    def check_account(self, account_id: str) -> dict[str, object]:
+    def __call__(
+        self, account_id: str, *, expected_telegram_user_id: str | None = None
+    ) -> TdlibImportVerification:
         self.checked_account_id = account_id
+        self.expected_telegram_user_id = expected_telegram_user_id
         return self._result
 
 
@@ -1174,6 +1177,14 @@ def _assert_verified_import_account(db_session, *, account_id: str) -> None:
     assert runtime.session_present is True
     assert runtime.runtime_health == "ready"
     assert runtime.reauth_required is False
+
+
+def _assert_staging_promoted(verifier: _FakeImportVerifier, *, final_account_id: str) -> None:
+    assert verifier.checked_account_id is not None
+    assert verifier.checked_account_id.startswith("import-")
+    assert verifier.checked_account_id != final_account_id
+    assert not (settings.tdlib_database_root / verifier.checked_account_id).exists()
+    assert not (settings.tdlib_files_root / verifier.checked_account_id).exists()
 
 
 def _create_waiting_auth_item(

@@ -49,7 +49,7 @@ Capability levels are exposed to the wizard:
 | --- | --- | --- |
 | `phone` / `phone_bulk` | `full` | One phone and many phones are the same batch flow. Phone preview validates normalization, duplicates, existing accounts, and active conflicts. After consent, Account Onboarding creates an internal `AuthBatch`, starts the existing TDLib authorization worker path, and mirrors `waiting_code`, `waiting_2fa`, and `ready` back onto onboarding items. Raw phone numbers and auth batch links stay backend-only. |
 | `json_metadata` | `requires_reauth` | Metadata preview only. It never creates an execution-usable session or claims `session_present=true`. |
-| `tdlib_directory` | `full` only when `ACCOUNT_ONBOARDING_TDLIB_IMPORT_ENABLED=true` and readonly TDLib runtime is available; otherwise `preview_only` | Requires private artifact, quarantine validation, isolated materialization under a generated account TDLib storage key, then readonly `getMe` verification before readiness. The backend creates/marks an account ready only after verification returns a Telegram user id. |
+| `tdlib_directory` | `full` only when `ACCOUNT_ONBOARDING_TDLIB_IMPORT_ENABLED=true` and readonly TDLib runtime is available; otherwise `preview_only` | Requires private artifact, quarantine validation, isolated staging materialization, then readonly `getMe` verification before readiness. The backend promotes data into final account TDLib storage and creates/marks an account ready only after verification returns a Telegram user id. |
 | `tdata_archive` | `requires_reauth` | Full tdata conversion/materialization is intentionally not implemented in the foundation path. The UI must present it as reauth/manual work until a verified converter exists. |
 | `session_file` | `preview_only` | Only explicitly whitelisted preview formats may be inspected. Unknown formats are unsupported/requires reauth and are never silently materialized or attached. |
 
@@ -67,7 +67,7 @@ Archive validation rejects:
 - excessive depth;
 - excessive uncompressed size.
 
-Artifacts are not unpacked into TDLib storage during upload. TDLib materialization uses quarantine -> isolated backend-only storage -> readonly verification. If verification returns reauth/runtime-broken/unknown, the generated TDLib storage is cleaned up and no execution-usable account is created.
+Artifacts are not unpacked into TDLib storage during upload. TDLib materialization uses quarantine -> isolated backend-only staging storage -> readonly verification -> final account storage promotion. If verification returns reauth/runtime-broken/unknown, the staging storage is cleaned up and no execution-usable account is created.
 
 Physical artifact cleanup is a separate maintenance workflow. It may delete bytes only for expired, cancelled, or rejected onboarding artifacts whose `object_key` stays inside the backend-private `account-onboarding/` namespace. Cleanup must not delete final TDLib live storage, must not expose object keys or filesystem paths, and records only safe event metadata.
 
@@ -87,7 +87,7 @@ The backend stores `consent_confirmed_at`, `consent_actor_user_id`, and `consent
 
 ## Worker Execution
 
-Confirm stores intent and queues item jobs on `auth_jobs`; it does not run long TDLib work synchronously. For phone onboarding, item execution delegates to the existing `AuthBatch` TDLib worker path and polling syncs the linked auth item state back into the onboarding snapshot. For TDLib directory imports, item execution materializes only the attached private artifact into isolated backend TDLib storage, runs readonly verification, and writes `Account` / `AccountRuntimeState` only when verified. Worker payloads contain item ids, not raw OTP/2FA/session bytes. Final state is written back to PostgreSQL.
+Confirm stores intent and queues item jobs on `auth_jobs`; it does not run long TDLib work synchronously. For phone onboarding, item execution delegates to the existing `AuthBatch` TDLib worker path and polling syncs the linked auth item state back into the onboarding snapshot. For TDLib directory imports, item execution materializes only the attached private artifact into isolated staging storage, runs readonly verification, promotes verified bytes into final account TDLib storage, and writes `Account` / `AccountRuntimeState` only when verified. Worker payloads contain item ids, not raw OTP/2FA/session bytes. Final state is written back to PostgreSQL.
 
 Queue unavailable must be surfaced safely through `ONBOARDING_QUEUE_UNAVAILABLE` and non-secret failure state.
 

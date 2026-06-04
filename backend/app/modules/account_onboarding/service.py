@@ -14,7 +14,6 @@ from zipfile import ZipFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
 from app.config import settings
 from app.models import (
     Account,
@@ -73,6 +72,7 @@ from app.modules.account_onboarding.state import (
     transition_batch,
     transition_item,
 )
+from app.modules.account_onboarding.tdlib_verification import verify_imported_tdlib_session
 from app.services.auth_batch_tdlib import submit_batch_code, submit_batch_password
 from app.services.auth_batches import PhoneInput, create_auth_batch, start_batch
 from app.services.retry_policy import classify_error_category, retry_policy_for
@@ -683,11 +683,13 @@ def _execute_tdlib_directory_item(
         source_type="tdlib_directory",
         expected_batch_id=item.batch_id,
     )
-    account_id = item.account_id or new_id()
+    staging_account_id = f"import-{new_id()}"
     dirs: TdlibAccountStorageDirs | None = None
     try:
-        dirs = _materialize_tdlib_artifact(artifact, account_id)
-        verification = build_tdlib_readonly_validity_adapter().check_account(account_id)
+        dirs = _materialize_tdlib_artifact(artifact, staging_account_id)
+        verification = verify_imported_tdlib_session(
+            staging_account_id, expected_telegram_user_id=item.telegram_user_id_hint
+        )
     except Exception:
         if dirs is not None:
             _cleanup_tdlib_dirs(dirs)
@@ -697,10 +699,8 @@ def _execute_tdlib_directory_item(
             message="TDLib artifact could not be materialized for readonly verification.",
         )
 
-    status = str(verification.get("status") or "unknown")
-    telegram_user_id = verification.get("telegram_user_id")
-    if status == "valid":
-        if not telegram_user_id:
+    if verification.outcome == "verified_ready":
+        if not verification.telegram_user_id:
             _cleanup_tdlib_dirs(dirs)
             return ExecutionOutcome(
                 status="failed",
@@ -710,41 +710,46 @@ def _execute_tdlib_directory_item(
         existing = _find_existing_account(
             session,
             workspace_id=item.workspace_id,
-            telegram_user_id=str(telegram_user_id),
+            telegram_user_id=verification.telegram_user_id,
         )
-        if existing is not None and existing.id != account_id:
+        final_account_id = existing.id if existing is not None else new_id()
+        try:
+            _promote_tdlib_dirs(dirs, final_account_id)
+        except Exception:
             _cleanup_tdlib_dirs(dirs)
-            item.account_id = existing.id
             return ExecutionOutcome(
                 status="failed",
-                code="tdlib_import_existing_account",
-                message="Verified TDLib artifact belongs to an existing account.",
+                code="tdlib_final_storage_unavailable",
+                message="Verified TDLib artifact could not be moved into account storage.",
             )
         account = _materialize_verified_imported_account(
             session,
             item=item,
-            account_id=account_id,
-            telegram_user_id=str(telegram_user_id),
+            account=existing,
+            account_id=final_account_id,
+            telegram_user_id=verification.telegram_user_id,
         )
         item.account_id = account.id
         return ExecutionOutcome(
             status="ready",
             code="tdlib_import_verified",
             message="TDLib artifact was verified and materialized.",
-            payload={"telegram_user_id": str(telegram_user_id)},
+            payload={"telegram_user_id": verification.telegram_user_id},
         )
 
     _cleanup_tdlib_dirs(dirs)
-    if status == "reauth_required":
+    if verification.outcome == "requires_reauth":
         return ExecutionOutcome(
             status="requires_reauth",
-            code=str(verification.get("error_code") or "tdlib_import_requires_reauth"),
-            message="Readonly TDLib verification requires reauth.",
+            code=verification.error_code or "tdlib_import_requires_reauth",
+            message=verification.message or "Readonly TDLib verification requires reauth.",
         )
+    failure_status = "failed" if verification.outcome == "identity_mismatch" else "requires_reauth"
     return ExecutionOutcome(
-        status="requires_reauth",
-        code=str(verification.get("error_code") or "tdlib_import_verification_unavailable"),
-        message="Readonly TDLib verification did not produce a ready session.",
+        status=failure_status,
+        code=verification.error_code or verification.outcome,
+        message=verification.message
+        or "Readonly TDLib verification did not produce a ready session.",
     )
 
 
@@ -798,6 +803,21 @@ def _cleanup_tdlib_dirs(dirs: TdlibAccountStorageDirs) -> None:
             shutil.rmtree(resolved)
 
 
+def _promote_tdlib_dirs(dirs: TdlibAccountStorageDirs, final_account_id: str) -> None:
+    final_dirs = resolve_tdlib_account_dirs(settings, final_account_id, create=False)
+    for source, destination in (
+        (dirs.database_directory, final_dirs.database_directory),
+        (dirs.files_directory, final_dirs.files_directory),
+    ):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            if any(destination.iterdir()):
+                raise ValueError("final TDLib storage is not empty")
+            destination.rmdir()
+        if source.exists():
+            shutil.move(str(source), str(destination))
+
+
 def _find_existing_account(
     session: Session, *, workspace_id: str, telegram_user_id: str
 ) -> Account | None:
@@ -816,27 +836,35 @@ def _materialize_verified_imported_account(
     session: Session,
     *,
     item: AccountOnboardingItem,
+    account: Account | None,
     account_id: str,
     telegram_user_id: str,
 ) -> Account:
-    account = Account(
-        id=account_id,
-        workspace_id=item.workspace_id,
-        external_ref=f"telegram:{telegram_user_id}",
-        telegram_user_id=telegram_user_id,
-        auth_source="tdlib_import",
-        origin="imported",
-        account_state=AccountState.AUTHORIZED_READY,
-    )
-    runtime = AccountRuntimeState(
-        account_id=account.id,
-        session_present=True,
-        authorized_last_confirmed_at=utc_now(),
-        runtime_health="ready",
-        reauth_required=False,
-        recovery_marker="tdlib_import_verified",
-    )
-    session.add_all([account, runtime])
+    if account is None:
+        account = Account(
+            id=account_id,
+            workspace_id=item.workspace_id,
+            external_ref=f"telegram:{telegram_user_id}",
+            telegram_user_id=telegram_user_id,
+            auth_source="tdlib_import",
+            origin="imported",
+            account_state=AccountState.AUTHORIZED_READY,
+        )
+        session.add(account)
+    else:
+        account.telegram_user_id = telegram_user_id
+        account.auth_source = "tdlib_import"
+        account.account_state = AccountState.AUTHORIZED_READY
+    runtime = session.get(AccountRuntimeState, account.id)
+    if runtime is None:
+        runtime = AccountRuntimeState(account_id=account.id)
+        session.add(runtime)
+    runtime.session_present = True
+    runtime.authorized_last_confirmed_at = utc_now()
+    runtime.runtime_health = "ready"
+    runtime.reauth_required = False
+    runtime.recovery_marker = "tdlib_import_verified"
+    runtime.updated_at = utc_now()
     session.flush()
     return account
 

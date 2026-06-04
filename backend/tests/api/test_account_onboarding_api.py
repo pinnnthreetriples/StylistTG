@@ -9,6 +9,7 @@ import pytest
 
 from app.config import settings
 from app.models import (
+    Account,
     AuthBatchItem,
     DEFAULT_LOCAL_USER_ID,
     DEFAULT_LOCAL_WORKSPACE_ID,
@@ -16,6 +17,8 @@ from app.models import (
     AccountOnboardingBatch,
     AccountOnboardingEvent,
     AccountOnboardingItem,
+    AccountRuntimeState,
+    AccountState,
     IdempotencyKey,
     Workspace,
     new_id,
@@ -831,6 +834,160 @@ def test_account_onboarding_tdlib_preview_requires_reauth_without_verifier(
     assert "tdlib/session" not in detail.text
 
 
+def test_account_onboarding_tdlib_import_materializes_verified_account(
+    app_client, db_session, monkeypatch, tmp_path
+) -> None:
+    _enable_tdlib_import(monkeypatch, tmp_path)
+    verifier = _FakeReadonlyVerifier(
+        {
+            "status": "valid",
+            "runtime_health": "ready",
+            "telegram_user_id": "424242",
+            "profile": {"username": "imported"},
+        }
+    )
+    monkeypatch.setattr(
+        onboarding_service, "build_tdlib_readonly_validity_adapter", lambda: verifier
+    )
+    monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
+    upload = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "tdlib-import-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.zip",
+            "content_base64": base64.b64encode(
+                _zip_bytes({"db/td.bin": "database", "files/avatar.jpg": "avatar"})
+            ).decode("ascii"),
+        },
+    ).json()
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "tdlib-import-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": upload["id"],
+            "filename": "tdlib.zip",
+        },
+    ).json()
+    batch_id = created["batch"]["id"]
+
+    validated = app_client.post(
+        f"/api/account-onboarding-batches/{batch_id}/validate",
+        json={"idempotency_key": "tdlib-import-validate"},
+    ).json()
+    assert validated["items"][0]["status"] == "valid"
+    assert validated["items"][0]["validation_code"] == "tdlib_preview"
+    app_client.post(
+        f"/api/account-onboarding-batches/{batch_id}/confirm",
+        json={
+            "idempotency_key": "tdlib-import-confirm",
+            "confirmation": "ADD_ACCOUNTS",
+            "consent_accepted": True,
+            "consent_version": "v1",
+        },
+    )
+    item = db_session.get(AccountOnboardingItem, validated["items"][0]["id"])
+    assert item is not None
+
+    executed = onboarding_service.execute_item(db_session, item_id=item.id)
+
+    assert executed.status == "ready"
+    assert executed.account_id is not None
+    assert verifier.checked_account_id == executed.account_id
+    _assert_verified_import_account(db_session, account_id=executed.account_id)
+    assert (settings.tdlib_database_root / executed.account_id / "td.bin").exists()
+    assert (settings.tdlib_files_root / executed.account_id / "avatar.jpg").exists()
+    detail = app_client.get(f"/api/account-onboarding-batches/{batch_id}")
+    assert "object_key" not in detail.text
+    assert str(settings.tdlib_database_root) not in detail.text
+
+
+def test_account_onboarding_tdlib_import_requires_reauth_without_creating_account(
+    app_client, db_session, monkeypatch, tmp_path
+) -> None:
+    _enable_tdlib_import(monkeypatch, tmp_path)
+    verifier = _FakeReadonlyVerifier(
+        {"status": "reauth_required", "error_code": "auth_key_unregistered"}
+    )
+    monkeypatch.setattr(
+        onboarding_service, "build_tdlib_readonly_validity_adapter", lambda: verifier
+    )
+    monkeypatch.setattr(onboarding_service, "enqueue_batch_items", lambda _batch: True)
+    upload = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "tdlib-reauth-upload",
+            "source_type": "tdlib_directory",
+            "filename": "tdlib.zip",
+            "content_base64": base64.b64encode(_zip_bytes({"db/td.bin": "database"})).decode(
+                "ascii"
+            ),
+        },
+    ).json()
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "tdlib-reauth-create",
+            "source_type": "tdlib_directory",
+            "artifact_id": upload["id"],
+            "filename": "tdlib.zip",
+        },
+    ).json()
+    batch_id = created["batch"]["id"]
+    validated = app_client.post(
+        f"/api/account-onboarding-batches/{batch_id}/validate",
+        json={"idempotency_key": "tdlib-reauth-validate"},
+    ).json()
+    app_client.post(
+        f"/api/account-onboarding-batches/{batch_id}/confirm",
+        json={
+            "idempotency_key": "tdlib-reauth-confirm",
+            "confirmation": "ADD_ACCOUNTS",
+            "consent_accepted": True,
+            "consent_version": "v1",
+        },
+    )
+    item = db_session.get(AccountOnboardingItem, validated["items"][0]["id"])
+    assert item is not None
+
+    executed = onboarding_service.execute_item(db_session, item_id=item.id)
+
+    assert executed.status == "requires_reauth"
+    assert executed.account_id is None
+    assert executed.last_error_code == "auth_key_unregistered"
+    assert not any(settings.tdlib_database_root.iterdir())
+
+
+def test_account_onboarding_tdata_archive_stays_requires_reauth(app_client) -> None:
+    upload = app_client.post(
+        "/api/account-onboarding-artifacts",
+        json={
+            "idempotency_key": "tdata-upload",
+            "source_type": "tdata_archive",
+            "filename": "tdata.zip",
+            "content_base64": base64.b64encode(_zip_bytes({"tdata/map0": "data"})).decode("ascii"),
+        },
+    ).json()
+    created = app_client.post(
+        "/api/account-onboarding-batches",
+        json={
+            "idempotency_key": "tdata-create",
+            "source_type": "tdata_archive",
+            "artifact_id": upload["id"],
+            "filename": "tdata.zip",
+        },
+    ).json()
+
+    validated = app_client.post(
+        f"/api/account-onboarding-batches/{created['batch']['id']}/validate",
+        json={"idempotency_key": "tdata-validate"},
+    ).json()
+
+    assert validated["items"][0]["status"] == "requires_reauth"
+    assert validated["items"][0]["validation_code"] == "tdata_requires_reauth"
+
+
 def test_account_onboarding_expire_artifacts_marks_metadata_only(db_session) -> None:
     batch = AccountOnboardingBatch(
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
@@ -979,6 +1136,44 @@ def _artifact_row(
         status=status,
         expires_at=utc_now() + timedelta(days=1),
     )
+
+
+class _TdlibRuntimeReady:
+    readonly_smoke_available = True
+
+
+class _FakeReadonlyVerifier:
+    def __init__(self, result: dict[str, object]) -> None:
+        self._result = result
+        self.checked_account_id: str | None = None
+
+    def check_account(self, account_id: str) -> dict[str, object]:
+        self.checked_account_id = account_id
+        return self._result
+
+
+def _enable_tdlib_import(monkeypatch, tmp_path) -> None:
+    from app.modules.account_onboarding.adapters import tdlib_directory
+
+    monkeypatch.setattr(settings, "account_onboarding_tdlib_import_enabled", True)
+    monkeypatch.setattr(settings, "tdlib_database_root", tmp_path / "tdlib-db")
+    monkeypatch.setattr(settings, "tdlib_files_root", tmp_path / "tdlib-files")
+    monkeypatch.setattr(tdlib_directory, "detect_tdlib_runtime", lambda: _TdlibRuntimeReady())
+
+
+def _assert_verified_import_account(db_session, *, account_id: str) -> None:
+    account = db_session.get(Account, account_id)
+    runtime = db_session.get(AccountRuntimeState, account_id)
+    assert account is not None
+    assert account.workspace_id == DEFAULT_LOCAL_WORKSPACE_ID
+    assert account.telegram_user_id == "424242"
+    assert account.external_ref == "telegram:424242"
+    assert account.auth_source == "tdlib_import"
+    assert account.account_state == AccountState.AUTHORIZED_READY
+    assert runtime is not None
+    assert runtime.session_present is True
+    assert runtime.runtime_health == "ready"
+    assert runtime.reauth_required is False
 
 
 def _create_waiting_auth_item(

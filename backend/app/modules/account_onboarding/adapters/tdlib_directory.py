@@ -2,20 +2,18 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import AccountOnboardingItem
 from app.modules.account_onboarding.adapters.base import ExecutionOutcome, PreviewItem
 from app.modules.account_onboarding.contracts import OnboardingCapabilityRead
 from app.services.tdlib_runtime import detect_tdlib_runtime
-
-TDLIB_IMPORTED_ARTIFACT_VERIFICATION_ENABLED = False
 
 
 class TdlibDirectoryAdapter:
     source_type = "tdlib_directory"
 
     def capability(self) -> OnboardingCapabilityRead:
-        runtime = detect_tdlib_runtime()
-        full = runtime.readonly_smoke_available and TDLIB_IMPORTED_ARTIFACT_VERIFICATION_ENABLED
+        full = tdlib_import_available()
         return OnboardingCapabilityRead(
             source_type="tdlib_directory",
             can_preview=True,
@@ -61,8 +59,9 @@ class TdlibDirectoryAdapter:
         ]
 
     def execute(self, item: AccountOnboardingItem) -> ExecutionOutcome:
+        del item
         runtime = detect_tdlib_runtime()
-        if not TDLIB_IMPORTED_ARTIFACT_VERIFICATION_ENABLED:
+        if not settings.account_onboarding_tdlib_import_enabled:
             return ExecutionOutcome(
                 status="requires_reauth",
                 code="tdlib_artifact_verifier_not_enabled",
@@ -79,3 +78,10 @@ class TdlibDirectoryAdapter:
             code="tdlib_verification_unavailable",
             message="Readonly TDLib verification did not produce a ready session.",
         )
+
+
+def tdlib_import_available() -> bool:
+    runtime = detect_tdlib_runtime()
+    return bool(
+        settings.account_onboarding_tdlib_import_enabled and runtime.readonly_smoke_available
+    )

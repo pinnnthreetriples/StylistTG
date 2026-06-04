@@ -1,19 +1,28 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
+from pathlib import Path, PurePosixPath
 from typing import Any
+from zipfile import ZipFile
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.adapters.tdlib_readonly_validity import build_tdlib_readonly_validity_adapter
+from app.config import settings
 from app.models import (
+    Account,
     AccountOnboardingArtifact,
     AccountOnboardingBatch,
     AccountOnboardingItem,
+    AccountRuntimeState,
+    AccountState,
     AuthBatchItem,
     AuthBatchItemStatus,
     IdempotencyKey,
@@ -21,11 +30,15 @@ from app.models import (
     utc_now,
 )
 from app.modules.account_onboarding.adapters import adapters, get_adapter
+from app.modules.account_onboarding.adapters.base import ExecutionOutcome
 from app.modules.account_onboarding.artifacts import (
     delete_private_artifact_bytes,
     decode_upload,
+    private_artifact_path,
     store_private_artifact,
+    validate_archive_if_zip,
 )
+from app.modules.account_onboarding.adapters.tdlib_directory import tdlib_import_available
 from app.modules.account_onboarding.contracts import (
     AccountOnboardingArtifactCreate,
     AccountOnboardingArtifactRead,
@@ -63,6 +76,7 @@ from app.modules.account_onboarding.state import (
 from app.services.auth_batch_tdlib import submit_batch_code, submit_batch_password
 from app.services.auth_batches import PhoneInput, create_auth_batch, start_batch
 from app.services.retry_policy import classify_error_category, retry_policy_for
+from app.storage.paths import TdlibAccountStorageDirs, resolve_tdlib_account_dirs
 
 
 MAX_ONBOARDING_RETRY_ATTEMPTS = 3
@@ -628,20 +642,18 @@ def execute_item(session: Session, *, item_id: str) -> AccountOnboardingItem:
         _start_phone_auth(session, item)
         session.commit()
         return item
-    adapter = get_adapter(item.batch.source_type)
-    outcome = adapter.execute(item)
-    if item.batch.source_type == "phone_bulk":
+    if item.batch.source_type == "tdlib_directory":
+        transition_item(item, "importing_session")
+        outcome = _execute_tdlib_directory_item(session, item)
         item.last_error_code = outcome.code
         item.last_error_message = outcome.message
-        transition_item(item, outcome.status, payload=outcome.payload or {"outcome": outcome.code})
-    elif item.batch.source_type == "tdlib_directory":
         transition_item(item, "checking_session")
-        item.last_error_code = outcome.code
-        item.last_error_message = outcome.message
         transition_item(
             item, outcome.status, payload={"verification": outcome.code, **(outcome.payload or {})}
         )
     else:
+        adapter = get_adapter(item.batch.source_type)
+        outcome = adapter.execute(item)
         item.last_error_code = outcome.code
         item.last_error_message = outcome.message
         transition_item(
@@ -650,6 +662,183 @@ def execute_item(session: Session, *, item_id: str) -> AccountOnboardingItem:
     maybe_finish_batch(item.batch)
     session.commit()
     return item
+
+
+def _execute_tdlib_directory_item(
+    session: Session, item: AccountOnboardingItem
+) -> ExecutionOutcome:
+    adapter = get_adapter(item.batch.source_type)
+    if not tdlib_import_available():
+        return adapter.execute(item)
+    if item.artifact_id is None:
+        return ExecutionOutcome(
+            status="failed",
+            code="artifact_missing",
+            message="TDLib artifact is required.",
+        )
+    artifact = _require_usable_artifact(
+        session,
+        workspace_id=item.workspace_id,
+        artifact_id=item.artifact_id,
+        source_type="tdlib_directory",
+        expected_batch_id=item.batch_id,
+    )
+    account_id = item.account_id or new_id()
+    dirs: TdlibAccountStorageDirs | None = None
+    try:
+        dirs = _materialize_tdlib_artifact(artifact, account_id)
+        verification = build_tdlib_readonly_validity_adapter().check_account(account_id)
+    except Exception:
+        if dirs is not None:
+            _cleanup_tdlib_dirs(dirs)
+        return ExecutionOutcome(
+            status="failed",
+            code="tdlib_artifact_materialization_failed",
+            message="TDLib artifact could not be materialized for readonly verification.",
+        )
+
+    status = str(verification.get("status") or "unknown")
+    telegram_user_id = verification.get("telegram_user_id")
+    if status == "valid":
+        if not telegram_user_id:
+            _cleanup_tdlib_dirs(dirs)
+            return ExecutionOutcome(
+                status="failed",
+                code="tdlib_identity_missing",
+                message="Readonly TDLib verification did not return a Telegram user id.",
+            )
+        existing = _find_existing_account(
+            session,
+            workspace_id=item.workspace_id,
+            telegram_user_id=str(telegram_user_id),
+        )
+        if existing is not None and existing.id != account_id:
+            _cleanup_tdlib_dirs(dirs)
+            item.account_id = existing.id
+            return ExecutionOutcome(
+                status="failed",
+                code="tdlib_import_existing_account",
+                message="Verified TDLib artifact belongs to an existing account.",
+            )
+        account = _materialize_verified_imported_account(
+            session,
+            item=item,
+            account_id=account_id,
+            telegram_user_id=str(telegram_user_id),
+        )
+        item.account_id = account.id
+        return ExecutionOutcome(
+            status="ready",
+            code="tdlib_import_verified",
+            message="TDLib artifact was verified and materialized.",
+            payload={"telegram_user_id": str(telegram_user_id)},
+        )
+
+    _cleanup_tdlib_dirs(dirs)
+    if status == "reauth_required":
+        return ExecutionOutcome(
+            status="requires_reauth",
+            code=str(verification.get("error_code") or "tdlib_import_requires_reauth"),
+            message="Readonly TDLib verification requires reauth.",
+        )
+    return ExecutionOutcome(
+        status="requires_reauth",
+        code=str(verification.get("error_code") or "tdlib_import_verification_unavailable"),
+        message="Readonly TDLib verification did not produce a ready session.",
+    )
+
+
+def _materialize_tdlib_artifact(
+    artifact: AccountOnboardingArtifact, account_id: str
+) -> TdlibAccountStorageDirs:
+    path = private_artifact_path(artifact.object_key)
+    data = path.read_bytes()
+    validate_archive_if_zip("tdlib.zip", data)
+    dirs = resolve_tdlib_account_dirs(settings, account_id, create=True)
+    with ZipFile(io.BytesIO(data)) as archive:
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            target = _tdlib_import_target_path(info.filename, dirs)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(info) as source, target.open("wb") as destination:
+                shutil.copyfileobj(source, destination)
+    return dirs
+
+
+def _tdlib_import_target_path(name: str, dirs: TdlibAccountStorageDirs) -> Path:
+    parts = [part for part in PurePosixPath(name.replace("\\", "/")).parts if part not in {"."}]
+    if parts and parts[0] in {"tdlib", "tdlib_directory"}:
+        parts = parts[1:]
+    if not parts:
+        raise ValueError("empty TDLib archive path")
+    first = parts[0].lower()
+    if first in {"files", "tdlib-files", "tdlib_files"}:
+        root = dirs.files_directory
+        relative_parts = parts[1:]
+    elif first in {"db", "database", "tdlib-db", "tdlib_database"}:
+        root = dirs.database_directory
+        relative_parts = parts[1:]
+    else:
+        root = dirs.database_directory
+        relative_parts = parts
+    if not relative_parts:
+        raise ValueError("empty TDLib archive file path")
+    target = root.joinpath(*relative_parts).resolve()
+    target.relative_to(root.resolve())
+    return target
+
+
+def _cleanup_tdlib_dirs(dirs: TdlibAccountStorageDirs) -> None:
+    for path in (dirs.database_directory, dirs.files_directory):
+        resolved = path.resolve()
+        root = path.parent.resolve()
+        resolved.relative_to(root)
+        if resolved.exists():
+            shutil.rmtree(resolved)
+
+
+def _find_existing_account(
+    session: Session, *, workspace_id: str, telegram_user_id: str
+) -> Account | None:
+    external_ref = f"telegram:{telegram_user_id}"
+    return session.execute(
+        select(Account)
+        .where(
+            Account.workspace_id == workspace_id,
+            (Account.external_ref == external_ref) | (Account.telegram_user_id == telegram_user_id),
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def _materialize_verified_imported_account(
+    session: Session,
+    *,
+    item: AccountOnboardingItem,
+    account_id: str,
+    telegram_user_id: str,
+) -> Account:
+    account = Account(
+        id=account_id,
+        workspace_id=item.workspace_id,
+        external_ref=f"telegram:{telegram_user_id}",
+        telegram_user_id=telegram_user_id,
+        auth_source="tdlib_import",
+        origin="imported",
+        account_state=AccountState.AUTHORIZED_READY,
+    )
+    runtime = AccountRuntimeState(
+        account_id=account.id,
+        session_present=True,
+        authorized_last_confirmed_at=utc_now(),
+        runtime_health="ready",
+        reauth_required=False,
+        recovery_marker="tdlib_import_verified",
+    )
+    session.add_all([account, runtime])
+    session.flush()
+    return account
 
 
 def enqueue_batch_items(batch: AccountOnboardingBatch) -> bool:

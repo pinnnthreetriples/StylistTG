@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     tdlib_runtime_mode: str = "mock"
     tdlib_auth_job_timeout_seconds: int = 300
     tdlib_readonly_smoke_enabled: bool = False
+    account_onboarding_tdlib_import_enabled: bool = False
     telegram_api_id: int | None = None
     telegram_api_hash: SecretStr | None = None
     account_import_max_file_count: int = 200

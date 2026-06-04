@@ -382,7 +382,9 @@ def test_account_onboarding_json_metadata_rejects_too_large_payload(app_client) 
     assert sensitive_value not in response.text
 
 
-def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_client) -> None:
+def test_account_onboarding_phone_is_full_support_but_tdlib_import_is_preview_only(
+    app_client,
+) -> None:
     response = app_client.post(
         "/api/account-onboarding-batches",
         json={
@@ -394,8 +396,8 @@ def test_account_onboarding_default_tdlib_capability_is_not_full_support(app_cli
 
     assert response.status_code == 201
     capabilities = {item["source_type"]: item for item in response.json()["capabilities"]}
-    assert capabilities["phone_bulk"]["can_materialize_session"] is False
-    assert capabilities["phone_bulk"]["user_facing_support_level"] == "requires_reauth"
+    assert capabilities["phone_bulk"]["can_materialize_session"] is True
+    assert capabilities["phone_bulk"]["user_facing_support_level"] == "full"
     assert capabilities["tdlib_directory"]["can_materialize_session"] is False
     assert capabilities["tdlib_directory"]["user_facing_support_level"] == "preview_only"
 

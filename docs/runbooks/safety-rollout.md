@@ -1,5 +1,28 @@
 # Safety Pipeline Rollout
 
+> ⚠️ **Workspace Safety Policy temporarily disabled by developer decision (2026-06-04).**
+>
+> The kill-switch `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED` defaults to
+> `True`. While set, `get_workspace_safety_policy()` returns a transient
+> neutral policy for every consumer (gate, quarantine, status monitor,
+> neuro_commenting, warmup), so workspace-wide behavioral limits, quiet
+> hours, and auto-pauses do not apply. The Settings panel
+> `apps/dashboard/src/features/settings/SafetyPolicyPanel.tsx` surfaces this
+> as a "Временно отключено" banner.
+>
+> **Why:** the per-workspace behavioral overlay duplicates per-account
+> personality work scheduled in the advanced warmup roadmap. Re-enable only
+> after per-account behavior (personality seed, channel-state selector,
+> circadian windows) ships and absorbs the behavioral fields.
+>
+> **How to re-enable:** set
+> `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=false` (or flip the default
+> in `backend/app/config.py`). No data migration required — persisted policy
+> rows are untouched while the switch is on.
+>
+> **Test posture:** `backend/tests/conftest.py` forces the flag off so the
+> underlying policy logic remains under test.
+
 ## Pre-flight checklist
 
 - Confirm migrations are applied through `20260525_0054` (account cascade

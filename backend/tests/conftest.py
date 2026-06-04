@@ -7,6 +7,12 @@ import os
 from pathlib import Path
 import re
 
+# Tests exercise the underlying workspace safety policy logic, so the
+# kill-switch defaults to off for the test process. Production deployments
+# keep the runtime default (disabled) until per-account safety lands. Set
+# before importing platform bootstrap (which transitively builds Settings).
+os.environ.setdefault("WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED", "false")
+
 import app.platform_bootstrap  # noqa: F401
 import pytest
 

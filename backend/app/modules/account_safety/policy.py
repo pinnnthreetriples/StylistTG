@@ -16,7 +16,9 @@ from app.modules.account_safety.policy_rules import (
     WorkspaceSafetyPolicyDefaults,
     apply_preset_defaults,
     compute_diff,
+    disabled_policy_overlay,
     get_consecutive_failure_threshold,
+    is_workspace_safety_policy_temporarily_disabled,
     policy_public_snapshot,
 )
 
@@ -30,8 +32,10 @@ __all__ = [
     "compute_diff",
     "create_workspace_safety_policy",
     "delete_workspace_safety_policy",
+    "disabled_policy_overlay",
     "get_consecutive_failure_threshold",
     "get_workspace_safety_policy",
+    "is_workspace_safety_policy_temporarily_disabled",
     "policy_public_snapshot",
     "update_workspace_safety_policy",
 ]

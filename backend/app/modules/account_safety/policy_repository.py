@@ -6,8 +6,34 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import DEFAULT_LOCAL_WORKSPACE_ID, WorkspaceSafetyPolicy, new_id, utc_now
-from app.modules.account_safety.policy_rules import WorkspaceSafetyMode, apply_preset_defaults
+from app.modules.account_safety.policy_rules import (
+    WorkspaceSafetyMode,
+    apply_preset_defaults,
+    disabled_policy_overlay,
+    is_workspace_safety_policy_temporarily_disabled,
+)
 from app.workspace_bootstrap import ensure_default_workspace
+
+
+def _build_disabled_policy(workspace_id: str) -> WorkspaceSafetyPolicy:
+    """Construct a transient (not session-attached) neutral policy.
+
+    The kill-switch returns this from get_workspace_safety_policy so every
+    consumer (gate, quarantine, status monitor, neuro_commenting, warmup gates)
+    automatically sees a policy that imposes no restrictions and triggers no
+    automatic pauses. Object is NOT added to the session — it must not be
+    persisted, and update/delete paths must short-circuit before mutating it.
+    """
+    now = utc_now()
+    policy = WorkspaceSafetyPolicy(
+        id="disabled",
+        workspace_id=workspace_id,
+        created_at=now,
+        updated_at=now,
+    )
+    for key, value in disabled_policy_overlay().items():
+        setattr(policy, key, value)
+    return policy
 
 
 def get_workspace_safety_policy(
@@ -16,6 +42,8 @@ def get_workspace_safety_policy(
     workspace_id: str,
     create_if_missing: bool = False,
 ) -> WorkspaceSafetyPolicy | None:
+    if is_workspace_safety_policy_temporarily_disabled():
+        return _build_disabled_policy(workspace_id)
     policy = session.execute(
         select(WorkspaceSafetyPolicy).where(WorkspaceSafetyPolicy.workspace_id == workspace_id)
     ).scalar_one_or_none()
@@ -55,6 +83,10 @@ def update_workspace_safety_policy(
     workspace_id: str,
     values: dict[str, Any],
 ) -> WorkspaceSafetyPolicy:
+    if is_workspace_safety_policy_temporarily_disabled():
+        # Kill-switch on: PATCH is a no-op — return the same transient neutral
+        # policy that GET serves. Persisted DB rows (if any) are untouched.
+        return _build_disabled_policy(workspace_id)
     policy = get_workspace_safety_policy(session, workspace_id=workspace_id, create_if_missing=True)
     if policy is None:
         raise RuntimeError("workspace safety policy was not created")
@@ -81,7 +113,11 @@ def update_workspace_safety_policy(
 
 
 def delete_workspace_safety_policy(session: Session, *, workspace_id: str) -> bool:
-    policy = get_workspace_safety_policy(session, workspace_id=workspace_id)
+    if is_workspace_safety_policy_temporarily_disabled():
+        return False
+    policy = session.execute(
+        select(WorkspaceSafetyPolicy).where(WorkspaceSafetyPolicy.workspace_id == workspace_id)
+    ).scalar_one_or_none()
     if policy is None:
         return False
     session.delete(policy)

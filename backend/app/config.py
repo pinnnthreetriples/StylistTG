@@ -123,6 +123,13 @@ class Settings(BaseSettings):
     warmup_peer_eligibility_delay_hours: int = 24
     warmup_datacenter_proxy_policy: str = "warn"
     warmup_spam_bot_recovery_enabled: bool = False
+    # Kill-switch: when True, get_workspace_safety_policy() returns a transient
+    # "neutral" policy object (all probabilities/quiet hours zeroed, all
+    # auto-pause thresholds raised to MAX, all profile/proxy requirements off).
+    # Every consumer of workspace safety policy automatically sees the
+    # disabled policy without per-consumer changes. UI shows a banner and
+    # disables admin controls. Flip to False to re-enable workspace policy.
+    workspace_safety_policy_temporarily_disabled: bool = True
     neuro_comment_ai_provider: str = "fake"
     neuro_comment_ai_base_url: str | None = None
     neuro_comment_ai_api_key: SecretStr | None = None

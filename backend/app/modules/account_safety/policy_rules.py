@@ -111,6 +111,48 @@ def apply_preset_defaults(mode: WorkspaceSafetyMode) -> dict[str, Any]:
     return PRESET_DEFAULTS[mode].as_update(mode=mode)
 
 
+# Neutral overlay used by the kill-switch (see
+# Settings.workspace_safety_policy_temporarily_disabled). Every field set so
+# the policy effectively imposes no restrictions and triggers no automatic
+# pauses. Mode kept as "balanced" purely so legacy code that switches on it
+# still gets a valid literal — UI surfaces `temporarily_disabled` instead.
+_DISABLED_OVERLAY: dict[str, Any] = {
+    "mode": "balanced",
+    "delay_multiplier": 1.0,
+    "typing_chars_per_minute_min": None,
+    "typing_chars_per_minute_max": None,
+    "profile_view_probability": 0.0,
+    "scroll_probability": 0.0,
+    "typo_probability": 0.0,
+    "message_deletion_probability": 0.0,
+    "quiet_hours_local_start": None,
+    "quiet_hours_local_end": None,
+    "require_warmup_before_commenting": False,
+    "min_warmup_days": 0,
+    "require_healthy_proxy": False,
+    "min_account_age_hours": 0,
+    "auto_pause_on_flood_wait_count": 2_147_483_647,
+    "auto_pause_on_deleted_comments_count": 2_147_483_647,
+    "quarantine_hours_on_flood_wait": 0,
+    # ConsecutiveFailureThreshold is bounded to 1..20 by the public schema, so
+    # we pick the upper bound to make accidental triggering as rare as possible
+    # while still satisfying validation.
+    "consecutive_failure_threshold": 20,
+}
+
+
+def disabled_policy_overlay() -> dict[str, Any]:
+    """Return a neutral policy field dict for the kill-switch overlay."""
+    return dict(_DISABLED_OVERLAY)
+
+
+def is_workspace_safety_policy_temporarily_disabled() -> bool:
+    """Read the kill-switch flag from settings (deferred import to avoid cycles)."""
+    from app.config import settings
+
+    return bool(getattr(settings, "workspace_safety_policy_temporarily_disabled", False))
+
+
 def policy_public_snapshot(policy: Any | Mapping[str, Any]) -> dict[str, Any]:
     return {
         field: value
@@ -156,6 +198,8 @@ __all__ = [
     "WorkspaceSafetyPolicyDefaults",
     "apply_preset_defaults",
     "compute_diff",
+    "disabled_policy_overlay",
     "get_consecutive_failure_threshold",
+    "is_workspace_safety_policy_temporarily_disabled",
     "policy_public_snapshot",
 ]

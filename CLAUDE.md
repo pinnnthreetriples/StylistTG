@@ -20,6 +20,10 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
 - When working on a board issue: follow `.mex/patterns/board-workflow.md` for status transitions — move to In Progress at session start, Review after PR with verification, Done only after merge.
 
+## Current State Notes
+
+- **Workspace Safety Policy is temporarily disabled** by developer decision (2026-06-04). The `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED` setting defaults to `True`; every consumer of `get_workspace_safety_policy()` sees a neutral transient policy and the Settings UI shows a "Временно отключено" banner. Re-enable only after per-account behavior (personality seed, channel-state selector, circadian windows) lands. Details and rollback in `docs/runbooks/safety-rollout.md`.
+
 ## Agent skills
 
 Use only StylistTG project skills from the active agent runtime's project skill directory in this section. Global skills are configured outside this repository and do not need to be repeated here.

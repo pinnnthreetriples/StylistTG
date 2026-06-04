@@ -29,8 +29,11 @@ const MODE_TONES: Record<SafetyMode, 'green' | 'amber' | 'red'> = {
 export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
   const queryClient = useQueryClient()
   const policyQuery = useQuery(workspaceSafetyPolicyQueryOptions())
-  const canEdit = currentUserRole === 'admin' || currentUserRole === 'owner'
+  const adminCanEdit = currentUserRole === 'admin' || currentUserRole === 'owner'
   const policy = policyQuery.data
+  const temporarilyDisabled =
+    (policy as { temporarily_disabled?: boolean } | undefined)?.temporarily_disabled === true
+  const canEdit = adminCanEdit && !temporarilyDisabled
   const updateMutation = useMutation({
     mutationFn: (mode: SafetyMode) => updateWorkspaceSafetyPolicy({ mode }),
     onSuccess: (nextPolicy) => updateWorkspaceSafetyPolicyInCache(queryClient, nextPolicy),
@@ -42,8 +45,8 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
       description="Единая policy для задержек, имитации поведения, прогрева, прокси и автопауз."
       actions={
         policy ? (
-          <StatusPill tone={MODE_TONES[policy.mode as SafetyMode]}>
-            {MODE_LABELS[policy.mode as SafetyMode]}
+          <StatusPill tone={temporarilyDisabled ? 'amber' : MODE_TONES[policy.mode as SafetyMode]}>
+            {temporarilyDisabled ? 'Отключено' : MODE_LABELS[policy.mode as SafetyMode]}
           </StatusPill>
         ) : null
       }
@@ -52,6 +55,18 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
         <div className="text-sm text-muted-foreground">Загрузка policy...</div>
       ) : policyQuery.isError || !policy ? (
         <div className="text-sm text-muted-foreground">Policy безопасности недоступна.</div>
+      ) : temporarilyDisabled ? (
+        <div
+          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-900"
+          role="status"
+        >
+          <div className="mb-1 font-semibold">Временно отключено</div>
+          <p>
+            AI-защита рабочей области неактивна — поведенческие ограничения,
+            тихие часы и автопаузы не применяются. Настройки сохранены и не
+            редактируются до повторного включения.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,240px)_1fr] sm:items-center">

@@ -14,6 +14,8 @@ from app.models import (
     AccountOnboardingArtifact,
     AccountOnboardingBatch,
     AccountOnboardingItem,
+    AuthBatchItem,
+    AuthBatchItemStatus,
     IdempotencyKey,
     new_id,
     utc_now,
@@ -58,6 +60,8 @@ from app.modules.account_onboarding.state import (
     transition_batch,
     transition_item,
 )
+from app.services.auth_batch_tdlib import submit_batch_code, submit_batch_password
+from app.services.auth_batches import PhoneInput, create_auth_batch, start_batch
 from app.services.retry_policy import classify_error_category, retry_policy_for
 
 
@@ -113,6 +117,9 @@ def create_batch(
         artifact.batch_id = batch.id
         artifact.updated_at = utc_now()
     _add_preview_items(session, batch, body)
+    session.flush()
+    if batch.source_type == "phone_bulk":
+        _ensure_phone_auth_batch(session, batch, user_id=user_id)
     recalculate_batch_counters(batch)
     event(
         batch,
@@ -157,7 +164,10 @@ def list_batches(session: Session, *, workspace_id: str) -> list[AccountOnboardi
 def get_snapshot(
     session: Session, *, workspace_id: str, batch_id: str
 ) -> AccountOnboardingSnapshotRead:
-    return snapshot_read(_require_batch(session, workspace_id, batch_id))
+    batch = _require_batch(session, workspace_id, batch_id)
+    _sync_batch_from_auth(session, batch)
+    session.commit()
+    return snapshot_read(batch)
 
 
 def validate_batch(
@@ -176,6 +186,7 @@ def validate_batch(
     if cached:
         return AccountOnboardingSnapshotRead.model_validate(cached)
     _ensure_batch_artifacts_still_usable(session, batch)
+    _sync_batch_from_auth(session, batch)
     transition_batch(batch, "validating", actor_user_id=user_id, actor_type="user")
     for item in batch.items:
         transition_item(item, "validating", actor_user_id=user_id, actor_type="user")
@@ -206,6 +217,7 @@ def confirm_batch(
     payload: AccountOnboardingConfirmRequest,
 ) -> AccountOnboardingSnapshotRead:
     batch = _require_batch(session, workspace_id, batch_id)
+    _sync_batch_from_auth(session, batch)
     if not payload.consent_accepted:
         raise consent_required()
     digest = _payload_hash(payload.model_dump(mode="json"))
@@ -268,6 +280,7 @@ def cancel_batch(
     payload: AccountOnboardingMutationRequest,
 ) -> AccountOnboardingSnapshotRead:
     batch = _require_batch(session, workspace_id, batch_id)
+    _sync_batch_from_auth(session, batch)
     digest = _payload_hash({"batch_id": batch_id})
     cached = _load_idempotent(
         session, workspace_id, "cancel_batch", payload.idempotency_key, digest
@@ -311,6 +324,7 @@ def retry_item(
     payload: AccountOnboardingMutationRequest,
 ) -> AccountOnboardingItemRead:
     item = _require_item(session, workspace_id, batch_id, item_id)
+    _sync_item_from_auth(session, item)
     digest = _payload_hash({"batch_id": batch_id, "item_id": item_id})
     cached = _load_idempotent(session, workspace_id, "retry_item", payload.idempotency_key, digest)
     if cached:
@@ -369,6 +383,7 @@ def submit_code(
     payload: AccountOnboardingCodeRequest,
 ) -> AccountOnboardingItemRead:
     item = _require_item(session, workspace_id, batch_id, item_id)
+    _sync_item_from_auth(session, item)
     digest = _payload_hash(
         {"batch_id": batch_id, "item_id": item_id, "code_sha256": _secret_hash(payload.code)}
     )
@@ -385,11 +400,18 @@ def submit_code(
         actor_type="user",
         payload={"code": "[redacted]"},
     )
-    item.last_error_code = "auth_continuation_not_enabled"
-    item.last_error_message = (
-        "Account onboarding does not continue Telegram auth from submitted codes yet."
-    )
-    transition_item(item, "failed", payload={"reason": "auth_continuation_not_enabled"})
+    if item.auth_batch_item_id is None:
+        raise invalid_state("Item is not linked to an auth batch item.")
+    try:
+        auth_item = submit_batch_code(session, item.auth_batch_item_id, payload.code)
+    except ValueError as exc:
+        raise invalid_state(str(exc)) from exc
+    if auth_item.batch.status == "running":
+        from app.services.auth_batch_dispatcher import dispatch_once
+
+        dispatch_once(session, auth_item.batch_id)
+    _apply_auth_item_to_onboarding_item(item, auth_item)
+    maybe_finish_batch(item.batch)
     read = item_read(item)
     _save_idempotent(
         session,
@@ -414,6 +436,7 @@ def submit_password(
     payload: AccountOnboardingPasswordRequest,
 ) -> AccountOnboardingItemRead:
     item = _require_item(session, workspace_id, batch_id, item_id)
+    _sync_item_from_auth(session, item)
     digest = _payload_hash(
         {
             "batch_id": batch_id,
@@ -436,11 +459,18 @@ def submit_password(
         actor_type="user",
         payload={"password": "[redacted]"},
     )
-    item.last_error_code = "auth_continuation_not_enabled"
-    item.last_error_message = (
-        "Account onboarding does not continue Telegram auth from submitted passwords yet."
-    )
-    transition_item(item, "failed", payload={"reason": "auth_continuation_not_enabled"})
+    if item.auth_batch_item_id is None:
+        raise invalid_state("Item is not linked to an auth batch item.")
+    try:
+        auth_item = submit_batch_password(session, item.auth_batch_item_id, payload.password)
+    except ValueError as exc:
+        raise invalid_state(str(exc)) from exc
+    if auth_item.batch.status == "running":
+        from app.services.auth_batch_dispatcher import dispatch_once
+
+        dispatch_once(session, auth_item.batch_id)
+    _apply_auth_item_to_onboarding_item(item, auth_item)
+    maybe_finish_batch(item.batch)
     read = item_read(item)
     _save_idempotent(
         session,
@@ -591,8 +621,13 @@ def execute_item(session: Session, *, item_id: str) -> AccountOnboardingItem:
     if item.batch.consent_confirmed_at is None:
         raise consent_required()
     if item.status != "queued":
+        _sync_item_from_auth(session, item)
         return item
     transition_batch(item.batch, "running")
+    if item.batch.source_type == "phone_bulk":
+        _start_phone_auth(session, item)
+        session.commit()
+        return item
     adapter = get_adapter(item.batch.source_type)
     outcome = adapter.execute(item)
     if item.batch.source_type == "phone_bulk":
@@ -732,6 +767,7 @@ def _add_preview_items(
                 source_ref_hash=_hash(row["source_ref"]),
                 position=row["position"],
                 status="pending",
+                phone_number=row.get("phone"),
                 phone_hint=row.get("phone_hint"),
                 phone_normalized_hash=_hash(row["phone"]) if row.get("phone") else None,
                 username_hint=row.get("username_hint"),
@@ -747,6 +783,127 @@ def _add_preview_items(
                 updated_at=now,
             )
         )
+
+
+def _ensure_phone_auth_batch(
+    session: Session, batch: AccountOnboardingBatch, *, user_id: str | None
+) -> None:
+    valid_items = [
+        item for item in batch.items if item.validation_code is None and item.phone_number
+    ]
+    if not valid_items:
+        return
+    inputs = [
+        PhoneInput(phone_number=str(item.phone_number), label=item.label) for item in valid_items
+    ]
+    auth_batch, _created = create_auth_batch(
+        session,
+        idempotency_key=f"account-onboarding:{batch.id}",
+        label=batch.label,
+        inputs=inputs,
+        workspace_id=batch.workspace_id,
+        actor_user_id=user_id,
+    )
+    auth_by_phone_hash = {
+        _hash(auth_item.phone_number): auth_item for auth_item in auth_batch.items
+    }
+    for item in valid_items:
+        auth_item = auth_by_phone_hash.get(item.phone_normalized_hash or "")
+        if auth_item is None:
+            continue
+        item.auth_batch_id = auth_batch.id
+        item.auth_batch_item_id = auth_item.id
+        item.account_id = auth_item.account_id
+
+
+def _start_phone_auth(session: Session, item: AccountOnboardingItem) -> None:
+    if item.auth_batch_id is None or item.auth_batch_item_id is None:
+        _ensure_phone_auth_batch(session, item.batch, user_id=item.batch.created_by_user_id)
+    if item.auth_batch_id is None or item.auth_batch_item_id is None:
+        item.last_error_code = "phone_auth_bridge_missing"
+        item.last_error_message = "Phone onboarding item is not linked to auth execution."
+        transition_item(item, "failed", payload={"reason": "phone_auth_bridge_missing"})
+        maybe_finish_batch(item.batch)
+        return
+    auth_batch = start_batch(session, item.auth_batch_id, workspace_id=item.workspace_id)
+    from app.services.auth_batch_dispatcher import dispatch_once
+
+    launched = dispatch_once(session, auth_batch.id)
+    auth_item = session.get(AuthBatchItem, item.auth_batch_item_id)
+    if auth_item is None:
+        item.last_error_code = "phone_auth_item_missing"
+        item.last_error_message = "Linked auth batch item was not found."
+        transition_item(item, "failed", payload={"reason": "phone_auth_item_missing"})
+        maybe_finish_batch(item.batch)
+        return
+    if launched == 0 and auth_item.status == AuthBatchItemStatus.QUEUED:
+        item.last_error_code = "phone_auth_dispatch_not_started"
+        item.last_error_message = "Phone auth worker dispatch did not start."
+        transition_item(item, "failed", payload={"reason": "phone_auth_dispatch_not_started"})
+        maybe_finish_batch(item.batch)
+        return
+    _apply_auth_item_to_onboarding_item(item, auth_item)
+
+
+def _sync_batch_from_auth(session: Session | None, batch: AccountOnboardingBatch) -> None:
+    for item in batch.items:
+        _sync_item_from_auth(session, item)
+    maybe_finish_batch(batch)
+
+
+def _sync_item_from_auth(session: Session | None, item: AccountOnboardingItem) -> None:
+    if item.auth_batch_item_id is None:
+        return
+    auth_item = (
+        session.get(AuthBatchItem, item.auth_batch_item_id) if session else item.auth_batch_item
+    )
+    if auth_item is None:
+        return
+    _apply_auth_item_to_onboarding_item(item, auth_item)
+
+
+def _apply_auth_item_to_onboarding_item(
+    item: AccountOnboardingItem, auth_item: AuthBatchItem
+) -> None:
+    target = _onboarding_status_for_auth_item(auth_item)
+    item.account_id = auth_item.account_id
+    item.last_error_code = auth_item.error_code
+    item.last_error_message = auth_item.error_message
+    if target == item.status:
+        return
+    if item.status == "queued" and target in {
+        "starting_auth",
+        "waiting_code",
+        "waiting_2fa",
+        "ready",
+    }:
+        transition_item(item, "starting_auth", payload={"auth_batch_item_id": auth_item.id})
+    if item.status == "starting_auth" and target in {"waiting_code", "waiting_2fa", "ready"}:
+        transition_item(item, target, payload={"auth_batch_item_id": auth_item.id})
+    elif target in {"failed", "cancelled"}:
+        transition_item(item, target, payload={"auth_batch_item_id": auth_item.id})
+    elif item.status in {"waiting_code", "waiting_2fa"} and target in {
+        "waiting_2fa",
+        "ready",
+        "failed",
+    }:
+        transition_item(item, target, payload={"auth_batch_item_id": auth_item.id})
+
+
+def _onboarding_status_for_auth_item(auth_item: AuthBatchItem) -> str:
+    if auth_item.status == AuthBatchItemStatus.QUEUED:
+        return "queued"
+    if auth_item.status == AuthBatchItemStatus.STARTING:
+        return "starting_auth"
+    if auth_item.status == AuthBatchItemStatus.WAITING_CODE:
+        return "waiting_code"
+    if auth_item.status == AuthBatchItemStatus.WAITING_2FA:
+        return "waiting_2fa"
+    if auth_item.status == AuthBatchItemStatus.AUTHORIZED:
+        return "ready"
+    if auth_item.status == AuthBatchItemStatus.CANCELLED:
+        return "cancelled"
+    return "failed"
 
 
 def _target_status(item: AccountOnboardingItem) -> str:

@@ -8,6 +8,7 @@
 - Unsupported formats are not silently attached.
 - No anti-ban or safety guarantees are implied by onboarding success.
 - Audit/event payloads must stay safe and redacted.
+- Phone onboarding uses the existing AuthBatch TDLib worker path after consent; do not paste OTP/2FA secrets into chat or logs.
 
 ## Normal Flow
 
@@ -26,7 +27,7 @@
 - `ONBOARDING_QUEUE_UNAVAILABLE`: Redis/RQ enqueue failed. Verify `auth_jobs` worker and Redis.
 - `ONBOARDING_ARTIFACT_UNSAFE`: inspect safe `validation_code`; do not bypass quarantine validation.
 - `ONBOARDING_RATE_LIMITED`: retry was attempted before `next_retry_at`; wait for `retry_after_seconds`.
-- `requires_reauth`: source can be previewed but does not produce a verified ready session.
+- `requires_reauth`: source can be previewed but does not produce a verified ready session. Phone onboarding should instead progress through `starting_auth`, `waiting_code`/`waiting_2fa`, and `ready` when TDLib is configured and the operator submits the required secret through the UI/API.
 - `tdlib_not_configured`: TDLib verification cannot run in current environment.
 
 ## Cleanup

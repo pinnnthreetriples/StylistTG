@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from app.adapters.warmup_tdlib import (
     SUPPORTED_ACTIONS_BY_MODE,
+    SUPPORTED_ADVANCED_ACTIONS,
     SUPPORTED_PASSIVE_ACTIONS,
     WRITE_ACTION_TYPES,
     MockWarmupTdlibAdapter,
@@ -58,7 +59,25 @@ def test_supported_actions_by_mode_keys():
 
 
 def test_write_action_types():
-    assert WRITE_ACTION_TYPES == frozenset({"join_chat", "react_to_post", "p2p_send"})
+    assert WRITE_ACTION_TYPES == frozenset(
+        {
+            "join_chat",
+            "react_to_post",
+            "p2p_send",
+            "forward_message",
+            "saved_messages",
+            "sync_contacts",
+            "archive_chat",
+            "mute_chat",
+            "simulate_typing",
+            "emoji_status",
+            "drafts",
+            "scheduled_messages",
+            "update_profile_gradual",
+            "notification_settings",
+        }
+    )
+    assert WRITE_ACTION_TYPES.issubset(set(SUPPORTED_ADVANCED_ACTIONS))
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +207,22 @@ def test_mock_adapter_react_to_post_ok():
     assert result.metadata["channel_ref"] == "@news"
     assert result.metadata["reaction"] in {"👍", "🔥"}
     assert result.metadata["has_reactions"] is True
+
+
+def test_mock_adapter_react_to_post_prefers_favorite_emoji():
+    adapter = MockWarmupTdlibAdapter(rng_seed=1)
+    result = adapter.execute_action(
+        account_id="a1",
+        action_type="react_to_post",
+        context={
+            "channel_ref": "@news",
+            "available_reactions": ["👍", "🔥"],
+            "personality_seed": {"favorite_emojis": ["🔥"]},
+        },
+    )
+
+    assert result.is_ok
+    assert result.metadata["reaction"] == "🔥"
 
 
 def test_mock_adapter_p2p_send_ok():

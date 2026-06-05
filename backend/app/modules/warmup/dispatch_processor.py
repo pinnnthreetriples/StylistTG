@@ -133,6 +133,7 @@ def _process_one_dispatch(
         available_targets=available_targets,
         rng=rng,
         now=now,
+        personality_seed=warmup_session.personality_seed_json,
     )
 
     write_warmup_event(

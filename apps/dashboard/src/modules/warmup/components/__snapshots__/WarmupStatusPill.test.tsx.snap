@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`WarmupStatusPill > LIVE snapshot 1`] = `"<span class="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-xs text-foreground animate-pulse motion-reduce:animate-none"><span class="size-2 rounded-full bg-muted"></span>В прямом эфире</span>"`;
+
+exports[`WarmupStatusPill > OFFLINE snapshot 1`] = `"<span class="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-xs text-foreground"><span class="size-2 rounded-full bg-destructive"></span>Не в сети</span>"`;
+
+exports[`WarmupStatusPill > RUNNING snapshot 1`] = `"<span class="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-xs text-foreground animate-pulse motion-reduce:animate-none"><span class="size-2 rounded-full bg-muted"></span>Работает</span>"`;
+
+exports[`WarmupStatusPill > STOPPED snapshot 1`] = `"<span class="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-xs text-foreground"><span class="size-2 rounded-full bg-foreground"></span>Остановлено</span>"`;

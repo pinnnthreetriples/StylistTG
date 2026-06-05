@@ -4,6 +4,7 @@ import type {
   WarmupEventPage,
   WarmupIsolationStatus,
   WarmupReadiness,
+  WarmupActionPreset,
   WarmupSessionDetail,
   WarmupSessionPage,
   WarmupStrategy,
@@ -16,6 +17,13 @@ export function fetchWarmupReadiness(): Promise<WarmupReadiness> {
 
 export function fetchWarmupStrategies(): Promise<WarmupStrategy[]> {
   return apiRequest('/api/warmup/strategies')
+}
+
+export function applyWarmupActionPreset(strategyId: string, preset: WarmupActionPreset): Promise<WarmupStrategy> {
+  return apiRequest(`/api/warmup/strategies/${encodeURIComponent(strategyId)}/apply-preset`, {
+    method: 'POST',
+    body: JSON.stringify({ preset }),
+  })
 }
 
 export function fetchWarmupSessions(params?: { page?: number; limit?: number }): Promise<WarmupSessionPage> {

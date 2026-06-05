@@ -10,6 +10,7 @@ import { queryKeys } from '@/lib/queries'
 
 import { useCreateWarmupSession, useWarmupStrategies, useWarmupValidate } from '../hooks'
 import type { WarmupStrategy } from '../types'
+import { ActionPresetButtons } from './ActionPresetButtons'
 import {
   WarmupAccountSelector,
   WarmupCreateSummary,
@@ -86,6 +87,15 @@ export function WarmupCreateWizard() {
           createMutation.reset()
         }}
       />
+      {selectedStrategy ? (
+        <ActionPresetButtons
+          strategyId={selectedStrategy.id}
+          onApplied={() => {
+            setValidatedFor(null)
+            validateMutation.reset()
+          }}
+        />
+      ) : null}
       <WarmupValidationPanel validation={validation} />
 
       <div className="mt-5 rounded-lg border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">

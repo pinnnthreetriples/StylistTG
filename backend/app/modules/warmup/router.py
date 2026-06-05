@@ -16,6 +16,7 @@ from app.db import get_session
 from app.errors import AppError
 from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
+    WarmupActionPresetRequest,
     WarmupEventPageRead,
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
@@ -33,6 +34,7 @@ from app.modules.auth.dependencies import (
     AuthContext,
     require_authenticated,
     require_mutation_permission,
+    require_role,
 )
 
 
@@ -68,6 +70,26 @@ def get_warmup_strategies(
     auth: AuthContext = Depends(require_authenticated),
 ) -> list[WarmupStrategyRead]:
     return warmup_service.list_warmup_strategies(session, workspace_id=auth.workspace_id)
+
+
+@router.post("/strategies/{strategy_id}/apply-preset", response_model=WarmupStrategyRead)
+def post_warmup_strategy_apply_preset(
+    strategy_id: UUID,
+    payload: WarmupActionPresetRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_role("admin")),
+) -> WarmupStrategyRead:
+    try:
+        return warmup_service.apply_action_preset_use_case(
+            session,
+            strategy_id=str(strategy_id),
+            workspace_id=auth.workspace_id,
+            preset=payload.preset,
+            actor_user_id=auth.user_id,
+        )
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
 
 
 @router.post("/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED)

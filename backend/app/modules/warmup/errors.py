@@ -34,6 +34,16 @@ class WarmupSessionNotFoundError(WarmupError):
         )
 
 
+class WarmupStrategyNotFoundError(WarmupError):
+    def __init__(self, legacy_message: str = "strategy not found") -> None:
+        super().__init__(
+            legacy_message,
+            error_code="WARMUP_STRATEGY_NOT_FOUND",
+            error_class="not_found",
+            status_code=404,
+        )
+
+
 class WarmupSessionRejectedError(WarmupError):
     def __init__(self, legacy_message: str) -> None:
         super().__init__(
@@ -95,4 +105,5 @@ __all__ = [
     "WarmupResumeRejectedError",
     "WarmupSessionNotFoundError",
     "WarmupSessionRejectedError",
+    "WarmupStrategyNotFoundError",
 ]

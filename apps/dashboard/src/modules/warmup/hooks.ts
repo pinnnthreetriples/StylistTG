@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useCallback, useState } from 'react'
 
 import {
+  applyWarmupActionPreset,
   createWarmupSession,
   deleteWarmupSession,
   fetchWarmupEvents,
@@ -15,6 +16,7 @@ import {
   validateWarmup,
 } from './api'
 import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
+import type { WarmupActionPreset } from './types'
 
 export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
 
@@ -116,6 +118,17 @@ export function useWarmupValidate() {
   return useMutation({
     mutationFn: ({ accountId, strategyId }: { accountId: string; strategyId: string }) =>
       validateWarmup(accountId, strategyId),
+  })
+}
+
+export function useApplyWarmupActionPreset() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ strategyId, preset }: { strategyId: string; preset: WarmupActionPreset }) =>
+      applyWarmupActionPreset(strategyId, preset),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.strategies })
+    },
   })
 }
 

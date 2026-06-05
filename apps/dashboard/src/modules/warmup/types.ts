@@ -13,6 +13,8 @@ export type WarmupExecutionMode = 'dry_run' | 'shadow' | 'passive' | 'network' |
 
 export type WarmupPresetKind = 'express' | 'standard' | 'hardened' | 'custom'
 
+export type WarmupActionPreset = 'economic' | 'all' | 'minimal'
+
 export type WarmupRiskLevel = 'low' | 'medium' | 'high'
 
 export type ProxyCategory = 'datacenter' | 'residential' | 'mobile' | 'unknown'

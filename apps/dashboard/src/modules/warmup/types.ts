@@ -15,6 +15,16 @@ export type WarmupPresetKind = 'express' | 'standard' | 'hardened' | 'custom'
 
 export type WarmupActionPreset = 'economic' | 'all' | 'minimal'
 
+export type WarmupActionCategory = 'reading' | 'activity' | 'entertainment' | 'social' | 'groups' | 'profile'
+
+export type WarmupActionMetadata = {
+  action_type: string
+  category: WarmupActionCategory
+  traffic_heavy: boolean
+  write_action: boolean
+  requires_premium: boolean
+}
+
 export type WarmupRiskLevel = 'low' | 'medium' | 'high'
 
 export type ProxyCategory = 'datacenter' | 'residential' | 'mobile' | 'unknown'

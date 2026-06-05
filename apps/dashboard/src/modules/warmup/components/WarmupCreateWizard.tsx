@@ -8,9 +8,10 @@ import { fetchAccounts } from '@/lib/api'
 import { isApiError } from '@/lib/http'
 import { queryKeys } from '@/lib/queries'
 
-import { useCreateWarmupSession, useWarmupStrategies, useWarmupValidate } from '../hooks'
+import { useCreateWarmupSession, useWarmupActionMetadata, useWarmupStrategies, useWarmupValidate } from '../hooks'
 import type { WarmupStrategy } from '../types'
 import { ActionPresetButtons } from './ActionPresetButtons'
+import { ActionMetadataPanel } from './ActionMetadataPanel'
 import {
   WarmupAccountSelector,
   WarmupCreateSummary,
@@ -24,6 +25,7 @@ const EMPTY_STRATEGIES: WarmupStrategy[] = []
 export function WarmupCreateWizard() {
   const accountsQuery = useQuery({ queryKey: queryKeys.accounts, queryFn: fetchAccounts })
   const strategiesQuery = useWarmupStrategies()
+  const actionMetadataQuery = useWarmupActionMetadata()
   const validateMutation = useWarmupValidate()
   const createMutation = useCreateWarmupSession()
   const [accountId, setAccountId] = useState('')
@@ -96,6 +98,7 @@ export function WarmupCreateWizard() {
           }}
         />
       ) : null}
+      <ActionMetadataPanel metadata={actionMetadataQuery.data ?? []} />
       <WarmupValidationPanel validation={validation} />
 
       <div className="mt-5 rounded-lg border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">

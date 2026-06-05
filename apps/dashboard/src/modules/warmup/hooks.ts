@@ -5,6 +5,7 @@ import {
   applyWarmupActionPreset,
   createWarmupSession,
   deleteWarmupSession,
+  fetchWarmupActionMetadata,
   fetchWarmupEvents,
   fetchWarmupIsolationStatus,
   fetchWarmupReadiness,
@@ -22,6 +23,7 @@ export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'acti
 
 export const warmupQueryKeys = {
   readiness: ['warmup', 'readiness'] as const,
+  actionMetadata: ['warmup', 'actions', 'metadata'] as const,
   strategies: ['warmup', 'strategies'] as const,
   sessions: ['warmup', 'sessions'] as const,
   sessionDetail: (sessionId: string) => ['warmup', 'sessions', sessionId, 'detail'] as const,
@@ -41,6 +43,14 @@ export function useWarmupStrategies() {
   return useQuery({
     queryKey: warmupQueryKeys.strategies,
     queryFn: fetchWarmupStrategies,
+  })
+}
+
+export function useWarmupActionMetadata() {
+  return useQuery({
+    queryKey: warmupQueryKeys.actionMetadata,
+    queryFn: fetchWarmupActionMetadata,
+    staleTime: 5 * 60_000,
   })
 }
 

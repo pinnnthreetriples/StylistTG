@@ -165,6 +165,7 @@ class WarmupStatus(StrEnum):
     DRAFT = "draft"
     VALIDATING = "validating"
     SCHEDULED = "scheduled"
+    COLD_SOAK = "cold_soak"
     ACTIVE = "active"
     PAUSED_RISK = "paused_risk"
     PAUSED_MANUAL = "paused_manual"
@@ -342,3 +343,4 @@ from app.model_defs.warmup import (  # noqa: E402,F401
     WarmupTaskRun,
     WarmupTrustedPeer,
 )
+from app.model_defs.warmup_channel_state import WarmupChannelState  # noqa: E402,F401

@@ -9,6 +9,10 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.config import settings
 from app.models import WarmupSession
+from app.modules.warmup.adaptive_plan import (
+    apply_plan_adjustment,
+    compute_next_day_adjustment,
+)
 from app.modules.warmup.channel_state import selector as channel_selector
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
 
@@ -53,7 +57,7 @@ def _resolve_day_plan(warmup_session: WarmupSession) -> dict[str, int]:
             plan[str(key)] = max(0, int(cast(Any, value)))
         except _INT_COERCION_ERRORS:
             continue
-    return plan
+    return apply_plan_adjustment(plan, compute_next_day_adjustment(warmup_session, datetime.now(UTC)))
 
 
 def _resolve_day_counters(warmup_session: WarmupSession) -> dict[str, int]:

@@ -347,3 +347,4 @@ from app.model_defs.warmup import (  # noqa: E402,F401
 from app.model_defs.warmup_p2p_friend_link import WarmupP2pFriendLink  # noqa: E402,F401
 from app.model_defs.account_survival import AccountSurvivalMetric  # noqa: E402,F401
 from app.model_defs.warmup_channel_state import WarmupChannelState  # noqa: E402,F401
+from app.model_defs.warmup_bootstrap_channel import WarmupBootstrapChannel  # noqa: E402,F401

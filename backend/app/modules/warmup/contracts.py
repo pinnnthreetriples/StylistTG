@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.contracts.types import UuidString
 
@@ -73,6 +73,37 @@ class WarmupActionPresetRequest(BaseModel):
 
 class WarmupDisabledActionsRequest(BaseModel):
     actions: list[str] = Field(default_factory=list)
+
+
+class WarmupBootstrapChannelCreate(BaseModel):
+    channel_ref: str
+    category: Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"]
+    language: str = Field(min_length=1, max_length=16)
+    country: str | None = Field(default=None, max_length=8)
+
+
+class WarmupBootstrapChannelPatch(BaseModel):
+    category: Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None = (
+        None
+    )
+    language: str | None = Field(default=None, min_length=1, max_length=16)
+    country: str | None = Field(default=None, max_length=8)
+    is_active: bool | None = None
+
+
+class WarmupBootstrapChannelRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    channel_ref: str
+    category: str
+    language: str
+    country: str | None = None
+    verified_safe_at: datetime
+    added_by: str | None = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class WarmupActionMetadataRead(BaseModel):
@@ -227,6 +258,9 @@ class WarmupReadinessRead(BaseModel):
 
 
 __all__ = [
+    "WarmupBootstrapChannelCreate",
+    "WarmupBootstrapChannelPatch",
+    "WarmupBootstrapChannelRead",
     "WarmupCheckItemRead",
     "WarmupCheckSeverityRead",
     "WarmupCycleConfigRead",

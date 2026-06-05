@@ -4,9 +4,9 @@ import random
 from datetime import UTC, datetime
 
 from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
-from app.models import WarmupExecutionMode
+from app.models import ProxyCategory, WarmupExecutionMode
 from app.services.warmup_dispatch import process_due_warmup_dispatches
-from tests.helpers.warmup import seed_warmup_session, seed_warmup_strategy
+from tests.helpers.warmup import seed_warmup_account, seed_warmup_session, seed_warmup_strategy
 from tests.warmup.test_warmup_network_advanced import (
     _ProgrammableTdlibClient,
     _make_real_adapter,
@@ -189,7 +189,8 @@ def test_shadow_entertainment_actions_do_not_call_adapter(db_session) -> None:
             }
         },
     )
-    warmup_session = seed_warmup_session(db_session, strategy=strategy, now=NOW)
+    account = seed_warmup_account(db_session, proxy_category=ProxyCategory.DATACENTER.value)
+    warmup_session = seed_warmup_session(db_session, account=account, strategy=strategy, now=NOW)
     adapter = MockWarmupTdlibAdapter()
 
     _drive_shadow_until_complete(db_session, warmup_session, adapter)

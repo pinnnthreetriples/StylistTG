@@ -29,6 +29,7 @@ from app.modules.warmup.policies import (
     is_live_warmup_mode,
     validate_session_status_transition,
 )
+from app.modules.warmup.proxy_adaptation import adaptation_for_proxy
 from app.modules.warmup.readiness import validate_warmup_readiness
 
 
@@ -60,6 +61,9 @@ def create_warmup_session(
         strategy.duration_days if strategy is not None else settings.warmup_default_duration_days
     )
     proxy_snapshot = _build_proxy_snapshot(session, account_id=account_id)
+    proxy_adaptation = adaptation_for_proxy(
+        proxy_snapshot.get("proxy_category") if proxy_snapshot is not None else None
+    )
     personality_seed = generate_personality_seed(account_id)
     cold_soak_until = compute_cold_soak_window(strategy, timestamp)
 
@@ -78,6 +82,7 @@ def create_warmup_session(
         duration_days=duration_days,
         proxy_snapshot_json=proxy_snapshot,
         personality_seed_json=personality_seed,
+        disabled_actions_json=list(proxy_adaptation.disabled_actions),
     )
     session.add(warmup_session)
     session.flush()
@@ -101,6 +106,12 @@ def create_warmup_session(
             "proxy_snapshot": proxy_snapshot,
             "personality_seed": _personality_event_payload(personality_seed),
         },
+    )
+    write_warmup_event(
+        session,
+        warmup_session,
+        "proxy_adaptation_applied",
+        proxy_adaptation.as_payload(),
     )
     write_warmup_event(
         session,

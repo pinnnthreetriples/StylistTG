@@ -55,6 +55,7 @@ export const WARMUP_EVENT_LABELS: Record<string, string> = {
   paused: 'Пауза включена',
   resumed: 'Подготовка возобновлена',
   disabled_actions_updated: 'Отключённые действия обновлены',
+  proxy_adaptation_applied: 'Proxy preset применён',
   queue_enqueue_failed: 'Очередь недоступна',
   // Backend now emits 'triggered'; 'tripped' kept for events already in DB
   circuit_breaker_triggered: 'Защита остановила сессию',
@@ -122,6 +123,16 @@ export function formatWarmupEventPayload(event: WarmupEvent): string {
       ? event.payload.disabled_actions.map(String).join(', ')
       : ''
     return disabled ? `Отключены действия: ${disabled}.` : 'Все действия снова включены.'
+  }
+  if (event.event_type === 'proxy_adaptation_applied') {
+    const preset = String(event.payload.applied_preset ?? 'balanced')
+    const category = String(event.payload.proxy_category ?? 'unknown')
+    const disabled = Array.isArray(event.payload.disabled_actions)
+      ? event.payload.disabled_actions.map(String).join(', ')
+      : ''
+    return disabled
+      ? `Preset ${preset} применён для proxy ${category}. Отключены: ${disabled}.`
+      : `Preset ${preset} применён для proxy ${category}.`
   }
   if (event.event_type === 'completed') return 'План подготовки завершён.'
   if (event.event_type === 'queue_enqueue_failed') return 'Сессия остановлена, потому что задача не попала в RQ.'

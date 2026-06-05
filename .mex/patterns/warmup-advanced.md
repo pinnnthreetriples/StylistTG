@@ -13,7 +13,7 @@ last_updated: 2026-06-05
 
 # Advanced Warmup v1 Pattern
 
-Canonical pattern for milestone `Advanced Warmup v1`. Use this before implementing issues #354 onward.
+Canonical pattern for milestone `Advanced Warmup v1`. Use this before implementing issues #354 onward. Stage 0 companion docs: `docs/design/warmup-ux-blueprint.md` and `docs/design/warmup-divergence-from-gramgpt.md`.
 
 ## 1. Seven Architecture Rules
 

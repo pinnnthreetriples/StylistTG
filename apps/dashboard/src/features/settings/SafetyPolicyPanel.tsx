@@ -31,8 +31,7 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
   const policyQuery = useQuery(workspaceSafetyPolicyQueryOptions())
   const adminCanEdit = currentUserRole === 'admin' || currentUserRole === 'owner'
   const policy = policyQuery.data
-  const temporarilyDisabled =
-    (policy as { temporarily_disabled?: boolean } | undefined)?.temporarily_disabled === true
+  const temporarilyDisabled = policy?.temporarily_disabled === true
   const canEdit = adminCanEdit && !temporarilyDisabled
   const updateMutation = useMutation({
     mutationFn: (mode: SafetyMode) => updateWorkspaceSafetyPolicy({ mode }),

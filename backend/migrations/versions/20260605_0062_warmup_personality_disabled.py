@@ -22,9 +22,7 @@ json_type = sa.JSON().with_variant(JSONB(), "postgresql")
 
 def upgrade() -> None:
     with op.batch_alter_table("warmup_session") as batch_op:
-        batch_op.add_column(
-            sa.Column("cold_soak_until", sa.DateTime(timezone=True), nullable=True)
-        )
+        batch_op.add_column(sa.Column("cold_soak_until", sa.DateTime(timezone=True), nullable=True))
         batch_op.add_column(
             sa.Column(
                 "personality_seed_json",
@@ -49,9 +47,7 @@ def upgrade() -> None:
                 server_default="warming",
             )
         )
-        batch_op.add_column(
-            sa.Column("strategy_snapshot_json", json_type, nullable=True)
-        )
+        batch_op.add_column(sa.Column("strategy_snapshot_json", json_type, nullable=True))
 
 
 def downgrade() -> None:

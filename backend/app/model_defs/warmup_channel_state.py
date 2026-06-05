@@ -41,9 +41,7 @@ class WarmupChannelState(Base):
     last_browse_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     has_stories: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     has_reactions: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    available_reactions_json: Mapped[list[str]] = mapped_column(
-        JSON, nullable=False, default=list
-    )
+    available_reactions_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     health_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     success_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fail_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -133,9 +133,10 @@ def _assert_insert_defaults(connection: sa.Connection) -> None:
             """
         )
     )
-    row = connection.execute(
-        sa.text(
-            """
+    row = (
+        connection.execute(
+            sa.text(
+                """
             SELECT
                 personality_seed_json,
                 disabled_actions_json,
@@ -144,8 +145,11 @@ def _assert_insert_defaults(connection: sa.Connection) -> None:
             FROM warmup_session
             WHERE id = 'session-1'
             """
+            )
         )
-    ).mappings().one()
+        .mappings()
+        .one()
+    )
 
     assert row["personality_seed_json"] == "{}"
     assert row["disabled_actions_json"] == "[]"

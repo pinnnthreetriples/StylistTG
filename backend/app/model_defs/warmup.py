@@ -126,9 +126,7 @@ class WarmupSession(Base):
     next_micro_session_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    cold_soak_until: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    cold_soak_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     daily_counters_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     trusted_peer_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     proxy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.channel_state.health import is_channel_healthy
 
 DEFAULT_ACTION_PRIORITY = (
     "feed_read",
@@ -63,7 +64,12 @@ def choose_actions(
     max_actions: int = 3,
 ) -> list[SelectedAction]:
     """Return ordered action/channel pairs for one micro-session window."""
-    states_by_ref = {state.channel_ref: state for state in channel_states}
+    states_by_ref = {
+        state.channel_ref: state for state in channel_states if is_channel_healthy(state)
+    }
+    excluded_refs = {
+        state.channel_ref for state in channel_states if not is_channel_healthy(state)
+    }
     selected: list[SelectedAction] = []
     for action_type in _pending_action_types(plan, counters):
         if len(selected) >= max_actions:
@@ -73,6 +79,7 @@ def choose_actions(
         action = _select_action(
             action_type,
             states_by_ref=states_by_ref,
+            excluded_refs=excluded_refs,
             available_targets=available_targets,
             rng=rng,
             now=now,
@@ -99,6 +106,7 @@ def _select_action(
     action_type: str,
     *,
     states_by_ref: dict[str, ChannelStateSnapshot],
+    excluded_refs: set[str],
     available_targets: list[str],
     rng: random.Random,
     now: datetime,
@@ -107,6 +115,7 @@ def _select_action(
         candidates = [
             target
             for target in available_targets
+            if target not in excluded_refs
             if states_by_ref.get(target) is None or states_by_ref[target].subscribed_at is None
         ]
         if not candidates:

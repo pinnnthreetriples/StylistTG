@@ -4,7 +4,7 @@ description: Lookup table for repeatable StylistTG task workflows.
 edges:
   - .mex/ROUTER.md
   - .mex/context/conventions.md
-last_updated: 2026-05-28
+last_updated: 2026-06-05
 ---
 
 # Pattern Index
@@ -16,6 +16,7 @@ last_updated: 2026-05-28
 | Change dashboard module/routes/UI | [frontend-module-change.md](frontend-module-change.md) |
 | Change queue taxonomy, workers, scheduler, or Redis/RQ behavior | [worker-queue-change.md](worker-queue-change.md) |
 | Change warmup/account-preparation behavior | [warmup-change.md](warmup-change.md) |
+| Build Advanced Warmup v1 milestone work | [warmup-advanced.md](warmup-advanced.md) |
 | Touch live TDLib/Telegram or sensitive runtime boundaries | [live-tdlib-safety.md](live-tdlib-safety.md) |
 | Clean ignored/generated files | [safe-cleanup.md](safe-cleanup.md) |
 | Update mex memory scaffold | [mex-memory-update.md](mex-memory-update.md) |

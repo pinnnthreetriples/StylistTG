@@ -74,6 +74,35 @@ def test_choose_actions_full_state_respects_capabilities_and_counters() -> None:
     assert ("p2p_send", None) in pairs
 
 
+def test_choose_actions_excludes_unhealthy_channel_state() -> None:
+    selected = choose_actions(
+        plan={"join_chat": 1, "channel_browse": 1, "view_story": 1, "react_to_post": 1},
+        counters={},
+        channel_states=[
+            _state(
+                "@dead",
+                subscribed=True,
+                has_stories=True,
+                has_reactions=True,
+                health_score=0.24,
+                last_browse_at=NOW - timedelta(hours=8),
+            ),
+            _state("@fresh", subscribed=False, health_score=0.24),
+        ],
+        available_targets=["@dead", "@fresh", "@new"],
+        rng=_AlwaysPick(),
+        now=NOW,
+        max_actions=10,
+    )
+
+    pairs = {(item.action_type, item.channel_ref) for item in selected}
+    assert ("channel_browse", "@dead") not in pairs
+    assert ("view_story", "@dead") not in pairs
+    assert ("react_to_post", "@dead") not in pairs
+    assert ("join_chat", "@fresh") not in pairs
+    assert ("join_chat", "@new") in pairs
+
+
 def _state(
     channel_ref: str,
     *,
@@ -82,6 +111,7 @@ def _state(
     has_reactions: bool | None = None,
     available_reactions: tuple[str, ...] = ("👍",),
     last_browse_at: datetime | None = None,
+    health_score: float = 1.0,
 ) -> ChannelStateSnapshot:
     return ChannelStateSnapshot(
         channel_ref=channel_ref,
@@ -93,7 +123,7 @@ def _state(
         has_stories=has_stories,
         has_reactions=has_reactions,
         available_reactions=available_reactions,
-        health_score=1.0,
+        health_score=health_score,
     )
 
 

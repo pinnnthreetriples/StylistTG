@@ -12,6 +12,7 @@ from app.modules.warmup.channel_state.contracts import (
     ChannelCapabilitiesAdapter,
     ChannelStateSnapshot,
 )
+from app.modules.warmup.events import write_warmup_event
 
 
 def discover_capabilities(
@@ -51,19 +52,34 @@ def record_action_result(
 ) -> ChannelStateSnapshot:
     timestamp = now or utc_now()
     if result.is_ok:
-        return repository.mark_action_done(
+        update = repository.mark_channel_success(
             session,
             warmup_session.workspace_id,
             warmup_session.account_id,
             channel_ref,
-            action_type,
+            action_type=action_type,
             now=timestamp,
             metadata=result.metadata,
         )
-    return repository.mark_action_failed(
-        session,
-        warmup_session.workspace_id,
-        warmup_session.account_id,
-        channel_ref,
-        now=timestamp,
-    )
+    else:
+        update = repository.mark_channel_failure(
+            session,
+            warmup_session.workspace_id,
+            warmup_session.account_id,
+            channel_ref,
+            now=timestamp,
+        )
+    if update.crossed_blacklist_threshold:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "channel_blacklisted",
+            {
+                "day": warmup_session.current_day,
+                "channel_ref": channel_ref,
+                "health_score": update.snapshot.health_score,
+                "success_count": update.snapshot.success_count,
+                "fail_count": update.snapshot.fail_count,
+            },
+        )
+    return update.snapshot

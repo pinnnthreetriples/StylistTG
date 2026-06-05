@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -8,6 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.models import WarmupChannelState
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.channel_state.health import (
+    HEALTH_THRESHOLD_EXCLUDE,
+    compute_health_score,
+)
 
 _ACTION_TIMESTAMP_COLUMNS: dict[str, str] = {
     "feed_read": "last_feed_read_at",
@@ -17,6 +22,12 @@ _ACTION_TIMESTAMP_COLUMNS: dict[str, str] = {
     "scroll_channels": "last_browse_at",
     "join_chat": "subscribed_at",
 }
+
+
+@dataclass(frozen=True)
+class ChannelStateUpdate:
+    snapshot: ChannelStateSnapshot
+    crossed_blacklist_threshold: bool = False
 
 
 def get_states_for_account(
@@ -71,6 +82,27 @@ def mark_action_done(
     now: datetime,
     metadata: dict[str, Any] | None = None,
 ) -> ChannelStateSnapshot:
+    return mark_channel_success(
+        session,
+        workspace_id,
+        account_id,
+        channel_ref,
+        action_type=action_type,
+        now=now,
+        metadata=metadata,
+    ).snapshot
+
+
+def mark_channel_success(
+    session: Session,
+    workspace_id: str,
+    account_id: str,
+    channel_ref: str,
+    *,
+    action_type: str,
+    now: datetime,
+    metadata: dict[str, Any] | None = None,
+) -> ChannelStateUpdate:
     row = _get_or_create_state(
         session,
         workspace_id=workspace_id,
@@ -78,14 +110,19 @@ def mark_action_done(
         channel_ref=channel_ref,
         now=now,
     )
+    previous_health = row.health_score
     column_name = _ACTION_TIMESTAMP_COLUMNS.get(action_type)
     if column_name is not None:
         setattr(row, column_name, now)
     _apply_capability_metadata(row, metadata or {})
     row.success_count += 1
+    row.health_score = compute_health_score(row.success_count, row.fail_count, now, now)
     row.updated_at = now
     session.flush()
-    return _snapshot(row)
+    return ChannelStateUpdate(
+        snapshot=_snapshot(row),
+        crossed_blacklist_threshold=_crossed_blacklist_threshold(previous_health, row.health_score),
+    )
 
 
 def mark_action_failed(
@@ -96,6 +133,23 @@ def mark_action_failed(
     *,
     now: datetime,
 ) -> ChannelStateSnapshot:
+    return mark_channel_failure(
+        session,
+        workspace_id,
+        account_id,
+        channel_ref,
+        now=now,
+    ).snapshot
+
+
+def mark_channel_failure(
+    session: Session,
+    workspace_id: str,
+    account_id: str,
+    channel_ref: str,
+    *,
+    now: datetime,
+) -> ChannelStateUpdate:
     row = _get_or_create_state(
         session,
         workspace_id=workspace_id,
@@ -103,10 +157,20 @@ def mark_action_failed(
         channel_ref=channel_ref,
         now=now,
     )
+    previous_health = row.health_score
     row.fail_count += 1
+    row.health_score = compute_health_score(
+        row.success_count,
+        row.fail_count,
+        _last_success_at(row),
+        now,
+    )
     row.updated_at = now
     session.flush()
-    return _snapshot(row)
+    return ChannelStateUpdate(
+        snapshot=_snapshot(row),
+        crossed_blacklist_threshold=_crossed_blacklist_threshold(previous_health, row.health_score),
+    )
 
 
 def update_capabilities(
@@ -179,6 +243,21 @@ def _bool_or_none(value: Any) -> bool | None:
     return value if isinstance(value, bool) else None
 
 
+def _last_success_at(row: WarmupChannelState) -> datetime | None:
+    values = [
+        row.subscribed_at,
+        row.last_feed_read_at,
+        row.last_story_view_at,
+        row.last_react_at,
+        row.last_browse_at,
+    ]
+    return max((value for value in values if value is not None), default=None)
+
+
+def _crossed_blacklist_threshold(previous_health: float, next_health: float) -> bool:
+    return previous_health >= HEALTH_THRESHOLD_EXCLUDE and next_health < HEALTH_THRESHOLD_EXCLUDE
+
+
 def _snapshot(row: WarmupChannelState) -> ChannelStateSnapshot:
     return ChannelStateSnapshot(
         channel_ref=row.channel_ref,
@@ -191,4 +270,6 @@ def _snapshot(row: WarmupChannelState) -> ChannelStateSnapshot:
         has_reactions=row.has_reactions,
         available_reactions=tuple(row.available_reactions_json or ()),
         health_score=row.health_score,
+        success_count=row.success_count,
+        fail_count=row.fail_count,
     )

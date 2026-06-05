@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.adapters.warmup_text_provider import TextVariationRequest, WarmupTextProvider
 from app.models import WarmupSession, WarmupStatus
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.channel_state.health import is_channel_healthy
 from app.modules.warmup.channel_state.repository import get_states_for_account
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
@@ -72,7 +73,11 @@ def _subscribed_channel_states(
         warmup_session.account_id,
         refs,
     )
-    return [state for state in states if state.subscribed_at is not None]
+    return [
+        state
+        for state in states
+        if state.subscribed_at is not None and is_channel_healthy(state)
+    ]
 
 
 def _is_channel_subscribed(
@@ -84,7 +89,7 @@ def _is_channel_subscribed(
         warmup_session.account_id,
         [channel_ref],
     )
-    return bool(states and states[0].subscribed_at is not None)
+    return bool(states and states[0].subscribed_at is not None and is_channel_healthy(states[0]))
 
 
 def _derive_text_seed(warmup_session: WarmupSession, action_type: str) -> str:

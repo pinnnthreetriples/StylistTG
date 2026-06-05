@@ -209,6 +209,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
     ("POST", "/api/warmup-sessions/cyclic", "operator", True),
     ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
+    ("GET", "/api/warmup-events", "viewer", False),
     ("GET", "/api/warmup-selectable-accounts", "viewer", False),
     ("GET", "/api/warmup-bootstrap-channels", "admin", False),
     ("POST", "/api/warmup-bootstrap-channels", "admin", True),
@@ -226,6 +227,8 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     # Health / infra (no auth required by design)
     ("GET", "/health"),
     ("GET", "/ready"),
+    # Long-lived SSE stream, auth/content-type covered by test_warmup_events_api.
+    ("GET", "/api/warmup-events/stream"),
     # Object-level endpoints — require real entity IDs, tested in
     # test_workspace_isolation_matrix / test_tenant_helpers / contract tests
     ("GET", "/api/accounts/{account_id}"),

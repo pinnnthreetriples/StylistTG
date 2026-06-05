@@ -8,6 +8,7 @@ import {
   deleteWarmupSession,
   fetchWarmupActionMetadata,
   fetchWarmupEvents,
+  fetchWarmupLiveEvents,
   fetchWarmupIsolationStatus,
   fetchWarmupReadiness,
   fetchWarmupSessionDetail,
@@ -21,6 +22,8 @@ import {
 import type {
   WarmupActionPreset,
   WarmupEventPage,
+  WarmupLiveEventFilters,
+  WarmupLiveEventPage,
   WarmupPresetKind,
   WarmupSessionDetail,
   WarmupSessionPage,
@@ -36,6 +39,13 @@ export const warmupQueryKeys = {
   sessions: ['warmup', 'sessions'] as const,
   sessionDetail: (sessionId: string) => ['warmup', 'sessions', sessionId, 'detail'] as const,
   events: (sessionId: string) => ['warmup', 'sessions', sessionId, 'events'] as const,
+  liveEvents: (filters: WarmupLiveEventFilters) => [
+    'warmup',
+    'events',
+    filters.accountId ?? 'all',
+    filters.severity ?? 'all',
+    filters.limit ?? 100,
+  ] as const,
   isolation: (accountId: string) => ['warmup', 'isolation', accountId] as const,
 }
 
@@ -108,6 +118,14 @@ export function useWarmupEventsPaginated(sessionId: string | null) {
   }, [hasMore, isLoadingMore, limit, sessionId])
 
   return { events, total, hasMore, isLoadingMore, loadMore, isLoading: query.isLoading }
+}
+
+export function useWarmupLiveEvents(filters: WarmupLiveEventFilters = {}) {
+  return useQuery<WarmupLiveEventPage>({
+    queryKey: warmupQueryKeys.liveEvents(filters),
+    queryFn: () => fetchWarmupLiveEvents(filters),
+    refetchInterval: 30_000,
+  })
 }
 
 export function useWarmupSessionDetail(sessionId: string | null) {

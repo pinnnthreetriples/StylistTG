@@ -8,7 +8,6 @@ import {
   usePauseWarmupSession,
   useResumeWarmupSession,
   useWarmupActionMetadata,
-  useWarmupEventsPaginated,
   useWarmupSessionDetail,
   useWarmupStrategies,
 } from '../hooks'
@@ -20,8 +19,8 @@ import {
 import type { WarmupSessionSummary } from '../types'
 import { WarmupDailyCountersPanel } from './WarmupDailyCountersPanel'
 import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
-import { WarmupEventLog } from './WarmupEventLog'
 import { WarmupIsolationBanner } from './WarmupIsolationBanner'
+import { WarmupLiveLogs } from './WarmupLiveLogs'
 import { WarmupProxySnapshotPanel } from './WarmupProxySnapshotPanel'
 import { WarmupStatusBadge } from './WarmupStatusBadge'
 
@@ -33,7 +32,6 @@ export function WarmupSessionDetail({
   workersEnabled?: boolean
 }) {
   const [pauseReason, setPauseReason] = useState('')
-  const eventsData = useWarmupEventsPaginated(session?.id ?? null)
   const detailQuery = useWarmupSessionDetail(session?.id ?? null)
   const actionMetadataQuery = useWarmupActionMetadata()
   const strategiesQuery = useWarmupStrategies()
@@ -177,12 +175,7 @@ export function WarmupSessionDetail({
         isMetadataLoading={actionMetadataQuery.isLoading}
       />
       <WarmupProxySnapshotPanel snapshot={detail?.proxy_snapshot ?? null} />
-      <WarmupEventLog
-        events={eventsData.events}
-        total={eventsData.total}
-        isLoadingMore={eventsData.isLoadingMore}
-        onLoadMore={eventsData.hasMore ? eventsData.loadMore : undefined}
-      />
+      <WarmupLiveLogs />
     </div>
   )
 }

@@ -5,9 +5,13 @@ from typing import Any
 from app.modules.warmup.contracts import (
     WarmupEventPageRead,
     WarmupEventRead,
+    WarmupEventSeverityRead,
     WarmupExecutionModeRead,
     WarmupIsolationClaimRead,
     WarmupIsolationStatusRead,
+    WarmupLiveEventAccountRead,
+    WarmupLiveEventPageRead,
+    WarmupLiveEventRead,
     WarmupPresetKindRead,
     WarmupSessionRead,
     WarmupSessionStatusRead,
@@ -106,6 +110,7 @@ def event_page_read(
             WarmupEventRead(
                 id=item.id,
                 event_type=item.event_type,
+                severity=WarmupEventSeverityRead(getattr(item, "severity", "info")),
                 payload=item.payload_json,
                 created_at=item.created_at,
             )
@@ -132,6 +137,63 @@ def isolation_status_read(claim: Any | None) -> WarmupIsolationStatusRead:
     )
 
 
+def live_event_read(event: Any) -> WarmupLiveEventRead:
+    account = event.session.account
+    label = str(account.external_ref)
+    return WarmupLiveEventRead(
+        id=event.id,
+        event_id=event.id,
+        session_id=event.session_id,
+        account_id=event.session.account_id,
+        account_label=label,
+        phone_id=label,
+        event_type=event.event_type,
+        severity=WarmupEventSeverityRead(getattr(event, "severity", "info")),
+        message=_event_message(event),
+        payload=event.payload_json or {},
+        occurred_at=event.created_at,
+        created_at=event.created_at,
+    )
+
+
+def live_event_account_read(account: Any) -> WarmupLiveEventAccountRead:
+    label = str(account.external_ref)
+    return WarmupLiveEventAccountRead(
+        account_id=account.id,
+        account_label=label,
+        phone_id=label,
+    )
+
+
+def live_event_page_read(
+    events: list[Any],
+    *,
+    accounts: list[Any],
+    total: int,
+    limit: int,
+) -> WarmupLiveEventPageRead:
+    return WarmupLiveEventPageRead(
+        items=[live_event_read(event) for event in events],
+        total=total,
+        limit=limit,
+        next_cursor=events[-1].id if events else None,
+        accounts=[live_event_account_read(account) for account in accounts],
+    )
+
+
+def _event_message(event: Any) -> str:
+    payload = event.payload_json or {}
+    action = payload.get("action_type")
+    reason = payload.get("reason")
+    if action and reason:
+        return f"{event.event_type}: {action} ({reason})"
+    if action:
+        return f"{event.event_type}: {action}"
+    if reason:
+        return f"{event.event_type}: {reason}"
+    return str(event.event_type)
+
+
 _strategy_read = strategy_read
 
 
@@ -139,6 +201,9 @@ __all__ = [
     "_strategy_read",
     "event_page_read",
     "isolation_status_read",
+    "live_event_account_read",
+    "live_event_page_read",
+    "live_event_read",
     "session_read",
     "session_status_read",
     "session_summary",

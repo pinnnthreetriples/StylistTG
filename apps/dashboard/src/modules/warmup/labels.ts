@@ -1,5 +1,6 @@
 import type {
   WarmupEvent,
+  WarmupEventSeverity,
   WarmupExecutionMode,
   WarmupPresetKind,
   WarmupRiskLevel,
@@ -43,6 +44,15 @@ export const WARMUP_RISK_TONES: Record<WarmupRiskLevel, 'green' | 'amber' | 'red
   low: 'green',
   medium: 'amber',
   high: 'red',
+}
+
+export const WARMUP_EVENT_SEVERITY_LABELS: Record<WarmupEventSeverity | 'all', string> = {
+  all: 'Все',
+  info: 'Инфо',
+  success: 'Успех',
+  warning: 'Предупреждение',
+  error: 'Ошибка',
+  debug: 'Дебаг',
 }
 
 export const WARMUP_EVENT_LABELS: Record<string, string> = {

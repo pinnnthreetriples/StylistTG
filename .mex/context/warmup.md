@@ -25,6 +25,10 @@ last_updated: 2026-05-28
 - Canonical warmup backend boundary: `app.modules.warmup` with contracts,
   repository, policies, errors, read models, queries, commands, service facade,
   jobs, worker, dispatcher, events, isolation, readiness, and p2p.
+- Warmup observability events expose severity via `warmup_event.severity`
+  (`info|success|warning|error|debug`). Session events remain under
+  `/api/warmup/sessions/{session_id}/events`; cross-session live logs use
+  read-only `/api/warmup-events` and `/api/warmup-events/stream`.
 
 ## Persistence
 

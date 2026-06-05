@@ -31,6 +31,8 @@ export type ProxyCategory = 'datacenter' | 'residential' | 'mobile' | 'unknown'
 
 export type WarmupCheckSeverity = 'error' | 'warning'
 
+export type WarmupEventSeverity = 'info' | 'success' | 'warning' | 'error' | 'debug'
+
 export type WarmupReadiness = {
   workers_enabled: boolean
   dry_run: boolean
@@ -171,6 +173,7 @@ export type WarmupSessionPage = {
 export type WarmupEvent = {
   id: string
   event_type: string
+  severity?: WarmupEventSeverity
   payload: Record<string, unknown>
   created_at: string
 }
@@ -180,6 +183,42 @@ export type WarmupEventPage = {
   total: number
   page: number
   limit: number
+}
+
+export type WarmupLiveEvent = {
+  id: string
+  event_id: string
+  session_id: string
+  account_id: string
+  account_label: string
+  phone_id: string
+  event_type: string
+  severity: WarmupEventSeverity
+  message: string
+  payload: Record<string, unknown>
+  occurred_at: string
+  created_at: string
+}
+
+export type WarmupLiveEventAccount = {
+  account_id: string
+  account_label: string
+  phone_id: string
+}
+
+export type WarmupLiveEventPage = {
+  items: WarmupLiveEvent[]
+  total: number
+  limit: number
+  next_cursor: string | null
+  accounts: WarmupLiveEventAccount[]
+}
+
+export type WarmupLiveEventFilters = {
+  accountId?: string
+  severity?: WarmupEventSeverity | 'all'
+  cursor?: string | null
+  limit?: number
 }
 
 export type WarmupIsolationClaim = {

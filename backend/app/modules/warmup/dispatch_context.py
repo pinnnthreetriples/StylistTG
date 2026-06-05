@@ -42,13 +42,14 @@ def _target_channel_refs(warmup_session: WarmupSession) -> list[str]:
 
 
 def _subscribed_channel_states(
-    session: Session, *, warmup_session: WarmupSession
+    session: Session, *, warmup_session: WarmupSession, channel_ref: str | None = None
 ) -> list[ChannelStateSnapshot]:
+    refs = [channel_ref] if channel_ref is not None else _target_channel_refs(warmup_session)
     states = get_states_for_account(
         session,
         warmup_session.workspace_id,
         warmup_session.account_id,
-        _target_channel_refs(warmup_session),
+        refs,
     )
     return [state for state in states if state.subscribed_at is not None]
 
@@ -125,6 +126,7 @@ def _resolve_action_context(
     *,
     warmup_session: WarmupSession,
     action_type: str,
+    selected_channel_ref: str | None = None,
     rng: random.Random,
     text_provider: WarmupTextProvider,
     now: datetime,
@@ -143,7 +145,7 @@ def _resolve_action_context(
         "proxy_category": proxy_snapshot.get("proxy_category"),
     }
     if action_type == "join_chat":
-        chat_target = _select_chat_target(warmup_session, rng=rng)
+        chat_target = selected_channel_ref or _select_chat_target(warmup_session, rng=rng)
         if chat_target is None:
             return _ActionContextResolution(
                 context=base, skip_reason="no_target_channels_configured"
@@ -152,7 +154,7 @@ def _resolve_action_context(
             context={**base, "chat_target": chat_target, "channel_ref": chat_target}
         )
     if action_type == "channel_browse":
-        channel_ref = _select_chat_target(warmup_session, rng=rng)
+        channel_ref = selected_channel_ref or _select_chat_target(warmup_session, rng=rng)
         if channel_ref is None:
             return _ActionContextResolution(context=base, skip_reason="no_browse_target_available")
         return _ActionContextResolution(
@@ -166,7 +168,11 @@ def _resolve_action_context(
             }
         )
     if action_type == "view_story":
-        subscribed = _subscribed_channel_states(session, warmup_session=warmup_session)
+        subscribed = _subscribed_channel_states(
+            session,
+            warmup_session=warmup_session,
+            channel_ref=selected_channel_ref,
+        )
         if not subscribed:
             return _ActionContextResolution(context=base, skip_reason="not_subscribed")
         candidates = [channel for channel in subscribed if channel.has_stories is not False]
@@ -201,7 +207,11 @@ def _resolve_action_context(
                     "reasons": [reason.model_dump(mode="json") for reason in verdict.reasons]
                 },
             )
-        subscribed = _subscribed_channel_states(session, warmup_session=warmup_session)
+        subscribed = _subscribed_channel_states(
+            session,
+            warmup_session=warmup_session,
+            channel_ref=selected_channel_ref,
+        )
         if not subscribed:
             return _ActionContextResolution(context=base, skip_reason="not_subscribed")
         candidates = [

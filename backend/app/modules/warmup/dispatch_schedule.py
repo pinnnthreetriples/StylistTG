@@ -9,15 +9,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.config import settings
 from app.models import WarmupSession
+from app.modules.warmup.channel_state import selector as channel_selector
+from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
 
-DEFAULT_ACTION_PRIORITY = (
-    "feed_read",
-    "channel_browse",
-    "view_story",
-    "join_chat",
-    "react_to_post",
-    "p2p_send",
-)
+DEFAULT_ACTION_PRIORITY = channel_selector.DEFAULT_ACTION_PRIORITY
+SelectedAction = channel_selector.SelectedAction
 MAX_ACTIONS_PER_MICRO_SESSION = 3
 _INT_COERCION_ERRORS = (TypeError, ValueError)
 
@@ -91,32 +87,37 @@ def _select_actions_for_window(
     *,
     rng: random.Random,
 ) -> list[str]:
-    """Pick which actions are simulated in this micro-session window.
+    return [
+        selection.action_type
+        for selection in _select_action_targets(
+            plan,
+            counters,
+            channel_states=[],
+            available_targets=[],
+            rng=rng,
+            now=datetime.now(UTC),
+        )
+    ]
 
-    Conservative: at most one of each action type per window, capped at
-    MAX_ACTIONS_PER_MICRO_SESSION. Action types ordered by
-    DEFAULT_ACTION_PRIORITY first, then alphabetically for stability.
-    """
-    candidates = sorted(
-        plan.keys(),
-        key=lambda key: (
-            DEFAULT_ACTION_PRIORITY.index(key)
-            if key in DEFAULT_ACTION_PRIORITY
-            else len(DEFAULT_ACTION_PRIORITY),
-            key,
-        ),
+
+def _select_action_targets(
+    plan: dict[str, int],
+    counters: dict[str, int],
+    *,
+    channel_states: list[ChannelStateSnapshot],
+    available_targets: list[str],
+    rng: random.Random,
+    now: datetime,
+) -> list[SelectedAction]:
+    return channel_selector.choose_actions(
+        plan=plan,
+        counters=counters,
+        channel_states=channel_states,
+        available_targets=available_targets,
+        rng=rng,
+        now=now,
+        max_actions=MAX_ACTIONS_PER_MICRO_SESSION,
     )
-    chosen: list[str] = []
-    for key in candidates:
-        if len(chosen) >= MAX_ACTIONS_PER_MICRO_SESSION:
-            break
-        budget = plan.get(key, 0) - counters.get(key, 0)
-        if budget <= 0:
-            continue
-        # pick this action with small probabilistic drop to introduce jitter
-        if rng.random() < 0.85:
-            chosen.append(key)
-    return chosen
 
 
 def _is_day_complete(plan: dict[str, int], counters: dict[str, int]) -> bool:

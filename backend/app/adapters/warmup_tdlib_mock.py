@@ -4,6 +4,7 @@ import random
 from typing import Any
 
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
+from app.modules.warmup.typing import compute_typing_duration
 
 
 def _is_protected_chat_id(chat_id: int) -> bool:
@@ -619,6 +620,15 @@ class MockWarmupTdlibAdapter:
                 "peer_account_id": peer_id,
                 "text_seed": context.get("text_seed"),
                 "text_length": len(text),
+                "typing_started": True,
+                "typing_duration_ms": int(
+                    compute_typing_duration(
+                        len(text),
+                        personality_seed=_personality_seed(context),
+                        rng=self._rng,
+                    )
+                    * 1000
+                ),
             },
         )
 
@@ -666,3 +676,8 @@ class UnavailableWarmupTdlibAdapter:
             error_class="configuration",
             metadata={"reason": self._reason},
         )
+
+
+def _personality_seed(context: dict[str, Any]) -> dict[str, Any]:
+    raw = context.get("personality_seed")
+    return raw if isinstance(raw, dict) else {}

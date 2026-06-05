@@ -15,6 +15,7 @@ from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_war
 from app.modules.warmup.errors import WarmupIsolationConflictError, WarmupQueueUnavailableError
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import acquire_claim, release_claim
+from app.modules.warmup.p2p_graph import assign_friends
 from app.modules.warmup.policies import (
     can_create_warmup_session,
     is_live_warmup_mode,
@@ -95,6 +96,12 @@ def create_warmup_session(
         now=timestamp,
         strategy_id=strategy_id,
         strategy_name=strategy.name if strategy is not None else None,
+    )
+    assign_friends(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        now=timestamp,
     )
     if is_live_warmup_mode(execution_mode):
         owner = f"warmup:{warmup_session.id}"

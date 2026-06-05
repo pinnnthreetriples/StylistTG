@@ -430,7 +430,7 @@ def _resolve_action_context(
             now=now,
         )
         if peer is None:
-            return _ActionContextResolution(context=base, skip_reason="no_eligible_trusted_peers")
+            return _ActionContextResolution(context=base, skip_reason="no_friends_available")
         text_seed = _derive_text_seed(warmup_session, action_type)
         if not text_provider.is_available():
             return _ActionContextResolution(

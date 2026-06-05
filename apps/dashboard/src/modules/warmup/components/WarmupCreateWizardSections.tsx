@@ -1,7 +1,7 @@
 // fallow-ignore-file complexity
 // fallow-ignore-reason: Form section renderer keeps wizard field layout colocated with validation copy.
 import { Alert, Badge, Button, Select } from '@stylisttg/ui'
-import { AlertTriangle, CheckCircle2, PlayCircle, Search, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CheckCircle2, PlayCircle, Search, ShieldCheck } from 'lucide-react'
 
 import type { fetchAccounts } from '@/lib/api'
 
@@ -151,8 +151,88 @@ export function WarmupValidationPanel({ validation }: { validation: WarmupValida
   )
 }
 
+export function WarmupCyclicConfig({
+  daysTotal,
+  enabled,
+  endHour,
+  onDaysTotalChange,
+  onEnabledChange,
+  onEndHourChange,
+  onStartHourChange,
+  startHour,
+}: {
+  daysTotal: number
+  enabled: boolean
+  endHour: number
+  onDaysTotalChange: (value: number) => void
+  onEnabledChange: (value: boolean) => void
+  onEndHourChange: (value: number) => void
+  onStartHourChange: (value: number) => void
+  startHour: number
+}) {
+  const invalidWindow = enabled && startHour === endHour
+  const activeHours = enabled ? computeActiveHours(startHour, endHour, daysTotal) : 0
+  return (
+    <div className="mt-5 rounded-lg border border-border bg-card px-3 py-3">
+      <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <input
+          checked={enabled}
+          className="size-4"
+          type="checkbox"
+          onChange={(event) => onEnabledChange(event.target.checked)}
+        />
+        <CalendarClock className="size-4 text-muted-foreground" />
+        Циклический режим
+      </label>
+      {enabled ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="grid gap-1.5">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Начало</span>
+            <input
+              className="h-9 rounded-md border border-border px-3 text-sm"
+              max={23}
+              min={0}
+              type="number"
+              value={startHour}
+              onChange={(event) => onStartHourChange(clampHour(event.target.value))}
+            />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Конец</span>
+            <input
+              className="h-9 rounded-md border border-border px-3 text-sm"
+              max={23}
+              min={0}
+              type="number"
+              value={endHour}
+              onChange={(event) => onEndHourChange(clampHour(event.target.value))}
+            />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Дней</span>
+            <input
+              className="h-9 rounded-md border border-border px-3 text-sm"
+              max={30}
+              min={1}
+              type="number"
+              value={daysTotal}
+              onChange={(event) => onDaysTotalChange(clampDays(event.target.value))}
+            />
+          </label>
+          <div className="sm:col-span-3 text-xs text-muted-foreground">
+            {invalidWindow
+              ? 'Активное окно не может начинаться и заканчиваться в один час.'
+              : `Ожидаются активные часы: ${formatHour(startHour)}-${formatHour(endHour)}, всего ${activeHours} ч.`}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function WarmupCreateSummary({
   canCreate,
+  cycleConfig,
   isCreating,
   onCreate,
   selectedAccountId,
@@ -160,6 +240,7 @@ export function WarmupCreateSummary({
   selectedStrategy,
 }: {
   canCreate: boolean
+  cycleConfig: { startHour: number; endHour: number; daysTotal: number } | null
   isCreating: boolean
   onCreate: () => void
   selectedAccountId: string
@@ -174,7 +255,9 @@ export function WarmupCreateSummary({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           {selectedStrategy
-            ? `План: ${selectedStrategy.name}. Создание сессии ставит аккаунт в ${selectedStrategy.duration_days}-дневное расписание dry-run.`
+            ? cycleConfig
+              ? `План: ${selectedStrategy.name}. Цикл ${formatHour(cycleConfig.startHour)}-${formatHour(cycleConfig.endHour)} на ${cycleConfig.daysTotal} дн.`
+              : `План: ${selectedStrategy.name}. Создание сессии ставит аккаунт в ${selectedStrategy.duration_days}-дневное расписание dry-run.`
             : 'Выберите понятный план подготовки, затем запустите проверку готовности.'}
         </p>
       </div>
@@ -184,4 +267,22 @@ export function WarmupCreateSummary({
       </Button>
     </div>
   )
+}
+
+function clampHour(value: string): number {
+  return Math.max(0, Math.min(23, Number.parseInt(value || '0', 10)))
+}
+
+function clampDays(value: string): number {
+  return Math.max(1, Math.min(30, Number.parseInt(value || '1', 10)))
+}
+
+function computeActiveHours(startHour: number, endHour: number, daysTotal: number): number {
+  if (startHour === endHour) return 0
+  const hoursPerDay = startHour < endHour ? endHour - startHour : 24 - startHour + endHour
+  return hoursPerDay * daysTotal
+}
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`
 }

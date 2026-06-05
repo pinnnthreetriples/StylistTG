@@ -51,6 +51,15 @@ class WarmupSessionCreateRequest(BaseModel):
     strategy_id: UuidString
 
 
+class WarmupCycleConfigRead(BaseModel):
+    start_hour: int
+    end_hour: int
+    days_total: int
+    current_cycle: int = 1
+    started_at: str | None = None
+    active_hours_total: int | None = None
+
+
 class WarmupActionPresetRequest(BaseModel):
     preset: Literal["economic", "all", "minimal"]
 
@@ -110,6 +119,19 @@ class WarmupSessionRead(BaseModel):
     paused_at: datetime | None = None
     completed_at: datetime | None = None
     worker_id: str | None = None
+    cycle_config: WarmupCycleConfigRead | None = None
+
+
+class WarmupCyclicCreateRequest(BaseModel):
+    account_ids: list[UuidString] = Field(min_length=1)
+    start_hour: int = Field(ge=0, le=23)
+    end_hour: int = Field(ge=0, le=23)
+    days_total: int = Field(ge=1, le=30)
+    strategy_preset: WarmupPresetKindRead = WarmupPresetKindRead.STANDARD
+
+
+class WarmupCyclicCreateRead(BaseModel):
+    items: list[WarmupSessionRead]
 
 
 class WarmupSessionSummaryRead(BaseModel):
@@ -126,6 +148,7 @@ class WarmupSessionSummaryRead(BaseModel):
     next_micro_session_at: datetime | None = None
     cold_soak_until: datetime | None = None
     updated_at: datetime
+    cycle_config: WarmupCycleConfigRead | None = None
 
 
 class WarmupSessionPageRead(BaseModel):
@@ -199,6 +222,9 @@ class WarmupReadinessRead(BaseModel):
 __all__ = [
     "WarmupCheckItemRead",
     "WarmupCheckSeverityRead",
+    "WarmupCycleConfigRead",
+    "WarmupCyclicCreateRead",
+    "WarmupCyclicCreateRequest",
     "WarmupEventPageRead",
     "WarmupEventRead",
     "WarmupExecutionModeRead",

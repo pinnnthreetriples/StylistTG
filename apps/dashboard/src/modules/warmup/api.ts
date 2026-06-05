@@ -14,6 +14,7 @@ import type {
   WarmupReadiness,
   WarmupSessionDetail,
   WarmupSessionPage,
+  WarmupSessionTimer,
   WarmupStrategy,
   WarmupSelectableAccount,
   WarmupSelectableAccountFilters,
@@ -117,6 +118,10 @@ export async function buildWarmupEventStreamUrl(filters: WarmupLiveEventFilters 
 
 export function fetchWarmupSessionDetail(sessionId: string): Promise<WarmupSessionDetail> {
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}`)
+}
+
+export function fetchWarmupSessionTimer(sessionId: string): Promise<WarmupSessionTimer> {
+  return apiRequest(`/api/warmup-sessions/${encodeURIComponent(sessionId)}/timer`)
 }
 
 export function fetchWarmupIsolationStatus(accountId: string): Promise<WarmupIsolationStatus> {

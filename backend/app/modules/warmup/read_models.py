@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from app.modules.warmup.contracts import (
@@ -16,6 +17,7 @@ from app.modules.warmup.contracts import (
     WarmupSessionRead,
     WarmupSessionStatusRead,
     WarmupSessionSummaryRead,
+    WarmupSessionTimerRead,
     WarmupStatusRead,
     WarmupStrategyRead,
 )
@@ -95,6 +97,25 @@ def session_status_read(warmup_session: Any) -> WarmupSessionStatusRead:
         next_step_at=warmup_session.next_step_at,
         next_attempt_at=warmup_session.next_attempt_at,
         cold_soak_until=warmup_session.cold_soak_until,
+    )
+
+
+def session_timer_read(warmup_session: Any, *, now: datetime | None = None) -> WarmupSessionTimerRead:
+    timestamp = now or datetime.now(UTC)
+    started_at = _timer_started_at(warmup_session)
+    total_seconds = _timer_total_seconds(warmup_session)
+    elapsed_seconds = _timer_elapsed_seconds(
+        warmup_session,
+        started_at=started_at,
+        total_seconds=total_seconds,
+        now=timestamp,
+    )
+    return WarmupSessionTimerRead(
+        session_id=warmup_session.id,
+        started_at=started_at,
+        total_duration_seconds=total_seconds,
+        elapsed_seconds=elapsed_seconds,
+        status=_timer_status(warmup_session.status),
     )
 
 
@@ -194,6 +215,61 @@ def _event_message(event: Any) -> str:
     return str(event.event_type)
 
 
+def _timer_started_at(warmup_session: Any) -> datetime | None:
+    cycle_config = warmup_session.cycle_config_json or {}
+    started_at = cycle_config.get("started_at")
+    if isinstance(started_at, str):
+        try:
+            return datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        except ValueError:
+            pass
+    return warmup_session.started_at or warmup_session.created_at
+
+
+def _timer_total_seconds(warmup_session: Any) -> int:
+    cycle_config = warmup_session.cycle_config_json or {}
+    active_hours_total = cycle_config.get("active_hours_total")
+    if isinstance(active_hours_total, int) and active_hours_total > 0:
+        return active_hours_total * 3600
+    duration_days = max(1, int(warmup_session.duration_days or 1))
+    cadence_hours = max(1, int(warmup_session.cadence_hours or 1))
+    return duration_days * cadence_hours * 3600
+
+
+def _timer_elapsed_seconds(
+    warmup_session: Any,
+    *,
+    started_at: datetime | None,
+    total_seconds: int,
+    now: datetime,
+) -> int:
+    if started_at is None:
+        return 0
+    reference = now
+    if warmup_session.status in {"paused_risk", "paused_manual"}:
+        reference = warmup_session.paused_at or warmup_session.updated_at or now
+    elif warmup_session.status == "completed":
+        reference = warmup_session.completed_at or warmup_session.updated_at or now
+    elif warmup_session.status == "failed":
+        reference = warmup_session.updated_at or now
+    elapsed = int((_aware(reference) - _aware(started_at)).total_seconds())
+    return max(0, min(total_seconds, elapsed))
+
+
+def _timer_status(status: str) -> str:
+    if status in {"active", "scheduled", "cold_soak", "validating"}:
+        return "running"
+    if status in {"paused_risk", "paused_manual"}:
+        return "paused"
+    if status == "completed":
+        return "completed"
+    return "stopped"
+
+
+def _aware(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
 _strategy_read = strategy_read
 
 
@@ -207,5 +283,6 @@ __all__ = [
     "session_read",
     "session_status_read",
     "session_summary",
+    "session_timer_read",
     "strategy_read",
 ]

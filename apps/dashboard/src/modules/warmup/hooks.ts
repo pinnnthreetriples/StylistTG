@@ -12,6 +12,7 @@ import {
   fetchWarmupIsolationStatus,
   fetchWarmupReadiness,
   fetchWarmupSessionDetail,
+  fetchWarmupSessionTimer,
   fetchWarmupSessions,
   fetchWarmupStrategies,
   pauseWarmupSession,
@@ -38,6 +39,7 @@ export const warmupQueryKeys = {
   strategies: ['warmup', 'strategies'] as const,
   sessions: ['warmup', 'sessions'] as const,
   sessionDetail: (sessionId: string) => ['warmup', 'sessions', sessionId, 'detail'] as const,
+  sessionTimer: (sessionId: string) => ['warmup', 'sessions', sessionId, 'timer'] as const,
   events: (sessionId: string) => ['warmup', 'sessions', sessionId, 'events'] as const,
   liveEvents: (filters: WarmupLiveEventFilters) => [
     'warmup',
@@ -137,6 +139,15 @@ export function useWarmupSessionDetail(sessionId: string | null) {
       const status = query.state.data?.status
       return status && ACTIVE_STATUSES.includes(status) ? 10_000 : false
     },
+  })
+}
+
+export function useWarmupSessionTimer(sessionId: string | null) {
+  return useQuery({
+    queryKey: warmupQueryKeys.sessionTimer(sessionId ?? '__disabled__'),
+    queryFn: () => fetchWarmupSessionTimer(sessionId!),
+    enabled: Boolean(sessionId),
+    refetchInterval: 5_000,
   })
 }
 

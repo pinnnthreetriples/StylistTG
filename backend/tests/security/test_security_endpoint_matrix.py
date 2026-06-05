@@ -208,6 +208,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("POST", "/api/warmup/strategies/{strategy_id}/apply-preset", "admin", True),
     ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
     ("POST", "/api/warmup-sessions/cyclic", "operator", True),
+    ("GET", "/api/warmup-sessions/{session_id}/timer", "viewer", False),
     ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
     ("GET", "/api/warmup-events", "viewer", False),
     ("GET", "/api/warmup-selectable-accounts", "viewer", False),

@@ -227,6 +227,14 @@ class WarmupSessionStatusRead(BaseModel):
     cold_soak_until: datetime | None = None
 
 
+class WarmupSessionTimerRead(BaseModel):
+    session_id: str
+    started_at: datetime | None
+    total_duration_seconds: int
+    elapsed_seconds: int
+    status: Literal["running", "paused", "completed", "stopped"]
+
+
 class WarmupPauseRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=1000)
 
@@ -340,6 +348,7 @@ __all__ = [
     "WarmupSessionRead",
     "WarmupSessionStatusRead",
     "WarmupSessionSummaryRead",
+    "WarmupSessionTimerRead",
     "WarmupStatusRead",
     "WarmupStrategyRead",
     "WarmupValidateRead",

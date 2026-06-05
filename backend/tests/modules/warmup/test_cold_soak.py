@@ -33,8 +33,8 @@ def test_create_warmup_session_starts_cold_soak(db_session: Session, monkeypatch
     assert _without_tz(warmup_session.cold_soak_until) == _without_tz(NOW + timedelta(hours=12))
     assert _event_types(db_session, warmup_session.id) == [
         "session_created",
-        "cold_soak_started",
         "proxy_adaptation_applied",
+        "cold_soak_started",
     ]
 
 

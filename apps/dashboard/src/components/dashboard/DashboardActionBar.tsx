@@ -4,7 +4,7 @@
  * Extracted from App.tsx render section.
  */
 
-import { Loader2, Play } from 'lucide-react'
+import { Loader2, Play, UserRoundCheck } from 'lucide-react'
 import { useState } from 'react'
 import type { ProfilePreview } from '@/lib/api'
 import { operationSafetyLabel, type OperationSafety } from '@/lib/accountSafety'
@@ -48,6 +48,9 @@ export function DashboardActionBar({
               {changedItems.length} изменения
             </span>
           </span>
+          {preview?.profile_uniqueness && preview.profile_uniqueness.similar_count > 0 ? (
+            <ProfileUniquenessBadge profileUniqueness={preview.profile_uniqueness} />
+          ) : null}
           <span className="text-[11px] text-muted-foreground hidden sm:inline">
             {changedItems.length > 0
               ? changedItems.map((item) => formatChangeOperationLabel(item.operation)).join(', ')
@@ -80,6 +83,26 @@ export function DashboardActionBar({
         </div>
       </div>
     </div>
+  )
+}
+
+function ProfileUniquenessBadge({
+  profileUniqueness,
+}: {
+  profileUniqueness: NonNullable<ProfilePreview['profile_uniqueness']>
+}) {
+  const blocked = profileUniqueness.severity === 'blocked'
+  const count = blocked ? profileUniqueness.blocking_count : profileUniqueness.similar_count
+  return (
+    <span
+      className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:flex ${
+        blocked ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
+      }`}
+      title={`max score ${profileUniqueness.max_score.toFixed(2)}`}
+    >
+      <UserRoundCheck className="size-3.5" />
+      {blocked ? `Слишком похож: ${count}` : `Похожий профиль: ${count}`}
+    </span>
   )
 }
 

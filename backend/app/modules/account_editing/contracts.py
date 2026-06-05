@@ -50,6 +50,21 @@ class AccountUpdateCreate(BaseModel):
     profile: AccountUpdateProfileDesiredState | None = None
     profile_audio: AccountUpdateProfileAudioDesiredState | None = None
     stories: list[AccountUpdateStoryDesiredState] = Field(default_factory=_empty_update_stories)
+    force_profile_uniqueness: bool = False
+
+
+class AccountProfileUniquenessMatchRead(BaseModel):
+    account_id: UuidString
+    score: float
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AccountProfileUniquenessRead(BaseModel):
+    severity: Literal["ok", "warning", "blocked"]
+    similar_count: int
+    blocking_count: int
+    max_score: float
+    matches: list[AccountProfileUniquenessMatchRead] = Field(default_factory=list)
 
 
 class AccountUpdateJobSummaryRead(JobSummaryRead):
@@ -72,9 +87,12 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
     operation_safety: list[AccountOperationSafetyRead] = Field(
         default_factory=_empty_operation_safety_items
     )
+    profile_uniqueness: AccountProfileUniquenessRead | None = None
 
 
 __all__ = [
+    "AccountProfileUniquenessMatchRead",
+    "AccountProfileUniquenessRead",
     "AccountUpdateCreate",
     "AccountUpdateJobSummaryRead",
     "AccountUpdatePreviewRead",

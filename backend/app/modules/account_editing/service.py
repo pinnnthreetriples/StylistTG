@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.adapters.tdlib_profile_execution import build_profile_execution_adapter
 from app.config import Settings, settings
 from app.logging_utils import log_event
-from app.models import Account, Job, JobState, utc_now
+from app.models import Account, Asset, Job, JobState, utc_now
 from app.modules.account_editing.contracts import (
     AccountUpdateCreate,
     AccountUpdateJobSummaryRead,
@@ -18,6 +18,7 @@ from app.modules.account_editing.executor import execute_account_update_job
 from app.modules.account_editing.errors import (
     AccountQueueUnavailableError,
     AccountWarmupLockedError,
+    ProfileUniquenessBlockedError,
 )
 from app.modules.account_editing.planner import (
     account_update_profile_payload,
@@ -27,6 +28,12 @@ from app.modules.account_editing.planner import (
 )
 from app.modules.account_editing.policies import AccountEditingPolicy
 from app.modules.account_editing.repository import AccountEditingRepository
+from app.modules.account_editing.uniqueness_check import (
+    BLOCKING_THRESHOLD,
+    compute_photo_perceptual_hash,
+    evaluate_profile_uniqueness,
+    profile_uniqueness_payload,
+)
 from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.warmup import service as warmup_service
 from app.services.dashboard import job_summary
@@ -194,6 +201,7 @@ def build_account_update_preview(
     account = repo.require_account(account_id=account_id, workspace_id=workspace_id)
 
     requested_profile_fields = policy.requested_profile_fields(desired_state)
+    force_profile_uniqueness = bool(desired_state.get("force_profile_uniqueness"))
     desired_state = policy.normalize_desired_state_with_assets(
         account_id=account_id,
         desired_state=desired_state,
@@ -238,6 +246,21 @@ def build_account_update_preview(
             "reasons": [reason.model_dump(mode="json") for reason in gate_verdict.reasons],
         }
 
+    uniqueness = _evaluate_uniqueness_for_desired_state(
+        session,
+        account=account,
+        desired_state=desired_state,
+    )
+    uniqueness_fields = profile_uniqueness_payload(uniqueness)
+    if uniqueness.severity == "blocked" and not force_profile_uniqueness:
+        blocking_errors.append(
+            f"profile_uniqueness_blocked:{uniqueness.blocking_count}"
+        )
+    elif uniqueness.severity == "blocked" and force_profile_uniqueness:
+        warnings.append(f"profile_uniqueness_force_override:{uniqueness.blocking_count}")
+    elif uniqueness.severity == "warning":
+        warnings.append(f"profile_uniqueness_warning:{uniqueness.similar_count}")
+
     return {
         "can_create_job": not blocking_errors,
         "blocking_errors": blocking_errors,
@@ -249,6 +272,7 @@ def build_account_update_preview(
         "workflow_version": 1,
         "capability_snapshot": default_capability_snapshot(),
         **safety_fields,
+        "profile_uniqueness": uniqueness_fields,
         "plan_json_snapshot": plan,
         "steps": plan["steps"],
         "requires_execution_usable": True,
@@ -277,6 +301,7 @@ def create_account_update_job(
         execution_adapter=execution_adapter,
     )
     requested_profile_fields = policy.requested_profile_fields(desired_state)
+    force_profile_uniqueness = bool(desired_state.get("force_profile_uniqueness"))
     desired_state = policy.normalize_desired_state_with_assets(
         account_id=account_id,
         desired_state=desired_state,
@@ -288,6 +313,26 @@ def create_account_update_job(
         desired_state=desired_state,
         config=config,
     )
+    uniqueness = _evaluate_uniqueness_for_desired_state(
+        session,
+        account=account,
+        desired_state=desired_state,
+    )
+    if uniqueness.max_score >= BLOCKING_THRESHOLD and not force_profile_uniqueness:
+        raise ProfileUniquenessBlockedError()
+    if uniqueness.max_score >= BLOCKING_THRESHOLD and force_profile_uniqueness:
+        log_operation(
+            session,
+            account_id=account_id,
+            operation_type="account_update",
+            operation_key="profile_uniqueness_force_override",
+            status="completed",
+            severity="warning",
+            source="account_update_api",
+            message="Profile uniqueness blocker overridden by operator flag",
+            workspace_id=account.workspace_id,
+            metadata=profile_uniqueness_payload(uniqueness),
+        )
     plan = _build_plan_for_desired_state(
         policy=policy,
         account=account,
@@ -342,3 +387,43 @@ def _build_plan_for_desired_state(
             requested_profile_fields=requested_profile_fields,
         ),
     )
+
+
+def _evaluate_uniqueness_for_desired_state(
+    session: Session,
+    *,
+    account: Account,
+    desired_state: dict[str, Any],
+):
+    profile = desired_state.get("profile") or {}
+    if not isinstance(profile, dict):
+        return evaluate_profile_uniqueness(
+            session,
+            workspace_id=account.workspace_id,
+            bio=None,
+            photo_hash=None,
+            exclude_account_id=account.id,
+        )
+
+    name = str(profile.get("name") or "").strip()
+    name_parts = name.split(maxsplit=1)
+    first_name = name_parts[0] if name_parts else None
+    last_name = name_parts[1] if len(name_parts) > 1 else None
+    photo_hash = _photo_hash_for_profile(session, profile)
+    return evaluate_profile_uniqueness(
+        session,
+        workspace_id=account.workspace_id,
+        bio=profile.get("bio"),
+        photo_hash=photo_hash,
+        first_name=first_name,
+        last_name=last_name,
+        exclude_account_id=account.id,
+    )
+
+
+def _photo_hash_for_profile(session: Session, profile: dict[str, Any]) -> str | None:
+    asset_id = profile.get("photo_asset_id")
+    if not isinstance(asset_id, str) or not asset_id:
+        return None
+    asset = session.get(Asset, asset_id)
+    return compute_photo_perceptual_hash(asset, path=profile.get("photo_asset_path"))

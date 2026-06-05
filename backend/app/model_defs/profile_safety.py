@@ -83,6 +83,8 @@ class AccountProfileState(Base):
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     profile_photo_asset_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    bio_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    photo_perceptual_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     account: Mapped[Account] = relationship(back_populates="profile_state")

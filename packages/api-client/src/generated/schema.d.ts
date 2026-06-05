@@ -4058,6 +4058,36 @@ export interface components {
             profile_audio?: components["schemas"]["AccountUpdateProfileAudioDesiredState"] | null;
             /** Stories */
             stories?: components["schemas"]["AccountUpdateStoryDesiredState"][];
+            /**
+             * Force Profile Uniqueness
+             * @default false
+             */
+            force_profile_uniqueness?: boolean;
+        };
+        /** AccountProfileUniquenessMatchRead */
+        AccountProfileUniquenessMatchRead: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Score */
+            score: number;
+            /** Reasons */
+            reasons?: string[];
+        };
+        /** AccountProfileUniquenessRead */
+        AccountProfileUniquenessRead: {
+            /** Severity */
+            severity: "ok" | "warning" | "blocked";
+            /** Similar Count */
+            similar_count: number;
+            /** Blocking Count */
+            blocking_count: number;
+            /** Max Score */
+            max_score: number;
+            /** Matches */
+            matches?: components["schemas"]["AccountProfileUniquenessMatchRead"][];
         };
         /** AccountUpdateJobSummaryRead */
         AccountUpdateJobSummaryRead: {
@@ -4133,6 +4163,7 @@ export interface components {
             safety_blockers?: string[];
             /** Operation Safety */
             operation_safety?: components["schemas"]["AccountOperationSafetyRead"][];
+            profile_uniqueness?: components["schemas"]["AccountProfileUniquenessRead"] | null;
         };
         /** AccountUpdateProfileAudioDesiredState */
         AccountUpdateProfileAudioDesiredState: {

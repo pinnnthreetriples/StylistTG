@@ -168,6 +168,15 @@ export function labelIssue(value: string | null | undefined): string {
 }
 
 export function labelBlockingItem(value: string): string {
+  if (value.startsWith('profile_uniqueness_warning:')) {
+    return 'Похожий профиль найден в workspace'
+  }
+  if (value.startsWith('profile_uniqueness_blocked:')) {
+    return 'Профиль слишком похож на другой аккаунт'
+  }
+  if (value.startsWith('profile_uniqueness_force_override:')) {
+    return 'Блокировка похожего профиля принудительно подтверждена'
+  }
   return labelIssue(normalizeKey(value))
 }
 

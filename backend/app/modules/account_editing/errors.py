@@ -142,6 +142,21 @@ class ProfileAudioUnsupportedFormatError(AccountEditingError):
         )
 
 
+class ProfileUniquenessBlockedError(AccountEditingError):
+    def __init__(self) -> None:
+        super().__init__(
+            legacy_message="profile uniqueness guard blocked this update",
+            error_code="PROFILE_UNIQUENESS_BLOCKED",
+            error_class="validation",
+            field_errors=(
+                {
+                    "field": "profile",
+                    "message": "profile is too similar to another account in this workspace",
+                },
+            ),
+        )
+
+
 class StoriesDisabledError(AccountEditingError):
     def __init__(self) -> None:
         super().__init__(

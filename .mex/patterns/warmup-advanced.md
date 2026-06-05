@@ -93,6 +93,12 @@ Canonical pattern for milestone `Advanced Warmup v1`. Use this before implementi
 - `<backend/app/modules/account_editing/ai_generation.py>`
 - `<backend/app/modules/account_editing/invite_links.py>`
 
+Profile uniqueness guard rules:
+
+- `<backend/app/modules/account_editing/uniqueness_check.py>` owns workspace-local bio/name/photo similarity for profile saves. It must not do cross-workspace detection.
+- Account-update preview returns `profile_uniqueness` plus warning/blocker strings; create-job repeats the same check and blocks scores `>=0.95` unless `force_profile_uniqueness=true`.
+- Force overrides log an `account_update` operation with sanitized counts/scores only, never raw bio text or image data.
+
 ### Stage 7 UI structure
 
 - `<apps/dashboard/src/modules/warmup/components/WarmupAccountSelector.tsx>`

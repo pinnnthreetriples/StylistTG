@@ -63,6 +63,69 @@ def test_account_update_preview_builds_unified_plan(app_client, db_session) -> N
     ]
 
 
+def test_account_update_preview_returns_profile_uniqueness_warning(app_client, db_session) -> None:
+    existing = create_account(db_session, external_ref="existing-profile")
+    existing.account_state = AccountState.EXECUTION_USABLE
+    existing.profile_state = AccountProfileState(
+        account_id=existing.id,
+        first_name="Existing",
+        last_name="Profile",
+        bio="SMM specialist, Moscow",
+    )
+    candidate = create_account(db_session, external_ref="candidate-profile")
+    candidate.account_state = AccountState.EXECUTION_USABLE
+    db_session.commit()
+
+    response = app_client.post(
+        "/api/account-update/preview",
+        json={
+            "account_id": candidate.id,
+            "profile": {
+                "name": "Unique Candidate",
+                "bio": "SMM specialist in Moscow",
+                "photo_asset_id": None,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["can_create_job"] is True
+    assert payload["profile_uniqueness"]["severity"] == "warning"
+    assert payload["profile_uniqueness"]["similar_count"] == 1
+
+
+def test_account_update_create_blocks_profile_uniqueness_without_force(
+    app_client, db_session
+) -> None:
+    existing = create_account(db_session, external_ref="existing-blocking-profile")
+    existing.account_state = AccountState.EXECUTION_USABLE
+    existing.profile_state = AccountProfileState(
+        account_id=existing.id,
+        first_name="Existing",
+        last_name="Profile",
+        bio="SMM specialist, Moscow",
+    )
+    candidate = create_account(db_session, external_ref="candidate-blocking-profile")
+    candidate.account_state = AccountState.EXECUTION_USABLE
+    db_session.commit()
+
+    response = app_client.post(
+        "/api/account-update/jobs",
+        json={
+            "account_id": candidate.id,
+            "profile": {
+                "name": "Unique Candidate",
+                "bio": "SMM specialist, Moscow",
+                "photo_asset_id": None,
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "PROFILE_UNIQUENESS_BLOCKED"
+
+
 def test_account_update_create_queues_unified_job(app_client, db_session, monkeypatch) -> None:
     account = create_account(db_session, external_ref="primary")
     account.account_state = AccountState.EXECUTION_USABLE

@@ -28,6 +28,18 @@ def _dispatch_action(
     text_provider: WarmupTextProvider,
     now: datetime,
 ) -> tuple[WarmupActionResult, dict[str, Any]] | None:
+    if action_type in (warmup_session.disabled_actions_json or []):
+        _write_dispatch_skip(
+            session,
+            warmup_session,
+            action_type,
+            _ActionContextResolution(
+                context={},
+                skip_reason="disabled_by_operator",
+                metadata={"disabled_actions": list(warmup_session.disabled_actions_json or [])},
+            ),
+        )
+        return None
     if not is_live:
         return WarmupActionResult(
             status="ok", action_type=action_type, metadata={"simulated": True}

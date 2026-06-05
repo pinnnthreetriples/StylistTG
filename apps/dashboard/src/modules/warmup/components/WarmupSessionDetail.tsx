@@ -7,6 +7,7 @@ import { SafetyGateBanner } from '@/modules/shared'
 import {
   usePauseWarmupSession,
   useResumeWarmupSession,
+  useWarmupActionMetadata,
   useWarmupEventsPaginated,
   useWarmupSessionDetail,
   useWarmupStrategies,
@@ -18,6 +19,7 @@ import {
 } from '../labels'
 import type { WarmupSessionSummary } from '../types'
 import { WarmupDailyCountersPanel } from './WarmupDailyCountersPanel'
+import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
 import { WarmupEventLog } from './WarmupEventLog'
 import { WarmupIsolationBanner } from './WarmupIsolationBanner'
 import { WarmupProxySnapshotPanel } from './WarmupProxySnapshotPanel'
@@ -33,6 +35,7 @@ export function WarmupSessionDetail({
   const [pauseReason, setPauseReason] = useState('')
   const eventsData = useWarmupEventsPaginated(session?.id ?? null)
   const detailQuery = useWarmupSessionDetail(session?.id ?? null)
+  const actionMetadataQuery = useWarmupActionMetadata()
   const strategiesQuery = useWarmupStrategies()
   const pauseMutation = usePauseWarmupSession()
   const resumeMutation = useResumeWarmupSession()
@@ -157,6 +160,12 @@ export function WarmupSessionDetail({
         durationDays={detail?.duration_days ?? session.duration_days}
         dailyCounters={detail?.daily_counters ?? {}}
         strategy={strategy}
+      />
+      <WarmupDisabledActionsToggle
+        sessionId={session.id}
+        disabledActions={detail?.disabled_actions ?? []}
+        metadata={actionMetadataQuery.data ?? []}
+        isMetadataLoading={actionMetadataQuery.isLoading}
       />
       <WarmupProxySnapshotPanel snapshot={detail?.proxy_snapshot ?? null} />
       <WarmupEventLog

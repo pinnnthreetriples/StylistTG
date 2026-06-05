@@ -18,6 +18,7 @@ from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
     WarmupActionMetadataRead,
     WarmupActionPresetRequest,
+    WarmupDisabledActionsRequest,
     WarmupEventPageRead,
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
@@ -42,6 +43,7 @@ from app.modules.auth.dependencies import (
 router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
+session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
 settings = warmup_service.settings
 
 
@@ -177,6 +179,26 @@ def get_warmup_session_status(
         raise _warmup_error(exc) from exc
 
 
+@warmup_router.patch("/sessions/{session_id}/disabled-actions", response_model=WarmupSessionRead)
+def patch_warmup_session_disabled_actions(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupSessionRead:
+    return _set_warmup_session_disabled_actions(session_id, payload, session, auth)
+
+
+@session_alias_router.patch("/{session_id}/disabled-actions", response_model=WarmupSessionRead)
+def patch_warmup_session_disabled_actions_alias(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupSessionRead:
+    return _set_warmup_session_disabled_actions(session_id, payload, session, auth)
+
+
 @warmup_router.put("/sessions/{session_id}/pause", response_model=WarmupSessionRead)
 def put_warmup_session_pause(
     session_id: UUID,
@@ -278,5 +300,25 @@ def _warmup_error(exc: WarmupError) -> AppError:
     )
 
 
+def _set_warmup_session_disabled_actions(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session,
+    auth: AuthContext,
+) -> WarmupSessionRead:
+    try:
+        return warmup_service.set_disabled_actions_use_case(
+            session,
+            session_id=str(session_id),
+            workspace_id=auth.workspace_id,
+            actions=payload.actions,
+            actor_user_id=auth.user_id,
+        )
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
+
+
 router.include_router(warmup_router)
 router.include_router(actions_router)
+router.include_router(session_alias_router)

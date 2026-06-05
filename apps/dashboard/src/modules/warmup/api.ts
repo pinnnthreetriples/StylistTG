@@ -66,6 +66,13 @@ export function resumeWarmupSession(sessionId: string): Promise<WarmupSessionDet
   })
 }
 
+export function updateWarmupDisabledActions(sessionId: string, actions: string[]): Promise<WarmupSessionDetail> {
+  return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/disabled-actions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ actions }),
+  })
+}
+
 export function deleteWarmupSession(sessionId: string): Promise<void> {
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}`, {
     method: 'DELETE',

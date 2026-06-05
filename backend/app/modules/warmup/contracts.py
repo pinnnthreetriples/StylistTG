@@ -55,6 +55,10 @@ class WarmupActionPresetRequest(BaseModel):
     preset: Literal["economic", "all", "minimal"]
 
 
+class WarmupDisabledActionsRequest(BaseModel):
+    actions: list[str] = Field(default_factory=list)
+
+
 class WarmupActionMetadataRead(BaseModel):
     action_type: str
     category: Literal["reading", "activity", "entertainment", "social", "groups", "profile"]
@@ -98,6 +102,7 @@ class WarmupSessionRead(BaseModel):
     consecutive_failures: int
     daily_counters: dict[str, Any] = Field(default_factory=dict)
     trusted_peer_ids: list[str] = Field(default_factory=list)
+    disabled_actions: list[str] = Field(default_factory=list)
     proxy_snapshot: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
@@ -199,6 +204,7 @@ __all__ = [
     "WarmupExecutionModeRead",
     "WarmupActionPresetRequest",
     "WarmupActionMetadataRead",
+    "WarmupDisabledActionsRequest",
     "WarmupIsolationClaimRead",
     "WarmupIsolationStatusRead",
     "WarmupPauseRequest",

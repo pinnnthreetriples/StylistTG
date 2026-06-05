@@ -23,7 +23,7 @@ from app.services.accounts import create_account
 from app.services.warmup import create_warmup_session
 
 
-def _seed_account(db_session, *, with_proxy: bool):
+def _seed_account(db_session, *, with_proxy: bool, proxy_category: str = ProxyCategory.RESIDENTIAL.value):
     account = create_account(
         db_session,
         external_ref=f"+7999{new_id()[:8]}",
@@ -40,7 +40,7 @@ def _seed_account(db_session, *, with_proxy: bool):
         account.proxy = AccountProxy(
             account_id=account.id,
             proxy_type="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
+            proxy_category=proxy_category,
             host="127.0.0.1",
             port=1080,
             username="user",
@@ -138,3 +138,48 @@ def test_create_warmup_session_emits_snapshot_event(db_session) -> None:
         == (warmup_session.personality_seed_json["favorite_emojis"])
     )
     assert "action_preferences" not in payload["personality_seed"]
+
+
+def test_create_warmup_session_applies_mobile_proxy_adaptation(db_session) -> None:
+    account = _seed_account(db_session, with_proxy=True, proxy_category=ProxyCategory.MOBILE.value)
+    strategy = _seed_strategy(db_session)
+
+    warmup_session = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert set(warmup_session.disabled_actions_json) == {
+        "scroll_channels",
+        "watch_video",
+        "listen_voice",
+        "search_gif",
+        "view_stickers",
+        "link_preview",
+    }
+    event = next(item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied")
+    assert event.payload_json["proxy_category"] == ProxyCategory.MOBILE.value
+    assert event.payload_json["applied_preset"] == "economic"
+    assert set(event.payload_json["disabled_actions"]) == set(warmup_session.disabled_actions_json)
+
+
+def test_create_warmup_session_leaves_datacenter_actions_enabled(db_session) -> None:
+    account = _seed_account(
+        db_session,
+        with_proxy=True,
+        proxy_category=ProxyCategory.DATACENTER.value,
+    )
+    strategy = _seed_strategy(db_session)
+
+    warmup_session = create_warmup_session(
+        db_session,
+        account_id=account.id,
+        strategy_id=strategy.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+
+    assert warmup_session.disabled_actions_json == []
+    event = next(item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied")
+    assert event.payload_json["applied_preset"] == "full"

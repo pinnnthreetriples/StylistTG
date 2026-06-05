@@ -115,6 +115,13 @@ export type WarmupValidateResponse = {
   checks: WarmupCheckItem[]
   blocking_reasons: string[]
   warnings: string[]
+  proxy_adaptation: WarmupProxyAdaptation | null
+}
+
+export type WarmupProxyAdaptation = {
+  proxy_category: string
+  applied_preset: 'economic' | 'balanced' | 'full'
+  disabled_actions: string[]
 }
 
 export type WarmupSessionSummary = {

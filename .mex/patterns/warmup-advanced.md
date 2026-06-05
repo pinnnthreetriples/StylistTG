@@ -191,6 +191,7 @@ Transition owners:
 - `<backend/app/modules/warmup/cyclic.py>` owns finite cyclic active windows (`cycle_config_json`) and supports timezone/DST conversion plus midnight-wrapping windows such as `22 -> 2`; dispatch skips outside the active window and records `cyclic_inactive_window`.
 - `<backend/app/modules/warmup/circadian/windows.py>` owns default human-hour weights and deterministic lazy days; dispatch scheduling uses it when `warmup_circadian_enabled=true` while preserving global quiet-hours.
 - `<backend/app/modules/warmup/circadian/personality.py>` owns per-session account personality seeds. New sessions store a deterministic `personality_seed_json`; in-flight sessions with `{}` keep default selector, circadian, typing, and reaction behavior.
+- `<backend/app/modules/warmup/proxy_adaptation.py>` owns proxy-category presets. New sessions auto-disable traffic-heavy actions for mobile/residential proxies through `disabled_actions_json` and emit `proxy_adaptation_applied`; datacenter keeps the full action set.
 
 Every transition writes an `account.lifecycle.transition` event with `from_state`,
 `to_state`, `reason`, `actor_user_id`, and sanitized payload metadata. Terminal states

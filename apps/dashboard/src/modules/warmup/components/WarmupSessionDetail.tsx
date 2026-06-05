@@ -59,6 +59,7 @@ export function WarmupSessionDetail({
   const executionLabel = WARMUP_EXECUTION_MODE_LABELS[session.execution_mode] ?? session.execution_mode
   const isDryRun = session.execution_mode === 'dry_run'
   const executionTone = isDryRun ? 'gray' : 'amber'
+  const cycleConfig = detail?.cycle_config ?? session.cycle_config
 
   return (
     <div className="grid gap-4">
@@ -106,6 +107,14 @@ export function WarmupSessionDetail({
                 )}
               </div>
             </div>
+            {cycleConfig ? (
+              <div>
+                <div className="text-xs font-semibold uppercase text-muted-foreground">Циклическое окно</div>
+                <div className="text-sm font-semibold text-foreground">
+                  Ожидаются активные часы: {formatHour(cycleConfig.start_hour)}-{formatHour(cycleConfig.end_hour)}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
@@ -176,4 +185,8 @@ export function WarmupSessionDetail({
       />
     </div>
   )
+}
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`
 }

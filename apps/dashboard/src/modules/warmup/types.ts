@@ -81,6 +81,27 @@ export type WarmupStrategy = {
   ui_summary: WarmupUiSummary
 }
 
+export type WarmupCycleConfig = {
+  start_hour: number
+  end_hour: number
+  days_total: number
+  current_cycle: number
+  started_at: string | null
+  active_hours_total: number | null
+}
+
+export type WarmupCyclicCreatePayload = {
+  account_ids: string[]
+  start_hour: number
+  end_hour: number
+  days_total: number
+  strategy_preset: WarmupPresetKind
+}
+
+export type WarmupCyclicCreateResponse = {
+  items: WarmupSessionDetail[]
+}
+
 export type WarmupCheckItem = {
   key: string
   label: string
@@ -110,6 +131,7 @@ export type WarmupSessionSummary = {
   next_micro_session_at: string | null
   cold_soak_until: string | null
   updated_at: string
+  cycle_config: WarmupCycleConfig | null
 }
 
 export type WarmupDailyCounters = Record<string, WarmupDailyLimits>

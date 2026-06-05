@@ -46,6 +46,7 @@ def session_read(warmup_session: Any) -> WarmupSessionRead:
         paused_at=warmup_session.paused_at,
         completed_at=warmup_session.completed_at,
         worker_id=warmup_session.worker_id,
+        cycle_config=warmup_session.cycle_config_json,
     )
 
 
@@ -64,6 +65,7 @@ def session_summary(warmup_session: Any) -> WarmupSessionSummaryRead:
         next_micro_session_at=warmup_session.next_micro_session_at,
         cold_soak_until=warmup_session.cold_soak_until,
         updated_at=warmup_session.updated_at,
+        cycle_config=warmup_session.cycle_config_json,
     )
 
 

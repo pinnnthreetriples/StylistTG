@@ -188,6 +188,7 @@ Transition owners:
 - `<backend/app/modules/account_lifecycle/idle_detector.py>` detects `active` accounts with no active/recent `Job` activity.
 - `<backend/app/modules/warmup/idle_session.py>` requests `active -> idle`, creates read-only `IDLE_KEEPALIVE` warmup, and stops it with an `idle_session_stopped` event before `idle -> active`.
 - `<backend/app/modules/warmup/pre_production.py>` creates empty-profile pre-production sessions only when `warmup_pre_production_enabled=true` and the strategy/snapshot flag `enable_pre_production=true`; it plans neuro-commenting and `react_to_post` DRY_RUN work, asserts no bio/avatar/pinned link, sends clean expiry to `active`, and sends flood-wait/failure to `cold_soak`.
+- `<backend/app/modules/warmup/cyclic.py>` owns finite cyclic active windows (`cycle_config_json`) and supports timezone/DST conversion plus midnight-wrapping windows such as `22 -> 2`; dispatch skips outside the active window and records `cyclic_inactive_window`.
 
 Every transition writes an `account.lifecycle.transition` event with `from_state`,
 `to_state`, `reason`, `actor_user_id`, and sanitized payload metadata. Terminal states

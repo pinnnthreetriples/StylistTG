@@ -136,6 +136,7 @@ class WarmupSession(Base):
     disabled_actions_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     lifecycle_state: Mapped[str] = mapped_column(String(32), nullable=False, default="warming")
     strategy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    cycle_config_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

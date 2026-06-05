@@ -53,6 +53,7 @@ function WarmupSessionCard({
   const progress = warmupProgressPercent(session.current_day, session.duration_days)
   const executionLabel = WARMUP_EXECUTION_MODE_LABELS[session.execution_mode] ?? session.execution_mode
   const executionTone = session.execution_mode === 'dry_run' ? 'gray' : 'amber'
+  const cycleWindowLabel = formatCycleWindow(session.cycle_config)
 
   return (
     <article className="rounded-lg border border-border bg-card p-3 shadow-sm">
@@ -84,7 +85,9 @@ function WarmupSessionCard({
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarClock className="size-3.5" />
-            {session.next_micro_session_at
+            {cycleWindowLabel
+              ? `Ожидаются активные часы: ${cycleWindowLabel}`
+              : session.next_micro_session_at
               ? `Окно микро-сессии: ${formatWarmupNextStep(session.next_micro_session_at, workersEnabled)}`
               : `Следующий шаг: ${formatWarmupNextStep(session.next_step_at, workersEnabled)}`}
           </div>
@@ -120,4 +123,13 @@ function WarmupSessionCard({
       </div>
     </article>
   )
+}
+
+function formatCycleWindow(cycleConfig: WarmupSessionSummary['cycle_config']): string | null {
+  if (!cycleConfig) return null
+  return `${formatHour(cycleConfig.start_hour)}-${formatHour(cycleConfig.end_hour)}`
+}
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`
 }

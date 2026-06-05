@@ -28,6 +28,9 @@ SUPPORTED_NETWORK_ACTIONS: tuple[str, ...] = SUPPORTED_PASSIVE_ACTIONS + ("join_
 SUPPORTED_ADVANCED_ACTIONS: tuple[str, ...] = SUPPORTED_NETWORK_ACTIONS + (
     "react_to_post",
     "p2p_send",
+    "forward_message",
+    "saved_messages",
+    "sync_contacts",
 )
 
 SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
@@ -36,7 +39,16 @@ SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
     "advanced": SUPPORTED_ADVANCED_ACTIONS,
 }
 
-WRITE_ACTION_TYPES: frozenset[str] = frozenset({"join_chat", "react_to_post", "p2p_send"})
+WRITE_ACTION_TYPES: frozenset[str] = frozenset(
+    {
+        "join_chat",
+        "react_to_post",
+        "p2p_send",
+        "forward_message",
+        "saved_messages",
+        "sync_contacts",
+    }
+)
 
 
 def collect_supported_actions(modes: tuple[str, ...]) -> set[str]:

@@ -81,6 +81,12 @@ class MockWarmupTdlibAdapter:
             return self._inline_bot_result(action_type, context)
         if action_type == "link_preview":
             return self._link_preview_result(action_type, context)
+        if action_type == "forward_message":
+            return self._forward_message_result(action_type, context)
+        if action_type == "saved_messages":
+            return self._saved_messages_result(action_type, context)
+        if action_type == "sync_contacts":
+            return self._sync_contacts_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -382,6 +388,68 @@ class MockWarmupTdlibAdapter:
                 "latency_ms": self._rng.randint(80, 240),
                 "preview_url": str(context.get("preview_url") or "https://example.com/"),
                 "traffic_heavy": True,
+            },
+        )
+
+    def _forward_message_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="forward_message_missing_channel",
+                error_class="contract",
+            )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(90, 240),
+                "channel_ref": channel_ref,
+                "from_chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "to_chat": "saved_messages",
+                "message_id": self._rng.randint(1, 1_000_000),
+            },
+        )
+
+    def _saved_messages_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        text = str(context.get("note_text") or "remember")
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(70, 180),
+                "to_chat": "saved_messages",
+                "text_length": len(text),
+            },
+        )
+
+    def _sync_contacts_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        contacts_pool = list(context.get("contacts_pool") or [])
+        if not contacts_pool:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="no_contacts_pool_available",
+                error_class="content",
+                metadata={"provider": self.provider_name},
+            )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(120, 260),
+                "contacts_read": self._rng.randint(0, 20),
+                "contacts_imported": len(contacts_pool),
             },
         )
 

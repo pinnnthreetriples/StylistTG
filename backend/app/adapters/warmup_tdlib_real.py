@@ -103,6 +103,20 @@ class RealWarmupTdlibAdapter:
             "sync_contacts": lambda: self._action_sync_contacts(client, action_type, context),
             "archive_chat": lambda: self._action_archive_chat(client, action_type, context),
             "mute_chat": lambda: self._action_mute_chat(client, action_type, context),
+            "simulate_typing": lambda: self._action_profile_settings(client, action_type, context),
+            "view_profile": lambda: self._action_profile_settings(client, action_type, context),
+            "check_settings": lambda: self._action_profile_settings(client, action_type, context),
+            "emoji_status": lambda: self._action_profile_settings(client, action_type, context),
+            "drafts": lambda: self._action_profile_settings(client, action_type, context),
+            "scheduled_messages": lambda: self._action_profile_settings(
+                client, action_type, context
+            ),
+            "update_profile_gradual": lambda: self._action_profile_settings(
+                client, action_type, context
+            ),
+            "notification_settings": lambda: self._action_profile_settings(
+                client, action_type, context
+            ),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -1057,6 +1071,257 @@ class RealWarmupTdlibAdapter:
                 return chat_id
         return _protected_chat_result(action_type, 0)
 
+    def _action_profile_settings(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        if action_type == "simulate_typing":
+            chat_id_result = self._resolve_context_chat_id(client, action_type, context)
+            if isinstance(chat_id_result, WarmupActionResult):
+                return chat_id_result
+            duration = _bounded_int(
+                context.get("typing_duration_seconds"), minimum=3, maximum=8, default=5
+            )
+            response = client.send_query(
+                {
+                    "@type": "sendChatAction",
+                    "chat_id": chat_id_result,
+                    "action": {"@type": "chatActionTyping"},
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "chat_id": chat_id_result,
+                    "typing_duration_seconds": duration,
+                },
+            )
+        if action_type == "view_profile":
+            user_id_result = self._resolve_profile_user_id(client, action_type, context)
+            if isinstance(user_id_result, WarmupActionResult):
+                return user_id_result
+            response = client.send_query(
+                {"@type": "getUser", "user_id": user_id_result},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={"provider": self.provider_name, "user_id": user_id_result},
+            )
+        if action_type == "check_settings":
+            option_name = str(context.get("option_name") or "notification_group_count_max")
+            response = client.send_query(
+                {"@type": "getOption", "name": option_name},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={"provider": self.provider_name, "option_name": option_name},
+            )
+        if action_type == "emoji_status":
+            if context.get("is_premium") is False:
+                return WarmupActionResult(
+                    status="skipped",
+                    action_type=action_type,
+                    error_code="non_premium_account",
+                    error_class="capability",
+                )
+            emoji_id = str(context.get("emoji_id") or "🙂")
+            response = client.send_query(
+                {"@type": "setEmojiStatus", "emoji_status": {"custom_emoji_id": emoji_id}},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={"provider": self.provider_name, "emoji_id": emoji_id},
+            )
+        if action_type == "drafts":
+            chat_id_result = self._resolve_context_chat_id(client, action_type, context)
+            if isinstance(chat_id_result, WarmupActionResult):
+                return chat_id_result
+            draft_text = str(context.get("draft_text") or "todo")
+            response = client.send_query(
+                _set_draft_query(chat_id_result, draft_text),
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            cleared = False
+            if bool(context.get("temporary", True)):
+                clear = client.send_query(
+                    {
+                        "@type": "setChatDraftMessage",
+                        "chat_id": chat_id_result,
+                        "draft_message": None,
+                    },
+                    self._config.tdlib_receive_timeout_seconds,
+                )
+                if clear.get("@type") == "error":
+                    classified = _classify_tdlib_error(clear, action_type)
+                    if classified.status == "flood_wait":
+                        return classified
+                else:
+                    cleared = True
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "chat_id": chat_id_result,
+                    "draft_length": len(draft_text),
+                    "cleared": cleared,
+                },
+            )
+        if action_type == "scheduled_messages":
+            saved_chat_id = self._saved_messages_chat_id(client, action_type)
+            if isinstance(saved_chat_id, WarmupActionResult):
+                return saved_chat_id
+            text = str(context.get("note_text") or "remember")
+            sent = client.send_query(
+                {
+                    "@type": "sendMessage",
+                    "chat_id": saved_chat_id,
+                    "input_message_content": {
+                        "@type": "inputMessageText",
+                        "text": {"@type": "formattedText", "text": text},
+                    },
+                    "scheduling_state": {
+                        "@type": "messageSchedulingStateSendAtDate",
+                        "send_date": int(context.get("schedule_at") or 1_800_000_000),
+                    },
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if sent.get("@type") == "error":
+                return _classify_tdlib_error(sent, action_type)
+            message_id = int(sent.get("id") or 0)
+            rescheduled = False
+            if bool(context.get("temporary", True)) and message_id:
+                edited = client.send_query(
+                    {
+                        "@type": "editMessageSchedulingState",
+                        "chat_id": saved_chat_id,
+                        "message_id": message_id,
+                        "scheduling_state": None,
+                    },
+                    self._config.tdlib_receive_timeout_seconds,
+                )
+                if edited.get("@type") == "error":
+                    classified = _classify_tdlib_error(edited, action_type)
+                    if classified.status == "flood_wait":
+                        return classified
+                else:
+                    rescheduled = True
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "to_chat": "saved_messages",
+                    "message_id": message_id,
+                    "rescheduled": rescheduled,
+                },
+            )
+        if action_type == "update_profile_gradual":
+            profile_field = str(context.get("profile_field") or "bio")
+            if profile_field == "name":
+                response = client.send_query(
+                    {
+                        "@type": "setName",
+                        "first_name": str(context.get("first_name") or "Alex"),
+                        "last_name": str(context.get("last_name") or ""),
+                    },
+                    self._config.tdlib_receive_timeout_seconds,
+                )
+            else:
+                response = client.send_query(
+                    {"@type": "setBio", "bio": str(context.get("bio") or "reading")},
+                    self._config.tdlib_receive_timeout_seconds,
+                )
+                profile_field = "bio"
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={"provider": self.provider_name, "profile_field": profile_field},
+            )
+        if action_type == "notification_settings":
+            scope_name = str(context.get("notification_scope") or "private")
+            response = client.send_query(
+                {
+                    "@type": "setScopeNotificationSettings",
+                    "scope": _notification_scope(scope_name),
+                    "notification_settings": {
+                        "@type": "scopeNotificationSettings",
+                        "mute_for": int(context.get("mute_for_seconds") or 0),
+                    },
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if response.get("@type") == "error":
+                return _classify_tdlib_error(response, action_type)
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={"provider": self.provider_name, "notification_scope": scope_name},
+            )
+        return WarmupActionResult(
+            status="unsupported",
+            action_type=action_type,
+            error_code="action_not_supported_in_passive",
+            error_class="contract",
+        )
+
+    def _resolve_context_chat_id(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> int | WarmupActionResult:
+        if context.get("chat_id") is not None:
+            return int(context["chat_id"])
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="profile_action_missing_chat",
+                error_class="contract",
+            )
+        return self._resolve_public_chat_id(client, action_type, channel_ref)
+
+    def _resolve_profile_user_id(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> int | WarmupActionResult:
+        if context.get("user_id") is not None:
+            return int(context["user_id"])
+        contacts = client.send_query(
+            {"@type": "getContacts"},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if contacts.get("@type") == "error":
+            return _classify_tdlib_error(contacts, action_type)
+        user_ids = contacts.get("user_ids")
+        if isinstance(user_ids, list) and user_ids:
+            return int(user_ids[0])
+        return WarmupActionResult(
+            status="skipped",
+            action_type=action_type,
+            error_code="no_profile_user_available",
+            error_class="content",
+        )
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -1526,6 +1791,29 @@ def _set_chat_mute_query(chat_id: int, mute_for_seconds: int) -> dict[str, Any]:
             "mute_for": mute_for_seconds,
         },
     }
+
+
+def _set_draft_query(chat_id: int, draft_text: str) -> dict[str, Any]:
+    return {
+        "@type": "setChatDraftMessage",
+        "chat_id": chat_id,
+        "draft_message": {
+            "@type": "draftMessage",
+            "input_message_text": {
+                "@type": "inputMessageText",
+                "text": {"@type": "formattedText", "text": draft_text},
+            },
+        },
+    }
+
+
+def _notification_scope(scope_name: str) -> dict[str, str]:
+    mapping = {
+        "private": "notificationSettingsScopePrivateChats",
+        "group": "notificationSettingsScopeGroupChats",
+        "channel": "notificationSettingsScopeChannelChats",
+    }
+    return {"@type": mapping.get(scope_name, "notificationSettingsScopePrivateChats")}
 
 
 def _chunks(values: list[int], size: int) -> list[list[int]]:

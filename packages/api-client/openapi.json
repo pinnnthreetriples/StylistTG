@@ -5443,6 +5443,139 @@
         }
       }
     },
+    "/api/account-survival/summary": {
+      "get": {
+        "tags": [
+          "account-survival"
+        ],
+        "summary": "Read Survival Summary",
+        "operationId": "read_survival_summary_api_account_survival_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSurvivalSummaryRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account-survival/{account_id}": {
+      "get": {
+        "tags": [
+          "account-survival"
+        ],
+        "summary": "Read Account Survival",
+        "operationId": "read_account_survival_api_account_survival__account_id__get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AccountSurvivalMetricRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Read Account Survival Api Account Survival  Account Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/profile-completeness": {
       "get": {
         "tags": [
@@ -18078,6 +18211,260 @@
           "consecutive_failures"
         ],
         "title": "AccountStatusObservationRead"
+      },
+      "AccountSurvivalMetricRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "imported_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Imported At"
+          },
+          "warmup_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warmup Started At"
+          },
+          "warmup_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warmup Completed At"
+          },
+          "pre_production_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pre Production At"
+          },
+          "first_action_after_warmup_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Action After Warmup At"
+          },
+          "first_freeze_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Freeze At"
+          },
+          "first_unfreeze_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Unfreeze At"
+          },
+          "freeze_count": {
+            "type": "integer",
+            "title": "Freeze Count"
+          },
+          "flood_wait_count": {
+            "type": "integer",
+            "title": "Flood Wait Count"
+          },
+          "banned_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banned At"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "survival_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Survival Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "imported_at",
+          "freeze_count",
+          "flood_wait_count"
+        ],
+        "title": "AccountSurvivalMetricRead"
+      },
+      "AccountSurvivalStrategyBreakdownRead": {
+        "properties": {
+          "strategy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy Id"
+          },
+          "strategy_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy Name"
+          },
+          "total_accounts": {
+            "type": "integer",
+            "title": "Total Accounts"
+          },
+          "alive_count": {
+            "type": "integer",
+            "title": "Alive Count"
+          },
+          "banned_count": {
+            "type": "integer",
+            "title": "Banned Count"
+          },
+          "deleted_count": {
+            "type": "integer",
+            "title": "Deleted Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_accounts",
+          "alive_count",
+          "banned_count",
+          "deleted_count"
+        ],
+        "title": "AccountSurvivalStrategyBreakdownRead"
+      },
+      "AccountSurvivalSummaryRead": {
+        "properties": {
+          "total_accounts": {
+            "type": "integer",
+            "title": "Total Accounts"
+          },
+          "alive_count": {
+            "type": "integer",
+            "title": "Alive Count"
+          },
+          "banned_count": {
+            "type": "integer",
+            "title": "Banned Count"
+          },
+          "deleted_count": {
+            "type": "integer",
+            "title": "Deleted Count"
+          },
+          "mean_survival_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Survival Days"
+          },
+          "p50_survival_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P50 Survival Days"
+          },
+          "p90_survival_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P90 Survival Days"
+          },
+          "by_warmup_strategy": {
+            "items": {
+              "$ref": "#/components/schemas/AccountSurvivalStrategyBreakdownRead"
+            },
+            "type": "array",
+            "title": "By Warmup Strategy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_accounts",
+          "alive_count",
+          "banned_count",
+          "deleted_count"
+        ],
+        "title": "AccountSurvivalSummaryRead"
       },
       "AccountUpdateCreate": {
         "properties": {

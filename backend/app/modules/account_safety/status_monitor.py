@@ -18,6 +18,7 @@ from app.models import (
     new_id,
     utc_now,
 )
+from app.modules.account_survival import events as survival_events
 from app.observability.safety_metrics import safety_metrics
 from app.modules.account_safety.quarantine import (
     AccountQuarantineService,
@@ -228,6 +229,13 @@ class AccountStatusMonitor:
         )
         if terminal_status is not None and account.terminal_status == "none":
             account.terminal_status = terminal_status
+            survival_events.on_account_terminal(
+                session,
+                account_id=account_id,
+                workspace_id=workspace_id,
+                terminal_status=terminal_status,
+                now=timestamp,
+            )
             _auto_pause_account(
                 session,
                 account_id=account_id,
@@ -282,6 +290,12 @@ class AccountStatusMonitor:
                 now=timestamp,
                 consecutive_failures=consecutive_failures,
                 consecutive_failure_threshold=consecutive_failure_threshold,
+            )
+            survival_events.on_account_frozen(
+                session,
+                account_id=account_id,
+                workspace_id=workspace_id,
+                now=timestamp,
             )
             if observation.auto_action_taken == "none":
                 observation.auto_action_taken = "paused"

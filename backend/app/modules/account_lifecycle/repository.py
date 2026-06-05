@@ -18,6 +18,7 @@ from app.models import (
     AccountQuarantine,
     AccountSafetyOverride,
     AccountStatusObservation,
+    AccountSurvivalMetric,
     Asset,
     BoughtOnboardingState,
     CrossModuleLoadBucket,
@@ -179,6 +180,7 @@ _CASCADE_MODELS: tuple[tuple[str, Any], ...] = (
     ("account_safety_override", AccountSafetyOverride),
     ("account_lifecycle_event", AccountLifecycleEvent),
     ("account_operation_log", AccountOperationLog),
+    ("account_survival_metric", AccountSurvivalMetric),
     ("account_auth_attempt", AccountAuthAttempt),
     ("warmup_session", WarmupSession),
 )

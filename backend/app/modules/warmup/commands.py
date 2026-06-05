@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, new_id
+from app.modules.account_survival import events as survival_events
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
 from app.modules.warmup.cold_soak import compute_cold_soak_window
@@ -86,6 +87,14 @@ def create_warmup_session(
             "until": cold_soak_until.isoformat(),
             "strategy_name": strategy.name if strategy is not None else None,
         },
+    )
+    survival_events.on_warmup_started(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        now=timestamp,
+        strategy_id=strategy_id,
+        strategy_name=strategy.name if strategy is not None else None,
     )
     if is_live_warmup_mode(execution_mode):
         owner = f"warmup:{warmup_session.id}"

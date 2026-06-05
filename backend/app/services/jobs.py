@@ -80,6 +80,7 @@ def finalize_job_creation(
         metadata={"workflow_type": job.workflow_type, "state": job.job_state},
     )
     if job.job_state == JobState.QUEUED:
+        _resume_idle_account_if_needed(session, job)
         increment_usage(session, job.workspace_id, "jobs_per_day")
     session.commit()
     session.refresh(job)
@@ -93,6 +94,17 @@ def finalize_job_creation(
         dedup=job.dedup_blocked_by_job_id,
     )
     return job
+
+
+def _resume_idle_account_if_needed(session: Session, job: Job) -> None:
+    from app.modules.warmup.idle_session import resume_account_from_idle
+
+    resume_account_from_idle(
+        session,
+        account_id=job.account_id,
+        workspace_id=job.workspace_id,
+        reason="combat_job_created",
+    )
 
 
 def create_profile_job(

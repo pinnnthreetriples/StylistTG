@@ -22,5 +22,12 @@ module = FeatureModule(
             args_mode=WorkflowArgsMode.NONE,
             description="Dispatch due warmup micro-sessions.",
         ),
+        WorkflowSpec(
+            workflow_type="warmup_idle_sweep",
+            queue_name=WARMUP_QUEUE_NAME,
+            handler_path="app.modules.warmup.jobs:run_warmup_idle_sweep",
+            args_mode=WorkflowArgsMode.NONE,
+            description="Move idle active accounts into read-only keepalive warmup.",
+        ),
     ),
 )

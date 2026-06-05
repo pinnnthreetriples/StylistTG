@@ -368,6 +368,22 @@ Cyclic sessions run only inside configured active hours, for example `15:00-18:0
 
 ## 8. Метрики
 
+### Prometheus export
+
+Scrape `/metrics` with `X-Internal-Scrape: true`; public scrapes are rejected unless `METRICS_ALLOW_PUBLIC=true`. The Advanced Warmup dashboard lives at `infra/grafana/dashboards/warmup-advanced.json`.
+
+| Metric | Type | Labels | Meaning |
+| --- | --- | --- | --- |
+| `account_survival_total` | Counter | `state`, `workspace_id` | Cumulative survival observations for `alive`, `banned`, and `deleted`. |
+| `account_survival_current` | Gauge | `state`, `workspace_id` | Current counts used by the survival-rate panel. |
+| `account_survival_days` | Gauge | `percentile`, `workspace_id` | Mean, p50, and p90 survival days. |
+| `warmup_session_completed_total` | Counter | `preset`, `workspace_id` | Completed warmup sessions by preset. |
+| `warmup_action_executed_total` | Counter | `action_type`, `result`, `workspace_id` | Warmup action outcomes, including dry-run simulations. |
+| `warmup_flood_wait_total` | Counter | `action_type`, `workspace_id` | Flood-wait incidents from warmup dispatch failures. |
+| `warmup_channel_health_total` | Gauge | `bucket`, `workspace_id` | Channel health distribution: `healthy`, `warning`, `blacklisted`. |
+
+The hourly workflow `account_survival.metrics.update` refreshes gauge metrics from PostgreSQL. Counter metrics are written from account-survival and warmup event hooks.
+
 ### Survival rate
 
 Use account survival metrics to compare accounts that completed warmup against accounts that hit flood-wait, quarantine, ban, or early production failure.

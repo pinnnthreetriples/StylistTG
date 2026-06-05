@@ -93,13 +93,19 @@ def _record_dispatch_action_failure(
             "metadata": dict(result.metadata),
         },
     )
-    if (result.error_code or "").lower().startswith("flood_wait"):
+    if _action_result_label(result) == "flood_wait":
         survival_events.on_flood_wait(
             session,
             account_id=warmup_session.account_id,
             workspace_id=warmup_session.workspace_id,
             now=datetime.now(UTC),
+            action_type=action_type,
         )
+    survival_events.on_warmup_action_executed(
+        action_type=action_type,
+        result=_action_result_label(result),
+        workspace_id=warmup_session.workspace_id,
+    )
     _record_channel_action_result_if_needed(
         session,
         warmup_session,
@@ -148,6 +154,11 @@ def _record_dispatch_action_success(
             "simulated": not is_live,
             "metadata": dict(result.metadata),
         },
+    )
+    survival_events.on_warmup_action_executed(
+        action_type=action_type,
+        result="success",
+        workspace_id=warmup_session.workspace_id,
     )
 
 
@@ -220,6 +231,24 @@ def _record_p2p_contact_if_needed(
         )
 
 
+def _action_result_label(result: WarmupActionResult) -> str:
+    status = str(result.status or "").strip().lower()
+    error_code = str(result.error_code or "").strip().lower()
+    if status == "flood_wait" or "flood_wait" in error_code:
+        return "flood_wait"
+    return status or "failed"
+
+
+def _warmup_preset(warmup_session: WarmupSession) -> str:
+    snapshot = warmup_session.strategy_snapshot_json or {}
+    if isinstance(snapshot, dict) and snapshot.get("preset_kind"):
+        return str(snapshot["preset_kind"])
+    strategy = warmup_session.strategy
+    if strategy is not None and strategy.preset_kind:
+        return str(strategy.preset_kind)
+    return "unknown"
+
+
 def _complete_dispatch_session(
     session: Session, warmup_session: WarmupSession, *, now: datetime
 ) -> None:
@@ -249,6 +278,7 @@ def _complete_dispatch_session(
         account_id=warmup_session.account_id,
         workspace_id=warmup_session.workspace_id,
         now=now,
+        preset=_warmup_preset(warmup_session),
     )
     if release_claim(
         session,

@@ -74,6 +74,7 @@ __all__ = [
     "_select_actions_for_window",
     "_select_chat_target",
     "process_due_warmup_dispatches",
+    "process_warmup_dispatch_session",
 ]
 
 
@@ -154,3 +155,71 @@ def process_due_warmup_dispatches(
         except Exception as exc:
             logger.debug("Warmup adapter cleanup failed: %s", exc, exc_info=True)
     return processed
+
+
+def process_warmup_dispatch_session(
+    session: Session,
+    *,
+    session_id: str,
+    worker_id: str,
+    now: datetime | None = None,
+    rng: random.Random | None = None,
+    passive_adapter: WarmupTdlibAdapter | None = None,
+    text_provider: WarmupTextProvider | None = None,
+) -> int:
+    timestamp = now or utc_now()
+    warmup_session = session.get(WarmupSession, session_id)
+    if warmup_session is None or warmup_session.execution_mode == WarmupExecutionMode.DRY_RUN.value:
+        return 0
+    include_live_modes = bool(settings.warmup_live_enabled or passive_adapter is not None)
+    if not include_live_modes and warmup_session.execution_mode != WarmupExecutionMode.SHADOW.value:
+        return 0
+    if not _dispatch_session_due(warmup_session, timestamp):
+        return 0
+
+    rng = rng or random.Random()
+    adapter = passive_adapter if passive_adapter is not None else build_warmup_tdlib_adapter()
+    provider = text_provider if text_provider is not None else build_warmup_text_provider()
+    try:
+        processed = int(
+            _process_one_dispatch(
+                session,
+                warmup_session,
+                now=timestamp,
+                worker_id=worker_id,
+                rng=rng,
+                adapter=adapter,
+                text_provider=provider,
+            )
+        )
+        session.commit()
+        return processed
+    finally:
+        try:
+            adapter.close()
+        except Exception as exc:
+            logger.debug("Warmup adapter cleanup failed: %s", exc, exc_info=True)
+
+
+def _dispatch_session_due(warmup_session: WarmupSession, now: datetime) -> bool:
+    if warmup_session.status in {WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value}:
+        return _is_due_at(warmup_session.next_micro_session_at, now)
+    if warmup_session.status == WarmupStatus.COLD_SOAK.value:
+        return (
+            _is_due_at(warmup_session.next_micro_session_at, now)
+            or (
+                warmup_session.cold_soak_until is not None
+                and _is_due_at(warmup_session.cold_soak_until, now)
+            )
+        )
+    return False
+
+
+def _is_due_at(value: datetime | None, now: datetime) -> bool:
+    if value is None:
+        return True
+    if value.tzinfo is None and now.tzinfo is not None:
+        value = value.replace(tzinfo=now.tzinfo)
+    if value.tzinfo is not None and now.tzinfo is None:
+        now = now.replace(tzinfo=value.tzinfo)
+    return value <= now

@@ -5,6 +5,17 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 WorkspaceSafetyMode = Literal["conservative", "balanced", "aggressive"]
+DEPRECATED_BEHAVIOR_POLICY_FIELDS = (
+    "delay_multiplier",
+    "typing_chars_per_minute_min",
+    "typing_chars_per_minute_max",
+    "profile_view_probability",
+    "scroll_probability",
+    "typo_probability",
+    "message_deletion_probability",
+    "quiet_hours_local_start",
+    "quiet_hours_local_end",
+)
 PUBLIC_POLICY_FIELDS = (
     "mode",
     "delay_multiplier",
@@ -31,6 +42,12 @@ DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD = 3
 
 @dataclass(frozen=True)
 class WorkspaceSafetyPolicyDefaults:
+    """Workspace protection preset contract.
+
+    The behavior-shaping fields are deprecated and kept only for API/database
+    compatibility. Runtime behavior is driven by per-account personality.
+    """
+
     delay_multiplier: float
     typing_chars_per_minute_min: int | None
     typing_chars_per_minute_max: int | None
@@ -192,6 +209,7 @@ def get_consecutive_failure_threshold(policy: Any) -> int:
 
 __all__ = [
     "DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD",
+    "DEPRECATED_BEHAVIOR_POLICY_FIELDS",
     "PRESET_DEFAULTS",
     "PUBLIC_POLICY_FIELDS",
     "WorkspaceSafetyMode",

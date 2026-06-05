@@ -7,7 +7,8 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.models import AccountBehaviorProfile, WorkspaceSafetyPolicy, new_id, utc_now
+from app.models import AccountBehaviorProfile, new_id, utc_now
+from app.modules.warmup.circadian import generate_personality_seed
 
 
 # Preset ranges from Section 2.1 of the plan
@@ -36,30 +37,6 @@ PRESET_RANGES: dict[str, dict[str, tuple[float, float] | None]] = {
 }
 
 
-def _ranges_from_policy(
-    policy: WorkspaceSafetyPolicy,
-) -> dict[str, tuple[float, float] | None]:
-    """Derive PRESET_RANGES-style dict from a WorkspaceSafetyPolicy row."""
-    cpm_min = policy.typing_chars_per_minute_min
-    cpm_max = policy.typing_chars_per_minute_max
-    typing_range: tuple[float, float] | None = None
-    if cpm_min is not None and cpm_max is not None:
-        typing_range = (float(cpm_min), float(cpm_max))
-
-    pvp = policy.profile_view_probability or 0.7
-    sp = policy.scroll_probability or 0.3
-    tp = policy.typo_probability or 0.05
-    mdp = policy.message_deletion_probability or 0.02
-
-    return {
-        "typing_speed_cpm": typing_range,
-        "typo_rate": (tp * 0.8, tp * 1.2),
-        "profile_view_probability": (pvp * 0.9, min(1.0, pvp * 1.1)),
-        "scroll_probability": (max(0.0, sp * 0.8), min(1.0, sp * 1.2)),
-        "message_deletion_probability": (mdp * 0.8, mdp * 1.2),
-    }
-
-
 @dataclass(frozen=True)
 class SessionProfile:
     """Randomized per-session variant of the stable baseline (±10%)."""
@@ -73,19 +50,17 @@ class SessionProfile:
 
 
 def _resolve_ranges(
-    session: Session,
-    workspace_id: str,
+    account_id: str,
     preset: str,
 ) -> dict[str, tuple[float, float] | None]:
-    """Resolve baseline ranges: prefer WorkspaceSafetyPolicy, fall back to preset."""
-    from sqlalchemy import select
-
-    policy = session.execute(
-        select(WorkspaceSafetyPolicy).where(WorkspaceSafetyPolicy.workspace_id == workspace_id)
-    ).scalar_one_or_none()
-    if policy is not None:
-        return _ranges_from_policy(policy)
-    return PRESET_RANGES.get(preset, PRESET_RANGES["balanced"])
+    """Resolve baseline ranges from per-account personality plus legacy preset fallback."""
+    ranges = dict(PRESET_RANGES.get(preset, PRESET_RANGES["balanced"]))
+    seed = generate_personality_seed(account_id)
+    typing_cps = seed.get("typing_speed_cps")
+    if isinstance(typing_cps, int | float) and typing_cps > 0:
+        typing_cpm = float(typing_cps) * 60.0
+        ranges["typing_speed_cpm"] = (typing_cpm * 0.95, typing_cpm * 1.05)
+    return ranges
 
 
 def get_or_create_baseline(
@@ -96,7 +71,7 @@ def get_or_create_baseline(
     *,
     rng: random.Random | None = None,
 ) -> AccountBehaviorProfile:
-    """Return the existing baseline or create one from workspace policy / preset ranges.
+    """Return the existing baseline or create one from personality / preset ranges.
 
     The baseline is stable per-account: once created it never changes
     (except through explicit admin override or deletion).
@@ -109,7 +84,7 @@ def get_or_create_baseline(
     if existing is not None:
         return existing
 
-    ranges = _resolve_ranges(session, workspace_id, preset)
+    ranges = _resolve_ranges(account_id, preset)
     r = rng or random.Random()
 
     typing_range = ranges.get("typing_speed_cpm")

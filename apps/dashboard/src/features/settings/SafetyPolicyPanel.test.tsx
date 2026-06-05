@@ -50,10 +50,12 @@ describe('SafetyPolicyPanel', () => {
   test('renders the current safety policy parameters for admins', () => {
     const html = renderToStaticMarkup(<SafetyPolicyPanel currentUserRole="admin" />)
 
-    expect(html).toContain('AI-защита рабочей области')
+    expect(html).toContain('Защитные пороги workspace')
     expect(html).toContain('Balanced')
-    expect(html).toContain('100-150 зн/мин')
-    expect(html).toContain('02:00-06:00')
+    expect(html).toContain('Protection')
+    expect(html).toContain('Здоровый прокси')
+    expect(html).not.toContain('Behavior')
+    expect(html).not.toContain('100-150 зн/мин')
   })
 
   test('renders read-only state for non-admin users', () => {

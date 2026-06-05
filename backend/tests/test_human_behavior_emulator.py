@@ -17,16 +17,17 @@ from sqlalchemy.orm import Session
 
 from app.db import Base
 from app.models import Account, new_id
+from app.modules.warmup.circadian import generate_personality_seed
 from app.services.database import create_sqlite_test_session_factory
+from app.services.human_behavior.action_sequencer import shuffle
 from app.services.human_behavior.behavior_profile import (
     get_or_create_baseline,
     randomize_for_session,
 )
-from app.services.workspace_safety_policy import create_workspace_safety_policy
+from app.services.human_behavior.decoy_actions import run_before_send
 from app.services.human_behavior.typing_emulator import emit_typing
 from app.services.human_behavior.typo_generator import maybe_typo
-from app.services.human_behavior.decoy_actions import run_before_send
-from app.services.human_behavior.action_sequencer import shuffle
+from app.services.workspace_safety_policy import create_workspace_safety_policy
 
 
 WORKSPACE_ID = "00000000-0000-4000-8000-000000000002"
@@ -94,38 +95,51 @@ class TestRandomizeForSession:
         assert lo_t <= sp.typo_rate <= hi_t or sp.typo_rate == 0.0
 
 
-class TestBaselineFromPolicy:
-    """2b. get_or_create_baseline derives ranges from WorkspaceSafetyPolicy."""
+class TestBaselineFromPersonalitySeed:
+    """2b. get_or_create_baseline uses per-account personality, not policy behavior."""
 
-    def test_policy_conservative_derives_typing_range(self):
+    def test_personality_seed_derives_typing_range(self):
         session = _make_session()
-        account = _ensure_account(session)
+        account = _ensure_account(session, account_id="personality-seed-account")
+
+        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
+        expected_cpm = generate_personality_seed(account.id)["typing_speed_cps"] * 60.0
+        assert baseline.typing_speed_baseline_cpm is not None
+        assert expected_cpm * 0.95 <= baseline.typing_speed_baseline_cpm <= expected_cpm * 1.05
+
+    def test_workspace_policy_does_not_change_personality_baseline(self):
+        session = _make_session()
+        account = _ensure_account(session, account_id="policy-ignored-account")
         create_workspace_safety_policy(session, workspace_id=WORKSPACE_ID, mode="conservative")
         session.commit()
 
-        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
-        assert baseline.typing_speed_baseline_cpm is not None
-        assert 40 <= baseline.typing_speed_baseline_cpm <= 60
+        conservative_baseline = get_or_create_baseline(
+            session, account.id, WORKSPACE_ID, rng=_seeded_rng(42)
+        )
 
-    def test_policy_aggressive_disables_typing(self):
+        other_session = _make_session()
+        same_account = _ensure_account(other_session, account_id=account.id)
+        create_workspace_safety_policy(other_session, workspace_id=WORKSPACE_ID, mode="aggressive")
+        other_session.commit()
+        aggressive_policy_baseline = get_or_create_baseline(
+            other_session, same_account.id, WORKSPACE_ID, rng=_seeded_rng(42)
+        )
+
+        assert conservative_baseline.typing_speed_baseline_cpm == (
+            aggressive_policy_baseline.typing_speed_baseline_cpm
+        )
+        assert conservative_baseline.typo_rate_baseline == aggressive_policy_baseline.typo_rate_baseline
+
+    def test_permissive_legacy_preset_keeps_personality_typing(self):
         session = _make_session()
-        account = _ensure_account(session)
-        create_workspace_safety_policy(session, workspace_id=WORKSPACE_ID, mode="aggressive")
-        session.commit()
-
-        baseline = get_or_create_baseline(session, account.id, WORKSPACE_ID, rng=_seeded_rng(42))
-        assert baseline.typing_speed_baseline_cpm is None
-
-    def test_aggressive_preset_disables_typing(self):
-        session = _make_session()
-        account = _ensure_account(session)
+        account = _ensure_account(session, account_id="legacy-permissive-account")
 
         baseline = get_or_create_baseline(
             session, account.id, WORKSPACE_ID, preset="aggressive", rng=_seeded_rng(42)
         )
-        assert baseline.typing_speed_baseline_cpm is None
+        assert baseline.typing_speed_baseline_cpm is not None
         sp = randomize_for_session(baseline, rng=_seeded_rng(99))
-        assert sp.typing_speed_cpm is None
+        assert sp.typing_speed_cpm is not None
 
 
 class TestTypingEmulator:

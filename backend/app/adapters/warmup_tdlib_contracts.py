@@ -31,6 +31,8 @@ SUPPORTED_ADVANCED_ACTIONS: tuple[str, ...] = SUPPORTED_NETWORK_ACTIONS + (
     "forward_message",
     "saved_messages",
     "sync_contacts",
+    "archive_chat",
+    "mute_chat",
 )
 
 SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
@@ -47,6 +49,8 @@ WRITE_ACTION_TYPES: frozenset[str] = frozenset(
         "forward_message",
         "saved_messages",
         "sync_contacts",
+        "archive_chat",
+        "mute_chat",
     }
 )
 

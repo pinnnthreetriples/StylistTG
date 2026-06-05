@@ -28,6 +28,8 @@ DEFAULT_ACTION_PRIORITY = (
     "forward_message",
     "saved_messages",
     "sync_contacts",
+    "archive_chat",
+    "mute_chat",
 )
 CHANNEL_STALE_AFTER = timedelta(hours=6)
 CHANNEL_ACTIVITY_ACTION_TYPES = frozenset({"vote_poll", "watch_video", "listen_voice"})

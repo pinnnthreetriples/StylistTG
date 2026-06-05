@@ -199,3 +199,11 @@ Every transition writes an audit/lifecycle event. Terminal states are never auto
 - Do not put survival metrics, profile uniqueness, AI provider code, lifecycle state machine, or Grafana logic inside the warmup module.
 - Do not let traffic-heavy metadata become an implicit runtime block. Runtime blocks belong to proxy adaptation or explicit operator escape hatches.
 - Do not bypass `channel_state.selector.choose_actions` with ad hoc action decisions.
+
+## 6. In-Flight Migration
+
+- Existing `WarmupSession` rows continue with their current status and plan. Do not retroactively move them into `cold_soak`.
+- Additive fields use compatibility defaults: `personality_seed_json={}`, `disabled_actions_json=[]`, `lifecycle_state="warming"`, and `cold_soak_until=None`.
+- Missing `warmup_channel_state` rows are valid for legacy sessions; selector/context fallbacks must keep old action plans dispatching.
+- Missing `strategy_snapshot_json` uses a read-only strategy relationship fallback for that session lifetime.
+- Operational rollout steps live in `docs/runbooks/warmup-rollout.md`.

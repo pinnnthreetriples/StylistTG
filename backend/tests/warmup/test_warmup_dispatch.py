@@ -180,6 +180,14 @@ def test_dispatch_simulates_actions_and_increments_counters(db_session) -> None:
     event_types = [event.event_type for event in events]
     assert "isolation_claimed" in event_types
     assert "micro_session_window_opened" in event_types
+    plan_event = next(event for event in events if event.event_type == "session_plan_announced")
+    assert plan_event.severity == "info"
+    assert plan_event.payload_json["stage"] == "warming"
+    assert plan_event.payload_json["account_age_days"] >= 0
+    assert plan_event.payload_json["session_duration_minutes"] == 55
+    assert plan_event.payload_json["planned_actions_count"] >= 1
+    assert plan_event.payload_json["action_types"]
+    assert "account_id" not in plan_event.payload_json
     assert "session_action_simulated" in event_types
     assert "micro_session_window_closed" in event_types
 

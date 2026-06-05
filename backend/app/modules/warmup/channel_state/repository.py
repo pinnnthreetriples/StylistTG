@@ -14,6 +14,7 @@ _ACTION_TIMESTAMP_COLUMNS: dict[str, str] = {
     "view_story": "last_story_view_at",
     "react_to_post": "last_react_at",
     "channel_browse": "last_browse_at",
+    "scroll_channels": "last_browse_at",
     "join_chat": "subscribed_at",
 }
 

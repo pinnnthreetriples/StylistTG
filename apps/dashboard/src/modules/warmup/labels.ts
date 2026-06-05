@@ -79,6 +79,7 @@ export const WARMUP_SKIP_REASON_LABELS: Record<string, string> = {
   no_target_channels_configured: 'Нет целевых каналов в стратегии',
   no_browse_target_available: 'Нет канала для чтения',
   not_subscribed: 'Аккаунт ещё не подписан на канал',
+  no_scroll_channel_available: 'Нет подписанного канала для прокрутки',
   no_stories_in_channel: 'В канале нет активных сторис',
   no_reactions_in_channel: 'Для канала нет доступных реакций',
   safety_gate_blocked: 'Safety gate заблокировал действие',

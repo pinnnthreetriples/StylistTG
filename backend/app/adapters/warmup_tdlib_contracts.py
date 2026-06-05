@@ -9,6 +9,10 @@ from typing import Any, Protocol
 SUPPORTED_PASSIVE_ACTIONS: tuple[str, ...] = (
     "feed_read",
     "channel_browse",
+    "view_dialogs",
+    "scroll_channels",
+    "mark_as_read",
+    "search_messages",
     "view_story",
     "ping_proxy",
     "get_me",

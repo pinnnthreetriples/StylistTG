@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import WarmupEvent, WarmupExecutionMode, WarmupSession, WarmupStatus
+from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.warmup.events import write_warmup_event
 
 _IN_PROGRESS_EVENT_MIN_INTERVAL = timedelta(hours=1)
@@ -37,6 +38,7 @@ def advance_from_cold_soak(session: Session, warmup_session: WarmupSession, now:
     if warmup_session.execution_mode != WarmupExecutionMode.DRY_RUN.value:
         warmup_session.next_micro_session_at = now
     warmup_session.updated_at = now
+    _advance_account_to_warming(session, warmup_session, now)
     event = write_warmup_event(
         session,
         warmup_session,
@@ -46,6 +48,31 @@ def advance_from_cold_soak(session: Session, warmup_session: WarmupSession, now:
     event.created_at = now
     session.flush()
     return True
+
+
+def _advance_account_to_warming(
+    session: Session,
+    warmup_session: WarmupSession,
+    now: datetime,
+) -> None:
+    account = warmup_session.account
+    if account.lifecycle_state == AccountLifecycleState.IMPORTED.value:
+        advance(
+            session,
+            account,
+            to_state=AccountLifecycleState.COLD_SOAK,
+            now=now,
+            reason="legacy_cold_soak_catchup",
+            metadata={"warmup_session_id": warmup_session.id},
+        )
+    advance(
+        session,
+        account,
+        to_state=AccountLifecycleState.WARMING,
+        now=now,
+        reason="cold_soak_completed",
+        metadata={"warmup_session_id": warmup_session.id},
+    )
 
 
 def record_cold_soak_in_progress(

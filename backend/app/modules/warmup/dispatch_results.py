@@ -15,6 +15,7 @@ from app.modules.warmup.channel_state import service as channel_state_service
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.p2p import record_p2p_contact
+from app.modules.warmup.pre_production import should_start_pre_production, start_pre_production
 
 if TYPE_CHECKING:
     from .dispatch_context import _ActionContextResolution
@@ -234,6 +235,15 @@ def _complete_dispatch_session(
         {"day": warmup_session.current_day, "execution_mode": warmup_session.execution_mode},
     )
     _advance_account_to_pre_production(session, warmup_session, now)
+    if should_start_pre_production(warmup_session):
+        start_pre_production(
+            session,
+            account_id=warmup_session.account_id,
+            workspace_id=warmup_session.workspace_id,
+            source_warmup_session_id=warmup_session.id,
+            source_warmup_session=warmup_session,
+            now=now,
+        )
     survival_events.on_warmup_completed(
         session,
         account_id=warmup_session.account_id,

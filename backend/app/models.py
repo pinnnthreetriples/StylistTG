@@ -338,6 +338,7 @@ from app.model_defs.safety_workspace import (  # noqa: E402,F401
 from app.model_defs.warmup import (  # noqa: E402,F401
     WarmupEvent,
     WarmupIsolationClaim,
+    WarmupPreProductionSession,
     WarmupSession,
     WarmupStrategy,
     WarmupTaskRun,

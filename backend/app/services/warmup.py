@@ -22,6 +22,7 @@ from app.modules.warmup.service import (
     is_warmup_active_status,
     pause_warmup_session,
     resume_warmup_session,
+    set_disabled_actions,
     warmup_operation_policy,
 )
 
@@ -42,6 +43,7 @@ __all__ = [
     "list_warmup_sessions",
     "pause_warmup_session",
     "resume_warmup_session",
+    "set_disabled_actions",
     "warmup_operation_policy",
     "write_warmup_event",
 ]

@@ -14,6 +14,7 @@ import {
   fetchWarmupStrategies,
   pauseWarmupSession,
   resumeWarmupSession,
+  updateWarmupDisabledActions,
   validateWarmup,
 } from './api'
 import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
@@ -169,6 +170,19 @@ export function useResumeWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) => resumeWarmupSession(sessionId),
+    onSuccess: (_data, { sessionId }) => {
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.events(sessionId) })
+    },
+  })
+}
+
+export function useUpdateWarmupDisabledActions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sessionId, actions }: { sessionId: string; actions: string[] }) =>
+      updateWarmupDisabledActions(sessionId, actions),
     onSuccess: (_data, { sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })

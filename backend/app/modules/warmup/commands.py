@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.adapters.warmup_tdlib_contracts import SUPPORTED_ADVANCED_ACTIONS
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, new_id
 from app.modules.account_survival import events as survival_events
@@ -12,7 +13,11 @@ from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
 from app.modules.warmup.cold_soak import compute_cold_soak_window
 from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
-from app.modules.warmup.errors import WarmupIsolationConflictError, WarmupQueueUnavailableError
+from app.modules.warmup.errors import (
+    WarmupIsolationConflictError,
+    WarmupQueueUnavailableError,
+    WarmupSessionRejectedError,
+)
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import acquire_claim, release_claim
 from app.modules.warmup.p2p_graph import assign_friends
@@ -238,6 +243,57 @@ def resume_warmup_session_use_case(
     return read_models.session_read(warmup_session)
 
 
+def set_disabled_actions(
+    session: Session,
+    *,
+    session_id: str,
+    workspace_id: str,
+    actions: list[str],
+    actor_user_id: str | None = None,
+    now: datetime | None = None,
+) -> WarmupSession:
+    warmup_session = repository.get_warmup_session(
+        session, session_id=session_id, workspace_id=workspace_id
+    )
+    timestamp = now or datetime.now(UTC)
+    disabled_actions = _normalize_disabled_actions(actions)
+    _validate_disabled_actions_leave_enabled_action(warmup_session, disabled_actions)
+    previous_actions = list(warmup_session.disabled_actions_json or [])
+    warmup_session.disabled_actions_json = disabled_actions
+    warmup_session.updated_at = timestamp
+    write_warmup_event(
+        session,
+        warmup_session,
+        "disabled_actions_updated",
+        {
+            "previous_actions": previous_actions,
+            "disabled_actions": disabled_actions,
+            "actor_user_id": actor_user_id,
+        },
+    )
+    return warmup_session
+
+
+def set_disabled_actions_use_case(
+    session: Session,
+    *,
+    session_id: str,
+    workspace_id: str,
+    actions: list[str],
+    actor_user_id: str | None = None,
+) -> WarmupSessionRead:
+    warmup_session = set_disabled_actions(
+        session,
+        session_id=session_id,
+        workspace_id=workspace_id,
+        actions=actions,
+        actor_user_id=actor_user_id,
+    )
+    session.commit()
+    session.refresh(warmup_session)
+    return read_models.session_read(warmup_session)
+
+
 def delete_warmup_session(
     session: Session,
     *,
@@ -282,6 +338,35 @@ def _build_proxy_snapshot(session: Session, *, account_id: str) -> dict[str, Any
     }
 
 
+def _normalize_disabled_actions(actions: list[str]) -> list[str]:
+    requested = {action.strip() for action in actions if action.strip()}
+    supported = list(SUPPORTED_ADVANCED_ACTIONS)
+    unknown = sorted(requested - set(supported))
+    if unknown:
+        raise WarmupSessionRejectedError(f"unknown disabled action: {unknown[0]}")
+    return [action for action in supported if action in requested]
+
+
+def _validate_disabled_actions_leave_enabled_action(
+    warmup_session: WarmupSession, disabled_actions: list[str]
+) -> None:
+    planned_actions = _planned_action_types(warmup_session.strategy.daily_action_limits_json or {})
+    action_pool = planned_actions or set(SUPPORTED_ADVANCED_ACTIONS)
+    if action_pool and action_pool.issubset(set(disabled_actions)):
+        raise WarmupSessionRejectedError("at least one warmup action must remain enabled")
+
+
+def _planned_action_types(daily_action_limits: dict[str, Any]) -> set[str]:
+    planned: set[str] = set()
+    for limits in daily_action_limits.values():
+        if not isinstance(limits, dict):
+            continue
+        for action_type, limit in limits.items():
+            if isinstance(action_type, str) and isinstance(limit, int | float) and limit > 0:
+                planned.add(action_type)
+    return planned
+
+
 __all__ = [
     "_build_proxy_snapshot",
     "create_warmup_session",
@@ -292,4 +377,6 @@ __all__ = [
     "pause_warmup_session_use_case",
     "resume_warmup_session",
     "resume_warmup_session_use_case",
+    "set_disabled_actions",
+    "set_disabled_actions_use_case",
 ]

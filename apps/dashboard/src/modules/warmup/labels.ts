@@ -54,6 +54,7 @@ export const WARMUP_EVENT_LABELS: Record<string, string> = {
   completed: 'Подготовка завершена',
   paused: 'Пауза включена',
   resumed: 'Подготовка возобновлена',
+  disabled_actions_updated: 'Отключённые действия обновлены',
   queue_enqueue_failed: 'Очередь недоступна',
   // Backend now emits 'triggered'; 'tripped' kept for events already in DB
   circuit_breaker_triggered: 'Защита остановила сессию',
@@ -75,6 +76,7 @@ export const WARMUP_EVENT_LABELS: Record<string, string> = {
 export const WARMUP_SKIP_REASON_LABELS: Record<string, string> = {
   quiet_hours: 'Тихие часы — действия не выполняются',
   passive_disabled: 'Live-адаптер недоступен',
+  disabled_by_operator: 'Отключено оператором для этой сессии',
   write_action_not_enabled: 'Запись не разрешена текущим режимом',
   no_target_channels_configured: 'Нет целевых каналов в стратегии',
   no_browse_target_available: 'Нет канала для чтения',
@@ -115,6 +117,12 @@ export function formatWarmupEventPayload(event: WarmupEvent): string {
   if (event.event_type === 'day_advanced') return `Следующий день подготовки: ${day}.`
   if (event.event_type === 'paused') return `Причина: ${String(event.payload.reason ?? 'ручная пауза')}.`
   if (event.event_type === 'resumed') return 'Сессия вернулась в расписание.'
+  if (event.event_type === 'disabled_actions_updated') {
+    const disabled = Array.isArray(event.payload.disabled_actions)
+      ? event.payload.disabled_actions.map(String).join(', ')
+      : ''
+    return disabled ? `Отключены действия: ${disabled}.` : 'Все действия снова включены.'
+  }
   if (event.event_type === 'completed') return 'План подготовки завершён.'
   if (event.event_type === 'queue_enqueue_failed') return 'Сессия остановлена, потому что задача не попала в RQ.'
   if (event.event_type === 'task_skipped') {

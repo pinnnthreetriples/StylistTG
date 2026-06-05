@@ -6,7 +6,8 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/INDEX.md
-last_updated: 2026-05-28
+  - .mex/patterns/warmup-advanced.md
+last_updated: 2026-06-05
 ---
 
 # StylistTG Memory Router
@@ -46,7 +47,7 @@ last_updated: 2026-05-28
 | Backend API/service change | `.mex/context/backend.md` | `.mex/patterns/backend-api-change.md` |
 | Frontend module/UI change | `.mex/context/frontend.md` | `.mex/patterns/frontend-module-change.md` |
 | Worker/queue/scheduler change | `.mex/context/workers.md` | `.mex/patterns/worker-queue-change.md` |
-| Warmup/account-preparation | `.mex/context/warmup.md` | `.mex/patterns/warmup-change.md`, `docs/runbooks/account-preparation.md` |
+| Warmup/account-preparation | `.mex/context/warmup.md` | `.mex/patterns/warmup-change.md`, `.mex/patterns/warmup-advanced.md`, `docs/runbooks/account-preparation.md` |
 | Security/live TDLib/env | `.mex/context/security.md` | `.mex/patterns/live-tdlib-safety.md` |
 | Setup/local runtime | `.mex/context/setup.md` | `README.md` |
 | Coding standards/review | `.mex/context/conventions.md` | Relevant tests and lint/typecheck commands |

@@ -27243,6 +27243,7 @@
           "draft",
           "validating",
           "scheduled",
+          "cold_soak",
           "active",
           "paused_risk",
           "paused_manual",

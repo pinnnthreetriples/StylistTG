@@ -6951,6 +6951,11 @@ export interface components {
             created_at: string;
             /** Updated At */
             updated_at: string;
+            /**
+             * Temporarily Disabled
+             * @default false
+             */
+            temporarily_disabled: boolean;
         };
         /** WorkspaceSafetyPolicyUpdate */
         WorkspaceSafetyPolicyUpdate: {

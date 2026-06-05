@@ -27667,6 +27667,11 @@
           "updated_at": {
             "type": "string",
             "title": "Updated At"
+          },
+          "temporarily_disabled": {
+            "type": "boolean",
+            "title": "Temporarily Disabled",
+            "default": false
           }
         },
         "type": "object",

@@ -62,6 +62,7 @@ class WorkspaceSafetyPolicyRead(BaseModel):
     consecutive_failure_threshold: ConsecutiveFailureThreshold | None
     created_at: datetime
     updated_at: datetime
+    temporarily_disabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

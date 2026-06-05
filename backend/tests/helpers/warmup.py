@@ -20,6 +20,7 @@ from app.models import (
     WarmupStrategy,
     new_id,
 )
+from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.services.accounts import create_account
 from app.services.warmup import create_warmup_session
 
@@ -116,6 +117,14 @@ def seed_warmup_session(
         ws.next_step_at = now
         ws.next_micro_session_at = (
             now if ws.execution_mode != WarmupExecutionMode.DRY_RUN.value else None
+        )
+        advance(
+            db_session,
+            account,
+            to_state=AccountLifecycleState.WARMING,
+            now=now,
+            reason="test_seed_scheduled_warmup",
+            metadata={"warmup_session_id": ws.id},
         )
     db_session.commit()
     return ws

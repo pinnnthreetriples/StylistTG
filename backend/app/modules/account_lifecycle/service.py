@@ -11,6 +11,7 @@ from app.models import (
     Account,
     AccountDeletionRequest,
     AccountExportRequest,
+    AccountLifecycleEvent,
     new_id,
     utc_now,
 )
@@ -278,6 +279,28 @@ def get_export_request(
     )
 
 
+def get_account_lifecycle(
+    session: Session,
+    *,
+    account_id: str,
+    workspace_id: str,
+    limit: int = 50,
+) -> dict[str, Any]:
+    account = repository.account_or_raise(session, account_id, workspace_id)
+    events = repository.list_transition_events_for_account(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        limit=limit,
+    )
+    return {
+        "account_id": account.id,
+        "lifecycle_state": account.lifecycle_state,
+        "lifecycle_updated_at": account.lifecycle_updated_at,
+        "history": [lifecycle_event_to_dict(event) for event in events],
+    }
+
+
 def build_account_export_payload(session: Session, *, account: Account) -> dict[str, Any]:
     assets = repository.account_assets(session, account)
     return redact_metadata(
@@ -360,6 +383,18 @@ def export_request_to_dict(request: AccountExportRequest) -> dict[str, Any]:
         "failure_code": request.failure_code,
         "failure_message": request.failure_message,
         "expires_at": request.expires_at,
+    }
+
+
+def lifecycle_event_to_dict(event: AccountLifecycleEvent) -> dict[str, Any]:
+    return {
+        "id": event.id,
+        "from_state": event.from_state,
+        "to_state": event.to_state,
+        "reason": event.reason,
+        "actor_user_id": event.actor_user_id,
+        "occurred_at": event.occurred_at or event.created_at,
+        "payload": event.payload_json,
     }
 
 

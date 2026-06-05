@@ -58,3 +58,20 @@ class AccountExportRequestRead(BaseModel):
     failure_code: str | None = None
     failure_message: str | None = None
     expires_at: datetime | None = None
+
+
+class AccountLifecycleEventRead(BaseModel):
+    id: str
+    from_state: str | None = None
+    to_state: str | None = None
+    reason: str | None = None
+    actor_user_id: str | None = None
+    occurred_at: datetime
+    payload: dict[str, Any]
+
+
+class AccountLifecycleRead(BaseModel):
+    account_id: str
+    lifecycle_state: str
+    lifecycle_updated_at: datetime | None = None
+    history: list[AccountLifecycleEventRead]

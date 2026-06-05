@@ -38,8 +38,11 @@ DEFAULT_HOUR_WEIGHTS: dict[int, float] = {
 
 
 def hour_weight(hour: int, *, personality_seed: dict[str, Any] | None = None) -> float:
-    _ = personality_seed
-    return max(0.0, min(1.5, float(DEFAULT_HOUR_WEIGHTS.get(hour % 24, 0.0))))
+    weight = float(DEFAULT_HOUR_WEIGHTS.get(hour % 24, 0.0))
+    preferred_hours = (personality_seed or {}).get("preferred_hours")
+    if isinstance(preferred_hours, list) and hour % 24 in preferred_hours:
+        weight *= 1.5
+    return max(0.0, min(1.5, weight))
 
 
 def pick_next_window(

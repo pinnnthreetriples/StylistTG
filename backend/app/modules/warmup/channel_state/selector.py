@@ -62,6 +62,7 @@ def choose_actions(
     rng: random.Random,
     now: datetime,
     max_actions: int = 3,
+    personality_seed: dict[str, Any] | None = None,
 ) -> list[SelectedAction]:
     """Return ordered action/channel pairs for one micro-session window."""
     states_by_ref = {
@@ -69,7 +70,7 @@ def choose_actions(
     }
     excluded_refs = {state.channel_ref for state in channel_states if not is_channel_healthy(state)}
     selected: list[SelectedAction] = []
-    for action_type in _pending_action_types(plan, counters):
+    for action_type in _pending_action_types(plan, counters, personality_seed=personality_seed):
         if len(selected) >= max_actions:
             break
         if rng.random() >= 0.85:
@@ -87,10 +88,16 @@ def choose_actions(
     return selected
 
 
-def _pending_action_types(plan: dict[str, int], counters: dict[str, int]) -> list[str]:
+def _pending_action_types(
+    plan: dict[str, int],
+    counters: dict[str, int],
+    *,
+    personality_seed: dict[str, Any] | None = None,
+) -> list[str]:
     candidates = sorted(
         plan.keys(),
         key=lambda key: (
+            -_action_preference(key, personality_seed),
             DEFAULT_ACTION_PRIORITY.index(key)
             if key in DEFAULT_ACTION_PRIORITY
             else len(DEFAULT_ACTION_PRIORITY),
@@ -98,6 +105,16 @@ def _pending_action_types(plan: dict[str, int], counters: dict[str, int]) -> lis
         ),
     )
     return [key for key in candidates if plan.get(key, 0) - counters.get(key, 0) > 0]
+
+
+def _action_preference(action_type: str, personality_seed: dict[str, Any] | None) -> float:
+    raw = (personality_seed or {}).get("action_preferences")
+    if not isinstance(raw, dict):
+        return 1.0
+    try:
+        return max(0.1, min(3.0, float(raw.get(action_type, 1.0))))
+    except (TypeError, ValueError):
+        return 1.0
 
 
 def _select_action(

@@ -19,6 +19,11 @@ def test_hour_weight_uses_default_human_rhythm() -> None:
     assert hour_weight(20, personality_seed={}) == 1.3
 
 
+def test_hour_weight_boosts_preferred_hours() -> None:
+    assert hour_weight(13, personality_seed={"preferred_hours": [13]}) == 1.5
+    assert hour_weight(14, personality_seed={"preferred_hours": [13]}) == 0.9
+
+
 def test_evening_windows_are_sampled_more_than_daytime(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.config.settings.warmup_quiet_hours_local_start", 23)
     monkeypatch.setattr("app.config.settings.warmup_quiet_hours_local_end", 7)

@@ -131,6 +131,21 @@ def test_choose_actions_excludes_unhealthy_channel_state() -> None:
     assert ("join_chat", "@new") in pairs
 
 
+def test_choose_actions_uses_personality_action_preferences() -> None:
+    selected = choose_actions(
+        plan={"feed_read": 1, "p2p_send": 1},
+        counters={},
+        channel_states=[],
+        available_targets=[],
+        rng=_AlwaysPick(),
+        now=NOW,
+        max_actions=1,
+        personality_seed={"action_preferences": {"p2p_send": 3.0, "feed_read": 0.1}},
+    )
+
+    assert selected == [SelectedAction("p2p_send", None, {"reason": "peer_selected_in_context"})]
+
+
 def _state(
     channel_ref: str,
     *,

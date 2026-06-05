@@ -487,6 +487,43 @@ def test_real_adapter_react_to_post_uses_available_reaction(monkeypatch) -> None
     assert result.metadata["reaction"] == "👍"
 
 
+def test_real_adapter_react_to_post_can_prefer_favorite_reaction(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": -100_42},
+            {"@type": "messages", "messages": [{"id": 10}]},
+            {
+                "@type": "availableReactions",
+                "reactions": [
+                    {"type": {"@type": "reactionTypeEmoji", "emoji": "👍"}},
+                    {"type": {"@type": "reactionTypeEmoji", "emoji": "🔥"}},
+                ],
+            },
+            {"@type": "ok"},
+        ],
+    )
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="react_to_post",
+            context={
+                "channel_ref": "@cool_news",
+                "current_day": 0,
+                "personality_seed": {
+                    "account_id": "acc-1",
+                    "favorite_emojis": ["🔥"],
+                },
+            },
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    assert result.metadata["reaction"] == "🔥"
+
+
 def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:
     with _real_adapter_session(
         monkeypatch,

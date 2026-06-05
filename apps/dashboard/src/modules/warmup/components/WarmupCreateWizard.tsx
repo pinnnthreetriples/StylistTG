@@ -11,8 +11,9 @@ import type { WarmupStrategy } from '../types'
 import { ActionPresetButtons } from './ActionPresetButtons'
 import { ActionMetadataPanel } from './ActionMetadataPanel'
 import { WarmupAccountSelector } from './WarmupAccountSelector'
+import { WarmupCyclicConfig } from './WarmupCyclicConfig'
+import { validateWarmupCycleConfig } from './WarmupCyclicConfigModel'
 import {
-  WarmupCyclicConfig,
   WarmupCreateSummary,
   WarmupStrategySelector,
   WarmupValidationPanel,
@@ -45,15 +46,21 @@ export function WarmupCreateWizard() {
   const validation = validateMutation.data
   const selectionKey = `${selectedAccountId}:${selectedStrategyId}`
   const validationMatchesSelection = validatedFor === selectionKey
-  const cycleConfigValid = !cyclicEnabled || (cycleStartHour !== cycleEndHour && cycleDaysTotal >= 1 && cycleDaysTotal <= 30)
+  const cycleValidation = validateWarmupCycleConfig({
+    daysTotal: cycleDaysTotal,
+    enabled: cyclicEnabled,
+    endHour: cycleEndHour,
+    startHour: cycleStartHour,
+  })
   const canCreate = Boolean(
-    validation?.is_ready && validationMatchesSelection && selectedAccountId && selectedStrategyId && cycleConfigValid,
+    validation?.is_ready && validationMatchesSelection && selectedAccountId && selectedStrategyId && cycleValidation.isValid,
   )
+  const createApiError = createMutation.error && isApiError(createMutation.error) ? createMutation.error : null
   const createErrorMessage =
-    createMutation.error && isApiError(createMutation.error)
-      ? createMutation.error.error_code === 'WARMUP_QUEUE_UNAVAILABLE'
+    createApiError
+      ? createApiError.error_code === 'WARMUP_QUEUE_UNAVAILABLE'
         ? 'Сессию не удалось поставить в очередь задач. Запустите Redis/RQ worker или отключите live-выполнение подготовки.'
-        : createMutation.error.message
+        : createApiError.message
       : 'Не удалось создать сессию. Проверьте готовность аккаунта.'
 
   const selectedAccountLabel = useMemo(() => selectedAccountId, [selectedAccountId])
@@ -107,6 +114,7 @@ export function WarmupCreateWizard() {
       ) : null}
       <ActionMetadataPanel metadata={actionMetadataQuery.data ?? []} />
       <WarmupCyclicConfig
+        apiError={createApiError}
         daysTotal={cycleDaysTotal}
         enabled={cyclicEnabled}
         endHour={cycleEndHour}

@@ -18,6 +18,13 @@ from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
 _SEARCH_MESSAGE_QUERIES = ("", "news", "today", "update", "photo", "video", "link")
+_ENTERTAINMENT_QUERIES = ("cat", "dog", "party", "work", "food", "travel", "music")
+_ENTERTAINMENT_URLS = (
+    "https://en.wikipedia.org/wiki/Telegram_(software)",
+    "https://en.wikipedia.org/wiki/Internet",
+    "https://example.com/",
+)
+_APPROVED_INLINE_BOTS = ("@gif", "@pic", "@sticker", "@vid")
 _ACTIVITY_CONTENT_SKIP_REASONS = {
     "vote_poll": "no_open_poll_found",
     "watch_video": "no_video_found",
@@ -82,6 +89,14 @@ def _derive_search_query(warmup_session: WarmupSession, action_type: str) -> str
     seed = _derive_text_seed(warmup_session, action_type)
     index = int(seed[:8], 16) % len(_SEARCH_MESSAGE_QUERIES)
     return _SEARCH_MESSAGE_QUERIES[index]
+
+
+def _derive_from_options(
+    warmup_session: WarmupSession, action_type: str, options: tuple[str, ...]
+) -> str:
+    seed = _derive_text_seed(warmup_session, action_type)
+    index = int(seed[:8], 16) % len(options)
+    return options[index]
 
 
 def _pause_if_blocked_by_safety_gate(
@@ -200,6 +215,37 @@ def _resolve_action_context(
             context={
                 **base,
                 "search_query": _derive_search_query(warmup_session, action_type),
+            }
+        )
+    if action_type == "search_gif":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "search_query": _derive_from_options(
+                    warmup_session, action_type, _ENTERTAINMENT_QUERIES
+                ),
+            }
+        )
+    if action_type == "inline_bot":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "inline_bot_username": _derive_from_options(
+                    warmup_session, action_type, _APPROVED_INLINE_BOTS
+                ),
+                "inline_query": _derive_from_options(
+                    warmup_session, f"{action_type}:query", _ENTERTAINMENT_QUERIES
+                ),
+                "inline_chat_id": 0,
+            }
+        )
+    if action_type == "link_preview":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "preview_url": _derive_from_options(
+                    warmup_session, action_type, _ENTERTAINMENT_URLS
+                ),
             }
         )
     if action_type in _ACTIVITY_CONTENT_SKIP_REASONS:

@@ -67,6 +67,12 @@ class MockWarmupTdlibAdapter:
             return self._mark_as_read_result(action_type, context)
         if action_type == "search_messages":
             return self._search_messages_result(action_type, context)
+        if action_type == "vote_poll":
+            return self._vote_poll_result(action_type, context)
+        if action_type == "watch_video":
+            return self._watch_video_result(action_type, context)
+        if action_type == "listen_voice":
+            return self._listen_voice_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -211,6 +217,98 @@ class MockWarmupTdlibAdapter:
                 "latency_ms": self._rng.randint(80, 240),
                 "query": query,
                 "results_seen": self._rng.randint(0, 10),
+            },
+        )
+
+    def _vote_poll_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="vote_poll_missing_channel",
+                error_class="contract",
+            )
+        if context.get("has_open_poll") is False:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="no_open_poll_found",
+                error_class="content",
+                metadata={"provider": self.provider_name, "channel_ref": channel_ref},
+            )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(90, 240),
+                "channel_ref": channel_ref,
+                "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "message_id": self._rng.randint(1, 1_000_000),
+                "chosen_option": str(self._rng.randint(0, 3)),
+                "safety_hint": context.get("safety_hint") or "avoid_empty_or_new_accounts",
+            },
+        )
+
+    def _watch_video_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        return self._media_activity_result(
+            action_type,
+            context,
+            missing_error="watch_video_missing_channel",
+            content_flag="has_video",
+            skip_error="no_video_found",
+        )
+
+    def _listen_voice_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        return self._media_activity_result(
+            action_type,
+            context,
+            missing_error="listen_voice_missing_channel",
+            content_flag="has_voice",
+            skip_error="no_voice_found",
+        )
+
+    def _media_activity_result(
+        self,
+        action_type: str,
+        context: dict[str, Any],
+        *,
+        missing_error: str,
+        content_flag: str,
+        skip_error: str,
+    ) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code=missing_error,
+                error_class="contract",
+            )
+        if context.get(content_flag) is False:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code=skip_error,
+                error_class="content",
+                metadata={
+                    "provider": self.provider_name,
+                    "channel_ref": channel_ref,
+                    "traffic_heavy": True,
+                },
+            )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(180, 520),
+                "channel_ref": channel_ref,
+                "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "message_id": self._rng.randint(1, 1_000_000),
+                "file_id": self._rng.randint(1_000, 99_999),
+                "traffic_heavy": True,
             },
         )
 

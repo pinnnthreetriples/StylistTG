@@ -91,6 +91,9 @@ class RealWarmupTdlibAdapter:
             "join_chat": lambda: self._action_join_chat(client, action_type, context),
             "channel_browse": lambda: self._action_channel_browse(client, action_type, context),
             "scroll_channels": lambda: self._action_scroll_channels(client, action_type, context),
+            "vote_poll": lambda: self._action_vote_poll(client, action_type, context),
+            "watch_video": lambda: self._action_watch_video(client, action_type, context),
+            "listen_voice": lambda: self._action_listen_voice(client, action_type, context),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -492,6 +495,168 @@ class RealWarmupTdlibAdapter:
             },
         )
 
+    def _action_vote_poll(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        candidate = self._find_channel_message(
+            client,
+            action_type,
+            context,
+            missing_error="vote_poll_missing_channel",
+            skip_error="no_open_poll_found",
+            predicate=_open_poll_candidate,
+        )
+        if isinstance(candidate, WarmupActionResult):
+            return candidate
+        chat_id, channel_ref, message = candidate
+        content = _message_content(message)
+        options = _poll_option_ids(content)
+        if not options:
+            return _content_skipped(action_type, "no_open_poll_found", channel_ref)
+        chosen_option = options[0]
+        response = client.send_query(
+            {
+                "@type": "setPollAnswer",
+                "chat_id": chat_id,
+                "message_id": int(message["id"]),
+                "option_ids": [chosen_option],
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "message_id": int(message["id"]),
+                "chosen_option": chosen_option,
+                "safety_hint": context.get("safety_hint") or "avoid_empty_or_new_accounts",
+            },
+        )
+
+    def _action_watch_video(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        return self._action_open_media_content(
+            client,
+            action_type,
+            context,
+            missing_error="watch_video_missing_channel",
+            skip_error="no_video_found",
+            predicate=_video_candidate,
+        )
+
+    def _action_listen_voice(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        return self._action_open_media_content(
+            client,
+            action_type,
+            context,
+            missing_error="listen_voice_missing_channel",
+            skip_error="no_voice_found",
+            predicate=_voice_candidate,
+        )
+
+    def _action_open_media_content(
+        self,
+        client: TdlibClient,
+        action_type: str,
+        context: dict[str, Any],
+        *,
+        missing_error: str,
+        skip_error: str,
+        predicate: Callable[[dict[str, Any]], bool],
+    ) -> WarmupActionResult:
+        candidate = self._find_channel_message(
+            client,
+            action_type,
+            context,
+            missing_error=missing_error,
+            skip_error=skip_error,
+            predicate=predicate,
+        )
+        if isinstance(candidate, WarmupActionResult):
+            return candidate
+        chat_id, channel_ref, message = candidate
+        file_id = _content_file_id(_message_content(message))
+        if file_id is None:
+            return _content_skipped(action_type, skip_error, channel_ref, {"traffic_heavy": True})
+        file_response = client.send_query(
+            {"@type": "getFile", "file_id": file_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if file_response.get("@type") == "error":
+            return _classify_tdlib_error(file_response, action_type)
+        opened = client.send_query(
+            {
+                "@type": "openMessageContent",
+                "chat_id": chat_id,
+                "message_id": int(message["id"]),
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if opened.get("@type") == "error":
+            return _classify_tdlib_error(opened, action_type)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "message_id": int(message["id"]),
+                "file_id": file_id,
+                "traffic_heavy": True,
+            },
+        )
+
+    def _find_channel_message(
+        self,
+        client: TdlibClient,
+        action_type: str,
+        context: dict[str, Any],
+        *,
+        missing_error: str,
+        skip_error: str,
+        predicate: Callable[[dict[str, Any]], bool],
+    ) -> tuple[int, str, dict[str, Any]] | WarmupActionResult:
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code=missing_error,
+                error_class="contract",
+            )
+        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+        limit = _bounded_int(context.get("history_limit"), minimum=5, maximum=50, default=20)
+        history = client.send_query(
+            {
+                "@type": "getChatHistory",
+                "chat_id": chat_id,
+                "from_message_id": 0,
+                "offset": 0,
+                "limit": limit,
+                "only_local": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if history.get("@type") == "error":
+            return _classify_tdlib_error(history, action_type)
+        for message in _messages(history.get("messages")):
+            if predicate(message):
+                return chat_id, channel_ref, message
+        metadata = {"traffic_heavy": True} if action_type in {"watch_video", "listen_voice"} else {}
+        return _content_skipped(action_type, skip_error, channel_ref, metadata)
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -796,6 +961,84 @@ def _message_ids(raw_messages: Any) -> list[int]:
             continue
         out.append(int(message_id))
     return out
+
+
+def _messages(raw_messages: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw_messages, list):
+        return []
+    return [message for message in raw_messages if isinstance(message, dict)]
+
+
+def _message_content(message: dict[str, Any]) -> dict[str, Any]:
+    content = message.get("content")
+    return content if isinstance(content, dict) else {}
+
+
+def _open_poll_candidate(message: dict[str, Any]) -> bool:
+    content = _message_content(message)
+    if content.get("@type") != "messagePoll":
+        return False
+    poll = content.get("poll")
+    if isinstance(poll, dict) and poll.get("is_closed") is True:
+        return False
+    return bool(_poll_option_ids(content))
+
+
+def _video_candidate(message: dict[str, Any]) -> bool:
+    content = _message_content(message)
+    return content.get("@type") == "messageVideo" and _content_file_id(content) is not None
+
+
+def _voice_candidate(message: dict[str, Any]) -> bool:
+    content = _message_content(message)
+    return content.get("@type") in {"messageVoiceNote", "messageAudio"} and (
+        _content_file_id(content) is not None
+    )
+
+
+def _poll_option_ids(content: dict[str, Any]) -> list[str]:
+    poll = content.get("poll")
+    if not isinstance(poll, dict):
+        return []
+    options = poll.get("options")
+    if not isinstance(options, list):
+        return []
+    out: list[str] = []
+    for index, option in enumerate(options):
+        if not isinstance(option, dict):
+            continue
+        value = option.get("id") or option.get("data") or option.get("option_id")
+        out.append(str(value if value is not None else index))
+    return out
+
+
+def _content_file_id(content: dict[str, Any]) -> int | None:
+    for path in (
+        ("video", "video", "id"),
+        ("voice_note", "voice", "id"),
+        ("audio", "audio", "id"),
+    ):
+        value: Any = content
+        for key in path:
+            if not isinstance(value, dict):
+                value = None
+                break
+            value = value.get(key)
+        if value is not None:
+            return int(value)
+    return None
+
+
+def _content_skipped(
+    action_type: str, error_code: str, channel_ref: str, metadata: dict[str, Any] | None = None
+) -> WarmupActionResult:
+    return WarmupActionResult(
+        status="skipped",
+        action_type=action_type,
+        error_code=error_code,
+        error_class="content",
+        metadata={"channel_ref": channel_ref, **(metadata or {})},
+    )
 
 
 def _chunks(values: list[int], size: int) -> list[list[int]]:

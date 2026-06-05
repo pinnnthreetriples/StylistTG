@@ -14,12 +14,16 @@ DEFAULT_ACTION_PRIORITY = (
     "channel_browse",
     "scroll_channels",
     "search_messages",
+    "vote_poll",
+    "watch_video",
+    "listen_voice",
     "view_story",
     "join_chat",
     "react_to_post",
     "p2p_send",
 )
 CHANNEL_STALE_AFTER = timedelta(hours=6)
+CHANNEL_ACTIVITY_ACTION_TYPES = frozenset({"vote_poll", "watch_video", "listen_voice"})
 
 
 @dataclass(frozen=True)
@@ -111,6 +115,13 @@ def _select_action(
         return SelectedAction(
             action_type, _pick(candidates, rng), {"reason": "subscribed_channel_stale"}
         )
+    if action_type in CHANNEL_ACTIVITY_ACTION_TYPES:
+        candidates = [
+            state.channel_ref for state in states_by_ref.values() if state.subscribed_at is not None
+        ]
+        if not candidates:
+            return SelectedAction(action_type)
+        return SelectedAction(action_type, _pick(candidates, rng), {"reason": "subscribed_channel"})
     if action_type == "view_story":
         subscribed = [state for state in states_by_ref.values() if state.subscribed_at is not None]
         candidates = [

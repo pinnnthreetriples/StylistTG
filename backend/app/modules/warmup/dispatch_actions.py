@@ -12,7 +12,7 @@ from app.adapters.warmup_text_provider import WarmupTextProvider
 from app.adapters.warmup_tdlib import WRITE_ACTION_TYPES, WarmupActionResult, WarmupTdlibAdapter
 from app.models import WarmupSession
 
-from .dispatch_context import _resolve_action_context
+from .dispatch_context import _ActionContextResolution, _resolve_action_context
 from .dispatch_results import _write_dispatch_skip, _write_write_action_disabled_skip
 
 
@@ -53,6 +53,18 @@ def _dispatch_action(
         action_type=action_type,
         context=resolution.context,
     )
+    if result.status == "skipped":
+        _write_dispatch_skip(
+            session,
+            warmup_session,
+            action_type,
+            _ActionContextResolution(
+                context=resolution.context,
+                skip_reason=result.error_code or "adapter_skipped",
+                metadata=dict(result.metadata),
+            ),
+        )
+        return None
     return result, resolution.context
 
 

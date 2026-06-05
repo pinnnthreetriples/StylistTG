@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+import tempfile
 from typing import Any
 
 from sqlalchemy import select
@@ -81,6 +82,18 @@ def compute_photo_perceptual_hash(asset: Asset | None, *, path: str | None = Non
         if dhash:
             return dhash
     return _normalize_hex_hash(asset.content_hash if asset is not None else None)
+
+
+def compute_photo_perceptual_hash_from_bytes(content: bytes) -> str | None:
+    if not content:
+        return None
+    with tempfile.TemporaryDirectory(prefix="stylisttg-profile-uniqueness-") as temp_dir:
+        image_path = Path(temp_dir) / "profile_photo"
+        image_path.write_bytes(content)
+        dhash = _dhash_from_path(str(image_path))
+        if dhash:
+            return dhash
+    return hashlib.sha256(content).hexdigest()
 
 
 def find_similar_profiles(

@@ -22,7 +22,9 @@ def test_warmup_settings_default_to_safe_dry_run() -> None:
 def test_warmup_router_uses_expected_prefix() -> None:
     from app.api.warmup import router
 
-    assert router.prefix == "/api/warmup"
+    assert router.prefix == ""
+    paths = {route.path for route in router.routes}
+    assert "/api/warmup/readiness" in paths
 
 
 # ---------------------------------------------------------------------------

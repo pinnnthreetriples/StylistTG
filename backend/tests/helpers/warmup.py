@@ -29,6 +29,7 @@ def seed_warmup_account(
     db_session,
     *,
     with_proxy: bool = True,
+    proxy_category: str = ProxyCategory.RESIDENTIAL.value,
     telegram_user_id: str | None = None,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
 ):
@@ -51,7 +52,7 @@ def seed_warmup_account(
         account.proxy = AccountProxy(
             account_id=account.id,
             proxy_type="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
+            proxy_category=proxy_category,
             host="127.0.0.1",
             port=1080,
             username="user",

@@ -43,6 +43,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/accounts", "viewer", False),
     ("POST", "/api/accounts", "operator", True),
     ("GET", "/api/accounts/{account_id}/status-observations", "viewer", False),
+    ("POST", "/api/accounts/{account_id}/pre-production/start", "operator", True),
     # Me
     ("GET", "/api/me", "viewer", False),
     # Diagnostics
@@ -201,6 +202,14 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Story drafts
     ("GET", "/api/story-drafts/{account_id}", "viewer", False),
     ("POST", "/api/story-drafts", "operator", True),
+    # Warmup bootstrap pool
+    ("POST", "/api/warmup/strategies/{strategy_id}/apply-preset", "admin", True),
+    ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
+    ("POST", "/api/warmup-sessions/cyclic", "operator", True),
+    ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
+    ("GET", "/api/warmup-bootstrap-channels", "admin", False),
+    ("POST", "/api/warmup-bootstrap-channels", "admin", True),
+    ("PATCH", "/api/warmup-bootstrap-channels/{channel_id}", "admin", True),
 ]
 
 ROLE_ORDER = {"viewer": 0, "operator": 1, "admin": 2, "owner": 3}

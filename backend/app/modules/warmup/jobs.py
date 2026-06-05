@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 from app.db import SessionLocal
 from app.modules.warmup import dispatcher, worker
+from app.modules.warmup.bootstrap_pool.service import run_bootstrap_channel_health_check
 from app.modules.warmup.idle_session import run_idle_warmup_sweep_all_workspaces
 from app.modules.warmup.pre_production import complete_due_pre_production_sessions
 
@@ -52,6 +53,13 @@ def run_warmup_idle_sweep() -> int:
 def run_warmup_pre_production_sweep() -> int:
     with SessionLocal() as session:
         processed = complete_due_pre_production_sessions(session)
+        session.commit()
+        return processed
+
+
+def run_warmup_bootstrap_channel_health_check() -> int:
+    with SessionLocal() as session:
+        processed = run_bootstrap_channel_health_check(session)
         session.commit()
         return processed
 

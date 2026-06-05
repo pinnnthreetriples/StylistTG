@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.tenant_helpers import require_account_in_workspace
@@ -18,6 +18,9 @@ from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
     WarmupActionMetadataRead,
     WarmupActionPresetRequest,
+    WarmupBootstrapChannelCreate,
+    WarmupBootstrapChannelPatch,
+    WarmupBootstrapChannelRead,
     WarmupCyclicCreateRead,
     WarmupCyclicCreateRequest,
     WarmupDisabledActionsRequest,
@@ -33,6 +36,7 @@ from app.modules.warmup.contracts import (
     WarmupValidateRead,
     WarmupValidateRequest,
 )
+from app.modules.warmup.bootstrap_pool import service as bootstrap_service
 from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.cyclic import setup_cyclic_warmups
 from app.modules.auth.dependencies import (
@@ -47,6 +51,9 @@ router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
+bootstrap_router = APIRouter(
+    prefix="/api/warmup-bootstrap-channels", tags=["warmup-bootstrap-channels"]
+)
 settings = warmup_service.settings
 
 
@@ -56,6 +63,68 @@ def get_warmup_action_metadata(
 ) -> list[WarmupActionMetadataRead]:
     _ = auth
     return warmup_service.list_action_metadata()
+
+
+@bootstrap_router.get("", response_model=list[WarmupBootstrapChannelRead])
+def get_warmup_bootstrap_channels(
+    category: str | None = Query(default=None),
+    language: str | None = Query(default=None),
+    session: Session = Depends(get_session),
+    _auth: AuthContext = Depends(require_role("admin")),
+) -> list[WarmupBootstrapChannelRead]:
+    return [
+        WarmupBootstrapChannelRead.model_validate(row)
+        for row in bootstrap_service.list_bootstrap_channels(
+            session, category=category, language=language
+        )
+    ]
+
+
+@bootstrap_router.post(
+    "",
+    response_model=WarmupBootstrapChannelRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_warmup_bootstrap_channel(
+    payload: WarmupBootstrapChannelCreate,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_role("admin")),
+) -> WarmupBootstrapChannelRead:
+    try:
+        row = bootstrap_service.create_bootstrap_channel(
+            session,
+            channel_ref=payload.channel_ref,
+            category=payload.category,
+            language=payload.language,
+            country=payload.country,
+            added_by=auth.user_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return WarmupBootstrapChannelRead.model_validate(row)
+
+
+@bootstrap_router.patch("/{channel_id}", response_model=WarmupBootstrapChannelRead)
+def patch_warmup_bootstrap_channel(
+    channel_id: UUID,
+    payload: WarmupBootstrapChannelPatch,
+    session: Session = Depends(get_session),
+    _auth: AuthContext = Depends(require_role("admin")),
+) -> WarmupBootstrapChannelRead:
+    try:
+        row = bootstrap_service.patch_bootstrap_channel(
+            session,
+            str(channel_id),
+            category=payload.category,
+            language=payload.language,
+            country=payload.country,
+            is_active=payload.is_active,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="channel not found")
+    return WarmupBootstrapChannelRead.model_validate(row)
 
 
 @warmup_router.get("/readiness", response_model=WarmupReadinessRead)
@@ -337,3 +406,4 @@ def _set_warmup_session_disabled_actions(
 router.include_router(warmup_router)
 router.include_router(actions_router)
 router.include_router(session_alias_router)
+router.include_router(bootstrap_router)

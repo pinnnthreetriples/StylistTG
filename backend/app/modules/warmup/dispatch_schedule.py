@@ -15,6 +15,7 @@ from app.modules.warmup.adaptive_plan import (
 )
 from app.modules.warmup.channel_state import selector as channel_selector
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.circadian import is_lazy_day, pick_next_window
 
 DEFAULT_ACTION_PRIORITY = channel_selector.DEFAULT_ACTION_PRIORITY
 SelectedAction = channel_selector.SelectedAction
@@ -134,8 +135,28 @@ def _is_day_complete(plan: dict[str, int], counters: dict[str, int]) -> bool:
 
 
 def _schedule_within_day(
-    now: datetime, timezone_name: str | None, *, rng: random.Random
+    now: datetime,
+    timezone_name: str | None,
+    *,
+    rng: random.Random,
+    personality_seed: dict[str, Any] | None = None,
+    last_micro_session_at: datetime | None = None,
 ) -> datetime:
+    if settings.warmup_circadian_enabled:
+        if _lazy_day_already_used(
+            now,
+            timezone_name,
+            personality_seed=personality_seed,
+            last_micro_session_at=last_micro_session_at,
+            rng=rng,
+        ):
+            return _next_day_first_window(now, timezone_name, rng=rng)
+        return pick_next_window(
+            now,
+            timezone_name,
+            rng=rng,
+            personality_seed=personality_seed,
+        )
     span_min = max(1, settings.warmup_micro_session_min_minutes)
     span_max = max(span_min, settings.warmup_micro_session_max_minutes)
     # space windows out: jitter from one-window-length to several-window-lengths
@@ -144,6 +165,21 @@ def _schedule_within_day(
     if _is_in_quiet_hours(candidate, timezone_name):
         return _next_quiet_hours_end(candidate, timezone_name)
     return candidate
+
+
+def _lazy_day_already_used(
+    now: datetime,
+    timezone_name: str | None,
+    *,
+    personality_seed: dict[str, Any] | None,
+    last_micro_session_at: datetime | None,
+    rng: random.Random,
+) -> bool:
+    if last_micro_session_at is None:
+        return False
+    if not is_lazy_day(now, personality_seed=personality_seed, rng=rng):
+        return False
+    return _local_date(now, timezone_name) == _local_date(last_micro_session_at, timezone_name)
 
 
 def _next_day_first_window(
@@ -193,7 +229,16 @@ def _next_quiet_hours_end(moment: datetime, timezone_name: str | None) -> dateti
 
 def _local_hour(moment: datetime, timezone_name: str | None) -> int:
     tz = _resolve_timezone(timezone_name)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
     return moment.astimezone(tz).hour
+
+
+def _local_date(moment: datetime, timezone_name: str | None) -> Any:
+    tz = _resolve_timezone(timezone_name)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(tz).date()
 
 
 def _resolve_timezone(timezone_name: str | None) -> ZoneInfo:

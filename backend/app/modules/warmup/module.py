@@ -23,6 +23,13 @@ module = FeatureModule(
             description="Dispatch due warmup micro-sessions.",
         ),
         WorkflowSpec(
+            workflow_type="warmup_dispatch_session",
+            queue_name=WARMUP_DISPATCH_QUEUE_NAME,
+            handler_path="app.modules.warmup.jobs:run_warmup_dispatch_session",
+            args_mode=WorkflowArgsMode.CUSTOM,
+            description="Dispatch one scheduled warmup micro-session.",
+        ),
+        WorkflowSpec(
             workflow_type="warmup_idle_sweep",
             queue_name=WARMUP_QUEUE_NAME,
             handler_path="app.modules.warmup.jobs:run_warmup_idle_sweep",

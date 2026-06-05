@@ -74,7 +74,7 @@ function WarmupSessionCard({
         </div>
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <WarmupStatusBadge status={session.status} />
+            <WarmupStatusBadge status={session.status} coldSoakUntil={session.cold_soak_until} />
             <span className="text-xs font-semibold text-muted-foreground">
               День {session.current_day} из {session.duration_days}
             </span>

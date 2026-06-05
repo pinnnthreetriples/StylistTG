@@ -11,6 +11,11 @@ from sqlalchemy.orm import Session
 from app.adapters.warmup_text_provider import WarmupTextProvider
 from app.adapters.warmup_tdlib import WarmupTdlibAdapter
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus
+from app.modules.warmup.cold_soak import (
+    advance_from_cold_soak,
+    is_cold_soak_complete,
+    record_cold_soak_in_progress,
+)
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
 
@@ -53,6 +58,12 @@ def _process_one_dispatch(
     adapter: WarmupTdlibAdapter,
     text_provider: WarmupTextProvider,
 ) -> bool:
+    if warmup_session.status == WarmupStatus.COLD_SOAK.value:
+        if not is_cold_soak_complete(warmup_session, now):
+            record_cold_soak_in_progress(session, warmup_session, now)
+            return False
+        advance_from_cold_soak(session, warmup_session, now)
+
     if _is_in_quiet_hours(now, warmup_session.timezone):
         quiet_hours_end = _next_quiet_hours_end(now, warmup_session.timezone)
         warmup_session.next_micro_session_at = quiet_hours_end

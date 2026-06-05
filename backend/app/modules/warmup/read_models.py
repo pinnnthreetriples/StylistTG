@@ -34,6 +34,7 @@ def session_read(warmup_session: Any) -> WarmupSessionRead:
         next_attempt_at=warmup_session.next_attempt_at,
         next_micro_session_at=warmup_session.next_micro_session_at,
         last_micro_session_at=warmup_session.last_micro_session_at,
+        cold_soak_until=warmup_session.cold_soak_until,
         consecutive_failures=warmup_session.consecutive_failures,
         daily_counters=warmup_session.daily_counters_json or {},
         trusted_peer_ids=warmup_session.trusted_peer_ids_json or [],
@@ -60,6 +61,7 @@ def session_summary(warmup_session: Any) -> WarmupSessionSummaryRead:
         cadence_hours=warmup_session.cadence_hours,
         next_step_at=warmup_session.next_step_at,
         next_micro_session_at=warmup_session.next_micro_session_at,
+        cold_soak_until=warmup_session.cold_soak_until,
         updated_at=warmup_session.updated_at,
     )
 
@@ -85,6 +87,7 @@ def session_status_read(warmup_session: Any) -> WarmupSessionStatusRead:
         current_day=warmup_session.current_day,
         next_step_at=warmup_session.next_step_at,
         next_attempt_at=warmup_session.next_attempt_at,
+        cold_soak_until=warmup_session.cold_soak_until,
     )
 
 

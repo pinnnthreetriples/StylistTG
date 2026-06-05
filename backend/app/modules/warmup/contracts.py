@@ -82,6 +82,7 @@ class WarmupSessionRead(BaseModel):
     next_attempt_at: datetime | None = None
     next_micro_session_at: datetime | None = None
     last_micro_session_at: datetime | None = None
+    cold_soak_until: datetime | None = None
     consecutive_failures: int
     daily_counters: dict[str, Any] = Field(default_factory=dict)
     trusted_peer_ids: list[str] = Field(default_factory=list)
@@ -106,6 +107,7 @@ class WarmupSessionSummaryRead(BaseModel):
     cadence_hours: int
     next_step_at: datetime | None = None
     next_micro_session_at: datetime | None = None
+    cold_soak_until: datetime | None = None
     updated_at: datetime
 
 
@@ -121,6 +123,7 @@ class WarmupSessionStatusRead(BaseModel):
     current_day: int
     next_step_at: datetime | None = None
     next_attempt_at: datetime | None = None
+    cold_soak_until: datetime | None = None
 
 
 class WarmupPauseRequest(BaseModel):

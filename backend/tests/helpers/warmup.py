@@ -111,7 +111,13 @@ def seed_warmup_session(
     )
     if status is not None:
         ws.status = status
-        db_session.commit()
+    else:
+        ws.status = "scheduled"
+        ws.next_step_at = now
+        ws.next_micro_session_at = (
+            now if ws.execution_mode != WarmupExecutionMode.DRY_RUN.value else None
+        )
+    db_session.commit()
     return ws
 
 

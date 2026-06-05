@@ -27008,6 +27008,18 @@
             ],
             "title": "Last Micro Session At"
           },
+          "cold_soak_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cold Soak Until"
+          },
           "consecutive_failures": {
             "type": "integer",
             "title": "Consecutive Failures"
@@ -27141,6 +27153,18 @@
               }
             ],
             "title": "Next Attempt At"
+          },
+          "cold_soak_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cold Soak Until"
           }
         },
         "type": "object",
@@ -27218,6 +27242,18 @@
               }
             ],
             "title": "Next Micro Session At"
+          },
+          "cold_soak_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cold Soak Until"
           },
           "updated_at": {
             "type": "string",

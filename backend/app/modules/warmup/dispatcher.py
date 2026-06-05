@@ -104,10 +104,24 @@ def process_due_warmup_dispatches(
     provider = text_provider if text_provider is not None else build_warmup_text_provider()
 
     query = select(WarmupSession).where(
-        WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]),
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
-        (WarmupSession.next_micro_session_at.is_(None))
-        | (WarmupSession.next_micro_session_at <= timestamp),
+        (
+            (
+                WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value])
+                & (
+                    WarmupSession.next_micro_session_at.is_(None)
+                    | (WarmupSession.next_micro_session_at <= timestamp)
+                )
+            )
+            | (
+                (WarmupSession.status == WarmupStatus.COLD_SOAK.value)
+                & (
+                    WarmupSession.next_micro_session_at.is_(None)
+                    | (WarmupSession.next_micro_session_at <= timestamp)
+                    | (WarmupSession.cold_soak_until <= timestamp)
+                )
+            )
+        ),
     )
     include_live_modes = bool(settings.warmup_live_enabled or passive_adapter is not None)
     if not include_live_modes:

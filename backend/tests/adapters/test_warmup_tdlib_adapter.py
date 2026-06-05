@@ -33,7 +33,10 @@ def test_collect_supported_actions_passive_only():
 def test_collect_supported_actions_all_modes():
     result = collect_supported_actions(("passive", "network", "advanced"))
     assert "get_me" in result
+    assert "channel_browse" in result
+    assert "view_story" in result
     assert "join_chat" in result
+    assert "react_to_post" in result
     assert "p2p_send" in result
 
 
@@ -55,7 +58,7 @@ def test_supported_actions_by_mode_keys():
 
 
 def test_write_action_types():
-    assert WRITE_ACTION_TYPES == frozenset({"join_chat", "p2p_send"})
+    assert WRITE_ACTION_TYPES == frozenset({"join_chat", "react_to_post", "p2p_send"})
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +102,10 @@ def test_mock_adapter_supports_all_by_default():
 def test_mock_adapter_passive_only():
     adapter = MockWarmupTdlibAdapter(supported_modes=("passive",))
     assert adapter.supports_action("get_me") is True
+    assert adapter.supports_action("channel_browse") is True
+    assert adapter.supports_action("view_story") is True
     assert adapter.supports_action("join_chat") is False
+    assert adapter.supports_action("react_to_post") is False
     assert adapter.supports_action("p2p_send") is False
 
 
@@ -144,6 +150,44 @@ def test_mock_adapter_join_chat_missing_target():
     result = adapter.execute_action(account_id="a1", action_type="join_chat", context={})
     assert result.status == "missing_context"
     assert result.error_code == "join_chat_missing_target"
+
+
+def test_mock_adapter_channel_browse_ok():
+    adapter = MockWarmupTdlibAdapter(rng_seed=42)
+    result = adapter.execute_action(
+        account_id="a1",
+        action_type="channel_browse",
+        context={"channel_ref": "@news"},
+    )
+    assert result.is_ok
+    assert result.metadata["channel_ref"] == "@news"
+    assert result.metadata["messages_viewed"] <= result.metadata["messages_total"]
+
+
+def test_mock_adapter_view_story_ok():
+    adapter = MockWarmupTdlibAdapter(rng_seed=42)
+    result = adapter.execute_action(
+        account_id="a1",
+        action_type="view_story",
+        context={"channel_ref": "@news", "has_stories": True},
+    )
+    assert result.is_ok
+    assert result.metadata["channel_ref"] == "@news"
+    assert result.metadata["has_stories"] is True
+    assert result.metadata["viewed_count"] >= 1
+
+
+def test_mock_adapter_react_to_post_ok():
+    adapter = MockWarmupTdlibAdapter(rng_seed=42)
+    result = adapter.execute_action(
+        account_id="a1",
+        action_type="react_to_post",
+        context={"channel_ref": "@news", "available_reactions": ["👍", "🔥"]},
+    )
+    assert result.is_ok
+    assert result.metadata["channel_ref"] == "@news"
+    assert result.metadata["reaction"] in {"👍", "🔥"}
+    assert result.metadata["has_reactions"] is True
 
 
 def test_mock_adapter_p2p_send_ok():

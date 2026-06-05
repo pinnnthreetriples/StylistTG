@@ -116,6 +116,31 @@ def test_record_action_result_reuses_existing_channel_state(db_session: Session)
     assert rows[0].success_count == 2
 
 
+def test_record_action_result_updates_capability_metadata(db_session: Session) -> None:
+    warmup_session = _warmup_session()
+    result = WarmupActionResult(
+        status="ok",
+        action_type="react_to_post",
+        metadata={
+            "has_reactions": True,
+            "available_reactions": ["👍", "🔥"],
+        },
+    )
+
+    record_action_result(
+        db_session,
+        warmup_session,
+        "react_to_post",
+        "channel-a",
+        result,
+        now=NOW,
+    )
+    row = db_session.execute(select(WarmupChannelState)).scalar_one()
+
+    assert row.has_reactions is True
+    assert row.available_reactions_json == ["👍", "🔥"]
+
+
 def _warmup_session() -> WarmupSession:
     return WarmupSession(
         id="44444444-4444-4444-8444-444444444444",

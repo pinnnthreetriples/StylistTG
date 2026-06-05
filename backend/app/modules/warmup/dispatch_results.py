@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.adapters.warmup_tdlib import WarmupActionResult
 from app.models import WarmupSession, WarmupStatus
 from app.modules.account_survival import events as survival_events
+from app.modules.warmup.channel_state import service as channel_state_service
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.p2p import record_p2p_contact
@@ -63,6 +64,9 @@ def _record_dispatch_action_failure(
     warmup_session: WarmupSession,
     action_type: str,
     result: WarmupActionResult,
+    *,
+    action_context: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     failed_action = {
         "action_type": action_type,
@@ -94,6 +98,14 @@ def _record_dispatch_action_failure(
             workspace_id=warmup_session.workspace_id,
             now=datetime.now(UTC),
         )
+    _record_channel_action_result_if_needed(
+        session,
+        warmup_session,
+        action_type=action_type,
+        result=result,
+        action_context=action_context or {},
+        now=now or datetime.now(UTC),
+    )
     return failed_action
 
 
@@ -115,6 +127,14 @@ def _record_dispatch_action_success(
         is_live=is_live,
         now=now,
     )
+    _record_channel_action_result_if_needed(
+        session,
+        warmup_session,
+        action_type=action_type,
+        result=result,
+        action_context=action_context,
+        now=now,
+    )
     write_warmup_event(
         session,
         warmup_session,
@@ -126,6 +146,30 @@ def _record_dispatch_action_success(
             "simulated": not is_live,
             "metadata": dict(result.metadata),
         },
+    )
+
+
+def _record_channel_action_result_if_needed(
+    session: Session,
+    warmup_session: WarmupSession,
+    *,
+    action_type: str,
+    result: WarmupActionResult,
+    action_context: dict[str, Any],
+    now: datetime,
+) -> None:
+    channel_ref = action_context.get("channel_ref")
+    if not channel_ref:
+        return
+    if action_type != "join_chat" and action_context.get("channel_subscribed") is not True:
+        return
+    channel_state_service.record_action_result(
+        session,
+        warmup_session,
+        action_type,
+        str(channel_ref),
+        result,
+        now=now,
     )
 
 

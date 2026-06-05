@@ -70,7 +70,6 @@ def mark_action_done(
     now: datetime,
     metadata: dict[str, Any] | None = None,
 ) -> ChannelStateSnapshot:
-    del metadata
     row = _get_or_create_state(
         session,
         workspace_id=workspace_id,
@@ -81,6 +80,7 @@ def mark_action_done(
     column_name = _ACTION_TIMESTAMP_COLUMNS.get(action_type)
     if column_name is not None:
         setattr(row, column_name, now)
+    _apply_capability_metadata(row, metadata or {})
     row.success_count += 1
     row.updated_at = now
     session.flush()
@@ -161,6 +161,21 @@ def _get_or_create_state(
     session.add(row)
     session.flush()
     return row
+
+
+def _apply_capability_metadata(row: WarmupChannelState, metadata: dict[str, Any]) -> None:
+    if "has_stories" in metadata:
+        row.has_stories = _bool_or_none(metadata.get("has_stories"))
+    if "has_reactions" in metadata:
+        row.has_reactions = _bool_or_none(metadata.get("has_reactions"))
+    if "available_reactions" in metadata:
+        row.available_reactions_json = [
+            str(value) for value in metadata.get("available_reactions") or [] if str(value).strip()
+        ]
+
+
+def _bool_or_none(value: Any) -> bool | None:
+    return value if isinstance(value, bool) else None
 
 
 def _snapshot(row: WarmupChannelState) -> ChannelStateSnapshot:

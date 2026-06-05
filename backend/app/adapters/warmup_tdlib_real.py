@@ -22,6 +22,7 @@ from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
 _logger = logging.getLogger(__name__)
+_INT_COERCION_ERRORS = (TypeError, ValueError)
 
 
 class RealWarmupTdlibAdapter:
@@ -85,6 +86,9 @@ class RealWarmupTdlibAdapter:
             "ping_proxy": lambda: self._action_ping_proxy(action_type, context),
             "feed_read": lambda: self._action_feed_read(client, action_type),
             "join_chat": lambda: self._action_join_chat(client, action_type, context),
+            "channel_browse": lambda: self._action_channel_browse(client, action_type, context),
+            "view_story": lambda: self._action_view_story(client, action_type, context),
+            "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
         }
         handler = handlers.get(action_type)
@@ -215,6 +219,249 @@ class RealWarmupTdlibAdapter:
             },
         )
 
+    def _action_channel_browse(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="channel_browse_missing_channel",
+                error_class="contract",
+            )
+        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+
+        opened = client.send_query(
+            {"@type": "openChat", "chat_id": chat_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if opened.get("@type") == "error":
+            return _classify_tdlib_error(opened, action_type)
+
+        limit = _bounded_int(context.get("history_limit"), minimum=10, maximum=30, default=20)
+        history = client.send_query(
+            {
+                "@type": "getChatHistory",
+                "chat_id": chat_id,
+                "from_message_id": 0,
+                "offset": 0,
+                "limit": limit,
+                "only_local": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if history.get("@type") == "error":
+            return _classify_tdlib_error(history, action_type)
+
+        message_ids = _message_ids(history.get("messages"))
+        if message_ids:
+            viewed = client.send_query(
+                {
+                    "@type": "viewMessages",
+                    "chat_id": chat_id,
+                    "message_ids": message_ids,
+                    "force_read": True,
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if viewed.get("@type") == "error":
+                return _classify_tdlib_error(viewed, action_type)
+
+        close_response = client.send_query(
+            {"@type": "closeChat", "chat_id": chat_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if close_response.get("@type") == "error":
+            classified = _classify_tdlib_error(close_response, action_type)
+            if classified.status == "flood_wait":
+                return classified
+
+        messages_total = len(message_ids)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "messages_total": messages_total,
+                "messages_viewed": messages_total,
+                "scroll_depth": round(messages_total / limit, 2) if limit else 0,
+            },
+        )
+
+    def _action_view_story(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="view_story_missing_channel",
+                error_class="contract",
+            )
+        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+
+        stories = client.send_query(
+            {"@type": "getChatActiveStories", "chat_id": chat_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if stories.get("@type") == "error":
+            return _classify_tdlib_error(stories, action_type)
+
+        active_stories = [
+            story for story in stories.get("stories") or [] if isinstance(story, dict)
+        ]
+        if not active_stories:
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "channel_ref": channel_ref,
+                    "chat_id": chat_id,
+                    "viewed_count": 0,
+                    "has_stories": False,
+                },
+            )
+
+        viewed = 0
+        for story in active_stories[:3]:
+            story_id = story.get("id")
+            if story_id is None:
+                continue
+            opened = client.send_query(
+                {"@type": "openStory", "chat_id": chat_id, "story_id": story_id},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if opened.get("@type") == "error":
+                classified = _classify_tdlib_error(opened, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+                continue
+            viewed += 1
+
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "viewed_count": viewed,
+                "has_stories": True,
+            },
+        )
+
+    def _action_react_to_post(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="react_to_post_missing_channel",
+                error_class="contract",
+            )
+        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+
+        history = client.send_query(
+            {
+                "@type": "getChatHistory",
+                "chat_id": chat_id,
+                "from_message_id": 0,
+                "offset": 0,
+                "limit": 5,
+                "only_local": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if history.get("@type") == "error":
+            return _classify_tdlib_error(history, action_type)
+        message_ids = _message_ids(history.get("messages"))
+        if not message_ids:
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "channel_ref": channel_ref,
+                    "chat_id": chat_id,
+                    "reacted": False,
+                    "reason": "no_messages",
+                },
+            )
+
+        message_id = message_ids[0]
+        available = client.send_query(
+            {
+                "@type": "getMessageAvailableReactions",
+                "chat_id": chat_id,
+                "message_id": message_id,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if available.get("@type") == "error":
+            return _classify_tdlib_error(available, action_type)
+        reactions = _available_reactions(available.get("reactions"))
+        if not reactions:
+            reactions = [str(value) for value in context.get("available_reactions") or [] if value]
+        if not reactions:
+            return WarmupActionResult(
+                status="ok",
+                action_type=action_type,
+                metadata={
+                    "provider": self.provider_name,
+                    "channel_ref": channel_ref,
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "has_reactions": False,
+                    "reacted": False,
+                },
+            )
+
+        reaction = reactions[0]
+        added = client.send_query(
+            {
+                "@type": "addMessageReaction",
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "reaction_type": _emoji_reaction_type(reaction),
+                "is_big": False,
+                "update_recent_reactions": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if added.get("@type") == "error":
+            return _classify_tdlib_error(added, action_type)
+
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "reaction": reaction,
+                "has_reactions": True,
+                "available_reactions": reactions,
+                "reacted": True,
+            },
+        )
+
     def _action_join_chat(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -257,6 +504,26 @@ class RealWarmupTdlibAdapter:
                 "joined_chat_id": chat_id,
             },
         )
+
+    def _resolve_public_chat_id(
+        self, client: TdlibClient, action_type: str, channel_ref: str
+    ) -> int | WarmupActionResult:
+        search = client.send_query(
+            {"@type": "searchPublicChat", "username": channel_ref.lstrip("@")},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if search.get("@type") == "error":
+            return _classify_tdlib_error(search, action_type)
+        chat_id = search.get("id")
+        if chat_id is None:
+            return WarmupActionResult(
+                status="network_error",
+                action_type=action_type,
+                error_code="public_chat_not_found",
+                error_class="contract",
+                metadata={"channel_ref": channel_ref},
+            )
+        return int(chat_id)
 
     def _action_p2p_send(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
@@ -309,3 +576,51 @@ class RealWarmupTdlibAdapter:
                 "text_length": len(text),
             },
         )
+
+
+def _bounded_int(value: Any, *, minimum: int, maximum: int, default: int) -> int:
+    try:
+        parsed = int(value)
+    except _INT_COERCION_ERRORS:
+        parsed = default
+    return min(maximum, max(minimum, parsed))
+
+
+def _message_ids(raw_messages: Any) -> list[int]:
+    if not isinstance(raw_messages, list):
+        return []
+    out: list[int] = []
+    for message in raw_messages:
+        if not isinstance(message, dict):
+            continue
+        message_id = message.get("id")
+        if message_id is None:
+            continue
+        out.append(int(message_id))
+    return out
+
+
+def _available_reactions(raw_reactions: Any) -> list[str]:
+    if not isinstance(raw_reactions, list):
+        return []
+    out: list[str] = []
+    for raw in raw_reactions:
+        if isinstance(raw, str) and raw:
+            out.append(raw)
+            continue
+        if not isinstance(raw, dict):
+            continue
+        value = raw.get("emoji")
+        if isinstance(value, str) and value:
+            out.append(value)
+            continue
+        nested = raw.get("type") or raw.get("reaction_type")
+        if isinstance(nested, dict):
+            value = nested.get("emoji")
+            if isinstance(value, str) and value:
+                out.append(value)
+    return out
+
+
+def _emoji_reaction_type(emoji: str) -> dict[str, str]:
+    return {"@type": "reactionTypeEmoji", "emoji": emoji}

@@ -143,7 +143,14 @@ def _process_one_dispatch(
             result, action_context = action_result
             if not result.is_ok:
                 failed_actions.append(
-                    _record_dispatch_action_failure(session, warmup_session, action_type, result)
+                    _record_dispatch_action_failure(
+                        session,
+                        warmup_session,
+                        action_type,
+                        result,
+                        action_context=action_context,
+                        now=now,
+                    )
                 )
                 continue
             counters_for_day[action_type] = counters_for_day.get(action_type, 0) + 1

@@ -25,6 +25,7 @@ from app.models import (
     NeuroCommentAttempt,
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
+    WarmupPreProductionSession,
     WarmupSession,
     new_id,
     utc_now,
@@ -207,6 +208,7 @@ _CASCADE_MODELS: tuple[tuple[str, Any], ...] = (
     ("account_operation_log", AccountOperationLog),
     ("account_survival_metric", AccountSurvivalMetric),
     ("account_auth_attempt", AccountAuthAttempt),
+    ("warmup_pre_production_session", WarmupPreProductionSession),
     ("warmup_session", WarmupSession),
 )
 

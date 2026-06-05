@@ -29,5 +29,12 @@ module = FeatureModule(
             args_mode=WorkflowArgsMode.NONE,
             description="Move idle active accounts into read-only keepalive warmup.",
         ),
+        WorkflowSpec(
+            workflow_type="warmup_pre_production_sweep",
+            queue_name=WARMUP_QUEUE_NAME,
+            handler_path="app.modules.warmup.jobs:run_warmup_pre_production_sweep",
+            args_mode=WorkflowArgsMode.NONE,
+            description="Complete expired empty-profile pre-production sessions.",
+        ),
     ),
 )

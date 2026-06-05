@@ -118,6 +118,8 @@ class Settings(BaseSettings):
     warmup_default_duration_days: int = 14
     warmup_idle_detection_enabled: bool = False
     warmup_idle_threshold_minutes: int = 60
+    warmup_pre_production_enabled: bool = False
+    warmup_pre_production_duration_hours: int = 2
     warmup_micro_session_min_minutes: int = 2
     warmup_micro_session_max_minutes: int = 7
     warmup_daily_session_min_count: int = 3

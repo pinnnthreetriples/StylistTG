@@ -209,6 +209,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
     ("POST", "/api/warmup-sessions/cyclic", "operator", True),
     ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
+    ("GET", "/api/warmup-selectable-accounts", "viewer", False),
     ("GET", "/api/warmup-bootstrap-channels", "admin", False),
     ("POST", "/api/warmup-bootstrap-channels", "admin", True),
     ("PATCH", "/api/warmup-bootstrap-channels/{channel_id}", "admin", True),

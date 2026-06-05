@@ -28,6 +28,7 @@ from app.modules.warmup.contracts import (
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
     WarmupReadinessRead,
+    WarmupSelectableAccountRead,
     WarmupSessionCreateRequest,
     WarmupSessionPageRead,
     WarmupSessionRead,
@@ -37,6 +38,7 @@ from app.modules.warmup.contracts import (
     WarmupValidateRequest,
 )
 from app.modules.warmup.bootstrap_pool import service as bootstrap_service
+from app.modules.warmup.selectable_accounts import list_selectable_accounts
 from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.cyclic import setup_cyclic_warmups
 from app.modules.auth.dependencies import (
@@ -51,10 +53,44 @@ router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
+selectable_accounts_router = APIRouter(
+    prefix="/api/warmup-selectable-accounts", tags=["warmup"]
+)
 bootstrap_router = APIRouter(
     prefix="/api/warmup-bootstrap-channels", tags=["warmup-bootstrap-channels"]
 )
 settings = warmup_service.settings
+
+
+@selectable_accounts_router.get("", response_model=list[WarmupSelectableAccountRead])
+def get_warmup_selectable_accounts(
+    workspace_id: str | None = Query(default=None),
+    search: str | None = Query(default=None, max_length=128),
+    country: str | None = Query(default=None, max_length=8),
+    role: str | None = Query(default=None, max_length=32),
+    proxy_ok_only: bool = Query(default=False),
+    hide_in_work: bool = Query(default=False),
+    limit: int = Query(default=500, ge=1, le=500),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> list[WarmupSelectableAccountRead]:
+    if workspace_id is not None and workspace_id != auth.workspace_id:
+        raise AppError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="WORKSPACE_FORBIDDEN",
+            error_class="authorization",
+            message="workspace_id does not match authenticated workspace",
+        )
+    return list_selectable_accounts(
+        session,
+        workspace_id=auth.workspace_id,
+        search=search,
+        country=country,
+        role=role,
+        proxy_ok_only=proxy_ok_only,
+        hide_in_work=hide_in_work,
+        limit=limit,
+    )
 
 
 @actions_router.get("/metadata", response_model=list[WarmupActionMetadataRead])
@@ -407,3 +443,4 @@ router.include_router(warmup_router)
 router.include_router(actions_router)
 router.include_router(session_alias_router)
 router.include_router(bootstrap_router)
+router.include_router(selectable_accounts_router)

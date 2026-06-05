@@ -11,6 +11,8 @@ import type {
   WarmupSessionDetail,
   WarmupSessionPage,
   WarmupStrategy,
+  WarmupSelectableAccount,
+  WarmupSelectableAccountFilters,
   WarmupValidateResponse,
 } from './types'
 
@@ -102,4 +104,17 @@ export function fetchWarmupSessionDetail(sessionId: string): Promise<WarmupSessi
 
 export function fetchWarmupIsolationStatus(accountId: string): Promise<WarmupIsolationStatus> {
   return apiRequest(`/api/warmup/isolation/by-account/${encodeURIComponent(accountId)}`)
+}
+
+export function fetchWarmupSelectableAccounts(
+  filters: WarmupSelectableAccountFilters = {},
+): Promise<WarmupSelectableAccount[]> {
+  const query = new URLSearchParams()
+  if (filters.search) query.set('search', filters.search)
+  if (filters.country) query.set('country', filters.country)
+  if (filters.role) query.set('role', filters.role)
+  if (filters.proxyOkOnly) query.set('proxy_ok_only', 'true')
+  if (filters.hideInWork) query.set('hide_in_work', 'true')
+  query.set('limit', '500')
+  return apiRequest(`/api/warmup-selectable-accounts?${query.toString()}`)
 }

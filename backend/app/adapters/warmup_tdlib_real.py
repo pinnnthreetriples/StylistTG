@@ -85,8 +85,12 @@ class RealWarmupTdlibAdapter:
             "get_me": lambda: self._action_get_me(client, action_type),
             "ping_proxy": lambda: self._action_ping_proxy(action_type, context),
             "feed_read": lambda: self._action_feed_read(client, action_type),
+            "view_dialogs": lambda: self._action_view_dialogs(client, action_type, context),
+            "mark_as_read": lambda: self._action_mark_as_read(client, action_type, context),
+            "search_messages": lambda: self._action_search_messages(client, action_type, context),
             "join_chat": lambda: self._action_join_chat(client, action_type, context),
             "channel_browse": lambda: self._action_channel_browse(client, action_type, context),
+            "scroll_channels": lambda: self._action_scroll_channels(client, action_type, context),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -181,17 +185,111 @@ class RealWarmupTdlibAdapter:
         )
 
     def _action_feed_read(self, client: TdlibClient, action_type: str) -> WarmupActionResult:
-        chats_response = client.send_query(
-            {
-                "@type": "getChats",
-                "chat_list": {"@type": "chatListMain"},
-                "limit": 5,
+        chat_ids_result = self._main_chat_ids(client, action_type, 5)
+        if isinstance(chat_ids_result, WarmupActionResult):
+            return chat_ids_result
+        chat_ids = chat_ids_result
+        viewed_result = self._view_empty_messages(client, action_type, chat_ids)
+        if isinstance(viewed_result, WarmupActionResult):
+            return viewed_result
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "chats_seen": len(chat_ids),
+                "messages_viewed": viewed_result,
             },
+        )
+
+    def _action_view_dialogs(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        limit = _bounded_int(context.get("dialog_limit"), minimum=3, maximum=5, default=5)
+        chat_ids_result = self._main_chat_ids(client, action_type, limit)
+        if isinstance(chat_ids_result, WarmupActionResult):
+            return chat_ids_result
+        chat_ids = chat_ids_result
+        viewed_result = self._view_empty_messages(client, action_type, chat_ids)
+        if isinstance(viewed_result, WarmupActionResult):
+            return viewed_result
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "chats_seen": len(chat_ids),
+                "messages_viewed": viewed_result,
+            },
+        )
+
+    def _action_mark_as_read(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        limit = _bounded_int(context.get("dialog_limit"), minimum=3, maximum=50, default=20)
+        chat_ids_result = self._main_chat_ids(client, action_type, limit)
+        if isinstance(chat_ids_result, WarmupActionResult):
+            return chat_ids_result
+        chat_ids = chat_ids_result
+        marked_result = self._view_empty_messages(client, action_type, chat_ids)
+        if isinstance(marked_result, WarmupActionResult):
+            return marked_result
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "chats_seen": len(chat_ids),
+                "chats_marked": marked_result,
+            },
+        )
+
+    def _action_search_messages(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        query = str(context.get("search_query") or "")
+        limit = _bounded_int(context.get("search_limit"), minimum=1, maximum=20, default=10)
+        response = client.send_query(
+            {
+                "@type": "searchMessages",
+                "chat_list": {"@type": "chatListMain"},
+                "query": query,
+                "offset": "",
+                "limit": limit,
+                "filter": {"@type": "searchMessagesFilterEmpty"},
+                "min_date": 0,
+                "max_date": 0,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        messages = response.get("messages")
+        results_seen = len(cast(list[object], messages)) if isinstance(messages, list) else 0
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "query": query,
+                "results_seen": results_seen,
+            },
+        )
+
+    def _main_chat_ids(
+        self, client: TdlibClient, action_type: str, limit: int
+    ) -> list[int] | WarmupActionResult:
+        chats_response = client.send_query(
+            {"@type": "getChats", "chat_list": {"@type": "chatListMain"}, "limit": limit},
             self._config.tdlib_receive_timeout_seconds,
         )
         if chats_response.get("@type") == "error":
             return _classify_tdlib_error(chats_response, action_type)
-        chat_ids = list(chats_response.get("chat_ids") or [])[:5]
+        return [int(chat_id) for chat_id in _list_or_empty(chats_response.get("chat_ids"))][:limit]
+
+    def _view_empty_messages(
+        self, client: TdlibClient, action_type: str, chat_ids: list[int]
+    ) -> int | WarmupActionResult:
         viewed = 0
         for chat_id in chat_ids:
             view_response = client.send_query(
@@ -209,31 +307,37 @@ class RealWarmupTdlibAdapter:
                     return classified
                 continue
             viewed += 1
-        return WarmupActionResult(
-            status="ok",
-            action_type=action_type,
-            metadata={
-                "provider": self.provider_name,
-                "chats_seen": len(chat_ids),
-                "messages_viewed": viewed,
-            },
-        )
+        return viewed
 
-    def _action_channel_browse(
-        self, client: TdlibClient, action_type: str, context: dict[str, Any]
-    ) -> WarmupActionResult:
+    def _required_channel_chat_id(
+        self,
+        client: TdlibClient,
+        action_type: str,
+        context: dict[str, Any],
+        missing_error_code: str,
+    ) -> tuple[str, int] | WarmupActionResult:
         channel_ref = (context.get("channel_ref") or "").strip()
         if not channel_ref:
             return WarmupActionResult(
                 status="missing_context",
                 action_type=action_type,
-                error_code="channel_browse_missing_channel",
+                error_code=missing_error_code,
                 error_class="contract",
             )
         chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
         if isinstance(chat_id_result, WarmupActionResult):
             return chat_id_result
-        chat_id = chat_id_result
+        return channel_ref, chat_id_result
+
+    def _action_channel_browse(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_result = self._required_channel_chat_id(
+            client, action_type, context, "channel_browse_missing_channel"
+        )
+        if isinstance(channel_result, WarmupActionResult):
+            return channel_result
+        channel_ref, chat_id = channel_result
 
         opened = client.send_query(
             {"@type": "openChat", "chat_id": chat_id},
@@ -294,21 +398,88 @@ class RealWarmupTdlibAdapter:
             },
         )
 
+    def _action_scroll_channels(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_result = self._required_channel_chat_id(
+            client, action_type, context, "scroll_channels_missing_channel"
+        )
+        if isinstance(channel_result, WarmupActionResult):
+            return channel_result
+        channel_ref, chat_id = channel_result
+
+        opened = client.send_query(
+            {"@type": "openChat", "chat_id": chat_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if opened.get("@type") == "error":
+            return _classify_tdlib_error(opened, action_type)
+
+        limit = _bounded_int(context.get("history_limit"), minimum=20, maximum=40, default=30)
+        history = client.send_query(
+            {
+                "@type": "getChatHistory",
+                "chat_id": chat_id,
+                "from_message_id": 0,
+                "offset": 0,
+                "limit": limit,
+                "only_local": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if history.get("@type") == "error":
+            return _classify_tdlib_error(history, action_type)
+
+        message_ids = _message_ids(history.get("messages"))
+        viewed_count = 0
+        for chunk in _chunks(message_ids, 10):
+            viewed = client.send_query(
+                {
+                    "@type": "viewMessages",
+                    "chat_id": chat_id,
+                    "message_ids": chunk,
+                    "force_read": True,
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if viewed.get("@type") == "error":
+                classified = _classify_tdlib_error(viewed, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+                continue
+            viewed_count += len(chunk)
+
+        close_response = client.send_query(
+            {"@type": "closeChat", "chat_id": chat_id},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if close_response.get("@type") == "error":
+            classified = _classify_tdlib_error(close_response, action_type)
+            if classified.status == "flood_wait":
+                return classified
+
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "chat_id": chat_id,
+                "messages_total": len(message_ids),
+                "messages_viewed": viewed_count,
+                "scroll_depth": round(viewed_count / limit, 2) if limit else 0,
+            },
+        )
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
-        channel_ref = (context.get("channel_ref") or "").strip()
-        if not channel_ref:
-            return WarmupActionResult(
-                status="missing_context",
-                action_type=action_type,
-                error_code="view_story_missing_channel",
-                error_class="contract",
-            )
-        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
-        if isinstance(chat_id_result, WarmupActionResult):
-            return chat_id_result
-        chat_id = chat_id_result
+        channel_result = self._required_channel_chat_id(
+            client, action_type, context, "view_story_missing_channel"
+        )
+        if isinstance(channel_result, WarmupActionResult):
+            return channel_result
+        channel_ref, chat_id = channel_result
 
         stories = client.send_query(
             {"@type": "getChatActiveStories", "chat_id": chat_id},
@@ -366,18 +537,12 @@ class RealWarmupTdlibAdapter:
     def _action_react_to_post(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
-        channel_ref = (context.get("channel_ref") or "").strip()
-        if not channel_ref:
-            return WarmupActionResult(
-                status="missing_context",
-                action_type=action_type,
-                error_code="react_to_post_missing_channel",
-                error_class="contract",
-            )
-        chat_id_result = self._resolve_public_chat_id(client, action_type, channel_ref)
-        if isinstance(chat_id_result, WarmupActionResult):
-            return chat_id_result
-        chat_id = chat_id_result
+        channel_result = self._required_channel_chat_id(
+            client, action_type, context, "react_to_post_missing_channel"
+        )
+        if isinstance(channel_result, WarmupActionResult):
+            return channel_result
+        channel_ref, chat_id = channel_result
 
         history = client.send_query(
             {
@@ -605,6 +770,10 @@ def _message_ids(raw_messages: Any) -> list[int]:
             continue
         out.append(int(message_id))
     return out
+
+
+def _chunks(values: list[int], size: int) -> list[list[int]]:
+    return [values[index : index + size] for index in range(0, len(values), size)]
 
 
 def _available_reactions(raw_reactions: Any) -> list[str]:

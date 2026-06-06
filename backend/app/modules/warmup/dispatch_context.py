@@ -17,6 +17,8 @@ from app.modules.warmup.channel_state.repository import get_states_for_account
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
+_SEARCH_MESSAGE_QUERIES = ("", "news", "today", "update", "photo", "video", "link")
+
 
 def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) -> str | None:
     """Pick РѕРґРЅРѕ РїСѓР±Р»РёС‡РЅРѕРµ channel-username РёР· strategy.target_channels_json."""
@@ -69,6 +71,12 @@ def _is_channel_subscribed(
 def _derive_text_seed(warmup_session: WarmupSession, action_type: str) -> str:
     raw = f"{warmup_session.id}|{warmup_session.current_day}|{action_type}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:32]
+
+
+def _derive_search_query(warmup_session: WarmupSession, action_type: str) -> str:
+    seed = _derive_text_seed(warmup_session, action_type)
+    index = int(seed[:8], 16) % len(_SEARCH_MESSAGE_QUERIES)
+    return _SEARCH_MESSAGE_QUERIES[index]
 
 
 def _pause_if_blocked_by_safety_gate(
@@ -165,6 +173,28 @@ def _resolve_action_context(
                 "channel_subscribed": _is_channel_subscribed(
                     session, warmup_session=warmup_session, channel_ref=channel_ref
                 ),
+            }
+        )
+    if action_type == "scroll_channels":
+        if selected_channel_ref is None:
+            return _ActionContextResolution(context=base, skip_reason="no_scroll_channel_available")
+        if not _is_channel_subscribed(
+            session, warmup_session=warmup_session, channel_ref=selected_channel_ref
+        ):
+            return _ActionContextResolution(context=base, skip_reason="not_subscribed")
+        return _ActionContextResolution(
+            context={
+                **base,
+                "channel_ref": selected_channel_ref,
+                "history_limit": rng.randint(20, 40),
+                "channel_subscribed": True,
+            }
+        )
+    if action_type == "search_messages":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "search_query": _derive_search_query(warmup_session, action_type),
             }
         )
     if action_type == "view_story":

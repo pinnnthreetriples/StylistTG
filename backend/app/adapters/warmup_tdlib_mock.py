@@ -59,6 +59,14 @@ class MockWarmupTdlibAdapter:
             return self._join_chat_result(action_type, context)
         if action_type == "channel_browse":
             return self._channel_browse_result(action_type, context)
+        if action_type == "scroll_channels":
+            return self._scroll_channels_result(action_type, context)
+        if action_type == "view_dialogs":
+            return self._view_dialogs_result(action_type, context)
+        if action_type == "mark_as_read":
+            return self._mark_as_read_result(action_type, context)
+        if action_type == "search_messages":
+            return self._search_messages_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -134,6 +142,75 @@ class MockWarmupTdlibAdapter:
                 "channel_ref": channel_ref,
                 "has_stories": has_stories,
                 "viewed_count": viewed_count,
+            },
+        )
+
+    def _scroll_channels_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="scroll_channels_missing_channel",
+                error_class="contract",
+            )
+        history_limit = int(context.get("history_limit") or 30)
+        messages_total = self._rng.randint(20, max(20, history_limit))
+        messages_viewed = self._rng.randint(5, messages_total)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(140, 420),
+                "channel_ref": channel_ref,
+                "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "messages_total": messages_total,
+                "messages_viewed": messages_viewed,
+                "scroll_depth": round(messages_viewed / messages_total, 2),
+            },
+        )
+
+    def _view_dialogs_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        del context
+        chats_seen = self._rng.randint(3, 5)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(70, 220),
+                "chats_seen": chats_seen,
+                "messages_viewed": self._rng.randint(1, chats_seen),
+            },
+        )
+
+    def _mark_as_read_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        del context
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(60, 200),
+                "chats_marked": self._rng.randint(3, 8),
+            },
+        )
+
+    def _search_messages_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        query = str(context.get("search_query") or "")
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(80, 240),
+                "query": query,
+                "results_seen": self._rng.randint(0, 10),
             },
         )
 

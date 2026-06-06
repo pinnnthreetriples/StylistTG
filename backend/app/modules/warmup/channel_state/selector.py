@@ -9,7 +9,11 @@ from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
 
 DEFAULT_ACTION_PRIORITY = (
     "feed_read",
+    "view_dialogs",
+    "mark_as_read",
     "channel_browse",
+    "scroll_channels",
+    "search_messages",
     "view_story",
     "join_chat",
     "react_to_post",
@@ -95,6 +99,17 @@ def _select_action(
             return None if available_targets or states_by_ref else SelectedAction(action_type)
         return SelectedAction(
             action_type, _pick(candidates, rng), {"reason": "never_browsed_or_stale"}
+        )
+    if action_type == "scroll_channels":
+        candidates = [
+            state.channel_ref
+            for state in states_by_ref.values()
+            if state.subscribed_at is not None and _is_stale(state.last_browse_at, now)
+        ]
+        if not candidates:
+            return SelectedAction(action_type) if available_targets else None
+        return SelectedAction(
+            action_type, _pick(candidates, rng), {"reason": "subscribed_channel_stale"}
         )
     if action_type == "view_story":
         subscribed = [state for state in states_by_ref.values() if state.subscribed_at is not None]

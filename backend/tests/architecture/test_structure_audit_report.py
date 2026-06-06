@@ -27,6 +27,7 @@ from structure_audit import (  # noqa: E402
     _backend_overall_status,
     _debt_summary,
     _findings,
+    _module_tests_present,
     _residual_boundary_guard,
     build_report,
     detect_report_drift,
@@ -172,6 +173,18 @@ def test_structure_audit_generated_at_can_be_injected() -> None:
     report = build_report(REPO_ROOT, generated_at="2026-05-26T10:11:12Z")
 
     assert report["generated_at"] == "2026-05-26T10:11:12Z"
+
+
+def test_module_tests_present_ignores_cache_only_directories(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "backend/tests/modules/account_lifecycle/__pycache__"
+    cache_dir.mkdir(parents=True)
+
+    assert not _module_tests_present(tmp_path, "account_lifecycle")
+
+    module_test = tmp_path / "backend/tests/modules/test_account_lifecycle_module.py"
+    module_test.write_text("def test_placeholder():\n    pass\n", encoding="utf-8")
+
+    assert _module_tests_present(tmp_path, "account_lifecycle")
 
 
 def test_structure_audit_markdown_matches_static_renderer() -> None:

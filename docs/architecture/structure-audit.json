@@ -154,7 +154,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 36
+      "test_count": 37
     },
     {
       "boundary_keywords": [
@@ -201,6 +201,7 @@
       "backend/app/modules/account_onboarding/contracts.py": [],
       "backend/app/modules/account_profile_completeness/contracts.py": [],
       "backend/app/modules/account_safety/contracts.py": [],
+      "backend/app/modules/account_survival/contracts.py": [],
       "backend/app/modules/auth/contracts.py": [],
       "backend/app/modules/bought_onboarding/contracts.py": [],
       "backend/app/modules/human_behavior/contracts.py": [],
@@ -246,6 +247,7 @@
       "backend/app/modules/account_editing/repository.py": [],
       "backend/app/modules/account_lifecycle/repository.py": [],
       "backend/app/modules/account_safety/policy_repository.py": [],
+      "backend/app/modules/account_survival/repository.py": [],
       "backend/app/modules/auth/repository.py": [],
       "backend/app/modules/neuro_commenting/repository.py": [],
       "backend/app/modules/warmup/repository.py": []
@@ -264,6 +266,7 @@
       "backend/app/modules/account_safety/accounts_router.py": [],
       "backend/app/modules/account_safety/policy_router.py": [],
       "backend/app/modules/account_safety/router.py": [],
+      "backend/app/modules/account_survival/router.py": [],
       "backend/app/modules/bought_onboarding/router.py": [],
       "backend/app/modules/human_behavior/router.py": [],
       "backend/app/modules/neuro_commenting/router.py": [],
@@ -620,6 +623,29 @@
       {
         "category": "canonical_feature_module",
         "existing_paths": [
+          "backend/app/modules/account_survival/__init__.py",
+          "backend/app/modules/account_survival/contracts.py",
+          "backend/app/modules/account_survival/events.py",
+          "backend/app/modules/account_survival/module.py",
+          "backend/app/modules/account_survival/queries.py",
+          "backend/app/modules/account_survival/repository.py",
+          "backend/app/modules/account_survival/router.py"
+        ],
+        "id": "canonical-account-survival",
+        "owner": "account_survival",
+        "paths": [
+          "backend/app/modules/account_survival/**"
+        ],
+        "phase": "Phase 6B",
+        "rationale": "Account survival metrics router, queries, repository, events, and contracts are canonical.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_survival"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
           "backend/app/modules/auth/__init__.py",
           "backend/app/modules/auth/context.py",
           "backend/app/modules/auth/contracts.py",
@@ -801,6 +827,12 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
+          "backend/app/modules/warmup/channel_state/__init__.py",
+          "backend/app/modules/warmup/channel_state/contracts.py",
+          "backend/app/modules/warmup/channel_state/repository.py",
+          "backend/app/modules/warmup/channel_state/selector.py",
+          "backend/app/modules/warmup/channel_state/service.py",
+          "backend/app/modules/warmup/cold_soak.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
           "backend/app/modules/warmup/dispatch_actions.py",
@@ -1187,6 +1219,7 @@
           "backend/app/model_defs/__init__.py",
           "backend/app/model_defs/account_onboarding.py",
           "backend/app/model_defs/account_runtime.py",
+          "backend/app/model_defs/account_survival.py",
           "backend/app/model_defs/auth.py",
           "backend/app/model_defs/identity.py",
           "backend/app/model_defs/jobs_assets.py",
@@ -1194,6 +1227,7 @@
           "backend/app/model_defs/profile_safety.py",
           "backend/app/model_defs/safety_workspace.py",
           "backend/app/model_defs/warmup.py",
+          "backend/app/model_defs/warmup_channel_state.py",
           "backend/app/models.py",
           "backend/app/schema_defs/__init__.py",
           "backend/app/schema_defs/accounts.py",
@@ -1484,6 +1518,7 @@
           ".mex/patterns/live-tdlib-safety.md",
           ".mex/patterns/mex-memory-update.md",
           ".mex/patterns/safe-cleanup.md",
+          ".mex/patterns/warmup-advanced.md",
           ".mex/patterns/warmup-change.md",
           ".mex/patterns/worker-queue-change.md",
           "README.md",
@@ -1910,6 +1945,8 @@
           "backend/tests/modules/account_editing/test_legacy_compatibility.py",
           "backend/tests/modules/account_editing/test_policies.py",
           "backend/tests/modules/account_editing/test_repository.py",
+          "backend/tests/modules/account_survival/test_account_survival.py",
+          "backend/tests/modules/account_survival/test_migration_contract.py",
           "backend/tests/modules/auth/test_auth_module.py",
           "backend/tests/modules/test_account_editing_ownership.py",
           "backend/tests/modules/test_account_editing_policies.py",
@@ -1921,6 +1958,10 @@
           "backend/tests/modules/test_module_registry.py",
           "backend/tests/modules/test_neuro_commenting_legacy_compat.py",
           "backend/tests/modules/test_workflow_registry.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
+          "backend/tests/modules/warmup/channel_state/test_selector.py",
+          "backend/tests/modules/warmup/test_cold_soak.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
           "backend/tests/modules/warmup/test_warmup_legacy_compatibility.py",
@@ -2023,7 +2064,13 @@
           "backend/tests/tools/test_test_analyzer.py",
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
           "backend/tests/tools/test_weak_response_rules.py",
+          "backend/tests/warmup/test_channel_browse_action.py",
+          "backend/tests/warmup/test_inflight_migration_compat.py",
+          "backend/tests/warmup/test_react_to_post_action.py",
+          "backend/tests/warmup/test_reading_category_actions.py",
+          "backend/tests/warmup/test_view_story_action.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
+          "backend/tests/warmup/test_warmup_advanced_foundation_migration.py",
           "backend/tests/warmup/test_warmup_dispatch.py",
           "backend/tests/warmup/test_warmup_foundation.py",
           "backend/tests/warmup/test_warmup_isolation.py",
@@ -2089,6 +2136,8 @@
           "docs/audits/2026-05-safety-pipeline-audit/14-production-readiness-verdict.md",
           "docs/audits/2026-05-safety-pipeline-audit/15-recommended-followups.md",
           "docs/audits/2026-05-safety-pipeline-audit/16-phase4-roadmap.md",
+          "docs/design/warmup-divergence-from-gramgpt.md",
+          "docs/design/warmup-ux-blueprint.md",
           "docs/frontend/frontend-ownership-audit.md",
           "docs/grafana/safety-pipeline.json",
           "docs/modules/account-safety-pipeline.md",
@@ -2139,6 +2188,7 @@
           "docs/runbooks/staging-smoke-2026-05-31.md",
           "docs/runbooks/tdlib-runtime.md",
           "docs/runbooks/telegram-auth-flow.md",
+          "docs/runbooks/warmup-rollout.md",
           "docs/runbooks/workers-production-plane.md",
           "docs/runtime/deployment-processes.md",
           "docs/runtime/runtime-boundaries.md",
@@ -2164,7 +2214,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-04T16:06:09Z",
+    "generated_at": "2026-06-06T11:58:07Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2202,7 +2252,7 @@
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_onboarding, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; no unmanaged feature debt is open.",
+      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_onboarding, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, account_survival, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; no unmanaged feature debt is open.",
       "finding": "Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
       "id": "STRUCTURE-001",
       "recommendation": "Keep structure audit drift checks required for structural changes.",
@@ -2484,7 +2534,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-04T16:06:09Z",
+  "generated_at": "2026-06-06T11:58:07Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4012,7 +4062,7 @@
       "registered": true,
       "router_path": "app.modules.account_lifecycle.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4044,7 +4094,7 @@
       "registered": true,
       "router_path": "app.modules.account_onboarding.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",
@@ -4213,7 +4263,7 @@
       "registered": true,
       "router_path": "app.modules.account_safety.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4241,6 +4291,34 @@
       "router_path": null,
       "template_files_are_non_runtime": null,
       "tests_present": false,
+      "workflows": []
+    },
+    {
+      "documentation_only": false,
+      "files": [
+        "backend/app/modules/account_survival/__init__.py",
+        "backend/app/modules/account_survival/contracts.py",
+        "backend/app/modules/account_survival/events.py",
+        "backend/app/modules/account_survival/module.py",
+        "backend/app/modules/account_survival/queries.py",
+        "backend/app/modules/account_survival/repository.py",
+        "backend/app/modules/account_survival/router.py"
+      ],
+      "has_contracts": true,
+      "has_enqueue": false,
+      "has_errors": false,
+      "has_explicit_all": true,
+      "has_init": true,
+      "has_jobs": false,
+      "has_policies": false,
+      "has_repository": true,
+      "has_router": true,
+      "has_service_facade": false,
+      "name": "account_survival",
+      "registered": true,
+      "router_path": "app.modules.account_survival.router:router",
+      "template_files_are_non_runtime": null,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4413,7 +4491,7 @@
       "registered": true,
       "router_path": "app.modules.neuro_commenting.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",
@@ -4493,6 +4571,7 @@
       "documentation_only": false,
       "files": [
         "backend/app/modules/warmup/__init__.py",
+        "backend/app/modules/warmup/cold_soak.py",
         "backend/app/modules/warmup/commands.py",
         "backend/app/modules/warmup/contracts.py",
         "backend/app/modules/warmup/dispatch_actions.py",
@@ -4697,6 +4776,22 @@
         "rationale": "FastAPI auth dependency facade used by canonical account-lifecycle router.",
         "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
         "source": "backend/app/modules/account_lifecycle/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_survival",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-survival router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_survival/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_survival",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-survival router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_survival/router.py"
       },
       {
         "imported_module": "auth",
@@ -5427,12 +5522,12 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 238,
+      "file_count": 250,
       "path": "backend/tests"
     },
     "docs": {
       "exists": true,
-      "file_count": 104,
+      "file_count": 107,
       "path": "docs"
     },
     "frontend": {
@@ -5442,7 +5537,7 @@
     },
     "mex_memory": {
       "exists": true,
-      "file_count": 22,
+      "file_count": 23,
       "path": ".mex"
     }
   },

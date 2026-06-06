@@ -94,6 +94,10 @@ class RealWarmupTdlibAdapter:
             "vote_poll": lambda: self._action_vote_poll(client, action_type, context),
             "watch_video": lambda: self._action_watch_video(client, action_type, context),
             "listen_voice": lambda: self._action_listen_voice(client, action_type, context),
+            "search_gif": lambda: self._action_search_gif(client, action_type, context),
+            "view_stickers": lambda: self._action_view_stickers(client, action_type),
+            "inline_bot": lambda: self._action_inline_bot(client, action_type, context),
+            "link_preview": lambda: self._action_link_preview(client, action_type, context),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -636,6 +640,146 @@ class RealWarmupTdlibAdapter:
         metadata = {"traffic_heavy": True} if action_type in {"watch_video", "listen_voice"} else {}
         return _content_skipped(action_type, skip_error, channel_ref, metadata)
 
+    def _action_search_gif(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        query = str(context.get("search_query") or "cat")
+        response = client.send_query(
+            {"@type": "searchAnimations", "query": query, "offset": "", "limit": 10},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        file_ids = _animation_file_ids(response.get("animations"))[:3]
+        touched = 0
+        for file_id in file_ids:
+            file_response = client.send_query(
+                {"@type": "getFile", "file_id": file_id},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if file_response.get("@type") == "error":
+                classified = _classify_tdlib_error(file_response, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+                continue
+            touched += 1
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "query": query,
+                "animations_seen": len(file_ids),
+                "files_touched": touched,
+                "traffic_heavy": True,
+            },
+        )
+
+    def _action_view_stickers(self, client: TdlibClient, action_type: str) -> WarmupActionResult:
+        response = client.send_query(
+            {"@type": "getRecentStickers", "is_attached": False},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        set_ids = _sticker_set_ids(response.get("stickers"))[:3]
+        viewed = 0
+        for set_id in set_ids:
+            set_response = client.send_query(
+                {"@type": "getStickerSet", "set_id": set_id},
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if set_response.get("@type") == "error":
+                classified = _classify_tdlib_error(set_response, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+                continue
+            viewed += 1
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "stickers_seen": len(set_ids),
+                "sets_viewed": viewed,
+                "traffic_heavy": True,
+            },
+        )
+
+    def _action_inline_bot(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        bot_username = str(context.get("inline_bot_username") or "@gif")
+        if bot_username not in {"@gif", "@pic", "@sticker", "@vid"}:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="inline_bot_not_approved",
+                error_class="safety",
+                metadata={"bot_username": bot_username, "traffic_heavy": True},
+            )
+        bot = client.send_query(
+            {"@type": "searchPublicChat", "username": bot_username.lstrip("@")},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if bot.get("@type") == "error":
+            return _classify_tdlib_error(bot, action_type)
+        bot_user_id = bot.get("id")
+        if bot_user_id is None:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="inline_bot_not_found",
+                error_class="content",
+                metadata={"bot_username": bot_username, "traffic_heavy": True},
+            )
+        response = client.send_query(
+            {
+                "@type": "getInlineQueryResults",
+                "bot_user_id": int(bot_user_id),
+                "chat_id": int(context.get("inline_chat_id") or 0),
+                "query": str(context.get("inline_query") or "cat"),
+                "offset": "",
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        results = response.get("results")
+        result_items = cast(list[object], results) if isinstance(results, list) else []
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "bot_username": bot_username,
+                "query": str(context.get("inline_query") or "cat"),
+                "results_seen": len(result_items),
+                "traffic_heavy": True,
+            },
+        )
+
+    def _action_link_preview(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        url = str(context.get("preview_url") or "https://example.com/")
+        response = client.send_query(
+            {"@type": "getWebPagePreview", "text": url},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "preview_url": url,
+                "has_preview": response.get("@type") != "error",
+                "traffic_heavy": True,
+            },
+        )
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -1007,6 +1151,41 @@ def _content_file_id(content: dict[str, Any]) -> int | None:
         if value is not None:
             return int(value)
     return None
+
+
+def _animation_file_ids(raw_animations: Any) -> list[int]:
+    if not isinstance(raw_animations, list):
+        return []
+    out: list[int] = []
+    for item in cast(list[object], raw_animations):
+        if not isinstance(item, dict):
+            continue
+        animation = cast(dict[str, object], item)
+        value = animation.get("file_id") or animation.get("id")
+        nested = animation.get("animation")
+        if value is None and isinstance(nested, dict):
+            nested_animation = cast(dict[str, object], nested)
+            value = nested_animation.get("id")
+            file_obj = nested_animation.get("animation")
+            if value is None and isinstance(file_obj, dict):
+                value = cast(dict[str, object], file_obj).get("id")
+        if isinstance(value, int | str):
+            out.append(int(value))
+    return out
+
+
+def _sticker_set_ids(raw_stickers: Any) -> list[int]:
+    if not isinstance(raw_stickers, list):
+        return []
+    out: list[int] = []
+    for sticker in cast(list[object], raw_stickers):
+        if not isinstance(sticker, dict):
+            continue
+        sticker_data = cast(dict[str, object], sticker)
+        value = sticker_data.get("set_id") or sticker_data.get("setId")
+        if isinstance(value, int | str):
+            out.append(int(value))
+    return list(dict.fromkeys(out))
 
 
 def _content_skipped(

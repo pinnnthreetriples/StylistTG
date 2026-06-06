@@ -2066,6 +2066,7 @@
           "backend/tests/tools/test_weak_response_rules.py",
           "backend/tests/warmup/test_activity_category_actions.py",
           "backend/tests/warmup/test_channel_browse_action.py",
+          "backend/tests/warmup/test_entertainment_category_actions.py",
           "backend/tests/warmup/test_inflight_migration_compat.py",
           "backend/tests/warmup/test_react_to_post_action.py",
           "backend/tests/warmup/test_reading_category_actions.py",
@@ -2215,7 +2216,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T12:22:46Z",
+    "generated_at": "2026-06-06T13:30:01Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2535,7 +2536,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T12:22:46Z",
+  "generated_at": "2026-06-06T13:30:01Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5523,7 +5524,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 251,
+      "file_count": 252,
       "path": "backend/tests"
     },
     "docs": {

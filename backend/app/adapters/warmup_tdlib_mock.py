@@ -73,6 +73,14 @@ class MockWarmupTdlibAdapter:
             return self._watch_video_result(action_type, context)
         if action_type == "listen_voice":
             return self._listen_voice_result(action_type, context)
+        if action_type == "search_gif":
+            return self._search_gif_result(action_type, context)
+        if action_type == "view_stickers":
+            return self._view_stickers_result(action_type, context)
+        if action_type == "inline_bot":
+            return self._inline_bot_result(action_type, context)
+        if action_type == "link_preview":
+            return self._link_preview_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -308,6 +316,71 @@ class MockWarmupTdlibAdapter:
                 "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
                 "message_id": self._rng.randint(1, 1_000_000),
                 "file_id": self._rng.randint(1_000, 99_999),
+                "traffic_heavy": True,
+            },
+        )
+
+    def _search_gif_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(180, 520),
+                "query": str(context.get("search_query") or "cat"),
+                "animations_seen": self._rng.randint(1, 10),
+                "files_touched": self._rng.randint(1, 3),
+                "traffic_heavy": True,
+            },
+        )
+
+    def _view_stickers_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        del context
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(120, 340),
+                "stickers_seen": self._rng.randint(1, 8),
+                "sets_viewed": self._rng.randint(1, 3),
+                "traffic_heavy": True,
+            },
+        )
+
+    def _inline_bot_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        bot_username = str(context.get("inline_bot_username") or "@gif")
+        if bot_username not in {"@gif", "@pic", "@sticker", "@vid"}:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="inline_bot_not_approved",
+                error_class="safety",
+                metadata={"provider": self.provider_name, "traffic_heavy": True},
+            )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(100, 300),
+                "bot_username": bot_username,
+                "query": str(context.get("inline_query") or "cat"),
+                "results_seen": self._rng.randint(0, 20),
+                "traffic_heavy": True,
+            },
+        )
+
+    def _link_preview_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(80, 240),
+                "preview_url": str(context.get("preview_url") or "https://example.com/"),
                 "traffic_heavy": True,
             },
         )

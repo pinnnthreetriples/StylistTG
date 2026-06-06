@@ -22,7 +22,7 @@ CHANNEL_STALE_AFTER = timedelta(hours=6)
 class SelectedAction:
     action_type: str
     channel_ref: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=lambda: {})
 
 
 def choose_actions(

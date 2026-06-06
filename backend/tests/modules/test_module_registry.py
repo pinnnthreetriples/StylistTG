@@ -85,6 +85,7 @@ def test_router_paths_are_lazy_module_routes() -> None:
         "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.account_lifecycle.router:router",
+        "app.modules.account_survival.router:router",
         "app.modules.account_profile_completeness.router:router",
         "app.modules.account_proxy.router:router",
         # PR3 canonical modules with account-specific paths must come

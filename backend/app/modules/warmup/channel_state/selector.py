@@ -40,7 +40,7 @@ CHANNEL_SOCIAL_ACTION_TYPES = frozenset({"forward_message"})
 class SelectedAction:
     action_type: str
     channel_ref: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=lambda: {})
 
 
 def choose_actions(

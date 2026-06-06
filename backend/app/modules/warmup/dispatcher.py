@@ -104,8 +104,10 @@ def process_due_warmup_dispatches(
     rng = rng or random.Random()
     adapter = passive_adapter if passive_adapter is not None else build_warmup_tdlib_adapter()
     provider = text_provider if text_provider is not None else build_warmup_text_provider()
+    workspace_scope = workspace_id if workspace_id is not None else WarmupSession.workspace_id
 
     query = select(WarmupSession).where(
+        WarmupSession.workspace_id == workspace_scope,
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
         (
             (
@@ -128,8 +130,6 @@ def process_due_warmup_dispatches(
     include_live_modes = bool(settings.warmup_live_enabled or passive_adapter is not None)
     if not include_live_modes:
         query = query.where(WarmupSession.execution_mode == WarmupExecutionMode.SHADOW.value)
-    if workspace_id is not None:
-        query = query.where(WarmupSession.workspace_id == workspace_id)
     query = query.order_by(WarmupSession.updated_at.asc()).limit(
         limit or settings.warmup_batch_limit
     )

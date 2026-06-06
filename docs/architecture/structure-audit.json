@@ -830,6 +830,7 @@
           "backend/app/modules/warmup/channel_state/__init__.py",
           "backend/app/modules/warmup/channel_state/contracts.py",
           "backend/app/modules/warmup/channel_state/repository.py",
+          "backend/app/modules/warmup/channel_state/selector.py",
           "backend/app/modules/warmup/channel_state/service.py",
           "backend/app/modules/warmup/cold_soak.py",
           "backend/app/modules/warmup/commands.py",
@@ -1959,6 +1960,7 @@
           "backend/tests/modules/test_workflow_registry.py",
           "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
           "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
+          "backend/tests/modules/warmup/channel_state/test_selector.py",
           "backend/tests/modules/warmup/test_cold_soak.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
@@ -2209,7 +2211,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T10:58:37Z",
+    "generated_at": "2026-06-06T11:13:33Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2529,7 +2531,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T10:58:37Z",
+  "generated_at": "2026-06-06T11:13:33Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5517,7 +5519,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 247,
+      "file_count": 248,
       "path": "backend/tests"
     },
     "docs": {

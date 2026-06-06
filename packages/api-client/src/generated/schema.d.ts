@@ -6710,6 +6710,8 @@ export interface components {
             next_micro_session_at?: string | null;
             /** Last Micro Session At */
             last_micro_session_at?: string | null;
+            /** Cold Soak Until */
+            cold_soak_until?: string | null;
             /** Consecutive Failures */
             consecutive_failures: number;
             /** Daily Counters */
@@ -6750,6 +6752,8 @@ export interface components {
             next_step_at?: string | null;
             /** Next Attempt At */
             next_attempt_at?: string | null;
+            /** Cold Soak Until */
+            cold_soak_until?: string | null;
         };
         /** WarmupSessionSummaryRead */
         WarmupSessionSummaryRead: {
@@ -6777,6 +6781,8 @@ export interface components {
             next_step_at?: string | null;
             /** Next Micro Session At */
             next_micro_session_at?: string | null;
+            /** Cold Soak Until */
+            cold_soak_until?: string | null;
             /**
              * Updated At
              * Format: date-time

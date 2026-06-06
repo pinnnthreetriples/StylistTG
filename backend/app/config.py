@@ -104,6 +104,8 @@ class Settings(BaseSettings):
     warmup_workers_enabled: bool = False
     warmup_dry_run: bool = True
     warmup_default_cadence_hours: int = 24
+    warmup_cold_soak_min_hours: int = 12
+    warmup_cold_soak_max_hours: int = 24
     warmup_max_consecutive_failures: int = 3
     warmup_batch_limit: int = 50
     warmup_live_enabled: bool = False

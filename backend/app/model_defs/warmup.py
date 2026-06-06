@@ -60,7 +60,7 @@ class WarmupSession(Base):
     __tablename__ = "warmup_session"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('draft', 'validating', 'scheduled', 'active', 'paused_risk', 'paused_manual', 'completed', 'failed')",
+            "status IN ('draft', 'validating', 'scheduled', 'cold_soak', 'active', 'paused_risk', 'paused_manual', 'completed', 'failed')",
             name="ck_warmup_session_status",
         ),
         CheckConstraint("current_day BETWEEN 0 AND 30", name="ck_warmup_session_current_day"),
@@ -126,9 +126,16 @@ class WarmupSession(Base):
     next_micro_session_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    cold_soak_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     daily_counters_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     trusted_peer_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     proxy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    personality_seed_json: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    disabled_actions_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    lifecycle_state: Mapped[str] = mapped_column(String(32), nullable=False, default="warming")
+    strategy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

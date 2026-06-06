@@ -13,6 +13,7 @@ class WarmupStatusRead(StrEnum):
     DRAFT = "draft"
     VALIDATING = "validating"
     SCHEDULED = "scheduled"
+    COLD_SOAK = "cold_soak"
     ACTIVE = "active"
     PAUSED_RISK = "paused_risk"
     PAUSED_MANUAL = "paused_manual"

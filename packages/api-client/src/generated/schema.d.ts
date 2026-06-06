@@ -6787,7 +6787,7 @@ export interface components {
          * WarmupStatusRead
          * @enum {string}
          */
-        WarmupStatusRead: "draft" | "validating" | "scheduled" | "active" | "paused_risk" | "paused_manual" | "completed" | "failed";
+        WarmupStatusRead: "draft" | "validating" | "scheduled" | "cold_soak" | "active" | "paused_risk" | "paused_manual" | "completed" | "failed";
         /** WarmupStrategyRead */
         WarmupStrategyRead: {
             /** Id */

@@ -6,9 +6,18 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 
-SUPPORTED_PASSIVE_ACTIONS: tuple[str, ...] = ("feed_read", "ping_proxy", "get_me")
+SUPPORTED_PASSIVE_ACTIONS: tuple[str, ...] = (
+    "feed_read",
+    "channel_browse",
+    "view_story",
+    "ping_proxy",
+    "get_me",
+)
 SUPPORTED_NETWORK_ACTIONS: tuple[str, ...] = SUPPORTED_PASSIVE_ACTIONS + ("join_chat",)
-SUPPORTED_ADVANCED_ACTIONS: tuple[str, ...] = SUPPORTED_NETWORK_ACTIONS + ("p2p_send",)
+SUPPORTED_ADVANCED_ACTIONS: tuple[str, ...] = SUPPORTED_NETWORK_ACTIONS + (
+    "react_to_post",
+    "p2p_send",
+)
 
 SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
     "passive": SUPPORTED_PASSIVE_ACTIONS,
@@ -16,7 +25,7 @@ SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
     "advanced": SUPPORTED_ADVANCED_ACTIONS,
 }
 
-WRITE_ACTION_TYPES: frozenset[str] = frozenset({"join_chat", "p2p_send"})
+WRITE_ACTION_TYPES: frozenset[str] = frozenset({"join_chat", "react_to_post", "p2p_send"})
 
 
 def collect_supported_actions(modes: tuple[str, ...]) -> set[str]:

@@ -2,6 +2,7 @@ export type WarmupStatus =
   | 'draft'
   | 'validating'
   | 'scheduled'
+  | 'cold_soak'
   | 'active'
   | 'paused_risk'
   | 'paused_manual'
@@ -95,6 +96,7 @@ export type WarmupSessionSummary = {
   cadence_hours: number
   next_step_at: string | null
   next_micro_session_at: string | null
+  cold_soak_until: string | null
   updated_at: string
 }
 

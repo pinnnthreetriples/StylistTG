@@ -17,8 +17,14 @@ from app.models import (
     WarmupTaskRunStatus,
     new_id,
 )
+from app.modules.account_survival import events as survival_events
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
+from app.modules.warmup.cold_soak import (
+    advance_from_cold_soak,
+    is_cold_soak_complete,
+    record_cold_soak_in_progress,
+)
 
 DRY_RUN_TASK_TYPE = "dry_run_day"
 
@@ -32,13 +38,28 @@ def process_due_warmup_sessions(
     limit: int | None = None,
 ) -> int:
     timestamp = now or datetime.now(UTC)
+    workspace_scope = workspace_id if workspace_id is not None else WarmupSession.workspace_id
     query = select(WarmupSession).where(
-        WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]),
+        WarmupSession.workspace_id == workspace_scope,
         WarmupSession.execution_mode == WarmupExecutionMode.DRY_RUN.value,
-        (WarmupSession.next_step_at.is_(None)) | (WarmupSession.next_step_at <= timestamp),
+        (
+            (
+                WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value])
+                & (
+                    (WarmupSession.next_step_at.is_(None))
+                    | (WarmupSession.next_step_at <= timestamp)
+                )
+            )
+            | (
+                (WarmupSession.status == WarmupStatus.COLD_SOAK.value)
+                & (
+                    (WarmupSession.next_step_at.is_(None))
+                    | (WarmupSession.next_step_at <= timestamp)
+                    | (WarmupSession.cold_soak_until <= timestamp)
+                )
+            )
+        ),
     )
-    if workspace_id is not None:
-        query = query.where(WarmupSession.workspace_id == workspace_id)
     query = query.order_by(WarmupSession.updated_at.asc()).limit(
         limit or settings.warmup_batch_limit
     )
@@ -195,6 +216,12 @@ def _process_one_locked_session(
     now: datetime,
     worker_id: str,
 ) -> bool:
+    if warmup_session.status == WarmupStatus.COLD_SOAK.value:
+        if not is_cold_soak_complete(warmup_session, now):
+            record_cold_soak_in_progress(session, warmup_session, now)
+            return False
+        advance_from_cold_soak(session, warmup_session, now)
+
     existing = (
         session.execute(
             select(WarmupTaskRun).where(
@@ -263,6 +290,12 @@ def _complete_session(session: Session, warmup_session: WarmupSession, *, now: d
     warmup_session.next_step_at = None
     warmup_session.updated_at = now
     write_warmup_event(session, warmup_session, "completed", {"day": warmup_session.current_day})
+    survival_events.on_warmup_completed(
+        session,
+        account_id=warmup_session.account_id,
+        workspace_id=warmup_session.workspace_id,
+        now=now,
+    )
     if release_claim(
         session,
         account_id=warmup_session.account_id,

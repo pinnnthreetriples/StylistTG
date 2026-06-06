@@ -57,6 +57,12 @@ class MockWarmupTdlibAdapter:
             )
         if action_type == "join_chat":
             return self._join_chat_result(action_type, context)
+        if action_type == "channel_browse":
+            return self._channel_browse_result(action_type, context)
+        if action_type == "view_story":
+            return self._view_story_result(action_type, context)
+        if action_type == "react_to_post":
+            return self._react_to_post_result(action_type, context)
         if action_type == "p2p_send":
             return self._p2p_send_result(action_type, context)
         return self._read_only_result(action_type, context)
@@ -78,6 +84,84 @@ class MockWarmupTdlibAdapter:
                 "latency_ms": self._rng.randint(80, 240),
                 "chat_target": chat_target,
                 "joined_chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+            },
+        )
+
+    def _channel_browse_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="channel_browse_missing_channel",
+                error_class="contract",
+            )
+        messages_total = self._rng.randint(8, 24)
+        messages_viewed = self._rng.randint(1, messages_total)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(80, 260),
+                "channel_ref": channel_ref,
+                "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "messages_total": messages_total,
+                "messages_viewed": messages_viewed,
+                "scroll_depth": round(messages_viewed / messages_total, 2),
+            },
+        )
+
+    def _view_story_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="view_story_missing_channel",
+                error_class="contract",
+            )
+        has_stories = bool(context.get("has_stories", True))
+        viewed_count = self._rng.randint(1, 3) if has_stories else 0
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(60, 220),
+                "channel_ref": channel_ref,
+                "has_stories": has_stories,
+                "viewed_count": viewed_count,
+            },
+        )
+
+    def _react_to_post_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = context.get("channel_ref")
+        reactions = list(context.get("available_reactions") or ())
+        if not channel_ref or not reactions:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="react_to_post_missing_context",
+                error_class="contract",
+            )
+        reaction = reactions[self._rng.randint(0, len(reactions) - 1)]
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(90, 240),
+                "channel_ref": channel_ref,
+                "chat_id": -100_000_000_000 - self._rng.randint(1, 10_000),
+                "message_id": self._rng.randint(1, 1_000_000),
+                "reaction": reaction,
+                "has_reactions": True,
+                "available_reactions": reactions,
             },
         )
 

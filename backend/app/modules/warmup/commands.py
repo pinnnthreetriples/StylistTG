@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, new_id
+from app.modules.account_survival import events as survival_events
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
+from app.modules.warmup.cold_soak import compute_cold_soak_window
 from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.modules.warmup.errors import WarmupIsolationConflictError, WarmupQueueUnavailableError
 from app.modules.warmup.events import write_warmup_event
@@ -46,17 +48,19 @@ def create_warmup_session(
         strategy.duration_days if strategy is not None else settings.warmup_default_duration_days
     )
     proxy_snapshot = _build_proxy_snapshot(session, account_id=account_id)
+    cold_soak_until = compute_cold_soak_window(strategy, timestamp)
 
     warmup_session = WarmupSession(
         id=new_id(),
         workspace_id=workspace_id,
         account_id=account_id,
         strategy_id=strategy_id,
-        status=WarmupStatus.SCHEDULED,
+        status=WarmupStatus.COLD_SOAK,
         current_day=0,
         cadence_hours=settings.warmup_default_cadence_hours,
-        next_step_at=timestamp,
-        next_micro_session_at=timestamp if is_live_warmup_mode(execution_mode) else None,
+        cold_soak_until=cold_soak_until,
+        next_step_at=cold_soak_until,
+        next_micro_session_at=cold_soak_until if is_live_warmup_mode(execution_mode) else None,
         execution_mode=execution_mode,
         duration_days=duration_days,
         proxy_snapshot_json=proxy_snapshot,
@@ -68,12 +72,29 @@ def create_warmup_session(
         warmup_session,
         "session_created",
         {
-            "status": WarmupStatus.SCHEDULED.value,
+            "status": WarmupStatus.COLD_SOAK.value,
             "strategy_id": strategy_id,
             "execution_mode": execution_mode,
             "duration_days": duration_days,
             "proxy_snapshot": proxy_snapshot,
         },
+    )
+    write_warmup_event(
+        session,
+        warmup_session,
+        "cold_soak_started",
+        {
+            "until": cold_soak_until.isoformat(),
+            "strategy_name": strategy.name if strategy is not None else None,
+        },
+    )
+    survival_events.on_warmup_started(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        now=timestamp,
+        strategy_id=strategy_id,
+        strategy_name=strategy.name if strategy is not None else None,
     )
     if is_live_warmup_mode(execution_mode):
         owner = f"warmup:{warmup_session.id}"

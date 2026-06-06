@@ -12,7 +12,9 @@ from app.models import (
     AccountState,
     Job,
     TERMINAL_JOB_STATES,
+    utc_now,
 )
+from app.modules.account_survival import events as survival_events
 from app.services.audit_logs import log_audit_event
 from app.services.limits import check_workspace_limit
 from app.services.stale_jobs import reap_stale_jobs
@@ -50,6 +52,7 @@ def create_account(
         reauth_required=False,
     )
     session.add(account)
+    session.flush()
     log_audit_event(
         session,
         workspace_id=workspace_id,
@@ -58,6 +61,12 @@ def create_account(
         entity_type="account",
         entity_id=account.id,
         metadata={"auth_source": auth_source, "origin": origin},
+    )
+    survival_events.on_account_imported(
+        session,
+        account_id=account.id,
+        workspace_id=workspace_id,
+        now=utc_now(),
     )
     session.commit()
     session.refresh(account)

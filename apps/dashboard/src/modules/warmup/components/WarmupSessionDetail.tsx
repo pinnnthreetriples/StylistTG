@@ -85,7 +85,7 @@ export function WarmupSessionDetail({
             <div>
               <div className="text-xs font-semibold uppercase text-muted-foreground">Статус</div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <WarmupStatusBadge status={session.status} />
+                <WarmupStatusBadge status={session.status} coldSoakUntil={session.cold_soak_until} />
                 <Badge tone={executionTone}>
                   <Sparkles className="size-3" />
                   {executionLabel}

@@ -10,6 +10,7 @@ export const WARMUP_STATUS_LABELS: Record<WarmupStatus, string> = {
   draft: 'Черновик',
   validating: 'Проверка',
   scheduled: 'Запланирована',
+  cold_soak: 'Cold soak',
   active: 'Идёт подготовка',
   paused_risk: 'Пауза по риску',
   paused_manual: 'Пауза',
@@ -65,6 +66,9 @@ export const WARMUP_EVENT_LABELS: Record<string, string> = {
   p2p_contact_recording_failed: 'Ошибка записи P2P-контакта',
   isolation_claimed: 'Аккаунт изолирован прогревом',
   isolation_released: 'Изоляция снята',
+  cold_soak_started: 'Началась фаза тишины',
+  cold_soak_in_progress: 'Фаза тишины продолжается',
+  cold_soak_completed: 'Фаза тишины завершена',
 }
 
 /** Human-readable labels for task_skipped reason codes emitted by dispatch. */
@@ -73,6 +77,11 @@ export const WARMUP_SKIP_REASON_LABELS: Record<string, string> = {
   passive_disabled: 'Live-адаптер недоступен',
   write_action_not_enabled: 'Запись не разрешена текущим режимом',
   no_target_channels_configured: 'Нет целевых каналов в стратегии',
+  no_browse_target_available: 'Нет канала для чтения',
+  not_subscribed: 'Аккаунт ещё не подписан на канал',
+  no_stories_in_channel: 'В канале нет активных сторис',
+  no_reactions_in_channel: 'Для канала нет доступных реакций',
+  safety_gate_blocked: 'Safety gate заблокировал действие',
   no_eligible_trusted_peers: 'Нет доступных доверенных партнёров',
   text_provider_unavailable: 'Провайдер текста недоступен',
   text_provider_empty_render: 'Провайдер текста вернул пустой результат',
@@ -84,6 +93,15 @@ export function formatWarmupEventPayload(event: WarmupEvent): string {
     const mode = String(event.payload.execution_mode ?? 'dry_run')
     return `Сессия поставлена в расписание. Режим: ${mode}.`
   }
+  if (event.event_type === 'cold_soak_started') {
+    const until = event.payload.until ? formatWarmupDate(String(event.payload.until)) : 'позже'
+    return `Аккаунт остаётся без действий до ${until}.`
+  }
+  if (event.event_type === 'cold_soak_in_progress') {
+    const until = event.payload.until ? formatWarmupDate(String(event.payload.until)) : 'позже'
+    return `Фаза тишины ещё идёт. Старт после ${until}.`
+  }
+  if (event.event_type === 'cold_soak_completed') return 'Фаза тишины завершена, сессия возвращена в расписание.'
   if (event.event_type === 'task_executed') return `Dry-run шаг записан: день ${day}.`
   if (event.event_type === 'day_advanced') return `Следующий день подготовки: ${day}.`
   if (event.event_type === 'paused') return `Причина: ${String(event.payload.reason ?? 'ручная пауза')}.`

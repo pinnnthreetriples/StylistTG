@@ -92,19 +92,27 @@ def test_mock_adapter_supports_action_per_mode() -> None:
     advanced = MockWarmupTdlibAdapter(supported_modes=("passive", "network", "advanced"))
 
     assert passive_only.supports_action("feed_read")
+    assert passive_only.supports_action("channel_browse")
+    assert passive_only.supports_action("view_story")
     assert not passive_only.supports_action("join_chat")
+    assert not passive_only.supports_action("react_to_post")
     assert not passive_only.supports_action("p2p_send")
 
     assert network.supports_action("join_chat")
+    assert not network.supports_action("react_to_post")
     assert not network.supports_action("p2p_send")
 
+    assert advanced.supports_action("react_to_post")
     assert advanced.supports_action("p2p_send")
 
 
 def test_collect_supported_actions_progressive_layering() -> None:
     assert "feed_read" in collect_supported_actions(("passive",))
+    assert "channel_browse" in collect_supported_actions(("passive",))
+    assert "view_story" in collect_supported_actions(("passive",))
     assert "join_chat" not in collect_supported_actions(("passive",))
     assert "join_chat" in collect_supported_actions(("network",))
+    assert "react_to_post" in collect_supported_actions(("advanced",))
     assert "p2p_send" in collect_supported_actions(("advanced",))
 
 
@@ -320,6 +328,108 @@ def test_real_adapter_p2p_send_uses_createPrivateChat_then_sendMessage(monkeypat
     assert client.queries[1]["input_message_content"]["text"]["text"] == "Привет!"
     assert result.metadata["chat_id"] == 555
     assert result.metadata["text_length"] == len("Привет!")
+
+
+def test_real_adapter_channel_browse_uses_public_chat_history_flow(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": -100_42, "title": "Cool News"},
+            {"@type": "ok"},
+            {"@type": "messages", "messages": [{"id": 10}, {"id": 11}]},
+            {"@type": "ok"},
+            {"@type": "ok"},
+        ],
+    )
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="channel_browse",
+            context={"channel_ref": "@cool_news", "history_limit": 12},
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    types = [query["@type"] for query in client.queries]
+    assert types == [
+        "searchPublicChat",
+        "openChat",
+        "getChatHistory",
+        "viewMessages",
+        "closeChat",
+    ]
+    assert client.queries[2]["limit"] == 12
+    assert client.queries[3]["message_ids"] == [10, 11]
+    assert result.metadata["messages_viewed"] == 2
+
+
+def test_real_adapter_view_story_opens_active_stories(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": -100_42},
+            {"@type": "chatActiveStories", "stories": [{"id": 1}, {"id": 2}]},
+            {"@type": "ok"},
+            {"@type": "ok"},
+        ],
+    )
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="view_story",
+            context={"channel_ref": "@cool_news"},
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    types = [query["@type"] for query in client.queries]
+    assert types == ["searchPublicChat", "getChatActiveStories", "openStory", "openStory"]
+    assert result.metadata["viewed_count"] == 2
+    assert result.metadata["has_stories"] is True
+
+
+def test_real_adapter_react_to_post_uses_available_reaction(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": -100_42},
+            {"@type": "messages", "messages": [{"id": 10}, {"id": 11}]},
+            {
+                "@type": "availableReactions",
+                "reactions": [{"type": {"@type": "reactionTypeEmoji", "emoji": "👍"}}],
+            },
+            {"@type": "ok"},
+        ],
+    )
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="react_to_post",
+            context={"channel_ref": "@cool_news", "available_reactions": ["🔥"]},
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    types = [query["@type"] for query in client.queries]
+    assert types == [
+        "searchPublicChat",
+        "getChatHistory",
+        "getMessageAvailableReactions",
+        "addMessageReaction",
+    ]
+    assert client.queries[3]["message_id"] == 10
+    assert client.queries[3]["reaction_type"] == {
+        "@type": "reactionTypeEmoji",
+        "emoji": "👍",
+    }
+    assert client.queries[3]["is_big"] is False
+    assert result.metadata["reaction"] == "👍"
 
 
 def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:

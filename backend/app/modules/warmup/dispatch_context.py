@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.adapters.warmup_text_provider import TextVariationRequest, WarmupTextProvider
 from app.models import WarmupSession, WarmupStatus
+from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.channel_state.repository import get_states_for_account
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
@@ -27,6 +29,40 @@ def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) ->
     if not candidates:
         return None
     return candidates[rng.randint(0, len(candidates) - 1)]
+
+
+def _target_channel_refs(warmup_session: WarmupSession) -> list[str]:
+    targets = warmup_session.strategy.target_channels_json or []
+    refs: list[str] = []
+    for entry in targets:
+        value = entry.get("username") or entry.get("chat_username") or entry.get("target")
+        if isinstance(value, str) and value.strip():
+            refs.append(value.strip())
+    return list(dict.fromkeys(refs))
+
+
+def _subscribed_channel_states(
+    session: Session, *, warmup_session: WarmupSession
+) -> list[ChannelStateSnapshot]:
+    states = get_states_for_account(
+        session,
+        warmup_session.workspace_id,
+        warmup_session.account_id,
+        _target_channel_refs(warmup_session),
+    )
+    return [state for state in states if state.subscribed_at is not None]
+
+
+def _is_channel_subscribed(
+    session: Session, *, warmup_session: WarmupSession, channel_ref: str
+) -> bool:
+    states = get_states_for_account(
+        session,
+        warmup_session.workspace_id,
+        warmup_session.account_id,
+        [channel_ref],
+    )
+    return bool(states and states[0].subscribed_at is not None)
 
 
 def _derive_text_seed(warmup_session: WarmupSession, action_type: str) -> str:
@@ -112,7 +148,82 @@ def _resolve_action_context(
             return _ActionContextResolution(
                 context=base, skip_reason="no_target_channels_configured"
             )
-        return _ActionContextResolution(context={**base, "chat_target": chat_target})
+        return _ActionContextResolution(
+            context={**base, "chat_target": chat_target, "channel_ref": chat_target}
+        )
+    if action_type == "channel_browse":
+        channel_ref = _select_chat_target(warmup_session, rng=rng)
+        if channel_ref is None:
+            return _ActionContextResolution(context=base, skip_reason="no_browse_target_available")
+        return _ActionContextResolution(
+            context={
+                **base,
+                "channel_ref": channel_ref,
+                "history_limit": rng.randint(10, 30),
+                "channel_subscribed": _is_channel_subscribed(
+                    session, warmup_session=warmup_session, channel_ref=channel_ref
+                ),
+            }
+        )
+    if action_type == "view_story":
+        subscribed = _subscribed_channel_states(session, warmup_session=warmup_session)
+        if not subscribed:
+            return _ActionContextResolution(context=base, skip_reason="not_subscribed")
+        candidates = [channel for channel in subscribed if channel.has_stories is not False]
+        if not candidates:
+            return _ActionContextResolution(
+                context=base,
+                skip_reason="no_stories_in_channel",
+            )
+        channel = candidates[rng.randint(0, len(candidates) - 1)]
+        return _ActionContextResolution(
+            context={
+                **base,
+                "channel_ref": channel.channel_ref,
+                "channel_subscribed": True,
+                "has_stories": channel.has_stories,
+            }
+        )
+    if action_type == "react_to_post":
+        from app.modules.warmup import dispatcher
+
+        verdict = dispatcher.evaluate_safety_gate(
+            session,
+            workspace_id=warmup_session.workspace_id,
+            account_id=warmup_session.account_id,
+            intent="warmup",
+        )
+        if verdict.severity == "blocked":
+            return _ActionContextResolution(
+                context=base,
+                skip_reason="safety_gate_blocked",
+                metadata={
+                    "reasons": [reason.model_dump(mode="json") for reason in verdict.reasons]
+                },
+            )
+        subscribed = _subscribed_channel_states(session, warmup_session=warmup_session)
+        if not subscribed:
+            return _ActionContextResolution(context=base, skip_reason="not_subscribed")
+        candidates = [
+            channel
+            for channel in subscribed
+            if channel.has_reactions is True and channel.available_reactions
+        ]
+        if not candidates:
+            return _ActionContextResolution(
+                context=base,
+                skip_reason="no_reactions_in_channel",
+            )
+        channel = candidates[rng.randint(0, len(candidates) - 1)]
+        return _ActionContextResolution(
+            context={
+                **base,
+                "channel_ref": channel.channel_ref,
+                "channel_subscribed": True,
+                "has_reactions": True,
+                "available_reactions": list(channel.available_reactions),
+            }
+        )
     if action_type == "p2p_send":
         peer = select_eligible_peer(
             session,

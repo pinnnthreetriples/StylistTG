@@ -10,7 +10,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from app.config import settings
 from app.models import WarmupSession
 
-DEFAULT_ACTION_PRIORITY = ("feed_read", "join_chat", "p2p_send")
+DEFAULT_ACTION_PRIORITY = (
+    "feed_read",
+    "channel_browse",
+    "view_story",
+    "join_chat",
+    "react_to_post",
+    "p2p_send",
+)
 MAX_ACTIONS_PER_MICRO_SESSION = 3
 _INT_COERCION_ERRORS = (TypeError, ValueError)
 

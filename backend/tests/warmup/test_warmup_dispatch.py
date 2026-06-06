@@ -122,13 +122,17 @@ def _seed_dry_run_strategy(db_session) -> WarmupStrategy:
 
 def _seeded_session(db_session, *, strategy: WarmupStrategy) -> WarmupSession:
     account = _seed_account(db_session)
-    return create_warmup_session(
+    warmup_session = create_warmup_session(
         db_session,
         account_id=account.id,
         strategy_id=strategy.id,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         now=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),
     )
+    warmup_session.status = WarmupStatus.SCHEDULED.value
+    if warmup_session.execution_mode != WarmupExecutionMode.DRY_RUN.value:
+        warmup_session.next_micro_session_at = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+    return warmup_session
 
 
 def test_create_warmup_session_acquires_claim_for_shadow(db_session) -> None:
@@ -357,6 +361,8 @@ def test_dispatch_skips_live_session_when_adapter_unavailable(db_session, monkey
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
         now=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),
     )
+    warmup_session.status = WarmupStatus.SCHEDULED.value
+    warmup_session.next_micro_session_at = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 
     # Use a mock adapter that reports itself as unavailable
     unavailable_adapter = UnavailableWarmupTdlibAdapter("test_passive_disabled")

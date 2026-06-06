@@ -850,6 +850,7 @@
           "backend/app/modules/warmup/jobs.py",
           "backend/app/modules/warmup/module.py",
           "backend/app/modules/warmup/p2p.py",
+          "backend/app/modules/warmup/p2p_graph.py",
           "backend/app/modules/warmup/policies.py",
           "backend/app/modules/warmup/queries.py",
           "backend/app/modules/warmup/read_models.py",
@@ -857,6 +858,7 @@
           "backend/app/modules/warmup/repository.py",
           "backend/app/modules/warmup/router.py",
           "backend/app/modules/warmup/service.py",
+          "backend/app/modules/warmup/typing.py",
           "backend/app/modules/warmup/worker.py"
         ],
         "id": "canonical-warmup",
@@ -1230,6 +1232,7 @@
           "backend/app/model_defs/safety_workspace.py",
           "backend/app/model_defs/warmup.py",
           "backend/app/model_defs/warmup_channel_state.py",
+          "backend/app/model_defs/warmup_p2p_friend_link.py",
           "backend/app/models.py",
           "backend/app/schema_defs/__init__.py",
           "backend/app/schema_defs/accounts.py",
@@ -1970,9 +1973,11 @@
           "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
           "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
           "backend/tests/modules/warmup/channel_state/test_selector.py",
+          "backend/tests/modules/warmup/p2p/test_graph.py",
           "backend/tests/modules/warmup/test_action_metadata.py",
           "backend/tests/modules/warmup/test_action_presets.py",
           "backend/tests/modules/warmup/test_cold_soak.py",
+          "backend/tests/modules/warmup/test_typing.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
           "backend/tests/modules/warmup/test_warmup_legacy_compatibility.py",
@@ -2230,7 +2235,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T16:16:41Z",
+    "generated_at": "2026-06-06T17:18:03Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2555,7 +2560,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T16:16:41Z",
+  "generated_at": "2026-06-06T17:18:03Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4610,6 +4615,7 @@
         "backend/app/modules/warmup/jobs.py",
         "backend/app/modules/warmup/module.py",
         "backend/app/modules/warmup/p2p.py",
+        "backend/app/modules/warmup/p2p_graph.py",
         "backend/app/modules/warmup/policies.py",
         "backend/app/modules/warmup/queries.py",
         "backend/app/modules/warmup/read_models.py",
@@ -4617,6 +4623,7 @@
         "backend/app/modules/warmup/repository.py",
         "backend/app/modules/warmup/router.py",
         "backend/app/modules/warmup/service.py",
+        "backend/app/modules/warmup/typing.py",
         "backend/app/modules/warmup/worker.py"
       ],
       "has_contracts": true,
@@ -5545,7 +5552,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 259,
+      "file_count": 261,
       "path": "backend/tests"
     },
     "docs": {

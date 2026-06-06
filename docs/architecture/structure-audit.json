@@ -154,7 +154,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 36
+      "test_count": 37
     },
     {
       "boundary_keywords": [
@@ -801,6 +801,10 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
+          "backend/app/modules/warmup/channel_state/__init__.py",
+          "backend/app/modules/warmup/channel_state/contracts.py",
+          "backend/app/modules/warmup/channel_state/repository.py",
+          "backend/app/modules/warmup/channel_state/service.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
           "backend/app/modules/warmup/dispatch_actions.py",
@@ -1194,6 +1198,7 @@
           "backend/app/model_defs/profile_safety.py",
           "backend/app/model_defs/safety_workspace.py",
           "backend/app/model_defs/warmup.py",
+          "backend/app/model_defs/warmup_channel_state.py",
           "backend/app/models.py",
           "backend/app/schema_defs/__init__.py",
           "backend/app/schema_defs/accounts.py",
@@ -1484,6 +1489,7 @@
           ".mex/patterns/live-tdlib-safety.md",
           ".mex/patterns/mex-memory-update.md",
           ".mex/patterns/safe-cleanup.md",
+          ".mex/patterns/warmup-advanced.md",
           ".mex/patterns/warmup-change.md",
           ".mex/patterns/worker-queue-change.md",
           "README.md",
@@ -1921,6 +1927,8 @@
           "backend/tests/modules/test_module_registry.py",
           "backend/tests/modules/test_neuro_commenting_legacy_compat.py",
           "backend/tests/modules/test_workflow_registry.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
           "backend/tests/modules/warmup/test_warmup_legacy_compatibility.py",
@@ -2024,6 +2032,7 @@
           "backend/tests/tools/test_test_analyzer_cli_outputs.py",
           "backend/tests/tools/test_weak_response_rules.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
+          "backend/tests/warmup/test_warmup_advanced_foundation_migration.py",
           "backend/tests/warmup/test_warmup_dispatch.py",
           "backend/tests/warmup/test_warmup_foundation.py",
           "backend/tests/warmup/test_warmup_isolation.py",
@@ -2089,6 +2098,8 @@
           "docs/audits/2026-05-safety-pipeline-audit/14-production-readiness-verdict.md",
           "docs/audits/2026-05-safety-pipeline-audit/15-recommended-followups.md",
           "docs/audits/2026-05-safety-pipeline-audit/16-phase4-roadmap.md",
+          "docs/design/warmup-divergence-from-gramgpt.md",
+          "docs/design/warmup-ux-blueprint.md",
           "docs/frontend/frontend-ownership-audit.md",
           "docs/grafana/safety-pipeline.json",
           "docs/modules/account-safety-pipeline.md",
@@ -2164,7 +2175,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-04T16:06:09Z",
+    "generated_at": "2026-06-06T07:42:46Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2484,7 +2495,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-04T16:06:09Z",
+  "generated_at": "2026-06-06T07:42:46Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4012,7 +4023,7 @@
       "registered": true,
       "router_path": "app.modules.account_lifecycle.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4044,7 +4055,7 @@
       "registered": true,
       "router_path": "app.modules.account_onboarding.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",
@@ -4213,7 +4224,7 @@
       "registered": true,
       "router_path": "app.modules.account_safety.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4413,7 +4424,7 @@
       "registered": true,
       "router_path": "app.modules.neuro_commenting.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",
@@ -5427,12 +5438,12 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 238,
+      "file_count": 241,
       "path": "backend/tests"
     },
     "docs": {
       "exists": true,
-      "file_count": 104,
+      "file_count": 106,
       "path": "docs"
     },
     "frontend": {
@@ -5442,7 +5453,7 @@
     },
     "mex_memory": {
       "exists": true,
-      "file_count": 22,
+      "file_count": 23,
       "path": ".mex"
     }
   },

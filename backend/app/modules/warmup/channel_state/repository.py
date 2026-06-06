@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -170,9 +170,12 @@ def _apply_capability_metadata(row: WarmupChannelState, metadata: dict[str, Any]
     if "has_reactions" in metadata:
         row.has_reactions = _bool_or_none(metadata.get("has_reactions"))
     if "available_reactions" in metadata:
-        row.available_reactions_json = [
-            str(value) for value in metadata.get("available_reactions") or [] if str(value).strip()
-        ]
+        raw_reactions = metadata.get("available_reactions")
+        row.available_reactions_json = (
+            [str(value) for value in cast(list[Any], raw_reactions) if str(value).strip()]
+            if isinstance(raw_reactions, list)
+            else []
+        )
 
 
 def _bool_or_none(value: Any) -> bool | None:

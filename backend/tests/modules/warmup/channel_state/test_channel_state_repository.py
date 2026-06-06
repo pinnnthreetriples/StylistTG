@@ -58,6 +58,16 @@ def test_get_states_for_account_returns_requested_existing_refs_in_input_order(
     assert _without_tz(snapshots[1].last_feed_read_at) == _without_tz(NOW)
 
 
+def test_get_states_for_account_returns_empty_for_empty_refs(db_session: Session) -> None:
+    repository.mark_action_done(
+        db_session, WORKSPACE_ID, ACCOUNT_ID, "channel-a", "feed_read", now=NOW
+    )
+
+    snapshots = repository.get_states_for_account(db_session, WORKSPACE_ID, ACCOUNT_ID, [])
+
+    assert snapshots == []
+
+
 def test_update_capabilities_upserts_and_persists_reaction_list(db_session: Session) -> None:
     snapshot = repository.update_capabilities(
         db_session,

@@ -58,7 +58,24 @@ def test_supported_actions_by_mode_keys():
 
 
 def test_write_action_types():
-    assert WRITE_ACTION_TYPES == frozenset({"join_chat", "react_to_post", "p2p_send"})
+    assert WRITE_ACTION_TYPES == frozenset(
+        {
+            "archive_chat",
+            "drafts",
+            "emoji_status",
+            "forward_message",
+            "join_chat",
+            "mute_chat",
+            "notification_settings",
+            "p2p_send",
+            "react_to_post",
+            "saved_messages",
+            "scheduled_messages",
+            "simulate_typing",
+            "sync_contacts",
+            "update_profile_gradual",
+        }
+    )
 
 
 # ---------------------------------------------------------------------------

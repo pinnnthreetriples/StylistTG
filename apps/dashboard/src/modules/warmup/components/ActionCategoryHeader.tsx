@@ -1,19 +1,8 @@
 import { Badge, Tooltip } from '@stylisttg/ui'
 import { Info } from 'lucide-react'
 
+import { ACTION_CATEGORY_LABELS, TRAFFIC_TOOLTIP } from '../labels'
 import type { WarmupActionCategory } from '../types'
-
-export const ACTION_CATEGORY_LABELS: Record<WarmupActionCategory, string> = {
-  reading: 'Чтение',
-  activity: 'Активность',
-  entertainment: 'Развлечения',
-  social: 'Социальные',
-  groups: 'Группы',
-  profile: 'Профиль/настройки',
-}
-
-export const TRAFFIC_TOOLTIP =
-  'Эти действия активно используют трафик прокси. Отключайте на мобильных/резидентских прокси.'
 
 export function ActionCategoryHeader({
   category,

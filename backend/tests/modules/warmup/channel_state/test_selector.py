@@ -74,6 +74,20 @@ def test_choose_actions_full_state_respects_capabilities_and_counters() -> None:
     assert ("p2p_send", None) in pairs
 
 
+def test_choose_actions_limit_zero_returns_empty_selection() -> None:
+    selected = choose_actions(
+        plan={"join_chat": 1},
+        counters={},
+        channel_states=[],
+        available_targets=["@news"],
+        rng=_AlwaysPick(),
+        now=NOW,
+        max_actions=0,
+    )
+
+    assert selected == []
+
+
 def _state(
     channel_ref: str,
     *,

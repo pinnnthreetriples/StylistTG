@@ -1793,6 +1793,7 @@
         "backend/tests/warmup/test_entertainment_category_actions.py",
         "backend/tests/warmup/test_groups_category_actions.py",
         "backend/tests/warmup/test_inflight_migration_compat.py",
+        "backend/tests/warmup/test_profile_category_actions.py",
         "backend/tests/warmup/test_react_to_post_action.py",
         "backend/tests/warmup/test_reading_category_actions.py",
         "backend/tests/warmup/test_social_category_actions.py",
@@ -1942,7 +1943,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T14:15:50Z",
+  "generated_at": "2026-06-06T14:45:49Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

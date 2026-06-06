@@ -20,6 +20,8 @@ SUPPORTED_PASSIVE_ACTIONS: tuple[str, ...] = (
     "view_stickers",
     "inline_bot",
     "link_preview",
+    "view_profile",
+    "check_settings",
     "view_story",
     "ping_proxy",
     "get_me",
@@ -33,6 +35,12 @@ SUPPORTED_ADVANCED_ACTIONS: tuple[str, ...] = SUPPORTED_NETWORK_ACTIONS + (
     "sync_contacts",
     "archive_chat",
     "mute_chat",
+    "simulate_typing",
+    "emoji_status",
+    "drafts",
+    "scheduled_messages",
+    "update_profile_gradual",
+    "notification_settings",
 )
 
 SUPPORTED_ACTIONS_BY_MODE: dict[str, tuple[str, ...]] = {
@@ -51,6 +59,12 @@ WRITE_ACTION_TYPES: frozenset[str] = frozenset(
         "sync_contacts",
         "archive_chat",
         "mute_chat",
+        "simulate_typing",
+        "emoji_status",
+        "drafts",
+        "scheduled_messages",
+        "update_profile_gradual",
+        "notification_settings",
     }
 )
 

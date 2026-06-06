@@ -26,6 +26,12 @@ _ENTERTAINMENT_URLS = (
 )
 _APPROVED_INLINE_BOTS = ("@gif", "@pic", "@sticker", "@vid")
 _SAVED_MESSAGE_NOTES = ("todo", "remember", "read later", "check link", "idea")
+_SETTINGS_OPTIONS = (
+    "notification_group_count_max",
+    "archive_and_mute_new_chats_from_unknown_users",
+)
+_PROFILE_BIOS = ("reading", "back soon", "notes", "quiet mode")
+_NOTIFICATION_SCOPES = ("private", "group", "channel")
 _ACTIVITY_CONTENT_SKIP_REASONS = {
     "vote_poll": "no_open_poll_found",
     "watch_video": "no_video_found",
@@ -275,6 +281,60 @@ def _resolve_action_context(
         )
     if action_type == "sync_contacts":
         return _ActionContextResolution(context=base, skip_reason="no_contacts_pool_available")
+    if action_type in {"simulate_typing", "drafts"}:
+        if selected_channel_ref is None:
+            return _ActionContextResolution(context=base, skip_reason="no_chat_target_available")
+        if not _is_channel_subscribed(
+            session, warmup_session=warmup_session, channel_ref=selected_channel_ref
+        ):
+            return _ActionContextResolution(context=base, skip_reason="no_chat_target_available")
+        context = {**base, "channel_ref": selected_channel_ref, "channel_subscribed": True}
+        if action_type == "simulate_typing":
+            context["typing_duration_seconds"] = rng.randint(3, 8)
+        else:
+            context["draft_text"] = _derive_from_options(
+                warmup_session, action_type, _SAVED_MESSAGE_NOTES
+            )
+            context["temporary"] = True
+        return _ActionContextResolution(context=context)
+    if action_type == "check_settings":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "option_name": _derive_from_options(warmup_session, action_type, _SETTINGS_OPTIONS),
+            }
+        )
+    if action_type == "emoji_status":
+        return _ActionContextResolution(context=base, skip_reason="non_premium_account")
+    if action_type == "scheduled_messages":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "note_text": _derive_from_options(
+                    warmup_session, action_type, _SAVED_MESSAGE_NOTES
+                ),
+                "schedule_delay_seconds": rng.randint(300, 900),
+                "temporary": True,
+            }
+        )
+    if action_type == "update_profile_gradual":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "profile_field": "bio",
+                "bio": _derive_from_options(warmup_session, action_type, _PROFILE_BIOS),
+            }
+        )
+    if action_type == "notification_settings":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "notification_scope": _derive_from_options(
+                    warmup_session, action_type, _NOTIFICATION_SCOPES
+                ),
+                "mute_for_seconds": rng.randint(0, 3600),
+            }
+        )
     if action_type in _ACTIVITY_CONTENT_SKIP_REASONS:
         if selected_channel_ref is None:
             return _ActionContextResolution(

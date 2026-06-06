@@ -95,6 +95,17 @@ class MockWarmupTdlibAdapter:
             return self._archive_chat_result(action_type, context)
         if action_type == "mute_chat":
             return self._mute_chat_result(action_type, context)
+        if action_type in {
+            "simulate_typing",
+            "view_profile",
+            "check_settings",
+            "emoji_status",
+            "drafts",
+            "scheduled_messages",
+            "update_profile_gradual",
+            "notification_settings",
+        }:
+            return self._profile_settings_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -509,6 +520,57 @@ class MockWarmupTdlibAdapter:
                 "reversed": temporary,
             },
         )
+
+    def _profile_settings_result(
+        self, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        if action_type in {"simulate_typing", "drafts"} and not (
+            context.get("chat_id") or context.get("channel_ref")
+        ):
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="profile_action_missing_chat",
+                error_class="contract",
+            )
+        if action_type == "emoji_status" and context.get("is_premium") is False:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="non_premium_account",
+                error_class="capability",
+            )
+        metadata: dict[str, Any] = {
+            "provider": self.provider_name,
+            "latency_ms": self._rng.randint(50, 180),
+        }
+        if action_type == "simulate_typing":
+            metadata["typing_duration_seconds"] = int(
+                context.get("typing_duration_seconds") or self._rng.randint(3, 8)
+            )
+        elif action_type == "view_profile":
+            metadata["user_id"] = int(context.get("user_id") or self._rng.randint(1, 999_999))
+        elif action_type == "check_settings":
+            metadata["option_name"] = str(
+                context.get("option_name") or "notification_group_count_max"
+            )
+        elif action_type == "emoji_status":
+            metadata["emoji_id"] = str(context.get("emoji_id") or "🙂")
+        elif action_type == "drafts":
+            metadata["draft_length"] = len(str(context.get("draft_text") or "todo"))
+            metadata["temporary"] = bool(context.get("temporary", True))
+            metadata["cleared"] = metadata["temporary"]
+        elif action_type == "scheduled_messages":
+            metadata["to_chat"] = "saved_messages"
+            metadata["scheduled"] = True
+            metadata["temporary"] = bool(context.get("temporary", True))
+            metadata["rescheduled"] = metadata["temporary"]
+        elif action_type == "update_profile_gradual":
+            metadata["profile_field"] = str(context.get("profile_field") or "bio")
+        elif action_type == "notification_settings":
+            metadata["notification_scope"] = str(context.get("notification_scope") or "private")
+            metadata["mute_for_seconds"] = int(context.get("mute_for_seconds") or 0)
+        return WarmupActionResult(status="ok", action_type=action_type, metadata=metadata)
 
     def _react_to_post_result(
         self, action_type: str, context: dict[str, Any]

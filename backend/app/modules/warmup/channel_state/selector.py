@@ -30,10 +30,19 @@ DEFAULT_ACTION_PRIORITY = (
     "sync_contacts",
     "archive_chat",
     "mute_chat",
+    "simulate_typing",
+    "view_profile",
+    "check_settings",
+    "emoji_status",
+    "drafts",
+    "scheduled_messages",
+    "update_profile_gradual",
+    "notification_settings",
 )
 CHANNEL_STALE_AFTER = timedelta(hours=6)
 CHANNEL_ACTIVITY_ACTION_TYPES = frozenset({"vote_poll", "watch_video", "listen_voice"})
 CHANNEL_SOCIAL_ACTION_TYPES = frozenset({"forward_message"})
+CHANNEL_PROFILE_CHAT_ACTION_TYPES = frozenset({"simulate_typing", "drafts"})
 
 
 @dataclass(frozen=True)
@@ -133,6 +142,13 @@ def _select_action(
             return SelectedAction(action_type)
         return SelectedAction(action_type, _pick(candidates, rng), {"reason": "subscribed_channel"})
     if action_type in CHANNEL_SOCIAL_ACTION_TYPES:
+        candidates = [
+            state.channel_ref for state in states_by_ref.values() if state.subscribed_at is not None
+        ]
+        if not candidates:
+            return SelectedAction(action_type)
+        return SelectedAction(action_type, _pick(candidates, rng), {"reason": "subscribed_channel"})
+    if action_type in CHANNEL_PROFILE_CHAT_ACTION_TYPES:
         candidates = [
             state.channel_ref for state in states_by_ref.values() if state.subscribed_at is not None
         ]

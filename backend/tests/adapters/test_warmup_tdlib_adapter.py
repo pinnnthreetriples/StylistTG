@@ -61,13 +61,19 @@ def test_write_action_types():
     assert WRITE_ACTION_TYPES == frozenset(
         {
             "archive_chat",
+            "drafts",
+            "emoji_status",
             "forward_message",
             "join_chat",
             "mute_chat",
+            "notification_settings",
             "p2p_send",
             "react_to_post",
             "saved_messages",
+            "scheduled_messages",
+            "simulate_typing",
             "sync_contacts",
+            "update_profile_gradual",
         }
     )
 

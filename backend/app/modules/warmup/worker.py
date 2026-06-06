@@ -38,7 +38,9 @@ def process_due_warmup_sessions(
     limit: int | None = None,
 ) -> int:
     timestamp = now or datetime.now(UTC)
+    workspace_scope = workspace_id if workspace_id is not None else WarmupSession.workspace_id
     query = select(WarmupSession).where(
+        WarmupSession.workspace_id == workspace_scope,
         WarmupSession.execution_mode == WarmupExecutionMode.DRY_RUN.value,
         (
             (
@@ -58,8 +60,6 @@ def process_due_warmup_sessions(
             )
         ),
     )
-    if workspace_id is not None:
-        query = query.where(WarmupSession.workspace_id == workspace_id)
     query = query.order_by(WarmupSession.updated_at.asc()).limit(
         limit or settings.warmup_batch_limit
     )

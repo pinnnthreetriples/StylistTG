@@ -44,13 +44,14 @@ def test_create_warmup_session_schedules_session_and_writes_event(db_session) ->
     )
     db_session.commit()
 
-    assert created.status == WarmupStatus.SCHEDULED
+    assert created.status == WarmupStatus.COLD_SOAK
     assert created.current_day == 0
     assert created.cadence_hours == 24
-    assert created.next_step_at == now
-    event = db_session.query(WarmupEvent).one()
-    assert event.event_type == "session_created"
-    assert event.session_id == created.id
+    assert created.cold_soak_until is not None
+    assert created.next_step_at == created.cold_soak_until
+    events = db_session.query(WarmupEvent).order_by(WarmupEvent.created_at.asc()).all()
+    assert [event.event_type for event in events] == ["session_created", "cold_soak_started"]
+    assert {event.session_id for event in events} == {created.id}
 
 
 def test_create_warmup_session_rejects_blocked_readiness(db_session) -> None:
@@ -138,8 +139,8 @@ def test_list_detail_status_and_events(db_session) -> None:
     assert total == 1
     assert items[0].id == created.id
     assert detail.id == created.id
-    assert event_total == 1
-    assert events[0].event_type == "session_created"
+    assert event_total == 2
+    assert {event.event_type for event in events} == {"session_created", "cold_soak_started"}
 
 
 def test_delete_warmup_session_removes_session_and_events(db_session) -> None:
@@ -174,6 +175,7 @@ def test_pause_and_resume_warmup_session(db_session) -> None:
         strategy_id=strategy.id,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
     )
+    created.status = WarmupStatus.SCHEDULED
     db_session.commit()
 
     paused = pause_warmup_session(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from app.adapters.tdlib_auth import (
     TdlibAuthStatus,
@@ -516,7 +516,9 @@ class RealWarmupTdlibAdapter:
             return _classify_tdlib_error(stories, action_type)
 
         active_stories = [
-            story for story in stories.get("stories") or [] if isinstance(story, dict)
+            cast(dict[str, Any], story)
+            for story in _list_or_empty(stories.get("stories"))
+            if isinstance(story, dict)
         ]
         if not active_stories:
             return WarmupActionResult(
@@ -615,7 +617,9 @@ class RealWarmupTdlibAdapter:
             return _classify_tdlib_error(available, action_type)
         reactions = _available_reactions(available.get("reactions"))
         if not reactions:
-            reactions = [str(value) for value in context.get("available_reactions") or [] if value]
+            reactions = [
+                str(value) for value in _list_or_empty(context.get("available_reactions")) if value
+            ]
         if not reactions:
             return WarmupActionResult(
                 status="ok",
@@ -784,13 +788,16 @@ def _bounded_int(value: Any, *, minimum: int, maximum: int, default: int) -> int
     return min(maximum, max(minimum, parsed))
 
 
+def _list_or_empty(value: Any) -> list[Any]:
+    return cast(list[Any], value) if isinstance(value, list) else []
+
+
 def _message_ids(raw_messages: Any) -> list[int]:
-    if not isinstance(raw_messages, list):
-        return []
     out: list[int] = []
-    for message in raw_messages:
-        if not isinstance(message, dict):
+    for raw_message in _list_or_empty(raw_messages):
+        if not isinstance(raw_message, dict):
             continue
+        message = cast(dict[str, Any], raw_message)
         message_id = message.get("id")
         if message_id is None:
             continue
@@ -803,22 +810,21 @@ def _chunks(values: list[int], size: int) -> list[list[int]]:
 
 
 def _available_reactions(raw_reactions: Any) -> list[str]:
-    if not isinstance(raw_reactions, list):
-        return []
     out: list[str] = []
-    for raw in raw_reactions:
-        if isinstance(raw, str) and raw:
-            out.append(raw)
+    for raw_reaction in _list_or_empty(raw_reactions):
+        if isinstance(raw_reaction, str) and raw_reaction:
+            out.append(raw_reaction)
             continue
-        if not isinstance(raw, dict):
+        if not isinstance(raw_reaction, dict):
             continue
+        raw = cast(dict[str, Any], raw_reaction)
         value = raw.get("emoji")
         if isinstance(value, str) and value:
             out.append(value)
             continue
         nested = raw.get("type") or raw.get("reaction_type")
         if isinstance(nested, dict):
-            value = nested.get("emoji")
+            value = cast(dict[str, Any], nested).get("emoji")
             if isinstance(value, str) and value:
                 out.append(value)
     return out

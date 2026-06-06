@@ -146,6 +146,22 @@
       "removal_condition": "n/a; accepted stable FastAPI/platform facade."
     },
     {
+      "source": "backend/app/modules/account_survival/router.py",
+      "owner": "account_survival",
+      "imported_module": "auth",
+      "public_name": "context",
+      "rationale": "FastAPI auth context facade used by canonical account-survival router.",
+      "removal_condition": "n/a; accepted stable FastAPI/platform facade."
+    },
+    {
+      "source": "backend/app/modules/account_survival/router.py",
+      "owner": "account_survival",
+      "imported_module": "auth",
+      "public_name": "dependencies",
+      "rationale": "FastAPI auth dependency facade used by canonical account-survival router.",
+      "removal_condition": "n/a; accepted stable FastAPI/platform facade."
+    },
+    {
       "source": "backend/app/modules/account_profile_completeness/router.py",
       "owner": "account_profile_completeness",
       "imported_module": "auth",

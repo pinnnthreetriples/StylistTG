@@ -1410,6 +1410,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup/strategies/{strategy_id}/apply-preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Warmup Strategy Apply Preset */
+        post: operations["post_warmup_strategy_apply_preset_api_warmup_strategies__strategy_id__apply_preset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/warmup/sessions": {
         parameters: {
             query?: never;
@@ -1530,6 +1547,23 @@ export interface paths {
          *     Returns is_isolated=False with claim=null when no claim exists.
          */
         get: operations["get_warmup_isolation_status_api_warmup_isolation_by_account__account_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup-actions/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Action Metadata */
+        get: operations["get_warmup_action_metadata_api_warmup_actions_metadata_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6655,6 +6689,33 @@ export interface components {
             ctx?: {
                 [key: string]: unknown;
             };
+        };
+        /** WarmupActionMetadataRead */
+        WarmupActionMetadataRead: {
+            /** Action Type */
+            action_type: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "reading" | "activity" | "entertainment" | "social" | "groups" | "profile";
+            /** Traffic Heavy */
+            traffic_heavy: boolean;
+            /** Write Action */
+            write_action: boolean;
+            /**
+             * Requires Premium
+             * @default false
+             */
+            requires_premium: boolean;
+        };
+        /** WarmupActionPresetRequest */
+        WarmupActionPresetRequest: {
+            /**
+             * Preset
+             * @enum {string}
+             */
+            preset: "economic" | "all" | "minimal";
         };
         /** WarmupCheckItemRead */
         WarmupCheckItemRead: {
@@ -12750,6 +12811,70 @@ export interface operations {
             };
         };
     };
+    post_warmup_strategy_apply_preset_api_warmup_strategies__strategy_id__apply_preset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupActionPresetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupStrategyRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_warmup_sessions_api_warmup_sessions_get: {
         parameters: {
             query?: {
@@ -13295,6 +13420,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_action_metadata_api_warmup_actions_metadata_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupActionMetadataRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
                 };
             };
         };

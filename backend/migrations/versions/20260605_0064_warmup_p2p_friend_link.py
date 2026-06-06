@@ -10,6 +10,8 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
+from app.models import UUIDString
+
 
 revision = "20260605_0064"
 down_revision = "20260605_0063"
@@ -18,24 +20,25 @@ depends_on = None
 
 
 def upgrade() -> None:
-    uuid_string = sa.String(length=36)
     op.create_table(
         "warmup_p2p_friend_link",
-        sa.Column("id", uuid_string, primary_key=True, nullable=False),
-        sa.Column("workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", UUIDString, primary_key=True, nullable=False),
+        sa.Column("workspace_id", UUIDString, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
-            uuid_string,
+            UUIDString,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column(
             "friend_account_id",
-            uuid_string,
+            UUIDString,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("last_interaction_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint("account_id != friend_account_id", name="ck_warmup_p2p_friend_not_self"),
         sa.UniqueConstraint(

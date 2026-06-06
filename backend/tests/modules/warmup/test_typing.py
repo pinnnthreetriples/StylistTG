@@ -31,3 +31,13 @@ def test_compute_typing_duration_uses_personality_speed_with_jitter() -> None:
     )
 
     assert 7.0 <= duration <= 13.0
+
+
+def test_compute_typing_duration_invalid_speed_falls_back_to_default() -> None:
+    duration = compute_typing_duration(
+        60,
+        personality_seed={"typing_speed_cps": "fast"},
+        rng=random.Random(2),
+    )
+
+    assert 2.0 <= duration <= 15.0

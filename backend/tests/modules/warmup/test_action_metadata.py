@@ -21,6 +21,10 @@ def test_traffic_heavy_predicate_marks_expected_actions() -> None:
     assert is_traffic_heavy("feed_read") is False
 
 
+def test_traffic_heavy_predicate_rejects_unknown_action() -> None:
+    assert is_traffic_heavy("unknown_action") is False
+
+
 def test_action_metadata_assigns_categories() -> None:
     by_action = {item.action_type: item for item in list_action_metadata()}
 

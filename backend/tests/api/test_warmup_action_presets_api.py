@@ -39,6 +39,7 @@ def test_apply_warmup_strategy_preset_rejects_invalid_preset(app_client, db_sess
     )
 
     assert response.status_code == 422
+    assert response.json()["error_code"] == "REQUEST_VALIDATION_ERROR"
     assert db_session.query(AuditLog).count() == 0
 
 

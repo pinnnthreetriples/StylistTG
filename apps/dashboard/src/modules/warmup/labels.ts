@@ -1,4 +1,5 @@
 import type {
+  WarmupActionCategory,
   WarmupEvent,
   WarmupExecutionMode,
   WarmupPresetKind,
@@ -44,6 +45,18 @@ export const WARMUP_RISK_TONES: Record<WarmupRiskLevel, 'green' | 'amber' | 'red
   medium: 'amber',
   high: 'red',
 }
+
+export const ACTION_CATEGORY_LABELS: Record<WarmupActionCategory, string> = {
+  reading: 'Чтение',
+  activity: 'Активность',
+  entertainment: 'Развлечения',
+  social: 'Социальные',
+  groups: 'Группы',
+  profile: 'Профиль/настройки',
+}
+
+export const TRAFFIC_TOOLTIP =
+  'Эти действия активно используют трафик прокси. Отключайте на мобильных/резидентских прокси.'
 
 export const WARMUP_EVENT_LABELS: Record<string, string> = {
   session_created: 'Сессия создана',

@@ -50,7 +50,16 @@ def get_warmup_action_metadata(
     auth: AuthContext = Depends(require_authenticated),
 ) -> list[WarmupActionMetadataRead]:
     _ = auth
-    return warmup_service.list_action_metadata()
+    return [
+        WarmupActionMetadataRead(
+            action_type=item.action_type,
+            category=item.category,
+            traffic_heavy=item.traffic_heavy,
+            write_action=item.write_action,
+            requires_premium=item.requires_premium,
+        )
+        for item in warmup_service.list_action_metadata()
+    ]
 
 
 @warmup_router.get("/readiness", response_model=WarmupReadinessRead)
@@ -103,7 +112,9 @@ def post_warmup_strategy_apply_preset(
         raise _warmup_error(exc) from exc
 
 
-@warmup_router.post("/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED)
+@warmup_router.post(
+    "/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED
+)
 def post_warmup_session(
     payload: WarmupSessionCreateRequest,
     session: Session = Depends(get_session),

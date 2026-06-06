@@ -327,19 +327,25 @@ def test_real_adapter_p2p_send_uses_typing_before_sendMessage(monkeypatch) -> No
         adapter.close()
 
     assert result.is_ok
-    assert client.queries[0]["@type"] == "createPrivateChat"
-    assert client.queries[0]["user_id"] == 12345
-    assert client.queries[1]["@type"] == "sendChatAction"
-    assert client.queries[1]["chat_id"] == 555
-    assert client.queries[1]["action"]["@type"] == "chatActionTyping"
-    assert client.queries[2]["@type"] == "sendMessage"
-    assert client.queries[2]["chat_id"] == 555
-    assert client.queries[2]["input_message_content"]["text"]["text"] == "Привет!"
+    _assert_p2p_typing_flow(client.queries, text="Привет!")
     assert slept == [result.metadata["typing_duration_ms"] / 1000]
     assert result.metadata["chat_id"] == 555
     assert result.metadata["text_length"] == len("Привет!")
     assert result.metadata["typing_started"] is True
     assert 2_000 <= result.metadata["typing_duration_ms"] <= 15_000
+
+
+def _assert_p2p_typing_flow(queries: list[dict[str, object]], *, text: str) -> None:
+    assert queries[0]["@type"] == "createPrivateChat"
+    assert queries[0]["user_id"] == 12345
+    assert queries[1]["@type"] == "sendChatAction"
+    assert queries[1]["chat_id"] == 555
+    assert isinstance(queries[1]["action"], dict)
+    assert queries[1]["action"]["@type"] == "chatActionTyping"
+    assert queries[2]["@type"] == "sendMessage"
+    assert queries[2]["chat_id"] == 555
+    assert isinstance(queries[2]["input_message_content"], dict)
+    assert queries[2]["input_message_content"]["text"]["text"] == text
 
 
 def test_real_adapter_p2p_send_continues_when_typing_fails(monkeypatch) -> None:
@@ -698,8 +704,7 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
     skip_events = [
         e
         for e in warmup_session.events
-        if e.event_type == "task_skipped"
-        and e.payload_json.get("reason") == "no_friends_available"
+        if e.event_type == "task_skipped" and e.payload_json.get("reason") == "no_friends_available"
     ]
     assert skip_events
 

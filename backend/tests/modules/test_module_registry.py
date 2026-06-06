@@ -85,6 +85,7 @@ def test_router_paths_are_lazy_module_routes() -> None:
         "app.modules.account_safety.router:router",
         "app.modules.account_editing.router:router",
         "app.modules.account_lifecycle.router:router",
+        "app.modules.account_survival.router:router",
         "app.modules.account_profile_completeness.router:router",
         "app.modules.account_proxy.router:router",
         # PR3 canonical modules with account-specific paths must come
@@ -103,6 +104,8 @@ def test_router_paths_are_lazy_module_routes() -> None:
 
 
 def test_router_paths_resolve_without_api_wrapper_imports() -> None:
+    from fastapi.routing import APIRoute
+
     safety_router = resolve_router("app.modules.account_safety.router:router")
     account_router = resolve_router("app.modules.account_editing.router:router")
     lifecycle_router = resolve_router("app.modules.account_lifecycle.router:router")
@@ -116,7 +119,10 @@ def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     assert account_router.prefix == "/api/account-update"
     assert lifecycle_router.prefix == "/api/accounts"
     assert profile_completeness_router.prefix == "/api/accounts"
-    assert warmup_router.prefix == "/api/warmup"
+    assert {route.path for route in warmup_router.routes if isinstance(route, APIRoute)} >= {
+        "/api/warmup/readiness",
+        "/api/warmup-actions/metadata",
+    }
     assert neuro_router.prefix == "/api/neuro-commenting"
 
 

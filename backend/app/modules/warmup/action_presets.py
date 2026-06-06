@@ -47,7 +47,9 @@ def apply_action_preset(
     updated: dict[str, dict[str, int]] = {}
     for day_key in day_keys:
         raw_day_limits = source.get(day_key)
-        current_limits = raw_day_limits if isinstance(raw_day_limits, dict) else {}
+        current_limits = (
+            cast(dict[str, Any], raw_day_limits) if isinstance(raw_day_limits, dict) else {}
+        )
         updated[day_key] = {
             action_type: _next_limit(current_limits.get(action_type), action_type, enabled_actions)
             for action_type in ALL_ACTIONS

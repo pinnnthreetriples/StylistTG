@@ -328,13 +328,14 @@ class RealWarmupTdlibAdapter:
         if response.get("@type") == "error":
             return _classify_tdlib_error(response, action_type)
         messages = response.get("messages")
+        results_seen = len(cast(list[object], messages)) if isinstance(messages, list) else 0
         return WarmupActionResult(
             status="ok",
             action_type=action_type,
             metadata={
                 "provider": self.provider_name,
                 "query": query,
-                "results_seen": len(messages) if isinstance(messages, list) else 0,
+                "results_seen": results_seen,
             },
         )
 

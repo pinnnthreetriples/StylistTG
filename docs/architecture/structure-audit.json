@@ -154,7 +154,7 @@
       ],
       "mentions_ast": false,
       "path": "backend/tests/architecture/test_structure_audit_report.py",
-      "test_count": 36
+      "test_count": 37
     },
     {
       "boundary_keywords": [
@@ -2169,7 +2169,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T05:26:07Z",
+    "generated_at": "2026-06-06T07:15:21Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2489,7 +2489,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T05:26:07Z",
+  "generated_at": "2026-06-06T07:15:21Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4049,7 +4049,7 @@
       "registered": true,
       "router_path": "app.modules.account_onboarding.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",
@@ -4218,7 +4218,7 @@
       "registered": true,
       "router_path": "app.modules.account_safety.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": []
     },
     {
@@ -4418,7 +4418,7 @@
       "registered": true,
       "router_path": "app.modules.neuro_commenting.router:router",
       "template_files_are_non_runtime": null,
-      "tests_present": false,
+      "tests_present": true,
       "workflows": [
         {
           "args_mode": "CUSTOM",

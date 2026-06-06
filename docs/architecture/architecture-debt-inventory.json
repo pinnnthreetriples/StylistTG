@@ -1789,6 +1789,7 @@
         "backend/tests/tools/test_test_analyzer_cli_outputs.py",
         "backend/tests/tools/test_weak_response_rules.py",
         "backend/tests/warmup/test_channel_browse_action.py",
+        "backend/tests/warmup/test_inflight_migration_compat.py",
         "backend/tests/warmup/test_react_to_post_action.py",
         "backend/tests/warmup/test_view_story_action.py",
         "backend/tests/warmup/test_warmup_account_integration.py",
@@ -1910,6 +1911,7 @@
         "docs/runbooks/staging-smoke-2026-05-31.md",
         "docs/runbooks/tdlib-runtime.md",
         "docs/runbooks/telegram-auth-flow.md",
+        "docs/runbooks/warmup-rollout.md",
         "docs/runbooks/workers-production-plane.md",
         "docs/runtime/deployment-processes.md",
         "docs/runtime/runtime-boundaries.md",
@@ -1935,7 +1937,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T11:13:33Z",
+  "generated_at": "2026-06-06T11:44:22Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

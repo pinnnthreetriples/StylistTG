@@ -10,6 +10,8 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
+from app.models import UUIDString
+
 
 revision = "20260605_0063"
 down_revision = "20260605_0062"
@@ -19,7 +21,6 @@ depends_on = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    uuid_string = sa.String(length=36)
     survival_days = (
         sa.Column(
             "survival_days",
@@ -44,15 +45,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "account_survival_metric",
-        sa.Column("id", uuid_string, primary_key=True, nullable=False),
-        sa.Column("workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", UUIDString, primary_key=True, nullable=False),
+        sa.Column("workspace_id", UUIDString, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
-            uuid_string,
+            UUIDString,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("warmup_strategy_id", uuid_string, nullable=True),
+        sa.Column("warmup_strategy_id", UUIDString, nullable=True),
         sa.Column("warmup_strategy_name", sa.String(length=128), nullable=True),
         sa.Column("imported_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("warmup_started_at", sa.DateTime(timezone=True), nullable=True),
@@ -74,9 +75,7 @@ def upgrade() -> None:
             name="uq_account_survival_metric_workspace_account",
         ),
         sa.CheckConstraint("freeze_count >= 0", name="ck_account_survival_freeze_count"),
-        sa.CheckConstraint(
-            "flood_wait_count >= 0", name="ck_account_survival_flood_wait_count"
-        ),
+        sa.CheckConstraint("flood_wait_count >= 0", name="ck_account_survival_flood_wait_count"),
     )
     op.create_index(
         "ix_account_survival_metric_workspace_id",
@@ -100,7 +99,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_account_survival_metric_banned_at", table_name="account_survival_metric")
     op.drop_index("ix_account_survival_metric_account_id", table_name="account_survival_metric")
-    op.drop_index(
-        "ix_account_survival_metric_workspace_id", table_name="account_survival_metric"
-    )
+    op.drop_index("ix_account_survival_metric_workspace_id", table_name="account_survival_metric")
     op.drop_table("account_survival_metric")

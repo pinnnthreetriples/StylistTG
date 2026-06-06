@@ -347,6 +347,29 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_survival/__init__.py",
+        "backend/app/modules/account_survival/contracts.py",
+        "backend/app/modules/account_survival/events.py",
+        "backend/app/modules/account_survival/module.py",
+        "backend/app/modules/account_survival/queries.py",
+        "backend/app/modules/account_survival/repository.py",
+        "backend/app/modules/account_survival/router.py"
+      ],
+      "id": "canonical-account-survival",
+      "owner": "account_survival",
+      "paths": [
+        "backend/app/modules/account_survival/**"
+      ],
+      "phase": "Phase 6B",
+      "rationale": "Account survival metrics router, queries, repository, events, and contracts are canonical.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_survival"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/auth/__init__.py",
         "backend/app/modules/auth/context.py",
         "backend/app/modules/auth/contracts.py",
@@ -528,6 +551,11 @@
       "category": "canonical_feature_module",
       "existing_paths": [
         "backend/app/modules/warmup/__init__.py",
+        "backend/app/modules/warmup/channel_state/__init__.py",
+        "backend/app/modules/warmup/channel_state/contracts.py",
+        "backend/app/modules/warmup/channel_state/repository.py",
+        "backend/app/modules/warmup/channel_state/service.py",
+        "backend/app/modules/warmup/cold_soak.py",
         "backend/app/modules/warmup/commands.py",
         "backend/app/modules/warmup/contracts.py",
         "backend/app/modules/warmup/dispatch_actions.py",
@@ -914,6 +942,7 @@
         "backend/app/model_defs/__init__.py",
         "backend/app/model_defs/account_onboarding.py",
         "backend/app/model_defs/account_runtime.py",
+        "backend/app/model_defs/account_survival.py",
         "backend/app/model_defs/auth.py",
         "backend/app/model_defs/identity.py",
         "backend/app/model_defs/jobs_assets.py",
@@ -921,6 +950,7 @@
         "backend/app/model_defs/profile_safety.py",
         "backend/app/model_defs/safety_workspace.py",
         "backend/app/model_defs/warmup.py",
+        "backend/app/model_defs/warmup_channel_state.py",
         "backend/app/models.py",
         "backend/app/schema_defs/__init__.py",
         "backend/app/schema_defs/accounts.py",
@@ -1211,6 +1241,7 @@
         ".mex/patterns/live-tdlib-safety.md",
         ".mex/patterns/mex-memory-update.md",
         ".mex/patterns/safe-cleanup.md",
+        ".mex/patterns/warmup-advanced.md",
         ".mex/patterns/warmup-change.md",
         ".mex/patterns/worker-queue-change.md",
         "README.md",
@@ -1637,6 +1668,8 @@
         "backend/tests/modules/account_editing/test_legacy_compatibility.py",
         "backend/tests/modules/account_editing/test_policies.py",
         "backend/tests/modules/account_editing/test_repository.py",
+        "backend/tests/modules/account_survival/test_account_survival.py",
+        "backend/tests/modules/account_survival/test_migration_contract.py",
         "backend/tests/modules/auth/test_auth_module.py",
         "backend/tests/modules/test_account_editing_ownership.py",
         "backend/tests/modules/test_account_editing_policies.py",
@@ -1648,6 +1681,9 @@
         "backend/tests/modules/test_module_registry.py",
         "backend/tests/modules/test_neuro_commenting_legacy_compat.py",
         "backend/tests/modules/test_workflow_registry.py",
+        "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
+        "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
+        "backend/tests/modules/warmup/test_cold_soak.py",
         "backend/tests/modules/warmup/test_warmup_contracts.py",
         "backend/tests/modules/warmup/test_warmup_jobs.py",
         "backend/tests/modules/warmup/test_warmup_legacy_compatibility.py",
@@ -1751,6 +1787,7 @@
         "backend/tests/tools/test_test_analyzer_cli_outputs.py",
         "backend/tests/tools/test_weak_response_rules.py",
         "backend/tests/warmup/test_warmup_account_integration.py",
+        "backend/tests/warmup/test_warmup_advanced_foundation_migration.py",
         "backend/tests/warmup/test_warmup_dispatch.py",
         "backend/tests/warmup/test_warmup_foundation.py",
         "backend/tests/warmup/test_warmup_isolation.py",
@@ -1816,6 +1853,8 @@
         "docs/audits/2026-05-safety-pipeline-audit/14-production-readiness-verdict.md",
         "docs/audits/2026-05-safety-pipeline-audit/15-recommended-followups.md",
         "docs/audits/2026-05-safety-pipeline-audit/16-phase4-roadmap.md",
+        "docs/design/warmup-divergence-from-gramgpt.md",
+        "docs/design/warmup-ux-blueprint.md",
         "docs/frontend/frontend-ownership-audit.md",
         "docs/grafana/safety-pipeline.json",
         "docs/modules/account-safety-pipeline.md",
@@ -1891,7 +1930,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-04T16:06:09Z",
+  "generated_at": "2026-06-06T09:51:02Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

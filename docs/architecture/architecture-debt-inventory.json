@@ -1786,6 +1786,9 @@
         "backend/tests/tools/test_test_analyzer.py",
         "backend/tests/tools/test_test_analyzer_cli_outputs.py",
         "backend/tests/tools/test_weak_response_rules.py",
+        "backend/tests/warmup/test_channel_browse_action.py",
+        "backend/tests/warmup/test_react_to_post_action.py",
+        "backend/tests/warmup/test_view_story_action.py",
         "backend/tests/warmup/test_warmup_account_integration.py",
         "backend/tests/warmup/test_warmup_advanced_foundation_migration.py",
         "backend/tests/warmup/test_warmup_dispatch.py",
@@ -1930,7 +1933,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T09:51:02Z",
+  "generated_at": "2026-06-06T10:43:49Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

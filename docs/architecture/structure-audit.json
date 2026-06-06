@@ -801,6 +801,10 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
+          "backend/app/modules/warmup/channel_state/__init__.py",
+          "backend/app/modules/warmup/channel_state/contracts.py",
+          "backend/app/modules/warmup/channel_state/repository.py",
+          "backend/app/modules/warmup/channel_state/service.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
           "backend/app/modules/warmup/dispatch_actions.py",
@@ -1923,6 +1927,8 @@
           "backend/tests/modules/test_module_registry.py",
           "backend/tests/modules/test_neuro_commenting_legacy_compat.py",
           "backend/tests/modules/test_workflow_registry.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
+          "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
           "backend/tests/modules/warmup/test_warmup_legacy_compatibility.py",
@@ -2169,7 +2175,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T07:15:21Z",
+    "generated_at": "2026-06-06T07:42:46Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2489,7 +2495,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T07:15:21Z",
+  "generated_at": "2026-06-06T07:42:46Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5432,7 +5438,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 239,
+      "file_count": 241,
       "path": "backend/tests"
     },
     "docs": {

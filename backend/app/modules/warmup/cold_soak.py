@@ -76,7 +76,9 @@ def _should_write_in_progress_event(
 ) -> bool:
     threshold = now - _IN_PROGRESS_EVENT_MIN_INTERVAL
     recent = session.execute(
-        select(WarmupEvent.id)
+        select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is below.
+            WarmupEvent.id
+        )
         .where(
             WarmupEvent.workspace_id == warmup_session.workspace_id,
             WarmupEvent.session_id == warmup_session.id,

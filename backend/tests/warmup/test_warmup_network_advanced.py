@@ -84,6 +84,8 @@ def test_mock_adapter_p2p_send_requires_peer_and_text() -> None:
     assert ok.is_ok
     assert ok.metadata["peer_account_id"] == "peer-1"
     assert ok.metadata["text_length"] == len("hello")
+    assert ok.metadata["typing_started"] is True
+    assert 2_000 <= ok.metadata["typing_duration_ms"] <= 15_000
 
 
 def test_mock_adapter_supports_action_per_mode() -> None:
@@ -297,14 +299,17 @@ def test_real_adapter_join_chat_uses_searchPublicChat_then_joinChat(monkeypatch)
     assert result.metadata["joined_chat_id"] == -100_42
 
 
-def test_real_adapter_p2p_send_uses_createPrivateChat_then_sendMessage(monkeypatch) -> None:
+def test_real_adapter_p2p_send_uses_typing_before_sendMessage(monkeypatch) -> None:
     client = _ProgrammableTdlibClient(
         receive_queue=[_ready_event()],
         responses=[
             {"@type": "chat", "id": 555, "type": {"@type": "chatTypePrivate"}},
+            {"@type": "ok"},
             {"@type": "message", "id": 7},
         ],
     )
+    slept: list[float] = []
+    monkeypatch.setattr("app.adapters.warmup_tdlib_real.time.sleep", slept.append)
     adapter = _make_real_adapter(client, monkeypatch)
     try:
         result = adapter.execute_action(
@@ -315,19 +320,67 @@ def test_real_adapter_p2p_send_uses_createPrivateChat_then_sendMessage(monkeypat
                 "peer_account_id": "peer-row-1",
                 "text": "Привет!",
                 "text_seed": "deadbeef",
+                "personality_seed": {"typing_speed_cps": 7},
             },
         )
     finally:
         adapter.close()
 
     assert result.is_ok
-    assert client.queries[0]["@type"] == "createPrivateChat"
-    assert client.queries[0]["user_id"] == 12345
-    assert client.queries[1]["@type"] == "sendMessage"
-    assert client.queries[1]["chat_id"] == 555
-    assert client.queries[1]["input_message_content"]["text"]["text"] == "Привет!"
+    _assert_p2p_typing_flow(client.queries, text="Привет!")
+    assert slept == [result.metadata["typing_duration_ms"] / 1000]
     assert result.metadata["chat_id"] == 555
     assert result.metadata["text_length"] == len("Привет!")
+    assert result.metadata["typing_started"] is True
+    assert 2_000 <= result.metadata["typing_duration_ms"] <= 15_000
+
+
+def _assert_p2p_typing_flow(queries: list[dict[str, object]], *, text: str) -> None:
+    assert queries[0]["@type"] == "createPrivateChat"
+    assert queries[0]["user_id"] == 12345
+    assert queries[1]["@type"] == "sendChatAction"
+    assert queries[1]["chat_id"] == 555
+    assert isinstance(queries[1]["action"], dict)
+    assert queries[1]["action"]["@type"] == "chatActionTyping"
+    assert queries[2]["@type"] == "sendMessage"
+    assert queries[2]["chat_id"] == 555
+    assert isinstance(queries[2]["input_message_content"], dict)
+    assert queries[2]["input_message_content"]["text"]["text"] == text
+
+
+def test_real_adapter_p2p_send_continues_when_typing_fails(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": 555, "type": {"@type": "chatTypePrivate"}},
+            {"@type": "error", "code": 500, "message": "typing_failed"},
+            {"@type": "message", "id": 7},
+        ],
+    )
+    monkeypatch.setattr("app.adapters.warmup_tdlib_real.time.sleep", lambda _: None)
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="p2p_send",
+            context={
+                "peer_telegram_user_id": "12345",
+                "peer_account_id": "peer-row-1",
+                "text": "hello",
+                "text_seed": "deadbeef",
+            },
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    assert [query["@type"] for query in client.queries] == [
+        "createPrivateChat",
+        "sendChatAction",
+        "sendMessage",
+    ]
+    assert result.metadata["typing_started"] is False
+    assert result.metadata["typing_error_code"] == "typing_failed"
 
 
 def test_real_adapter_channel_browse_uses_public_chat_history_flow(monkeypatch) -> None:
@@ -651,8 +704,7 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
     skip_events = [
         e
         for e in warmup_session.events
-        if e.event_type == "task_skipped"
-        and e.payload_json.get("reason") == "no_eligible_trusted_peers"
+        if e.event_type == "task_skipped" and e.payload_json.get("reason") == "no_friends_available"
     ]
     assert skip_events
 

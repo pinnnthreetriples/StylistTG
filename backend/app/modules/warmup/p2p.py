@@ -26,7 +26,8 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Account, WarmupTrustedPeer, utc_now
+from app.models import Account, WarmupP2pFriendLink, WarmupTrustedPeer, utc_now
+from app.modules.warmup.p2p_graph import assign_friends, get_friends, touch_friend_interaction
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,7 @@ def select_eligible_peer(
     now: datetime | None = None,
     exclude_account_ids: tuple[str, ...] = (),
 ) -> WarmupPeerCandidate | None:
-    """Возвращает первого eligible peer'а в workspace или None.
+    """Возвращает eligible friend-peer'а в workspace или None.
 
     Не блокирует строки (no FOR UPDATE) — между тиками одного worker'а
     нет гонок, потому что dispatch tick одиночный per queue. Для
@@ -56,20 +57,42 @@ def select_eligible_peer(
     """
     timestamp = now or utc_now()
     excluded = set(exclude_account_ids) | {sender_account_id}
+    friend_ids = get_friends(session, account_id=sender_account_id, workspace_id=workspace_id)
+    if not friend_ids:
+        friend_ids = assign_friends(
+            session,
+            account_id=sender_account_id,
+            workspace_id=workspace_id,
+            now=timestamp,
+        )
+    if not friend_ids:
+        return None
+
     rows = session.execute(
-        select(WarmupTrustedPeer, Account)
+        select(WarmupTrustedPeer, Account, WarmupP2pFriendLink)
         .join(Account, Account.id == WarmupTrustedPeer.account_id)
+        .join(
+            WarmupP2pFriendLink,
+            (WarmupP2pFriendLink.workspace_id == workspace_id)
+            & (WarmupP2pFriendLink.account_id == sender_account_id)
+            & (WarmupP2pFriendLink.friend_account_id == Account.id),
+        )
         .where(
             WarmupTrustedPeer.workspace_id == workspace_id,
+            WarmupTrustedPeer.account_id.in_(friend_ids),
             WarmupTrustedPeer.revoked_at.is_(None),
             WarmupTrustedPeer.eligible_from <= timestamp,
             WarmupTrustedPeer.current_contacts < WarmupTrustedPeer.max_active_contacts,
             Account.workspace_id == workspace_id,
             Account.telegram_user_id.is_not(None),
         )
-        .order_by(WarmupTrustedPeer.created_at.asc())
+        .order_by(
+            WarmupP2pFriendLink.last_interaction_at.is_not(None).asc(),
+            WarmupP2pFriendLink.last_interaction_at.asc(),
+            WarmupP2pFriendLink.created_at.asc(),
+        )
     ).all()
-    for peer, account in rows:
+    for peer, account, _link in rows:
         if account.id in excluded:
             continue
         return WarmupPeerCandidate(
@@ -111,6 +134,13 @@ def record_p2p_contact(
         raise ValueError("receiver is not in trusted-peer pool")
     receiver.current_contacts = receiver.current_contacts + 1
     receiver.updated_at = timestamp
+    touch_friend_interaction(
+        session,
+        workspace_id=workspace_id,
+        account_id=sender_account_id,
+        friend_account_id=receiver_account_id,
+        now=timestamp,
+    )
 
     sender = session.execute(
         select(WarmupTrustedPeer).where(

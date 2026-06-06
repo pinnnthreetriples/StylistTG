@@ -3,6 +3,8 @@ from __future__ import annotations
 # pyright: reportPrivateUsage=false
 
 import logging
+import random
+import time
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -18,6 +20,7 @@ from app.adapters.tdlib_auth import (
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
 from app.adapters.warmup_tdlib_errors import _AdapterClientError, _classify_tdlib_error
 from app.config import Settings, settings
+from app.modules.warmup.typing import compute_typing_duration
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
 
@@ -1590,6 +1593,26 @@ class RealWarmupTdlibAdapter:
                 error_code="private_chat_not_resolved",
                 error_class="contract",
             )
+        typing_duration = compute_typing_duration(
+            len(str(text)),
+            personality_seed=_personality_seed(context),
+            rng=random.Random(str(context.get("text_seed") or "")),
+        )
+        typing_started = False
+        typing_error_code: str | None = None
+        typing_response = client.send_query(
+            {
+                "@type": "sendChatAction",
+                "chat_id": chat_id,
+                "action": {"@type": "chatActionTyping"},
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if typing_response.get("@type") == "error":
+            typing_error_code = str(typing_response.get("message") or "send_chat_action_error")
+        else:
+            typing_started = True
+        time.sleep(typing_duration)
         send = client.send_query(
             {
                 "@type": "sendMessage",
@@ -1613,8 +1636,16 @@ class RealWarmupTdlibAdapter:
                 "chat_id": chat_id,
                 "text_seed": context.get("text_seed"),
                 "text_length": len(text),
+                "typing_started": typing_started,
+                "typing_duration_ms": int(typing_duration * 1000),
+                "typing_error_code": typing_error_code,
             },
         )
+
+
+def _personality_seed(context: dict[str, Any]) -> dict[str, Any]:
+    raw = context.get("personality_seed")
+    return cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
 
 
 def _bounded_int(value: Any, *, minimum: int, maximum: int, default: int) -> int:

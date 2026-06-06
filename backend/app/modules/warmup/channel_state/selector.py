@@ -25,9 +25,13 @@ DEFAULT_ACTION_PRIORITY = (
     "join_chat",
     "react_to_post",
     "p2p_send",
+    "forward_message",
+    "saved_messages",
+    "sync_contacts",
 )
 CHANNEL_STALE_AFTER = timedelta(hours=6)
 CHANNEL_ACTIVITY_ACTION_TYPES = frozenset({"vote_poll", "watch_video", "listen_voice"})
+CHANNEL_SOCIAL_ACTION_TYPES = frozenset({"forward_message"})
 
 
 @dataclass(frozen=True)
@@ -120,6 +124,13 @@ def _select_action(
             action_type, _pick(candidates, rng), {"reason": "subscribed_channel_stale"}
         )
     if action_type in CHANNEL_ACTIVITY_ACTION_TYPES:
+        candidates = [
+            state.channel_ref for state in states_by_ref.values() if state.subscribed_at is not None
+        ]
+        if not candidates:
+            return SelectedAction(action_type)
+        return SelectedAction(action_type, _pick(candidates, rng), {"reason": "subscribed_channel"})
+    if action_type in CHANNEL_SOCIAL_ACTION_TYPES:
         candidates = [
             state.channel_ref for state in states_by_ref.values() if state.subscribed_at is not None
         ]

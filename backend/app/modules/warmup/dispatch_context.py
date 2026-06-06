@@ -25,6 +25,7 @@ _ENTERTAINMENT_URLS = (
     "https://example.com/",
 )
 _APPROVED_INLINE_BOTS = ("@gif", "@pic", "@sticker", "@vid")
+_SAVED_MESSAGE_NOTES = ("todo", "remember", "read later", "check link", "idea")
 _ACTIVITY_CONTENT_SKIP_REASONS = {
     "vote_poll": "no_open_poll_found",
     "watch_video": "no_video_found",
@@ -248,6 +249,32 @@ def _resolve_action_context(
                 ),
             }
         )
+    if action_type == "forward_message":
+        if selected_channel_ref is None:
+            return _ActionContextResolution(context=base, skip_reason="no_forward_source_available")
+        if not _is_channel_subscribed(
+            session, warmup_session=warmup_session, channel_ref=selected_channel_ref
+        ):
+            return _ActionContextResolution(context=base, skip_reason="no_forward_source_available")
+        return _ActionContextResolution(
+            context={
+                **base,
+                "channel_ref": selected_channel_ref,
+                "history_limit": rng.randint(5, 15),
+                "channel_subscribed": True,
+            }
+        )
+    if action_type == "saved_messages":
+        return _ActionContextResolution(
+            context={
+                **base,
+                "note_text": _derive_from_options(
+                    warmup_session, action_type, _SAVED_MESSAGE_NOTES
+                ),
+            }
+        )
+    if action_type == "sync_contacts":
+        return _ActionContextResolution(context=base, skip_reason="no_contacts_pool_available")
     if action_type in _ACTIVITY_CONTENT_SKIP_REASONS:
         if selected_channel_ref is None:
             return _ActionContextResolution(

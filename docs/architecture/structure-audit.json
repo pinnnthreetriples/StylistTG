@@ -2070,6 +2070,7 @@
           "backend/tests/warmup/test_inflight_migration_compat.py",
           "backend/tests/warmup/test_react_to_post_action.py",
           "backend/tests/warmup/test_reading_category_actions.py",
+          "backend/tests/warmup/test_social_category_actions.py",
           "backend/tests/warmup/test_view_story_action.py",
           "backend/tests/warmup/test_warmup_account_integration.py",
           "backend/tests/warmup/test_warmup_advanced_foundation_migration.py",
@@ -2216,7 +2217,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T13:30:01Z",
+    "generated_at": "2026-06-06T13:45:47Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2536,7 +2537,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T13:30:01Z",
+  "generated_at": "2026-06-06T13:45:47Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5524,7 +5525,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 252,
+      "file_count": 253,
       "path": "backend/tests"
     },
     "docs": {

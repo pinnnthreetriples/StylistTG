@@ -98,6 +98,9 @@ class RealWarmupTdlibAdapter:
             "view_stickers": lambda: self._action_view_stickers(client, action_type),
             "inline_bot": lambda: self._action_inline_bot(client, action_type, context),
             "link_preview": lambda: self._action_link_preview(client, action_type, context),
+            "forward_message": lambda: self._action_forward_message(client, action_type, context),
+            "saved_messages": lambda: self._action_saved_messages(client, action_type, context),
+            "sync_contacts": lambda: self._action_sync_contacts(client, action_type, context),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -780,6 +783,150 @@ class RealWarmupTdlibAdapter:
             },
         )
 
+    def _action_forward_message(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        channel_ref = (context.get("channel_ref") or "").strip()
+        if not channel_ref:
+            return WarmupActionResult(
+                status="missing_context",
+                action_type=action_type,
+                error_code="forward_message_missing_channel",
+                error_class="contract",
+            )
+        from_chat_result = self._resolve_public_chat_id(client, action_type, channel_ref)
+        if isinstance(from_chat_result, WarmupActionResult):
+            return from_chat_result
+        from_chat_id = from_chat_result
+        history = client.send_query(
+            {
+                "@type": "getChatHistory",
+                "chat_id": from_chat_id,
+                "from_message_id": 0,
+                "offset": 0,
+                "limit": _bounded_int(
+                    context.get("history_limit"), minimum=1, maximum=30, default=10
+                ),
+                "only_local": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if history.get("@type") == "error":
+            return _classify_tdlib_error(history, action_type)
+        message_ids = _message_ids(history.get("messages"))
+        if not message_ids:
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="no_forward_source_available",
+                error_class="content",
+                metadata={"channel_ref": channel_ref},
+            )
+        saved_chat_id = self._saved_messages_chat_id(client, action_type)
+        if isinstance(saved_chat_id, WarmupActionResult):
+            return saved_chat_id
+        forwarded = client.send_query(
+            {
+                "@type": "forwardMessages",
+                "from_chat_id": from_chat_id,
+                "chat_id": saved_chat_id,
+                "message_ids": [message_ids[0]],
+                "disable_notification": True,
+                "protect_content": False,
+                "send_copy": False,
+                "remove_caption": False,
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if forwarded.get("@type") == "error":
+            return _classify_tdlib_error(forwarded, action_type)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "channel_ref": channel_ref,
+                "from_chat_id": from_chat_id,
+                "to_chat": "saved_messages",
+                "to_chat_id": saved_chat_id,
+                "message_id": message_ids[0],
+            },
+        )
+
+    def _action_saved_messages(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        text = str(context.get("note_text") or "remember")
+        saved_chat_id = self._saved_messages_chat_id(client, action_type)
+        if isinstance(saved_chat_id, WarmupActionResult):
+            return saved_chat_id
+        sent = client.send_query(
+            {
+                "@type": "sendMessage",
+                "chat_id": saved_chat_id,
+                "input_message_content": {
+                    "@type": "inputMessageText",
+                    "text": {"@type": "formattedText", "text": text},
+                },
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if sent.get("@type") == "error":
+            return _classify_tdlib_error(sent, action_type)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "to_chat": "saved_messages",
+                "to_chat_id": saved_chat_id,
+                "text_length": len(text),
+            },
+        )
+
+    def _action_sync_contacts(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        contacts = client.send_query(
+            {"@type": "getContacts"},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if contacts.get("@type") == "error":
+            return _classify_tdlib_error(contacts, action_type)
+        contacts_pool = list(context.get("contacts_pool") or [])
+        if not contacts_pool:
+            raw_user_ids = contacts.get("user_ids")
+            existing_contacts = (
+                cast(list[object], raw_user_ids) if isinstance(raw_user_ids, list) else []
+            )
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="no_contacts_pool_available",
+                error_class="content",
+                metadata={"existing_contacts": len(existing_contacts)},
+            )
+        imported = client.send_query(
+            {"@type": "importContacts", "contacts": contacts_pool},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if imported.get("@type") == "error":
+            return _classify_tdlib_error(imported, action_type)
+        imported_user_ids = imported.get("user_ids")
+        imported_contacts = (
+            cast(list[object], imported_user_ids)
+            if isinstance(imported_user_ids, list)
+            else contacts_pool
+        )
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "contacts_imported": len(imported_contacts),
+            },
+        )
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -1000,6 +1147,36 @@ class RealWarmupTdlibAdapter:
                 error_code="public_chat_not_found",
                 error_class="contract",
                 metadata={"channel_ref": channel_ref},
+            )
+        return int(chat_id)
+
+    def _saved_messages_chat_id(
+        self, client: TdlibClient, action_type: str
+    ) -> int | WarmupActionResult:
+        me = client.send_query({"@type": "getMe"}, self._config.tdlib_receive_timeout_seconds)
+        if me.get("@type") == "error":
+            return _classify_tdlib_error(me, action_type)
+        user_id = me.get("id")
+        if user_id is None:
+            return WarmupActionResult(
+                status="network_error",
+                action_type=action_type,
+                error_code="saved_messages_user_missing",
+                error_class="contract",
+            )
+        chat = client.send_query(
+            {"@type": "createPrivateChat", "user_id": int(user_id), "force": True},
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if chat.get("@type") == "error":
+            return _classify_tdlib_error(chat, action_type)
+        chat_id = chat.get("id")
+        if chat_id is None:
+            return WarmupActionResult(
+                status="network_error",
+                action_type=action_type,
+                error_code="saved_messages_chat_missing",
+                error_class="contract",
             )
         return int(chat_id)
 

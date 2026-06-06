@@ -347,6 +347,29 @@
     {
       "category": "canonical_feature_module",
       "existing_paths": [
+        "backend/app/modules/account_survival/__init__.py",
+        "backend/app/modules/account_survival/contracts.py",
+        "backend/app/modules/account_survival/events.py",
+        "backend/app/modules/account_survival/module.py",
+        "backend/app/modules/account_survival/queries.py",
+        "backend/app/modules/account_survival/repository.py",
+        "backend/app/modules/account_survival/router.py"
+      ],
+      "id": "canonical-account-survival",
+      "owner": "account_survival",
+      "paths": [
+        "backend/app/modules/account_survival/**"
+      ],
+      "phase": "Phase 6B",
+      "rationale": "Account survival metrics router, queries, repository, events, and contracts are canonical.",
+      "removal_condition": "n/a",
+      "severity": "info",
+      "status": "accepted",
+      "target_owner": "app.modules.account_survival"
+    },
+    {
+      "category": "canonical_feature_module",
+      "existing_paths": [
         "backend/app/modules/auth/__init__.py",
         "backend/app/modules/auth/context.py",
         "backend/app/modules/auth/contracts.py",
@@ -1907,7 +1930,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T09:22:05Z",
+  "generated_at": "2026-06-06T09:51:02Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1940,13 +1963,5 @@
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0
   },
-  "untracked_backend_app_python_files": [
-    "backend/app/modules/account_survival/__init__.py",
-    "backend/app/modules/account_survival/contracts.py",
-    "backend/app/modules/account_survival/events.py",
-    "backend/app/modules/account_survival/module.py",
-    "backend/app/modules/account_survival/queries.py",
-    "backend/app/modules/account_survival/repository.py",
-    "backend/app/modules/account_survival/router.py"
-  ]
+  "untracked_backend_app_python_files": []
 }

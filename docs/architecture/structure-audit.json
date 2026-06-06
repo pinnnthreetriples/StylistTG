@@ -169,7 +169,7 @@
       "test_count": 9
     }
   ],
-  "backend_overall_status": "RED",
+  "backend_overall_status": "GREEN",
   "boundaries": {
     "contracts_forbidden_imports": {
       "backend/app/contracts/__init__.py": [],
@@ -619,6 +619,29 @@
         "severity": "info",
         "status": "accepted",
         "target_owner": "app.modules.account_shared"
+      },
+      {
+        "category": "canonical_feature_module",
+        "existing_paths": [
+          "backend/app/modules/account_survival/__init__.py",
+          "backend/app/modules/account_survival/contracts.py",
+          "backend/app/modules/account_survival/events.py",
+          "backend/app/modules/account_survival/module.py",
+          "backend/app/modules/account_survival/queries.py",
+          "backend/app/modules/account_survival/repository.py",
+          "backend/app/modules/account_survival/router.py"
+        ],
+        "id": "canonical-account-survival",
+        "owner": "account_survival",
+        "paths": [
+          "backend/app/modules/account_survival/**"
+        ],
+        "phase": "Phase 6B",
+        "rationale": "Account survival metrics router, queries, repository, events, and contracts are canonical.",
+        "removal_condition": "n/a",
+        "severity": "info",
+        "status": "accepted",
+        "target_owner": "app.modules.account_survival"
       },
       {
         "category": "canonical_feature_module",
@@ -2183,7 +2206,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T09:22:05Z",
+    "generated_at": "2026-06-06T09:51:02Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2216,27 +2239,19 @@
       "residual_legacy_feature_boundary_count": 0,
       "unmanaged_feature_surface_count": 0
     },
-    "untracked_backend_app_python_files": [
-      "backend/app/modules/account_survival/__init__.py",
-      "backend/app/modules/account_survival/contracts.py",
-      "backend/app/modules/account_survival/events.py",
-      "backend/app/modules/account_survival/module.py",
-      "backend/app/modules/account_survival/queries.py",
-      "backend/app/modules/account_survival/repository.py",
-      "backend/app/modules/account_survival/router.py"
-    ]
+    "untracked_backend_app_python_files": []
   },
   "findings": [
     {
       "area": "backend-modules",
-      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_onboarding, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; classification issues: backend/app/modules/account_survival/__init__.py, backend/app/modules/account_survival/contracts.py, backend/app/modules/account_survival/events.py, backend/app/modules/account_survival/module.py, backend/app/modules/account_survival/queries.py, backend/app/modules/account_survival/repository.py, backend/app/modules/account_survival/router.py; residual guard violations: none.",
-      "finding": "Backend has unclassified, overlapping, or silently expanded production boundaries in backend/app.",
+      "evidence": "app.modules.registry imports account_audit, account_core, account_editing, account_ggr, account_imports, account_jobs, account_lifecycle, account_onboarding, account_profile_completeness, account_profile_state, account_proxy, account_safety, account_shared, account_survival, auth, bought_onboarding, human_behavior, neuro_commenting, story, warmup; no unmanaged feature debt is open.",
+      "finding": "Backend feature ownership is fully classified under canonical modules or accepted support surfaces.",
       "id": "STRUCTURE-001",
-      "recommendation": "Classify each backend/app production file exactly once and update residual-boundary governance only with related issue, rationale, removal condition, and verification scope.",
-      "risk": "High. Architecture audit must not report overall backend GREEN while production files are unclassified, multiply owned, or residual legacy feature boundaries have grown without governance.",
-      "severity": "high",
-      "status": "open",
-      "suggested_phase": "next"
+      "recommendation": "Keep structure audit drift checks required for structural changes.",
+      "risk": "Low. Keep inventory checks active so new feature-owned code cannot appear unclassified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     },
     {
       "area": "frontend",
@@ -2306,14 +2321,14 @@
     },
     {
       "area": "unmanaged-backend-surfaces",
-      "evidence": "{\"overlapping_backend_app_python_files\": {}, \"residual_boundary_guard_violations\": [], \"untracked_backend_app_python_files\": [\"backend/app/modules/account_survival/__init__.py\", \"backend/app/modules/account_survival/contracts.py\", \"backend/app/modules/account_survival/events.py\", \"backend/app/modules/account_survival/module.py\", \"backend/app/modules/account_survival/queries.py\", \"backend/app/modules/account_survival/repository.py\", \"backend/app/modules/account_survival/router.py\"]}",
-      "finding": "Machine-readable inventory found unclassified, overlapping, or silently expanded backend/app production files.",
+      "evidence": "{\"high_risk_unmanaged_feature_surface_count\": 0, \"high_risk_unmanaged_feature_surfaces\": [], \"medium_residual_legacy_feature_boundaries\": [], \"medium_residual_legacy_feature_boundary_count\": 0, \"medium_unmanaged_feature_surface_count\": 0, \"medium_unmanaged_feature_surfaces\": [], \"open_count\": 0, \"residual_legacy_feature_boundaries\": [], \"residual_legacy_feature_boundary_count\": 0, \"unmanaged_feature_surface_count\": 0}",
+      "finding": "Machine-readable inventory has no open unmanaged backend/app feature surfaces.",
       "id": "STRUCTURE-008",
-      "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked, overlapping, or unapproved residual-boundary growth.",
-      "risk": "High if new feature-owned code can appear outside app.modules without exactly one inventory owner and reviewed residual-boundary governance.",
-      "severity": "high",
-      "status": "open",
-      "suggested_phase": "next"
+      "recommendation": "Keep architecture debt inventory exhaustive and fail checks on untracked backend/app production files.",
+      "risk": "Low while inventory checks keep production files classified.",
+      "severity": "info",
+      "status": "accepted",
+      "suggested_phase": "ongoing"
     }
   ],
   "forbidden_runtime_claims": {
@@ -2511,7 +2526,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T09:22:05Z",
+  "generated_at": "2026-06-06T09:51:02Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4753,6 +4768,22 @@
         "rationale": "FastAPI auth dependency facade used by canonical account-lifecycle router.",
         "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
         "source": "backend/app/modules/account_lifecycle/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_survival",
+        "public_name": "context",
+        "rationale": "FastAPI auth context facade used by canonical account-survival router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_survival/router.py"
+      },
+      {
+        "imported_module": "auth",
+        "owner": "account_survival",
+        "public_name": "dependencies",
+        "rationale": "FastAPI auth dependency facade used by canonical account-survival router.",
+        "removal_condition": "n/a; accepted stable FastAPI/platform facade.",
+        "source": "backend/app/modules/account_survival/router.py"
       },
       {
         "imported_module": "auth",

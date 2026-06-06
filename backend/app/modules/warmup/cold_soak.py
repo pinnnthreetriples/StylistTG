@@ -78,6 +78,7 @@ def _should_write_in_progress_event(
     recent = session.execute(
         select(WarmupEvent.id)
         .where(
+            WarmupEvent.workspace_id == warmup_session.workspace_id,
             WarmupEvent.session_id == warmup_session.id,
             WarmupEvent.event_type == "cold_soak_in_progress",
             WarmupEvent.created_at >= threshold,

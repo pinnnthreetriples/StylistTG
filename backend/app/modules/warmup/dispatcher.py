@@ -103,7 +103,9 @@ def process_due_warmup_dispatches(
     adapter = passive_adapter if passive_adapter is not None else build_warmup_tdlib_adapter()
     provider = text_provider if text_provider is not None else build_warmup_text_provider()
 
-    query = select(WarmupSession).where(
+    query = select(  # nosemgrep: missing-workspace-id-filter -- Global scheduler batch; optional workspace_id scopes manual runs.
+        WarmupSession
+    ).where(
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
         (
             (

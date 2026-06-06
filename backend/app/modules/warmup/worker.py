@@ -37,7 +37,9 @@ def process_due_warmup_sessions(
     limit: int | None = None,
 ) -> int:
     timestamp = now or datetime.now(UTC)
-    query = select(WarmupSession).where(
+    query = select(  # nosemgrep: missing-workspace-id-filter -- Global scheduler batch; optional workspace_id scopes manual runs.
+        WarmupSession
+    ).where(
         WarmupSession.execution_mode == WarmupExecutionMode.DRY_RUN.value,
         (
             (

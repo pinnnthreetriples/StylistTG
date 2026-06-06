@@ -2,13 +2,14 @@ from __future__ import annotations
 
 # pyright: reportPrivateUsage=false, reportUnusedFunction=false
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
 
 from app.adapters.warmup_tdlib import WarmupActionResult
 from app.models import WarmupSession, WarmupStatus
+from app.modules.account_survival import events as survival_events
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.p2p import record_p2p_contact
@@ -86,6 +87,13 @@ def _record_dispatch_action_failure(
             "metadata": dict(result.metadata),
         },
     )
+    if (result.error_code or "").lower().startswith("flood_wait"):
+        survival_events.on_flood_wait(
+            session,
+            account_id=warmup_session.account_id,
+            workspace_id=warmup_session.workspace_id,
+            now=datetime.now(UTC),
+        )
     return failed_action
 
 
@@ -179,6 +187,12 @@ def _complete_dispatch_session(
         warmup_session,
         "completed",
         {"day": warmup_session.current_day, "execution_mode": warmup_session.execution_mode},
+    )
+    survival_events.on_warmup_completed(
+        session,
+        account_id=warmup_session.account_id,
+        workspace_id=warmup_session.workspace_id,
+        now=now,
     )
     if release_claim(
         session,

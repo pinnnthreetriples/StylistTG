@@ -17,6 +17,7 @@ from app.models import (
     WarmupTaskRunStatus,
     new_id,
 )
+from app.modules.account_survival import events as survival_events
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.cold_soak import (
@@ -289,6 +290,12 @@ def _complete_session(session: Session, warmup_session: WarmupSession, *, now: d
     warmup_session.next_step_at = None
     warmup_session.updated_at = now
     write_warmup_event(session, warmup_session, "completed", {"day": warmup_session.current_day})
+    survival_events.on_warmup_completed(
+        session,
+        account_id=warmup_session.account_id,
+        workspace_id=warmup_session.workspace_id,
+        now=now,
+    )
     if release_claim(
         session,
         account_id=warmup_session.account_id,

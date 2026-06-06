@@ -1083,6 +1083,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account-survival/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Survival Summary */
+        get: operations["read_survival_summary_api_account_survival_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account-survival/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Account Survival */
+        get: operations["read_account_survival_api_account_survival__account_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/profile-completeness": {
         parameters: {
             query?: never;
@@ -3946,6 +3980,72 @@ export interface components {
             details_json?: {
                 [key: string]: unknown;
             };
+        };
+        /** AccountSurvivalMetricRead */
+        AccountSurvivalMetricRead: {
+            /** Account Id */
+            account_id: string;
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /** Warmup Started At */
+            warmup_started_at?: string | null;
+            /** Warmup Completed At */
+            warmup_completed_at?: string | null;
+            /** Pre Production At */
+            pre_production_at?: string | null;
+            /** First Action After Warmup At */
+            first_action_after_warmup_at?: string | null;
+            /** First Freeze At */
+            first_freeze_at?: string | null;
+            /** First Unfreeze At */
+            first_unfreeze_at?: string | null;
+            /** Freeze Count */
+            freeze_count: number;
+            /** Flood Wait Count */
+            flood_wait_count: number;
+            /** Banned At */
+            banned_at?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Survival Days */
+            survival_days?: number | null;
+        };
+        /** AccountSurvivalStrategyBreakdownRead */
+        AccountSurvivalStrategyBreakdownRead: {
+            /** Strategy Id */
+            strategy_id?: string | null;
+            /** Strategy Name */
+            strategy_name?: string | null;
+            /** Total Accounts */
+            total_accounts: number;
+            /** Alive Count */
+            alive_count: number;
+            /** Banned Count */
+            banned_count: number;
+            /** Deleted Count */
+            deleted_count: number;
+        };
+        /** AccountSurvivalSummaryRead */
+        AccountSurvivalSummaryRead: {
+            /** Total Accounts */
+            total_accounts: number;
+            /** Alive Count */
+            alive_count: number;
+            /** Banned Count */
+            banned_count: number;
+            /** Deleted Count */
+            deleted_count: number;
+            /** Mean Survival Days */
+            mean_survival_days?: number | null;
+            /** P50 Survival Days */
+            p50_survival_days?: number | null;
+            /** P90 Survival Days */
+            p90_survival_days?: number | null;
+            /** By Warmup Strategy */
+            by_warmup_strategy?: components["schemas"]["AccountSurvivalStrategyBreakdownRead"][];
         };
         /** AccountUpdateCreate */
         AccountUpdateCreate: {
@@ -11264,6 +11364,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountExportRequestRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_survival_summary_api_account_survival_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSurvivalSummaryRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    read_account_survival_api_account_survival__account_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSurvivalMetricRead"] | null;
                 };
             };
             /** @description Bad Request */

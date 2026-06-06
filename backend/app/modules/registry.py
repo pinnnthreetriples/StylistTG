@@ -19,6 +19,7 @@ from app.modules.account_profile_state.module import module as account_profile_s
 from app.modules.account_proxy.module import module as account_proxy_module
 from app.modules.account_safety.module import module as account_safety_module
 from app.modules.account_shared.module import module as account_shared_module
+from app.modules.account_survival.module import module as account_survival_module
 from app.modules.auth.module import module as auth_module
 from app.modules.bought_onboarding.module import module as bought_onboarding_module
 from app.modules.contracts import FeatureModule, WorkflowSpec
@@ -38,6 +39,7 @@ MODULES: tuple[FeatureModule, ...] = (
     account_safety_module,
     account_editing_module,
     account_lifecycle_module,
+    account_survival_module,
     account_profile_completeness_module,
     account_proxy_module,
     # PR3 canonical modules — specific account-prefixed paths

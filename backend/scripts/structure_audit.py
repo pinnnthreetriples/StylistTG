@@ -175,6 +175,18 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Account lifecycle router, deletion/export services, retention worker, and contracts are canonical; old API/service paths are compatibility wrappers.",
     ),
     OwnershipEntry(
+        id="canonical-account-survival",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="account_survival",
+        paths=("backend/app/modules/account_survival/**",),
+        target_owner="app.modules.account_survival",
+        phase="Phase 6B",
+        removal_condition="n/a",
+        rationale="Account survival metrics router, queries, repository, events, and contracts are canonical.",
+    ),
+    OwnershipEntry(
         id="canonical-account-profile-completeness",
         category="canonical_feature_module",
         severity="info",

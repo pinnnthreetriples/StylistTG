@@ -85,6 +85,7 @@ export const WARMUP_SKIP_REASON_LABELS: Record<string, string> = {
   no_voice_found: 'В подписанных каналах нет voice/audio сообщения',
   no_forward_source_available: 'Нет сообщения для безопасной пересылки',
   no_contacts_pool_available: 'Нет пула контактов для синхронизации',
+  protected_chat: 'Служебный или защищённый чат пропущен',
   no_stories_in_channel: 'В канале нет активных сторис',
   no_reactions_in_channel: 'Для канала нет доступных реакций',
   safety_gate_blocked: 'Safety gate заблокировал действие',

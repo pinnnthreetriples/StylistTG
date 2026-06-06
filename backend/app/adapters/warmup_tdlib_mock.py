@@ -6,6 +6,10 @@ from typing import Any
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
 
 
+def _is_protected_chat_id(chat_id: int) -> bool:
+    return chat_id >= 0 or chat_id == 777000
+
+
 class MockWarmupTdlibAdapter:
     provider_name = "mock"
 
@@ -87,6 +91,10 @@ class MockWarmupTdlibAdapter:
             return self._saved_messages_result(action_type, context)
         if action_type == "sync_contacts":
             return self._sync_contacts_result(action_type, context)
+        if action_type == "archive_chat":
+            return self._archive_chat_result(action_type, context)
+        if action_type == "mute_chat":
+            return self._mute_chat_result(action_type, context)
         if action_type == "view_story":
             return self._view_story_result(action_type, context)
         if action_type == "react_to_post":
@@ -450,6 +458,55 @@ class MockWarmupTdlibAdapter:
                 "latency_ms": self._rng.randint(120, 260),
                 "contacts_read": self._rng.randint(0, 20),
                 "contacts_imported": len(contacts_pool),
+            },
+        )
+
+    def _archive_chat_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        chat_id = int(context.get("chat_id") or (-100_000_000_000 - self._rng.randint(1, 10_000)))
+        if _is_protected_chat_id(chat_id):
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="protected_chat",
+                error_class="safety",
+                metadata={"provider": self.provider_name, "chat_id": chat_id},
+            )
+        temporary = bool(context.get("temporary", False))
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(80, 180),
+                "chat_id": chat_id,
+                "archived": True,
+                "temporary": temporary,
+                "reversed": temporary,
+            },
+        )
+
+    def _mute_chat_result(self, action_type: str, context: dict[str, Any]) -> WarmupActionResult:
+        chat_id = int(context.get("chat_id") or (-100_000_000_000 - self._rng.randint(1, 10_000)))
+        if _is_protected_chat_id(chat_id):
+            return WarmupActionResult(
+                status="skipped",
+                action_type=action_type,
+                error_code="protected_chat",
+                error_class="safety",
+                metadata={"provider": self.provider_name, "chat_id": chat_id},
+            )
+        temporary = bool(context.get("temporary", False))
+        mute_for_seconds = int(context.get("mute_for_seconds") or 86_400)
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "latency_ms": self._rng.randint(80, 180),
+                "chat_id": chat_id,
+                "mute_for_seconds": mute_for_seconds,
+                "temporary": temporary,
+                "reversed": temporary,
             },
         )
 

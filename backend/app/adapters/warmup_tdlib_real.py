@@ -101,6 +101,8 @@ class RealWarmupTdlibAdapter:
             "forward_message": lambda: self._action_forward_message(client, action_type, context),
             "saved_messages": lambda: self._action_saved_messages(client, action_type, context),
             "sync_contacts": lambda: self._action_sync_contacts(client, action_type, context),
+            "archive_chat": lambda: self._action_archive_chat(client, action_type, context),
+            "mute_chat": lambda: self._action_mute_chat(client, action_type, context),
             "view_story": lambda: self._action_view_story(client, action_type, context),
             "react_to_post": lambda: self._action_react_to_post(client, action_type, context),
             "p2p_send": lambda: self._action_p2p_send(client, action_type, context),
@@ -927,6 +929,122 @@ class RealWarmupTdlibAdapter:
             },
         )
 
+    def _action_archive_chat(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        chat_id_result = self._select_unprotected_chat_id(client, action_type, context)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+        archived = client.send_query(
+            {
+                "@type": "addChatToList",
+                "chat_id": chat_id,
+                "chat_list": {"@type": "chatListArchive"},
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if archived.get("@type") == "error":
+            return _classify_tdlib_error(archived, action_type)
+        temporary = bool(context.get("temporary", False))
+        reversed_ok = False
+        if temporary:
+            restored = client.send_query(
+                {
+                    "@type": "addChatToList",
+                    "chat_id": chat_id,
+                    "chat_list": {"@type": "chatListMain"},
+                },
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if restored.get("@type") == "error":
+                classified = _classify_tdlib_error(restored, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+            else:
+                reversed_ok = True
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "chat_id": chat_id,
+                "archived": True,
+                "temporary": temporary,
+                "reversed": reversed_ok,
+            },
+        )
+
+    def _action_mute_chat(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> WarmupActionResult:
+        chat_id_result = self._select_unprotected_chat_id(client, action_type, context)
+        if isinstance(chat_id_result, WarmupActionResult):
+            return chat_id_result
+        chat_id = chat_id_result
+        mute_for_seconds = _bounded_int(
+            context.get("mute_for_seconds"), minimum=1, maximum=604_800, default=86_400
+        )
+        muted = client.send_query(
+            _set_chat_mute_query(chat_id, mute_for_seconds),
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if muted.get("@type") == "error":
+            return _classify_tdlib_error(muted, action_type)
+        temporary = bool(context.get("temporary", False))
+        reversed_ok = False
+        if temporary:
+            restored = client.send_query(
+                _set_chat_mute_query(chat_id, 0),
+                self._config.tdlib_receive_timeout_seconds,
+            )
+            if restored.get("@type") == "error":
+                classified = _classify_tdlib_error(restored, action_type)
+                if classified.status == "flood_wait":
+                    return classified
+            else:
+                reversed_ok = True
+        return WarmupActionResult(
+            status="ok",
+            action_type=action_type,
+            metadata={
+                "provider": self.provider_name,
+                "chat_id": chat_id,
+                "mute_for_seconds": mute_for_seconds,
+                "temporary": temporary,
+                "reversed": reversed_ok,
+            },
+        )
+
+    def _select_unprotected_chat_id(
+        self, client: TdlibClient, action_type: str, context: dict[str, Any]
+    ) -> int | WarmupActionResult:
+        explicit_chat_id = context.get("chat_id")
+        if explicit_chat_id is not None:
+            chat_id = int(explicit_chat_id)
+            if _is_protected_chat_id(chat_id):
+                return _protected_chat_result(action_type, chat_id)
+            return chat_id
+        response = client.send_query(
+            {
+                "@type": "getChats",
+                "chat_list": {"@type": "chatListMain"},
+                "limit": _bounded_int(context.get("chat_limit"), minimum=1, maximum=50, default=20),
+            },
+            self._config.tdlib_receive_timeout_seconds,
+        )
+        if response.get("@type") == "error":
+            return _classify_tdlib_error(response, action_type)
+        raw_chat_ids = response.get("chat_ids")
+        chat_ids = cast(list[object], raw_chat_ids) if isinstance(raw_chat_ids, list) else []
+        for raw_chat_id in chat_ids:
+            if not isinstance(raw_chat_id, int | str):
+                continue
+            chat_id = int(raw_chat_id)
+            if not _is_protected_chat_id(chat_id):
+                return chat_id
+        return _protected_chat_result(action_type, 0)
+
     def _action_view_story(
         self, client: TdlibClient, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
@@ -1375,6 +1493,31 @@ def _content_skipped(
         error_class="content",
         metadata={"channel_ref": channel_ref, **(metadata or {})},
     )
+
+
+def _is_protected_chat_id(chat_id: int) -> bool:
+    return chat_id >= 0 or chat_id == 777000
+
+
+def _protected_chat_result(action_type: str, chat_id: int) -> WarmupActionResult:
+    return WarmupActionResult(
+        status="skipped",
+        action_type=action_type,
+        error_code="protected_chat",
+        error_class="safety",
+        metadata={"chat_id": chat_id},
+    )
+
+
+def _set_chat_mute_query(chat_id: int, mute_for_seconds: int) -> dict[str, Any]:
+    return {
+        "@type": "setChatNotificationSettings",
+        "chat_id": chat_id,
+        "notification_settings": {
+            "@type": "chatNotificationSettings",
+            "mute_for": mute_for_seconds,
+        },
+    }
 
 
 def _chunks(values: list[int], size: int) -> list[list[int]]:

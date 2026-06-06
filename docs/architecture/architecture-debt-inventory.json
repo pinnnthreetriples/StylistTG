@@ -919,6 +919,7 @@
         "backend/app/model_defs/__init__.py",
         "backend/app/model_defs/account_onboarding.py",
         "backend/app/model_defs/account_runtime.py",
+        "backend/app/model_defs/account_survival.py",
         "backend/app/model_defs/auth.py",
         "backend/app/model_defs/identity.py",
         "backend/app/model_defs/jobs_assets.py",
@@ -1644,6 +1645,8 @@
         "backend/tests/modules/account_editing/test_legacy_compatibility.py",
         "backend/tests/modules/account_editing/test_policies.py",
         "backend/tests/modules/account_editing/test_repository.py",
+        "backend/tests/modules/account_survival/test_account_survival.py",
+        "backend/tests/modules/account_survival/test_migration_contract.py",
         "backend/tests/modules/auth/test_auth_module.py",
         "backend/tests/modules/test_account_editing_ownership.py",
         "backend/tests/modules/test_account_editing_policies.py",
@@ -1904,7 +1907,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T08:13:07Z",
+  "generated_at": "2026-06-06T09:22:05Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,
@@ -1937,5 +1940,13 @@
     "residual_legacy_feature_boundary_count": 0,
     "unmanaged_feature_surface_count": 0
   },
-  "untracked_backend_app_python_files": []
+  "untracked_backend_app_python_files": [
+    "backend/app/modules/account_survival/__init__.py",
+    "backend/app/modules/account_survival/contracts.py",
+    "backend/app/modules/account_survival/events.py",
+    "backend/app/modules/account_survival/module.py",
+    "backend/app/modules/account_survival/queries.py",
+    "backend/app/modules/account_survival/repository.py",
+    "backend/app/modules/account_survival/router.py"
+  ]
 }

@@ -1035,7 +1035,11 @@ class RealWarmupTdlibAdapter:
         )
         if response.get("@type") == "error":
             return _classify_tdlib_error(response, action_type)
-        for raw_chat_id in response.get("chat_ids") or []:
+        raw_chat_ids = response.get("chat_ids")
+        chat_ids = cast(list[object], raw_chat_ids) if isinstance(raw_chat_ids, list) else []
+        for raw_chat_id in chat_ids:
+            if not isinstance(raw_chat_id, int | str):
+                continue
             chat_id = int(raw_chat_id)
             if not _is_protected_chat_id(chat_id):
                 return chat_id

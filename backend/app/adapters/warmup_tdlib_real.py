@@ -1301,8 +1301,9 @@ class RealWarmupTdlibAdapter:
         if contacts.get("@type") == "error":
             return _classify_tdlib_error(contacts, action_type)
         user_ids = contacts.get("user_ids")
-        if isinstance(user_ids, list) and user_ids:
-            return int(user_ids[0])
+        contact_user_ids = cast(list[object], user_ids) if isinstance(user_ids, list) else []
+        if contact_user_ids and isinstance(contact_user_ids[0], int | str):
+            return int(contact_user_ids[0])
         return WarmupActionResult(
             status="skipped",
             action_type=action_type,

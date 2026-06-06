@@ -896,14 +896,15 @@ class RealWarmupTdlibAdapter:
         contacts_pool = list(context.get("contacts_pool") or [])
         if not contacts_pool:
             raw_user_ids = contacts.get("user_ids")
+            existing_contacts = (
+                cast(list[object], raw_user_ids) if isinstance(raw_user_ids, list) else []
+            )
             return WarmupActionResult(
                 status="skipped",
                 action_type=action_type,
                 error_code="no_contacts_pool_available",
                 error_class="content",
-                metadata={
-                    "existing_contacts": len(raw_user_ids) if isinstance(raw_user_ids, list) else 0
-                },
+                metadata={"existing_contacts": len(existing_contacts)},
             )
         imported = client.send_query(
             {"@type": "importContacts", "contacts": contacts_pool},
@@ -912,14 +913,17 @@ class RealWarmupTdlibAdapter:
         if imported.get("@type") == "error":
             return _classify_tdlib_error(imported, action_type)
         imported_user_ids = imported.get("user_ids")
+        imported_contacts = (
+            cast(list[object], imported_user_ids)
+            if isinstance(imported_user_ids, list)
+            else contacts_pool
+        )
         return WarmupActionResult(
             status="ok",
             action_type=action_type,
             metadata={
                 "provider": self.provider_name,
-                "contacts_imported": len(imported_user_ids)
-                if isinstance(imported_user_ids, list)
-                else len(contacts_pool),
+                "contacts_imported": len(imported_contacts),
             },
         )
 

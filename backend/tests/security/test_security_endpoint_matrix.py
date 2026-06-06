@@ -69,6 +69,9 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Import batches
     ("GET", "/api/account-import-batches", "viewer", False),
     ("POST", "/api/account-import-batches", "operator", True),
+    # Warmup actions
+    ("GET", "/api/warmup-actions/metadata", "viewer", False),
+    ("POST", "/api/warmup/strategies/{strategy_id}/apply-preset", "admin", True),
     # Account onboarding
     ("GET", "/api/account-onboarding-batches", "viewer", False),
     ("POST", "/api/account-onboarding-artifacts", "operator", True),

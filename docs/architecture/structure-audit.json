@@ -827,6 +827,8 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/warmup/__init__.py",
+          "backend/app/modules/warmup/action_metadata.py",
+          "backend/app/modules/warmup/action_presets.py",
           "backend/app/modules/warmup/channel_state/__init__.py",
           "backend/app/modules/warmup/channel_state/contracts.py",
           "backend/app/modules/warmup/channel_state/repository.py",
@@ -1779,6 +1781,11 @@
           "apps/dashboard/src/modules/shared/quarantineReleasePayload.ts",
           "apps/dashboard/src/modules/warmup/WarmupModule.tsx",
           "apps/dashboard/src/modules/warmup/api.ts",
+          "apps/dashboard/src/modules/warmup/components/ActionCategoryHeader.test.tsx",
+          "apps/dashboard/src/modules/warmup/components/ActionCategoryHeader.tsx",
+          "apps/dashboard/src/modules/warmup/components/ActionMetadataPanel.tsx",
+          "apps/dashboard/src/modules/warmup/components/ActionPresetButtons.test.tsx",
+          "apps/dashboard/src/modules/warmup/components/ActionPresetButtons.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupCreateWizard.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupCreateWizardSections.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupDailyCountersPanel.test.tsx",
@@ -1867,6 +1874,8 @@
           "backend/tests/api/test_log_query_contracts.py",
           "backend/tests/api/test_openapi_error_contracts.py",
           "backend/tests/api/test_runtime_diagnostics_api.py",
+          "backend/tests/api/test_warmup_action_metadata_api.py",
+          "backend/tests/api/test_warmup_action_presets_api.py",
           "backend/tests/api/test_warmup_contracts.py",
           "backend/tests/api/test_warmup_sessions_api.py",
           "backend/tests/architecture/test_account_editing_module_boundaries.py",
@@ -1961,6 +1970,8 @@
           "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
           "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
           "backend/tests/modules/warmup/channel_state/test_selector.py",
+          "backend/tests/modules/warmup/test_action_metadata.py",
+          "backend/tests/modules/warmup/test_action_presets.py",
           "backend/tests/modules/warmup/test_cold_soak.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
@@ -2219,7 +2230,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-06T14:45:49Z",
+    "generated_at": "2026-06-06T16:16:41Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2500,6 +2511,11 @@
       "files": [
         "apps/dashboard/src/modules/warmup/WarmupModule.tsx",
         "apps/dashboard/src/modules/warmup/api.ts",
+        "apps/dashboard/src/modules/warmup/components/ActionCategoryHeader.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/ActionCategoryHeader.tsx",
+        "apps/dashboard/src/modules/warmup/components/ActionMetadataPanel.tsx",
+        "apps/dashboard/src/modules/warmup/components/ActionPresetButtons.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/ActionPresetButtons.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupCreateWizard.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupCreateWizardSections.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupDailyCountersPanel.test.tsx",
@@ -2539,7 +2555,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-06T14:45:49Z",
+  "generated_at": "2026-06-06T16:16:41Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4576,6 +4592,8 @@
       "documentation_only": false,
       "files": [
         "backend/app/modules/warmup/__init__.py",
+        "backend/app/modules/warmup/action_metadata.py",
+        "backend/app/modules/warmup/action_presets.py",
         "backend/app/modules/warmup/cold_soak.py",
         "backend/app/modules/warmup/commands.py",
         "backend/app/modules/warmup/contracts.py",
@@ -5527,7 +5545,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 255,
+      "file_count": 259,
       "path": "backend/tests"
     },
     "docs": {
@@ -5537,7 +5555,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 293,
+      "file_count": 298,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {

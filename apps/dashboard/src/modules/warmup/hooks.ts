@@ -2,8 +2,10 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useCallback, useState } from 'react'
 
 import {
+  applyWarmupActionPreset,
   createWarmupSession,
   deleteWarmupSession,
+  fetchWarmupActionMetadata,
   fetchWarmupEvents,
   fetchWarmupIsolationStatus,
   fetchWarmupReadiness,
@@ -15,11 +17,13 @@ import {
   validateWarmup,
 } from './api'
 import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
+import type { WarmupActionPreset } from './types'
 
 export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
 
 export const warmupQueryKeys = {
   readiness: ['warmup', 'readiness'] as const,
+  actionMetadata: ['warmup', 'actions', 'metadata'] as const,
   strategies: ['warmup', 'strategies'] as const,
   sessions: ['warmup', 'sessions'] as const,
   sessionDetail: (sessionId: string) => ['warmup', 'sessions', sessionId, 'detail'] as const,
@@ -39,6 +43,14 @@ export function useWarmupStrategies() {
   return useQuery({
     queryKey: warmupQueryKeys.strategies,
     queryFn: fetchWarmupStrategies,
+  })
+}
+
+export function useWarmupActionMetadata() {
+  return useQuery({
+    queryKey: warmupQueryKeys.actionMetadata,
+    queryFn: fetchWarmupActionMetadata,
+    staleTime: 5 * 60_000,
   })
 }
 
@@ -116,6 +128,17 @@ export function useWarmupValidate() {
   return useMutation({
     mutationFn: ({ accountId, strategyId }: { accountId: string; strategyId: string }) =>
       validateWarmup(accountId, strategyId),
+  })
+}
+
+export function useApplyWarmupActionPreset() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ strategyId, preset }: { strategyId: string; preset: WarmupActionPreset }) =>
+      applyWarmupActionPreset(strategyId, preset),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.strategies })
+    },
   })
 }
 

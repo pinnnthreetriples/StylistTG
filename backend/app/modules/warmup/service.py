@@ -12,6 +12,8 @@ from app.modules.warmup.commands import (
     resume_warmup_session,
     resume_warmup_session_use_case,
 )
+from app.modules.warmup.action_presets import apply_action_preset_use_case
+from app.modules.warmup.action_metadata import list_action_metadata
 from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.events import write_warmup_event
@@ -45,6 +47,7 @@ __all__ = [
     "_build_proxy_snapshot",
     "_strategy_read",
     "active_warmup_for_account",
+    "apply_action_preset_use_case",
     "batch_active_warmups_for_accounts",
     "create_warmup_session",
     "create_warmup_session_use_case",
@@ -59,6 +62,7 @@ __all__ = [
     "get_warmup_session_status",
     "is_warmup_active_status",
     "list_warmup_events",
+    "list_action_metadata",
     "list_warmup_session_events_page",
     "list_warmup_sessions",
     "list_warmup_sessions_page",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -49,6 +49,18 @@ class WarmupValidateRead(BaseModel):
 class WarmupSessionCreateRequest(BaseModel):
     account_id: UuidString
     strategy_id: UuidString
+
+
+class WarmupActionPresetRequest(BaseModel):
+    preset: Literal["economic", "all", "minimal"]
+
+
+class WarmupActionMetadataRead(BaseModel):
+    action_type: str
+    category: Literal["reading", "activity", "entertainment", "social", "groups", "profile"]
+    traffic_heavy: bool
+    write_action: bool
+    requires_premium: bool = False
 
 
 class WarmupExecutionModeRead(StrEnum):
@@ -185,6 +197,8 @@ __all__ = [
     "WarmupEventPageRead",
     "WarmupEventRead",
     "WarmupExecutionModeRead",
+    "WarmupActionPresetRequest",
+    "WarmupActionMetadataRead",
     "WarmupIsolationClaimRead",
     "WarmupIsolationStatusRead",
     "WarmupPauseRequest",

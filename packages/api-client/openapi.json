@@ -7068,6 +7068,90 @@
         }
       }
     },
+    "/api/warmup/strategies/{strategy_id}/apply-preset": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Strategy Apply Preset",
+        "operationId": "post_warmup_strategy_apply_preset_api_warmup_strategies__strategy_id__apply_preset_post",
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Strategy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupActionPresetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupStrategyRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup/sessions": {
       "post": {
         "tags": [
@@ -7744,6 +7828,62 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-actions/metadata": {
+      "get": {
+        "tags": [
+          "warmup-actions"
+        ],
+        "summary": "Get Warmup Action Metadata",
+        "operationId": "get_warmup_action_metadata_api_warmup_actions_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupActionMetadataRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Warmup Action Metadata Api Warmup Actions Metadata Get"
                 }
               }
             }
@@ -26997,6 +27137,65 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WarmupActionMetadataRead": {
+        "properties": {
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "reading",
+              "activity",
+              "entertainment",
+              "social",
+              "groups",
+              "profile"
+            ],
+            "title": "Category"
+          },
+          "traffic_heavy": {
+            "type": "boolean",
+            "title": "Traffic Heavy"
+          },
+          "write_action": {
+            "type": "boolean",
+            "title": "Write Action"
+          },
+          "requires_premium": {
+            "type": "boolean",
+            "title": "Requires Premium",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_type",
+          "category",
+          "traffic_heavy",
+          "write_action"
+        ],
+        "title": "WarmupActionMetadataRead"
+      },
+      "WarmupActionPresetRequest": {
+        "properties": {
+          "preset": {
+            "type": "string",
+            "enum": [
+              "economic",
+              "all",
+              "minimal"
+            ],
+            "title": "Preset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preset"
+        ],
+        "title": "WarmupActionPresetRequest"
       },
       "WarmupCheckItemRead": {
         "properties": {

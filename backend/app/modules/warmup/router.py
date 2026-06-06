@@ -16,6 +16,8 @@ from app.db import get_session
 from app.errors import AppError
 from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
+    WarmupActionMetadataRead,
+    WarmupActionPresetRequest,
     WarmupEventPageRead,
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
@@ -33,14 +35,34 @@ from app.modules.auth.dependencies import (
     AuthContext,
     require_authenticated,
     require_mutation_permission,
+    require_role,
 )
 
 
-router = APIRouter(prefix="/api/warmup", tags=["warmup"])
+router = APIRouter()
+warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
+actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 settings = warmup_service.settings
 
 
-@router.get("/readiness", response_model=WarmupReadinessRead)
+@actions_router.get("/metadata", response_model=list[WarmupActionMetadataRead])
+def get_warmup_action_metadata(
+    auth: AuthContext = Depends(require_authenticated),
+) -> list[WarmupActionMetadataRead]:
+    _ = auth
+    return [
+        WarmupActionMetadataRead(
+            action_type=item.action_type,
+            category=item.category,
+            traffic_heavy=item.traffic_heavy,
+            write_action=item.write_action,
+            requires_premium=item.requires_premium,
+        )
+        for item in warmup_service.list_action_metadata()
+    ]
+
+
+@warmup_router.get("/readiness", response_model=WarmupReadinessRead)
 def get_warmup_readiness(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
@@ -48,7 +70,7 @@ def get_warmup_readiness(
     return warmup_service.get_warmup_readiness(session, workspace_id=auth.workspace_id)
 
 
-@router.post("/validate", response_model=WarmupValidateRead)
+@warmup_router.post("/validate", response_model=WarmupValidateRead)
 def post_warmup_validate(
     payload: WarmupValidateRequest,
     session: Session = Depends(get_session),
@@ -62,7 +84,7 @@ def post_warmup_validate(
     )
 
 
-@router.get("/strategies", response_model=list[WarmupStrategyRead])
+@warmup_router.get("/strategies", response_model=list[WarmupStrategyRead])
 def get_warmup_strategies(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
@@ -70,7 +92,29 @@ def get_warmup_strategies(
     return warmup_service.list_warmup_strategies(session, workspace_id=auth.workspace_id)
 
 
-@router.post("/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED)
+@warmup_router.post("/strategies/{strategy_id}/apply-preset", response_model=WarmupStrategyRead)
+def post_warmup_strategy_apply_preset(
+    strategy_id: UUID,
+    payload: WarmupActionPresetRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_role("admin")),
+) -> WarmupStrategyRead:
+    try:
+        return warmup_service.apply_action_preset_use_case(
+            session,
+            strategy_id=str(strategy_id),
+            workspace_id=auth.workspace_id,
+            preset=payload.preset,
+            actor_user_id=auth.user_id,
+        )
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
+
+
+@warmup_router.post(
+    "/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED
+)
 def post_warmup_session(
     payload: WarmupSessionCreateRequest,
     session: Session = Depends(get_session),
@@ -88,7 +132,7 @@ def post_warmup_session(
         raise _warmup_error(exc) from exc
 
 
-@router.get("/sessions", response_model=WarmupSessionPageRead)
+@warmup_router.get("/sessions", response_model=WarmupSessionPageRead)
 def get_warmup_sessions(
     status_filter: list[str] | None = Query(default=None, alias="status"),
     page: int = Query(default=1, ge=1, le=10000),
@@ -105,7 +149,7 @@ def get_warmup_sessions(
     )
 
 
-@router.get("/sessions/{session_id}", response_model=WarmupSessionRead)
+@warmup_router.get("/sessions/{session_id}", response_model=WarmupSessionRead)
 def get_warmup_session_detail(
     session_id: UUID,
     session: Session = Depends(get_session),
@@ -119,7 +163,7 @@ def get_warmup_session_detail(
         raise _warmup_error(exc) from exc
 
 
-@router.get("/sessions/{session_id}/status", response_model=WarmupSessionStatusRead)
+@warmup_router.get("/sessions/{session_id}/status", response_model=WarmupSessionStatusRead)
 def get_warmup_session_status(
     session_id: UUID,
     session: Session = Depends(get_session),
@@ -133,7 +177,7 @@ def get_warmup_session_status(
         raise _warmup_error(exc) from exc
 
 
-@router.put("/sessions/{session_id}/pause", response_model=WarmupSessionRead)
+@warmup_router.put("/sessions/{session_id}/pause", response_model=WarmupSessionRead)
 def put_warmup_session_pause(
     session_id: UUID,
     payload: WarmupPauseRequest,
@@ -152,7 +196,7 @@ def put_warmup_session_pause(
         raise _warmup_error(exc) from exc
 
 
-@router.put("/sessions/{session_id}/resume", response_model=WarmupSessionRead)
+@warmup_router.put("/sessions/{session_id}/resume", response_model=WarmupSessionRead)
 def put_warmup_session_resume(
     session_id: UUID,
     session: Session = Depends(get_session),
@@ -169,7 +213,7 @@ def put_warmup_session_resume(
         raise _warmup_error(exc) from exc
 
 
-@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+@warmup_router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_warmup_session_endpoint(
     session_id: UUID,
     session: Session = Depends(get_session),
@@ -184,7 +228,7 @@ def delete_warmup_session_endpoint(
         raise _warmup_error(exc) from exc
 
 
-@router.get("/sessions/{session_id}/events", response_model=WarmupEventPageRead)
+@warmup_router.get("/sessions/{session_id}/events", response_model=WarmupEventPageRead)
 def get_warmup_session_events(
     session_id: UUID,
     page: int = Query(default=1, ge=1, le=10000),
@@ -204,7 +248,7 @@ def get_warmup_session_events(
         raise _warmup_error(exc) from exc
 
 
-@router.get(
+@warmup_router.get(
     "/isolation/by-account/{account_id}",
     response_model=WarmupIsolationStatusRead,
 )
@@ -232,3 +276,7 @@ def _warmup_error(exc: WarmupError) -> AppError:
         message=exc.legacy_message,
         field_errors=list(exc.field_errors),
     )
+
+
+router.include_router(warmup_router)
+router.include_router(actions_router)

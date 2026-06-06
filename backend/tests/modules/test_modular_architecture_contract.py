@@ -3,6 +3,8 @@ from __future__ import annotations
 import dataclasses
 import inspect
 
+from fastapi.routing import APIRoute
+
 from app.modules import registry
 from app.modules.contracts import FeatureModule, WorkflowArgsMode
 from app.modules.registry import get_workflow_spec, iter_modules, iter_workflows
@@ -55,11 +57,15 @@ def test_module_router_paths_are_lazy_strings() -> None:
 def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
     routers = list(registry.iter_routers())
     prefixes = {router.prefix for router in routers}
+    paths = {
+        route.path for router in routers for route in router.routes if isinstance(route, APIRoute)
+    }
 
     assert "" in prefixes
     assert "/api/account-update" in prefixes
     assert "/api/accounts" in prefixes
-    assert "/api/warmup" in prefixes
+    assert "/api/warmup/readiness" in paths
+    assert "/api/warmup-actions/metadata" in paths
     assert "/api/neuro-commenting" in prefixes
 
 

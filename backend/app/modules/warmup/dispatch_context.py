@@ -18,6 +18,11 @@ from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.p2p import select_eligible_peer
 
 _SEARCH_MESSAGE_QUERIES = ("", "news", "today", "update", "photo", "video", "link")
+_ACTIVITY_CONTENT_SKIP_REASONS = {
+    "vote_poll": "no_open_poll_found",
+    "watch_video": "no_video_found",
+    "listen_voice": "no_voice_found",
+}
 
 
 def _select_chat_target(warmup_session: WarmupSession, *, rng: random.Random) -> str | None:
@@ -197,6 +202,26 @@ def _resolve_action_context(
                 "search_query": _derive_search_query(warmup_session, action_type),
             }
         )
+    if action_type in _ACTIVITY_CONTENT_SKIP_REASONS:
+        if selected_channel_ref is None:
+            return _ActionContextResolution(
+                context=base, skip_reason=_ACTIVITY_CONTENT_SKIP_REASONS[action_type]
+            )
+        if not _is_channel_subscribed(
+            session, warmup_session=warmup_session, channel_ref=selected_channel_ref
+        ):
+            return _ActionContextResolution(
+                context=base, skip_reason=_ACTIVITY_CONTENT_SKIP_REASONS[action_type]
+            )
+        context = {
+            **base,
+            "channel_ref": selected_channel_ref,
+            "history_limit": rng.randint(15, 30),
+            "channel_subscribed": True,
+        }
+        if action_type == "vote_poll":
+            context["safety_hint"] = "avoid_empty_or_new_accounts"
+        return _ActionContextResolution(context=context)
     if action_type == "view_story":
         subscribed = _subscribed_channel_states(
             session,

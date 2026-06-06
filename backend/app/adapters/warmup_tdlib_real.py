@@ -746,6 +746,7 @@ class RealWarmupTdlibAdapter:
         if response.get("@type") == "error":
             return _classify_tdlib_error(response, action_type)
         results = response.get("results")
+        result_items = cast(list[object], results) if isinstance(results, list) else []
         return WarmupActionResult(
             status="ok",
             action_type=action_type,
@@ -753,7 +754,7 @@ class RealWarmupTdlibAdapter:
                 "provider": self.provider_name,
                 "bot_username": bot_username,
                 "query": str(context.get("inline_query") or "cat"),
-                "results_seen": len(results) if isinstance(results, list) else 0,
+                "results_seen": len(result_items),
                 "traffic_heavy": True,
             },
         )
@@ -1156,17 +1157,19 @@ def _animation_file_ids(raw_animations: Any) -> list[int]:
     if not isinstance(raw_animations, list):
         return []
     out: list[int] = []
-    for item in raw_animations:
+    for item in cast(list[object], raw_animations):
         if not isinstance(item, dict):
             continue
-        value = item.get("file_id") or item.get("id")
-        nested = item.get("animation")
+        animation = cast(dict[str, object], item)
+        value = animation.get("file_id") or animation.get("id")
+        nested = animation.get("animation")
         if value is None and isinstance(nested, dict):
-            value = nested.get("id")
-            file_obj = nested.get("animation")
+            nested_animation = cast(dict[str, object], nested)
+            value = nested_animation.get("id")
+            file_obj = nested_animation.get("animation")
             if value is None and isinstance(file_obj, dict):
-                value = file_obj.get("id")
-        if value is not None:
+                value = cast(dict[str, object], file_obj).get("id")
+        if isinstance(value, int | str):
             out.append(int(value))
     return out
 
@@ -1175,11 +1178,12 @@ def _sticker_set_ids(raw_stickers: Any) -> list[int]:
     if not isinstance(raw_stickers, list):
         return []
     out: list[int] = []
-    for sticker in raw_stickers:
+    for sticker in cast(list[object], raw_stickers):
         if not isinstance(sticker, dict):
             continue
-        value = sticker.get("set_id") or sticker.get("setId")
-        if value is not None:
+        sticker_data = cast(dict[str, object], sticker)
+        value = sticker_data.get("set_id") or sticker_data.get("setId")
+        if isinstance(value, int | str):
             out.append(int(value))
     return list(dict.fromkeys(out))
 

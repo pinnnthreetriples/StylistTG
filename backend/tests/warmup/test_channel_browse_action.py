@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
 from app.models import WarmupExecutionMode
+from app.modules.warmup.channel_state import repository as channel_state_repository
 from app.services.warmup_dispatch import process_due_warmup_dispatches
 from tests.helpers.warmup import seed_warmup_session, seed_warmup_strategy
 
@@ -20,6 +21,13 @@ def test_channel_browse_uses_strategy_target_and_executes_mock(db_session) -> No
         daily_action_limits={"1": {"channel_browse": 1}},
     )
     warmup_session = seed_warmup_session(db_session, strategy=strategy, now=NOW)
+    channel_state_repository.upsert_subscribed(
+        db_session,
+        warmup_session.workspace_id,
+        warmup_session.account_id,
+        "@news",
+        now=NOW,
+    )
     adapter = MockWarmupTdlibAdapter(rng_seed=3)
 
     processed = process_due_warmup_dispatches(

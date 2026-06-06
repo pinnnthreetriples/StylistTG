@@ -16,11 +16,12 @@ from app.modules.warmup.cold_soak import (
     is_cold_soak_complete,
     record_cold_soak_in_progress,
 )
+from app.modules.warmup.channel_state.repository import get_states_for_account
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
 
 from .dispatch_actions import _dispatch_action
-from .dispatch_context import _pause_if_blocked_by_safety_gate
+from .dispatch_context import _pause_if_blocked_by_safety_gate, _target_channel_refs
 from .dispatch_results import (
     _complete_dispatch_session,
     _record_dispatch_action_failure,
@@ -36,7 +37,7 @@ from .dispatch_schedule import (
     _resolve_day_counters,
     _resolve_day_plan,
     _schedule_within_day,
-    _select_actions_for_window,
+    _select_action_targets,
 )
 
 _LIVE_EXECUTION_MODES: frozenset[str] = frozenset(
@@ -109,8 +110,21 @@ def _process_one_dispatch(
 
     plan_for_day = _resolve_day_plan(warmup_session)
     counters_for_day = _resolve_day_counters(warmup_session)
-
-    pending_actions = _select_actions_for_window(plan_for_day, counters_for_day, rng=rng)
+    available_targets = _target_channel_refs(warmup_session)
+    channel_states = get_states_for_account(
+        session,
+        warmup_session.workspace_id,
+        warmup_session.account_id,
+        available_targets,
+    )
+    selected_actions = _select_action_targets(
+        plan_for_day,
+        counters_for_day,
+        channel_states=channel_states,
+        available_targets=available_targets,
+        rng=rng,
+        now=now,
+    )
 
     write_warmup_event(
         session,
@@ -119,19 +133,29 @@ def _process_one_dispatch(
         {
             "day": warmup_session.current_day,
             "execution_mode": warmup_session.execution_mode,
-            "planned_actions": list(pending_actions),
+            "planned_actions": [selection.action_type for selection in selected_actions],
+            "planned_action_targets": [
+                {
+                    "action_type": selection.action_type,
+                    "channel_ref": selection.channel_ref,
+                    "metadata": dict(selection.metadata),
+                }
+                for selection in selected_actions
+            ],
         },
     )
 
     performed_actions: list[str] = []
     failed_actions: list[dict[str, Any]] = []
 
-    if pending_actions:
-        for action_type in pending_actions:
+    if selected_actions:
+        for selection in selected_actions:
+            action_type = selection.action_type
             action_result = _dispatch_action(
                 session,
                 warmup_session=warmup_session,
                 action_type=action_type,
+                selected_channel_ref=selection.channel_ref,
                 is_live=is_live,
                 adapter=adapter,
                 rng=rng,

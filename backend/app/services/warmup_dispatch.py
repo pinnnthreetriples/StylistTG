@@ -32,6 +32,7 @@ _resolve_day_counters = getattr(_dispatcher, "_resolve_day_counters")
 _resolve_day_plan = getattr(_dispatcher, "_resolve_day_plan")
 _resolve_timezone = getattr(_dispatcher, "_resolve_timezone")
 _schedule_within_day = getattr(_dispatcher, "_schedule_within_day")
+_select_action_targets = getattr(_dispatcher, "_select_action_targets")
 _select_actions_for_window = getattr(_dispatcher, "_select_actions_for_window")
 _select_chat_target = getattr(_dispatcher, "_select_chat_target")
 
@@ -57,6 +58,7 @@ __all__ = [
     "_resolve_day_plan",
     "_resolve_timezone",
     "_schedule_within_day",
+    "_select_action_targets",
     "_select_actions_for_window",
     "_select_chat_target",
     "process_due_warmup_dispatches",

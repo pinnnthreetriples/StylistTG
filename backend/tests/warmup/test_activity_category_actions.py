@@ -3,6 +3,8 @@ from __future__ import annotations
 import random
 from datetime import UTC, datetime
 
+import pytest
+
 from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
 from app.models import WarmupExecutionMode
 from app.modules.warmup.channel_state import repository as channel_state_repository
@@ -90,7 +92,32 @@ def test_real_adapter_vote_poll_uses_poll_answer(monkeypatch) -> None:
     assert result.metadata["safety_hint"] == "avoid_empty_or_new_accounts"
 
 
-def test_real_adapter_watch_video_gets_file_and_opens_content(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("action_type", "message_id", "content", "file_id"),
+    [
+        (
+            "watch_video",
+            20,
+            {
+                "@type": "messageVideo",
+                "video": {"video": {"id": 777}},
+            },
+            777,
+        ),
+        (
+            "listen_voice",
+            30,
+            {
+                "@type": "messageVoiceNote",
+                "voice_note": {"voice": {"id": 888}},
+            },
+            888,
+        ),
+    ],
+)
+def test_real_adapter_activity_media_gets_file_and_opens_content(
+    monkeypatch, action_type: str, message_id: int, content: dict[str, object], file_id: int
+) -> None:
     client = _ProgrammableTdlibClient(
         receive_queue=[_ready_event()],
         responses=[
@@ -99,15 +126,12 @@ def test_real_adapter_watch_video_gets_file_and_opens_content(monkeypatch) -> No
                 "@type": "messages",
                 "messages": [
                     {
-                        "id": 20,
-                        "content": {
-                            "@type": "messageVideo",
-                            "video": {"video": {"id": 777}},
-                        },
+                        "id": message_id,
+                        "content": content,
                     }
                 ],
             },
-            {"@type": "file", "id": 777},
+            {"@type": "file", "id": file_id},
             {"@type": "ok"},
         ],
     )
@@ -115,7 +139,7 @@ def test_real_adapter_watch_video_gets_file_and_opens_content(monkeypatch) -> No
     try:
         result = adapter.execute_action(
             account_id="acc-1",
-            action_type="watch_video",
+            action_type=action_type,
             context={"channel_ref": "@news"},
         )
     finally:
@@ -128,51 +152,8 @@ def test_real_adapter_watch_video_gets_file_and_opens_content(monkeypatch) -> No
         "getFile",
         "openMessageContent",
     ]
-    assert client.queries[2]["file_id"] == 777
-    assert client.queries[3]["message_id"] == 20
-    assert result.metadata["traffic_heavy"] is True
-
-
-def test_real_adapter_listen_voice_gets_file_and_opens_content(monkeypatch) -> None:
-    client = _ProgrammableTdlibClient(
-        receive_queue=[_ready_event()],
-        responses=[
-            {"@type": "chat", "id": -100_42},
-            {
-                "@type": "messages",
-                "messages": [
-                    {
-                        "id": 30,
-                        "content": {
-                            "@type": "messageVoiceNote",
-                            "voice_note": {"voice": {"id": 888}},
-                        },
-                    }
-                ],
-            },
-            {"@type": "file", "id": 888},
-            {"@type": "ok"},
-        ],
-    )
-    adapter = _make_real_adapter(client, monkeypatch)
-    try:
-        result = adapter.execute_action(
-            account_id="acc-1",
-            action_type="listen_voice",
-            context={"channel_ref": "@news"},
-        )
-    finally:
-        adapter.close()
-
-    assert result.is_ok
-    assert [query["@type"] for query in client.queries] == [
-        "searchPublicChat",
-        "getChatHistory",
-        "getFile",
-        "openMessageContent",
-    ]
-    assert client.queries[2]["file_id"] == 888
-    assert client.queries[3]["message_id"] == 30
+    assert client.queries[2]["file_id"] == file_id
+    assert client.queries[3]["message_id"] == message_id
     assert result.metadata["traffic_heavy"] is True
 
 

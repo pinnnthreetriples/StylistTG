@@ -940,12 +940,16 @@ def _message_ids(raw_messages: Any) -> list[int]:
 def _messages(raw_messages: Any) -> list[dict[str, Any]]:
     if not isinstance(raw_messages, list):
         return []
-    return [message for message in raw_messages if isinstance(message, dict)]
+    return [
+        cast(dict[str, Any], message)
+        for message in cast(list[Any], raw_messages)
+        if isinstance(message, dict)
+    ]
 
 
 def _message_content(message: dict[str, Any]) -> dict[str, Any]:
     content = message.get("content")
-    return content if isinstance(content, dict) else {}
+    return cast(dict[str, Any], content) if isinstance(content, dict) else {}
 
 
 def _open_poll_candidate(message: dict[str, Any]) -> bool:
@@ -953,7 +957,7 @@ def _open_poll_candidate(message: dict[str, Any]) -> bool:
     if content.get("@type") != "messagePoll":
         return False
     poll = content.get("poll")
-    if isinstance(poll, dict) and poll.get("is_closed") is True:
+    if isinstance(poll, dict) and cast(dict[str, Any], poll).get("is_closed") is True:
         return False
     return bool(_poll_option_ids(content))
 
@@ -974,14 +978,16 @@ def _poll_option_ids(content: dict[str, Any]) -> list[str]:
     poll = content.get("poll")
     if not isinstance(poll, dict):
         return []
-    options = poll.get("options")
+    poll_data = cast(dict[str, Any], poll)
+    options = poll_data.get("options")
     if not isinstance(options, list):
         return []
     out: list[str] = []
-    for index, option in enumerate(options):
+    for index, option in enumerate(cast(list[Any], options)):
         if not isinstance(option, dict):
             continue
-        value = option.get("id") or option.get("data") or option.get("option_id")
+        option_data = cast(dict[str, Any], option)
+        value = option_data.get("id") or option_data.get("data") or option_data.get("option_id")
         out.append(str(value if value is not None else index))
     return out
 
@@ -997,7 +1003,7 @@ def _content_file_id(content: dict[str, Any]) -> int | None:
             if not isinstance(value, dict):
                 value = None
                 break
-            value = value.get(key)
+            value = cast(dict[str, Any], value).get(key)
         if value is not None:
             return int(value)
     return None

@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Account, AccountOperationCooldown, AccountState, Job, JobState, utc_now
-from app.modules.account_shared.interfaces import list_workspace_accounts
+from app.modules.account_shared.accounts import list_workspace_accounts
 
 READINESS_LEVELS = ("low", "medium", "high", "critical")
 

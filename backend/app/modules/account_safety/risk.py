@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.modules.account_shared.readiness_risk import (
+from app.modules.account_shared.interfaces import (
     build_account_readiness_risk,
     build_account_readiness_risk_summary,
 )

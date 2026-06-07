@@ -25,6 +25,7 @@ def detect_idle_accounts(
     cutoff = now - timedelta(minutes=threshold_minutes)
     active_jobs = (
         select(Job.id)
+        .where(Job.workspace_id == workspace_id)
         .where(Job.workspace_id == Account.workspace_id)
         .where(Job.account_id == Account.id)
         .where(Job.job_state.in_(ACTIVE_JOB_STATES))
@@ -32,6 +33,7 @@ def detect_idle_accounts(
     )
     recent_jobs = (
         select(Job.id)
+        .where(Job.workspace_id == workspace_id)
         .where(Job.workspace_id == Account.workspace_id)
         .where(Job.account_id == Account.id)
         .where(
@@ -45,6 +47,7 @@ def detect_idle_accounts(
     )
     active_warmup = (
         select(WarmupSession.id)
+        .where(WarmupSession.workspace_id == workspace_id)
         .where(WarmupSession.workspace_id == Account.workspace_id)
         .where(WarmupSession.account_id == Account.id)
         .where(WarmupSession.status.in_([state.value for state in ACTIVE_WARMUP_STATUSES]))
@@ -66,7 +69,9 @@ def detect_idle_accounts(
 def list_idle_candidate_workspaces(session: Session) -> list[str]:
     return list(
         session.execute(
-            select(Account.workspace_id)
+            select(  # nosemgrep: missing-workspace-id-filter-projection - scheduler fan-out intentionally enumerates active workspaces.
+                Account.workspace_id
+            )
             .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
             .distinct()
             .order_by(Account.workspace_id.asc())

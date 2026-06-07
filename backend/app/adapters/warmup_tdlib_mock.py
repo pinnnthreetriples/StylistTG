@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnknownVariableType=false
+
 import random
 from typing import Any, cast
 

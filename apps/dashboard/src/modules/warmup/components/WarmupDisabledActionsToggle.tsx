@@ -1,10 +1,15 @@
 import { Alert, Button, SectionCard } from '@stylisttg/ui'
 import { RotateCcw, Save } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { useUpdateWarmupDisabledActions } from '../hooks'
 import type { WarmupActionCategory, WarmupActionMetadata } from '../types'
 import { ActionCategoryHeader } from './ActionCategoryHeader'
+import {
+  groupActionMetadata,
+  hasAtLeastOneEnabled,
+  normalizeDisabledActions,
+} from './warmupDisabledActions'
 
 const CATEGORY_ORDER: WarmupActionCategory[] = [
   'reading',
@@ -26,19 +31,38 @@ export function WarmupDisabledActionsToggle({
   metadata: WarmupActionMetadata[]
   isMetadataLoading?: boolean
 }) {
-  const mutation = useUpdateWarmupDisabledActions()
-  const grouped = useMemo(() => groupActionMetadata(metadata), [metadata])
-  const [draft, setDraft] = useState<string[]>(() => normalizeDisabledActions(disabledActions, metadata))
   const normalizedSaved = useMemo(
     () => normalizeDisabledActions(disabledActions, metadata),
     [disabledActions, metadata],
   )
+  return (
+    <WarmupDisabledActionsForm
+      key={normalizedSaved.join('\u0000')}
+      disabledActions={normalizedSaved}
+      isMetadataLoading={isMetadataLoading}
+      metadata={metadata}
+      sessionId={sessionId}
+    />
+  )
+}
+
+function WarmupDisabledActionsForm({
+  sessionId,
+  disabledActions,
+  metadata,
+  isMetadataLoading,
+}: {
+  sessionId: string
+  disabledActions: string[]
+  metadata: WarmupActionMetadata[]
+  isMetadataLoading?: boolean
+}) {
+  const mutation = useUpdateWarmupDisabledActions()
+  const grouped = useMemo(() => groupActionMetadata(metadata), [metadata])
+  const [draft, setDraft] = useState<string[]>(() => disabledActions)
+  const normalizedSaved = disabledActions
   const hasChanges = !sameActions(draft, normalizedSaved)
   const hasEnabledAction = hasAtLeastOneEnabled(metadata, draft)
-
-  useEffect(() => {
-    setDraft(normalizedSaved)
-  }, [normalizedSaved])
 
   return (
     <SectionCard title="Отключённые действия" description="Текущая сессия">
@@ -104,26 +128,6 @@ export function WarmupDisabledActionsToggle({
       </div>
     </SectionCard>
   )
-}
-
-export function groupActionMetadata(metadata: WarmupActionMetadata[]) {
-  return metadata.reduce(
-    (groups, item) => {
-      groups[item.category] = [...(groups[item.category] ?? []), item]
-      return groups
-    },
-    {} as Partial<Record<WarmupActionCategory, WarmupActionMetadata[]>>,
-  )
-}
-
-export function normalizeDisabledActions(actions: string[], metadata: WarmupActionMetadata[]) {
-  const requested = new Set(actions)
-  return metadata.map((item) => item.action_type).filter((actionType) => requested.has(actionType))
-}
-
-export function hasAtLeastOneEnabled(metadata: WarmupActionMetadata[], disabledActions: string[]) {
-  const disabled = new Set(disabledActions)
-  return metadata.some((item) => !disabled.has(item.action_type))
 }
 
 function toggleAction(actions: string[], actionType: string, checked: boolean) {

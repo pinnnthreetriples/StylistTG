@@ -3,12 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
 
 import type { WarmupActionMetadata } from '../types'
+import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
 import {
-  WarmupDisabledActionsToggle,
   groupActionMetadata,
   hasAtLeastOneEnabled,
   normalizeDisabledActions,
-} from './WarmupDisabledActionsToggle'
+} from './warmupDisabledActions'
 
 const METADATA: WarmupActionMetadata[] = [
   {

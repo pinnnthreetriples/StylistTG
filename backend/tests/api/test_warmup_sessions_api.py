@@ -462,7 +462,9 @@ def test_patch_disabled_actions_endpoint_persists_actions_and_returns_detail(
     assert body["disabled_actions"] == ["react_to_post"]
     db_session.refresh(created)
     assert created.disabled_actions_json == ["react_to_post"]
-    assert db_session.query(WarmupEvent).filter_by(event_type="disabled_actions_updated").count() == 1
+    assert (
+        db_session.query(WarmupEvent).filter_by(event_type="disabled_actions_updated").count() == 1
+    )
 
 
 def test_patch_disabled_actions_alias_rejects_disabling_all_planned_actions(

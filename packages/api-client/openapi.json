@@ -7535,6 +7535,90 @@
         }
       }
     },
+    "/api/warmup/sessions/{session_id}/disabled-actions": {
+      "patch": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Patch Warmup Session Disabled Actions",
+        "operationId": "patch_warmup_session_disabled_actions_api_warmup_sessions__session_id__disabled_actions_patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupDisabledActionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup/sessions/{session_id}/pause": {
       "put": {
         "tags": [
@@ -7884,6 +7968,90 @@
                   },
                   "type": "array",
                   "title": "Response Get Warmup Action Metadata Api Warmup Actions Metadata Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-sessions/{session_id}/disabled-actions": {
+      "patch": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Patch Warmup Session Disabled Actions Alias",
+        "operationId": "patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupDisabledActionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -27243,6 +27411,19 @@
         ],
         "title": "WarmupCheckSeverityRead"
       },
+      "WarmupDisabledActionsRequest": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "title": "WarmupDisabledActionsRequest"
+      },
       "WarmupEventPageRead": {
         "properties": {
           "items": {
@@ -27621,6 +27802,13 @@
             },
             "type": "array",
             "title": "Trusted Peer Ids"
+          },
+          "disabled_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disabled Actions"
           },
           "proxy_snapshot": {
             "anyOf": [

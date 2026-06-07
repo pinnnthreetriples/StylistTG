@@ -13,6 +13,7 @@ from app.models import Account, WarmupPreProductionSession, WarmupSession, new_i
 from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.account_shared.interfaces import lookup_account
+from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.events import write_warmup_event
 
 
@@ -21,8 +22,14 @@ COMPLETED_STATUS = "completed"
 FAILED_STATUS = "failed"
 
 
-class PreProductionRejectedError(ValueError):
-    pass
+class PreProductionRejectedError(WarmupError):
+    def __init__(self, legacy_message: str) -> None:
+        super().__init__(
+            legacy_message,
+            error_code="PRE_PRODUCTION_REJECTED",
+            error_class="state_conflict",
+            status_code=409,
+        )
 
 
 def start_pre_production(

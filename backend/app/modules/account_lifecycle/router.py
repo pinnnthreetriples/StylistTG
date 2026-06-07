@@ -33,6 +33,7 @@ from app.modules.warmup.interfaces import (
     get_pre_production_status,
     start_pre_production,
 )
+from app.modules.warmup.errors import WarmupError
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -80,6 +81,13 @@ def post_account_pre_production_start(
                 session, account_id=account_id, workspace_id=auth.workspace_id
             )
         )
+    except WarmupError as exc:
+        raise AppError(
+            status_code=exc.status_code or status.HTTP_400_BAD_REQUEST,
+            error_code=exc.error_code,
+            error_class=exc.error_class,
+            message=exc.legacy_message,
+        ) from exc
     except ValueError as exc:
         message = str(exc)
         if message == "account not found":

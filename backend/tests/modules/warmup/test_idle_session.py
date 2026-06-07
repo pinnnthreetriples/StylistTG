@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import Settings
 from app.models import AccountLifecycleEvent, Job, JobState, WarmupEvent, WarmupSession, new_id
 from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.warmup.idle_session import (
@@ -31,7 +34,7 @@ def test_idle_sweep_disabled_by_default_does_nothing(db_session: Session) -> Non
         db_session,
         workspace_id=account.workspace_id,
         now=NOW,
-        config=SimpleNamespace(
+        config=_idle_config(
             warmup_idle_detection_enabled=False,
             warmup_idle_threshold_minutes=60,
         ),
@@ -52,7 +55,7 @@ def test_idle_sweep_transitions_active_account_and_creates_read_only_session(
         db_session,
         workspace_id=account.workspace_id,
         now=NOW,
-        config=SimpleNamespace(
+        config=_idle_config(
             warmup_idle_detection_enabled=True,
             warmup_idle_threshold_minutes=60,
         ),
@@ -60,7 +63,9 @@ def test_idle_sweep_transitions_active_account_and_creates_read_only_session(
 
     assert processed == 1
     assert account.lifecycle_state == AccountLifecycleState.IDLE.value
-    warmup_session = db_session.scalar(select(WarmupSession).where(WarmupSession.account_id == account.id))
+    warmup_session = db_session.scalar(
+        select(WarmupSession).where(WarmupSession.account_id == account.id)
+    )
     assert warmup_session is not None
     assert warmup_session.lifecycle_state == "idle"
     assert warmup_session.status == "scheduled"
@@ -73,6 +78,20 @@ def test_idle_sweep_transitions_active_account_and_creates_read_only_session(
     assert lifecycle_event is not None
     assert lifecycle_event.from_state == AccountLifecycleState.ACTIVE.value
     assert lifecycle_event.to_state == AccountLifecycleState.IDLE.value
+
+
+def test_create_idle_warmup_session_rejects_non_idle_account(db_session: Session) -> None:
+    account = seed_warmup_account(db_session)
+    account.lifecycle_state = AccountLifecycleState.ACTIVE.value
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="account is not idle"):
+        create_idle_warmup_session(
+            db_session,
+            account_id=account.id,
+            workspace_id=account.workspace_id,
+            now=NOW,
+        )
 
 
 def test_resume_account_from_idle_stops_idle_session_and_returns_active(
@@ -147,6 +166,20 @@ def test_warmup_idle_sweep_workflow_is_registered() -> None:
     workflow_types = {workflow.workflow_type for workflow in module.workflows}
 
     assert "warmup_idle_sweep" in workflow_types
+
+
+def _idle_config(
+    *,
+    warmup_idle_detection_enabled: bool,
+    warmup_idle_threshold_minutes: int,
+) -> Settings:
+    return cast(
+        Settings,
+        SimpleNamespace(
+            warmup_idle_detection_enabled=warmup_idle_detection_enabled,
+            warmup_idle_threshold_minutes=warmup_idle_threshold_minutes,
+        ),
+    )
 
 
 def _warmup_event_types(session: Session, session_id: str) -> list[str]:

@@ -25,6 +25,7 @@ def test_module_names_are_unique_and_expected_modules_exist() -> None:
     assert "account_safety" in names
     assert "account_editing" in names
     assert "account_lifecycle" in names
+    assert "account_survival" in names
     assert "account_profile_completeness" in names
     assert "warmup" in names
     assert "neuro_commenting" in names
@@ -112,16 +113,18 @@ def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     profile_completeness_router = resolve_router(
         "app.modules.account_profile_completeness.router:router"
     )
-    warmup_router = resolve_router("app.modules.warmup.router:router")
+    warmup_aggregate_router = resolve_router("app.modules.warmup.router:router")
     neuro_router = resolve_router("app.modules.neuro_commenting.router:router")
 
     assert safety_router.prefix == ""
     assert account_router.prefix == "/api/account-update"
     assert lifecycle_router.prefix == "/api/accounts"
     assert profile_completeness_router.prefix == "/api/accounts"
-    assert {route.path for route in warmup_router.routes if isinstance(route, APIRoute)} >= {
+    assert warmup_aggregate_router.prefix == ""
+    assert {route.path for route in warmup_aggregate_router.routes if isinstance(route, APIRoute)} >= {
         "/api/warmup/readiness",
         "/api/warmup-actions/metadata",
+        "/api/warmup-sessions/{session_id}/disabled-actions",
     }
     assert neuro_router.prefix == "/api/neuro-commenting"
 

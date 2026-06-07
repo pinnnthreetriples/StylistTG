@@ -91,6 +91,15 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Auth batches
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
+    # Warmup mutating routes promoted after legacy baseline was frozen.
+    (
+        "POST",
+        "/api/warmup/strategies/{strategy_id}/apply-preset",
+        "admin",
+        True,
+    ),
+    ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
+    ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}", "viewer", False),

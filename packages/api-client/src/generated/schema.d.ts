@@ -996,6 +996,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Lifecycle State */
+        get: operations["get_account_lifecycle_state_api_accounts__account_id__lifecycle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/deletion-preview": {
         parameters: {
             query?: never;
@@ -3315,6 +3332,39 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AccountLifecycleEventRead */
+        AccountLifecycleEventRead: {
+            /** Id */
+            id: string;
+            /** From State */
+            from_state?: string | null;
+            /** To State */
+            to_state?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+        };
+        /** AccountLifecycleRead */
+        AccountLifecycleRead: {
+            /** Account Id */
+            account_id: string;
+            /** Lifecycle State */
+            lifecycle_state: string;
+            /** Lifecycle Updated At */
+            lifecycle_updated_at?: string | null;
+            /** History */
+            history: components["schemas"]["AccountLifecycleEventRead"][];
         };
         /** AccountListItemRead */
         AccountListItemRead: {
@@ -11040,6 +11090,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountUpdateJobSummaryRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_lifecycle_state_api_accounts__account_id__lifecycle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountLifecycleRead"];
                 };
             };
             /** @description Bad Request */

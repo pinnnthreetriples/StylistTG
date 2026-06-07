@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from hashlib import sha256
 from typing import Any, cast
@@ -193,7 +193,9 @@ def get_pre_production_status(
         select(WarmupPreProductionSession)
         .where(WarmupPreProductionSession.workspace_id == workspace_id)
         .where(WarmupPreProductionSession.account_id == account_id)
-        .order_by(WarmupPreProductionSession.created_at.desc(), WarmupPreProductionSession.id.desc())
+        .order_by(
+            WarmupPreProductionSession.created_at.desc(), WarmupPreProductionSession.id.desc()
+        )
         .limit(1)
     ).scalar_one_or_none()
     return {
@@ -262,7 +264,9 @@ def _ensure_safety_gate(session: Session, account: Account) -> None:
         intent="warmup",
     )
     if not verdict.eligible:
-        reasons = ",".join(reason.code for reason in verdict.reasons if reason.severity == "blocked")
+        reasons = ",".join(
+            reason.code for reason in verdict.reasons if reason.severity == "blocked"
+        )
         raise PreProductionRejectedError(f"safety gate blocked pre-production: {reasons}")
 
 
@@ -307,7 +311,7 @@ def _duration_hours(config: Any, override: int | None) -> int:
     )
     try:
         value = int(raw)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         value = 2
     return max(1, min(2, value))
 
@@ -332,7 +336,13 @@ def _normalize_target_channels(raw_channels: Sequence[object]) -> list[str]:
     for raw in raw_channels:
         value: object
         if isinstance(raw, dict):
-            value = raw.get("channel_ref") or raw.get("ref") or raw.get("id") or ""
+            raw_channel = cast(Mapping[str, object], raw)
+            value = (
+                raw_channel.get("channel_ref")
+                or raw_channel.get("ref")
+                or raw_channel.get("id")
+                or ""
+            )
         else:
             value = raw
         text = str(value).strip()

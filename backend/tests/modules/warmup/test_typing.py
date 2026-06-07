@@ -23,6 +23,16 @@ def test_compute_typing_duration_clamps_long_text_to_fifteen_seconds() -> None:
     assert duration == 15.0
 
 
+def test_compute_typing_duration_boundary_rejects_negative_text_length() -> None:
+    duration = compute_typing_duration(
+        -20,
+        personality_seed={"typing_speed_cps": 5},
+        rng=random.Random(1),
+    )
+
+    assert duration == 2.0
+
+
 def test_compute_typing_duration_uses_personality_speed_with_jitter() -> None:
     duration = compute_typing_duration(
         60,

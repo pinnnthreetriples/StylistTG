@@ -24,6 +24,20 @@ def test_choose_actions_cold_start_prefers_join_chat_for_target() -> None:
     assert selected == [SelectedAction("join_chat", "@news", {"reason": "not_subscribed"})]
 
 
+def test_choose_actions_boundary_empty_plan_returns_no_actions() -> None:
+    selected = choose_actions(
+        plan={},
+        counters={},
+        channel_states=[],
+        available_targets=["@news"],
+        rng=_AlwaysPick(),
+        now=NOW,
+        max_actions=3,
+    )
+
+    assert selected == []
+
+
 def test_choose_actions_partial_state_skips_repeat_join_and_picks_channel_work() -> None:
     selected = choose_actions(
         plan={"join_chat": 1, "channel_browse": 1, "view_story": 1, "react_to_post": 1},

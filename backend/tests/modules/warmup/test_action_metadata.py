@@ -21,7 +21,7 @@ def test_traffic_heavy_predicate_marks_expected_actions() -> None:
     assert is_traffic_heavy("feed_read") is False
 
 
-def test_traffic_heavy_predicate_rejects_unknown_action() -> None:
+def test_traffic_heavy_invalid_unknown_action_is_false() -> None:
     assert is_traffic_heavy("unknown_action") is False
 
 

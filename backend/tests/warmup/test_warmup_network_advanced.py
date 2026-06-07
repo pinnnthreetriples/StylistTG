@@ -329,8 +329,10 @@ def test_real_adapter_p2p_send_uses_typing_before_sendMessage(monkeypatch) -> No
     assert result.is_ok
     _assert_p2p_typing_flow(client.queries, text="Привет!")
     assert slept == [result.metadata["typing_duration_ms"] / 1000]
-    assert result.metadata["chat_id"] == 555
-    assert result.metadata["text_length"] == len("Привет!")
+    assert {
+        "chat_id": result.metadata["chat_id"],
+        "text_length": result.metadata["text_length"],
+    } == {"chat_id": 555, "text_length": len("Привет!")}
     assert result.metadata["typing_started"] is True
     assert 2_000 <= result.metadata["typing_duration_ms"] <= 15_000
 

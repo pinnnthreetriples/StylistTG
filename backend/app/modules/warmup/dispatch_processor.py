@@ -315,9 +315,7 @@ def _is_flood_wait_failure(action: dict[str, Any]) -> bool:
     return status == "flood_wait" or error_code.startswith("flood_wait")
 
 
-def _write_plan_adjustment_event_if_needed(
-    session: Session, warmup_session: WarmupSession
-) -> None:
+def _write_plan_adjustment_event_if_needed(session: Session, warmup_session: WarmupSession) -> None:
     adjustment = describe_next_day_adjustment(warmup_session)
     event_type = adjustment.event_type
     if event_type is None or not adjustment.is_active:

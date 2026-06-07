@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
-from typing import Any
+from typing import Any, cast
 
 from app.models import WarmupSession
 
@@ -57,9 +57,7 @@ def describe_next_day_adjustment(warmup_session: WarmupSession) -> PlanAdjustmen
     return _adjustment(action_types, ADAPTIVE_ACCELERATE_MULTIPLIER, "3_clean_days")
 
 
-def apply_plan_adjustment(
-    plan: dict[str, int], adjustment: dict[str, float]
-) -> dict[str, int]:
+def apply_plan_adjustment(plan: dict[str, int], adjustment: dict[str, float]) -> dict[str, int]:
     adjusted: dict[str, int] = {}
     for action_type, limit in plan.items():
         multiplier = _clamp_multiplier(adjustment.get(action_type, ADAPTIVE_NEUTRAL_MULTIPLIER))
@@ -75,7 +73,9 @@ def _is_adaptive_enabled(warmup_session: WarmupSession) -> bool:
     if config.get("adaptive_enabled") is True:
         return True
     adaptive = config.get("adaptive")
-    return isinstance(adaptive, dict) and adaptive.get("enabled") is True
+    if not isinstance(adaptive, dict):
+        return False
+    return cast(dict[str, Any], adaptive).get("enabled") is True
 
 
 def _strategy_action_types(warmup_session: WarmupSession) -> list[str]:
@@ -85,7 +85,8 @@ def _strategy_action_types(warmup_session: WarmupSession) -> list[str]:
     for raw in limits.values():
         if not isinstance(raw, dict):
             continue
-        for action_type, limit in raw.items():
+        raw_limits = cast(dict[Any, Any], raw)
+        for action_type, limit in raw_limits.items():
             if not isinstance(action_type, str) or action_type in seen:
                 continue
             if _coerce_int(limit) <= 0:
@@ -105,7 +106,7 @@ def _recent_day_counters(warmup_session: WarmupSession) -> list[dict[str, Any]]:
         raw = counters.get(str(day))
         if not isinstance(raw, dict):
             return []
-        snapshots.append(raw)
+        snapshots.append(cast(dict[str, Any], raw))
     return snapshots
 
 
@@ -121,7 +122,7 @@ def _counter_value(snapshot: dict[str, Any], key: str) -> int:
 def _coerce_int(value: Any) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 

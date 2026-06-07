@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.modules.account_lifecycle.interfaces import AccountLifecycleState, adva
 from app.modules.account_safety.quarantine import create_quarantine
 from app.modules.warmup.cold_soak import advance_from_cold_soak
 from app.modules.warmup.dispatch_results import _complete_dispatch_session
+from app.modules.warmup.errors import WarmupSessionRejectedError
 from app.services.warmup import create_warmup_session
 from tests.helpers.warmup import seed_warmup_account, seed_warmup_strategy
 
@@ -100,6 +102,25 @@ def test_quarantine_moves_active_account_back_to_cold_soak(db_session: Session) 
     assert event is not None
     assert event.from_state == AccountLifecycleState.ACTIVE.value
     assert event.to_state == AccountLifecycleState.COLD_SOAK.value
+
+
+def test_create_warmup_session_denies_workspace_mismatch_boundary(
+    db_session: Session,
+) -> None:
+    account = seed_warmup_account(db_session)
+    strategy = seed_warmup_strategy(db_session, execution_mode=WarmupExecutionMode.DRY_RUN.value)
+
+    with pytest.raises(WarmupSessionRejectedError) as exc_info:
+        create_warmup_session(
+            db_session,
+            account_id=account.id,
+            strategy_id=strategy.id,
+            workspace_id="00000000-0000-4000-8000-000000000099",
+            now=NOW,
+        )
+
+    assert exc_info.value.error_code == "WARMUP_SESSION_REJECTED"
+    assert account.lifecycle_state == AccountLifecycleState.IMPORTED.value
 
 
 def _latest_transition(session: Session, account_id: str) -> AccountLifecycleEvent | None:

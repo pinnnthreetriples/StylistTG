@@ -53,17 +53,16 @@ def detect_idle_accounts(
         .where(WarmupSession.status.in_([state.value for state in ACTIVE_WARMUP_STATUSES]))
         .exists()
     )
-    return list(
-        session.execute(
-            select(Account.id)
-            .where(Account.workspace_id == workspace_id)
-            .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
-            .where(~active_jobs)
-            .where(~recent_jobs)
-            .where(~active_warmup)
-            .order_by(Account.updated_at.asc(), Account.id.asc())
-        ).scalars()
-    )
+    accounts = session.execute(
+        select(Account)
+        .where(Account.workspace_id == workspace_id)
+        .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
+        .where(~active_jobs)
+        .where(~recent_jobs)
+        .where(~active_warmup)
+        .order_by(Account.updated_at.asc(), Account.id.asc())
+    ).scalars()
+    return [account.id for account in accounts]
 
 
 def list_idle_candidate_workspaces(session: Session) -> list[str]:

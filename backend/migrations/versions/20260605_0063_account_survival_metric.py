@@ -10,13 +10,13 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
-from app.models import UUIDString
-
 
 revision = "20260605_0063"
 down_revision = "20260605_0062"
 branch_labels = None
 depends_on = None
+
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
 
 
 def upgrade() -> None:
@@ -45,15 +45,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "account_survival_metric",
-        sa.Column("id", UUIDString, primary_key=True, nullable=False),
-        sa.Column("workspace_id", UUIDString, sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", UUID_STRING, primary_key=True, nullable=False),
+        sa.Column("workspace_id", UUID_STRING, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
-            UUIDString,
+            UUID_STRING,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("warmup_strategy_id", UUIDString, nullable=True),
+        sa.Column("warmup_strategy_id", UUID_STRING, nullable=True),
         sa.Column("warmup_strategy_name", sa.String(length=128), nullable=True),
         sa.Column("imported_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("warmup_started_at", sa.DateTime(timezone=True), nullable=True),

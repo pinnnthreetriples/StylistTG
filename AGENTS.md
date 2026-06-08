@@ -1,7 +1,7 @@
 ---
 name: StylistTG agent anchor
 description: Shared agent entrypoint. Keep in sync with .mex/AGENTS.md and CLAUDE.md.
-last_updated: 2026-05-25
+last_updated: 2026-06-06
 ---
 
 # StylistTG
@@ -19,6 +19,11 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
 - Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
 - When working on a board issue: follow `.mex/patterns/board-workflow.md` for status transitions — move to In Progress at session start, Review after PR with verification, Done only after merge.
+
+## Current State Notes
+
+- **Workspace Safety Policy is temporarily disabled** by developer decision (2026-06-04). The `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED` setting defaults to `True`; every consumer of `get_workspace_safety_policy()` sees a neutral transient policy and the Settings UI shows a "Временно отключено" banner. Re-enable only after per-account behavior (personality seed, channel-state selector, circadian windows) lands. Details and rollback in `docs/runbooks/safety-rollout.md`.
+- Advanced Warmup operator procedures live in `docs/operator/warmup-advanced.md`.
 
 ## Agent skills
 

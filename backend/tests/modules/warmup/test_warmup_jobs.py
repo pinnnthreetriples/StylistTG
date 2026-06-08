@@ -46,6 +46,7 @@ def test_module_dispatch_tick_job_is_no_arg_and_returns_processor_count(monkeypa
             return None
 
     monkeypatch.setattr(jobs, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(dispatcher, "dispatch_stagger_enabled", lambda: False)
     monkeypatch.setattr(dispatcher, "process_due_warmup_dispatches", process_due_warmup_dispatches)
     monkeypatch.setattr(jobs.socket, "gethostname", lambda: "host")
     monkeypatch.setattr(jobs.os, "getpid", lambda: 123)
@@ -53,6 +54,32 @@ def test_module_dispatch_tick_job_is_no_arg_and_returns_processor_count(monkeypa
     assert len(inspect.signature(jobs.run_warmup_dispatch_tick).parameters) == 0
     assert jobs.run_warmup_dispatch_tick() == 5
     assert calls == [("session", "host:123")]
+
+
+def test_module_dispatch_tick_job_uses_stagger_scheduler_when_enabled(monkeypatch) -> None:
+    calls: list[object] = []
+
+    def enqueue_due_warmup_dispatch_sessions(session) -> bool:
+        calls.append(session)
+        return True
+
+    class SessionContext:
+        def __enter__(self):
+            return "session"
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr(jobs, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(dispatcher, "dispatch_stagger_enabled", lambda: True)
+    monkeypatch.setattr(
+        dispatcher,
+        "enqueue_due_warmup_dispatch_sessions",
+        enqueue_due_warmup_dispatch_sessions,
+    )
+
+    assert jobs.run_warmup_dispatch_tick() == 1
+    assert calls == ["session"]
 
 
 def test_legacy_worker_entrypoints_delegate_to_module_jobs(monkeypatch) -> None:

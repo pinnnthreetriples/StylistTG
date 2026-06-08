@@ -185,7 +185,9 @@ def test_record_action_result_success_recovers_channel_health(db_session: Sessio
     ok = WarmupActionResult(status="ok", action_type="channel_browse")
 
     for _ in range(3):
-        record_action_result(db_session, warmup_session, "channel_browse", "channel-a", failed, now=NOW)
+        record_action_result(
+            db_session, warmup_session, "channel_browse", "channel-a", failed, now=NOW
+        )
     snapshot = record_action_result(
         db_session,
         warmup_session,

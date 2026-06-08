@@ -10,6 +10,7 @@ from app.modules.account_safety.policy_repository import (
 )
 from app.modules.account_safety.policy_rules import (
     DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD,
+    DEPRECATED_BEHAVIOR_POLICY_FIELDS,
     PRESET_DEFAULTS,
     PUBLIC_POLICY_FIELDS,
     WorkspaceSafetyMode,
@@ -24,6 +25,7 @@ from app.modules.account_safety.policy_rules import (
 
 __all__ = [
     "DEFAULT_CONSECUTIVE_FAILURE_THRESHOLD",
+    "DEPRECATED_BEHAVIOR_POLICY_FIELDS",
     "PRESET_DEFAULTS",
     "PUBLIC_POLICY_FIELDS",
     "WorkspaceSafetyMode",

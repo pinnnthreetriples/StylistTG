@@ -17,13 +17,13 @@ type SafetyMode = 'conservative' | 'balanced' | 'aggressive'
 const MODE_LABELS: Record<SafetyMode, string> = {
   conservative: 'Conservative',
   balanced: 'Balanced',
-  aggressive: 'Aggressive',
+  aggressive: 'Permissive',
 }
 
-const MODE_TONES: Record<SafetyMode, 'green' | 'amber' | 'red'> = {
+const MODE_TONES: Record<SafetyMode, 'green' | 'amber'> = {
   conservative: 'green',
   balanced: 'amber',
-  aggressive: 'red',
+  aggressive: 'amber',
 }
 
 export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
@@ -40,8 +40,8 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
 
   return (
     <SectionCard
-      title="AI-защита рабочей области"
-      description="Единая policy для задержек, имитации поведения, прогрева, прокси и автопауз."
+      title="Защитные пороги workspace"
+      description="Workspace policy для прогрева, прокси, возраста аккаунта и автопауз."
       actions={
         policy ? (
           <StatusPill tone={temporarilyDisabled ? 'amber' : MODE_TONES[policy.mode as SafetyMode]}>
@@ -61,9 +61,8 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
         >
           <div className="mb-1 font-semibold">Временно отключено</div>
           <p>
-            AI-защита рабочей области неактивна — поведенческие ограничения,
-            тихие часы и автопаузы не применяются. Настройки сохранены и не
-            редактируются до повторного включения.
+            Защитные пороги workspace не применяются. Настройки сохранены и не
+            редактируются, пока включён аварийный kill-switch.
           </p>
         </div>
       ) : (
@@ -80,7 +79,7 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
             >
               <option value="conservative">Conservative</option>
               <option value="balanced">Balanced</option>
-              <option value="aggressive">Aggressive</option>
+              <option value="aggressive">Permissive</option>
             </Select>
           </div>
 
@@ -97,21 +96,21 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <StatusCard
-              label="Задержки"
-              value={`x${formatNumber(policy.delay_multiplier)}`}
-              detail="множитель"
+              label="Прогрев"
+              value={policy.require_warmup_before_commenting ? `${policy.min_warmup_days} д` : 'optional'}
+              detail="перед комментингом"
               tone="neutral"
             />
             <StatusCard
-              label="Скорость ввода"
-              value={formatTypingSpeed(policy.typing_chars_per_minute_min, policy.typing_chars_per_minute_max)}
-              detail="typing"
+              label="Прокси"
+              value={policy.require_healthy_proxy ? 'required' : 'optional'}
+              detail="health gate"
               tone="neutral"
             />
             <StatusCard
-              label="Тихие часы"
-              value={formatQuietHours(policy.quiet_hours_local_start, policy.quiet_hours_local_end)}
-              detail="local time"
+              label="Возраст аккаунта"
+              value={`${policy.min_account_age_hours} ч`}
+              detail="minimum"
               tone="neutral"
             />
             <StatusCard
@@ -122,16 +121,7 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
             />
           </div>
 
-          <div className="grid gap-3 text-sm lg:grid-cols-2">
-            <ParameterList
-              title="Behavior"
-              items={[
-                ['Просмотр профиля', formatPercent(policy.profile_view_probability)],
-                ['Скролл', formatPercent(policy.scroll_probability)],
-                ['Опечатки', formatPercent(policy.typo_probability)],
-                ['Удаление сообщения', formatPercent(policy.message_deletion_probability)],
-              ]}
-            />
+          <div className="text-sm">
             <ParameterList
               title="Protection"
               items={[
@@ -149,7 +139,6 @@ export function SafetyPolicyPanel({ currentUserRole }: SafetyPolicyPanelProps) {
     </SectionCard>
   )
 }
-
 function ParameterList({ title, items }: { title: string; items: Array<[string, string]> }) {
   return (
     <div className="rounded-md border border-border bg-card">
@@ -167,28 +156,4 @@ function ParameterList({ title, items }: { title: string; items: Array<[string, 
       </dl>
     </div>
   )
-}
-
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
-function formatPercent(value: number): string {
-  return `${Math.round(value * 100)}%`
-}
-
-function formatTypingSpeed(min: number | null, max: number | null): string {
-  if (min === null || max === null) return 'disabled'
-  return `${min}-${max} зн/мин`
-}
-
-function formatQuietHours(start: number | null, end: number | null): string {
-  if (start === null || end === null) return 'none'
-  return `${formatMinuteOfDay(start)}-${formatMinuteOfDay(end)}`
-}
-
-function formatMinuteOfDay(value: number): string {
-  const hours = Math.floor(value / 60)
-  const minutes = value % 60
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }

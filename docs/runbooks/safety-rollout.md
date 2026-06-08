@@ -1,27 +1,27 @@
 # Safety Pipeline Rollout
 
-> ⚠️ **Workspace Safety Policy temporarily disabled by developer decision (2026-06-04).**
+> ✅ **Workspace Safety Policy is enabled by default again (2026-06-06).**
 >
 > The kill-switch `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED` defaults to
-> `True`. While set, `get_workspace_safety_policy()` returns a transient
-> neutral policy for every consumer (gate, quarantine, status monitor,
-> neuro_commenting, warmup), so workspace-wide behavioral limits, quiet
-> hours, and auto-pauses do not apply. The Settings panel
+> `False`. When an operator sets it to `true`, `get_workspace_safety_policy()`
+> returns a transient neutral policy for every consumer and the Settings panel
 > `apps/dashboard/src/features/settings/SafetyPolicyPanel.tsx` surfaces this
 > as a "Временно отключено" banner.
 >
-> **Why:** the per-workspace behavioral overlay duplicates per-account
-> personality work scheduled in the advanced warmup roadmap. Re-enable only
-> after per-account behavior (personality seed, channel-state selector,
-> circadian windows) ships and absorbs the behavioral fields.
+> **Behavior fields:** `delay_multiplier`, typing speed, behavior
+> probabilities, and quiet-hour columns remain in the table/API for backward
+> compatibility only. Runtime behavior is driven by per-account personality
+> seed and warmup circadian settings. Workspace safety consumers enforce only
+> protection thresholds such as warmup requirement, proxy health, account age,
+> FloodWait/deleted-comment streaks, quarantine hours, and consecutive failure
+> threshold.
 >
-> **How to re-enable:** set
-> `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=false` (or flip the default
-> in `backend/app/config.py`). No data migration required — persisted policy
-> rows are untouched while the switch is on.
+> **Emergency rollback:** set
+> `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=true`. No data migration is
+> required — persisted policy rows are untouched while the switch is on.
 >
-> **Test posture:** `backend/tests/conftest.py` forces the flag off so the
-> underlying policy logic remains under test.
+> **Test posture:** tests keep the flag off unless they explicitly exercise
+> the kill-switch path.
 
 ## Pre-flight checklist
 

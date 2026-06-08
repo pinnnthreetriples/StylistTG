@@ -113,7 +113,7 @@ def _action_preference(action_type: str, personality_seed: dict[str, Any] | None
         return 1.0
     try:
         return max(0.1, min(3.0, float(raw.get(action_type, 1.0))))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 1.0
 
 

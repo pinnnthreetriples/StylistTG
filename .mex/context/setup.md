@@ -9,8 +9,9 @@ triggers:
 edges:
   - .mex/context/stack.md
   - .mex/context/workers.md
+  - .mex/context/deploy.md
   - README.md
-last_updated: 2026-05-28
+last_updated: 2026-06-08
 ---
 
 # Setup
@@ -45,12 +46,16 @@ cd backend; python -m rq.cli worker profile_jobs --url redis://127.0.0.1:6379/0 
 cd backend; python -m rq.cli worker auth_jobs --url redis://127.0.0.1:6379/0 --worker-class rq.SimpleWorker
 ```
 
-Warmup workers are manual and only needed for warmup testing.
+Warmup, dispatch, lifecycle, maintenance, and neuro-comment workers are manual and only needed for module-specific testing.
 
 ## Port rule
 
 - Dashboard local dev expects backend `8002`.
 - `.env.example` uses `VITE_API_BASE_URL=http://localhost:8002` for dashboard dev.
-- `scripts/start_backend.ps1` and live-validation helper scripts default to `8000`.
+- `scripts/start_backend.ps1` and live-validation helper scripts may use `8000`.
 - Do not blindly replace every `8000` reference; check whether it is live-validation specific.
-- Cloudflare Pages production deploy should track `main` only; PR/preview deployments are disabled in Cloudflare project settings or restricted through branch controls.
+- Use `$ApiBaseUrl` from startup output in runbooks.
+
+## Deploy note
+
+Deploy, cloud, staging, and production-like operations live in `.mex/context/deploy.md`, not this local setup file.

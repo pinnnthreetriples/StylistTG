@@ -121,7 +121,9 @@ def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     assert lifecycle_router.prefix == "/api/accounts"
     assert profile_completeness_router.prefix == "/api/accounts"
     assert warmup_aggregate_router.prefix == ""
-    assert {route.path for route in warmup_aggregate_router.routes if isinstance(route, APIRoute)} >= {
+    assert {
+        route.path for route in warmup_aggregate_router.routes if isinstance(route, APIRoute)
+    } >= {
         "/api/warmup/readiness",
         "/api/warmup-actions/metadata",
         "/api/warmup-sessions/{session_id}/disabled-actions",

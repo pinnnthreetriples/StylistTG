@@ -199,7 +199,10 @@ def _strategy_for_preset(session: Session, *, workspace_id: str, preset: str) ->
     strategy = session.execute(
         select(WarmupStrategy)
         .where(
-            ((WarmupStrategy.workspace_id == workspace_id) | (WarmupStrategy.workspace_id.is_(None))),
+            (
+                (WarmupStrategy.workspace_id == workspace_id)
+                | (WarmupStrategy.workspace_id.is_(None))
+            ),
             WarmupStrategy.preset_kind == preset,
         )
         .order_by(WarmupStrategy.workspace_id.desc().nullslast(), WarmupStrategy.is_preset.desc())
@@ -229,7 +232,9 @@ def _next_window_start(
     return None
 
 
-def _cycle_number(cycle_config: dict[str, Any], window_start: datetime, timezone: str | None) -> int:
+def _cycle_number(
+    cycle_config: dict[str, Any], window_start: datetime, timezone: str | None
+) -> int:
     zone = _zone(timezone)
     started_at = _parse_started_at(cycle_config).astimezone(zone)
     window_local = _aware(window_start).astimezone(zone)
@@ -264,7 +269,7 @@ def _aware(value: datetime) -> datetime:
 def _zone(timezone: str | None) -> ZoneInfo:
     try:
         return ZoneInfo(timezone or "UTC")
-    except (ZoneInfoNotFoundError, AttributeError):
+    except ZoneInfoNotFoundError, AttributeError:
         return ZoneInfo("UTC")
 
 

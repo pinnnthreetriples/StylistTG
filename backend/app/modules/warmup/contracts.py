@@ -101,9 +101,9 @@ class WarmupBootstrapChannelCreate(BaseModel):
 
 
 class WarmupBootstrapChannelPatch(BaseModel):
-    category: (
-        Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None
-    ) = None
+    category: Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None = (
+        None
+    )
     language: str | None = Field(
         default=None, min_length=2, max_length=16, pattern=r"^[A-Za-z][A-Za-z\-]{0,15}$"
     )

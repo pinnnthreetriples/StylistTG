@@ -1013,6 +1013,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/pre-production/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Account Pre Production Start */
+        post: operations["post_account_pre_production_start_api_accounts__account_id__pre_production_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/pre-production/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Pre Production Status */
+        get: operations["get_account_pre_production_status_api_accounts__account_id__pre_production_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/deletion-preview": {
         parameters: {
             query?: never;
@@ -1638,40 +1672,6 @@ export interface paths {
         head?: never;
         /** Patch Warmup Session Disabled Actions Alias */
         patch: operations["patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch"];
-        trace?: never;
-    };
-    "/api/accounts/{account_id}/pre-production/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Account Pre Production Start */
-        post: operations["post_account_pre_production_start_api_accounts__account_id__pre_production_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/accounts/{account_id}/pre-production/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Account Pre Production Status */
-        get: operations["get_account_pre_production_status_api_accounts__account_id__pre_production_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/warmup-bootstrap-channels": {
@@ -3804,6 +3804,34 @@ export interface components {
              */
             can_override: boolean;
         };
+        /** AccountProfileUniquenessMatchRead */
+        AccountProfileUniquenessMatchRead: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Score */
+            score: number;
+            /** Reasons */
+            reasons?: string[];
+        };
+        /** AccountProfileUniquenessRead */
+        AccountProfileUniquenessRead: {
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "ok" | "warning" | "blocked";
+            /** Similar Count */
+            similar_count: number;
+            /** Blocking Count */
+            blocking_count: number;
+            /** Max Score */
+            max_score: number;
+            /** Matches */
+            matches?: components["schemas"]["AccountProfileUniquenessMatchRead"][];
+        };
         /** AccountProxyRead */
         AccountProxyRead: {
             /** Account Id */
@@ -4262,6 +4290,11 @@ export interface components {
             profile_audio?: components["schemas"]["AccountUpdateProfileAudioDesiredState"] | null;
             /** Stories */
             stories?: components["schemas"]["AccountUpdateStoryDesiredState"][];
+            /**
+             * Force Profile Uniqueness
+             * @default false
+             */
+            force_profile_uniqueness: boolean;
         };
         /** AccountUpdateJobSummaryRead */
         AccountUpdateJobSummaryRead: {
@@ -4337,6 +4370,7 @@ export interface components {
             safety_blockers?: string[];
             /** Operation Safety */
             operation_safety?: components["schemas"]["AccountOperationSafetyRead"][];
+            profile_uniqueness?: components["schemas"]["AccountProfileUniquenessRead"] | null;
         };
         /** AccountUpdateProfileAudioDesiredState */
         AccountUpdateProfileAudioDesiredState: {
@@ -11411,6 +11445,130 @@ export interface operations {
             };
         };
     };
+    post_account_pre_production_start_api_accounts__account_id__pre_production_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PreProductionStartRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreProductionStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_pre_production_status_api_accounts__account_id__pre_production_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreProductionStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_account_deletion_preview_api_accounts__account_id__deletion_preview_get: {
         parameters: {
             query?: never;
@@ -13991,130 +14149,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupSessionRead"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_account_pre_production_start_api_accounts__account_id__pre_production_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                account_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PreProductionStartRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreProductionStatusRead"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_account_pre_production_status_api_accounts__account_id__pre_production_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                account_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreProductionStatusRead"];
                 };
             };
             /** @description Bad Request */

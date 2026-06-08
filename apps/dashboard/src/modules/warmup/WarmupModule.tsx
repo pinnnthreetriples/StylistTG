@@ -7,6 +7,7 @@ import { WarmupCreateWizard } from './components/WarmupCreateWizard'
 import { WarmupReadinessBanner } from './components/WarmupReadinessBanner'
 import { WarmupSessionDetail } from './components/WarmupSessionDetail'
 import { WarmupSessionsTable } from './components/WarmupSessionsTable'
+import { WarmupSummaryCards } from './components/WarmupSummaryCards'
 import type { WarmupSessionSummary } from './types'
 
 const EMPTY_SESSIONS: WarmupSessionSummary[] = []
@@ -26,6 +27,13 @@ export function WarmupModule() {
   ).length
   const completedCount = sessions.filter((session) => session.status === 'completed').length
   const failedCount = sessions.filter((session) => session.status === 'failed').length
+  const summaryStatus =
+    readinessQuery.data && (!readinessQuery.data.redis_connected || !readinessQuery.data.database_connected)
+      ? 'OFFLINE'
+      : readinessQuery.data?.workers_enabled && activeCount > 0
+      ? 'RUNNING'
+      : 'STOPPED'
+  const summaryDurationSeconds = computeSummaryDurationSeconds(selectedSession ?? sessions[0] ?? null)
 
   const isDryRun = readinessQuery.data?.dry_run ?? true
   const moduleDescription = isDryRun
@@ -40,6 +48,11 @@ export function WarmupModule() {
         description={moduleDescription}
       />
       <WarmupReadinessBanner readiness={readinessQuery.data} />
+      <WarmupSummaryCards
+        accountCount={sessions.length}
+        durationSeconds={summaryDurationSeconds}
+        status={summaryStatus}
+      />
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard
           icon={<Clock3 className="size-4" />}
@@ -81,4 +94,11 @@ export function WarmupModule() {
       )}
     </div>
   )
+}
+
+function computeSummaryDurationSeconds(session: WarmupSessionSummary | null): number {
+  if (!session) return 0
+  const activeHoursTotal = session.cycle_config?.active_hours_total
+  if (activeHoursTotal && activeHoursTotal > 0) return activeHoursTotal * 3600
+  return Math.max(1, session.duration_days) * Math.max(1, session.cadence_hours) * 3600
 }

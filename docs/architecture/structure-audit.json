@@ -854,12 +854,14 @@
           "backend/app/modules/warmup/errors.py",
           "backend/app/modules/warmup/events.py",
           "backend/app/modules/warmup/idle_session.py",
+          "backend/app/modules/warmup/interfaces.py",
           "backend/app/modules/warmup/isolation.py",
           "backend/app/modules/warmup/jobs.py",
           "backend/app/modules/warmup/module.py",
           "backend/app/modules/warmup/p2p.py",
           "backend/app/modules/warmup/p2p_graph.py",
           "backend/app/modules/warmup/policies.py",
+          "backend/app/modules/warmup/pre_production.py",
           "backend/app/modules/warmup/queries.py",
           "backend/app/modules/warmup/read_models.py",
           "backend/app/modules/warmup/readiness.py",
@@ -2001,6 +2003,7 @@
           "backend/tests/modules/warmup/test_cold_soak.py",
           "backend/tests/modules/warmup/test_disabled_actions.py",
           "backend/tests/modules/warmup/test_idle_session.py",
+          "backend/tests/modules/warmup/test_pre_production.py",
           "backend/tests/modules/warmup/test_typing.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
@@ -2259,7 +2262,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-08T14:19:20Z",
+    "generated_at": "2026-06-08T14:23:25Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2587,7 +2590,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-08T14:19:20Z",
+  "generated_at": "2026-06-08T14:23:25Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4645,12 +4648,14 @@
         "backend/app/modules/warmup/errors.py",
         "backend/app/modules/warmup/events.py",
         "backend/app/modules/warmup/idle_session.py",
+        "backend/app/modules/warmup/interfaces.py",
         "backend/app/modules/warmup/isolation.py",
         "backend/app/modules/warmup/jobs.py",
         "backend/app/modules/warmup/module.py",
         "backend/app/modules/warmup/p2p.py",
         "backend/app/modules/warmup/p2p_graph.py",
         "backend/app/modules/warmup/policies.py",
+        "backend/app/modules/warmup/pre_production.py",
         "backend/app/modules/warmup/queries.py",
         "backend/app/modules/warmup/read_models.py",
         "backend/app/modules/warmup/readiness.py",
@@ -4699,6 +4704,14 @@
           "module": "warmup",
           "queue_name": "warmup_jobs",
           "workflow_type": "warmup_idle_sweep"
+        },
+        {
+          "args_mode": "NONE",
+          "description": "Complete expired empty-profile pre-production sessions.",
+          "handler_path": "app.modules.warmup.jobs:run_warmup_pre_production_sweep",
+          "module": "warmup",
+          "queue_name": "warmup_jobs",
+          "workflow_type": "warmup_pre_production_sweep"
         }
       ]
     }
@@ -5594,7 +5607,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 274,
+      "file_count": 275,
       "path": "backend/tests"
     },
     "docs": {
@@ -5709,6 +5722,14 @@
       "module": "warmup",
       "queue_name": "warmup_jobs",
       "workflow_type": "warmup_idle_sweep"
+    },
+    {
+      "args_mode": "NONE",
+      "description": "Complete expired empty-profile pre-production sessions.",
+      "handler_path": "app.modules.warmup.jobs:run_warmup_pre_production_sweep",
+      "module": "warmup",
+      "queue_name": "warmup_jobs",
+      "workflow_type": "warmup_pre_production_sweep"
     }
   ]
 }

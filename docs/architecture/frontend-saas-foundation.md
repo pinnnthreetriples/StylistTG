@@ -1,6 +1,9 @@
 # Frontend SaaS Foundation
 
-This PR adds a SaaS dashboard foundation without changing backend deployment or live Telegram execution.
+> Status: historical architecture snapshot from the SaaS foundation PR.
+> Current frontend source of truth starts at `.mex/context/frontend.md` and `docs/api/frontend.md`.
+
+This PR added a SaaS dashboard foundation without changing backend deployment or live Telegram execution.
 
 ## Product Zones
 

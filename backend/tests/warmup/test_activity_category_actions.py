@@ -3,8 +3,6 @@ from __future__ import annotations
 import random
 from datetime import UTC, datetime
 
-import pytest
-
 from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
 from app.models import WarmupExecutionMode
 from app.modules.warmup.channel_state import repository as channel_state_repository

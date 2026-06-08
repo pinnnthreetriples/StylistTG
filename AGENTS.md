@@ -1,7 +1,7 @@
 ---
 name: StylistTG agent anchor
-description: Shared agent entrypoint. Keep in sync with .mex/AGENTS.md and CLAUDE.md.
-last_updated: 2026-05-25
+description: Canonical cross-agent startup entrypoint for Codex and other AGENTS.md-aware agents.
+last_updated: 2026-06-08
 ---
 
 # StylistTG
@@ -11,16 +11,17 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 ## Non-Negotiables
 
 - Read `.mex/ROUTER.md` before non-trivial work.
-- Never read, commit, or copy secrets/runtime data; `.env*`, `backend/tdlib/`, logs, and artifacts are local-only unless explicitly approved.
+- Check `.mex/status/current.md` before safety, live TDLib, warmup, deploy, or rollout work.
+- Never read, commit, copy, or summarize secrets/runtime data; `.env*`, `backend/tdlib/`, logs, and artifacts are local-only unless explicitly approved.
 - Do not run live TDLib/Telegram calls or live warmup behavior without explicit operator approval.
-- Ask before `npm install`, `pip install`, file deletion, git push, or production-like operations.
+- Ask before `npm install`, `pip install`, file deletion, git push, branch protection changes, or production-like operations.
 - Make minimal, surgical changes and verify with targeted checks.
-- Use package @stylisttg/ui for dashboard product UI when an equivalent exists.
+- Use package `@stylisttg/ui` for dashboard product UI when an equivalent exists.
 - When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
 - Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
-- When working on a board issue: follow `.mex/patterns/board-workflow.md` for status transitions — move to In Progress at session start, Review after PR with verification, Done only after merge.
+- When working on a board issue, follow `.mex/patterns/board-workflow.md` for status transitions.
 
-## Agent skills
+## Agent Skills
 
 Use only StylistTG project skills from the active agent runtime's project skill directory in this section. Global skills are configured outside this repository and do not need to be repeated here.
 
@@ -36,7 +37,7 @@ Use only StylistTG project skills from the active agent runtime's project skill 
 - `/diagnose`: Use for bugs, failures, regressions, or unclear broken behavior. Reproduce, minimize, hypothesize, instrument, fix, then add regression coverage.
 - `/prototype`: Use for throwaway experiments that answer a design, state, data-model, or UI question before committing to production code.
 - `/improve-codebase-architecture`: Use for architecture reviews, refactoring opportunities, testability improvements, or AI-navigability improvements.
-- `/git-guardrails-claude-code`: Use to set up hooks that block dangerous git commands (push, reset --hard, clean, branch -D) before execution.
+- `/git-guardrails-claude-code`: Use to set up hooks that block dangerous git commands before execution.
 
 ### Product and Issue Workflow
 
@@ -72,13 +73,25 @@ cd backend; python -m ruff check .
 - Do not run `npm run memory:check` after every small code edit, test-only change, typo, local debug step, or purely visual tweak.
 - Prefer `npm run memory:sync:dry-run`; do not run `npm run memory:sync` without explicit user approval.
 
-## Memory
+## Memory Structure
 
-- `.mex/AGENTS.md` is the canonical mex source anchor; root `AGENTS.md` is the Codex-facing copy and root `CLAUDE.md` is the Claude-facing copy.
-- Keep `.mex/AGENTS.md`, root `AGENTS.md`, and root `CLAUDE.md` synchronized when stable agent instructions change.
-- `.mex/ROUTER.md` is the structured memory router and should be read first.
-- `AGENT_HANDOFF.md` is retained as a legacy/full handoff snapshot during migration.
+- `AGENTS.md` is the canonical cross-agent startup anchor.
+- `CLAUDE.md` imports `AGENTS.md` and contains Claude Code-specific notes only.
+- `.mex/AGENTS.md` is a mex compatibility pointer only.
+- `.mex/ROUTER.md` is the structured mex memory router and should be read first for non-trivial work.
+- `.mex/status/current.md` stores temporary project state with review dates.
+- `.mex/context/` stores stable semantic project memory.
+- `.mex/patterns/` stores repeatable procedural workflows.
+- `docs/archive/` stores historical snapshots such as old handoffs.
 - Detailed docs remain in `docs/` and specs remain in `specs/`.
+
+## Memory Update Policy
+
+- Update memory only for stable, reusable project knowledge.
+- Do not store logs, stack traces, raw command output, secrets, local-only artifacts, or one-off task notes in memory.
+- Put temporary rollout state in `.mex/status/current.md` with `review_after`.
+- Put architectural decisions in `.mex/context/decisions.md`.
+- Put repeated workflows in `.mex/patterns/` only after they are useful across tasks.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.adapters.warmup_tdlib import WarmupActionResult
-from app.models import WarmupChannelState, WarmupSession
+from app.models import WarmupChannelState, WarmupEvent, WarmupSession
 from app.modules.warmup.channel_state.contracts import ChannelCapabilities
 from app.modules.warmup.channel_state.service import discover_capabilities, record_action_result
 
@@ -98,6 +98,7 @@ def test_record_action_result_failure_increments_fail_count_without_last_timesta
     assert snapshot.last_react_at is None
     assert row.success_count == 0
     assert row.fail_count == 1
+    assert row.health_score > 0.25
 
 
 def test_record_action_result_reuses_existing_channel_state(db_session: Session) -> None:
@@ -139,6 +140,66 @@ def test_record_action_result_updates_capability_metadata(db_session: Session) -
 
     assert row.has_reactions is True
     assert row.available_reactions_json == ["👍", "🔥"]
+
+
+def test_record_action_result_blacklists_channel_once_below_threshold(
+    db_session: Session,
+) -> None:
+    warmup_session = _warmup_session()
+    result = WarmupActionResult(
+        status="failed",
+        action_type="react_to_post",
+        error_code="REACTIONS_DISABLED",
+    )
+
+    for _ in range(3):
+        record_action_result(
+            db_session,
+            warmup_session,
+            "react_to_post",
+            "channel-a",
+            result,
+            now=NOW,
+        )
+    record_action_result(
+        db_session,
+        warmup_session,
+        "react_to_post",
+        "channel-a",
+        result,
+        now=NOW,
+    )
+
+    row = db_session.execute(select(WarmupChannelState)).scalar_one()
+    events = db_session.query(WarmupEvent).filter_by(event_type="channel_blacklisted").all()
+
+    assert row.health_score < 0.25
+    assert len(events) == 1
+    assert events[0].payload_json["channel_ref"] == "channel-a"
+    assert events[0].payload_json["fail_count"] == 3
+
+
+def test_record_action_result_success_recovers_channel_health(db_session: Session) -> None:
+    warmup_session = _warmup_session()
+    failed = WarmupActionResult(status="failed", action_type="channel_browse")
+    ok = WarmupActionResult(status="ok", action_type="channel_browse")
+
+    for _ in range(3):
+        record_action_result(
+            db_session, warmup_session, "channel_browse", "channel-a", failed, now=NOW
+        )
+    snapshot = record_action_result(
+        db_session,
+        warmup_session,
+        "channel_browse",
+        "channel-a",
+        ok,
+        now=NOW + timedelta(minutes=1),
+    )
+
+    assert snapshot.health_score >= 0.25
+    assert snapshot.success_count == 1
+    assert snapshot.fail_count == 3
 
 
 def _warmup_session() -> WarmupSession:

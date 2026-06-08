@@ -104,6 +104,7 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
         True,
     ),
     ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
+    ("POST", "/api/warmup-sessions/cyclic", "operator", True),
     ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns", "operator", True),

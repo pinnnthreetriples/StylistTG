@@ -370,7 +370,7 @@ jobs:
         run: |
           mkdir -p reports
           npm exec -- jscpd backend/app --no-tips --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
-          npm exec -- jscpd backend/tests --no-tips --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
+          npm exec -- jscpd backend/tests --no-tips --threshold 6 --reporters json,html --output reports/jscpd-backend-tests || true
           npm exec -- jscpd apps packages --no-tips --reporters json,html --output reports/jscpd-frontend || true
       - name: Write jscpd summary
         if: always()

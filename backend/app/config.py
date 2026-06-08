@@ -116,6 +116,8 @@ class Settings(BaseSettings):
     warmup_scheduler_enabled: bool = False
     warmup_scheduler_tick_seconds: int = 60
     warmup_default_duration_days: int = 14
+    warmup_idle_detection_enabled: bool = False
+    warmup_idle_threshold_minutes: int = 60
     warmup_micro_session_min_minutes: int = 2
     warmup_micro_session_max_minutes: int = 7
     warmup_daily_session_min_count: int = 3

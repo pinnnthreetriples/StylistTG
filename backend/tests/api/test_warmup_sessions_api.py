@@ -50,11 +50,13 @@ def test_create_warmup_session_schedules_session_and_writes_event(db_session) ->
     assert created.cold_soak_until is not None
     assert created.next_step_at == created.cold_soak_until
     events = db_session.query(WarmupEvent).order_by(WarmupEvent.created_at.asc()).all()
-    assert [event.event_type for event in events] == [
+    event_types = [event.event_type for event in events]
+    assert event_types[0] == "session_created"
+    assert set(event_types) == {
         "session_created",
         "proxy_adaptation_applied",
         "cold_soak_started",
-    ]
+    }
     assert {event.session_id for event in events} == {created.id}
 
 

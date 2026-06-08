@@ -24,6 +24,8 @@ def test_enqueue_warmup_dispatch_tick_delegates_to_workflow_registry(monkeypatch
         return True
 
     monkeypatch.setattr("app.job_queue.workflows.enqueue_workflow", enqueue_workflow)
+    monkeypatch.setattr("app.config.settings.warmup_connection_stagger_min_seconds", 0)
+    monkeypatch.setattr("app.config.settings.warmup_connection_stagger_max_seconds", 0)
 
     assert rq.enqueue_warmup_dispatch_tick() is True
     assert enqueued == [("warmup_dispatch_tick", "warmup-dispatch-tick")]
@@ -37,5 +39,7 @@ def test_enqueue_warmup_due_sessions_propagates_workflow_failure(monkeypatch) ->
 
 def test_enqueue_warmup_dispatch_tick_propagates_workflow_failure(monkeypatch) -> None:
     monkeypatch.setattr("app.job_queue.workflows.enqueue_workflow", lambda **kwargs: False)
+    monkeypatch.setattr("app.config.settings.warmup_connection_stagger_min_seconds", 0)
+    monkeypatch.setattr("app.config.settings.warmup_connection_stagger_max_seconds", 0)
 
     assert rq.enqueue_warmup_dispatch_tick() is False

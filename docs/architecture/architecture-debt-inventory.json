@@ -1843,6 +1843,7 @@
         "backend/tests/tools/test_weak_response_rules.py",
         "backend/tests/warmup/test_activity_category_actions.py",
         "backend/tests/warmup/test_channel_browse_action.py",
+        "backend/tests/warmup/test_enqueue_stagger.py",
         "backend/tests/warmup/test_entertainment_category_actions.py",
         "backend/tests/warmup/test_groups_category_actions.py",
         "backend/tests/warmup/test_inflight_migration_compat.py",
@@ -1996,7 +1997,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-08T18:10:45Z",
+  "generated_at": "2026-06-08T18:46:18Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

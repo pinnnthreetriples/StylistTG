@@ -5,6 +5,7 @@ from app.job_queue import workflows
 
 WARMUP_DUE_SESSIONS_JOB_ID = "warmup-due-sessions"
 WARMUP_DISPATCH_TICK_JOB_ID = "warmup-dispatch-tick"
+WARMUP_DISPATCH_SESSION_JOB_ID_PREFIX = "warmup-dispatch-session"
 WARMUP_IDLE_SWEEP_JOB_ID = "warmup-idle-sweep"
 
 
@@ -30,6 +31,7 @@ def enqueue_warmup_idle_sweep() -> bool:
 
 
 __all__ = [
+    "WARMUP_DISPATCH_SESSION_JOB_ID_PREFIX",
     "WARMUP_DISPATCH_TICK_JOB_ID",
     "WARMUP_DUE_SESSIONS_JOB_ID",
     "WARMUP_IDLE_SWEEP_JOB_ID",

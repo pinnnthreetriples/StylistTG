@@ -192,6 +192,7 @@ Transition owners:
 - `<backend/app/modules/warmup/circadian/windows.py>` owns default human-hour weights and deterministic lazy days; dispatch scheduling uses it when `warmup_circadian_enabled=true` while preserving global quiet-hours.
 - `<backend/app/modules/warmup/circadian/personality.py>` owns per-session account personality seeds. New sessions store a deterministic `personality_seed_json`; in-flight sessions with `{}` keep default selector, circadian, typing, and reaction behavior.
 - `<backend/app/modules/warmup/proxy_adaptation.py>` owns proxy-category presets. New sessions auto-disable traffic-heavy actions for mobile/residential proxies through `disabled_actions_json` and emit `proxy_adaptation_applied`; datacenter keeps the full action set.
+- `<backend/app/modules/warmup/enqueue.py>` owns connection stagger. When stagger settings are non-zero, live warmup dispatches are scheduled as per-session RQ `enqueue_at` jobs with 15-30 second gaps inside each workspace; `stagger=0` preserves the legacy scanner workflow.
 
 Every transition writes an `account.lifecycle.transition` event with `from_state`,
 `to_state`, `reason`, `actor_user_id`, and sanitized payload metadata. Terminal states

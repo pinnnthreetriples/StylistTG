@@ -60,7 +60,9 @@ def test_idle_sweep_transitions_active_account_and_creates_read_only_session(
 
     assert processed == 1
     assert account.lifecycle_state == AccountLifecycleState.IDLE.value
-    warmup_session = db_session.scalar(select(WarmupSession).where(WarmupSession.account_id == account.id))
+    warmup_session = db_session.scalar(
+        select(WarmupSession).where(WarmupSession.account_id == account.id)
+    )
     assert warmup_session is not None
     assert warmup_session.lifecycle_state == "idle"
     assert warmup_session.status == "scheduled"

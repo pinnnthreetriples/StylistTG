@@ -205,12 +205,9 @@ def _dispatch_session_due(warmup_session: WarmupSession, now: datetime) -> bool:
     if warmup_session.status in {WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value}:
         return _is_due_at(warmup_session.next_micro_session_at, now)
     if warmup_session.status == WarmupStatus.COLD_SOAK.value:
-        return (
-            _is_due_at(warmup_session.next_micro_session_at, now)
-            or (
-                warmup_session.cold_soak_until is not None
-                and _is_due_at(warmup_session.cold_soak_until, now)
-            )
+        return _is_due_at(warmup_session.next_micro_session_at, now) or (
+            warmup_session.cold_soak_until is not None
+            and _is_due_at(warmup_session.cold_soak_until, now)
         )
     return False
 

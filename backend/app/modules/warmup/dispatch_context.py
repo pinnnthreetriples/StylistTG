@@ -74,9 +74,7 @@ def _subscribed_channel_states(
         refs,
     )
     return [
-        state
-        for state in states
-        if state.subscribed_at is not None and is_channel_healthy(state)
+        state for state in states if state.subscribed_at is not None and is_channel_healthy(state)
     ]
 
 

@@ -35,7 +35,9 @@ def upgrade() -> None:
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("last_interaction_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint("account_id != friend_account_id", name="ck_warmup_p2p_friend_not_self"),
         sa.UniqueConstraint(

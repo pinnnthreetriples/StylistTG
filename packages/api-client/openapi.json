@@ -4900,6 +4900,408 @@
         }
       }
     },
+    "/api/accounts/{account_id}/generate-bio": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Generate Bio",
+        "operationId": "post_generate_bio_api_accounts__account_id__generate_bio_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIProfileGenerateBioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIProfileGenerateBioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/generate-avatar": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Generate Avatar",
+        "operationId": "post_generate_avatar_api_accounts__account_id__generate_avatar_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIProfileGenerateAvatarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIProfileGenerateAvatarRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/lifecycle": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Lifecycle State",
+        "operationId": "get_account_lifecycle_state_api_accounts__account_id__lifecycle_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountLifecycleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/pre-production/start": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Account Pre Production Start",
+        "operationId": "post_account_pre_production_start_api_accounts__account_id__pre_production_start_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PreProductionStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreProductionStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/pre-production/status": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Pre Production Status",
+        "operationId": "get_account_pre_production_status_api_accounts__account_id__pre_production_status_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreProductionStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/deletion-preview": {
       "get": {
         "tags": [
@@ -7068,6 +7470,90 @@
         }
       }
     },
+    "/api/warmup/strategies/{strategy_id}/apply-preset": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Strategy Apply Preset",
+        "operationId": "post_warmup_strategy_apply_preset_api_warmup_strategies__strategy_id__apply_preset_post",
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Strategy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupActionPresetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupStrategyRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup/sessions": {
       "post": {
         "tags": [
@@ -7451,6 +7937,90 @@
         }
       }
     },
+    "/api/warmup/sessions/{session_id}/disabled-actions": {
+      "patch": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Patch Warmup Session Disabled Actions",
+        "operationId": "patch_warmup_session_disabled_actions_api_warmup_sessions__session_id__disabled_actions_patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupDisabledActionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup/sessions/{session_id}/pause": {
       "put": {
         "tags": [
@@ -7734,6 +8304,597 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WarmupIsolationStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-actions/metadata": {
+      "get": {
+        "tags": [
+          "warmup-actions"
+        ],
+        "summary": "Get Warmup Action Metadata",
+        "operationId": "get_warmup_action_metadata_api_warmup_actions_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupActionMetadataRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Warmup Action Metadata Api Warmup Actions Metadata Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-sessions/cyclic": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Cyclic Sessions",
+        "operationId": "post_warmup_cyclic_sessions_api_warmup_sessions_cyclic_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupCyclicCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupCyclicCreateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-sessions/{session_id}/disabled-actions": {
+      "patch": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Patch Warmup Session Disabled Actions Alias",
+        "operationId": "patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupDisabledActionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-bootstrap-channels": {
+      "get": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Get Warmup Bootstrap Channels",
+        "operationId": "get_warmup_bootstrap_channels_api_warmup_bootstrap_channels_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                  },
+                  "title": "Response Get Warmup Bootstrap Channels Api Warmup Bootstrap Channels Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Post Warmup Bootstrap Channel",
+        "operationId": "post_warmup_bootstrap_channel_api_warmup_bootstrap_channels_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupBootstrapChannelCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-bootstrap-channels/{channel_id}": {
+      "patch": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Patch Warmup Bootstrap Channel",
+        "operationId": "patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Channel Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupBootstrapChannelPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-selectable-accounts": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Selectable Accounts",
+        "operationId": "get_warmup_selectable_accounts_api_warmup_selectable_accounts_get",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Search",
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Country",
+              "type": "string",
+              "maxLength": 8
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Role",
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "proxy_ok_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Proxy Ok Only"
+            }
+          },
+          {
+            "name": "hide_in_work",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Hide In Work"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 500,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupSelectableAccountRead"
+                  },
+                  "title": "Response Get Warmup Selectable Accounts Api Warmup Selectable Accounts Get"
                 }
               }
             }
@@ -15084,6 +16245,107 @@
   },
   "components": {
     "schemas": {
+      "AIProfileGenerateAvatarRead": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "mime": {
+            "type": "string",
+            "title": "Mime"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "uniqueness": {
+            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "provider",
+          "model",
+          "mime",
+          "attempts",
+          "uniqueness"
+        ],
+        "title": "AIProfileGenerateAvatarRead"
+      },
+      "AIProfileGenerateAvatarRequest": {
+        "properties": {
+          "persona_hints": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Persona Hints"
+          }
+        },
+        "type": "object",
+        "title": "AIProfileGenerateAvatarRequest"
+      },
+      "AIProfileGenerateBioRead": {
+        "properties": {
+          "bio": {
+            "type": "string",
+            "title": "Bio"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "uniqueness": {
+            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bio",
+          "provider",
+          "model",
+          "attempts",
+          "uniqueness"
+        ],
+        "title": "AIProfileGenerateBioRead"
+      },
+      "AIProfileGenerateBioRequest": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "ru"
+          },
+          "persona_hints": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Persona Hints"
+          }
+        },
+        "type": "object",
+        "title": "AIProfileGenerateBioRequest"
+      },
       "AccountBatchSafetyItemRead": {
         "properties": {
           "account_id": {
@@ -15953,6 +17215,113 @@
           "updated_at"
         ],
         "title": "AccountImportItemRead"
+      },
+      "AccountLifecycleEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "from_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From State"
+          },
+          "to_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To State"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "occurred_at",
+          "payload"
+        ],
+        "title": "AccountLifecycleEventRead"
+      },
+      "AccountLifecycleRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "lifecycle_state": {
+            "type": "string",
+            "title": "Lifecycle State"
+          },
+          "lifecycle_updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifecycle Updated At"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AccountLifecycleEventRead"
+            },
+            "type": "array",
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "lifecycle_state",
+          "history"
+        ],
+        "title": "AccountLifecycleRead"
       },
       "AccountListItemRead": {
         "properties": {
@@ -17086,6 +18455,72 @@
           "state"
         ],
         "title": "AccountOperationSafetyRead"
+      },
+      "AccountProfileUniquenessMatchRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "score"
+        ],
+        "title": "AccountProfileUniquenessMatchRead"
+      },
+      "AccountProfileUniquenessRead": {
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warning",
+              "blocked"
+            ],
+            "title": "Severity"
+          },
+          "similar_count": {
+            "type": "integer",
+            "title": "Similar Count"
+          },
+          "blocking_count": {
+            "type": "integer",
+            "title": "Blocking Count"
+          },
+          "max_score": {
+            "type": "number",
+            "title": "Max Score"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/AccountProfileUniquenessMatchRead"
+            },
+            "type": "array",
+            "title": "Matches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "severity",
+          "similar_count",
+          "blocking_count",
+          "max_score"
+        ],
+        "title": "AccountProfileUniquenessRead"
       },
       "AccountProxyRead": {
         "properties": {
@@ -18499,6 +19934,11 @@
             },
             "type": "array",
             "title": "Stories"
+          },
+          "force_profile_uniqueness": {
+            "type": "boolean",
+            "title": "Force Profile Uniqueness",
+            "default": false
           }
         },
         "type": "object",
@@ -18710,6 +20150,16 @@
             },
             "type": "array",
             "title": "Operation Safety"
+          },
+          "profile_uniqueness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountProfileUniquenessRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -25654,6 +27104,133 @@
         ],
         "title": "PhoneOnboardingInput"
       },
+      "PreProductionStartRequest": {
+        "properties": {
+          "duration_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Hours"
+          }
+        },
+        "type": "object",
+        "title": "PreProductionStartRequest"
+      },
+      "PreProductionStatusRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "lifecycle_state": {
+            "type": "string",
+            "title": "Lifecycle State"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Message"
+          },
+          "task_plan": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Task Plan"
+          },
+          "task_result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Task Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "lifecycle_state"
+        ],
+        "title": "PreProductionStatusRead"
+      },
       "ProfileAudioAction": {
         "type": "string",
         "enum": [
@@ -26998,6 +28575,244 @@
         ],
         "title": "ValidationError"
       },
+      "WarmupActionMetadataRead": {
+        "properties": {
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "reading",
+              "activity",
+              "entertainment",
+              "social",
+              "groups",
+              "profile"
+            ],
+            "title": "Category"
+          },
+          "traffic_heavy": {
+            "type": "boolean",
+            "title": "Traffic Heavy"
+          },
+          "write_action": {
+            "type": "boolean",
+            "title": "Write Action"
+          },
+          "requires_premium": {
+            "type": "boolean",
+            "title": "Requires Premium",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_type",
+          "category",
+          "traffic_heavy",
+          "write_action"
+        ],
+        "title": "WarmupActionMetadataRead"
+      },
+      "WarmupActionPresetRequest": {
+        "properties": {
+          "preset": {
+            "type": "string",
+            "enum": [
+              "economic",
+              "all",
+              "minimal"
+            ],
+            "title": "Preset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preset"
+        ],
+        "title": "WarmupActionPresetRequest"
+      },
+      "WarmupBootstrapChannelCreate": {
+        "properties": {
+          "channel_ref": {
+            "type": "string",
+            "title": "Channel Ref"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "news",
+              "tech",
+              "lifestyle",
+              "sports",
+              "entertainment",
+              "business"
+            ],
+            "title": "Category"
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel_ref",
+          "category",
+          "language"
+        ],
+        "title": "WarmupBootstrapChannelCreate"
+      },
+      "WarmupBootstrapChannelPatch": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "news",
+                  "tech",
+                  "lifestyle",
+                  "sports",
+                  "entertainment",
+                  "business"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "WarmupBootstrapChannelPatch"
+      },
+      "WarmupBootstrapChannelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "channel_ref": {
+            "type": "string",
+            "title": "Channel Ref"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "verified_safe_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Verified Safe At"
+          },
+          "added_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel_ref",
+          "category",
+          "language",
+          "verified_safe_at",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WarmupBootstrapChannelRead"
+      },
       "WarmupCheckItemRead": {
         "properties": {
           "key": {
@@ -27043,6 +28858,128 @@
           "warning"
         ],
         "title": "WarmupCheckSeverityRead"
+      },
+      "WarmupCycleConfigRead": {
+        "properties": {
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "title": "End Hour"
+          },
+          "days_total": {
+            "type": "integer",
+            "title": "Days Total"
+          },
+          "current_cycle": {
+            "type": "integer",
+            "title": "Current Cycle",
+            "default": 1
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "active_hours_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Hours Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_hour",
+          "end_hour",
+          "days_total"
+        ],
+        "title": "WarmupCycleConfigRead"
+      },
+      "WarmupCyclicCreateRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupSessionRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "WarmupCyclicCreateRead"
+      },
+      "WarmupCyclicCreateRequest": {
+        "properties": {
+          "account_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Account Ids"
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "End Hour"
+          },
+          "days_total": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Days Total"
+          },
+          "strategy_preset": {
+            "$ref": "#/components/schemas/WarmupPresetKindRead",
+            "default": "standard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_ids",
+          "start_hour",
+          "end_hour",
+          "days_total"
+        ],
+        "title": "WarmupCyclicCreateRequest"
+      },
+      "WarmupDisabledActionsRequest": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "title": "WarmupDisabledActionsRequest"
       },
       "WarmupEventPageRead": {
         "properties": {
@@ -27197,6 +29134,36 @@
         ],
         "title": "WarmupPresetKindRead"
       },
+      "WarmupProxyAdaptationRead": {
+        "properties": {
+          "proxy_category": {
+            "type": "string",
+            "title": "Proxy Category"
+          },
+          "applied_preset": {
+            "type": "string",
+            "enum": [
+              "economic",
+              "balanced",
+              "full"
+            ],
+            "title": "Applied Preset"
+          },
+          "disabled_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disabled Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proxy_category",
+          "applied_preset"
+        ],
+        "title": "WarmupProxyAdaptationRead"
+      },
       "WarmupReadinessRead": {
         "properties": {
           "workers_enabled": {
@@ -27234,6 +29201,105 @@
           "strategies_available"
         ],
         "title": "WarmupReadinessRead"
+      },
+      "WarmupSelectableAccountRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "phone_number": {
+            "type": "string",
+            "title": "Phone Number"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "country_iso": {
+            "type": "string",
+            "title": "Country Iso"
+          },
+          "validity_badge": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "needs_login",
+              "blocked",
+              "unknown"
+            ],
+            "title": "Validity Badge"
+          },
+          "proxy_badge": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "issue",
+              "missing",
+              "unknown"
+            ],
+            "title": "Proxy Badge"
+          },
+          "phase_badge": {
+            "type": "string",
+            "enum": [
+              "new",
+              "warming",
+              "in_work"
+            ],
+            "title": "Phase Badge"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "is_in_work": {
+            "type": "boolean",
+            "title": "Is In Work",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "phone_number",
+          "role",
+          "country",
+          "country_iso",
+          "validity_badge",
+          "proxy_badge",
+          "phase_badge"
+        ],
+        "title": "WarmupSelectableAccountRead"
       },
       "WarmupSessionCreateRequest": {
         "properties": {
@@ -27423,6 +29489,13 @@
             "type": "array",
             "title": "Trusted Peer Ids"
           },
+          "disabled_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disabled Actions"
+          },
           "proxy_snapshot": {
             "anyOf": [
               {
@@ -27491,6 +29564,16 @@
               }
             ],
             "title": "Worker Id"
+          },
+          "cycle_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupCycleConfigRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -27646,6 +29729,16 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "cycle_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupCycleConfigRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -27763,6 +29856,16 @@
             },
             "type": "array",
             "title": "Warnings"
+          },
+          "proxy_adaptation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupProxyAdaptationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

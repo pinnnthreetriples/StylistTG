@@ -19,7 +19,9 @@ class FakeAIProfileProvider:
     avatar_model = "fake-ai-profile-avatar-v1"
 
     def generate_bio(self, request: BioGenerationRequest) -> GeneratedBio:
-        digest = _digest(request.workspace_id, request.account_id, request.attempt, request.persona_hints)
+        digest = _digest(
+            request.workspace_id, request.account_id, request.attempt, request.persona_hints
+        )
         tones = ["спокойный", "живой", "точный", "дружелюбный", "лаконичный"]
         roles = ["SMM", "контент", "дизайн", "маркетинг", "продажи"]
         tone = request.persona_hints.get("tone") or tones[int(digest[:2], 16) % len(tones)]
@@ -30,7 +32,9 @@ class FakeAIProfileProvider:
         return GeneratedBio(text=text[:120], provider=self.provider_name, model=self.bio_model)
 
     def generate_avatar(self, request: AvatarGenerationRequest) -> GeneratedAvatar:
-        digest = _digest(request.workspace_id, request.account_id, request.attempt, request.persona_hints)
+        digest = _digest(
+            request.workspace_id, request.account_id, request.attempt, request.persona_hints
+        )
         rgb = tuple(int(digest[index : index + 2], 16) for index in (0, 2, 4))
         image = Image.new("RGB", (256, 256), rgb)
         draw = ImageDraw.Draw(image)

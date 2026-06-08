@@ -53,9 +53,7 @@ router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
-selectable_accounts_router = APIRouter(
-    prefix="/api/warmup-selectable-accounts", tags=["warmup"]
-)
+selectable_accounts_router = APIRouter(prefix="/api/warmup-selectable-accounts", tags=["warmup"])
 bootstrap_router = APIRouter(
     prefix="/api/warmup-bootstrap-channels", tags=["warmup-bootstrap-channels"]
 )
@@ -213,7 +211,9 @@ def post_warmup_strategy_apply_preset(
         raise _warmup_error(exc) from exc
 
 
-@warmup_router.post("/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED)
+@warmup_router.post(
+    "/sessions", response_model=WarmupSessionRead, status_code=status.HTTP_201_CREATED
+)
 def post_warmup_session(
     payload: WarmupSessionCreateRequest,
     session: Session = Depends(get_session),
@@ -231,7 +231,9 @@ def post_warmup_session(
         raise _warmup_error(exc) from exc
 
 
-@session_alias_router.post("/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED)
+@session_alias_router.post(
+    "/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED
+)
 def post_warmup_cyclic_sessions(
     payload: WarmupCyclicCreateRequest,
     session: Session = Depends(get_session),

@@ -422,6 +422,7 @@
         "existing_paths": [
           "backend/app/modules/account_lifecycle/__init__.py",
           "backend/app/modules/account_lifecycle/contracts.py",
+          "backend/app/modules/account_lifecycle/idle_detector.py",
           "backend/app/modules/account_lifecycle/interfaces.py",
           "backend/app/modules/account_lifecycle/module.py",
           "backend/app/modules/account_lifecycle/repository.py",
@@ -852,6 +853,7 @@
           "backend/app/modules/warmup/enqueue.py",
           "backend/app/modules/warmup/errors.py",
           "backend/app/modules/warmup/events.py",
+          "backend/app/modules/warmup/idle_session.py",
           "backend/app/modules/warmup/isolation.py",
           "backend/app/modules/warmup/jobs.py",
           "backend/app/modules/warmup/module.py",
@@ -1969,6 +1971,7 @@
           "backend/tests/modules/account_editing/test_policies.py",
           "backend/tests/modules/account_editing/test_repository.py",
           "backend/tests/modules/account_lifecycle/.gitkeep",
+          "backend/tests/modules/account_lifecycle/test_idle_detector.py",
           "backend/tests/modules/account_lifecycle/test_lifecycle_api.py",
           "backend/tests/modules/account_lifecycle/test_state_machine.py",
           "backend/tests/modules/account_lifecycle/test_warmup_integration.py",
@@ -1997,6 +2000,7 @@
           "backend/tests/modules/warmup/test_adaptive_plan.py",
           "backend/tests/modules/warmup/test_cold_soak.py",
           "backend/tests/modules/warmup/test_disabled_actions.py",
+          "backend/tests/modules/warmup/test_idle_session.py",
           "backend/tests/modules/warmup/test_typing.py",
           "backend/tests/modules/warmup/test_warmup_contracts.py",
           "backend/tests/modules/warmup/test_warmup_jobs.py",
@@ -2255,7 +2259,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-08T14:16:31Z",
+    "generated_at": "2026-06-08T14:19:20Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2583,7 +2587,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-08T14:16:31Z",
+  "generated_at": "2026-06-08T14:19:20Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4091,6 +4095,7 @@
       "files": [
         "backend/app/modules/account_lifecycle/__init__.py",
         "backend/app/modules/account_lifecycle/contracts.py",
+        "backend/app/modules/account_lifecycle/idle_detector.py",
         "backend/app/modules/account_lifecycle/interfaces.py",
         "backend/app/modules/account_lifecycle/module.py",
         "backend/app/modules/account_lifecycle/repository.py",
@@ -4639,6 +4644,7 @@
         "backend/app/modules/warmup/enqueue.py",
         "backend/app/modules/warmup/errors.py",
         "backend/app/modules/warmup/events.py",
+        "backend/app/modules/warmup/idle_session.py",
         "backend/app/modules/warmup/isolation.py",
         "backend/app/modules/warmup/jobs.py",
         "backend/app/modules/warmup/module.py",
@@ -4685,6 +4691,14 @@
           "module": "warmup",
           "queue_name": "warmup_jobs",
           "workflow_type": "warmup_due_sessions"
+        },
+        {
+          "args_mode": "NONE",
+          "description": "Move idle active accounts into read-only keepalive warmup.",
+          "handler_path": "app.modules.warmup.jobs:run_warmup_idle_sweep",
+          "module": "warmup",
+          "queue_name": "warmup_jobs",
+          "workflow_type": "warmup_idle_sweep"
         }
       ]
     }
@@ -5580,7 +5594,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 272,
+      "file_count": 274,
       "path": "backend/tests"
     },
     "docs": {
@@ -5687,6 +5701,14 @@
       "module": "warmup",
       "queue_name": "warmup_jobs",
       "workflow_type": "warmup_due_sessions"
+    },
+    {
+      "args_mode": "NONE",
+      "description": "Move idle active accounts into read-only keepalive warmup.",
+      "handler_path": "app.modules.warmup.jobs:run_warmup_idle_sweep",
+      "module": "warmup",
+      "queue_name": "warmup_jobs",
+      "workflow_type": "warmup_idle_sweep"
     }
   ]
 }

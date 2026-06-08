@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.warmup_tdlib import WarmupActionResult
 from app.models import WarmupSession, WarmupStatus
+from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.account_survival import events as survival_events
 from app.modules.warmup.channel_state import service as channel_state_service
 from app.modules.warmup.events import write_warmup_event
@@ -232,6 +233,7 @@ def _complete_dispatch_session(
         "completed",
         {"day": warmup_session.current_day, "execution_mode": warmup_session.execution_mode},
     )
+    _advance_account_to_pre_production(session, warmup_session, now)
     survival_events.on_warmup_completed(
         session,
         account_id=warmup_session.account_id,
@@ -249,3 +251,37 @@ def _complete_dispatch_session(
             "isolation_released",
             {"reason": "session_completed"},
         )
+
+
+def _advance_account_to_pre_production(
+    session: Session,
+    warmup_session: WarmupSession,
+    now: datetime,
+) -> None:
+    account = warmup_session.account
+    if account.lifecycle_state == AccountLifecycleState.IMPORTED.value:
+        advance(
+            session,
+            account,
+            to_state=AccountLifecycleState.COLD_SOAK,
+            now=now,
+            reason="legacy_completion_catchup",
+            metadata={"warmup_session_id": warmup_session.id},
+        )
+    if account.lifecycle_state == AccountLifecycleState.COLD_SOAK.value:
+        advance(
+            session,
+            account,
+            to_state=AccountLifecycleState.WARMING,
+            now=now,
+            reason="legacy_completion_catchup",
+            metadata={"warmup_session_id": warmup_session.id},
+        )
+    advance(
+        session,
+        account,
+        to_state=AccountLifecycleState.PRE_PRODUCTION,
+        now=now,
+        reason="warmup_session_completed",
+        metadata={"warmup_session_id": warmup_session.id},
+    )

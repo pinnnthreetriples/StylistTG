@@ -8,12 +8,14 @@ from app.modules.account_lifecycle.contracts import (
     AccountDeletionRequestCreate,
     AccountDeletionRequestRead,
     AccountExportRequestRead,
+    AccountLifecycleRead,
 )
 from app.modules.account_lifecycle.service import (
     build_account_deletion_preview,
     create_account_export_request,
     deletion_request_to_dict,
     export_request_to_dict,
+    get_account_lifecycle,
     get_deletion_request,
     get_export_request,
     list_deletion_requests,
@@ -36,6 +38,20 @@ def _account_not_found_error(exc: ValueError | None = None) -> AppError:
         error_class="not_found",
         message=str(exc),
     )
+
+
+@router.get("/{account_id}/lifecycle", response_model=AccountLifecycleRead)
+def get_account_lifecycle_state(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        return AccountLifecycleRead(
+            **get_account_lifecycle(session, account_id=account_id, workspace_id=auth.workspace_id)
+        )
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
 
 
 @router.get("/{account_id}/deletion-preview", response_model=AccountDeletionPreviewRead)

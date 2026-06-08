@@ -14,6 +14,7 @@ from app.models import (
     new_id,
     utc_now,
 )
+from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.account_safety.policy import get_workspace_safety_policy
 from app.observability.safety_metrics import safety_metrics
 
@@ -122,6 +123,13 @@ def create_quarantine(
         existing.until = max(existing.until, until)
         if metadata:
             existing.metadata_json = {**dict(existing.metadata_json or {}), **metadata}
+        _move_active_account_to_cold_soak(
+            session,
+            account_id=account_id,
+            workspace_id=workspace_id,
+            now=now,
+            reason=f"quarantine_extended:{reason}",
+        )
         session.flush()
         _refresh_quarantine_active(session, workspace_id=workspace_id, reason=existing.reason)
         return existing
@@ -136,6 +144,13 @@ def create_quarantine(
         metadata_json=metadata or {},
     )
     session.add(row)
+    _move_active_account_to_cold_soak(
+        session,
+        account_id=account_id,
+        workspace_id=workspace_id,
+        now=now,
+        reason=f"quarantine_opened:{reason}",
+    )
     session.flush()
     safety_metrics.quarantine_opened(workspace_id=workspace_id, reason=reason)
     _refresh_quarantine_active(session, workspace_id=workspace_id, reason=reason)
@@ -264,6 +279,31 @@ def _refresh_quarantine_active(session: Session, *, workspace_id: str, reason: s
         workspace_id=workspace_id,
         reason=reason,
         value=active_count,
+    )
+
+
+def _move_active_account_to_cold_soak(
+    session: Session,
+    *,
+    account_id: str,
+    workspace_id: str,
+    now: datetime,
+    reason: str,
+) -> None:
+    account = session.execute(
+        select(Account)
+        .where(Account.id == account_id)
+        .where(Account.workspace_id == workspace_id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if account is None or account.lifecycle_state != AccountLifecycleState.ACTIVE.value:
+        return
+    advance(
+        session,
+        account,
+        to_state=AccountLifecycleState.COLD_SOAK,
+        now=now,
+        reason=reason,
     )
 
 

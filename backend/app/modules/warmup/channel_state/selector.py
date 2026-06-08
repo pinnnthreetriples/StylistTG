@@ -67,9 +67,7 @@ def choose_actions(
     states_by_ref = {
         state.channel_ref: state for state in channel_states if is_channel_healthy(state)
     }
-    excluded_refs = {
-        state.channel_ref for state in channel_states if not is_channel_healthy(state)
-    }
+    excluded_refs = {state.channel_ref for state in channel_states if not is_channel_healthy(state)}
     selected: list[SelectedAction] = []
     for action_type in _pending_action_types(plan, counters):
         if len(selected) >= max_actions:

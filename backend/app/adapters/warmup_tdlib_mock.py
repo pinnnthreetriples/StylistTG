@@ -6,6 +6,7 @@ import random
 from typing import Any, cast
 
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
+from app.modules.warmup.circadian.personality import choose_reaction
 from app.modules.warmup.typing import compute_typing_duration
 
 
@@ -579,7 +580,12 @@ class MockWarmupTdlibAdapter:
         self, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
         channel_ref = context.get("channel_ref")
-        reactions = list(context.get("available_reactions") or ())
+        raw_reactions = context.get("available_reactions")
+        reactions: list[str] = (
+            [reaction for reaction in raw_reactions if isinstance(reaction, str)]
+            if isinstance(raw_reactions, list)
+            else []
+        )
         if not channel_ref or not reactions:
             return WarmupActionResult(
                 status="missing_context",
@@ -587,7 +593,11 @@ class MockWarmupTdlibAdapter:
                 error_code="react_to_post_missing_context",
                 error_class="contract",
             )
-        reaction = reactions[self._rng.randint(0, len(reactions) - 1)]
+        reaction = choose_reaction(
+            reactions,
+            personality_seed=_personality_seed(context),
+            rng=self._rng,
+        )
         return WarmupActionResult(
             status="ok",
             action_type=action_type,

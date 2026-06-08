@@ -115,6 +115,7 @@ def _select_action_targets(
     available_targets: list[str],
     rng: random.Random,
     now: datetime,
+    personality_seed: dict[str, Any] | None = None,
 ) -> list[SelectedAction]:
     return channel_selector.choose_actions(
         plan=plan,
@@ -124,6 +125,7 @@ def _select_action_targets(
         rng=rng,
         now=now,
         max_actions=MAX_ACTIONS_PER_MICRO_SESSION,
+        personality_seed=personality_seed,
     )
 
 

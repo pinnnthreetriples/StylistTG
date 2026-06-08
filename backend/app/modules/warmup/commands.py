@@ -14,6 +14,7 @@ from app.modules.account_survival import events as survival_events
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
 from app.modules.warmup.cold_soak import compute_cold_soak_window
+from app.modules.warmup.circadian import generate_personality_seed
 from app.modules.warmup.enqueue import enqueue_warmup_dispatch_tick, enqueue_warmup_due_sessions
 from app.modules.warmup.errors import (
     WarmupIsolationConflictError,
@@ -59,6 +60,7 @@ def create_warmup_session(
         strategy.duration_days if strategy is not None else settings.warmup_default_duration_days
     )
     proxy_snapshot = _build_proxy_snapshot(session, account_id=account_id)
+    personality_seed = generate_personality_seed(account_id)
     cold_soak_until = compute_cold_soak_window(strategy, timestamp)
 
     warmup_session = WarmupSession(
@@ -75,6 +77,7 @@ def create_warmup_session(
         execution_mode=execution_mode,
         duration_days=duration_days,
         proxy_snapshot_json=proxy_snapshot,
+        personality_seed_json=personality_seed,
     )
     session.add(warmup_session)
     session.flush()
@@ -96,6 +99,7 @@ def create_warmup_session(
             "execution_mode": execution_mode,
             "duration_days": duration_days,
             "proxy_snapshot": proxy_snapshot,
+            "personality_seed": _personality_event_payload(personality_seed),
         },
     )
     write_warmup_event(
@@ -348,6 +352,16 @@ def _build_proxy_snapshot(session: Session, *, account_id: str) -> dict[str, Any
         "last_checked_at": (
             proxy.last_checked_at.isoformat() if proxy.last_checked_at is not None else None
         ),
+    }
+
+
+def _personality_event_payload(seed: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "preferred_hours": list(seed.get("preferred_hours") or []),
+        "typing_speed_cps": seed.get("typing_speed_cps"),
+        "favorite_emojis": list(seed.get("favorite_emojis") or []),
+        "session_length_pref": seed.get("session_length_pref"),
+        "pace": seed.get("pace"),
     }
 
 

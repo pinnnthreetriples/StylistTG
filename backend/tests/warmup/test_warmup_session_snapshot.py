@@ -129,3 +129,12 @@ def test_create_warmup_session_emits_snapshot_event(db_session) -> None:
     assert payload["execution_mode"] == WarmupExecutionMode.DRY_RUN.value
     assert payload["duration_days"] == 14
     assert payload["proxy_snapshot"]["proxy_category"] == ProxyCategory.RESIDENTIAL.value
+    assert (
+        payload["personality_seed"]["typing_speed_cps"]
+        == (warmup_session.personality_seed_json["typing_speed_cps"])
+    )
+    assert (
+        payload["personality_seed"]["favorite_emojis"]
+        == (warmup_session.personality_seed_json["favorite_emojis"])
+    )
+    assert "action_preferences" not in payload["personality_seed"]

@@ -422,11 +422,14 @@
         "existing_paths": [
           "backend/app/modules/account_lifecycle/__init__.py",
           "backend/app/modules/account_lifecycle/contracts.py",
+          "backend/app/modules/account_lifecycle/interfaces.py",
           "backend/app/modules/account_lifecycle/module.py",
           "backend/app/modules/account_lifecycle/repository.py",
           "backend/app/modules/account_lifecycle/retention.py",
           "backend/app/modules/account_lifecycle/router.py",
-          "backend/app/modules/account_lifecycle/service.py"
+          "backend/app/modules/account_lifecycle/service.py",
+          "backend/app/modules/account_lifecycle/state_machine.py",
+          "backend/app/modules/account_lifecycle/transitions.py"
         ],
         "id": "canonical-account-lifecycle",
         "owner": "account_lifecycle",
@@ -606,6 +609,7 @@
           "backend/app/modules/account_shared/capabilities.py",
           "backend/app/modules/account_shared/interfaces.py",
           "backend/app/modules/account_shared/module.py",
+          "backend/app/modules/account_shared/readiness_risk.py",
           "backend/app/modules/account_shared/runtime.py"
         ],
         "id": "canonical-account-shared",
@@ -1965,6 +1969,9 @@
           "backend/tests/modules/account_editing/test_policies.py",
           "backend/tests/modules/account_editing/test_repository.py",
           "backend/tests/modules/account_lifecycle/.gitkeep",
+          "backend/tests/modules/account_lifecycle/test_lifecycle_api.py",
+          "backend/tests/modules/account_lifecycle/test_state_machine.py",
+          "backend/tests/modules/account_lifecycle/test_warmup_integration.py",
           "backend/tests/modules/account_survival/test_account_survival.py",
           "backend/tests/modules/account_survival/test_migration_contract.py",
           "backend/tests/modules/auth/test_auth_module.py",
@@ -2248,7 +2255,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-08T14:09:51Z",
+    "generated_at": "2026-06-08T14:16:31Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2576,7 +2583,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-08T14:09:51Z",
+  "generated_at": "2026-06-08T14:16:31Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4084,11 +4091,14 @@
       "files": [
         "backend/app/modules/account_lifecycle/__init__.py",
         "backend/app/modules/account_lifecycle/contracts.py",
+        "backend/app/modules/account_lifecycle/interfaces.py",
         "backend/app/modules/account_lifecycle/module.py",
         "backend/app/modules/account_lifecycle/repository.py",
         "backend/app/modules/account_lifecycle/retention.py",
         "backend/app/modules/account_lifecycle/router.py",
-        "backend/app/modules/account_lifecycle/service.py"
+        "backend/app/modules/account_lifecycle/service.py",
+        "backend/app/modules/account_lifecycle/state_machine.py",
+        "backend/app/modules/account_lifecycle/transitions.py"
       ],
       "has_contracts": true,
       "has_enqueue": false,
@@ -4316,6 +4326,7 @@
         "backend/app/modules/account_shared/capabilities.py",
         "backend/app/modules/account_shared/interfaces.py",
         "backend/app/modules/account_shared/module.py",
+        "backend/app/modules/account_shared/readiness_risk.py",
         "backend/app/modules/account_shared/runtime.py"
       ],
       "has_contracts": false,
@@ -5569,7 +5580,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 269,
+      "file_count": 272,
       "path": "backend/tests"
     },
     "docs": {

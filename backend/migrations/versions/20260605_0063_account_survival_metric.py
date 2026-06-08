@@ -74,9 +74,7 @@ def upgrade() -> None:
             name="uq_account_survival_metric_workspace_account",
         ),
         sa.CheckConstraint("freeze_count >= 0", name="ck_account_survival_freeze_count"),
-        sa.CheckConstraint(
-            "flood_wait_count >= 0", name="ck_account_survival_flood_wait_count"
-        ),
+        sa.CheckConstraint("flood_wait_count >= 0", name="ck_account_survival_flood_wait_count"),
     )
     op.create_index(
         "ix_account_survival_metric_workspace_id",
@@ -100,7 +98,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_account_survival_metric_banned_at", table_name="account_survival_metric")
     op.drop_index("ix_account_survival_metric_account_id", table_name="account_survival_metric")
-    op.drop_index(
-        "ix_account_survival_metric_workspace_id", table_name="account_survival_metric"
-    )
+    op.drop_index("ix_account_survival_metric_workspace_id", table_name="account_survival_metric")
     op.drop_table("account_survival_metric")

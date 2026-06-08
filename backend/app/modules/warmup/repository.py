@@ -119,20 +119,13 @@ def list_warmup_event_feed(
             )
         )
 
-    base = (
-        select(WarmupEvent)
-        .join(WarmupEvent.session)
-        .join(WarmupSession.account)
-        .where(*filters)
-    )
+    base = select(WarmupEvent).join(WarmupEvent.session).join(WarmupSession.account).where(*filters)
     total = int(session.scalar(select(func.count()).select_from(base.subquery())) or 0)
 
     if cursor_event is None:
         latest = list(
             session.execute(
-                base.options(
-                    joinedload(WarmupEvent.session).joinedload(WarmupSession.account)
-                )
+                base.options(joinedload(WarmupEvent.session).joinedload(WarmupSession.account))
                 .order_by(WarmupEvent.created_at.desc(), WarmupEvent.id.desc())
                 .limit(limit)
             ).scalars()

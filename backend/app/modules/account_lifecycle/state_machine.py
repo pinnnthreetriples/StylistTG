@@ -35,7 +35,9 @@ def advance(
     if source == target:
         return None
     if not is_transition_allowed(source, target, manual=manual):
-        raise InvalidTransitionError(f"invalid lifecycle transition: {source.value}->{target.value}")
+        raise InvalidTransitionError(
+            f"invalid lifecycle transition: {source.value}->{target.value}"
+        )
 
     account.lifecycle_state = target.value
     account.lifecycle_updated_at = now

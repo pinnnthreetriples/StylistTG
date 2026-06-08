@@ -40,7 +40,9 @@ def upgrade() -> None:
                 server_default="imported",
             )
         )
-        batch_op.add_column(sa.Column("lifecycle_updated_at", sa.DateTime(timezone=True), nullable=True))
+        batch_op.add_column(
+            sa.Column("lifecycle_updated_at", sa.DateTime(timezone=True), nullable=True)
+        )
         batch_op.create_check_constraint(
             "ck_accounts_lifecycle_state_valid",
             f"lifecycle_state IN ({states_sql})",

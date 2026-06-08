@@ -57,9 +57,7 @@ def describe_next_day_adjustment(warmup_session: WarmupSession) -> PlanAdjustmen
     return _adjustment(action_types, ADAPTIVE_ACCELERATE_MULTIPLIER, "3_clean_days")
 
 
-def apply_plan_adjustment(
-    plan: dict[str, int], adjustment: dict[str, float]
-) -> dict[str, int]:
+def apply_plan_adjustment(plan: dict[str, int], adjustment: dict[str, float]) -> dict[str, int]:
     adjusted: dict[str, int] = {}
     for action_type, limit in plan.items():
         multiplier = _clamp_multiplier(adjustment.get(action_type, ADAPTIVE_NEUTRAL_MULTIPLIER))
@@ -121,7 +119,7 @@ def _counter_value(snapshot: dict[str, Any], key: str) -> int:
 def _coerce_int(value: Any) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 

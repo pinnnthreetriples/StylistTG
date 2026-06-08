@@ -100,7 +100,9 @@ def session_status_read(warmup_session: Any) -> WarmupSessionStatusRead:
     )
 
 
-def session_timer_read(warmup_session: Any, *, now: datetime | None = None) -> WarmupSessionTimerRead:
+def session_timer_read(
+    warmup_session: Any, *, now: datetime | None = None
+) -> WarmupSessionTimerRead:
     timestamp = now or datetime.now(UTC)
     started_at = _timer_started_at(warmup_session)
     total_seconds = _timer_total_seconds(warmup_session)

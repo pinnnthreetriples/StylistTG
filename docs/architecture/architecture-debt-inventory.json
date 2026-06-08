@@ -568,6 +568,7 @@
         "backend/app/modules/warmup/cold_soak.py",
         "backend/app/modules/warmup/commands.py",
         "backend/app/modules/warmup/contracts.py",
+        "backend/app/modules/warmup/cyclic.py",
         "backend/app/modules/warmup/dispatch_actions.py",
         "backend/app/modules/warmup/dispatch_context.py",
         "backend/app/modules/warmup/dispatch_processor.py",
@@ -1725,6 +1726,7 @@
         "backend/tests/modules/warmup/test_action_presets.py",
         "backend/tests/modules/warmup/test_adaptive_plan.py",
         "backend/tests/modules/warmup/test_cold_soak.py",
+        "backend/tests/modules/warmup/test_cyclic.py",
         "backend/tests/modules/warmup/test_disabled_actions.py",
         "backend/tests/modules/warmup/test_idle_session.py",
         "backend/tests/modules/warmup/test_pre_production.py",
@@ -1986,7 +1988,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-08T14:23:25Z",
+  "generated_at": "2026-06-08T16:36:29Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

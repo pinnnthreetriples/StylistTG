@@ -96,7 +96,11 @@ def _process_one_dispatch(
         return True
     if is_live and not adapter.is_available():
         warmup_session.next_micro_session_at = _schedule_within_day(
-            now, warmup_session.timezone, rng=rng
+            now,
+            warmup_session.timezone,
+            rng=rng,
+            personality_seed=warmup_session.personality_seed_json,
+            last_micro_session_at=warmup_session.last_micro_session_at,
         )
         warmup_session.next_step_at = warmup_session.next_micro_session_at
         warmup_session.updated_at = now
@@ -295,7 +299,11 @@ def _process_one_dispatch(
         )
     else:
         warmup_session.next_micro_session_at = _schedule_within_day(
-            now, warmup_session.timezone, rng=rng
+            now,
+            warmup_session.timezone,
+            rng=rng,
+            personality_seed=warmup_session.personality_seed_json,
+            last_micro_session_at=warmup_session.last_micro_session_at,
         )
 
     warmup_session.next_step_at = warmup_session.next_micro_session_at

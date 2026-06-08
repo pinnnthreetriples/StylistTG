@@ -1674,6 +1674,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup-bootstrap-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Bootstrap Channels */
+        get: operations["get_warmup_bootstrap_channels_api_warmup_bootstrap_channels_get"];
+        put?: never;
+        /** Post Warmup Bootstrap Channel */
+        post: operations["post_warmup_bootstrap_channel_api_warmup_bootstrap_channels_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup-bootstrap-channels/{channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Warmup Bootstrap Channel */
+        patch: operations["patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch"];
+        trace?: never;
+    };
     "/api/neuro-commenting/campaigns": {
         parameters: {
             query?: never;
@@ -6885,6 +6920,54 @@ export interface components {
              * @enum {string}
              */
             preset: "economic" | "all" | "minimal";
+        };
+        /** WarmupBootstrapChannelCreate */
+        WarmupBootstrapChannelCreate: {
+            /** Channel Ref */
+            channel_ref: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "news" | "tech" | "lifestyle" | "sports" | "entertainment" | "business";
+            /** Language */
+            language: string;
+            /** Country */
+            country?: string | null;
+        };
+        /** WarmupBootstrapChannelPatch */
+        WarmupBootstrapChannelPatch: {
+            /** Category */
+            category?: ("news" | "tech" | "lifestyle" | "sports" | "entertainment" | "business") | null;
+            /** Language */
+            language?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** WarmupBootstrapChannelRead */
+        WarmupBootstrapChannelRead: {
+            /** Id */
+            id: string;
+            /** Channel Ref */
+            channel_ref: string;
+            /** Category */
+            category: string;
+            /** Language */
+            language: string;
+            /** Country */
+            country?: string | null;
+            /** Verified Safe At */
+            verified_safe_at: string;
+            /** Added By */
+            added_by?: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
         };
         /** WarmupCheckItemRead */
         WarmupCheckItemRead: {
@@ -14032,6 +14115,193 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreProductionStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_bootstrap_channels_api_warmup_bootstrap_channels_get: {
+        parameters: {
+            query?: {
+                category?: string;
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupBootstrapChannelRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_warmup_bootstrap_channel_api_warmup_bootstrap_channels_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupBootstrapChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupBootstrapChannelRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupBootstrapChannelPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupBootstrapChannelRead"];
                 };
             };
             /** @description Bad Request */

@@ -26,6 +26,7 @@ def test_warmup_router_uses_expected_prefix() -> None:
 
     paths = {route.path for route in router.routes if isinstance(route, APIRoute)}
 
+    assert router.prefix == ""
     assert "/api/warmup/readiness" in paths
 
 

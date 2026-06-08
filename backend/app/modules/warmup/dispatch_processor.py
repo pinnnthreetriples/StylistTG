@@ -16,6 +16,7 @@ from app.modules.warmup.cold_soak import (
     is_cold_soak_complete,
     record_cold_soak_in_progress,
 )
+from app.modules.warmup.bootstrap_pool.service import resolve_available_targets
 from app.modules.warmup.channel_state.repository import get_states_for_account
 from app.modules.warmup.cyclic import cycle_window_status, schedule_next_cycle
 from app.modules.warmup.adaptive_plan import describe_next_day_adjustment
@@ -23,7 +24,7 @@ from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
 
 from .dispatch_actions import _dispatch_action
-from .dispatch_context import _pause_if_blocked_by_safety_gate, _target_channel_refs
+from .dispatch_context import _pause_if_blocked_by_safety_gate
 from .dispatch_results import (
     _complete_dispatch_session,
     _record_dispatch_action_failure,
@@ -119,7 +120,7 @@ def _process_one_dispatch(
 
     plan_for_day = _resolve_day_plan(warmup_session)
     counters_for_day = _resolve_day_counters(warmup_session)
-    available_targets = _target_channel_refs(warmup_session)
+    available_targets = resolve_available_targets(session, warmup_session=warmup_session, rng=rng)
     channel_states = get_states_for_account(
         session,
         warmup_session.workspace_id,

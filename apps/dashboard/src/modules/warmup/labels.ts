@@ -72,6 +72,7 @@ export const WARMUP_EVENT_LABELS: Record<string, string> = {
   circuit_breaker_tripped: 'Защита остановила сессию',
   session_action_executed: 'Действие выполнено',
   session_action_simulated: 'Симуляция действия',
+  session_plan_announced: 'План на сессию',
   micro_session_window_opened: 'Окно микро-сессии открыто',
   micro_session_window_closed: 'Окно микро-сессии закрыто',
   p2p_contact_recorded: 'P2P-контакт зафиксирован',

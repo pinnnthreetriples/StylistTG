@@ -202,10 +202,32 @@ function WarmupLiveLogRow({ event }: { event: WarmupLiveEvent }) {
           <span className="text-muted-foreground">·</span>
           <span className="font-mono text-xs text-muted-foreground">{event.phone_id}</span>
         </div>
-        <p className="mt-1 break-words text-sm leading-5 text-muted-foreground">
-          {WARMUP_EVENT_LABELS[event.event_type] ?? event.message}
-        </p>
+        {event.event_type === 'session_plan_announced' ? (
+          <WarmupSessionPlanBlock event={event} />
+        ) : (
+          <p className="mt-1 break-words text-sm leading-5 text-muted-foreground">
+            {WARMUP_EVENT_LABELS[event.event_type] ?? event.message}
+          </p>
+        )}
       </div>
+    </div>
+  )
+}
+
+function WarmupSessionPlanBlock({ event }: { event: WarmupLiveEvent }) {
+  const payload = event.payload
+  const actionTypes = Array.isArray(payload.action_types) ? payload.action_types.map(String) : []
+  return (
+    <div className="mt-1 rounded-md bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+      <div className="font-semibold text-foreground">План на сессию:</div>
+      <div>├─ Стадия: {String(payload.stage ?? 'warming')}, возраст: {String(payload.account_age_days ?? 0)} дней</div>
+      <div>
+        ├─ Сессия: {String(payload.session_duration_minutes ?? 0)} мин,{' '}
+        {String(payload.planned_actions_count ?? actionTypes.length)} действий
+      </div>
+      <div>├─ Действия: {actionTypes.length > 0 ? actionTypes.join(', ') : 'нет действий'}</div>
+      <div>├─ Интервал: ~{String(payload.avg_interval_minutes ?? 0)} мин между</div>
+      <div>└─ Первое через ~{String(payload.first_action_delay_seconds ?? 0)} сек</div>
     </div>
   )
 }

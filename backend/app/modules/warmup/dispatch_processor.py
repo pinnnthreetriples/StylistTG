@@ -3,7 +3,7 @@ from __future__ import annotations
 # pyright: reportPrivateUsage=false, reportUnusedFunction=false
 
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -155,6 +155,7 @@ def _process_one_dispatch(
             ],
         },
     )
+    _write_session_plan_announcement(session, warmup_session, selected_actions, now=now)
 
     performed_actions: list[str] = []
     failed_actions: list[dict[str, Any]] = []
@@ -362,6 +363,56 @@ def _record_failed_actions_in_counters(
     flood_waits = sum(1 for action in failed_actions if _is_flood_wait_failure(action))
     if flood_waits:
         counters_for_day["flood_waits"] = counters_for_day.get("flood_waits", 0) + flood_waits
+
+
+def _write_session_plan_announcement(
+    session: Session,
+    warmup_session: WarmupSession,
+    selected_actions: list[Any],
+    *,
+    now: datetime,
+) -> None:
+    action_types = [selection.action_type for selection in selected_actions]
+    account_age_days = _account_age_days(warmup_session, now)
+    session_duration = _session_duration_minutes(warmup_session)
+    planned_count = len(action_types)
+    write_warmup_event(
+        session,
+        warmup_session,
+        "session_plan_announced",
+        {
+            "stage": warmup_session.lifecycle_state,
+            "account_age_days": account_age_days,
+            "session_duration_minutes": session_duration,
+            "planned_actions_count": planned_count,
+            "action_types": action_types,
+            "avg_interval_minutes": session_duration // planned_count if planned_count else 0,
+            "first_action_delay_seconds": 0,
+        },
+        severity="info",
+    )
+
+
+def _account_age_days(warmup_session: WarmupSession, now: datetime) -> int:
+    created_at = warmup_session.account.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+    return max(0, (now - created_at).days)
+
+
+def _session_duration_minutes(warmup_session: WarmupSession) -> int:
+    config = warmup_session.strategy.session_window_config_json or {}
+    minutes_config = config.get("minutes_per_session")
+    if isinstance(minutes_config, dict):
+        value = minutes_config.get("max") or minutes_config.get("min")
+        if value is not None:
+            try:
+                return max(1, int(value))
+            except TypeError, ValueError:
+                pass
+    return 55
 
 
 def _is_flood_wait_failure(action: dict[str, Any]) -> bool:

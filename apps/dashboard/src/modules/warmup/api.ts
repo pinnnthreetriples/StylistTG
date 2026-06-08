@@ -1,11 +1,13 @@
 import { apiRequest } from '@/lib/http'
 
 import type {
+  WarmupActionMetadata,
+  WarmupActionPreset,
+  WarmupCyclicCreatePayload,
+  WarmupCyclicCreateResponse,
   WarmupEventPage,
   WarmupIsolationStatus,
   WarmupReadiness,
-  WarmupActionMetadata,
-  WarmupActionPreset,
   WarmupSessionDetail,
   WarmupSessionPage,
   WarmupStrategy,
@@ -53,6 +55,13 @@ export function createWarmupSession(accountId: string, strategyId: string): Prom
   })
 }
 
+export function createCyclicWarmupSessions(payload: WarmupCyclicCreatePayload): Promise<WarmupCyclicCreateResponse> {
+  return apiRequest('/api/warmup-sessions/cyclic', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function pauseWarmupSession(sessionId: string, reason: string): Promise<WarmupSessionDetail> {
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/pause`, {
     method: 'PUT',
@@ -63,6 +72,13 @@ export function pauseWarmupSession(sessionId: string, reason: string): Promise<W
 export function resumeWarmupSession(sessionId: string): Promise<WarmupSessionDetail> {
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/resume`, {
     method: 'PUT',
+  })
+}
+
+export function updateWarmupDisabledActions(sessionId: string, actions: string[]): Promise<WarmupSessionDetail> {
+  return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/disabled-actions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ actions }),
   })
 }
 

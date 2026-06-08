@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
+from app.modules.warmup.channel_state.health import is_channel_healthy
 
 DEFAULT_ACTION_PRIORITY = (
     "feed_read",
@@ -61,11 +63,15 @@ def choose_actions(
     rng: random.Random,
     now: datetime,
     max_actions: int = 3,
+    personality_seed: dict[str, Any] | None = None,
 ) -> list[SelectedAction]:
     """Return ordered action/channel pairs for one micro-session window."""
-    states_by_ref = {state.channel_ref: state for state in channel_states}
+    states_by_ref = {
+        state.channel_ref: state for state in channel_states if is_channel_healthy(state)
+    }
+    excluded_refs = {state.channel_ref for state in channel_states if not is_channel_healthy(state)}
     selected: list[SelectedAction] = []
-    for action_type in _pending_action_types(plan, counters):
+    for action_type in _pending_action_types(plan, counters, personality_seed=personality_seed):
         if len(selected) >= max_actions:
             break
         if rng.random() >= 0.85:
@@ -73,6 +79,7 @@ def choose_actions(
         action = _select_action(
             action_type,
             states_by_ref=states_by_ref,
+            excluded_refs=excluded_refs,
             available_targets=available_targets,
             rng=rng,
             now=now,
@@ -82,10 +89,16 @@ def choose_actions(
     return selected
 
 
-def _pending_action_types(plan: dict[str, int], counters: dict[str, int]) -> list[str]:
+def _pending_action_types(
+    plan: dict[str, int],
+    counters: dict[str, int],
+    *,
+    personality_seed: dict[str, Any] | None = None,
+) -> list[str]:
     candidates = sorted(
         plan.keys(),
         key=lambda key: (
+            -_action_preference(key, personality_seed),
             DEFAULT_ACTION_PRIORITY.index(key)
             if key in DEFAULT_ACTION_PRIORITY
             else len(DEFAULT_ACTION_PRIORITY),
@@ -95,10 +108,24 @@ def _pending_action_types(plan: dict[str, int], counters: dict[str, int]) -> lis
     return [key for key in candidates if plan.get(key, 0) - counters.get(key, 0) > 0]
 
 
+def _action_preference(action_type: str, personality_seed: dict[str, Any] | None) -> float:
+    raw = (personality_seed or {}).get("action_preferences")
+    if not isinstance(raw, Mapping):
+        return 1.0
+    preferences = cast(Mapping[str, Any], raw)
+    try:
+        return max(0.1, min(3.0, float(preferences.get(action_type, 1.0))))
+    except TypeError:
+        return 1.0
+    except ValueError:
+        return 1.0
+
+
 def _select_action(
     action_type: str,
     *,
     states_by_ref: dict[str, ChannelStateSnapshot],
+    excluded_refs: set[str],
     available_targets: list[str],
     rng: random.Random,
     now: datetime,
@@ -107,6 +134,7 @@ def _select_action(
         candidates = [
             target
             for target in available_targets
+            if target not in excluded_refs
             if states_by_ref.get(target) is None or states_by_ref[target].subscribed_at is None
         ]
         if not candidates:

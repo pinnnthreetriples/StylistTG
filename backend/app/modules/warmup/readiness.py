@@ -17,8 +17,10 @@ from app.models import (
 from app.modules.warmup.contracts import (
     WarmupCheckItemRead,
     WarmupCheckSeverityRead,
+    WarmupProxyAdaptationRead,
     WarmupValidateRead,
 )
+from app.modules.warmup.proxy_adaptation import adaptation_for_proxy
 
 _SESSION_BLOCKING_STATUSES = ACTIVE_WARMUP_STATUSES | {WarmupStatus.COLD_SOAK}
 
@@ -44,8 +46,14 @@ def validate_warmup_readiness(
         )
     )
 
+    proxy = session.get(AccountProxy, account.id) if account is not None else None
     if account is not None:
-        checks.append(_proxy_status_check(session, account))
+        checks.append(_proxy_status_check(proxy))
+    proxy_adaptation = (
+        _proxy_adaptation_read(proxy.proxy_category if proxy is not None else None)
+        if account is not None
+        else None
+    )
 
     blocking_reasons = _failed_check_messages(checks, WarmupCheckSeverityRead.ERROR)
     warnings = _failed_check_messages(checks, WarmupCheckSeverityRead.WARNING)
@@ -54,6 +62,7 @@ def validate_warmup_readiness(
         checks=checks,
         blocking_reasons=blocking_reasons,
         warnings=warnings,
+        proxy_adaptation=proxy_adaptation,
     )
 
 
@@ -147,8 +156,7 @@ def _active_session_check(
     )
 
 
-def _proxy_status_check(session: Session, account: Account) -> WarmupCheckItemRead:
-    proxy = session.get(AccountProxy, account.id)
+def _proxy_status_check(proxy: AccountProxy | None) -> WarmupCheckItemRead:
     proxy_ok = proxy is None or proxy.status in {"unknown", "tcp_working", "tdlib_working"}
     proxy_status = proxy.status if proxy is not None else None
     return _check(
@@ -157,6 +165,15 @@ def _proxy_status_check(session: Session, account: Account) -> WarmupCheckItemRe
         passed=proxy_ok,
         severity=WarmupCheckSeverityRead.WARNING,
         detail=None if proxy_ok else f"Proxy требует внимания: {proxy_status}",
+    )
+
+
+def _proxy_adaptation_read(proxy_category: str | None) -> WarmupProxyAdaptationRead:
+    adaptation = adaptation_for_proxy(proxy_category)
+    return WarmupProxyAdaptationRead(
+        proxy_category=adaptation.proxy_category,
+        applied_preset=adaptation.applied_preset,
+        disabled_actions=list(adaptation.disabled_actions),
     )
 
 

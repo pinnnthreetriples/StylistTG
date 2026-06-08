@@ -17,6 +17,8 @@ from app.modules.warmup.cold_soak import (
     record_cold_soak_in_progress,
 )
 from app.modules.warmup.channel_state.repository import get_states_for_account
+from app.modules.warmup.cyclic import cycle_window_status, schedule_next_cycle
+from app.modules.warmup.adaptive_plan import describe_next_day_adjustment
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
 
@@ -65,6 +67,9 @@ def _process_one_dispatch(
             return False
         advance_from_cold_soak(session, warmup_session, now)
 
+    if _skip_if_outside_cyclic_window(session, warmup_session, now):
+        return False
+
     if _is_in_quiet_hours(now, warmup_session.timezone):
         quiet_hours_end = _next_quiet_hours_end(now, warmup_session.timezone)
         warmup_session.next_micro_session_at = quiet_hours_end
@@ -91,7 +96,11 @@ def _process_one_dispatch(
         return True
     if is_live and not adapter.is_available():
         warmup_session.next_micro_session_at = _schedule_within_day(
-            now, warmup_session.timezone, rng=rng
+            now,
+            warmup_session.timezone,
+            rng=rng,
+            personality_seed=warmup_session.personality_seed_json,
+            last_micro_session_at=warmup_session.last_micro_session_at,
         )
         warmup_session.next_step_at = warmup_session.next_micro_session_at
         warmup_session.updated_at = now
@@ -124,6 +133,7 @@ def _process_one_dispatch(
         available_targets=available_targets,
         rng=rng,
         now=now,
+        personality_seed=warmup_session.personality_seed_json,
     )
 
     write_warmup_event(
@@ -188,6 +198,8 @@ def _process_one_dispatch(
                 is_live=is_live,
                 now=now,
             )
+        if failed_actions:
+            _record_failed_actions_in_counters(counters_for_day, failed_actions)
         if performed_actions:
             warmup_session.daily_counters_json = _persist_day_counters(
                 warmup_session.daily_counters_json,
@@ -202,6 +214,11 @@ def _process_one_dispatch(
             if warmup_session.started_at is None:
                 warmup_session.started_at = now
         if failed_actions and not performed_actions:
+            warmup_session.daily_counters_json = _persist_day_counters(
+                warmup_session.daily_counters_json,
+                warmup_session.current_day,
+                counters_for_day,
+            )
             warmup_session.worker_id = worker_id
             retry_after_seconds = _max_retry_after_seconds(failed_actions)
             if retry_after_seconds is not None:
@@ -277,15 +294,94 @@ def _process_one_dispatch(
             _complete_dispatch_session(session, warmup_session, now=now)
             session.flush()
             return True
+        _write_plan_adjustment_event_if_needed(session, warmup_session)
         warmup_session.next_micro_session_at = _next_day_first_window(
             now, warmup_session.timezone, rng=rng
         )
     else:
         warmup_session.next_micro_session_at = _schedule_within_day(
-            now, warmup_session.timezone, rng=rng
+            now,
+            warmup_session.timezone,
+            rng=rng,
+            personality_seed=warmup_session.personality_seed_json,
+            last_micro_session_at=warmup_session.last_micro_session_at,
         )
 
     warmup_session.next_step_at = warmup_session.next_micro_session_at
     warmup_session.updated_at = now
     session.flush()
     return True
+
+
+def _skip_if_outside_cyclic_window(
+    session: Session,
+    warmup_session: WarmupSession,
+    now: datetime,
+) -> bool:
+    status = cycle_window_status(warmup_session.cycle_config_json, now, warmup_session.timezone)
+    if status is None or status.in_window:
+        if status is not None:
+            schedule_next_cycle(warmup_session, now=now)
+        return False
+    if status.completed:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "cyclic.completed",
+            {
+                "current_cycle": status.current_cycle,
+                "active_hours_total": status.active_hours_total,
+            },
+        )
+        _complete_dispatch_session(session, warmup_session, now=now)
+        session.flush()
+        return True
+
+    schedule_next_cycle(warmup_session, now=now)
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_skipped",
+        {
+            "reason": "cyclic_inactive_window",
+            "current_cycle": status.current_cycle,
+            "next_window_start": status.next_window_start.isoformat()
+            if status.next_window_start
+            else None,
+        },
+    )
+    session.flush()
+    return True
+
+
+def _record_failed_actions_in_counters(
+    counters_for_day: dict[str, int], failed_actions: list[dict[str, Any]]
+) -> None:
+    counters_for_day["failures"] = counters_for_day.get("failures", 0) + len(failed_actions)
+    flood_waits = sum(1 for action in failed_actions if _is_flood_wait_failure(action))
+    if flood_waits:
+        counters_for_day["flood_waits"] = counters_for_day.get("flood_waits", 0) + flood_waits
+
+
+def _is_flood_wait_failure(action: dict[str, Any]) -> bool:
+    status = str(action.get("status") or "").lower()
+    error_code = str(action.get("error_code") or "").lower()
+    return status == "flood_wait" or error_code.startswith("flood_wait")
+
+
+def _write_plan_adjustment_event_if_needed(session: Session, warmup_session: WarmupSession) -> None:
+    adjustment = describe_next_day_adjustment(warmup_session)
+    event_type = adjustment.event_type
+    if event_type is None or not adjustment.is_active:
+        return
+    write_warmup_event(
+        session,
+        warmup_session,
+        event_type,
+        {
+            "day": warmup_session.current_day,
+            "multiplier": adjustment.multiplier,
+            "reason": adjustment.reason,
+            "action_types": list(adjustment.multipliers.keys()),
+        },
+    )

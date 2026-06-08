@@ -25,6 +25,8 @@ class ChannelStateSnapshot:
     has_reactions: bool | None
     available_reactions: tuple[str, ...]
     health_score: float
+    success_count: int = 0
+    fail_count: int = 0
 
 
 class ChannelCapabilitiesAdapter(Protocol):

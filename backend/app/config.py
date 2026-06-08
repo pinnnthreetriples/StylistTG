@@ -115,7 +115,15 @@ class Settings(BaseSettings):
     warmup_hard_disable: bool = False
     warmup_scheduler_enabled: bool = False
     warmup_scheduler_tick_seconds: int = 60
+    warmup_connection_stagger_min_seconds: int = 15
+    warmup_connection_stagger_max_seconds: int = 30
     warmup_default_duration_days: int = 14
+    warmup_idle_detection_enabled: bool = False
+    warmup_idle_threshold_minutes: int = 60
+    warmup_pre_production_enabled: bool = False
+    warmup_pre_production_duration_hours: int = 2
+    warmup_circadian_enabled: bool = True
+    warmup_lazy_day_probability: float = 0.10
     warmup_micro_session_min_minutes: int = 2
     warmup_micro_session_max_minutes: int = 7
     warmup_daily_session_min_count: int = 3

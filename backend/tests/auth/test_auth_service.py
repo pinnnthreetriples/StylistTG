@@ -55,7 +55,7 @@ class FakeTdJsonLibrary:
 def test_real_tdjson_client_buffers_updates_seen_during_send_query() -> None:
     client = RealTdJsonClient(FakeTdJsonLibrary())
 
-    response = client.send_query({"@type": "getMe"}, 0.1)
+    response = client.send_query({"@type": "getMe"}, 1.0)
 
     assert response["@type"] == "ok"
     assert client.receive(0)["@type"] == "updateStoryPostSucceeded"

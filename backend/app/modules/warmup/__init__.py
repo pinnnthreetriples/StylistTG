@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from app.modules.warmup import enqueue as enqueue
     from app.modules.warmup import errors as errors
     from app.modules.warmup import events as events
+    from app.modules.warmup import interfaces as interfaces
     from app.modules.warmup import isolation as isolation
     from app.modules.warmup import jobs as jobs
     from app.modules.warmup import p2p as p2p
@@ -40,6 +41,7 @@ _LAZY_SUBMODULES = frozenset(
         "enqueue",
         "errors",
         "events",
+        "interfaces",
         "isolation",
         "jobs",
         "p2p",
@@ -62,6 +64,7 @@ __all__ = [
     "enqueue",
     "errors",
     "events",
+    "interfaces",
     "isolation",
     "jobs",
     "module",

@@ -182,9 +182,9 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         owner="account_survival",
         paths=("backend/app/modules/account_survival/**",),
         target_owner="app.modules.account_survival",
-        phase="Phase 6B",
+        phase="Phase 6A",
         removal_condition="n/a",
-        rationale="Account survival metrics router, queries, repository, events, and contracts are canonical.",
+        rationale="Account survival router, queries, repository, and contracts are canonical.",
     ),
     OwnershipEntry(
         id="canonical-account-profile-completeness",

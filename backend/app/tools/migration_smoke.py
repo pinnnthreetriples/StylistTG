@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import time
 import uuid
 from datetime import UTC, datetime
@@ -68,7 +69,7 @@ def _run_alembic(base_url: str, db_name: str, *args: str) -> str:
     env["DATABASE_URL"] = database_url
     env["DATABASE_DIRECT_URL"] = database_url
     result = subprocess.run(
-        ["python", "-m", "alembic", *args],
+        [sys.executable, "-m", "alembic", *args],
         env=env,
         text=True,
         capture_output=True,

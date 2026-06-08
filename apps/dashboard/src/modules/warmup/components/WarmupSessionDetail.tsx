@@ -7,6 +7,7 @@ import { SafetyGateBanner } from '@/modules/shared'
 import {
   usePauseWarmupSession,
   useResumeWarmupSession,
+  useWarmupActionMetadata,
   useWarmupEventsPaginated,
   useWarmupSessionDetail,
   useWarmupStrategies,
@@ -18,6 +19,7 @@ import {
 } from '../labels'
 import type { WarmupSessionSummary } from '../types'
 import { WarmupDailyCountersPanel } from './WarmupDailyCountersPanel'
+import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
 import { WarmupEventLog } from './WarmupEventLog'
 import { WarmupIsolationBanner } from './WarmupIsolationBanner'
 import { WarmupProxySnapshotPanel } from './WarmupProxySnapshotPanel'
@@ -33,6 +35,7 @@ export function WarmupSessionDetail({
   const [pauseReason, setPauseReason] = useState('')
   const eventsData = useWarmupEventsPaginated(session?.id ?? null)
   const detailQuery = useWarmupSessionDetail(session?.id ?? null)
+  const actionMetadataQuery = useWarmupActionMetadata()
   const strategiesQuery = useWarmupStrategies()
   const pauseMutation = usePauseWarmupSession()
   const resumeMutation = useResumeWarmupSession()
@@ -56,6 +59,7 @@ export function WarmupSessionDetail({
   const executionLabel = WARMUP_EXECUTION_MODE_LABELS[session.execution_mode] ?? session.execution_mode
   const isDryRun = session.execution_mode === 'dry_run'
   const executionTone = isDryRun ? 'gray' : 'amber'
+  const cycleConfig = detail?.cycle_config ?? session.cycle_config
 
   return (
     <div className="grid gap-4">
@@ -103,6 +107,14 @@ export function WarmupSessionDetail({
                 )}
               </div>
             </div>
+            {cycleConfig ? (
+              <div>
+                <div className="text-xs font-semibold uppercase text-muted-foreground">Циклическое окно</div>
+                <div className="text-sm font-semibold text-foreground">
+                  Ожидаются активные часы: {formatHour(cycleConfig.start_hour)}-{formatHour(cycleConfig.end_hour)}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
@@ -158,6 +170,12 @@ export function WarmupSessionDetail({
         dailyCounters={detail?.daily_counters ?? {}}
         strategy={strategy}
       />
+      <WarmupDisabledActionsToggle
+        sessionId={session.id}
+        disabledActions={detail?.disabled_actions ?? []}
+        metadata={actionMetadataQuery.data ?? []}
+        isMetadataLoading={actionMetadataQuery.isLoading}
+      />
       <WarmupProxySnapshotPanel snapshot={detail?.proxy_snapshot ?? null} />
       <WarmupEventLog
         events={eventsData.events}
@@ -167,4 +185,8 @@ export function WarmupSessionDetail({
       />
     </div>
   )
+}
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`
 }

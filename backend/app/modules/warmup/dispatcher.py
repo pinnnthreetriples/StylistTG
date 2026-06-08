@@ -7,13 +7,18 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime
+from datetime import UTC, timedelta
+from typing import Any, cast
 
+from redis.exceptions import RedisError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.adapters.warmup_text_provider import WarmupTextProvider, build_warmup_text_provider
 from app.adapters.warmup_tdlib import WarmupTdlibAdapter, build_warmup_tdlib_adapter
 from app.config import settings
+from app.contracts.queues import WARMUP_DISPATCH_QUEUE_NAME
+from app.logging_utils import log_warn
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, utc_now
 from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 
@@ -44,8 +49,11 @@ from .dispatch_schedule import (
     _select_action_targets,
     _select_actions_for_window,
 )
+from .enqueue import WARMUP_DISPATCH_SESSION_JOB_ID_PREFIX
+from .events import write_warmup_event
 
 logger = logging.getLogger(__name__)
+_MAX_STAGGER_SPAN_SECONDS = 3600
 
 __all__ = [
     "DEFAULT_ACTION_PRIORITY",
@@ -73,6 +81,7 @@ __all__ = [
     "_select_action_targets",
     "_select_actions_for_window",
     "_select_chat_target",
+    "enqueue_due_warmup_dispatch_sessions",
     "process_due_warmup_dispatches",
     "process_warmup_dispatch_session",
 ]
@@ -80,6 +89,71 @@ __all__ = [
 
 def _isolation_owner(session_id: str) -> str:
     return f"warmup:{session_id}"
+
+
+def enqueue_due_warmup_dispatch_sessions(
+    session: Session,
+    *,
+    now: datetime | None = None,
+    workspace_id: str | None = None,
+    queue: Any | None = None,
+    rng: random.Random | None = None,
+    limit: int | None = None,
+) -> bool:
+    timestamp = _aware_utc(now or datetime.now(UTC))
+    queue = queue or _dispatch_queue()
+    rng = rng or random.Random()
+    from app.modules.warmup.jobs import run_warmup_dispatch_session
+
+    cursors: dict[str, datetime] = {}
+    scheduled_count = 0
+    for warmup_session in _due_dispatch_sessions(
+        session,
+        now=timestamp,
+        workspace_id=workspace_id,
+        limit=limit,
+    ):
+        workspace_id = warmup_session.workspace_id
+        cursor = cursors.get(workspace_id, timestamp)
+        cursor = cursor + timedelta(seconds=_next_stagger_delay(rng))
+        if (cursor - timestamp).total_seconds() > _MAX_STAGGER_SPAN_SECONDS:
+            break
+        job_id = f"{WARMUP_DISPATCH_SESSION_JOB_ID_PREFIX}-{warmup_session.id}"
+        try:
+            cast(Any, queue).enqueue_at(
+                cursor,
+                run_warmup_dispatch_session,
+                warmup_session.id,
+                cursor.isoformat(),
+                job_id=job_id,
+            )
+        except RedisError:
+            log_warn(
+                "warmup_dispatch_stagger_enqueue_failed",
+                queue_name=WARMUP_DISPATCH_QUEUE_NAME,
+                warmup_session_id=warmup_session.id,
+                error_class="RedisError",
+            )
+            session.rollback()
+            return False
+        warmup_session.next_micro_session_at = cursor
+        warmup_session.next_step_at = cursor
+        write_warmup_event(
+            session,
+            warmup_session,
+            "connection_stagger_scheduled",
+            {
+                "scheduled_at": cursor.isoformat(),
+                "job_id": job_id,
+                "stagger_min_seconds": settings.warmup_connection_stagger_min_seconds,
+                "stagger_max_seconds": settings.warmup_connection_stagger_max_seconds,
+            },
+        )
+        cursors[workspace_id] = cursor
+        scheduled_count += 1
+    if scheduled_count:
+        session.commit()
+    return True
 
 
 def process_due_warmup_dispatches(
@@ -155,6 +229,71 @@ def process_due_warmup_dispatches(
         except Exception as exc:
             logger.debug("Warmup adapter cleanup failed: %s", exc, exc_info=True)
     return processed
+
+
+def _due_dispatch_sessions(
+    session: Session,
+    *,
+    now: datetime,
+    workspace_id: str | None,
+    limit: int | None,
+) -> list[WarmupSession]:
+    workspace_scope = workspace_id if workspace_id is not None else WarmupSession.workspace_id
+    query = select(WarmupSession).where(
+        WarmupSession.workspace_id == workspace_scope,
+        WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
+        (
+            (
+                WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value])
+                & (
+                    WarmupSession.next_micro_session_at.is_(None)
+                    | (WarmupSession.next_micro_session_at <= now)
+                )
+            )
+            | (
+                (WarmupSession.status == WarmupStatus.COLD_SOAK.value)
+                & (
+                    WarmupSession.next_micro_session_at.is_(None)
+                    | (WarmupSession.next_micro_session_at <= now)
+                    | (WarmupSession.cold_soak_until <= now)
+                )
+            )
+        ),
+    )
+    query = query.order_by(
+        WarmupSession.workspace_id.asc(),
+        WarmupSession.next_micro_session_at.asc(),
+        WarmupSession.updated_at.asc(),
+    ).limit(limit or settings.warmup_batch_limit)
+    return list(session.execute(query).scalars().all())
+
+
+def _next_stagger_delay(rng: random.Random) -> int:
+    min_seconds = max(0, int(settings.warmup_connection_stagger_min_seconds))
+    max_seconds = max(min_seconds, int(settings.warmup_connection_stagger_max_seconds))
+    if max_seconds <= 0:
+        return 0
+    return rng.randint(min_seconds, max_seconds)
+
+
+def dispatch_stagger_enabled() -> bool:
+    return (
+        max(
+            int(settings.warmup_connection_stagger_min_seconds),
+            int(settings.warmup_connection_stagger_max_seconds),
+        )
+        > 0
+    )
+
+
+def _dispatch_queue() -> Any:
+    from app.job_queue.rq import get_queue
+
+    return get_queue(WARMUP_DISPATCH_QUEUE_NAME)
+
+
+def _aware_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 def process_warmup_dispatch_session(

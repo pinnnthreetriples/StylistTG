@@ -19,6 +19,8 @@ def run_warmup_due_sessions() -> int:
 def run_warmup_dispatch_tick() -> int:
     worker_id = f"{socket.gethostname()}:{os.getpid()}"
     with SessionLocal() as session:
+        if dispatcher.dispatch_stagger_enabled():
+            return int(dispatcher.enqueue_due_warmup_dispatch_sessions(session))
         return dispatcher.process_due_warmup_dispatches(session, worker_id=worker_id)
 
 

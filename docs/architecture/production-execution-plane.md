@@ -1,29 +1,30 @@
 # Production Execution Plane
 
-The production execution plane is a safety foundation for future live Telegram work. Live TDLib execution remains disabled by default.
+The production execution plane is a safety foundation for future live runtime work. Live TDLib execution remains disabled by default.
 
 ## Queue Taxonomy
 
-- `auth_jobs`: Telegram auth/login/reauth jobs.
-- `profile_jobs`: profile/account-update jobs.
-- `media_jobs`: media upload/normalization jobs.
-- `story_jobs`: story jobs.
-- `account_lifecycle_jobs`: deletion/export/lifecycle jobs.
-- `maintenance_jobs`: safe maintenance/reaper reports.
-- `scheduler_jobs`: future scheduled enqueue/report jobs.
-- `warmup_jobs`: dry-run account preparation jobs.
-- `warmup_dispatch_jobs`: shadow/live warmup micro-session dispatch.
+Source of truth: `backend/app/contracts/queues.py` and `backend/app/services/worker_plane.py`.
 
-Current staging worker commands remain compatible. Resource-constrained staging
-may keep one physical worker service and use raw queue mode without `--role`:
+- `auth_jobs`: Telegram auth, login, and reauth jobs.
+- `profile_jobs`: profile/account-update jobs.
+- `media_jobs`: media upload and normalization jobs.
+- `story_jobs`: story preparation and future story execution jobs.
+- `account_lifecycle_jobs`: account deletion/export/lifecycle jobs.
+- `maintenance_jobs`: dry-run maintenance and safe cleanup reports.
+- `scheduler_jobs`: future scheduled checks and enqueue decisions.
+- `warmup_jobs`: dry-run account preparation jobs.
+- `warmup_dispatch_jobs`: live warmup micro-session dispatch for network and advanced execution modes; live by capability but still gated.
+- `neuro_comment_jobs`: NeuroCommenting generation and safe manual-approval preparation jobs.
+
+Current staging worker commands remain compatible. Resource-constrained staging may keep one physical worker service and use raw queue mode without `--role`:
 
 ```powershell
 cd backend
 python -m app.workers.run_worker --queues maintenance_jobs,media_jobs,story_jobs,account_lifecycle_jobs
 ```
 
-New dedicated worker launchers can use role validation when production resources
-allow one worker service per logical role:
+Dedicated worker launchers can use role validation when production resources allow one worker service per logical role:
 
 ```powershell
 cd backend
@@ -35,17 +36,14 @@ python -m app.workers.run_worker --queues story_jobs --role story_worker
 python -m app.workers.run_worker --queues account_lifecycle_jobs --role account_lifecycle_worker
 python -m app.workers.run_worker --queues warmup_jobs
 python -m app.workers.run_worker --queues warmup_dispatch_jobs
+python -m app.workers.run_worker --queues neuro_comment_jobs --role neuro_comment_worker
 ```
 
-The launcher rejects unknown queue names. Optional runtime role validation is
-documented in `docs/runtime/runtime-boundaries.md`; deployment process guidance
-lives in `docs/runtime/deployment-processes.md`.
-Raw `--queues` mode remains compatible for existing invocations; role-aware
-startup validates that a worker role only consumes its owned queue.
+The launcher rejects unknown queue names. Optional runtime role validation is documented in `docs/runtime/runtime-boundaries.md`; deployment process guidance lives in `docs/runtime/deployment-processes.md`. Raw `--queues` mode remains compatible for existing invocations; role-aware startup validates that a worker role only consumes its owned queue.
 
 ## Locks
 
-`backend/app/services/locks.py` now includes Redis owner-token locks:
+`backend/app/services/locks.py` includes Redis owner-token locks:
 
 - `locks:account:<workspace_id>:<account_id>:execution`
 - `locks:account:<workspace_id>:<account_id>:lifecycle`
@@ -102,9 +100,10 @@ Live execution requires all gates:
 - TDLib library and session roots configured;
 - account lock acquired;
 - tenant rate limit allows the action;
-- risk gate passes or an allowed manual override is audited;
+- risk/safety gate passes or an allowed manual override is audited;
 - job type is allowlisted;
-- operation is audited and idempotency-protected.
+- operation is audited and idempotency-protected;
+- explicit operator approval for the real account action.
 
 Staging keeps:
 
@@ -115,7 +114,7 @@ PROFILE_EXECUTION_ADAPTER=mock
 
 Diagnostics expose booleans such as `live_enabled`, `library_configured`, and `session_root_configured`, but never raw filesystem paths.
 
-The auth/import foundation adds `telegram_auth_session`, `account_import_batch`, and `account_import_item` records plus auth/import API endpoints. These remain auth/readiness-only: they do not enqueue profile/story/music execution and they fail safely with `tdlib_live_disabled` when `TDLIB_LIVE_ENABLED=false`.
+The auth/import foundation adds auth/import records plus API endpoints. These remain auth/readiness-only: they do not enqueue profile/story/music execution and they fail safely with `tdlib_live_disabled` when `TDLIB_LIVE_ENABLED=false`.
 
 ## Warmup Live Safety
 
@@ -127,6 +126,10 @@ Warmup dry-run sessions remain non-live and use `warmup_jobs`.
 - at least one live level enabled: `WARMUP_PASSIVE_ENABLED`, `WARMUP_NETWORK_ENABLED`, or `WARMUP_ADVANCED_ENABLED`;
 - TDLib runtime configured and loadable;
 - account isolation claim acquired for the warmup session;
-- explicit operator approval before using real Telegram accounts.
+- explicit operator approval before using real accounts.
 
-Do not describe warmup as anti-ban, shadow-ban protection, behavior imitation, or a guarantee of Telegram account safety.
+Do not describe warmup as a guarantee of external account outcomes.
+
+## NeuroCommenting Safety
+
+`neuro_comment_jobs` is part of the production queue taxonomy. It is for generation and safe manual-approval preparation by default. Live observer/sender behavior remains disabled unless the explicit NeuroCommenting live gates, account/runtime readiness, and operator approval are all satisfied.

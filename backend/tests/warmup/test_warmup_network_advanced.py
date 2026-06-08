@@ -735,8 +735,7 @@ def test_advanced_dispatch_skips_when_no_eligible_peer(db_session) -> None:
     skip_events = [
         e
         for e in warmup_session.events
-        if e.event_type == "task_skipped"
-        and e.payload_json.get("reason") == "no_friends_available"
+        if e.event_type == "task_skipped" and e.payload_json.get("reason") == "no_friends_available"
     ]
     assert skip_events
 

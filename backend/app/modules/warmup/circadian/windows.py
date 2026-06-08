@@ -55,7 +55,11 @@ def pick_next_window(
     if not slots:
         return (now + timedelta(hours=1)).astimezone(UTC)
     selected = _weighted_choice(slots, rng)
-    min_minute = local_now.minute + 1 if selected.date() == local_now.date() and selected.hour == local_now.hour else 0
+    min_minute = (
+        local_now.minute + 1
+        if selected.date() == local_now.date() and selected.hour == local_now.hour
+        else 0
+    )
     minute = rng.randint(min(min_minute, 59), 59)
     candidate = selected.replace(minute=minute, second=0, microsecond=0)
     if candidate <= local_now:

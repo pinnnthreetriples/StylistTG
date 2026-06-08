@@ -841,6 +841,8 @@
           "backend/app/modules/warmup/channel_state/repository.py",
           "backend/app/modules/warmup/channel_state/selector.py",
           "backend/app/modules/warmup/channel_state/service.py",
+          "backend/app/modules/warmup/circadian/__init__.py",
+          "backend/app/modules/warmup/circadian/windows.py",
           "backend/app/modules/warmup/cold_soak.py",
           "backend/app/modules/warmup/commands.py",
           "backend/app/modules/warmup/contracts.py",
@@ -1997,6 +1999,7 @@
           "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
           "backend/tests/modules/warmup/channel_state/test_health.py",
           "backend/tests/modules/warmup/channel_state/test_selector.py",
+          "backend/tests/modules/warmup/circadian/test_windows.py",
           "backend/tests/modules/warmup/p2p/test_graph.py",
           "backend/tests/modules/warmup/test_action_metadata.py",
           "backend/tests/modules/warmup/test_action_presets.py",
@@ -2264,7 +2267,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-08T16:36:29Z",
+    "generated_at": "2026-06-08T17:06:58Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2592,7 +2595,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-08T16:36:29Z",
+  "generated_at": "2026-06-08T17:06:58Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5610,7 +5613,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 276,
+      "file_count": 277,
       "path": "backend/tests"
     },
     "docs": {

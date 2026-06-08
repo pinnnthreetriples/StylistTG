@@ -42,7 +42,9 @@ def test_dispatch_uses_bootstrap_pool_when_strategy_has_no_targets(db_session) -
     assert processed == 1
     db_session.refresh(warmup_session)
     window_events = [
-        event for event in warmup_session.events if event.event_type == "micro_session_window_opened"
+        event
+        for event in warmup_session.events
+        if event.event_type == "micro_session_window_opened"
     ]
     assert window_events
     targets = window_events[-1].payload_json["planned_action_targets"]

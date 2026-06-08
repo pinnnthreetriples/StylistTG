@@ -128,7 +128,10 @@ class TestBaselineFromPersonalitySeed:
         assert conservative_baseline.typing_speed_baseline_cpm == (
             aggressive_policy_baseline.typing_speed_baseline_cpm
         )
-        assert conservative_baseline.typo_rate_baseline == aggressive_policy_baseline.typo_rate_baseline
+        assert (
+            conservative_baseline.typo_rate_baseline
+            == aggressive_policy_baseline.typo_rate_baseline
+        )
 
     def test_permissive_legacy_preset_keeps_personality_typing(self):
         session = _make_session()

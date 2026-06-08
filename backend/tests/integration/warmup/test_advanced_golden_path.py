@@ -197,7 +197,9 @@ def test_cyclic_mode_7_days(db_session: Session) -> None:
 def test_friend_graph_p2p_isolation(db_session: Session, monkeypatch) -> None:
     _disable_cold_soak(monkeypatch)
     sender = seed_warmup_account(db_session, telegram_user_id="100")
-    friends = [_seed_trusted_peer(db_session, telegram_user_id=str(200 + index)) for index in range(4)]
+    friends = [
+        _seed_trusted_peer(db_session, telegram_user_id=str(200 + index)) for index in range(4)
+    ]
     strategy = _seed_shadow_strategy(db_session, duration_days=3)
 
     warmup_session = create_warmup_session(
@@ -431,9 +433,7 @@ def _seed_shadow_strategy(db_session: Session, *, duration_days: int):
         db_session,
         execution_mode=WarmupExecutionMode.SHADOW.value,
         duration_days=duration_days,
-        daily_action_limits={
-            str(day): {"feed_read": 1} for day in range(1, duration_days + 1)
-        },
+        daily_action_limits={str(day): {"feed_read": 1} for day in range(1, duration_days + 1)},
     )
 
 

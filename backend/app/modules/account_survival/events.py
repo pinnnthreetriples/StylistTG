@@ -136,9 +136,9 @@ def on_warmup_action_executed(*, action_type: str, result: str, workspace_id: st
 def _mark_account_imported(
     session: Session, *, account_id: str, workspace_id: str, now: datetime
 ) -> None:
-    is_new_metric = repository.get_metric(
-        session, workspace_id=workspace_id, account_id=account_id
-    ) is None
+    is_new_metric = (
+        repository.get_metric(session, workspace_id=workspace_id, account_id=account_id) is None
+    )
     repository.ensure_metric(
         session,
         workspace_id=workspace_id,
@@ -147,9 +147,7 @@ def _mark_account_imported(
         now=now,
     )
     if is_new_metric:
-        account_survival_metrics.account_survival_observed(
-            state="alive", workspace_id=workspace_id
-        )
+        account_survival_metrics.account_survival_observed(state="alive", workspace_id=workspace_id)
 
 
 def _mark_warmup_completed(
@@ -166,9 +164,7 @@ def _mark_warmup_completed(
         session, workspace_id=workspace_id, account_id=account_id, now=now
     )
     if is_new_completion and preset is not None:
-        account_survival_metrics.warmup_session_completed(
-            preset=preset, workspace_id=workspace_id
-        )
+        account_survival_metrics.warmup_session_completed(preset=preset, workspace_id=workspace_id)
 
 
 def _mark_account_terminal(

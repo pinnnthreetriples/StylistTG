@@ -108,9 +108,7 @@ class AccountSurvivalMetrics:
             workspace_id=workspace_id,
         ).inc()
 
-    def warmup_action_executed(
-        self, *, action_type: str, result: str, workspace_id: str
-    ) -> None:
+    def warmup_action_executed(self, *, action_type: str, result: str, workspace_id: str) -> None:
         if not self.enabled:
             return
         self._warmup_action_executed.labels(

@@ -60,12 +60,8 @@ def update_survival_metrics_workflow() -> int:
 
 
 def _workspace_ids(session: Session) -> list[str]:
-    survival_ids = session.execute(
-        select(AccountSurvivalMetric.workspace_id).distinct()
-    ).scalars()
-    channel_ids = session.execute(
-        select(WarmupChannelState.workspace_id).distinct()
-    ).scalars()
+    survival_ids = session.execute(select(AccountSurvivalMetric.workspace_id).distinct()).scalars()
+    channel_ids = session.execute(select(WarmupChannelState.workspace_id).distinct()).scalars()
     return sorted({workspace_id for workspace_id in [*survival_ids, *channel_ids] if workspace_id})
 
 

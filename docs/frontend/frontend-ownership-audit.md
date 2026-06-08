@@ -1,5 +1,9 @@
 # Frontend Ownership Audit
 
+> Status: generated snapshot.
+> Re-run the frontend ownership audit before using this as current architecture input.
+> Current frontend memory starts at `.mex/context/frontend.md` and `docs/api/frontend.md`.
+
 Generated snapshot: `2026-05-31T00:00:00Z`
 
 This audit records the dashboard ownership surfaces after the architecture-GREEN cleanup pass. The goal is to keep feature-specific code behind module public APIs while keeping old import paths compatible.

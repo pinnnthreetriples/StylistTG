@@ -16,10 +16,14 @@ from tests.helpers.factories import seed_account_with_profile, seed_two_workspac
 
 def test_bio_similarity_handles_exact_similar_and_different() -> None:
     assert compute_bio_similarity("SMM specialist, Moscow", "smm specialist, moscow") == 1.0
-    assert 0.80 <= compute_bio_similarity(
-        "SMM specialist, Moscow",
-        "SMM specialist in Moscow",
-    ) < 0.95
+    assert (
+        0.80
+        <= compute_bio_similarity(
+            "SMM specialist, Moscow",
+            "SMM specialist in Moscow",
+        )
+        < 0.95
+    )
     assert compute_bio_similarity("SMM specialist, Moscow", "Kotlin backend engineer") < 0.8
 
 

@@ -68,9 +68,7 @@ def choose_actions(
     states_by_ref = {
         state.channel_ref: state for state in channel_states if is_channel_healthy(state)
     }
-    excluded_refs = {
-        state.channel_ref for state in channel_states if not is_channel_healthy(state)
-    }
+    excluded_refs = {state.channel_ref for state in channel_states if not is_channel_healthy(state)}
     selected: list[SelectedAction] = []
     for action_type in _pending_action_types(plan, counters, personality_seed=personality_seed):
         if len(selected) >= max_actions:
@@ -115,7 +113,7 @@ def _action_preference(action_type: str, personality_seed: dict[str, Any] | None
         return 1.0
     try:
         return max(0.1, min(3.0, float(raw.get(action_type, 1.0))))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 1.0
 
 

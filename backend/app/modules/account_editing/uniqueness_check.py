@@ -60,9 +60,7 @@ def compute_photo_similarity(photo_hash_a: str | None, photo_hash_b: str | None)
     if len(left) != len(right):
         return 0.0
     total_bits = len(left) * 4
-    distance = sum(
-        (int(a, 16) ^ int(b, 16)).bit_count() for a, b in zip(left, right, strict=True)
-    )
+    distance = sum((int(a, 16) ^ int(b, 16)).bit_count() for a, b in zip(left, right, strict=True))
     return round(1.0 - distance / total_bits, 3)
 
 
@@ -155,7 +153,9 @@ def evaluate_profile_uniqueness(
             last_name=last_name,
         )
         if score >= threshold:
-            matches.append(ProfileSimilarityMatch(account=account, score=score, reasons=tuple(reasons)))
+            matches.append(
+                ProfileSimilarityMatch(account=account, score=score, reasons=tuple(reasons))
+            )
 
     matches.sort(key=lambda item: item.score, reverse=True)
     severity = "blocked" if any(item.score >= BLOCKING_THRESHOLD for item in matches) else "ok"

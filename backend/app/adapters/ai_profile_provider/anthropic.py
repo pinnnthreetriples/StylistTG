@@ -62,7 +62,9 @@ class AnthropicProfileProvider:
                 "AI profile provider returned an invalid response",
             ) from exc
         if not text:
-            raise AIProfileProviderError("AI_PROFILE_EMPTY_RESPONSE", "AI profile provider returned empty text")
+            raise AIProfileProviderError(
+                "AI_PROFILE_EMPTY_RESPONSE", "AI profile provider returned empty text"
+            )
         return GeneratedBio(
             text=text[:120],
             provider=self.provider_name,

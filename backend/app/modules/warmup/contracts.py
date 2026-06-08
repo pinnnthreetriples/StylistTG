@@ -83,9 +83,9 @@ class WarmupBootstrapChannelCreate(BaseModel):
 
 
 class WarmupBootstrapChannelPatch(BaseModel):
-    category: (
-        Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None
-    ) = None
+    category: Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None = (
+        None
+    )
     language: str | None = Field(default=None, min_length=1, max_length=16)
     country: str | None = Field(default=None, max_length=8)
     is_active: bool | None = None

@@ -23,7 +23,9 @@ from app.services.accounts import create_account
 from app.services.warmup import create_warmup_session
 
 
-def _seed_account(db_session, *, with_proxy: bool, proxy_category: str = ProxyCategory.RESIDENTIAL.value):
+def _seed_account(
+    db_session, *, with_proxy: bool, proxy_category: str = ProxyCategory.RESIDENTIAL.value
+):
     account = create_account(
         db_session,
         external_ref=f"+7999{new_id()[:8]}",
@@ -129,11 +131,13 @@ def test_create_warmup_session_emits_snapshot_event(db_session) -> None:
     assert payload["execution_mode"] == WarmupExecutionMode.DRY_RUN.value
     assert payload["duration_days"] == 14
     assert payload["proxy_snapshot"]["proxy_category"] == ProxyCategory.RESIDENTIAL.value
-    assert payload["personality_seed"]["typing_speed_cps"] == (
-        warmup_session.personality_seed_json["typing_speed_cps"]
+    assert (
+        payload["personality_seed"]["typing_speed_cps"]
+        == (warmup_session.personality_seed_json["typing_speed_cps"])
     )
-    assert payload["personality_seed"]["favorite_emojis"] == (
-        warmup_session.personality_seed_json["favorite_emojis"]
+    assert (
+        payload["personality_seed"]["favorite_emojis"]
+        == (warmup_session.personality_seed_json["favorite_emojis"])
     )
     assert "action_preferences" not in payload["personality_seed"]
 
@@ -157,7 +161,9 @@ def test_create_warmup_session_applies_mobile_proxy_adaptation(db_session) -> No
         "view_stickers",
         "link_preview",
     }
-    event = next(item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied")
+    event = next(
+        item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied"
+    )
     assert event.payload_json["proxy_category"] == ProxyCategory.MOBILE.value
     assert event.payload_json["applied_preset"] == "economic"
     assert set(event.payload_json["disabled_actions"]) == set(warmup_session.disabled_actions_json)
@@ -179,5 +185,7 @@ def test_create_warmup_session_leaves_datacenter_actions_enabled(db_session) -> 
     )
 
     assert warmup_session.disabled_actions_json == []
-    event = next(item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied")
+    event = next(
+        item for item in warmup_session.events if item.event_type == "proxy_adaptation_applied"
+    )
     assert event.payload_json["applied_preset"] == "full"

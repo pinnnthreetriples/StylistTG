@@ -158,10 +158,13 @@ def _next_stagger_delay(rng: random.Random) -> int:
 
 
 def _stagger_enabled() -> bool:
-    return max(
-        int(settings.warmup_connection_stagger_min_seconds),
-        int(settings.warmup_connection_stagger_max_seconds),
-    ) > 0
+    return (
+        max(
+            int(settings.warmup_connection_stagger_min_seconds),
+            int(settings.warmup_connection_stagger_max_seconds),
+        )
+        > 0
+    )
 
 
 def _dispatch_queue() -> Any:

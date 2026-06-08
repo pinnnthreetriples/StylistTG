@@ -553,6 +553,7 @@
         "backend/app/modules/warmup/__init__.py",
         "backend/app/modules/warmup/action_metadata.py",
         "backend/app/modules/warmup/action_presets.py",
+        "backend/app/modules/warmup/adaptive_plan.py",
         "backend/app/modules/warmup/channel_state/__init__.py",
         "backend/app/modules/warmup/channel_state/contracts.py",
         "backend/app/modules/warmup/channel_state/health.py",
@@ -1710,6 +1711,7 @@
         "backend/tests/modules/warmup/p2p/test_graph.py",
         "backend/tests/modules/warmup/test_action_metadata.py",
         "backend/tests/modules/warmup/test_action_presets.py",
+        "backend/tests/modules/warmup/test_adaptive_plan.py",
         "backend/tests/modules/warmup/test_cold_soak.py",
         "backend/tests/modules/warmup/test_disabled_actions.py",
         "backend/tests/modules/warmup/test_typing.py",
@@ -1970,7 +1972,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-08T13:53:38Z",
+  "generated_at": "2026-06-08T14:09:51Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

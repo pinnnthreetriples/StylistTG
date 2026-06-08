@@ -17,6 +17,7 @@ from app.modules.warmup.cold_soak import (
     record_cold_soak_in_progress,
 )
 from app.modules.warmup.channel_state.repository import get_states_for_account
+from app.modules.warmup.adaptive_plan import describe_next_day_adjustment
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
 
@@ -188,6 +189,8 @@ def _process_one_dispatch(
                 is_live=is_live,
                 now=now,
             )
+        if failed_actions:
+            _record_failed_actions_in_counters(counters_for_day, failed_actions)
         if performed_actions:
             warmup_session.daily_counters_json = _persist_day_counters(
                 warmup_session.daily_counters_json,
@@ -202,6 +205,11 @@ def _process_one_dispatch(
             if warmup_session.started_at is None:
                 warmup_session.started_at = now
         if failed_actions and not performed_actions:
+            warmup_session.daily_counters_json = _persist_day_counters(
+                warmup_session.daily_counters_json,
+                warmup_session.current_day,
+                counters_for_day,
+            )
             warmup_session.worker_id = worker_id
             retry_after_seconds = _max_retry_after_seconds(failed_actions)
             if retry_after_seconds is not None:
@@ -277,6 +285,7 @@ def _process_one_dispatch(
             _complete_dispatch_session(session, warmup_session, now=now)
             session.flush()
             return True
+        _write_plan_adjustment_event_if_needed(session, warmup_session)
         warmup_session.next_micro_session_at = _next_day_first_window(
             now, warmup_session.timezone, rng=rng
         )
@@ -289,3 +298,36 @@ def _process_one_dispatch(
     warmup_session.updated_at = now
     session.flush()
     return True
+
+
+def _record_failed_actions_in_counters(
+    counters_for_day: dict[str, int], failed_actions: list[dict[str, Any]]
+) -> None:
+    counters_for_day["failures"] = counters_for_day.get("failures", 0) + len(failed_actions)
+    flood_waits = sum(1 for action in failed_actions if _is_flood_wait_failure(action))
+    if flood_waits:
+        counters_for_day["flood_waits"] = counters_for_day.get("flood_waits", 0) + flood_waits
+
+
+def _is_flood_wait_failure(action: dict[str, Any]) -> bool:
+    status = str(action.get("status") or "").lower()
+    error_code = str(action.get("error_code") or "").lower()
+    return status == "flood_wait" or error_code.startswith("flood_wait")
+
+
+def _write_plan_adjustment_event_if_needed(session: Session, warmup_session: WarmupSession) -> None:
+    adjustment = describe_next_day_adjustment(warmup_session)
+    event_type = adjustment.event_type
+    if event_type is None or not adjustment.is_active:
+        return
+    write_warmup_event(
+        session,
+        warmup_session,
+        event_type,
+        {
+            "day": warmup_session.current_day,
+            "multiplier": adjustment.multiplier,
+            "reason": adjustment.reason,
+            "action_types": list(adjustment.multipliers.keys()),
+        },
+    )

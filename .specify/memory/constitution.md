@@ -1,50 +1,59 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: template -> 1.0.0
+Modified principles: template placeholders -> StylistTG project principles
+Added sections: Additional Constraints, Development Workflow
+Removed sections: placeholder examples
+Templates requiring updates: none in this documentation-only pass
+Deferred items: none
+-->
+
+# StylistTG Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Workspace and Secret Safety
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Secrets, `.env*`, TDLib sessions, logs, artifacts, auth codes, proxy passwords, raw runtime paths, and private operator data MUST NOT be read, copied, summarized, committed, or stored in memory unless the operator explicitly approves the exact file and action. Documentation and memory must summarize safe structure only.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. PostgreSQL Source of Truth
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+PostgreSQL-backed models are the source of truth for accounts, profile state, warmup state, jobs, audits, workspaces, and policy state. Redis/RQ is execution infrastructure and cache state only. Agents must not describe Redis, local files, or frontend state as canonical persisted state.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Live Runtime Explicitly Gated
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Live TDLib, live account mutation, live warmup, cloud deploy, migrations, and production-like smoke MUST remain disabled or unexecuted unless the operator explicitly approves the action and the feature-specific gates are satisfied. Dry-run, shadow, and preview paths must remain clearly labeled.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Thin API and Module Ownership
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+FastAPI route handlers validate, authorize, and delegate. Business behavior belongs in module-owned services, facades, repositories, contracts, and workflow helpers under `backend/app/modules/` or documented compatibility surfaces. Legacy wrappers must not become new ownership centers.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Verifiable Vertical Slices
+
+Every behavior change must include the smallest useful verification: targeted tests, typecheck, lint, smoke, generated API drift check, or documented manual check. Agents must report checks run, checks skipped, and the reason for any skipped check.
+
+### VI. Routed Compact Memory
+
+`AGENTS.md` and `.mex/ROUTER.md` are the startup path. `.mex/status/` stores temporary project state, `.mex/context/` stores stable semantic memory, `.mex/patterns/` stores repeatable procedures, and `docs/archive/` stores historical snapshots. Startup anchors must remain compact and must not duplicate long runbooks.
+
+## Additional Constraints
+
+- UI work must use `@stylisttg/ui` primitives when an equivalent exists.
+- Frontend remains polling-first unless a documented architecture decision changes it.
+- Dashboard user-facing copy should be Russian unless a technical identifier is clearer in English.
+- Warmup, safety, and readiness features must not be described as guarantees of external platform outcomes.
+- Generated OpenAPI artifacts must be updated through `npm run generate:api` and checked with `npm run check:api` after backend route/schema changes.
+
+## Development Workflow
+
+- Start from `AGENTS.md`, then read `.mex/ROUTER.md` and `.mex/status/current.md` for non-trivial work.
+- Load only the routed context and pattern for the task.
+- Prefer targeted tests and verification over broad expensive checks unless the change needs broad coverage.
+- Update memory only for stable reusable knowledge, not logs, one-off command output, local debug notes, or transient task status.
+- Board/issue/PR work must follow `docs/agents/project-board.md` and `.mex/patterns/board-workflow.md`.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes lower-level agent guidance when conflicts exist. Amendments require a decision entry in `.mex/context/decisions.md`, an updated version/date below, and review of affected `.mex` memory, Spec Kit templates, and runbooks. Versioning follows semantic versioning: MAJOR for incompatible governance changes, MINOR for new principles or sections, PATCH for clarifications.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-06-08 | **Last Amended**: 2026-06-08

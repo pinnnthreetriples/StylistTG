@@ -279,9 +279,9 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p backend/reports
       - name: jscpd duplicate detection app
-        run: npm exec -- jscpd backend/app --noTips --threshold 2 --reporters json --output backend/reports/jscpd-app
+        run: npm exec -- jscpd backend/app --no-tips --threshold 2 --reporters json --output backend/reports/jscpd-app
       - name: jscpd duplicate detection tests
-        run: npm exec -- jscpd backend/tests --noTips --threshold 5 --reporters json --output backend/reports/jscpd-tests
+        run: npm exec -- jscpd backend/tests --no-tips --threshold 5 --reporters json --output backend/reports/jscpd-tests
       - name: Upload duplication reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

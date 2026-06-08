@@ -369,9 +369,9 @@ jobs:
       - name: Generate jscpd reports
         run: |
           mkdir -p reports
-          npm exec -- jscpd backend/app --noTips --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
-          npm exec -- jscpd backend/tests --noTips --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
-          npm exec -- jscpd apps packages --noTips --reporters json,html --output reports/jscpd-frontend || true
+          npm exec -- jscpd backend/app --no-tips --threshold 2 --reporters json,html --output reports/jscpd-backend-app || true
+          npm exec -- jscpd backend/tests --no-tips --threshold 5 --reporters json,html --output reports/jscpd-backend-tests || true
+          npm exec -- jscpd apps packages --no-tips --reporters json,html --output reports/jscpd-frontend || true
       - name: Write jscpd summary
         if: always()
         run: |

@@ -580,7 +580,12 @@ class MockWarmupTdlibAdapter:
         self, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
         channel_ref = context.get("channel_ref")
-        reactions = list(context.get("available_reactions") or ())
+        raw_reactions = context.get("available_reactions")
+        reactions: list[str] = (
+            [reaction for reaction in raw_reactions if isinstance(reaction, str)]
+            if isinstance(raw_reactions, list)
+            else []
+        )
         if not channel_ref or not reactions:
             return WarmupActionResult(
                 status="missing_context",

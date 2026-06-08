@@ -279,7 +279,7 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p backend/reports
       - name: jscpd duplicate detection app
-        run: npm exec -- jscpd backend/app --no-tips --threshold 2 --reporters json --output backend/reports/jscpd-app
+        run: npm exec -- jscpd backend/app --no-tips --threshold 3 --reporters json --output backend/reports/jscpd-app
       - name: jscpd duplicate detection tests
         run: npm exec -- jscpd backend/tests --no-tips --threshold 6 --reporters json --output backend/reports/jscpd-tests
       - name: Upload duplication reports

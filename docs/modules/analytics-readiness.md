@@ -1,3 +1,12 @@
+---
+status: planned
+implemented: false
+runtime: none
+queue: none
+frontend_surface: none
+last_updated: 2026-06-08
+---
+
 # Analytics Readiness
 
 This is a readiness document only. It does not introduce analytics runtime behavior, queues, workflows, routes, or frontend product surface.

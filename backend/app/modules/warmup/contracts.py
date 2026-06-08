@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from app.contracts.types import UuidString
+
+
+def _serialize_utc_datetime(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class WarmupStatusRead(StrEnum):
@@ -76,19 +82,47 @@ class WarmupDisabledActionsRequest(BaseModel):
 
 
 class WarmupBootstrapChannelCreate(BaseModel):
-    channel_ref: str
+    channel_ref: str = Field(min_length=2, max_length=64, pattern=r"^@[A-Za-z0-9_]{1,63}$")
     category: Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"]
-    language: str = Field(min_length=1, max_length=16)
-    country: str | None = Field(default=None, max_length=8)
+    language: str = Field(min_length=2, max_length=16, pattern=r"^[A-Za-z][A-Za-z\-]{0,15}$")
+    country: str | None = Field(default=None, max_length=8, pattern=r"^[A-Za-z]{2,8}$")
+
+    @field_validator("language")
+    @classmethod
+    def _normalize_language(cls, value: str) -> str:
+        return value.strip().lower()
+
+    @field_validator("country")
+    @classmethod
+    def _normalize_country(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().upper()
 
 
 class WarmupBootstrapChannelPatch(BaseModel):
     category: (
         Literal["news", "tech", "lifestyle", "sports", "entertainment", "business"] | None
     ) = None
-    language: str | None = Field(default=None, min_length=1, max_length=16)
-    country: str | None = Field(default=None, max_length=8)
+    language: str | None = Field(
+        default=None, min_length=2, max_length=16, pattern=r"^[A-Za-z][A-Za-z\-]{0,15}$"
+    )
+    country: str | None = Field(default=None, max_length=8, pattern=r"^[A-Za-z]{2,8}$")
     is_active: bool | None = None
+
+    @field_validator("language")
+    @classmethod
+    def _normalize_language(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().lower()
+
+    @field_validator("country")
+    @classmethod
+    def _normalize_country(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().upper()
 
 
 class WarmupBootstrapChannelRead(BaseModel):
@@ -104,6 +138,10 @@ class WarmupBootstrapChannelRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("verified_safe_at", "created_at", "updated_at")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return _serialize_utc_datetime(value)
 
 
 class WarmupActionMetadataRead(BaseModel):

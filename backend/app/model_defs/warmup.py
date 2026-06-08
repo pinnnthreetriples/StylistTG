@@ -161,7 +161,9 @@ class WarmupEvent(Base):
         ),
         Index("ix_warmup_event_workspace_id", "workspace_id"),
         Index("ix_warmup_event_session_created", "session_id", "created_at"),
-        Index("ix_warmup_event_workspace_severity_created", "workspace_id", "severity", "created_at"),
+        Index(
+            "ix_warmup_event_workspace_severity_created", "workspace_id", "severity", "created_at"
+        ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)

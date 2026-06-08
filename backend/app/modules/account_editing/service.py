@@ -253,9 +253,7 @@ def build_account_update_preview(
     )
     uniqueness_fields = profile_uniqueness_payload(uniqueness)
     if uniqueness.severity == "blocked" and not force_profile_uniqueness:
-        blocking_errors.append(
-            f"profile_uniqueness_blocked:{uniqueness.blocking_count}"
-        )
+        blocking_errors.append(f"profile_uniqueness_blocked:{uniqueness.blocking_count}")
     elif uniqueness.severity == "blocked" and force_profile_uniqueness:
         warnings.append(f"profile_uniqueness_force_override:{uniqueness.blocking_count}")
     elif uniqueness.severity == "warning":

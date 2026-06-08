@@ -27,7 +27,9 @@ def test_enqueue_due_dispatch_sessions_staggers_per_workspace(
 ) -> None:
     monkeypatch.setattr("app.config.settings.warmup_connection_stagger_min_seconds", 15)
     monkeypatch.setattr("app.config.settings.warmup_connection_stagger_max_seconds", 30)
-    sessions = [_seed_live_session(db_session, due_at=NOW - timedelta(minutes=1)) for _ in range(10)]
+    sessions = [
+        _seed_live_session(db_session, due_at=NOW - timedelta(minutes=1)) for _ in range(10)
+    ]
     queue = _FakeQueue()
 
     ok = enqueue_due_warmup_dispatch_sessions(
@@ -114,7 +116,9 @@ class _FakeQueue:
     def __init__(self) -> None:
         self.calls: list[_ScheduledCall] = []
 
-    def enqueue_at(self, scheduled_at: datetime, func: Any, *args: Any, job_id: str | None = None) -> None:
+    def enqueue_at(
+        self, scheduled_at: datetime, func: Any, *args: Any, job_id: str | None = None
+    ) -> None:
         self.calls.append(_ScheduledCall(scheduled_at, func, args, job_id))
 
 

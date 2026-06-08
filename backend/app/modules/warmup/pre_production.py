@@ -193,7 +193,9 @@ def get_pre_production_status(
         select(WarmupPreProductionSession)
         .where(WarmupPreProductionSession.workspace_id == workspace_id)
         .where(WarmupPreProductionSession.account_id == account_id)
-        .order_by(WarmupPreProductionSession.created_at.desc(), WarmupPreProductionSession.id.desc())
+        .order_by(
+            WarmupPreProductionSession.created_at.desc(), WarmupPreProductionSession.id.desc()
+        )
         .limit(1)
     ).scalar_one_or_none()
     return {
@@ -262,7 +264,9 @@ def _ensure_safety_gate(session: Session, account: Account) -> None:
         intent="warmup",
     )
     if not verdict.eligible:
-        reasons = ",".join(reason.code for reason in verdict.reasons if reason.severity == "blocked")
+        reasons = ",".join(
+            reason.code for reason in verdict.reasons if reason.severity == "blocked"
+        )
         raise PreProductionRejectedError(f"safety gate blocked pre-production: {reasons}")
 
 
@@ -307,7 +311,7 @@ def _duration_hours(config: Any, override: int | None) -> int:
     )
     try:
         value = int(raw)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         value = 2
     return max(1, min(2, value))
 

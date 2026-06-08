@@ -1480,6 +1480,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup/sessions/{session_id}/disabled-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Warmup Session Disabled Actions */
+        patch: operations["patch_warmup_session_disabled_actions_api_warmup_sessions__session_id__disabled_actions_patch"];
+        trace?: never;
+    };
     "/api/warmup/sessions/{session_id}/pause": {
         parameters: {
             query?: never;
@@ -1570,6 +1587,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/warmup-sessions/{session_id}/disabled-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Warmup Session Disabled Actions Alias */
+        patch: operations["patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch"];
         trace?: never;
     };
     "/api/neuro-commenting/campaigns": {
@@ -6734,6 +6768,11 @@ export interface components {
          * @enum {string}
          */
         WarmupCheckSeverityRead: "error" | "warning";
+        /** WarmupDisabledActionsRequest */
+        WarmupDisabledActionsRequest: {
+            /** Actions */
+            actions?: string[];
+        };
         /** WarmupEventPageRead */
         WarmupEventPageRead: {
             /** Items */
@@ -6881,6 +6920,8 @@ export interface components {
             };
             /** Trusted Peer Ids */
             trusted_peer_ids?: string[];
+            /** Disabled Actions */
+            disabled_actions?: string[];
             /** Proxy Snapshot */
             proxy_snapshot?: {
                 [key: string]: unknown;
@@ -13177,6 +13218,70 @@ export interface operations {
             };
         };
     };
+    patch_warmup_session_disabled_actions_api_warmup_sessions__session_id__disabled_actions_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupDisabledActionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     put_warmup_session_pause_api_warmup_sessions__session_id__pause_put: {
         parameters: {
             query?: never;
@@ -13469,6 +13574,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupDisabledActionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

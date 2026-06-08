@@ -149,6 +149,15 @@ def test_freeze_hook_counts_repeated_freezes(db_session: Session) -> None:
     assert metric.freeze_count == 2
 
 
+def test_survival_summary_boundary_returns_empty_for_unknown_workspace(
+    db_session: Session,
+) -> None:
+    summary = get_survival_summary(db_session, workspace_id=new_id())
+
+    assert summary.total_accounts == 0
+    assert summary.by_warmup_strategy == []
+
+
 def _mark_runtime_ready(account: Account) -> None:
     account.account_state = AccountState.EXECUTION_USABLE
     account.runtime_state = AccountRuntimeState(

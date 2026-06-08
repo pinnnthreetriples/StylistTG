@@ -215,8 +215,10 @@ def test_structure_audit_drift_check_detects_json_drift(tmp_path: Path) -> None:
     json_path = tmp_path / "structure-audit.json"
     markdown_path = tmp_path / "STRUCTURE_AUDIT.md"
     debt_path = tmp_path / "architecture-debt-inventory.json"
+    drift_status = "GREEN" if expected["backend_overall_status"] != "GREEN" else "RED"
     json_path.write_text(
-        render_json_report({**expected, "backend_overall_status": "RED"}), encoding="utf-8"
+        render_json_report({**expected, "backend_overall_status": drift_status}),
+        encoding="utf-8",
     )
     markdown_path.write_text(render_markdown_report(expected), encoding="utf-8")
     debt_path.write_text(render_debt_inventory(expected), encoding="utf-8")

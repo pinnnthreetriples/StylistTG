@@ -11,6 +11,8 @@ from app.modules.warmup.commands import (
     pause_warmup_session_use_case,
     resume_warmup_session,
     resume_warmup_session_use_case,
+    set_disabled_actions,
+    set_disabled_actions_use_case,
 )
 from app.modules.warmup.action_presets import apply_action_preset_use_case
 from app.modules.warmup.action_metadata import list_action_metadata
@@ -71,6 +73,8 @@ __all__ = [
     "pause_warmup_session_use_case",
     "resume_warmup_session",
     "resume_warmup_session_use_case",
+    "set_disabled_actions",
+    "set_disabled_actions_use_case",
     "session_read",
     "session_summary",
     "settings",

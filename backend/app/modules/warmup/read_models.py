@@ -38,6 +38,7 @@ def session_read(warmup_session: Any) -> WarmupSessionRead:
         consecutive_failures=warmup_session.consecutive_failures,
         daily_counters=warmup_session.daily_counters_json or {},
         trusted_peer_ids=warmup_session.trusted_peer_ids_json or [],
+        disabled_actions=warmup_session.disabled_actions_json or [],
         proxy_snapshot=warmup_session.proxy_snapshot_json,
         created_at=warmup_session.created_at,
         updated_at=warmup_session.updated_at,

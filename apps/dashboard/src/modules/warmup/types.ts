@@ -123,6 +123,7 @@ export type WarmupSessionDetail = WarmupSessionSummary & {
   consecutive_failures: number
   daily_counters: WarmupDailyCounters
   trusted_peer_ids: string[]
+  disabled_actions: string[]
   proxy_snapshot: WarmupProxySnapshot | null
   created_at: string
   started_at: string | null

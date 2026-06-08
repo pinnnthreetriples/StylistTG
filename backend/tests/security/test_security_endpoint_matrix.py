@@ -91,6 +91,18 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Auth batches
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
+    # Account survival
+    ("GET", "/api/account-survival/summary", "viewer", False),
+    ("GET", "/api/account-survival/{account_id}", "viewer", False),
+    # Warmup mutating routes promoted after legacy baseline was frozen.
+    (
+        "POST",
+        "/api/warmup/strategies/{strategy_id}/apply-preset",
+        "admin",
+        True,
+    ),
+    ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
+    ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}", "viewer", False),
@@ -335,6 +347,7 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/tdlib/runtime"),
     # Warmup
     ("GET", "/api/warmup/readiness"),
+    ("GET", "/api/warmup-actions/metadata"),
     ("POST", "/api/warmup/validate"),
     ("GET", "/api/warmup/strategies"),
     ("POST", "/api/warmup/sessions"),

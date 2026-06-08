@@ -112,6 +112,20 @@ def test_select_eligible_peer_missing_friends_returns_none(
     assert selected is None
 
 
+def test_assign_friends_boundary_returns_empty_when_no_candidates(db_session) -> None:
+    sender = seed_warmup_account(db_session, telegram_user_id="100")
+
+    assigned = assign_friends(
+        db_session,
+        account_id=sender.id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        rng=random.Random(1),
+        now=NOW,
+    )
+
+    assert assigned == []
+
+
 def _seed_trusted_peer(db_session, *, telegram_user_id: str):
     account = seed_warmup_account(db_session, telegram_user_id=telegram_user_id)
     db_session.add(

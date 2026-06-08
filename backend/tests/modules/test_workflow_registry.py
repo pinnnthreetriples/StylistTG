@@ -64,6 +64,22 @@ def test_enqueue_workflow_uses_no_args_mode_for_warmup(monkeypatch) -> None:
     assert queues[1].calls[0]["args"] == ()
 
 
+def test_bootstrap_channel_health_check_workflow_is_registered(monkeypatch) -> None:
+    queues: list[FakeQueue] = []
+
+    monkeypatch.setattr(
+        "app.job_queue.workflows.get_queue",
+        lambda name: queues.append(FakeQueue(name)) or queues[-1],
+    )
+
+    assert enqueue_workflow(
+        workflow_type="warmup_bootstrap_channel_health_check",
+        job_id="warmup-bootstrap-channel-health-check",
+    )
+
+    assert queues[0].calls[0]["args"] == ()
+
+
 def test_enqueue_workflow_allows_explicit_custom_args(monkeypatch) -> None:
     queues: list[FakeQueue] = []
 

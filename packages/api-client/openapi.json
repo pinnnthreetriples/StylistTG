@@ -8398,6 +8398,246 @@
         }
       }
     },
+    "/api/warmup-bootstrap-channels": {
+      "get": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Get Warmup Bootstrap Channels",
+        "operationId": "get_warmup_bootstrap_channels_api_warmup_bootstrap_channels_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                  },
+                  "title": "Response Get Warmup Bootstrap Channels Api Warmup Bootstrap Channels Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Post Warmup Bootstrap Channel",
+        "operationId": "post_warmup_bootstrap_channel_api_warmup_bootstrap_channels_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupBootstrapChannelCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-bootstrap-channels/{channel_id}": {
+      "patch": {
+        "tags": [
+          "warmup-bootstrap-channels"
+        ],
+        "summary": "Patch Warmup Bootstrap Channel",
+        "operationId": "patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Channel Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupBootstrapChannelPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupBootstrapChannelRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/neuro-commenting/campaigns": {
       "post": {
         "tags": [
@@ -27906,6 +28146,189 @@
           "preset"
         ],
         "title": "WarmupActionPresetRequest"
+      },
+      "WarmupBootstrapChannelCreate": {
+        "properties": {
+          "channel_ref": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "pattern": "^@[A-Za-z0-9_]{1,63}$",
+            "title": "Channel Ref"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "news",
+              "tech",
+              "lifestyle",
+              "sports",
+              "entertainment",
+              "business"
+            ],
+            "title": "Category"
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 2,
+            "pattern": "^[A-Za-z][A-Za-z\\-]{0,15}$",
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8,
+                "pattern": "^[A-Za-z]{2,8}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel_ref",
+          "category",
+          "language"
+        ],
+        "title": "WarmupBootstrapChannelCreate"
+      },
+      "WarmupBootstrapChannelPatch": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "news",
+                  "tech",
+                  "lifestyle",
+                  "sports",
+                  "entertainment",
+                  "business"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16,
+                "minLength": 2,
+                "pattern": "^[A-Za-z][A-Za-z\\-]{0,15}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8,
+                "pattern": "^[A-Za-z]{2,8}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "WarmupBootstrapChannelPatch"
+      },
+      "WarmupBootstrapChannelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "channel_ref": {
+            "type": "string",
+            "title": "Channel Ref"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "verified_safe_at": {
+            "type": "string",
+            "title": "Verified Safe At"
+          },
+          "added_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel_ref",
+          "category",
+          "language",
+          "verified_safe_at",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WarmupBootstrapChannelRead"
       },
       "WarmupCheckItemRead": {
         "properties": {

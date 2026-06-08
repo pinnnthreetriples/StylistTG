@@ -35,8 +35,10 @@ Warmup state uses `WarmupStrategy`, `WarmupSession`, `WarmupEvent`, `WarmupTaskR
 - Dry-run sessions use `warmup_jobs`.
 - Shadow/live micro-session dispatch uses `warmup_dispatch_jobs`.
 - Scheduler enqueue is gated by `WARMUP_SCHEDULER_ENABLED`, `WARMUP_WORKERS_ENABLED`, and `WARMUP_HARD_DISABLE`.
-- Workflow types remain `warmup_due_sessions` and `warmup_dispatch_tick`; no-arg
-  RQ handlers remain under `app.modules.warmup.jobs`.
+- Warmup workflows are registered through `app.modules.warmup.module`: due-session
+  scan, dispatch tick, per-session stagger dispatch, idle sweep, pre-production
+  sweep, and bootstrap-channel health check. RQ handlers remain under
+  `app.modules.warmup.jobs`.
 
 ## Live safety gates
 

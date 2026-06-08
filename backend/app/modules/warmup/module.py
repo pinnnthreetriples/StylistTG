@@ -43,5 +43,12 @@ module = FeatureModule(
             args_mode=WorkflowArgsMode.NONE,
             description="Complete expired empty-profile pre-production sessions.",
         ),
+        WorkflowSpec(
+            workflow_type="warmup_bootstrap_channel_health_check",
+            queue_name=WARMUP_QUEUE_NAME,
+            handler_path="app.modules.warmup.jobs:run_warmup_bootstrap_channel_health_check",
+            args_mode=WorkflowArgsMode.NONE,
+            description="Run local safety checks for warmup bootstrap channels.",
+        ),
     ),
 )

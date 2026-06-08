@@ -12,9 +12,10 @@ from app.db import SessionLocal
 from app.logging_utils import log_warn
 from app.models import utc_now
 from app.modules.account_safety.status_monitor import run_account_status_monitor_tick
+from app.modules.account_survival.metrics_updater import update_survival_metrics_workflow
 from app.services.admin_notifications import collect_triggers, deliver, is_recently_notified
 from app.services.notification_channels import EmailNotifier, WebhookNotifier
-from app.services.worker_plane import SCHEDULER_QUEUE_NAME
+from app.services.worker_plane import MAINTENANCE_QUEUE_NAME, SCHEDULER_QUEUE_NAME
 
 ACCOUNT_STATUS_MONITOR_TICK_SECONDS = 600
 NOTIFICATION_COLLECTION_TICK_SECONDS = 300
@@ -24,6 +25,8 @@ RATE_LIMIT_FLUSH_TICK_SECONDS = 60
 RATE_LIMIT_FLUSH_JOB_ID_PREFIX = "rate-limit-flush"
 RECONCILE_STUCK_TICK_SECONDS = 120
 RECONCILE_STUCK_JOB_ID_PREFIX = "reconcile-stuck-attempts"
+SURVIVAL_METRICS_TICK_SECONDS = 3_600
+SURVIVAL_METRICS_JOB_ID_PREFIX = "account-survival-metrics"
 
 
 @dataclass(frozen=True)
@@ -55,6 +58,7 @@ def scheduler_report(config: Settings = settings) -> SchedulerReport:
             "retention": RETENTION_TICK_SECONDS,
             "rate_limit_flush": RATE_LIMIT_FLUSH_TICK_SECONDS,
             "reconcile_stuck_attempts": RECONCILE_STUCK_TICK_SECONDS,
+            "account_survival_metrics": SURVIVAL_METRICS_TICK_SECONDS,
         },
     )
 
@@ -173,6 +177,30 @@ def enqueue_reconcile_stuck_tick(*, now: float | None = None) -> bool:
         log_warn(
             "reconcile_stuck_enqueue_failed",
             queue_name=SCHEDULER_QUEUE_NAME,
+            job_id=job_id,
+            error_class="RedisError",
+        )
+        return False
+    return True
+
+
+def enqueue_survival_metrics_tick(*, now: float | None = None) -> bool:
+    """Enqueue one survival metrics refresh job for the current hourly bucket."""
+    from app.job_queue.rq import get_queue
+
+    bucket = int((time.time() if now is None else now) // SURVIVAL_METRICS_TICK_SECONDS)
+    job_id = f"{SURVIVAL_METRICS_JOB_ID_PREFIX}-{bucket}"
+    queue = get_queue(MAINTENANCE_QUEUE_NAME)
+    try:
+        cast(Any, queue).enqueue_call(
+            func=update_survival_metrics_workflow,
+            job_id=job_id,
+            unique=True,
+        )
+    except RedisError:
+        log_warn(
+            "survival_metrics_enqueue_failed",
+            queue_name=MAINTENANCE_QUEUE_NAME,
             job_id=job_id,
             error_class="RedisError",
         )

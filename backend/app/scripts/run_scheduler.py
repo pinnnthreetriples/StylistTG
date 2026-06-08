@@ -9,6 +9,7 @@ from app.services.scheduler import (
     enqueue_admin_notification_tick,
     enqueue_rate_limit_flush_tick,
     enqueue_reconcile_stuck_tick,
+    enqueue_survival_metrics_tick,
     scheduler_report,
 )
 
@@ -18,6 +19,7 @@ def _enqueue_once() -> dict[str, object]:
         "admin_notification_enqueued": enqueue_admin_notification_tick(),
         "rate_limit_flush_enqueued": enqueue_rate_limit_flush_tick(),
         "reconcile_stuck_enqueued": enqueue_reconcile_stuck_tick(),
+        "survival_metrics_enqueued": enqueue_survival_metrics_tick(),
         "report": scheduler_report().to_dict(),
     }
 

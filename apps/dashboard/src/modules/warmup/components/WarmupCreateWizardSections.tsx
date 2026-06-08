@@ -145,9 +145,31 @@ export function WarmupValidationPanel({ validation }: { validation: WarmupValida
           </span>
         </div>
       ))}
+      <WarmupProxyAdaptationNotice validation={validation} />
       {validation.blocking_reasons.length > 0 ? <Alert variant="error">{validation.blocking_reasons.join(', ')}</Alert> : null}
       {validation.warnings.length > 0 ? <Alert variant="warning">{validation.warnings.join(', ')}</Alert> : null}
     </div>
+  )
+}
+
+function WarmupProxyAdaptationNotice({ validation }: { validation: WarmupValidateResponse }) {
+  const adaptation = validation.proxy_adaptation
+  if (!adaptation) return null
+  const disabledActions = adaptation.disabled_actions
+  const presetLabel = PROXY_PRESET_LABELS[adaptation.applied_preset] ?? adaptation.applied_preset
+  const categoryLabel = PROXY_CATEGORY_LABELS[adaptation.proxy_category] ?? adaptation.proxy_category
+  if (disabledActions.length === 0) {
+    return (
+      <Alert variant="info">
+        Применён preset: {presetLabel} из-за {categoryLabel} proxy.
+      </Alert>
+    )
+  }
+  return (
+    <Alert icon={<AlertTriangle className="size-4" />} variant="warning">
+      Применён preset: {presetLabel} из-за {categoryLabel} proxy. Автоматически отключены:{' '}
+      {disabledActions.map(formatActionType).join(', ')}.
+    </Alert>
   )
 }
 
@@ -285,4 +307,21 @@ function computeActiveHours(startHour: number, endHour: number, daysTotal: numbe
 
 function formatHour(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`
+}
+
+const PROXY_PRESET_LABELS: Record<string, string> = {
+  economic: 'economic',
+  balanced: 'balanced',
+  full: 'full',
+}
+
+const PROXY_CATEGORY_LABELS: Record<string, string> = {
+  datacenter: 'datacenter',
+  mobile: 'mobile',
+  residential: 'residential',
+  unknown: 'unknown',
+}
+
+function formatActionType(actionType: string): string {
+  return actionType.replaceAll('_', ' ')
 }

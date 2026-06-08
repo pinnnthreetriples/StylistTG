@@ -65,6 +65,7 @@ def test_warmup_readiness_treats_proxy_problem_as_warning_only(db_session) -> No
         AccountProxy(
             account_id=account.id,
             proxy_type="socks5",
+            proxy_category="mobile",
             host="127.0.0.1",
             port=1080,
             status="failed",
@@ -84,6 +85,9 @@ def test_warmup_readiness_treats_proxy_problem_as_warning_only(db_session) -> No
     assert result.blocking_reasons == []
     assert "Proxy требует внимания: failed" in result.warnings
     assert _check(result, "proxy_status").severity == "warning"
+    assert result.proxy_adaptation is not None
+    assert result.proxy_adaptation.applied_preset == "economic"
+    assert "watch_video" in result.proxy_adaptation.disabled_actions
 
 
 def _seed_ready_account(db_session):

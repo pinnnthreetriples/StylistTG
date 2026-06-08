@@ -7008,6 +7008,18 @@ export interface components {
          * @enum {string}
          */
         WarmupPresetKindRead: "express" | "standard" | "hardened" | "custom";
+        /** WarmupProxyAdaptationRead */
+        WarmupProxyAdaptationRead: {
+            /** Proxy Category */
+            proxy_category: string;
+            /**
+             * Applied Preset
+             * @enum {string}
+             */
+            applied_preset: "economic" | "balanced" | "full";
+            /** Disabled Actions */
+            disabled_actions?: string[];
+        };
         /** WarmupReadinessRead */
         WarmupReadinessRead: {
             /** Workers Enabled */
@@ -7211,6 +7223,7 @@ export interface components {
             blocking_reasons: string[];
             /** Warnings */
             warnings: string[];
+            proxy_adaptation?: components["schemas"]["WarmupProxyAdaptationRead"] | null;
         };
         /** WarmupValidateRequest */
         WarmupValidateRequest: {

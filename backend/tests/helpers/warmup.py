@@ -31,6 +31,7 @@ def seed_warmup_account(
     with_proxy: bool = True,
     telegram_user_id: str | None = None,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
+    proxy_category: str = ProxyCategory.DATACENTER.value,
 ):
     """Create an EXECUTION_USABLE account with runtime state and optional proxy."""
     account = create_account(
@@ -51,7 +52,7 @@ def seed_warmup_account(
         account.proxy = AccountProxy(
             account_id=account.id,
             proxy_type="socks5",
-            proxy_category=ProxyCategory.RESIDENTIAL.value,
+            proxy_category=proxy_category,
             host="127.0.0.1",
             port=1080,
             username="user",

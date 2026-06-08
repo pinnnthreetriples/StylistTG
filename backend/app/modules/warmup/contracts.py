@@ -31,6 +31,12 @@ class WarmupValidateRequest(BaseModel):
     strategy_id: UuidString
 
 
+class WarmupProxyAdaptationRead(BaseModel):
+    proxy_category: str
+    applied_preset: Literal["economic", "balanced", "full"]
+    disabled_actions: list[str] = Field(default_factory=list)
+
+
 class WarmupCheckItemRead(BaseModel):
     key: str
     label: str
@@ -44,6 +50,7 @@ class WarmupValidateRead(BaseModel):
     checks: list[WarmupCheckItemRead]
     blocking_reasons: list[str]
     warnings: list[str]
+    proxy_adaptation: WarmupProxyAdaptationRead | None = None
 
 
 class WarmupSessionCreateRequest(BaseModel):
@@ -235,6 +242,7 @@ __all__ = [
     "WarmupIsolationStatusRead",
     "WarmupPauseRequest",
     "WarmupPresetKindRead",
+    "WarmupProxyAdaptationRead",
     "WarmupReadinessRead",
     "WarmupSessionCreateRequest",
     "WarmupSessionPageRead",

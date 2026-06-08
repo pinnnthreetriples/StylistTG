@@ -28228,6 +28228,36 @@
         ],
         "title": "WarmupPresetKindRead"
       },
+      "WarmupProxyAdaptationRead": {
+        "properties": {
+          "proxy_category": {
+            "type": "string",
+            "title": "Proxy Category"
+          },
+          "applied_preset": {
+            "type": "string",
+            "enum": [
+              "economic",
+              "balanced",
+              "full"
+            ],
+            "title": "Applied Preset"
+          },
+          "disabled_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disabled Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proxy_category",
+          "applied_preset"
+        ],
+        "title": "WarmupProxyAdaptationRead"
+      },
       "WarmupReadinessRead": {
         "properties": {
           "workers_enabled": {
@@ -28821,6 +28851,16 @@
             },
             "type": "array",
             "title": "Warnings"
+          },
+          "proxy_adaptation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupProxyAdaptationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

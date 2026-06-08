@@ -50,7 +50,11 @@ def test_create_warmup_session_schedules_session_and_writes_event(db_session) ->
     assert created.cold_soak_until is not None
     assert created.next_step_at == created.cold_soak_until
     events = db_session.query(WarmupEvent).order_by(WarmupEvent.created_at.asc()).all()
-    assert [event.event_type for event in events] == ["session_created", "cold_soak_started"]
+    assert [event.event_type for event in events] == [
+        "session_created",
+        "proxy_adaptation_applied",
+        "cold_soak_started",
+    ]
     assert {event.session_id for event in events} == {created.id}
 
 
@@ -139,8 +143,12 @@ def test_list_detail_status_and_events(db_session) -> None:
     assert total == 1
     assert items[0].id == created.id
     assert detail.id == created.id
-    assert event_total == 2
-    assert {event.event_type for event in events} == {"session_created", "cold_soak_started"}
+    assert event_total == 3
+    assert {event.event_type for event in events} == {
+        "session_created",
+        "proxy_adaptation_applied",
+        "cold_soak_started",
+    }
 
 
 def test_delete_warmup_session_removes_session_and_events(db_session) -> None:

@@ -146,7 +146,9 @@ def post_warmup_session(
         raise _warmup_error(exc) from exc
 
 
-@session_alias_router.post("/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED)
+@session_alias_router.post(
+    "/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED
+)
 def post_warmup_cyclic_sessions(
     payload: WarmupCyclicCreateRequest,
     session: Session = Depends(get_session),

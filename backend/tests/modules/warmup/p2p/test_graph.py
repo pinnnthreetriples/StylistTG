@@ -12,7 +12,9 @@ NOW = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 def test_assign_friends_creates_three_links_idempotently(db_session) -> None:
     sender = seed_warmup_account(db_session, telegram_user_id="100")
-    peers = [_seed_trusted_peer(db_session, telegram_user_id=str(200 + index)) for index in range(4)]
+    peers = [
+        _seed_trusted_peer(db_session, telegram_user_id=str(200 + index)) for index in range(4)
+    ]
 
     first = assign_friends(
         db_session,
@@ -32,7 +34,9 @@ def test_assign_friends_creates_three_links_idempotently(db_session) -> None:
     assert len(first) == 3
     assert set(first).issubset({peer.id for peer in peers})
     assert set(second) == set(first)
-    assert set(get_friends(db_session, account_id=sender.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)) == set(first)
+    assert set(
+        get_friends(db_session, account_id=sender.id, workspace_id=DEFAULT_LOCAL_WORKSPACE_ID)
+    ) == set(first)
 
 
 def test_select_eligible_peer_returns_only_assigned_friends(db_session) -> None:

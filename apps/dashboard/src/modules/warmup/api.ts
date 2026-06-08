@@ -1,11 +1,13 @@
 import { apiRequest } from '@/lib/http'
 
 import type {
+  WarmupActionMetadata,
+  WarmupActionPreset,
+  WarmupCyclicCreatePayload,
+  WarmupCyclicCreateResponse,
   WarmupEventPage,
   WarmupIsolationStatus,
   WarmupReadiness,
-  WarmupActionMetadata,
-  WarmupActionPreset,
   WarmupSessionDetail,
   WarmupSessionPage,
   WarmupStrategy,
@@ -50,6 +52,13 @@ export function createWarmupSession(accountId: string, strategyId: string): Prom
   return apiRequest('/api/warmup/sessions', {
     method: 'POST',
     body: JSON.stringify({ account_id: accountId, strategy_id: strategyId }),
+  })
+}
+
+export function createCyclicWarmupSessions(payload: WarmupCyclicCreatePayload): Promise<WarmupCyclicCreateResponse> {
+  return apiRequest('/api/warmup-sessions/cyclic', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 

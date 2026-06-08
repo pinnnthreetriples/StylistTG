@@ -22,6 +22,8 @@ from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
     WarmupActionMetadataRead,
     WarmupActionPresetRequest,
+    WarmupCyclicCreateRead,
+    WarmupCyclicCreateRequest,
     WarmupDisabledActionsRequest,
     WarmupEventPageRead,
     WarmupIsolationStatusRead,
@@ -35,6 +37,7 @@ from app.modules.warmup.contracts import (
     WarmupValidateRead,
     WarmupValidateRequest,
 )
+from app.modules.warmup.cyclic import setup_cyclic_warmups
 from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.interfaces import (
     get_pre_production_status,
@@ -138,6 +141,31 @@ def post_warmup_session(
             strategy_id=payload.strategy_id,
             workspace_id=auth.workspace_id,
         )
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
+
+
+@session_alias_router.post(
+    "/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED
+)
+def post_warmup_cyclic_sessions(
+    payload: WarmupCyclicCreateRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupCyclicCreateRead:
+    try:
+        rows = setup_cyclic_warmups(
+            session,
+            account_ids=[str(account_id) for account_id in payload.account_ids],
+            workspace_id=auth.workspace_id,
+            start_hour=payload.start_hour,
+            end_hour=payload.end_hour,
+            days_total=payload.days_total,
+            strategy_preset=payload.strategy_preset.value,
+        )
+        session.commit()
+        return WarmupCyclicCreateRead(items=[warmup_service.session_read(row) for row in rows])
     except WarmupError as exc:
         session.rollback()
         raise _warmup_error(exc) from exc

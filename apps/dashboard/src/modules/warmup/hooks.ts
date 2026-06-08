@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 
 import {
   applyWarmupActionPreset,
+  createCyclicWarmupSessions,
   createWarmupSession,
   deleteWarmupSession,
   fetchWarmupActionMetadata,
@@ -17,8 +18,14 @@ import {
   updateWarmupDisabledActions,
   validateWarmup,
 } from './api'
-import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
-import type { WarmupActionPreset } from './types'
+import type {
+  WarmupActionPreset,
+  WarmupEventPage,
+  WarmupPresetKind,
+  WarmupSessionDetail,
+  WarmupSessionPage,
+  WarmupStatus,
+} from './types'
 
 export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
 
@@ -146,8 +153,25 @@ export function useApplyWarmupActionPreset() {
 export function useCreateWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ accountId, strategyId }: { accountId: string; strategyId: string }) =>
-      createWarmupSession(accountId, strategyId),
+    mutationFn: async ({
+      accountId,
+      cycleConfig,
+      strategyId,
+    }: {
+      accountId: string
+      strategyId: string
+      cycleConfig?: { startHour: number; endHour: number; daysTotal: number; strategyPreset: WarmupPresetKind }
+    }): Promise<WarmupSessionDetail> => {
+      if (!cycleConfig) return createWarmupSession(accountId, strategyId)
+      const response = await createCyclicWarmupSessions({
+        account_ids: [accountId],
+        start_hour: cycleConfig.startHour,
+        end_hour: cycleConfig.endHour,
+        days_total: cycleConfig.daysTotal,
+        strategy_preset: cycleConfig.strategyPreset,
+      })
+      return response.items[0]
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
     },

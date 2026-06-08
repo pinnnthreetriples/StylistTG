@@ -17,6 +17,7 @@ from app.modules.warmup.cold_soak import (
     record_cold_soak_in_progress,
 )
 from app.modules.warmup.channel_state.repository import get_states_for_account
+from app.modules.warmup.cyclic import cycle_window_status, schedule_next_cycle
 from app.modules.warmup.adaptive_plan import describe_next_day_adjustment
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.worker import handle_warmup_step_failure
@@ -65,6 +66,9 @@ def _process_one_dispatch(
             record_cold_soak_in_progress(session, warmup_session, now)
             return False
         advance_from_cold_soak(session, warmup_session, now)
+
+    if _skip_if_outside_cyclic_window(session, warmup_session, now):
+        return False
 
     if _is_in_quiet_hours(now, warmup_session.timezone):
         quiet_hours_end = _next_quiet_hours_end(now, warmup_session.timezone)
@@ -296,6 +300,47 @@ def _process_one_dispatch(
 
     warmup_session.next_step_at = warmup_session.next_micro_session_at
     warmup_session.updated_at = now
+    session.flush()
+    return True
+
+
+def _skip_if_outside_cyclic_window(
+    session: Session,
+    warmup_session: WarmupSession,
+    now: datetime,
+) -> bool:
+    status = cycle_window_status(warmup_session.cycle_config_json, now, warmup_session.timezone)
+    if status is None or status.in_window:
+        if status is not None:
+            schedule_next_cycle(warmup_session, now=now)
+        return False
+    if status.completed:
+        write_warmup_event(
+            session,
+            warmup_session,
+            "cyclic.completed",
+            {
+                "current_cycle": status.current_cycle,
+                "active_hours_total": status.active_hours_total,
+            },
+        )
+        _complete_dispatch_session(session, warmup_session, now=now)
+        session.flush()
+        return True
+
+    schedule_next_cycle(warmup_session, now=now)
+    write_warmup_event(
+        session,
+        warmup_session,
+        "task_skipped",
+        {
+            "reason": "cyclic_inactive_window",
+            "current_cycle": status.current_cycle,
+            "next_window_start": status.next_window_start.isoformat()
+            if status.next_window_start
+            else None,
+        },
+    )
     session.flush()
     return True
 

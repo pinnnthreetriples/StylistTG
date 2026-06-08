@@ -18,6 +18,7 @@ import {
 } from '../labels'
 import type { WarmupSessionSummary } from '../types'
 import { WarmupDailyCountersPanel } from './WarmupDailyCountersPanel'
+import { WarmupCyclicStatus } from './WarmupCyclicStatus'
 import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
 import { WarmupIsolationBanner } from './WarmupIsolationBanner'
 import { WarmupLiveLogs } from './WarmupLiveLogs'
@@ -107,11 +108,9 @@ export function WarmupSessionDetail({
               </div>
             </div>
             {cycleConfig ? (
-              <div>
-                <div className="text-xs font-semibold uppercase text-muted-foreground">Циклическое окно</div>
-                <div className="text-sm font-semibold text-foreground">
-                  Ожидаются активные часы: {formatHour(cycleConfig.start_hour)}-{formatHour(cycleConfig.end_hour)}
-                </div>
+              <div className="sm:col-span-2">
+                <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Циклическое окно</div>
+                <WarmupCyclicStatus cycleConfig={cycleConfig} timezone={detail?.timezone ?? null} />
               </div>
             ) : null}
           </div>
@@ -180,8 +179,4 @@ export function WarmupSessionDetail({
       <WarmupLiveLogs />
     </div>
   )
-}
-
-function formatHour(hour: number): string {
-  return `${String(hour).padStart(2, '0')}:00`
 }

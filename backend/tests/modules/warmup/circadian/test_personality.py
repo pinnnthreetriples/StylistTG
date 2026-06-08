@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.adapters.warmup_tdlib_contracts import SUPPORTED_ADVANCED_ACTIONS
-from app.modules.warmup.circadian.personality import generate_personality_seed
+from app.modules.warmup.circadian.personality import favorite_reactions, generate_personality_seed
 
 
 def test_generate_personality_seed_is_deterministic_per_account() -> None:
@@ -29,3 +29,12 @@ def test_generate_personality_seed_shape() -> None:
     assert seed["session_length_pref"] in {"short", "medium", "long"}
     assert seed["pace"] in {"slow", "normal", "fast"}
     assert set(seed["action_preferences"]) == set(SUPPORTED_ADVANCED_ACTIONS)
+
+
+def test_favorite_reactions_ignores_invalid_seed_boundary() -> None:
+    favorites = favorite_reactions(
+        ["👍", "🔥"],
+        personality_seed={"favorite_emojis": ["👍", 123, "💤"]},
+    )
+
+    assert favorites == ["👍"]

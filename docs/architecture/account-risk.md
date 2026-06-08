@@ -2,11 +2,15 @@
 
 Account Risk is an app-known readiness score. It is not a Telegram anti-ban guarantee and does not perform live TDLib checks.
 
-The source of truth is now backend-side and read-only:
+The module owner is `app.modules.account_safety.risk`.
+
+Compatibility paths remain for existing callers:
 
 - `backend/app/services/account_risk.py`
 - `GET /api/accounts/risk-summary`
 - `GET /api/accounts/{account_id}/risk`
+
+New behavior should go through the module owner instead of treating the legacy service path as the ownership center.
 
 The dashboard renders backend results through `@stylisttg/api-client`. `apps/dashboard/src/features/accounts/accountRisk.ts` only keeps UI types and threshold helpers compatible with the backend contract.
 

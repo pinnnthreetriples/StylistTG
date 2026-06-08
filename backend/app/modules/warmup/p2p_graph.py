@@ -80,15 +80,11 @@ def touch_friend_interaction(
         select(WarmupP2pFriendLink).where(
             WarmupP2pFriendLink.workspace_id == workspace_id,
             (
-                (
-                    WarmupP2pFriendLink.account_id == account_id
-                )
+                (WarmupP2pFriendLink.account_id == account_id)
                 & (WarmupP2pFriendLink.friend_account_id == friend_account_id)
             )
             | (
-                (
-                    WarmupP2pFriendLink.account_id == friend_account_id
-                )
+                (WarmupP2pFriendLink.account_id == friend_account_id)
                 & (WarmupP2pFriendLink.friend_account_id == account_id)
             ),
         )

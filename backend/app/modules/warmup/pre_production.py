@@ -318,9 +318,7 @@ def _duration_hours(config: Any, override: int | None) -> int:
     )
     try:
         value = int(raw)
-    except TypeError:
-        value = 2
-    except ValueError:
+    except (TypeError, ValueError):
         value = 2
     return max(1, min(2, value))
 

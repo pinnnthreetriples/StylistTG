@@ -122,9 +122,7 @@ def _counter_value(snapshot: dict[str, Any], key: str) -> int:
 def _coerce_int(value: Any) -> int:
     try:
         return int(value)
-    except TypeError:
-        return 0
-    except ValueError:
+    except (TypeError, ValueError):
         return 0
 
 

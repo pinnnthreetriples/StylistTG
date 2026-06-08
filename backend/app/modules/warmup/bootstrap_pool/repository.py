@@ -174,7 +174,11 @@ def _candidate_refs(
             for row in rows
             if row.language == language and row.channel_ref not in exclude
         ],
-        [row.channel_ref for row in rows if row.language == "en" and row.channel_ref not in exclude],
+        [
+            row.channel_ref
+            for row in rows
+            if row.language == "en" and row.channel_ref not in exclude
+        ],
         [row.channel_ref for row in rows if row.channel_ref not in exclude],
     ]
     for refs in tiers:

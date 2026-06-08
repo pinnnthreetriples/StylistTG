@@ -18,6 +18,10 @@ class Account(Base):
             "terminal_status IN ('none','banned','deleted','suspended')",
             name="ck_accounts_terminal_status_valid",
         ),
+        CheckConstraint(
+            "lifecycle_state IN ('imported','cold_soak','warming','pre_production','active','idle','retired','banned','deleted')",
+            name="ck_accounts_lifecycle_state_valid",
+        ),
         Index("ix_account_workspace_updated", "workspace_id", "updated_at"),
         Index(
             "ix_accounts_safety_grace_until",
@@ -42,6 +46,12 @@ class Account(Base):
     )
     terminal_status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="none", server_default="none"
+    )
+    lifecycle_state: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="imported", server_default="imported"
+    )
+    lifecycle_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     safety_grace_period_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -149,7 +159,11 @@ class AccountLifecycleEvent(Base):
         UUIDString, ForeignKey("app_user.id"), nullable=True
     )
     request_id: Mapped[str | None] = mapped_column(UUIDString, nullable=True)
+    from_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    to_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

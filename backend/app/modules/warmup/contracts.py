@@ -31,6 +31,12 @@ class WarmupValidateRequest(BaseModel):
     strategy_id: UuidString
 
 
+class WarmupProxyAdaptationRead(BaseModel):
+    proxy_category: str
+    applied_preset: Literal["economic", "balanced", "full"]
+    disabled_actions: list[str] = Field(default_factory=list)
+
+
 class WarmupCheckItemRead(BaseModel):
     key: str
     label: str
@@ -44,6 +50,7 @@ class WarmupValidateRead(BaseModel):
     checks: list[WarmupCheckItemRead]
     blocking_reasons: list[str]
     warnings: list[str]
+    proxy_adaptation: WarmupProxyAdaptationRead | None = None
 
 
 class WarmupSessionCreateRequest(BaseModel):
@@ -51,8 +58,21 @@ class WarmupSessionCreateRequest(BaseModel):
     strategy_id: UuidString
 
 
+class WarmupCycleConfigRead(BaseModel):
+    start_hour: int
+    end_hour: int
+    days_total: int
+    current_cycle: int = 1
+    started_at: str | None = None
+    active_hours_total: int | None = None
+
+
 class WarmupActionPresetRequest(BaseModel):
     preset: Literal["economic", "all", "minimal"]
+
+
+class WarmupDisabledActionsRequest(BaseModel):
+    actions: list[str] = Field(default_factory=list)
 
 
 class WarmupActionMetadataRead(BaseModel):
@@ -98,6 +118,7 @@ class WarmupSessionRead(BaseModel):
     consecutive_failures: int
     daily_counters: dict[str, Any] = Field(default_factory=dict)
     trusted_peer_ids: list[str] = Field(default_factory=list)
+    disabled_actions: list[str] = Field(default_factory=list)
     proxy_snapshot: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
@@ -105,6 +126,19 @@ class WarmupSessionRead(BaseModel):
     paused_at: datetime | None = None
     completed_at: datetime | None = None
     worker_id: str | None = None
+    cycle_config: WarmupCycleConfigRead | None = None
+
+
+class WarmupCyclicCreateRequest(BaseModel):
+    account_ids: list[UuidString] = Field(min_length=1)
+    start_hour: int = Field(ge=0, le=23)
+    end_hour: int = Field(ge=0, le=23)
+    days_total: int = Field(ge=1, le=30)
+    strategy_preset: WarmupPresetKindRead = WarmupPresetKindRead.STANDARD
+
+
+class WarmupCyclicCreateRead(BaseModel):
+    items: list[WarmupSessionRead]
 
 
 class WarmupSessionSummaryRead(BaseModel):
@@ -121,6 +155,7 @@ class WarmupSessionSummaryRead(BaseModel):
     next_micro_session_at: datetime | None = None
     cold_soak_until: datetime | None = None
     updated_at: datetime
+    cycle_config: WarmupCycleConfigRead | None = None
 
 
 class WarmupSessionPageRead(BaseModel):
@@ -194,15 +229,20 @@ class WarmupReadinessRead(BaseModel):
 __all__ = [
     "WarmupCheckItemRead",
     "WarmupCheckSeverityRead",
+    "WarmupCycleConfigRead",
+    "WarmupCyclicCreateRead",
+    "WarmupCyclicCreateRequest",
     "WarmupEventPageRead",
     "WarmupEventRead",
     "WarmupExecutionModeRead",
     "WarmupActionPresetRequest",
     "WarmupActionMetadataRead",
+    "WarmupDisabledActionsRequest",
     "WarmupIsolationClaimRead",
     "WarmupIsolationStatusRead",
     "WarmupPauseRequest",
     "WarmupPresetKindRead",
+    "WarmupProxyAdaptationRead",
     "WarmupReadinessRead",
     "WarmupSessionCreateRequest",
     "WarmupSessionPageRead",

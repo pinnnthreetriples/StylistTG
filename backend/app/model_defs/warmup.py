@@ -136,6 +136,7 @@ class WarmupSession(Base):
     disabled_actions_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     lifecycle_state: Mapped[str] = mapped_column(String(32), nullable=False, default="warming")
     strategy_snapshot_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    cycle_config_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
@@ -205,6 +206,54 @@ class WarmupTaskRun(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     session: Mapped[WarmupSession] = relationship(back_populates="task_runs")
+
+
+class WarmupPreProductionSession(Base):
+    __tablename__ = "warmup_pre_production_session"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('running', 'completed', 'failed')",
+            name="ck_warmup_pre_production_status",
+        ),
+        CheckConstraint(
+            "duration_hours BETWEEN 1 AND 2",
+            name="ck_warmup_pre_production_duration_hours",
+        ),
+        Index(
+            "ix_warmup_pre_production_account_status",
+            "workspace_id",
+            "account_id",
+            "status",
+        ),
+        Index("ix_warmup_pre_production_ends", "ends_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("workspace.id"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        UUIDString, ForeignKey("account.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source_warmup_session_id: Mapped[str | None] = mapped_column(
+        UUIDString,
+        ForeignKey("warmup_session.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
+    duration_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task_plan_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    task_result_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class WarmupTrustedPeer(Base):

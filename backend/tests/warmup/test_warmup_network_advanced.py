@@ -329,8 +329,10 @@ def test_real_adapter_p2p_send_uses_typing_before_sendMessage(monkeypatch) -> No
     assert result.is_ok
     _assert_p2p_typing_flow(client.queries, text="Привет!")
     assert slept == [result.metadata["typing_duration_ms"] / 1000]
-    assert result.metadata["chat_id"] == 555
-    assert result.metadata["text_length"] == len("Привет!")
+    assert {
+        "chat_id": result.metadata["chat_id"],
+        "text_length": result.metadata["text_length"],
+    } == {"chat_id": 555, "text_length": len("Привет!")}
     assert result.metadata["typing_started"] is True
     assert 2_000 <= result.metadata["typing_duration_ms"] <= 15_000
 
@@ -483,6 +485,43 @@ def test_real_adapter_react_to_post_uses_available_reaction(monkeypatch) -> None
     }
     assert client.queries[3]["is_big"] is False
     assert result.metadata["reaction"] == "👍"
+
+
+def test_real_adapter_react_to_post_can_prefer_favorite_reaction(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(
+        receive_queue=[_ready_event()],
+        responses=[
+            {"@type": "chat", "id": -100_42},
+            {"@type": "messages", "messages": [{"id": 10}]},
+            {
+                "@type": "availableReactions",
+                "reactions": [
+                    {"type": {"@type": "reactionTypeEmoji", "emoji": "👍"}},
+                    {"type": {"@type": "reactionTypeEmoji", "emoji": "🔥"}},
+                ],
+            },
+            {"@type": "ok"},
+        ],
+    )
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="react_to_post",
+            context={
+                "channel_ref": "@cool_news",
+                "current_day": 0,
+                "personality_seed": {
+                    "account_id": "acc-1",
+                    "favorite_emojis": ["🔥"],
+                },
+            },
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    assert result.metadata["reaction"] == "🔥"
 
 
 def test_real_adapter_maps_flood_wait_with_retry_after(monkeypatch) -> None:

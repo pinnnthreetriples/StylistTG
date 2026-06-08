@@ -81,6 +81,27 @@ export type WarmupStrategy = {
   ui_summary: WarmupUiSummary
 }
 
+export type WarmupCycleConfig = {
+  start_hour: number
+  end_hour: number
+  days_total: number
+  current_cycle: number
+  started_at: string | null
+  active_hours_total: number | null
+}
+
+export type WarmupCyclicCreatePayload = {
+  account_ids: string[]
+  start_hour: number
+  end_hour: number
+  days_total: number
+  strategy_preset: WarmupPresetKind
+}
+
+export type WarmupCyclicCreateResponse = {
+  items: WarmupSessionDetail[]
+}
+
 export type WarmupCheckItem = {
   key: string
   label: string
@@ -94,6 +115,13 @@ export type WarmupValidateResponse = {
   checks: WarmupCheckItem[]
   blocking_reasons: string[]
   warnings: string[]
+  proxy_adaptation: WarmupProxyAdaptation | null
+}
+
+export type WarmupProxyAdaptation = {
+  proxy_category: string
+  applied_preset: 'economic' | 'balanced' | 'full'
+  disabled_actions: string[]
 }
 
 export type WarmupSessionSummary = {
@@ -110,6 +138,7 @@ export type WarmupSessionSummary = {
   next_micro_session_at: string | null
   cold_soak_until: string | null
   updated_at: string
+  cycle_config: WarmupCycleConfig | null
 }
 
 export type WarmupDailyCounters = Record<string, WarmupDailyLimits>
@@ -123,6 +152,7 @@ export type WarmupSessionDetail = WarmupSessionSummary & {
   consecutive_failures: number
   daily_counters: WarmupDailyCounters
   trusted_peer_ids: string[]
+  disabled_actions: string[]
   proxy_snapshot: WarmupProxySnapshot | null
   created_at: string
   started_at: string | null

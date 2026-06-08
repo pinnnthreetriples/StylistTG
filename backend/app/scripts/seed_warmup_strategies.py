@@ -13,6 +13,12 @@ from app.models import (
     WarmupStrategy,
     new_id,
 )
+from app.modules.warmup.idle_session import (
+    IDLE_KEEPALIVE_ACTION_LIMITS,
+    IDLE_KEEPALIVE_CADENCE_HOURS,
+    IDLE_KEEPALIVE_DURATION_DAYS,
+    IDLE_KEEPALIVE_STRATEGY_NAME,
+)
 
 
 def _baseline_limits(
@@ -157,6 +163,30 @@ PRESET_STRATEGIES: list[dict[str, Any]] = [
                 "quiet_hours_local": {"start": 22, "end": 9},
             },
         ),
+    },
+    {
+        "name": IDLE_KEEPALIVE_STRATEGY_NAME,
+        "preset_kind": WarmupPresetKind.CUSTOM.value,
+        "duration_days": IDLE_KEEPALIVE_DURATION_DAYS,
+        "execution_mode": WarmupExecutionMode.DRY_RUN.value,
+        "description": "Read-only idle keepalive warmup for accounts outside combat work.",
+        "daily_action_limits_json": {
+            str(day): dict(IDLE_KEEPALIVE_ACTION_LIMITS)
+            for day in range(1, IDLE_KEEPALIVE_DURATION_DAYS + 1)
+        },
+        "session_window_config_json": {
+            "micro_sessions_per_day": {"min": 1, "max": 2},
+            "minutes_per_session": {"min": 5, "max": 15},
+        },
+        "ui_summary_json": {
+            "audience_hint": "Idle account keepalive",
+            "risk_level": "low",
+            "read_only": True,
+        },
+        "tier_limits_json": {
+            "cadence_hours": IDLE_KEEPALIVE_CADENCE_HOURS,
+            "profile_required": False,
+        },
     },
 ]
 

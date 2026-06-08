@@ -58,3 +58,38 @@ class AccountExportRequestRead(BaseModel):
     failure_code: str | None = None
     failure_message: str | None = None
     expires_at: datetime | None = None
+
+
+class AccountLifecycleEventRead(BaseModel):
+    id: str
+    from_state: str | None = None
+    to_state: str | None = None
+    reason: str | None = None
+    actor_user_id: str | None = None
+    occurred_at: datetime
+    payload: dict[str, Any]
+
+
+class AccountLifecycleRead(BaseModel):
+    account_id: str
+    lifecycle_state: str
+    lifecycle_updated_at: datetime | None = None
+    history: list[AccountLifecycleEventRead]
+
+
+class PreProductionStartRequest(BaseModel):
+    duration_hours: int | None = Field(default=None, ge=1, le=2)
+
+
+class PreProductionStatusRead(BaseModel):
+    account_id: str
+    lifecycle_state: str
+    session_id: str | None = None
+    status: str | None = None
+    started_at: datetime | None = None
+    ends_at: datetime | None = None
+    completed_at: datetime | None = None
+    failure_code: str | None = None
+    failure_message: str | None = None
+    task_plan: dict[str, Any] = Field(default_factory=dict)
+    task_result: dict[str, Any] = Field(default_factory=dict)

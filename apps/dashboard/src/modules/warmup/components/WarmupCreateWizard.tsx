@@ -14,6 +14,7 @@ import { ActionPresetButtons } from './ActionPresetButtons'
 import { ActionMetadataPanel } from './ActionMetadataPanel'
 import {
   WarmupAccountSelector,
+  WarmupCyclicConfig,
   WarmupCreateSummary,
   WarmupStrategySelector,
   WarmupValidationPanel,
@@ -30,6 +31,10 @@ export function WarmupCreateWizard() {
   const createMutation = useCreateWarmupSession()
   const [accountId, setAccountId] = useState('')
   const [strategyId, setStrategyId] = useState('')
+  const [cyclicEnabled, setCyclicEnabled] = useState(false)
+  const [cycleStartHour, setCycleStartHour] = useState(15)
+  const [cycleEndHour, setCycleEndHour] = useState(18)
+  const [cycleDaysTotal, setCycleDaysTotal] = useState(7)
   const [validatedFor, setValidatedFor] = useState<string | null>(null)
 
   const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
@@ -45,7 +50,10 @@ export function WarmupCreateWizard() {
   const validation = validateMutation.data
   const selectionKey = `${selectedAccountId}:${selectedStrategyId}`
   const validationMatchesSelection = validatedFor === selectionKey
-  const canCreate = Boolean(validation?.is_ready && validationMatchesSelection && selectedAccountId && selectedStrategyId)
+  const cycleConfigValid = !cyclicEnabled || (cycleStartHour !== cycleEndHour && cycleDaysTotal >= 1 && cycleDaysTotal <= 30)
+  const canCreate = Boolean(
+    validation?.is_ready && validationMatchesSelection && selectedAccountId && selectedStrategyId && cycleConfigValid,
+  )
   const createErrorMessage =
     createMutation.error && isApiError(createMutation.error)
       ? createMutation.error.error_code === 'WARMUP_QUEUE_UNAVAILABLE'
@@ -99,6 +107,16 @@ export function WarmupCreateWizard() {
         />
       ) : null}
       <ActionMetadataPanel metadata={actionMetadataQuery.data ?? []} />
+      <WarmupCyclicConfig
+        daysTotal={cycleDaysTotal}
+        enabled={cyclicEnabled}
+        endHour={cycleEndHour}
+        startHour={cycleStartHour}
+        onDaysTotalChange={setCycleDaysTotal}
+        onEnabledChange={setCyclicEnabled}
+        onEndHourChange={setCycleEndHour}
+        onStartHourChange={setCycleStartHour}
+      />
       <WarmupValidationPanel validation={validation} />
 
       <div className="mt-5 rounded-lg border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
@@ -111,13 +129,33 @@ export function WarmupCreateWizard() {
 
       <WarmupCreateSummary
         canCreate={canCreate}
+        cycleConfig={
+          cyclicEnabled
+            ? {
+                daysTotal: cycleDaysTotal,
+                endHour: cycleEndHour,
+                startHour: cycleStartHour,
+              }
+            : null
+        }
         isCreating={createMutation.isPending}
         selectedAccountId={selectedAccountId}
         selectedAccountLabel={selectedAccountLabel}
         selectedStrategy={selectedStrategy}
         onCreate={() =>
           createMutation.mutate(
-            { accountId: selectedAccountId, strategyId: selectedStrategyId },
+            {
+              accountId: selectedAccountId,
+              cycleConfig: cyclicEnabled
+                ? {
+                    daysTotal: cycleDaysTotal,
+                    endHour: cycleEndHour,
+                    startHour: cycleStartHour,
+                    strategyPreset: selectedStrategy?.preset_kind ?? 'standard',
+                  }
+                : undefined,
+              strategyId: selectedStrategyId,
+            },
             {
               onSuccess: () => {
                 setAccountId('')

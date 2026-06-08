@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# pyright: reportPrivateUsage=false
+# pyright: reportPrivateUsage=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 
 import logging
 import random
@@ -20,6 +20,10 @@ from app.adapters.tdlib_auth import (
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
 from app.adapters.warmup_tdlib_errors import _AdapterClientError, _classify_tdlib_error
 from app.config import Settings, settings
+from app.modules.warmup.circadian.personality import (
+    choose_reaction,
+    deterministic_reaction_rng,
+)
 from app.modules.warmup.typing import compute_typing_duration
 from app.services.tdlib_proxy import apply_account_proxy_to_tdlib
 
@@ -1444,7 +1448,16 @@ class RealWarmupTdlibAdapter:
                 },
             )
 
-        reaction = reactions[0]
+        personality_seed = _personality_seed(context)
+        reaction = choose_reaction(
+            reactions,
+            personality_seed=personality_seed,
+            rng=deterministic_reaction_rng(
+                personality_seed=personality_seed,
+                channel_ref=channel_ref,
+                current_day=context.get("current_day"),
+            ),
+        )
         added = client.send_query(
             {
                 "@type": "addMessageReaction",

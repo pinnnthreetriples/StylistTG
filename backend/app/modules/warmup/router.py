@@ -14,10 +14,17 @@ from sqlalchemy.orm import Session
 from app.api.tenant_helpers import require_account_in_workspace
 from app.db import get_session
 from app.errors import AppError
+from app.modules.account_lifecycle.contracts import (
+    PreProductionStartRequest,
+    PreProductionStatusRead,
+)
 from app.modules.warmup import service as warmup_service
 from app.modules.warmup.contracts import (
     WarmupActionMetadataRead,
     WarmupActionPresetRequest,
+    WarmupCyclicCreateRead,
+    WarmupCyclicCreateRequest,
+    WarmupDisabledActionsRequest,
     WarmupEventPageRead,
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
@@ -30,7 +37,12 @@ from app.modules.warmup.contracts import (
     WarmupValidateRead,
     WarmupValidateRequest,
 )
+from app.modules.warmup.cyclic import setup_cyclic_warmups
 from app.modules.warmup.errors import WarmupError
+from app.modules.warmup.interfaces import (
+    get_pre_production_status,
+    start_pre_production,
+)
 from app.modules.auth.dependencies import (
     AuthContext,
     require_authenticated,
@@ -42,6 +54,8 @@ from app.modules.auth.dependencies import (
 router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
+session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
+pre_production_router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 settings = warmup_service.settings
 
 
@@ -132,6 +146,31 @@ def post_warmup_session(
         raise _warmup_error(exc) from exc
 
 
+@session_alias_router.post(
+    "/cyclic", response_model=WarmupCyclicCreateRead, status_code=status.HTTP_201_CREATED
+)
+def post_warmup_cyclic_sessions(
+    payload: WarmupCyclicCreateRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupCyclicCreateRead:
+    try:
+        rows = setup_cyclic_warmups(
+            session,
+            account_ids=[str(account_id) for account_id in payload.account_ids],
+            workspace_id=auth.workspace_id,
+            start_hour=payload.start_hour,
+            end_hour=payload.end_hour,
+            days_total=payload.days_total,
+            strategy_preset=payload.strategy_preset.value,
+        )
+        session.commit()
+        return WarmupCyclicCreateRead(items=[warmup_service.session_read(row) for row in rows])
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
+
+
 @warmup_router.get("/sessions", response_model=WarmupSessionPageRead)
 def get_warmup_sessions(
     status_filter: list[str] | None = Query(default=None, alias="status"),
@@ -175,6 +214,26 @@ def get_warmup_session_status(
         )
     except WarmupError as exc:
         raise _warmup_error(exc) from exc
+
+
+@warmup_router.patch("/sessions/{session_id}/disabled-actions", response_model=WarmupSessionRead)
+def patch_warmup_session_disabled_actions(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupSessionRead:
+    return _set_warmup_session_disabled_actions(session_id, payload, session, auth)
+
+
+@session_alias_router.patch("/{session_id}/disabled-actions", response_model=WarmupSessionRead)
+def patch_warmup_session_disabled_actions_alias(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+) -> WarmupSessionRead:
+    return _set_warmup_session_disabled_actions(session_id, payload, session, auth)
 
 
 @warmup_router.put("/sessions/{session_id}/pause", response_model=WarmupSessionRead)
@@ -268,6 +327,74 @@ def get_warmup_isolation_status(
     return warmup_service.get_warmup_isolation_status(session, account_id=account_id_str)
 
 
+def _account_not_found_error(exc: ValueError | None = None) -> AppError:
+    return AppError(
+        status_code=status.HTTP_404_NOT_FOUND,
+        error_code="ACCOUNT_NOT_FOUND",
+        error_class="not_found",
+        message=str(exc),
+    )
+
+
+@pre_production_router.post(
+    "/{account_id}/pre-production/start", response_model=PreProductionStatusRead
+)
+def post_account_pre_production_start(
+    account_id: str,
+    payload: PreProductionStartRequest | None = None,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_mutation_permission),
+):
+    try:
+        start_pre_production(
+            session,
+            account_id=account_id,
+            workspace_id=auth.workspace_id,
+            duration_hours=payload.duration_hours if payload is not None else None,
+        )
+        session.commit()
+        return PreProductionStatusRead(
+            **get_pre_production_status(
+                session, account_id=account_id, workspace_id=auth.workspace_id
+            )
+        )
+    except WarmupError as exc:
+        raise AppError(
+            status_code=exc.status_code or status.HTTP_400_BAD_REQUEST,
+            error_code=exc.error_code,
+            error_class=exc.error_class,
+            message=exc.legacy_message,
+        ) from exc
+    except ValueError as exc:
+        message = str(exc)
+        if message == "account not found":
+            raise _account_not_found_error(exc) from exc
+        raise AppError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code="PRE_PRODUCTION_REJECTED",
+            error_class="warmup",
+            message=message,
+        ) from exc
+
+
+@pre_production_router.get(
+    "/{account_id}/pre-production/status", response_model=PreProductionStatusRead
+)
+def get_account_pre_production_status(
+    account_id: str,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+):
+    try:
+        return PreProductionStatusRead(
+            **get_pre_production_status(
+                session, account_id=account_id, workspace_id=auth.workspace_id
+            )
+        )
+    except ValueError as exc:
+        raise _account_not_found_error(exc) from exc
+
+
 def _warmup_error(exc: WarmupError) -> AppError:
     return AppError(
         status_code=exc.status_code or status.HTTP_400_BAD_REQUEST,
@@ -278,5 +405,26 @@ def _warmup_error(exc: WarmupError) -> AppError:
     )
 
 
+def _set_warmup_session_disabled_actions(
+    session_id: UUID,
+    payload: WarmupDisabledActionsRequest,
+    session: Session,
+    auth: AuthContext,
+) -> WarmupSessionRead:
+    try:
+        return warmup_service.set_disabled_actions_use_case(
+            session,
+            session_id=str(session_id),
+            workspace_id=auth.workspace_id,
+            actions=payload.actions,
+            actor_user_id=auth.user_id,
+        )
+    except WarmupError as exc:
+        session.rollback()
+        raise _warmup_error(exc) from exc
+
+
 router.include_router(warmup_router)
 router.include_router(actions_router)
+router.include_router(session_alias_router)
+router.include_router(pre_production_router)

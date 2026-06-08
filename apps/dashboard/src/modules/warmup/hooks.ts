@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 
 import {
   applyWarmupActionPreset,
+  createCyclicWarmupSessions,
   createWarmupSession,
   deleteWarmupSession,
   fetchWarmupActionMetadata,
@@ -14,10 +15,17 @@ import {
   fetchWarmupStrategies,
   pauseWarmupSession,
   resumeWarmupSession,
+  updateWarmupDisabledActions,
   validateWarmup,
 } from './api'
-import type { WarmupEventPage, WarmupSessionPage, WarmupStatus } from './types'
-import type { WarmupActionPreset } from './types'
+import type {
+  WarmupActionPreset,
+  WarmupEventPage,
+  WarmupPresetKind,
+  WarmupSessionDetail,
+  WarmupSessionPage,
+  WarmupStatus,
+} from './types'
 
 export const ACTIVE_STATUSES: WarmupStatus[] = ['validating', 'scheduled', 'active', 'paused_risk', 'paused_manual']
 
@@ -145,8 +153,25 @@ export function useApplyWarmupActionPreset() {
 export function useCreateWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ accountId, strategyId }: { accountId: string; strategyId: string }) =>
-      createWarmupSession(accountId, strategyId),
+    mutationFn: async ({
+      accountId,
+      cycleConfig,
+      strategyId,
+    }: {
+      accountId: string
+      strategyId: string
+      cycleConfig?: { startHour: number; endHour: number; daysTotal: number; strategyPreset: WarmupPresetKind }
+    }): Promise<WarmupSessionDetail> => {
+      if (!cycleConfig) return createWarmupSession(accountId, strategyId)
+      const response = await createCyclicWarmupSessions({
+        account_ids: [accountId],
+        start_hour: cycleConfig.startHour,
+        end_hour: cycleConfig.endHour,
+        days_total: cycleConfig.daysTotal,
+        strategy_preset: cycleConfig.strategyPreset,
+      })
+      return response.items[0]
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
     },
@@ -169,6 +194,19 @@ export function useResumeWarmupSession() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) => resumeWarmupSession(sessionId),
+    onSuccess: (_data, { sessionId }) => {
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })
+      void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.events(sessionId) })
+    },
+  })
+}
+
+export function useUpdateWarmupDisabledActions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sessionId, actions }: { sessionId: string; actions: string[] }) =>
+      updateWarmupDisabledActions(sessionId, actions),
     onSuccess: (_data, { sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessions })
       void queryClient.invalidateQueries({ queryKey: warmupQueryKeys.sessionDetail(sessionId) })

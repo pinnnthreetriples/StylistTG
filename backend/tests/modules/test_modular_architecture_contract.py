@@ -57,15 +57,15 @@ def test_module_router_paths_are_lazy_strings() -> None:
 def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
     routers = list(registry.iter_routers())
     prefixes = {router.prefix for router in routers}
-    paths = {
+    route_paths = {
         route.path for router in routers for route in router.routes if isinstance(route, APIRoute)
     }
 
     assert "" in prefixes
     assert "/api/account-update" in prefixes
     assert "/api/accounts" in prefixes
-    assert "/api/warmup/readiness" in paths
-    assert "/api/warmup-actions/metadata" in paths
+    assert "/api/warmup/readiness" in route_paths
+    assert "/api/warmup-actions/metadata" in route_paths
     assert "/api/neuro-commenting" in prefixes
 
 

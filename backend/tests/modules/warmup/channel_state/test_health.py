@@ -36,5 +36,5 @@ def test_is_channel_healthy_uses_exclusion_threshold() -> None:
     assert not is_channel_healthy(_State(HEALTH_THRESHOLD_EXCLUDE - 0.0001))
 
 
-def test_is_channel_healthy_denies_scores_just_below_threshold() -> None:
+def test_is_channel_healthy_rejects_scores_just_below_threshold() -> None:
     assert not is_channel_healthy(_State(HEALTH_THRESHOLD_EXCLUDE - 0.01))

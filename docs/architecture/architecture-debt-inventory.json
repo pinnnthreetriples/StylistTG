@@ -555,6 +555,7 @@
         "backend/app/modules/warmup/action_presets.py",
         "backend/app/modules/warmup/channel_state/__init__.py",
         "backend/app/modules/warmup/channel_state/contracts.py",
+        "backend/app/modules/warmup/channel_state/health.py",
         "backend/app/modules/warmup/channel_state/repository.py",
         "backend/app/modules/warmup/channel_state/selector.py",
         "backend/app/modules/warmup/channel_state/service.py",
@@ -1696,6 +1697,7 @@
         "backend/tests/modules/test_workflow_registry.py",
         "backend/tests/modules/warmup/channel_state/test_channel_state_repository.py",
         "backend/tests/modules/warmup/channel_state/test_channel_state_service.py",
+        "backend/tests/modules/warmup/channel_state/test_health.py",
         "backend/tests/modules/warmup/channel_state/test_selector.py",
         "backend/tests/modules/warmup/p2p/test_graph.py",
         "backend/tests/modules/warmup/test_action_metadata.py",
@@ -1959,7 +1961,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-06T17:18:03Z",
+  "generated_at": "2026-06-08T12:13:06Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

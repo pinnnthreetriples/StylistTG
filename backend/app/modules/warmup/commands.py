@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.adapters.warmup_tdlib_contracts import SUPPORTED_ADVANCED_ACTIONS
 from app.config import settings
 from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus, new_id
+from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
+from app.modules.account_shared.interfaces import lookup_account
 from app.modules.account_survival import events as survival_events
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import WarmupSessionRead
@@ -46,6 +48,9 @@ def create_warmup_session(
     can_create_warmup_session(readiness.blocking_reasons)
 
     timestamp = now or datetime.now(UTC)
+    account = lookup_account(session, account_id, workspace_id=workspace_id)
+    if account is None:
+        raise WarmupSessionRejectedError("account not found")
     strategy = repository.get_strategy(session, strategy_id=strategy_id)
     execution_mode = (
         strategy.execution_mode if strategy is not None else WarmupExecutionMode.DRY_RUN.value
@@ -73,6 +78,14 @@ def create_warmup_session(
     )
     session.add(warmup_session)
     session.flush()
+    advance(
+        session,
+        account,
+        to_state=AccountLifecycleState.COLD_SOAK,
+        now=timestamp,
+        reason="warmup_session_created",
+        metadata={"warmup_session_id": warmup_session.id, "strategy_id": strategy_id},
+    )
     write_warmup_event(
         session,
         warmup_session,

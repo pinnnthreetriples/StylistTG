@@ -179,13 +179,20 @@ State rules:
 Transition owners:
 
 - `<backend/app/modules/account_lifecycle/state_machine.py>` is the only place that mutates lifecycle state.
+- `<backend/app/modules/account_lifecycle/interfaces.py>` is the public facade other modules import.
 - `<backend/app/modules/warmup/commands.py>` requests `imported -> cold_soak` when a new session starts.
 - `<backend/app/modules/warmup/cold_soak.py>` requests `cold_soak -> warming` after the silence window expires.
 - `<backend/app/modules/warmup/dispatch_results.py>` or completion flow requests `warming -> pre_production`.
 - `<backend/app/modules/warmup/pre_production.py>` requests `pre_production -> active` on success or `pre_production -> cold_soak` on flood wait.
-- `<backend/app/modules/account_lifecycle/idle_detector.py>` requests `active -> idle` and idle cleanup requests `idle -> active`.
+- `<backend/app/modules/account_safety/quarantine.py>` requests `active -> cold_soak` when quarantine opens or extends.
+- `<backend/app/modules/account_lifecycle/idle_detector.py>` detects `active` accounts with no active/recent `Job` activity.
+- `<backend/app/modules/warmup/idle_session.py>` requests `active -> idle`, creates read-only `IDLE_KEEPALIVE` warmup, and stops it with an `idle_session_stopped` event before `idle -> active`.
+- `<backend/app/modules/warmup/pre_production.py>` creates empty-profile pre-production sessions only when `warmup_pre_production_enabled=true` and the strategy/snapshot flag `enable_pre_production=true`; it plans neuro-commenting and `react_to_post` DRY_RUN work, asserts no bio/avatar/pinned link, sends clean expiry to `active`, and sends flood-wait/failure to `cold_soak`.
 
-Every transition writes an audit/lifecycle event. Terminal states are never auto-assigned without the explicit lifecycle rule for that state.
+Every transition writes an `account.lifecycle.transition` event with `from_state`,
+`to_state`, `reason`, `actor_user_id`, and sanitized payload metadata. Terminal states
+`retired`, `banned`, and `deleted`, plus manual rollback `warming -> cold_soak`, require
+operator/manual lifecycle approval and must not be auto-assigned.
 
 ## 5. Forbidden
 

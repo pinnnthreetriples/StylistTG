@@ -25,6 +25,7 @@ from app.models import (
     NeuroCommentAttempt,
     NeuroCommentEvent,
     NeuroCommentGeneratedComment,
+    WarmupPreProductionSession,
     WarmupSession,
     new_id,
     utc_now,
@@ -152,6 +153,10 @@ def add_lifecycle_event(
     actor_user_id: str | None,
     request_id: str | None,
     payload: dict[str, Any],
+    from_state: str | None = None,
+    to_state: str | None = None,
+    reason: str | None = None,
+    occurred_at: Any | None = None,
 ) -> None:
     session.add(
         AccountLifecycleEvent(
@@ -161,9 +166,30 @@ def add_lifecycle_event(
             event_type=event_type,
             actor_user_id=actor_user_id,
             request_id=request_id,
+            from_state=from_state,
+            to_state=to_state,
+            reason=reason,
             payload_json=redact_metadata(payload),
-            created_at=utc_now(),
+            occurred_at=occurred_at,
+            created_at=occurred_at or utc_now(),
         )
+    )
+
+
+def list_transition_events_for_account(
+    session: Session, *, account_id: str, workspace_id: str, limit: int = 50
+) -> list[AccountLifecycleEvent]:
+    return list(
+        session.execute(
+            select(AccountLifecycleEvent)
+            .where(AccountLifecycleEvent.workspace_id == workspace_id)
+            .where(AccountLifecycleEvent.account_id == account_id)
+            .where(AccountLifecycleEvent.event_type == "account.lifecycle.transition")
+            .order_by(AccountLifecycleEvent.created_at.desc(), AccountLifecycleEvent.id.desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
     )
 
 
@@ -182,6 +208,7 @@ _CASCADE_MODELS: tuple[tuple[str, Any], ...] = (
     ("account_operation_log", AccountOperationLog),
     ("account_survival_metric", AccountSurvivalMetric),
     ("account_auth_attempt", AccountAuthAttempt),
+    ("warmup_pre_production_session", WarmupPreProductionSession),
     ("warmup_session", WarmupSession),
 )
 
@@ -262,4 +289,5 @@ __all__ = [
     "get_export_request_for_account",
     "list_deletion_requests_for_account",
     "list_export_requests_for_account",
+    "list_transition_events_for_account",
 ]

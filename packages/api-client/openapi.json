@@ -8079,6 +8079,78 @@
         }
       }
     },
+    "/api/warmup-sessions/cyclic": {
+      "post": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Post Warmup Cyclic Sessions",
+        "operationId": "post_warmup_cyclic_sessions_api_warmup_sessions_cyclic_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupCyclicCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupCyclicCreateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warmup-sessions/{session_id}/disabled-actions": {
       "patch": {
         "tags": [
@@ -27881,6 +27953,115 @@
         ],
         "title": "WarmupCheckSeverityRead"
       },
+      "WarmupCycleConfigRead": {
+        "properties": {
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "title": "End Hour"
+          },
+          "days_total": {
+            "type": "integer",
+            "title": "Days Total"
+          },
+          "current_cycle": {
+            "type": "integer",
+            "title": "Current Cycle",
+            "default": 1
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "active_hours_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Hours Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_hour",
+          "end_hour",
+          "days_total"
+        ],
+        "title": "WarmupCycleConfigRead"
+      },
+      "WarmupCyclicCreateRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupSessionRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "WarmupCyclicCreateRead"
+      },
+      "WarmupCyclicCreateRequest": {
+        "properties": {
+          "account_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Account Ids"
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "End Hour"
+          },
+          "days_total": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Days Total"
+          },
+          "strategy_preset": {
+            "$ref": "#/components/schemas/WarmupPresetKindRead",
+            "default": "standard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_ids",
+          "start_hour",
+          "end_hour",
+          "days_total"
+        ],
+        "title": "WarmupCyclicCreateRequest"
+      },
       "WarmupDisabledActionsRequest": {
         "properties": {
           "actions": {
@@ -28348,6 +28529,16 @@
               }
             ],
             "title": "Worker Id"
+          },
+          "cycle_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupCycleConfigRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -28503,6 +28694,16 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "cycle_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarmupCycleConfigRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

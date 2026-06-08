@@ -1606,6 +1606,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup-sessions/cyclic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Warmup Cyclic Sessions */
+        post: operations["post_warmup_cyclic_sessions_api_warmup_sessions_cyclic_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/warmup-sessions/{session_id}/disabled-actions": {
         parameters: {
             query?: never;
@@ -6886,6 +6903,42 @@ export interface components {
          * @enum {string}
          */
         WarmupCheckSeverityRead: "error" | "warning";
+        /** WarmupCycleConfigRead */
+        WarmupCycleConfigRead: {
+            /** Start Hour */
+            start_hour: number;
+            /** End Hour */
+            end_hour: number;
+            /** Days Total */
+            days_total: number;
+            /**
+             * Current Cycle
+             * @default 1
+             */
+            current_cycle: number;
+            /** Started At */
+            started_at?: string | null;
+            /** Active Hours Total */
+            active_hours_total?: number | null;
+        };
+        /** WarmupCyclicCreateRead */
+        WarmupCyclicCreateRead: {
+            /** Items */
+            items: components["schemas"]["WarmupSessionRead"][];
+        };
+        /** WarmupCyclicCreateRequest */
+        WarmupCyclicCreateRequest: {
+            /** Account Ids */
+            account_ids: string[];
+            /** Start Hour */
+            start_hour: number;
+            /** End Hour */
+            end_hour: number;
+            /** Days Total */
+            days_total: number;
+            /** @default standard */
+            strategy_preset: components["schemas"]["WarmupPresetKindRead"];
+        };
         /** WarmupDisabledActionsRequest */
         WarmupDisabledActionsRequest: {
             /** Actions */
@@ -7062,6 +7115,7 @@ export interface components {
             completed_at?: string | null;
             /** Worker Id */
             worker_id?: string | null;
+            cycle_config?: components["schemas"]["WarmupCycleConfigRead"] | null;
         };
         /** WarmupSessionStatusRead */
         WarmupSessionStatusRead: {
@@ -7108,6 +7162,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            cycle_config?: components["schemas"]["WarmupCycleConfigRead"] | null;
         };
         /**
          * WarmupStatusRead
@@ -13752,6 +13807,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+        };
+    };
+    post_warmup_cyclic_sessions_api_warmup_sessions_cyclic_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupCyclicCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupCyclicCreateRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

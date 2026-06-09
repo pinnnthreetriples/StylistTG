@@ -4900,6 +4900,172 @@
         }
       }
     },
+    "/api/accounts/{account_id}/generate-bio": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Generate Bio",
+        "operationId": "post_generate_bio_api_accounts__account_id__generate_bio_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIProfileGenerateBioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIProfileGenerateBioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/generate-avatar": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Generate Avatar",
+        "operationId": "post_generate_avatar_api_accounts__account_id__generate_avatar_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIProfileGenerateAvatarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIProfileGenerateAvatarRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/lifecycle": {
       "get": {
         "tags": [
@@ -15940,6 +16106,107 @@
   },
   "components": {
     "schemas": {
+      "AIProfileGenerateAvatarRead": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "mime": {
+            "type": "string",
+            "title": "Mime"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "uniqueness": {
+            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "provider",
+          "model",
+          "mime",
+          "attempts",
+          "uniqueness"
+        ],
+        "title": "AIProfileGenerateAvatarRead"
+      },
+      "AIProfileGenerateAvatarRequest": {
+        "properties": {
+          "persona_hints": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Persona Hints"
+          }
+        },
+        "type": "object",
+        "title": "AIProfileGenerateAvatarRequest"
+      },
+      "AIProfileGenerateBioRead": {
+        "properties": {
+          "bio": {
+            "type": "string",
+            "title": "Bio"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "uniqueness": {
+            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bio",
+          "provider",
+          "model",
+          "attempts",
+          "uniqueness"
+        ],
+        "title": "AIProfileGenerateBioRead"
+      },
+      "AIProfileGenerateBioRequest": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "ru"
+          },
+          "persona_hints": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Persona Hints"
+          }
+        },
+        "type": "object",
+        "title": "AIProfileGenerateBioRequest"
+      },
       "AccountBatchSafetyItemRead": {
         "properties": {
           "account_id": {

@@ -129,13 +129,20 @@ npm run memory:sync:dry-run
 - `.mex/status/` stores temporary current state.
 - `.mex/context/` stores compact stable project facts.
 - `.mex/patterns/` stores repeatable task workflows.
+- `.mex/patterns/architecture-change.md` and `docs/architecture/AGENT_ARCHITECTURE_GUIDE.md` define how agents must handle architecture and new-module work.
 - Do not run `npm run memory:sync` without explicit approval.
 
 ## Documentation Map
 
+- Agent startup and memory: `AGENTS.md`, `CLAUDE.md`, `.mex/ROUTER.md`, `.mex/status/current.md`.
+- Agent architecture guide and new-module workflow: `.mex/patterns/architecture-change.md`, `docs/architecture/AGENT_ARCHITECTURE_GUIDE.md`.
+- Modular backend architecture: `docs/architecture/MODULAR_BACKEND.md`, `docs/architecture/STRUCTURE_AUDIT.md`, `docs/architecture/structure-audit.json`, `docs/architecture/architecture-debt-inventory.json`.
 - Frontend/backend contract: `docs/api/frontend.md`.
 - Architecture docs: `docs/architecture/`.
 - Account lifecycle and production-plane docs: `docs/architecture/account-lifecycle.md`, `docs/architecture/production-execution-plane.md`.
+- Product/design agent context: `.agents/context/PRODUCT.md`, `.agents/context/DESIGN.md`.
+- Spec Kit constitution: `.specify/memory/constitution.md`.
+- Historical agent handoff: `docs/archive/agent-handoff-2026-05.md`.
 - Account safety: `docs/modules/account-safety-pipeline.md`, `docs/runbooks/safety-rollout.md`.
 - Live validation: `docs/runbooks/live-validation.md`.
 - Account import/auth: `docs/runbooks/account-import.md`, `docs/runbooks/telegram-auth-flow.md`.

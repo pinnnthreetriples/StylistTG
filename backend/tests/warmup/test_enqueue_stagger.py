@@ -14,7 +14,7 @@ from app.models import (
     WarmupStrategy,
     new_id,
 )
-from app.modules.warmup.enqueue import enqueue_due_warmup_dispatch_sessions
+from app.modules.warmup.dispatcher import enqueue_due_warmup_dispatch_sessions
 from app.modules.warmup.jobs import run_warmup_dispatch_session
 from app.services.accounts import create_account
 

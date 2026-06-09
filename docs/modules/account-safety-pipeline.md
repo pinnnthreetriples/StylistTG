@@ -2,7 +2,24 @@
 
 > Current status: the safety-pipeline foundation exists, but Workspace Safety Policy is temporarily neutralized by developer decision while `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=True`. Do not describe workspace-wide behavior limits, quiet hours, or auto-pauses as active until `.mex/status/current.md` is superseded. Rollout and re-enable details live in `docs/runbooks/safety-rollout.md`.
 
-The account safety pipeline is a backend foundation for reducing operator mistakes, noisy cross-module execution, and unsafe execution attempts. It combines workspace policy, account survivability scoring, quarantine state, status monitoring, cross-module load tracking, and preflight gate checks before editing, warmup, and commenting workflows execute. Current runtime behavior depends on feature flags and the temporary Workspace Safety Policy kill-switch.
+This document is a navigation and boundary guide for safety work. Verify behavior in code before editing docs.
+
+## Source-of-truth lookup
+
+| Question | Check first | Then check |
+| --- | --- | --- |
+| Is Workspace Safety Policy active? | `.mex/status/current.md`, `backend/app/config.py` | `docs/runbooks/safety-rollout.md` |
+| Which module owns safety behavior? | `backend/app/modules/account_safety/` | `docs/architecture/legacy-wrappers.json` |
+| Which compatibility service paths still exist? | `backend/app/services/` wrappers | `docs/architecture/legacy-wrappers.json` |
+| What does the gate evaluate? | `backend/app/modules/account_safety/` interfaces/gate code | targeted tests under `backend/tests/` |
+| Which live paths consume gate verdicts? | account editing, warmup, neuro-commenting callsites | `.mex/context/security.md`, `.mex/context/warmup.md` |
+| Which rollout posture is current? | `.mex/status/current.md` | `docs/runbooks/safety-rollout.md` |
+
+## Runtime boundary
+
+The account safety pipeline is a backend foundation for reducing operator mistakes, noisy cross-module execution, and unsafe execution attempts. Current runtime behavior depends on feature flags and the temporary Workspace Safety Policy kill-switch.
+
+While `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=True`, persisted workspace policy rows remain untouched, but consumers receive a neutral transient policy.
 
 ## Architecture Diagram
 
@@ -34,60 +51,30 @@ flowchart TD
     gate --> sender
 ```
 
-Sources: `backend/app/modules/account_safety/*`, compatibility wrappers under `backend/app/services/`, and API compatibility wrappers listed in `docs/architecture/legacy-wrappers.json`.
-
-## Layer Summary
-
-### WorkspaceSafetyPolicy
-
-Stores per-workspace safety mode and thresholds used by behavior pacing, warmup/commenting gates, flood-wait handling, and quarantine duration. While `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=True`, consumers receive a neutral transient policy and persisted policy rows are untouched.
-
-### GGR Calculator
-
-Computes a 1.0-10.0 account survivability/readiness score and stores a bucketed score. Inputs include account age, origin, proxy status, latest warmup session, profile completeness, and recent status observations. The `history` component remains stubbed at 1.0 until a real history source exists.
-
-### AccountQuarantine
-
-Stores temporary account-level blocks with reason, expiry, release metadata, and metrics. Active quarantine always becomes gate reason `active_quarantine` with metadata `{quarantine_id, reason}`.
-
-### AccountStatusMonitor
-
-Records account/proxy/runtime observations, detects degraded account health, and can auto-pause risky execution. Sticky-IP and failure-threshold behavior depends on status observations and policy settings.
-
-### CrossModuleLoadTracker
-
-Records hourly per-account action buckets across warmup, commenting, editing, and other modules, then evaluates overload. Thresholds are tied to policy mode, but policy behavior is neutralized while the temporary kill-switch is on.
-
-### AccountSafetyGate
-
-Provides one preflight verdict for execution intents. It is fail-closed when cold-call budget is exceeded, cache-backed when possible, and uses a legacy shim while `safety_pipeline_v2_enabled=false`.
-
-## Callsites
-
-| Callsite | Intent | Behavior |
-| --- | --- | --- |
-| `backend/app/modules/account_editing/service.py` | `editing` | Blocks job creation on blocked verdict; surfaces warnings in preview fields. |
-| `backend/app/modules/warmup/dispatcher.py` | `warmup` | Pauses warmup session as `paused_risk` when blocked. |
-| `backend/app/services/neuro_commenting/live_readiness_service.py` | `commenting` | Adds readiness blockers/warnings before live commenting. |
-| `backend/app/services/neuro_commenting/sender_service.py` | `commenting` | Skips send attempts blocked by gate and attempts atomic reserve for concurrency. |
-
 ## Current Gates and Flags
 
 - `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=True` neutralizes Workspace Safety Policy consumers; see `.mex/status/current.md`.
 - `safety_pipeline_v2_enabled=false` keeps AccountSafetyGate in legacy shim mode.
 - Legacy shim mode only evaluates `proxy_unhealthy`, `no_warmup`, and `active_quarantine`.
-- Full rollout must follow `docs/runbooks/safety-rollout.md`.
+- Full rollout must follow `docs/runbooks/safety-rollout.md` and explicit operator approval.
 
-## Quarantine Reasons Matrix
+## Safe editing rules
 
-| Reason code | Trigger | Default duration | Recovery procedure |
-| --- | --- | --- | --- |
-| `flood_wait` | Flood-wait signals after execution handling. | `WorkspaceSafetyPolicy.quarantine_hours_on_flood_wait`; preset default 24h. | Wait until `until`, then recheck proxy/status. Admin release only with reason through `/api/accounts/{account_id}/quarantine/release`. |
-| `status_degraded` | AccountStatusMonitor detects more than 3 distinct proxy IP hashes in 1h. | 24h. | Fix proxy stickiness, confirm latest status observation is stable, then release with operator reason if still active. |
-| `manual` | Operator-created quarantine reason. | Operator-defined. | Release/admin override with substantive reason; preserve audit. |
-| `bought_rest_period` | Bought-account onboarding starts rest period. | 120h; weak GGR precheck extends it by 72h. | Let rest period finish, then run onboarding GGR precheck; passing precheck auto-releases with `bought_onboarding_ggr_passed`. |
-| `fraud_high` | Contract-supported fraud-risk quarantine reason. | Caller-defined; no current writer found in source scan. | Investigate source signal, keep account out of live send paths until reason is cleared. |
-| `terminal_status` | Surfaced by gate when `account.terminal_status` is terminal. | No expiry. | Use admin-only `/api/accounts/{account_id}/terminal-status/clear` after external recovery evidence. |
+- Do not enable or flip safety rollout flags without an explicit operator task.
+- Do not describe workspace-wide behavioral limits as active while the kill-switch is on.
+- Do not store secrets, raw TDLib paths, proxy passwords, auth codes, message bodies, or raw logs in safety events or memory.
+- Do not treat compatibility wrappers under `backend/app/services/` as new ownership centers.
+- Do not bypass module-owned safety interfaces from feature modules.
+
+## Callsite checks
+
+Before changing a safety behavior, inspect affected callsites rather than trusting this document:
+
+- account editing preview/job creation;
+- warmup dispatch and session pause behavior;
+- neuro-commenting readiness;
+- neuro-commenting sender/live attempt paths;
+- worker/runtime diagnostics when verdicts affect execution.
 
 ## Recovery Procedures
 
@@ -123,27 +110,13 @@ Content-Type: application/json
 
 Metrics and alerts live in `docs/runbooks/safety-alerts.md`. Grafana dashboard JSON lives at `docs/grafana/safety-pipeline.json`.
 
-Key metrics:
-
-| Metric | Purpose |
-| --- | --- |
-| `safety_gate_blocks_total` | Block volume by workspace, intent, reason. |
-| `quarantine_active` | Active quarantine count by workspace and reason. |
-| `ggr_score` | Score histogram by bucket. |
-| `flood_wait_total` | Flood-wait spikes. |
-| `attempt_send_duration_seconds` | Send latency SLO. |
-| `safety_gate_evaluate_duration_seconds` | Gate latency and cache behavior. |
-| `cross_module_overload_total` | Cross-module overload visibility. |
-
 ## Known Limitations
 
-| Origin | Limitation | Severity |
+| Limitation | How to verify before changing behavior | Severity |
 | --- | --- | --- |
-| Current status | Workspace Safety Policy is temporarily neutralized by kill-switch. | high |
-| GGR | `history` remains stubbed at 1.0 until a real history source exists. | medium |
-| Task 15 audit | `device_model_hash` change is written in `details_json`, not sensitive audit. | low |
-| Task 15 audit | `fraud_score >= 0.7` branch is not implemented in AccountStatusMonitor auto-pause. | medium |
-| Task 15 audit | Sticky-IP overwrite can replace a prior cooldown reason. | low |
-| Task 18 audit | Rest-period quarantine starts before confirmed 2FA. | low |
-| Task 18 audit | `run_terminate_other_sessions` without `tdlib_client` silently skips real TDLib call. | medium |
-| Task 17 audit | Module docstring is absent; non-PostgreSQL fallback is not race-safe. | low |
+| Workspace Safety Policy is temporarily neutralized by kill-switch. | Check `.mex/status/current.md` and `backend/app/config.py`. | high |
+| GGR `history` component may be stubbed until a real history source exists. | Inspect current GGR implementation and tests before relying on history. | medium |
+| Some status-monitor or quarantine edge cases may depend on current module code rather than old task notes. | Inspect `backend/app/modules/account_safety/` and relevant tests before editing. | medium |
+| Bought-account rest-period and TDLib session-termination behavior may have live-runtime caveats. | Inspect onboarding/lifecycle modules and runbooks before changing live behavior. | medium |
+
+Do not cite old task numbers as proof. Link to current code, tests, runbooks, or generated architecture artifacts instead.

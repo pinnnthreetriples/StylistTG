@@ -124,8 +124,7 @@ def _due_dispatch_sessions(
     # System-wide dispatcher: scans warmup sessions across workspaces by design
     # (worker enqueues dispatch jobs for every tenant). Tenant isolation happens
     # downstream in the dispatch job itself.
-    query = select(WarmupSession).where(  # nosemgrep: stylisttg.missing-workspace-id-filter
-        WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
+    query = select(WarmupSession).where(  # nosemgrep: semgrep.missing-workspace-id-filter
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
         (
             (

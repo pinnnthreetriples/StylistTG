@@ -59,7 +59,7 @@ def detect_idle_accounts(
     )
     return list(
         session.execute(
-            select(Account.id)  # nosemgrep: stylisttg.missing-workspace-id-filter-projection
+            select(Account.id)  # nosemgrep: semgrep.missing-workspace-id-filter-projection
             .where(
                 Account.workspace_id == workspace_id,
                 Account.lifecycle_state == AccountLifecycleState.ACTIVE.value,
@@ -75,7 +75,7 @@ def detect_idle_accounts(
 def list_idle_candidate_workspaces(session: Session) -> list[str]:
     return list(
         session.execute(
-            # nosemgrep: stylisttg.missing-workspace-id-filter-projection
+            # nosemgrep: semgrep.missing-workspace-id-filter-projection
             select(Account.workspace_id)
             .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
             .distinct()

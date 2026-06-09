@@ -10,8 +10,9 @@ triggers:
 edges:
   - .mex/context/backend.md
   - .mex/context/warmup.md
+  - .mex/context/security.md
   - docs/architecture/production-execution-plane.md
-last_updated: 2026-05-28
+last_updated: 2026-06-08
 ---
 
 # Workers and Queues
@@ -27,8 +28,9 @@ last_updated: 2026-05-28
 - `scheduler_jobs`: scheduler/reaper taxonomy.
 - `warmup_jobs`: dry-run account preparation.
 - `warmup_dispatch_jobs`: shadow/live warmup micro-session dispatch.
-- `neuro_comment_jobs`: NeuroCommenting foundation jobs; only safe
-  generation is implemented, live sending remains disabled.
+- `neuro_comment_jobs`: NeuroCommenting foundation jobs; only safe generation/manual approval preparation is implemented by default, live sending remains disabled.
+
+Source of truth: `backend/app/contracts/queues.py` and `backend/app/services/worker_plane.py`.
 
 ## Local workers
 
@@ -47,24 +49,18 @@ cd backend; python -m app.workers.run_worker --queues profile_jobs --role profil
 - API embedded stale-job reaper is disabled by default; production scheduler/reaper work should run outside API replicas.
 - `scripts/start-dev.ps1` starts profile/auth workers, not warmup workers.
 - Warmup workers are started manually only when testing the warmup module.
-- NeuroCommenting workers are started manually only when testing the
-  NeuroCommenting foundation; they must not perform live TDLib sending.
+- NeuroCommenting workers are started manually only when testing the NeuroCommenting foundation; they must not perform live TDLib sending.
 - Worker diagnostics must report the production queue taxonomy.
-- Runtime role metadata lives in `backend/app/runtime/roles.py`; optional
-  `run_worker --role ...` validation enforces role-to-queue allowlists while
-  preserving raw `--queues` compatibility.
-- Reserved queue ownership is explicit: `maintenance_worker` owns
-  `maintenance_jobs`, `media_worker` owns `media_jobs`, `story_worker` owns
-  `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`.
-- Resource-constrained staging may still run one physical worker service with
-  grouped raw `--queues`; production isolation should use role-aware commands.
-- Feature-specific enqueue ownership lives in module enqueue helpers such as
-  `app.modules.account_editing.enqueue` and `app.modules.warmup.enqueue`;
-  `app.job_queue.rq` keeps compatibility wrapper imports.
+- Runtime role metadata lives in `backend/app/runtime/roles.py`; optional `run_worker --role ...` validation enforces role-to-queue allowlists while preserving raw `--queues` compatibility.
+- Reserved queue ownership is explicit: `maintenance_worker` owns `maintenance_jobs`, `media_worker` owns `media_jobs`, `story_worker` owns `story_jobs`, and `account_lifecycle_worker` owns `account_lifecycle_jobs`.
+- Resource-constrained staging may still run one physical worker service with grouped raw `--queues`; production isolation should use role-aware commands.
+- Feature-specific enqueue ownership lives in module enqueue helpers such as `app.modules.account_editing.enqueue` and `app.modules.warmup.enqueue`; `app.job_queue.rq` keeps compatibility wrapper imports.
 
 ## References
 
+- `backend/app/contracts/queues.py`
 - `backend/app/services/worker_plane.py`
 - `backend/app/job_queue/rq.py`
+- `docs/architecture/production-execution-plane.md`
 - `docs/runbooks/workers-production-plane.md`
 - `docs/runtime/runtime-boundaries.md`

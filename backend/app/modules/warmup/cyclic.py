@@ -197,7 +197,9 @@ def compute_total_active_hours(cycle_config: dict[str, Any]) -> int:
 
 def _strategy_for_preset(session: Session, *, workspace_id: str, preset: str) -> WarmupStrategy:
     strategy = session.execute(
-        select(WarmupStrategy)
+        select(  # nosemgrep: missing-workspace-id-filter - workspace_id predicate is below (OR'd with NULL for shared preset templates).
+            WarmupStrategy
+        )
         .where(
             (
                 (WarmupStrategy.workspace_id == workspace_id)

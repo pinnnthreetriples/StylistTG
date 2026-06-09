@@ -117,7 +117,12 @@ def test_router_paths_resolve_without_api_wrapper_imports() -> None:
     neuro_router = resolve_router("app.modules.neuro_commenting.router:router")
 
     assert safety_router.prefix == ""
-    assert account_router.prefix == "/api/account-update"
+    # account_editing exposes /api/account-update and AI-generation endpoints
+    # under /api/accounts via sub-routers mounted onto a prefix-less aggregator.
+    assert account_router.prefix in ("", "/api/account-update")
+    assert {
+        route.path for route in account_router.routes if isinstance(route, APIRoute)
+    } >= {"/api/account-update/preview", "/api/account-update/jobs"}
     assert lifecycle_router.prefix == "/api/accounts"
     assert profile_completeness_router.prefix == "/api/accounts"
     assert warmup_aggregate_router.prefix == ""

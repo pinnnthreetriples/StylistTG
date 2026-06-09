@@ -23,9 +23,7 @@ def compute_typing_duration(
 def _positive_float(value: Any, *, default: float) -> float:
     try:
         parsed = float(value)
-    except TypeError:
-        return default
-    except ValueError:
+    except (TypeError, ValueError):  # fmt: skip
         return default
     return parsed if parsed > 0 else default
 

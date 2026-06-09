@@ -63,6 +63,19 @@ export type ProfilePreview = {
   safety_warnings?: string[]
   safety_blockers?: string[]
   operation_safety?: OperationSafety[]
+  profile_uniqueness?: ProfileUniqueness | null
+}
+
+export type ProfileUniqueness = {
+  severity: 'ok' | 'warning' | 'blocked'
+  similar_count: number
+  blocking_count: number
+  max_score: number
+  matches: Array<{
+    account_id: string
+    score: number
+    reasons: string[]
+  }>
 }
 
 export type CurrentProfile = {

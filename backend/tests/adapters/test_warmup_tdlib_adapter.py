@@ -61,20 +61,20 @@ def test_supported_actions_by_mode_keys():
 def test_write_action_types():
     assert WRITE_ACTION_TYPES == frozenset(
         {
-            "archive_chat",
-            "drafts",
-            "emoji_status",
-            "forward_message",
             "join_chat",
-            "mute_chat",
-            "notification_settings",
-            "p2p_send",
             "react_to_post",
+            "p2p_send",
+            "forward_message",
             "saved_messages",
-            "scheduled_messages",
-            "simulate_typing",
             "sync_contacts",
+            "archive_chat",
+            "mute_chat",
+            "simulate_typing",
+            "emoji_status",
+            "drafts",
+            "scheduled_messages",
             "update_profile_gradual",
+            "notification_settings",
         }
     )
     assert WRITE_ACTION_TYPES.issubset(set(SUPPORTED_ADVANCED_ACTIONS))

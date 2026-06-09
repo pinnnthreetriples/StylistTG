@@ -3,8 +3,6 @@ from __future__ import annotations
 import random
 from datetime import UTC, datetime
 
-import pytest
-
 from app.adapters.warmup_tdlib import MockWarmupTdlibAdapter
 from app.models import WarmupExecutionMode
 from app.modules.warmup.channel_state import repository as channel_state_repository
@@ -179,49 +177,39 @@ def test_real_adapter_scheduled_messages_schedules_and_edits(monkeypatch) -> Non
     assert client.queries[3]["scheduling_state"] is None
 
 
-@pytest.mark.parametrize(
-    ("action_type", "context", "expected_query"),
-    [
-        (
-            "update_profile_gradual",
-            {"profile_field": "bio", "bio": "reading"},
-            {"@type": "setBio", "bio": "reading"},
-        ),
-        (
-            "notification_settings",
-            {"notification_scope": "channel", "mute_for_seconds": 600},
-            {
-                "@type": "setScopeNotificationSettings",
-                "scope": {"@type": "notificationSettingsScopeChannelChats"},
-                "notification_settings": {
-                    "@type": "scopeNotificationSettings",
-                    "mute_for": 600,
-                },
-            },
-        ),
-    ],
-)
-def test_real_adapter_profile_write_actions(
-    monkeypatch,
-    action_type: str,
-    context: dict[str, object],
-    expected_query: dict[str, object],
-) -> None:
+def test_real_adapter_update_profile_gradual_updates_one_field(monkeypatch) -> None:
     client = _ProgrammableTdlibClient(receive_queue=[_ready_event()], responses=[{"@type": "ok"}])
     adapter = _make_real_adapter(client, monkeypatch)
     try:
         result = adapter.execute_action(
             account_id="acc-1",
-            action_type=action_type,
-            context=context,
+            action_type="update_profile_gradual",
+            context={"profile_field": "bio", "bio": "reading"},
         )
     finally:
         adapter.close()
 
     assert result.is_ok
-    assert client.queries == [expected_query]
-    if action_type == "update_profile_gradual":
-        assert result.metadata["profile_field"] == "bio"
+    assert client.queries == [{"@type": "setBio", "bio": "reading"}]
+    assert result.metadata["profile_field"] == "bio"
+
+
+def test_real_adapter_notification_settings_sets_scope(monkeypatch) -> None:
+    client = _ProgrammableTdlibClient(receive_queue=[_ready_event()], responses=[{"@type": "ok"}])
+    adapter = _make_real_adapter(client, monkeypatch)
+    try:
+        result = adapter.execute_action(
+            account_id="acc-1",
+            action_type="notification_settings",
+            context={"notification_scope": "channel", "mute_for_seconds": 600},
+        )
+    finally:
+        adapter.close()
+
+    assert result.is_ok
+    assert client.queries[0]["@type"] == "setScopeNotificationSettings"
+    assert client.queries[0]["scope"] == {"@type": "notificationSettingsScopeChannelChats"}
+    assert client.queries[0]["notification_settings"]["mute_for"] == 600
 
 
 def test_shadow_profile_actions_do_not_call_adapter(db_session) -> None:
@@ -229,7 +217,7 @@ def test_shadow_profile_actions_do_not_call_adapter(db_session) -> None:
         db_session,
         execution_mode=WarmupExecutionMode.SHADOW.value,
         target_channels=[{"username": "@news"}],
-        daily_action_limits={"1": dict.fromkeys(PROFILE_ACTIONS, 1)},
+        daily_action_limits={"1": {action_type: 1 for action_type in PROFILE_ACTIONS}},
     )
     warmup_session = seed_warmup_session(db_session, strategy=strategy, now=NOW)
     channel_state_repository.upsert_subscribed(
@@ -240,17 +228,9 @@ def test_shadow_profile_actions_do_not_call_adapter(db_session) -> None:
         now=NOW,
     )
     adapter = MockWarmupTdlibAdapter()
-
-    _dispatch_until_profile_shadow_complete(db_session, warmup_session, adapter)
-
-    assert adapter.calls == []
-    counters = warmup_session.daily_counters_json.get("0", {})
-    assert all(counters.get(action_type) == 1 for action_type in PROFILE_ACTIONS)
-
-
-def _dispatch_until_profile_shadow_complete(db_session, warmup_session, adapter) -> None:
     rng = random.Random(0)
-    for _attempt in range(10):
+
+    for _ in range(10):
         process_due_warmup_dispatches(
             db_session,
             worker_id="w1",
@@ -259,12 +239,12 @@ def _dispatch_until_profile_shadow_complete(db_session, warmup_session, adapter)
             passive_adapter=adapter,
         )
         db_session.refresh(warmup_session)
-        if _profile_shadow_complete(warmup_session.daily_counters_json.get("0", {})):
-            return
+        counters = warmup_session.daily_counters_json.get("0", {})
+        if all(counters.get(action_type) == 1 for action_type in PROFILE_ACTIONS):
+            break
         warmup_session.next_micro_session_at = NOW
         db_session.commit()
-    raise AssertionError("shadow profile actions did not complete")
 
-
-def _profile_shadow_complete(counters: dict[str, object]) -> bool:
-    return all(counters.get(action_type) == 1 for action_type in PROFILE_ACTIONS)
+    assert adapter.calls == []
+    counters = warmup_session.daily_counters_json.get("0", {})
+    assert all(counters.get(action_type) == 1 for action_type in PROFILE_ACTIONS)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # pyright: reportPrivateUsage=false
 
+import hashlib
 from typing import cast
 
 from sqlalchemy.orm import Session
@@ -41,6 +42,7 @@ def sync_account_profile_state(
     profile_state.last_name = payload.get("last_name")
     profile_state.username = payload.get("username")
     profile_state.bio = _extract_text(payload.get("bio"))
+    profile_state.bio_hash = _compute_bio_hash(profile_state.bio)
     profile_state.synced_at = utc_now()
 
     if payload.get("telegram_user_id"):
@@ -123,6 +125,7 @@ def _upsert_profile_state(
     profile_state.last_name = payload.get("last_name")
     profile_state.username = payload.get("username")
     profile_state.bio = _extract_text(payload.get("bio"))
+    profile_state.bio_hash = _compute_bio_hash(profile_state.bio)
     if profile_photo_asset_id is not None:
         profile_state.profile_photo_asset_id = profile_photo_asset_id
     profile_state.synced_at = utc_now()
@@ -135,6 +138,13 @@ def _upsert_profile_state(
     session.refresh(account)
     session.refresh(profile_state)
     return profile_state
+
+
+def _compute_bio_hash(bio: str | None) -> str | None:
+    normalized = " ".join((bio or "").casefold().strip().split())
+    if not normalized:
+        return None
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 __all__ = [

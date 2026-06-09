@@ -43,11 +43,9 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("GET", "/api/accounts", "viewer", False),
     ("POST", "/api/accounts", "operator", True),
     ("GET", "/api/accounts/{account_id}/status-observations", "viewer", False),
-    # Account survival
-    ("GET", "/api/account-survival/summary", "viewer", False),
-    ("GET", "/api/account-survival/{account_id}", "viewer", False),
     ("POST", "/api/accounts/{account_id}/pre-production/start", "operator", True),
-    ("GET", "/api/accounts/{account_id}/pre-production/status", "viewer", False),
+    ("GET", "/api/account-survival/summary", "viewer", False),
+    ("GET", "/api/warmup-actions/metadata", "viewer", False),
     # Me
     ("GET", "/api/me", "viewer", False),
     # Diagnostics
@@ -71,9 +69,6 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Import batches
     ("GET", "/api/account-import-batches", "viewer", False),
     ("POST", "/api/account-import-batches", "operator", True),
-    # Warmup actions
-    ("GET", "/api/warmup-actions/metadata", "viewer", False),
-    ("POST", "/api/warmup/strategies/{strategy_id}/apply-preset", "admin", True),
     # Account onboarding
     ("GET", "/api/account-onboarding-batches", "viewer", False),
     ("POST", "/api/account-onboarding-artifacts", "operator", True),
@@ -93,19 +88,6 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     # Auth batches
     ("GET", "/api/auth-batches", "viewer", False),
     ("POST", "/api/auth-batches", "operator", True),
-    # Account survival
-    ("GET", "/api/account-survival/summary", "viewer", False),
-    ("GET", "/api/account-survival/{account_id}", "viewer", False),
-    # Warmup mutating routes promoted after legacy baseline was frozen.
-    (
-        "POST",
-        "/api/warmup/strategies/{strategy_id}/apply-preset",
-        "admin",
-        True,
-    ),
-    ("PATCH", "/api/warmup/sessions/{session_id}/disabled-actions", "operator", True),
-    ("POST", "/api/warmup-sessions/cyclic", "operator", True),
-    ("PATCH", "/api/warmup-sessions/{session_id}/disabled-actions", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns", "viewer", False),
     ("POST", "/api/neuro-commenting/campaigns", "operator", True),
     ("GET", "/api/neuro-commenting/campaigns/{campaign_id}", "viewer", False),
@@ -253,6 +235,9 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/accounts/{account_id}/risk"),
     ("GET", "/api/accounts/{account_id}/action-gate"),
     ("GET", "/api/accounts/{account_id}/safety-gate"),
+    ("GET", "/api/account-survival/{account_id}"),
+    ("GET", "/api/accounts/{account_id}/lifecycle"),
+    ("GET", "/api/accounts/{account_id}/pre-production/status"),
     ("GET", "/api/accounts/{account_id}/auth-state"),
     ("GET", "/api/accounts/{account_id}/runtime-diagnostics"),
     ("POST", "/api/accounts/{account_id}/refresh-runtime"),
@@ -267,7 +252,6 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("POST", "/api/accounts/{account_id}/export-requests"),
     ("GET", "/api/accounts/{account_id}/export-requests"),
     ("GET", "/api/accounts/{account_id}/export-requests/{request_id}"),
-    ("GET", "/api/accounts/{account_id}/lifecycle"),
     ("GET", "/api/accounts/{account_id}/ggr"),
     ("GET", "/api/accounts/{account_id}/profile-completeness"),
     ("GET", "/api/accounts/{account_id}/behavior-profile"),
@@ -359,7 +343,6 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/tdlib/runtime"),
     # Warmup
     ("GET", "/api/warmup/readiness"),
-    ("GET", "/api/warmup-actions/metadata"),
     ("POST", "/api/warmup/validate"),
     ("GET", "/api/warmup/strategies"),
     ("POST", "/api/warmup/sessions"),

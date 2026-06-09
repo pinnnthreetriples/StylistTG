@@ -1,8 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
 
-import { TRAFFIC_TOOLTIP } from '../labels'
-import { ActionCategoryHeader } from './ActionCategoryHeader'
+import { ActionCategoryHeader, TRAFFIC_TOOLTIP } from './ActionCategoryHeader'
 
 describe('ActionCategoryHeader', () => {
   test('renders traffic badge for traffic-heavy categories', () => {

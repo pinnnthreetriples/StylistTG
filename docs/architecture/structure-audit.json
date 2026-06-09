@@ -339,7 +339,8 @@
           "backend/app/modules/account_editing/policies.py",
           "backend/app/modules/account_editing/repository.py",
           "backend/app/modules/account_editing/router.py",
-          "backend/app/modules/account_editing/service.py"
+          "backend/app/modules/account_editing/service.py",
+          "backend/app/modules/account_editing/uniqueness_check.py"
         ],
         "id": "canonical-account-editing",
         "owner": "account_editing",
@@ -1985,6 +1986,7 @@
           "backend/tests/modules/account_editing/test_legacy_compatibility.py",
           "backend/tests/modules/account_editing/test_policies.py",
           "backend/tests/modules/account_editing/test_repository.py",
+          "backend/tests/modules/account_editing/test_uniqueness_check.py",
           "backend/tests/modules/account_lifecycle/.gitkeep",
           "backend/tests/modules/account_lifecycle/test_idle_detector.py",
           "backend/tests/modules/account_lifecycle/test_lifecycle_api.py",
@@ -2282,7 +2284,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-08T20:23:38Z",
+    "generated_at": "2026-06-09T10:49:31Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2611,7 +2613,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-08T20:23:38Z",
+  "generated_at": "2026-06-09T10:49:31Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -4007,7 +4009,8 @@
         "backend/app/modules/account_editing/policies.py",
         "backend/app/modules/account_editing/repository.py",
         "backend/app/modules/account_editing/router.py",
-        "backend/app/modules/account_editing/service.py"
+        "backend/app/modules/account_editing/service.py",
+        "backend/app/modules/account_editing/uniqueness_check.py"
       ],
       "has_contracts": true,
       "has_enqueue": true,
@@ -5646,7 +5649,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 283,
+      "file_count": 284,
       "path": "backend/tests"
     },
     "docs": {

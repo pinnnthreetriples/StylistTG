@@ -29,9 +29,9 @@ def seed_warmup_account(
     db_session,
     *,
     with_proxy: bool = True,
+    proxy_category: str = ProxyCategory.RESIDENTIAL.value,
     telegram_user_id: str | None = None,
     workspace_id: str = DEFAULT_LOCAL_WORKSPACE_ID,
-    proxy_category: str = ProxyCategory.DATACENTER.value,
 ):
     """Create an EXECUTION_USABLE account with runtime state and optional proxy."""
     account = create_account(

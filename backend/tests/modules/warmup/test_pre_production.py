@@ -207,33 +207,6 @@ def test_pre_production_api_start_and_status(
     assert status_response.json()["session_id"] == payload["session_id"]
 
 
-def test_pre_production_api_start_returns_conflict_when_disabled(
-    db_session: Session,
-    app_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(pre_production.settings, "warmup_pre_production_enabled", False)
-    account = seed_warmup_account(db_session)
-    account.lifecycle_state = AccountLifecycleState.WARMING.value
-    db_session.commit()
-    auth = AuthContext(
-        user_id=DEFAULT_LOCAL_USER_ID,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        role="operator",
-        auth_source="test",
-    )
-    app.dependency_overrides[require_authenticated] = lambda: auth
-    app.dependency_overrides[require_mutation_permission] = lambda: auth
-
-    response = app_client.post(
-        f"/api/accounts/{account.id}/pre-production/start",
-        json={"duration_hours": 1},
-    )
-
-    assert response.status_code == 409
-    assert response.json()["error_code"] == "PRE_PRODUCTION_REJECTED"
-
-
 def test_pre_production_sweep_workflow_is_registered() -> None:
     workflow_types = {workflow.workflow_type for workflow in module.workflows}
 

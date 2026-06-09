@@ -16,23 +16,22 @@ down_revision = "20260605_0065"
 branch_labels = None
 depends_on = None
 
-UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
-
 
 def upgrade() -> None:
+    uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
     op.create_table(
         "warmup_pre_production_session",
-        sa.Column("id", UUID_STRING, primary_key=True),
-        sa.Column("workspace_id", UUID_STRING, sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", uuid_string, primary_key=True),
+        sa.Column("workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
-            UUID_STRING,
+            uuid_string,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column(
             "source_warmup_session_id",
-            UUID_STRING,
+            uuid_string,
             sa.ForeignKey("warmup_session.id", ondelete="SET NULL"),
             nullable=True,
         ),

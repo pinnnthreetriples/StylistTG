@@ -101,7 +101,6 @@ def get_warmup_selectable_accounts(
 
 @events_router.get("", response_model=WarmupLiveEventPageRead)
 def get_warmup_events(
-    workspace_id: str | None = Query(default=None),
     account_id: str | None = Query(default=None),
     severity: list[WarmupEventSeverityRead] | None = Query(default=None),
     cursor: str | None = Query(default=None),
@@ -109,7 +108,7 @@ def get_warmup_events(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> WarmupLiveEventPageRead:
-    _ensure_requested_workspace(workspace_id, auth)
+    # workspace scope is always derived from auth — no cross-workspace lookup.
     return warmup_service.list_warmup_event_feed_page(
         session,
         workspace_id=auth.workspace_id,
@@ -120,17 +119,45 @@ def get_warmup_events(
     )
 
 
+class _StreamAuthRequest:
+    def __init__(self, headers: dict[str, str]) -> None:
+        self._headers = headers
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return self._headers
+
+
+def _resolve_stream_auth(request: Request, session: Session) -> AuthContext:
+    if request.headers.get("Authorization"):
+        return resolve_auth_context(request, session)
+    access_token = request.query_params.get("access_token")
+    if not access_token:
+        return resolve_auth_context(request, session)
+    headers = dict(request.headers)
+    headers["Authorization"] = f"Bearer {access_token}"
+    return resolve_auth_context(_StreamAuthRequest(headers), session)
+
+
+def _stream_auth_dependency(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> AuthContext:
+    """SSE-friendly auth dependency: accepts EventSource `?access_token=...`
+    fallback when the Authorization header cannot be set (browser EventSource).
+    """
+    return _resolve_stream_auth(request, session)
+
+
 @events_router.get("/stream")
 def stream_warmup_events(
     request: Request,
-    workspace_id: str | None = Query(default=None),
     account_id: str | None = Query(default=None),
     severity: list[WarmupEventSeverityRead] | None = Query(default=None),
     cursor: str | None = Query(default=None),
     session: Session = Depends(get_session),
+    auth: AuthContext = Depends(_stream_auth_dependency),
 ) -> StreamingResponse:
-    auth = _resolve_stream_auth(request, session)
-    _ensure_requested_workspace(workspace_id, auth)
     return StreamingResponse(
         _warmup_event_stream(
             request,
@@ -550,36 +577,6 @@ def _warmup_error(exc: WarmupError) -> AppError:
         message=exc.legacy_message,
         field_errors=list(exc.field_errors),
     )
-
-
-def _ensure_requested_workspace(workspace_id: str | None, auth: AuthContext) -> None:
-    if workspace_id is not None and workspace_id != auth.workspace_id:
-        raise AppError(
-            status_code=status.HTTP_403_FORBIDDEN,
-            error_code="WORKSPACE_FORBIDDEN",
-            error_class="authorization",
-            message="workspace_id does not match authenticated workspace",
-        )
-
-
-class _StreamAuthRequest:
-    def __init__(self, headers: dict[str, str]) -> None:
-        self._headers = headers
-
-    @property
-    def headers(self) -> dict[str, str]:
-        return self._headers
-
-
-def _resolve_stream_auth(request: Request, session: Session) -> AuthContext:
-    if request.headers.get("Authorization"):
-        return resolve_auth_context(request, session)
-    access_token = request.query_params.get("access_token")
-    if not access_token:
-        return resolve_auth_context(request, session)
-    headers = dict(request.headers)
-    headers["Authorization"] = f"Bearer {access_token}"
-    return resolve_auth_context(_StreamAuthRequest(headers), session)
 
 
 async def _warmup_event_stream(

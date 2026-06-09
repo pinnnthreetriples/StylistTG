@@ -8943,15 +8943,6 @@
         "operationId": "get_warmup_events_api_warmup_events_get",
         "parameters": [
           {
-            "name": "workspace_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "title": "Workspace Id",
-              "type": "string"
-            }
-          },
-          {
             "name": "account_id",
             "in": "query",
             "required": false,
@@ -9057,15 +9048,6 @@
         "summary": "Stream Warmup Events",
         "operationId": "stream_warmup_events_api_warmup_events_stream_get",
         "parameters": [
-          {
-            "name": "workspace_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "title": "Workspace Id",
-              "type": "string"
-            }
-          },
           {
             "name": "account_id",
             "in": "query",

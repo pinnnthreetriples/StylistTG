@@ -14809,7 +14809,6 @@ export interface operations {
     get_warmup_events_api_warmup_events_get: {
         parameters: {
             query?: {
-                workspace_id?: string;
                 account_id?: string;
                 severity?: components["schemas"]["WarmupEventSeverityRead"][];
                 cursor?: string;
@@ -14873,7 +14872,6 @@ export interface operations {
     stream_warmup_events_api_warmup_events_stream_get: {
         parameters: {
             query?: {
-                workspace_id?: string;
                 account_id?: string;
                 severity?: components["schemas"]["WarmupEventSeverityRead"][];
                 cursor?: string;

@@ -1,6 +1,23 @@
 from __future__ import annotations
 
+import random
+from datetime import UTC, datetime, timedelta
+from typing import Any, cast
+
+from redis.exceptions import RedisError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.contracts.queues import WARMUP_DISPATCH_QUEUE_NAME
 from app.job_queue import workflows
+from app.logging_utils import log_warn
+from app.models import WarmupExecutionMode, WarmupSession, WarmupStatus
+from app.modules.warmup.events import write_warmup_event
+
+# Imported lazily inside functions to avoid circular import via
+# commands -> enqueue -> dispatcher -> dispatch_processor -> cyclic -> commands.
+# from app.modules.warmup.dispatcher import _MAX_STAGGER_SPAN_SECONDS
 
 
 WARMUP_DUE_SESSIONS_JOB_ID = "warmup-due-sessions"
@@ -38,7 +55,6 @@ def enqueue_warmup_bootstrap_channel_health_check() -> bool:
     )
 
 
-<<<<<<< HEAD
 def enqueue_due_warmup_dispatch_sessions(
     session: Session,
     *,
@@ -50,6 +66,9 @@ def enqueue_due_warmup_dispatch_sessions(
     timestamp = _aware_utc(now or datetime.now(UTC))
     queue = queue or _dispatch_queue()
     rng = rng or random.Random()
+    from app.modules.warmup.dispatcher import (
+        _MAX_STAGGER_SPAN_SECONDS,  # pyright: ignore[reportPrivateUsage]
+    )
     from app.modules.warmup.jobs import run_warmup_dispatch_session
 
     cursors: dict[str, datetime] = {}
@@ -140,7 +159,7 @@ def _next_stagger_delay(rng: random.Random) -> int:
     return rng.randint(min_seconds, max_seconds)
 
 
-def _stagger_enabled() -> bool:
+def _stagger_enabled() -> bool:  # pyright: ignore[reportUnusedFunction]
     return (
         max(
             int(settings.warmup_connection_stagger_min_seconds),
@@ -160,8 +179,6 @@ def _aware_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
-=======
->>>>>>> origin/main
 __all__ = [
     "WARMUP_BOOTSTRAP_CHANNEL_HEALTH_CHECK_JOB_ID",
     "WARMUP_DISPATCH_SESSION_JOB_ID_PREFIX",

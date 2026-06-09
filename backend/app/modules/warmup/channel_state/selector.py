@@ -114,15 +114,10 @@ def _action_preference(action_type: str, personality_seed: dict[str, Any] | None
         return 1.0
     preferences = cast(Mapping[str, Any], raw)
     try:
-<<<<<<< HEAD
-        return max(0.1, min(3.0, float(raw.get(action_type, 1.0))))
-    except TypeError, ValueError:
-=======
         return max(0.1, min(3.0, float(preferences.get(action_type, 1.0))))
     except TypeError:
         return 1.0
     except ValueError:
->>>>>>> origin/main
         return 1.0
 
 

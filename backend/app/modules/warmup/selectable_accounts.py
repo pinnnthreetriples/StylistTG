@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
@@ -99,7 +99,7 @@ def _apply_filters(
     return filtered
 
 
-def _validity_badge(account: Any) -> str:
+def _validity_badge(account: Any) -> Literal["valid", "needs_login", "blocked", "unknown"]:
     if account.terminal_status != "none":
         return "blocked"
     if account.account_state == "execution_usable":
@@ -109,7 +109,7 @@ def _validity_badge(account: Any) -> str:
     return "unknown"
 
 
-def _proxy_badge(proxy: Any | None) -> str:
+def _proxy_badge(proxy: Any | None) -> Literal["ok", "issue", "missing", "unknown"]:
     if proxy is None:
         return "missing"
     status = str(proxy.status or "unknown").strip().lower()

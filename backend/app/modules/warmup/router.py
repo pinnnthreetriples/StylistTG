@@ -42,13 +42,9 @@ from app.modules.warmup.contracts import (
     WarmupValidateRequest,
 )
 from app.modules.warmup.bootstrap_pool import service as bootstrap_service
-<<<<<<< HEAD
-from app.modules.warmup.selectable_accounts import list_selectable_accounts
-from app.modules.warmup.errors import WarmupError
-=======
->>>>>>> origin/main
 from app.modules.warmup.cyclic import setup_cyclic_warmups
 from app.modules.warmup.errors import WarmupError
+from app.modules.warmup.selectable_accounts import list_selectable_accounts
 from app.modules.warmup.interfaces import (
     get_pre_production_status,
     start_pre_production,
@@ -65,11 +61,8 @@ router = APIRouter()
 warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
-<<<<<<< HEAD
 selectable_accounts_router = APIRouter(prefix="/api/warmup-selectable-accounts", tags=["warmup"])
-=======
 pre_production_router = APIRouter(prefix="/api/accounts", tags=["accounts"])
->>>>>>> origin/main
 bootstrap_router = APIRouter(
     prefix="/api/warmup-bootstrap-channels", tags=["warmup-bootstrap-channels"]
 )

@@ -8804,6 +8804,145 @@
         }
       }
     },
+    "/api/warmup-selectable-accounts": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Selectable Accounts",
+        "operationId": "get_warmup_selectable_accounts_api_warmup_selectable_accounts_get",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Search",
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Country",
+              "type": "string",
+              "maxLength": 8
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Role",
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "proxy_ok_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Proxy Ok Only"
+            }
+          },
+          {
+            "name": "hide_in_work",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Hide In Work"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 500,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WarmupSelectableAccountRead"
+                  },
+                  "title": "Response Get Warmup Selectable Accounts Api Warmup Selectable Accounts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/neuro-commenting/campaigns": {
       "post": {
         "tags": [
@@ -29066,6 +29205,105 @@
           "strategies_available"
         ],
         "title": "WarmupReadinessRead"
+      },
+      "WarmupSelectableAccountRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "phone_number": {
+            "type": "string",
+            "title": "Phone Number"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "country_iso": {
+            "type": "string",
+            "title": "Country Iso"
+          },
+          "validity_badge": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "needs_login",
+              "blocked",
+              "unknown"
+            ],
+            "title": "Validity Badge"
+          },
+          "proxy_badge": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "issue",
+              "missing",
+              "unknown"
+            ],
+            "title": "Proxy Badge"
+          },
+          "phase_badge": {
+            "type": "string",
+            "enum": [
+              "new",
+              "warming",
+              "in_work"
+            ],
+            "title": "Phase Badge"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "is_in_work": {
+            "type": "boolean",
+            "title": "Is In Work",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "phone_number",
+          "role",
+          "country",
+          "country_iso",
+          "validity_badge",
+          "proxy_badge",
+          "phase_badge"
+        ],
+        "title": "WarmupSelectableAccountRead"
       },
       "WarmupSessionCreateRequest": {
         "properties": {

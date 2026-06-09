@@ -199,14 +199,7 @@ def _strategy_for_preset(session: Session, *, workspace_id: str, preset: str) ->
     strategy = session.execute(
         select(WarmupStrategy)
         .where(
-<<<<<<< HEAD
-            (
-                (WarmupStrategy.workspace_id == workspace_id)
-                | (WarmupStrategy.workspace_id.is_(None))
-            ),
-=======
             WarmupStrategy.workspace_id == workspace_id,
->>>>>>> origin/main
             WarmupStrategy.preset_kind == preset,
         )
         .order_by(WarmupStrategy.is_preset.desc())
@@ -286,13 +279,9 @@ def _aware(value: datetime) -> datetime:
 def _zone(timezone: str | None) -> ZoneInfo:
     try:
         return ZoneInfo(timezone or "UTC")
-<<<<<<< HEAD
-    except ZoneInfoNotFoundError, AttributeError:
-=======
     except ZoneInfoNotFoundError:
         return ZoneInfo("UTC")
     except AttributeError:
->>>>>>> origin/main
         return ZoneInfo("UTC")
 
 

@@ -17,7 +17,7 @@ Telegram account/profile automation platform: React/TS/Vite monorepo + FastAPI +
 - Ask before `npm install`, `pip install`, file deletion, git push, branch protection changes, or production-like operations.
 - Make minimal, surgical changes and verify with targeted checks.
 - Use package `@stylisttg/ui` for dashboard product UI when an equivalent exists.
-- When Serena MCP is available, activate `C:\Users\user\Documents\workspace-codex\StylistTG` before using Serena memories or symbol tools.
+- When Serena MCP is available, activate the repository root before using Serena memories or symbol tools.
 - Before GitHub issue, pull request, or project-board work, read `docs/agents/project-board.md`; the StylistTG Development board is the source of truth for active work.
 - When working on a board issue, follow `.mex/patterns/board-workflow.md` for status transitions.
 

@@ -10,7 +10,9 @@ edges:
   - .mex/context/architecture.md
   - .mex/context/conventions.md
   - .mex/patterns/frontend-module-change.md
-last_updated: 2026-05-31
+  - .agents/context/PRODUCT.md
+  - .agents/context/DESIGN.md
+last_updated: 2026-06-08
 ---
 
 # Frontend
@@ -22,8 +24,7 @@ last_updated: 2026-05-31
 - Shared product UI: `packages/ui`.
 - Shared TypeScript config: `packages/config`.
 - Product module boundaries are under `apps/dashboard/src/modules/`.
-- Current frontend modules include `account-editing`, `auth`,
-  `neuro-commenting`, and `warmup`, each exporting through `index.ts`.
+- Current frontend modules include `account-editing`, `auth`, `neuro-commenting`, and `warmup`, each exporting through `index.ts`.
 
 ## Runtime
 
@@ -37,17 +38,15 @@ Canonical frontend routes include `/home`, `/accounts`, `/accounts/add`, account
 
 ## API/client rules
 
-- Prefer package @stylisttg/api-client for typed transport.
+- Prefer package `@stylisttg/api-client` for typed transport.
 - `apps/dashboard/src/lib/api.ts` remains a compatibility wrapper for existing imports.
-- Older `apps/dashboard/src/lib/auth.ts`,
-  `apps/dashboard/src/lib/authBatches.ts`,
-  `apps/dashboard/src/lib/preview.ts`, and auth/profile hooks may remain
-  compatibility re-exports during frontend modularization.
+- Older `apps/dashboard/src/lib/auth.ts`, `apps/dashboard/src/lib/authBatches.ts`, `apps/dashboard/src/lib/preview.ts`, and auth/profile hooks may remain compatibility re-exports during frontend modularization.
 - Use polling-first query flows; do not add WebSocket/SSE assumptions.
 - Account workspace routes must loader-first fetch `authState` and `dashboardBundle`.
 
 ## UI rules
 
-- Product modules should use package @stylisttg/ui when an equivalent primitive exists.
+- Product modules should use package `@stylisttg/ui` when an equivalent primitive exists.
+- Use `.agents/context/PRODUCT.md` and `.agents/context/DESIGN.md` for UI/vibecoding work.
 - Do not create a parallel design system from `apps/dashboard/src/components/ui/`.
-- Keep UI minimal, clean, and not visually bulky.
+- Keep UI minimal, clean, compact, and not visually bulky.

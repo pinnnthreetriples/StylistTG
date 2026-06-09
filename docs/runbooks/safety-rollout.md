@@ -8,6 +8,8 @@
 >
 > How to re-enable: set `WORKSPACE_SAFETY_POLICY_TEMPORARILY_DISABLED=false` or flip the default in `backend/app/config.py`. No data migration is required; persisted policy rows are untouched while the switch is on.
 >
+> Operator approval required: agents must not flip this flag, edit the default, or enable rollout stages without an explicit operator task requesting that change.
+>
 > Test posture: `backend/tests/conftest.py` forces the flag off so the underlying policy logic remains under test.
 
 See `.mex/status/current.md` for the current memory entry agents must read before safety, live runtime, warmup, rollout, or deploy work.

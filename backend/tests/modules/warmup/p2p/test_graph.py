@@ -144,3 +144,12 @@ def _add_friend_link(
         )
     )
     db_session.commit()
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

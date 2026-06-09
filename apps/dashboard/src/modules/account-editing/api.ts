@@ -120,5 +120,6 @@ function buildAccountUpdateBody(accountId: string, form: FormPayload) {
       active_period_seconds: story.activePeriodSeconds,
       protect_content: story.protectContent,
     })),
+    force_profile_uniqueness: false,
   }
 }

@@ -234,7 +234,7 @@ def _complete_dispatch_session(
         "completed",
         {"day": warmup_session.current_day, "execution_mode": warmup_session.execution_mode},
     )
-    _advance_account_to_pre_production(session, warmup_session, now)
+    advance_account_to_pre_production(session, warmup_session, now)
     if should_start_pre_production(warmup_session):
         start_pre_production(
             session,
@@ -263,7 +263,7 @@ def _complete_dispatch_session(
         )
 
 
-def _advance_account_to_pre_production(
+def advance_account_to_pre_production(
     session: Session,
     warmup_session: WarmupSession,
     now: datetime,

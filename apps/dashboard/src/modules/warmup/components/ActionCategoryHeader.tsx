@@ -3,6 +3,7 @@ import { Info } from 'lucide-react'
 
 import type { WarmupActionCategory } from '../types'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ACTION_CATEGORY_LABELS: Record<WarmupActionCategory, string> = {
   reading: 'Чтение',
   activity: 'Активность',

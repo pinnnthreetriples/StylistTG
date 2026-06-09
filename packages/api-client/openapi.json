@@ -4900,172 +4900,6 @@
         }
       }
     },
-    "/api/accounts/{account_id}/generate-bio": {
-      "post": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Post Generate Bio",
-        "operationId": "post_generate_bio_api_accounts__account_id__generate_bio_post",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AIProfileGenerateBioRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AIProfileGenerateBioRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/accounts/{account_id}/generate-avatar": {
-      "post": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Post Generate Avatar",
-        "operationId": "post_generate_avatar_api_accounts__account_id__generate_avatar_post",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AIProfileGenerateAvatarRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AIProfileGenerateAvatarRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/accounts/{account_id}/lifecycle": {
       "get": {
         "tags": [
@@ -5091,169 +4925,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountLifecycleRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/accounts/{account_id}/pre-production/start": {
-      "post": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Post Account Pre Production Start",
-        "operationId": "post_account_pre_production_start_api_accounts__account_id__pre_production_start_post",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/PreProductionStartRequest"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Payload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreProductionStatusRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorRead"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/accounts/{account_id}/pre-production/status": {
-      "get": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Get Account Pre Production Status",
-        "operationId": "get_account_pre_production_status_api_accounts__account_id__pre_production_status_get",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreProductionStatusRead"
                 }
               }
             }
@@ -8516,6 +8187,169 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WarmupSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/pre-production/start": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Post Account Pre Production Start",
+        "operationId": "post_account_pre_production_start_api_accounts__account_id__pre_production_start_post",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PreProductionStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreProductionStatusRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/pre-production/status": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Get Account Pre Production Status",
+        "operationId": "get_account_pre_production_status_api_accounts__account_id__pre_production_status_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreProductionStatusRead"
                 }
               }
             }
@@ -16106,107 +15940,6 @@
   },
   "components": {
     "schemas": {
-      "AIProfileGenerateAvatarRead": {
-        "properties": {
-          "asset_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Asset Id"
-          },
-          "provider": {
-            "type": "string",
-            "title": "Provider"
-          },
-          "model": {
-            "type": "string",
-            "title": "Model"
-          },
-          "mime": {
-            "type": "string",
-            "title": "Mime"
-          },
-          "attempts": {
-            "type": "integer",
-            "title": "Attempts"
-          },
-          "uniqueness": {
-            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
-          }
-        },
-        "type": "object",
-        "required": [
-          "asset_id",
-          "provider",
-          "model",
-          "mime",
-          "attempts",
-          "uniqueness"
-        ],
-        "title": "AIProfileGenerateAvatarRead"
-      },
-      "AIProfileGenerateAvatarRequest": {
-        "properties": {
-          "persona_hints": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Persona Hints"
-          }
-        },
-        "type": "object",
-        "title": "AIProfileGenerateAvatarRequest"
-      },
-      "AIProfileGenerateBioRead": {
-        "properties": {
-          "bio": {
-            "type": "string",
-            "title": "Bio"
-          },
-          "provider": {
-            "type": "string",
-            "title": "Provider"
-          },
-          "model": {
-            "type": "string",
-            "title": "Model"
-          },
-          "attempts": {
-            "type": "integer",
-            "title": "Attempts"
-          },
-          "uniqueness": {
-            "$ref": "#/components/schemas/AccountProfileUniquenessRead"
-          }
-        },
-        "type": "object",
-        "required": [
-          "bio",
-          "provider",
-          "model",
-          "attempts",
-          "uniqueness"
-        ],
-        "title": "AIProfileGenerateBioRead"
-      },
-      "AIProfileGenerateBioRequest": {
-        "properties": {
-          "language": {
-            "type": "string",
-            "title": "Language",
-            "default": "ru"
-          },
-          "persona_hints": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Persona Hints"
-          }
-        },
-        "type": "object",
-        "title": "AIProfileGenerateBioRequest"
-      },
       "AccountBatchSafetyItemRead": {
         "properties": {
           "account_id": {
@@ -28499,6 +28232,9 @@
         "properties": {
           "channel_ref": {
             "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "pattern": "^@[A-Za-z0-9_]{1,63}$",
             "title": "Channel Ref"
           },
           "category": {
@@ -28516,14 +28252,16 @@
           "language": {
             "type": "string",
             "maxLength": 16,
-            "minLength": 1,
+            "minLength": 2,
+            "pattern": "^[A-Za-z][A-Za-z\\-]{0,15}$",
             "title": "Language"
           },
           "country": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 8
+                "maxLength": 8,
+                "pattern": "^[A-Za-z]{2,8}$"
               },
               {
                 "type": "null"
@@ -28566,7 +28304,8 @@
               {
                 "type": "string",
                 "maxLength": 16,
-                "minLength": 1
+                "minLength": 2,
+                "pattern": "^[A-Za-z][A-Za-z\\-]{0,15}$"
               },
               {
                 "type": "null"
@@ -28578,7 +28317,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 8
+                "maxLength": 8,
+                "pattern": "^[A-Za-z]{2,8}$"
               },
               {
                 "type": "null"
@@ -28632,7 +28372,6 @@
           },
           "verified_safe_at": {
             "type": "string",
-            "format": "date-time",
             "title": "Verified Safe At"
           },
           "added_by": {
@@ -28652,12 +28391,10 @@
           },
           "created_at": {
             "type": "string",
-            "format": "date-time",
             "title": "Created At"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time",
             "title": "Updated At"
           }
         },

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from hashlib import sha256
 from typing import Any, cast
@@ -13,6 +13,7 @@ from app.models import Account, WarmupPreProductionSession, WarmupSession, new_i
 from app.modules.account_lifecycle.interfaces import AccountLifecycleState, advance
 from app.modules.account_safety.interfaces import evaluate as evaluate_safety_gate
 from app.modules.account_shared.interfaces import lookup_account
+from app.modules.warmup.errors import WarmupError
 from app.modules.warmup.events import write_warmup_event
 
 
@@ -21,8 +22,14 @@ COMPLETED_STATUS = "completed"
 FAILED_STATUS = "failed"
 
 
-class PreProductionRejectedError(ValueError):
-    pass
+class PreProductionRejectedError(WarmupError):
+    def __init__(self, legacy_message: str) -> None:
+        super().__init__(
+            legacy_message,
+            error_code="PRE_PRODUCTION_REJECTED",
+            error_class="state_conflict",
+            status_code=409,
+        )
 
 
 def start_pre_production(
@@ -311,7 +318,9 @@ def _duration_hours(config: Any, override: int | None) -> int:
     )
     try:
         value = int(raw)
-    except TypeError, ValueError:
+    except TypeError:
+        value = 2
+    except ValueError:
         value = 2
     return max(1, min(2, value))
 
@@ -336,7 +345,13 @@ def _normalize_target_channels(raw_channels: Sequence[object]) -> list[str]:
     for raw in raw_channels:
         value: object
         if isinstance(raw, dict):
-            value = raw.get("channel_ref") or raw.get("ref") or raw.get("id") or ""
+            raw_channel = cast(Mapping[str, object], raw)
+            value = (
+                raw_channel.get("channel_ref")
+                or raw_channel.get("ref")
+                or raw_channel.get("id")
+                or ""
+            )
         else:
             value = raw
         text = str(value).strip()

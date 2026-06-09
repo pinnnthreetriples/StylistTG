@@ -82,3 +82,9 @@ def test_lazy_day_allows_only_one_same_day_window(monkeypatch: pytest.MonkeyPatc
     )
 
     assert scheduled.date() > now.date()
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

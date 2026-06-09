@@ -115,6 +115,22 @@ def test_survival_summary_and_timeline_read_models(db_session: Session) -> None:
     assert _without_tz(timeline.banned_at) == _without_tz(NOW + timedelta(days=3))
 
 
+def test_empty_workspace_and_missing_metric_return_empty_read_models(
+    db_session: Session,
+) -> None:
+    summary = get_survival_summary(db_session, workspace_id="missing-workspace")
+    timeline = get_account_survival(
+        db_session,
+        workspace_id="missing-workspace",
+        account_id="missing-account",
+    )
+
+    assert summary.total_accounts == 0
+    assert summary.banned_count == 0
+    assert summary.by_warmup_strategy == []
+    assert timeline is None
+
+
 def test_freeze_hook_counts_repeated_freezes(db_session: Session) -> None:
     account = create_account(db_session, external_ref=f"+7999{new_id()[:8]}")
 
@@ -131,6 +147,15 @@ def test_freeze_hook_counts_repeated_freezes(db_session: Session) -> None:
 
     assert _without_tz(metric.first_freeze_at) == _without_tz(NOW)
     assert metric.freeze_count == 2
+
+
+def test_survival_summary_boundary_returns_empty_for_unknown_workspace(
+    db_session: Session,
+) -> None:
+    summary = get_survival_summary(db_session, workspace_id=new_id())
+
+    assert summary.total_accounts == 0
+    assert summary.by_warmup_strategy == []
 
 
 def _mark_runtime_ready(account: Account) -> None:

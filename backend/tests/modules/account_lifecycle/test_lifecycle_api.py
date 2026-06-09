@@ -62,3 +62,4 @@ def test_get_account_lifecycle_is_workspace_scoped(
     response = app_client.get(f"/api/accounts/{account.id}/lifecycle")
 
     assert response.status_code == 404
+    assert response.json().get("error_code")

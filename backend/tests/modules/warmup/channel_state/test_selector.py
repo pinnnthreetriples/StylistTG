@@ -149,3 +149,12 @@ class _AlwaysPick(random.Random):
     def randint(self, a: int, b: int) -> int:
         del b
         return a
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

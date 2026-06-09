@@ -1,3 +1,4 @@
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownParameterType=false, reportMissingTypeArgument=false, reportMissingParameterType=false, reportArgumentType=false
 """Account editing API router.
 
 Compatibility owner for app.api.account_update.

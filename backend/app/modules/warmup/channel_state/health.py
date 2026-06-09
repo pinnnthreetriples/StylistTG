@@ -11,7 +11,8 @@ _STALE_FULL_DECAY = timedelta(days=7)
 
 
 class ChannelHealthState(Protocol):
-    health_score: float
+    @property
+    def health_score(self) -> float: ...
 
 
 def compute_health_score(

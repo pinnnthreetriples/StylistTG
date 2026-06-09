@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# pyright: reportUnknownVariableType=false
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -14,6 +16,10 @@ class AccountSurvivalStrategyBreakdownRead(BaseModel):
     deleted_count: int
 
 
+def _empty_strategy_breakdown() -> list[AccountSurvivalStrategyBreakdownRead]:
+    return []
+
+
 class AccountSurvivalSummaryRead(BaseModel):
     total_accounts: int
     alive_count: int
@@ -22,7 +28,9 @@ class AccountSurvivalSummaryRead(BaseModel):
     mean_survival_days: float | None = None
     p50_survival_days: int | None = None
     p90_survival_days: int | None = None
-    by_warmup_strategy: list[AccountSurvivalStrategyBreakdownRead] = Field(default_factory=list)
+    by_warmup_strategy: list[AccountSurvivalStrategyBreakdownRead] = Field(
+        default_factory=_empty_strategy_breakdown
+    )
 
 
 class AccountSurvivalMetricRead(BaseModel):

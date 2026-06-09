@@ -29,6 +29,10 @@ from app.modules.account_shared.capabilities import (
     CAPABILITY_KEYS,
     build_account_capabilities,
 )
+from app.modules.account_shared.readiness_risk import (
+    build_account_readiness_risk,
+    build_account_readiness_risk_summary,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - import for type checkers only
     from app.modules.account_shared.runtime import (  # noqa: F401
@@ -52,6 +56,8 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "CAPABILITY_KEYS",
+    "build_account_readiness_risk",
+    "build_account_readiness_risk_summary",
     "build_account_capabilities",
     "get_runtime_diagnostics",
     "list_workspace_accounts",

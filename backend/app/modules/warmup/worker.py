@@ -18,7 +18,7 @@ from app.models import (
     new_id,
 )
 from app.modules.account_survival import events as survival_events
-from app.modules.warmup.dispatch_results import _advance_account_to_pre_production
+from app.modules.warmup.dispatch_results import advance_account_to_pre_production
 from app.modules.warmup.events import write_warmup_event
 from app.modules.warmup.isolation import release_claim
 from app.modules.warmup.pre_production import should_start_pre_production, start_pre_production
@@ -40,7 +40,9 @@ def process_due_warmup_sessions(
     limit: int | None = None,
 ) -> int:
     timestamp = now or datetime.now(UTC)
+    workspace_scope = workspace_id if workspace_id is not None else WarmupSession.workspace_id
     query = select(WarmupSession).where(
+        WarmupSession.workspace_id == workspace_scope,
         WarmupSession.execution_mode == WarmupExecutionMode.DRY_RUN.value,
         (
             (
@@ -60,8 +62,6 @@ def process_due_warmup_sessions(
             )
         ),
     )
-    if workspace_id is not None:
-        query = query.where(WarmupSession.workspace_id == workspace_id)
     query = query.order_by(WarmupSession.updated_at.asc()).limit(
         limit or settings.warmup_batch_limit
     )
@@ -292,7 +292,7 @@ def _complete_session(session: Session, warmup_session: WarmupSession, *, now: d
     warmup_session.next_step_at = None
     warmup_session.updated_at = now
     write_warmup_event(session, warmup_session, "completed", {"day": warmup_session.current_day})
-    _advance_account_to_pre_production(session, warmup_session, now)
+    advance_account_to_pre_production(session, warmup_session, now)
     if should_start_pre_production(warmup_session):
         start_pre_production(
             session,

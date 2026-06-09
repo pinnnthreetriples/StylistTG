@@ -16,10 +16,11 @@ down_revision = "20260605_0062"
 branch_labels = None
 depends_on = None
 
+UUID_STRING = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
+
 
 def upgrade() -> None:
     bind = op.get_bind()
-    uuid_string = sa.String(length=36)
     survival_days = (
         sa.Column(
             "survival_days",
@@ -44,15 +45,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "account_survival_metric",
-        sa.Column("id", uuid_string, primary_key=True, nullable=False),
-        sa.Column("workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False),
+        sa.Column("id", UUID_STRING, primary_key=True, nullable=False),
+        sa.Column("workspace_id", UUID_STRING, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
-            uuid_string,
+            UUID_STRING,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("warmup_strategy_id", uuid_string, nullable=True),
+        sa.Column("warmup_strategy_id", UUID_STRING, nullable=True),
         sa.Column("warmup_strategy_name", sa.String(length=128), nullable=True),
         sa.Column("imported_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("warmup_started_at", sa.DateTime(timezone=True), nullable=True),

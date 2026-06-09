@@ -1047,40 +1047,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/accounts/{account_id}/pre-production/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Account Pre Production Start */
-        post: operations["post_account_pre_production_start_api_accounts__account_id__pre_production_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/accounts/{account_id}/pre-production/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Account Pre Production Status */
-        get: operations["get_account_pre_production_status_api_accounts__account_id__pre_production_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/accounts/{account_id}/deletion-preview": {
         parameters: {
             query?: never;
@@ -1708,6 +1674,40 @@ export interface paths {
         patch: operations["patch_warmup_session_disabled_actions_alias_api_warmup_sessions__session_id__disabled_actions_patch"];
         trace?: never;
     };
+    "/api/accounts/{account_id}/pre-production/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Account Pre Production Start */
+        post: operations["post_account_pre_production_start_api_accounts__account_id__pre_production_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/pre-production/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Pre Production Status */
+        get: operations["get_account_pre_production_status_api_accounts__account_id__pre_production_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/warmup-bootstrap-channels": {
         parameters: {
             query?: never;
@@ -1741,23 +1741,6 @@ export interface paths {
         head?: never;
         /** Patch Warmup Bootstrap Channel */
         patch: operations["patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch"];
-        trace?: never;
-    };
-    "/api/warmup-selectable-accounts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Warmup Selectable Accounts */
-        get: operations["get_warmup_selectable_accounts_api_warmup_selectable_accounts_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/neuro-commenting/campaigns": {
@@ -7091,24 +7074,15 @@ export interface components {
             language: string;
             /** Country */
             country?: string | null;
-            /**
-             * Verified Safe At
-             * Format: date-time
-             */
+            /** Verified Safe At */
             verified_safe_at: string;
             /** Added By */
             added_by?: string | null;
             /** Is Active */
             is_active: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
+            /** Created At */
             created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
+            /** Updated At */
             updated_at: string;
         };
         /** WarmupCheckItemRead */
@@ -7259,45 +7233,6 @@ export interface components {
             active_sessions: number;
             /** Strategies Available */
             strategies_available: number;
-        };
-        /** WarmupSelectableAccountRead */
-        WarmupSelectableAccountRead: {
-            /** Account Id */
-            account_id: string;
-            /** Display Name */
-            display_name?: string | null;
-            /** Username */
-            username?: string | null;
-            /** Phone Number */
-            phone_number: string;
-            /** Role */
-            role: string;
-            /** Country */
-            country: string;
-            /** Country Iso */
-            country_iso: string;
-            /**
-             * Validity Badge
-             * @enum {string}
-             */
-            validity_badge: "valid" | "needs_login" | "blocked" | "unknown";
-            /**
-             * Proxy Badge
-             * @enum {string}
-             */
-            proxy_badge: "ok" | "issue" | "missing" | "unknown";
-            /**
-             * Phase Badge
-             * @enum {string}
-             */
-            phase_badge: "new" | "warming" | "in_work";
-            /** Tags */
-            tags?: string[];
-            /**
-             * Is In Work
-             * @default false
-             */
-            is_in_work: boolean;
         };
         /** WarmupSessionCreateRequest */
         WarmupSessionCreateRequest: {
@@ -11720,130 +11655,6 @@ export interface operations {
             };
         };
     };
-    post_account_pre_production_start_api_accounts__account_id__pre_production_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                account_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PreProductionStartRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreProductionStatusRead"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_account_pre_production_status_api_accounts__account_id__pre_production_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                account_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreProductionStatusRead"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_account_deletion_preview_api_accounts__account_id__deletion_preview_get: {
         parameters: {
             query?: never;
@@ -14466,6 +14277,130 @@ export interface operations {
             };
         };
     };
+    post_account_pre_production_start_api_accounts__account_id__pre_production_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PreProductionStartRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreProductionStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_pre_production_status_api_accounts__account_id__pre_production_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreProductionStatusRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_warmup_bootstrap_channels_api_warmup_bootstrap_channels_get: {
         parameters: {
             query?: {
@@ -14611,72 +14546,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupBootstrapChannelRead"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_warmup_selectable_accounts_api_warmup_selectable_accounts_get: {
-        parameters: {
-            query?: {
-                workspace_id?: string;
-                search?: string;
-                country?: string;
-                role?: string;
-                proxy_ok_only?: boolean;
-                hide_in_work?: boolean;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WarmupSelectableAccountRead"][];
                 };
             };
             /** @description Bad Request */

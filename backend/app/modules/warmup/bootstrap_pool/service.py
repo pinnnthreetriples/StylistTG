@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.models import WarmupBootstrapChannel, WarmupSession, utc_now
 from . import repository
-from app.modules.warmup.dispatch_context import _target_channel_refs
 
 
 def list_bootstrap_channels(
@@ -99,7 +98,17 @@ def _is_locally_safe(row: WarmupBootstrapChannel) -> bool:
         repository.normalize_language(row.language)
     except ValueError:
         return False
-    return row.verified_safe_at is not None
+    return True
+
+
+def _target_channel_refs(warmup_session: WarmupSession) -> list[str]:
+    targets = warmup_session.strategy.target_channels_json or []
+    refs: list[str] = []
+    for entry in targets:
+        value = entry.get("username") or entry.get("chat_username") or entry.get("target")
+        if isinstance(value, str) and value.strip():
+            refs.append(value.strip())
+    return list(dict.fromkeys(refs))
 
 
 def _session_language(warmup_session: WarmupSession) -> str:

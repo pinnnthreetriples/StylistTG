@@ -9,8 +9,6 @@ from app.modules.account_lifecycle.contracts import (
     AccountDeletionRequestRead,
     AccountExportRequestRead,
     AccountLifecycleRead,
-    PreProductionStartRequest,
-    PreProductionStatusRead,
 )
 from app.modules.account_lifecycle.service import (
     build_account_deletion_preview,
@@ -28,10 +26,6 @@ from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import (
     require_authenticated,
     require_mutation_permission,
-)
-from app.modules.warmup.interfaces import (
-    get_pre_production_status,
-    start_pre_production,
 )
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -55,54 +49,6 @@ def get_account_lifecycle_state(
     try:
         return AccountLifecycleRead(
             **get_account_lifecycle(session, account_id=account_id, workspace_id=auth.workspace_id)
-        )
-    except ValueError as exc:
-        raise _account_not_found_error(exc) from exc
-
-
-@router.post("/{account_id}/pre-production/start", response_model=PreProductionStatusRead)
-def post_account_pre_production_start(
-    account_id: str,
-    payload: PreProductionStartRequest | None = None,
-    session: Session = Depends(get_session),
-    auth: AuthContext = Depends(require_mutation_permission),
-):
-    try:
-        start_pre_production(
-            session,
-            account_id=account_id,
-            workspace_id=auth.workspace_id,
-            duration_hours=payload.duration_hours if payload is not None else None,
-        )
-        session.commit()
-        return PreProductionStatusRead(
-            **get_pre_production_status(
-                session, account_id=account_id, workspace_id=auth.workspace_id
-            )
-        )
-    except ValueError as exc:
-        message = str(exc)
-        if message == "account not found":
-            raise _account_not_found_error(exc) from exc
-        raise AppError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            error_code="PRE_PRODUCTION_REJECTED",
-            error_class="warmup",
-            message=message,
-        ) from exc
-
-
-@router.get("/{account_id}/pre-production/status", response_model=PreProductionStatusRead)
-def get_account_pre_production_status(
-    account_id: str,
-    session: Session = Depends(get_session),
-    auth: AuthContext = Depends(require_authenticated),
-):
-    try:
-        return PreProductionStatusRead(
-            **get_pre_production_status(
-                session, account_id=account_id, workspace_id=auth.workspace_id
-            )
         )
     except ValueError as exc:
         raise _account_not_found_error(exc) from exc

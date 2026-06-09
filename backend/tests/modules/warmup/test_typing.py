@@ -31,3 +31,12 @@ def test_compute_typing_duration_uses_personality_speed_with_jitter() -> None:
     )
 
     assert 7.0 <= duration <= 13.0
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

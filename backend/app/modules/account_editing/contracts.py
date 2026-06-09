@@ -64,7 +64,9 @@ class AccountProfileUniquenessRead(BaseModel):
     similar_count: int
     blocking_count: int
     max_score: float
-    matches: list[AccountProfileUniquenessMatchRead] = Field(default_factory=list)
+    matches: list[AccountProfileUniquenessMatchRead] = Field(
+        default_factory=list[AccountProfileUniquenessMatchRead]
+    )
 
 
 class AIProfileGenerateBioRequest(BaseModel):

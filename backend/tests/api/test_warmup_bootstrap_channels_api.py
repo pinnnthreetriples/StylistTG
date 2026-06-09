@@ -43,3 +43,7 @@ def test_warmup_bootstrap_channel_rejects_private_invite_link(app_client) -> Non
     )
 
     assert response.status_code == 422
+    body = response.json()
+    assert body.get("error_code") == "REQUEST_VALIDATION_ERROR"
+    assert body.get("error_class") == "validation"
+    assert any("channel_ref" in fe.get("field", "") for fe in body.get("field_errors", []))

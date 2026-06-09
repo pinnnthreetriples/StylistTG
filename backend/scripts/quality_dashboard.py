@@ -122,7 +122,9 @@ def _slow_test_totals(report: Any) -> dict[str, Any]:
         raw = entry.get("duration_seconds", entry.get("seconds", 0.0))
         try:
             return float(raw or 0.0)
-        except TypeError, ValueError:
+        except TypeError:
+            return 0.0
+        except ValueError:
             return 0.0
 
     return {

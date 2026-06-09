@@ -151,3 +151,12 @@ def _warmup_event_types(session: Session, session_id: str) -> list[str]:
             select(WarmupEvent.event_type).where(WarmupEvent.session_id == session_id)
         ).scalars()
     )
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

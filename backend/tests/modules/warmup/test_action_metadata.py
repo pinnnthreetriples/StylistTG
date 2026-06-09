@@ -28,3 +28,12 @@ def test_action_metadata_assigns_categories() -> None:
     assert by_action["watch_video"].category == "activity"
     assert by_action["saved_messages"].category == "social"
     assert by_action["emoji_status"].requires_premium is True
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

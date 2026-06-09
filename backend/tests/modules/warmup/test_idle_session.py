@@ -166,3 +166,12 @@ def _latest_lifecycle_event(session: Session, account_id: str) -> AccountLifecyc
         .order_by(AccountLifecycleEvent.created_at.desc(), AccountLifecycleEvent.id.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

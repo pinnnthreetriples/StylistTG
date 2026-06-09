@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+# pyright: reportUnknownVariableType=false
+
 import random
-from typing import Any
+from typing import Any, cast
 
 from app.adapters.warmup_tdlib_contracts import WarmupActionResult, collect_supported_actions
 from app.modules.warmup.circadian.personality import choose_reaction
@@ -578,7 +580,12 @@ class MockWarmupTdlibAdapter:
         self, action_type: str, context: dict[str, Any]
     ) -> WarmupActionResult:
         channel_ref = context.get("channel_ref")
-        reactions = list(context.get("available_reactions") or ())
+        raw_reactions = context.get("available_reactions")
+        reactions: list[str] = (
+            [reaction for reaction in raw_reactions if isinstance(reaction, str)]
+            if isinstance(raw_reactions, list)
+            else []
+        )
         if not channel_ref or not reactions:
             return WarmupActionResult(
                 status="missing_context",
@@ -685,4 +692,4 @@ class UnavailableWarmupTdlibAdapter:
 
 def _personality_seed(context: dict[str, Any]) -> dict[str, Any]:
     raw = context.get("personality_seed")
-    return raw if isinstance(raw, dict) else {}
+    return cast(dict[str, Any], raw) if isinstance(raw, dict) else {}

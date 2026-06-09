@@ -17,7 +17,8 @@ edges:
   - .mex/context/conventions.md
   - .mex/context/decisions.md
   - .mex/patterns/INDEX.md
-last_updated: 2026-06-08
+  - .mex/patterns/architecture-change.md
+last_updated: 2026-06-09
 ---
 
 # StylistTG Memory Router
@@ -39,7 +40,8 @@ Do not read `AGENT_HANDOFF.md` by default. Use the archived handoff only as a hi
 ### Working
 
 - React/TypeScript/Vite dashboard lives in `apps/dashboard` with shared packages under `packages/`.
-- FastAPI backend lives in `backend/app` with routers, services, adapters, RQ workers, SQLAlchemy models, and module-owned boundaries under `backend/app/modules/`.
+- FastAPI backend lives in `backend/app` with routers, shared services, adapters, RQ workers, SQLAlchemy models, and module-owned boundaries under `backend/app/modules/`.
+- New feature behavior should be implemented through module-owned code; legacy API/service/worker paths remain compatibility wrappers unless explicitly migrated.
 - Local dashboard launcher `scripts/start-dev.ps1` starts Memurai Redis, backend on port `8002`, profile/auth workers, and Vite on `5173`.
 - Queue taxonomy includes `auth_jobs`, `profile_jobs`, `media_jobs`, `story_jobs`, `account_lifecycle_jobs`, `maintenance_jobs`, `scheduler_jobs`, `warmup_jobs`, `warmup_dispatch_jobs`, and `neuro_comment_jobs`.
 - Account Preparation / Warmup is implemented at backend `/api/warmup` and frontend `/modules/warmup` through module-owned code plus compatibility wrappers.
@@ -66,7 +68,7 @@ Do not read `AGENT_HANDOFF.md` by default. Use the archived handoff only as a hi
 
 | Task type | Load first | Then check |
 | --- | --- | --- |
-| Architecture or data flow | `.mex/context/architecture.md` | `.mex/context/decisions.md`, `docs/architecture/` |
+| Architecture, data flow, or new module | `.mex/context/architecture.md` | `.mex/patterns/architecture-change.md`, `.mex/context/decisions.md`, `docs/architecture/AGENT_ARCHITECTURE_GUIDE.md`, `docs/architecture/STRUCTURE_AUDIT.md` |
 | Backend API/service change | `.mex/context/backend.md` | `.mex/patterns/backend-api-change.md` |
 | Frontend module/UI change | `.mex/context/frontend.md` | `.mex/patterns/frontend-module-change.md`, `.agents/context/PRODUCT.md`, `.agents/context/DESIGN.md` |
 | Worker/queue/scheduler change | `.mex/context/workers.md` | `.mex/patterns/worker-queue-change.md` |
@@ -100,5 +102,6 @@ Always check `.mex/patterns/INDEX.md` for a matching task pattern before editing
 - Temporary rollout/runtime state belongs in `.mex/status/current.md` with a review date.
 - Detailed canonical documentation remains in `docs/`; `.mex` should link or summarize instead of duplicating large runbooks.
 - Decisions are append-only in `.mex/context/decisions.md`; mark superseded decisions instead of deleting history.
+- Architecture and new-module work must follow `.mex/patterns/architecture-change.md` and `docs/architecture/AGENT_ARCHITECTURE_GUIDE.md`.
 - Run `npm run memory:check` after memory/docs/scaffold changes or when commands, paths, ports, routes, queues, feature flags, or architecture change.
 - Do not run `npm run memory:sync` without explicit user approval; prefer `npm run memory:sync:dry-run`.

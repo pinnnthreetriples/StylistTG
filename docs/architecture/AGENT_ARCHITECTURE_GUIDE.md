@@ -1,6 +1,6 @@
 # Agent Architecture Guide
 
-This guide explains how agents should preserve StylistTG architecture and how to introduce new modules without creating drift or legacy debt.
+This guide is not a full description of StylistTG. It is a code-first navigation guide for agents: find the current source of truth, preserve boundaries, make the smallest safe change, and verify with code-backed checks.
 
 Start here for architecture work:
 
@@ -13,7 +13,24 @@ Start here for architecture work:
 7. `docs/architecture/MODULAR_BACKEND.md`
 8. `docs/architecture/STRUCTURE_AUDIT.md`
 
-## Core Architecture Principles
+## Operating Rule
+
+Do not rely on memory or old docs when architecture matters. Locate the owning code first, then update docs/memory only when the change creates stable reusable knowledge.
+
+## Source-of-Truth Lookup
+
+| Question | Check first | Then check |
+| --- | --- | --- |
+| Which backend module owns this behavior? | `backend/app/modules/registry.py` | `docs/architecture/STRUCTURE_AUDIT.md`, `docs/architecture/architecture-debt-inventory.json` |
+| How should a module expose a router? | `backend/app/modules/contracts.py` | existing `backend/app/modules/*/module.py` |
+| Where are API routes registered? | `backend/app/main.py` | `backend/app/modules/registry.py` |
+| Which queue names exist? | `backend/app/contracts/queues.py` | `.mex/context/workers.md` |
+| Which runtime role may use a queue? | `backend/app/runtime/roles.py` | `docs/architecture/production-execution-plane.md` |
+| Which state is durable truth? | SQLAlchemy models and migrations | `.mex/context/architecture.md`, module repositories |
+| Which frontend module owns UI behavior? | `apps/dashboard/src/modules/` | `docs/frontend/frontend-ownership-audit.md` if regenerated/current |
+| What changed structurally? | `uv run python scripts/structure_audit.py` | generated files under `docs/architecture/` |
+
+## Core Architecture Rules
 
 - StylistTG is a compatibility-first modular monolith.
 - PostgreSQL-backed models are durable source of truth.
@@ -79,7 +96,7 @@ workflow.py
 
 ### 1. Define the boundary
 
-Before adding files, write down:
+Before adding files, identify:
 
 - module name;
 - owned domain behavior;
@@ -95,7 +112,7 @@ If the module overlaps with an existing module, extend the existing module inste
 
 Create `backend/app/modules/<module_name>/module.py` with lazy metadata. Router paths should be strings, not imported `APIRouter` objects, so app startup remains lazy.
 
-Follow the conventions documented in `docs/architecture/MODULAR_BACKEND.md`.
+Follow the conventions documented in `docs/architecture/MODULAR_BACKEND.md` and match existing module examples before inventing a new pattern.
 
 ### 3. Register the module
 
@@ -157,6 +174,7 @@ If the backend module has dashboard UI:
 - export through `index.ts`;
 - use `@stylisttg/api-client` for typed transport;
 - use `@stylisttg/ui` when an equivalent primitive exists;
+- app-local or shadcn-compatible UI pieces may remain during migration, but new product primitives should prefer `@stylisttg/ui`;
 - consult `.agents/context/PRODUCT.md` and `.agents/context/DESIGN.md` for UI work;
 - avoid feature-to-feature deep imports.
 

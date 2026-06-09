@@ -25,45 +25,55 @@ def detect_idle_accounts(
     cutoff = now - timedelta(minutes=threshold_minutes)
     active_jobs = (
         select(Job.id)
-        .where(Job.workspace_id == Account.workspace_id)
-        .where(Job.account_id == Account.id)
-        .where(Job.job_state.in_(ACTIVE_JOB_STATES))
+        .where(
+            Job.workspace_id == workspace_id,
+            Job.workspace_id == Account.workspace_id,
+            Job.account_id == Account.id,
+            Job.job_state.in_(ACTIVE_JOB_STATES),
+        )
         .exists()
     )
     recent_jobs = (
         select(Job.id)
-        .where(Job.workspace_id == Account.workspace_id)
-        .where(Job.account_id == Account.id)
         .where(
+            Job.workspace_id == workspace_id,
+            Job.workspace_id == Account.workspace_id,
+            Job.account_id == Account.id,
             or_(
                 Job.finished_at >= cutoff,
                 Job.started_at >= cutoff,
                 Job.queued_at >= cutoff,
-            )
+            ),
         )
         .exists()
     )
     active_warmup = (
         select(WarmupSession.id)
-        .where(WarmupSession.workspace_id == Account.workspace_id)
-        .where(WarmupSession.account_id == Account.id)
-        .where(WarmupSession.status.in_([state.value for state in ACTIVE_WARMUP_STATUSES]))
+        .where(
+            WarmupSession.workspace_id == workspace_id,
+            WarmupSession.workspace_id == Account.workspace_id,
+            WarmupSession.account_id == Account.id,
+            WarmupSession.status.in_([state.value for state in ACTIVE_WARMUP_STATUSES]),
+        )
         .exists()
     )
     return list(
         session.execute(
             select(Account.id)
-            .where(Account.workspace_id == workspace_id)
-            .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
-            .where(~active_jobs)
-            .where(~recent_jobs)
-            .where(~active_warmup)
+            .where(
+                Account.workspace_id == workspace_id,
+                Account.lifecycle_state == AccountLifecycleState.ACTIVE.value,
+                ~active_jobs,
+                ~recent_jobs,
+                ~active_warmup,
+            )
             .order_by(Account.updated_at.asc(), Account.id.asc())
         ).scalars()
     )
 
 
 def list_idle_candidate_workspaces(session: Session) -> list[str]:
+    # nosemgrep: stylisttg.missing-workspace-id-filter-projection
     return list(
         session.execute(
             select(Account.workspace_id)

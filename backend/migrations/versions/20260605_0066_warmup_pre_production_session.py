@@ -22,9 +22,7 @@ def upgrade() -> None:
     op.create_table(
         "warmup_pre_production_session",
         sa.Column("id", uuid_string, primary_key=True),
-        sa.Column(
-            "workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False
-        ),
+        sa.Column("workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False),
         sa.Column(
             "account_id",
             uuid_string,

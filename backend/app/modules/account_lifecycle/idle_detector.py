@@ -59,7 +59,9 @@ def detect_idle_accounts(
     )
     return list(
         session.execute(
-            select(Account.id)  # nosemgrep
+            select(  # nosemgrep: missing-workspace-id-filter-projection - workspace_id predicate is in the .where below.
+                Account.id
+            )
             .where(
                 Account.workspace_id == workspace_id,
                 Account.lifecycle_state == AccountLifecycleState.ACTIVE.value,
@@ -75,8 +77,9 @@ def detect_idle_accounts(
 def list_idle_candidate_workspaces(session: Session) -> list[str]:
     return list(
         session.execute(
-            # nosemgrep
-            select(Account.workspace_id)
+            select(  # nosemgrep: missing-workspace-id-filter-projection -- Global workspace discovery; per-tenant scoping happens downstream.
+                Account.workspace_id
+            )
             .where(Account.lifecycle_state == AccountLifecycleState.ACTIVE.value)
             .distinct()
             .order_by(Account.workspace_id.asc())

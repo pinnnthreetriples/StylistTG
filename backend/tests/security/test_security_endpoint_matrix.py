@@ -44,6 +44,8 @@ ENDPOINT_MATRIX: list[tuple[str, str, str, bool]] = [
     ("POST", "/api/accounts", "operator", True),
     ("GET", "/api/accounts/{account_id}/status-observations", "viewer", False),
     ("POST", "/api/accounts/{account_id}/pre-production/start", "operator", True),
+    ("GET", "/api/account-survival/summary", "viewer", False),
+    ("GET", "/api/warmup-actions/metadata", "viewer", False),
     # Me
     ("GET", "/api/me", "viewer", False),
     # Diagnostics
@@ -233,6 +235,9 @@ RBAC_EXEMPT: set[tuple[str, str]] = {
     ("GET", "/api/accounts/{account_id}/risk"),
     ("GET", "/api/accounts/{account_id}/action-gate"),
     ("GET", "/api/accounts/{account_id}/safety-gate"),
+    ("GET", "/api/account-survival/{account_id}"),
+    ("GET", "/api/accounts/{account_id}/lifecycle"),
+    ("GET", "/api/accounts/{account_id}/pre-production/status"),
     ("GET", "/api/accounts/{account_id}/auth-state"),
     ("GET", "/api/accounts/{account_id}/runtime-diagnostics"),
     ("POST", "/api/accounts/{account_id}/refresh-runtime"),

@@ -33,11 +33,13 @@ The app currently focuses on:
 
 ## Account Safety Pipeline
 
-StylistTG has a safety-pipeline foundation: WorkspaceSafetyPolicy, GGR Calculator, AccountQuarantine, AccountStatusMonitor, CrossModuleLoadTracker, and AccountSafetyGate. Current status matters: Workspace Safety Policy is temporarily neutralized by developer decision, so do not describe the full policy layer as active until `.mex/status/current.md` is superseded.
+StylistTG has a safety-pipeline foundation. Current status matters: Workspace Safety Policy is temporarily neutralized by developer decision, so do not describe the full policy layer as active until `.mex/status/current.md` is superseded.
 
-Details:
+For safety work, start with:
 
 - `.mex/status/current.md`
+- `backend/app/config.py`
+- `backend/app/modules/account_safety/`
 - `docs/modules/account-safety-pipeline.md`
 - `docs/runbooks/safety-rollout.md`
 
@@ -51,7 +53,7 @@ Recommended one-command launcher on Windows:
 .\scripts\start-dev.ps1
 ```
 
-It starts Redis-compatible Memurai from `C:\Tools\Memurai`, runs migrations, starts the FastAPI backend on port `8002`, starts separate RQ workers, and starts Vite on port `5173`. It does not open a browser by default; pass `-OpenBrowser` to launch `http://localhost:5173`.
+It starts Redis-compatible Memurai from `C:\Tools\Memurai`, runs migrations, starts the FastAPI backend on port `8002`, starts profile/auth RQ workers, and starts Vite on port `5173`. Warmup, neuro-commenting, account-lifecycle, and maintenance workers are started manually. It does not open a browser by default; pass `-OpenBrowser` to launch `http://localhost:5173`.
 
 Frontend commands:
 
@@ -137,6 +139,7 @@ npm run memory:sync:dry-run
 - Agent startup and memory: `AGENTS.md`, `CLAUDE.md`, `.mex/ROUTER.md`, `.mex/status/current.md`.
 - Agent architecture guide and new-module workflow: `.mex/patterns/architecture-change.md`, `docs/architecture/AGENT_ARCHITECTURE_GUIDE.md`.
 - Modular backend architecture: `docs/architecture/MODULAR_BACKEND.md`, `docs/architecture/STRUCTURE_AUDIT.md`, `docs/architecture/structure-audit.json`, `docs/architecture/architecture-debt-inventory.json`.
+- Developer workflow and generated architecture artifacts: `docs/quality/DEVELOPER_WORKFLOW.md`.
 - Frontend/backend contract: `docs/api/frontend.md`.
 - Architecture docs: `docs/architecture/`.
 - Account lifecycle and production-plane docs: `docs/architecture/account-lifecycle.md`, `docs/architecture/production-execution-plane.md`.

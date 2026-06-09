@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
@@ -399,7 +399,8 @@ def _planned_action_types(daily_action_limits: dict[str, Any]) -> set[str]:
     for limits in daily_action_limits.values():
         if not isinstance(limits, dict):
             continue
-        for action_type, limit in limits.items():
+        typed_limits = cast(dict[Any, Any], limits)
+        for action_type, limit in typed_limits.items():
             if isinstance(action_type, str) and isinstance(limit, int | float) and limit > 0:
                 planned.add(action_type)
     return planned

@@ -170,7 +170,11 @@ def _proxy_status_check(proxy: AccountProxy | None) -> WarmupCheckItemRead:
 
 def _proxy_adaptation_read(proxy_category: str | None) -> WarmupProxyAdaptationRead:
     adaptation = adaptation_for_proxy(proxy_category)
-    return WarmupProxyAdaptationRead(**adaptation.as_payload())
+    return WarmupProxyAdaptationRead(
+        proxy_category=adaptation.proxy_category,
+        applied_preset=adaptation.applied_preset,
+        disabled_actions=list(adaptation.disabled_actions),
+    )
 
 
 def _failed_check_messages(

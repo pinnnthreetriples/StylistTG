@@ -65,7 +65,7 @@ def test_generate_unique_bio_exhausts_retry_budget(db_session) -> None:
         )
 
 
-def test_generate_unique_bio_enforces_account_daily_limit(db_session) -> None:
+def test_generate_unique_bio_when_account_daily_limit_exceeded(db_session) -> None:
     account = seed_account_with_profile(db_session, index=1)
     for index in range(3):
         log_operation(

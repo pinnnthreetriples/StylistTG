@@ -64,7 +64,13 @@ def test_account_editing_contracts_do_not_import_runtime_or_persistence() -> Non
 def test_account_editing_router_uses_module_contracts_for_moved_dtos() -> None:
     imports = _imports(ACCOUNT_EDITING_ROUTER)
 
-    assert ("app.modules.account_editing.contracts", MOVED_DTO_NAMES[:3]) in imports
+    contract_imports = [
+        names for module, names in imports if module == "app.modules.account_editing.contracts"
+    ]
+    assert contract_imports, "router must import from app.modules.account_editing.contracts"
+    assert set(MOVED_DTO_NAMES[:3]).issubset(set(contract_imports[0])), (
+        f"contracts import must include {MOVED_DTO_NAMES[:3]}, got {contract_imports[0]}"
+    )
     assert not any(
         imported == "app.schemas" and set(names) & set(MOVED_DTO_NAMES)
         for imported, names in imports

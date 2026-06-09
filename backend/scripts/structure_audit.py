@@ -175,6 +175,18 @@ OWNERSHIP_ENTRIES: tuple[OwnershipEntry, ...] = (
         rationale="Account lifecycle router, deletion/export services, retention worker, and contracts are canonical; old API/service paths are compatibility wrappers.",
     ),
     OwnershipEntry(
+        id="canonical-account-survival",
+        category="canonical_feature_module",
+        severity="info",
+        status="accepted",
+        owner="account_survival",
+        paths=("backend/app/modules/account_survival/**",),
+        target_owner="app.modules.account_survival",
+        phase="Phase 6A",
+        removal_condition="n/a",
+        rationale="Account survival router, queries, repository, and contracts are canonical.",
+    ),
+    OwnershipEntry(
         id="canonical-account-profile-completeness",
         category="canonical_feature_module",
         severity="info",
@@ -777,6 +789,16 @@ def _registered_modules(repo_root: Path) -> list[str]:
     return sorted(set(re.findall(r"from app\.modules\.([a-z_]+)\.module import", registry_text)))
 
 
+def _module_tests_present(repo_root: Path, module_name: str) -> bool:
+    tests_root = repo_root / "backend/tests/modules"
+    module_dir = tests_root / module_name
+    if module_dir.exists():
+        for path in module_dir.rglob("*.py"):
+            if "__pycache__" not in path.parts:
+                return True
+    return any(tests_root.glob(f"test_{module_name}*.py"))
+
+
 def _audit_modules(repo_root: Path) -> list[dict[str, Any]]:
     modules_root = repo_root / MODULES_ROOT
     registered = set(_registered_modules(repo_root))
@@ -825,7 +847,7 @@ def _audit_modules(repo_root: Path) -> list[dict[str, Any]]:
                 "registered": module_name in registered,
                 "router_path": router_path_match.group(1) if router_path_match else None,
                 "workflows": workflows_by_module.get(module_name, []),
-                "tests_present": (repo_root / "backend/tests/modules" / module_name).exists(),
+                "tests_present": _module_tests_present(repo_root, module_name),
                 "template_files_are_non_runtime": (
                     all(
                         path.name == "README.md" or path.name.endswith(allowed_template_suffixes)

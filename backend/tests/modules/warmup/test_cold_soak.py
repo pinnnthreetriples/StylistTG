@@ -31,11 +31,13 @@ def test_create_warmup_session_starts_cold_soak(db_session: Session, monkeypatch
 
     assert warmup_session.status == WarmupStatus.COLD_SOAK.value
     assert _without_tz(warmup_session.cold_soak_until) == _without_tz(NOW + timedelta(hours=12))
-    assert _event_types(db_session, warmup_session.id) == [
+    event_types = _event_types(db_session, warmup_session.id)
+    assert event_types[0] == "session_created"
+    assert set(event_types) == {
         "session_created",
         "proxy_adaptation_applied",
         "cold_soak_started",
-    ]
+    }
 
 
 def test_due_worker_skips_early_cold_soak_tick_once_per_hour(

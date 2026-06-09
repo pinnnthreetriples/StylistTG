@@ -44,13 +44,20 @@ def test_create_warmup_session_schedules_session_and_writes_event(db_session) ->
     )
     db_session.commit()
 
-    assert created.status == WarmupStatus.SCHEDULED
+    assert created.status == WarmupStatus.COLD_SOAK
     assert created.current_day == 0
     assert created.cadence_hours == 24
-    assert created.next_step_at == now
-    event = db_session.query(WarmupEvent).one()
-    assert event.event_type == "session_created"
-    assert event.session_id == created.id
+    assert created.cold_soak_until is not None
+    assert created.next_step_at == created.cold_soak_until
+    events = db_session.query(WarmupEvent).order_by(WarmupEvent.created_at.asc()).all()
+    event_types = [event.event_type for event in events]
+    assert event_types[0] == "session_created"
+    assert set(event_types) == {
+        "session_created",
+        "proxy_adaptation_applied",
+        "cold_soak_started",
+    }
+    assert {event.session_id for event in events} == {created.id}
 
 
 def test_create_warmup_session_rejects_blocked_readiness(db_session) -> None:
@@ -138,8 +145,12 @@ def test_list_detail_status_and_events(db_session) -> None:
     assert total == 1
     assert items[0].id == created.id
     assert detail.id == created.id
-    assert event_total == 1
-    assert events[0].event_type == "session_created"
+    assert event_total == 3
+    assert {event.event_type for event in events} == {
+        "session_created",
+        "proxy_adaptation_applied",
+        "cold_soak_started",
+    }
 
 
 def test_delete_warmup_session_removes_session_and_events(db_session) -> None:
@@ -174,6 +185,7 @@ def test_pause_and_resume_warmup_session(db_session) -> None:
         strategy_id=strategy.id,
         workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
     )
+    created.status = WarmupStatus.SCHEDULED
     db_session.commit()
 
     paused = pause_warmup_session(
@@ -230,10 +242,7 @@ def test_create_warmup_session_endpoint_skips_enqueue_when_workers_disabled(
         lambda: enqueued.append("warmup") or True,
     )
 
-    response = app_client.post(
-        "/api/warmup/sessions",
-        json={"account_id": account.id, "strategy_id": strategy.id},
-    )
+    response = _post_warmup_session(app_client, account.id, strategy.id)
 
     assert response.status_code == 201
     assert enqueued == []
@@ -252,10 +261,7 @@ def test_create_warmup_session_endpoint_enqueues_due_worker_when_enabled(
         lambda: enqueued.append("warmup") or True,
     )
 
-    response = app_client.post(
-        "/api/warmup/sessions",
-        json={"account_id": account.id, "strategy_id": strategy.id},
-    )
+    response = _post_warmup_session(app_client, account.id, strategy.id)
 
     assert response.status_code == 201
     assert enqueued == ["warmup"]
@@ -270,10 +276,7 @@ def test_create_warmup_session_marks_session_failed_when_enqueue_fails(
     monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
     monkeypatch.setattr("app.modules.warmup.commands.enqueue_warmup_due_sessions", lambda: False)
 
-    response = app_client.post(
-        "/api/warmup/sessions",
-        json={"account_id": account.id, "strategy_id": strategy.id},
-    )
+    response = _post_warmup_session(app_client, account.id, strategy.id)
 
     assert response.status_code == 503
     warmup_session = db_session.query(WarmupSession).one()
@@ -300,21 +303,7 @@ def test_delete_warmup_session_endpoint(app_client, db_session) -> None:
 
 def test_delete_warmup_session_releases_isolation_claim(db_session) -> None:
     account = _seed_ready_account(db_session)
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"Shadow {new_id()[:6]}",
-        description="Shadow",
-        tier_limits_json={},
-        target_channels_json=[],
-        is_preset=False,
-        execution_mode=WarmupExecutionMode.SHADOW.value,
-        preset_kind=WarmupPresetKind.STANDARD.value,
-        duration_days=7,
-        daily_action_limits_json={"1": {"feed_read": 1}},
-    )
-    db_session.add(strategy)
-    db_session.commit()
+    strategy = _seed_shadow_strategy(db_session)
     created = create_warmup_session(
         db_session,
         account_id=account.id,
@@ -338,13 +327,7 @@ def test_delete_warmup_session_releases_isolation_claim(db_session) -> None:
 def test_isolation_status_returns_unisolated_for_dry_run_session(app_client, db_session) -> None:
     account = _seed_ready_account(db_session)
     strategy = _seed_strategy(db_session)
-    create_warmup_session(
-        db_session,
-        account_id=account.id,
-        strategy_id=strategy.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    )
-    db_session.commit()
+    _create_session(db_session, account.id, strategy.id)
 
     response = app_client.get(f"/api/warmup/isolation/by-account/{account.id}")
 
@@ -355,29 +338,9 @@ def test_isolation_status_returns_unisolated_for_dry_run_session(app_client, db_
 
 def test_isolation_status_returns_claim_for_shadow_session(app_client, db_session) -> None:
     account = _seed_ready_account(db_session)
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"Shadow {new_id()[:6]}",
-        description="Shadow",
-        tier_limits_json={},
-        target_channels_json=[],
-        is_preset=False,
-        execution_mode=WarmupExecutionMode.SHADOW.value,
-        preset_kind=WarmupPresetKind.STANDARD.value,
-        duration_days=7,
-        daily_action_limits_json={"1": {"feed_read": 1}},
-    )
-    db_session.add(strategy)
-    db_session.commit()
+    strategy = _seed_shadow_strategy(db_session)
 
-    warmup_session = create_warmup_session(
-        db_session,
-        account_id=account.id,
-        strategy_id=strategy.id,
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-    )
-    db_session.commit()
+    warmup_session = _create_session(db_session, account.id, strategy.id)
 
     response = app_client.get(f"/api/warmup/isolation/by-account/{account.id}")
 
@@ -401,21 +364,7 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
     app_client, db_session, monkeypatch
 ) -> None:
     account = _seed_ready_account(db_session)
-    strategy = WarmupStrategy(
-        id=new_id(),
-        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
-        name=f"Shadow {new_id()[:6]}",
-        description="Shadow",
-        tier_limits_json={},
-        target_channels_json=[],
-        is_preset=False,
-        execution_mode=WarmupExecutionMode.SHADOW.value,
-        preset_kind=WarmupPresetKind.STANDARD.value,
-        duration_days=7,
-        daily_action_limits_json={"1": {"feed_read": 1}},
-    )
-    db_session.add(strategy)
-    db_session.commit()
+    strategy = _seed_shadow_strategy(db_session)
     enqueued: list[str] = []
 
     monkeypatch.setattr("app.modules.warmup.service.settings.warmup_workers_enabled", True)
@@ -427,10 +376,7 @@ def test_create_shadow_session_enqueues_dispatch_worker_when_workers_enabled(
         "app.modules.warmup.commands.enqueue_warmup_dispatch_tick",
         lambda: enqueued.append("dispatch") or True,
     )
-    response = app_client.post(
-        "/api/warmup/sessions",
-        json={"account_id": account.id, "strategy_id": strategy.id},
-    )
+    response = _post_warmup_session(app_client, account.id, strategy.id)
 
     assert response.status_code == 201
     assert enqueued == ["dispatch"]
@@ -518,3 +464,40 @@ def _seed_strategy(db_session) -> WarmupStrategy:
     db_session.add(strategy)
     db_session.commit()
     return strategy
+
+
+def _seed_shadow_strategy(db_session) -> WarmupStrategy:
+    strategy = WarmupStrategy(
+        id=new_id(),
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+        name=f"Shadow {new_id()[:6]}",
+        description="Shadow",
+        tier_limits_json={},
+        target_channels_json=[],
+        is_preset=False,
+        execution_mode=WarmupExecutionMode.SHADOW.value,
+        preset_kind=WarmupPresetKind.STANDARD.value,
+        duration_days=7,
+        daily_action_limits_json={"1": {"feed_read": 1}},
+    )
+    db_session.add(strategy)
+    db_session.commit()
+    return strategy
+
+
+def _post_warmup_session(app_client, account_id: str, strategy_id: str):
+    return app_client.post(
+        "/api/warmup/sessions",
+        json={"account_id": account_id, "strategy_id": strategy_id},
+    )
+
+
+def _create_session(db_session, account_id: str, strategy_id: str) -> WarmupSession:
+    warmup_session = create_warmup_session(
+        db_session,
+        account_id=account_id,
+        strategy_id=strategy_id,
+        workspace_id=DEFAULT_LOCAL_WORKSPACE_ID,
+    )
+    db_session.commit()
+    return warmup_session

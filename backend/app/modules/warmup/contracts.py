@@ -32,6 +32,14 @@ class WarmupCheckSeverityRead(StrEnum):
     WARNING = "warning"
 
 
+class WarmupEventSeverityRead(StrEnum):
+    INFO = "info"
+    SUCCESS = "success"
+    WARNING = "warning"
+    ERROR = "error"
+    DEBUG = "debug"
+
+
 class WarmupValidateRequest(BaseModel):
     account_id: UuidString
     strategy_id: UuidString
@@ -264,6 +272,7 @@ class WarmupPauseRequest(BaseModel):
 class WarmupEventRead(BaseModel):
     id: str
     event_type: str
+    severity: WarmupEventSeverityRead = WarmupEventSeverityRead.INFO
     payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
 
@@ -273,6 +282,37 @@ class WarmupEventPageRead(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class WarmupLiveEventRead(BaseModel):
+    id: str
+    event_id: str
+    session_id: str
+    account_id: str
+    account_label: str
+    phone_id: str
+    event_type: str
+    severity: WarmupEventSeverityRead
+    message: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+    occurred_at: datetime
+    created_at: datetime
+
+
+class WarmupLiveEventAccountRead(BaseModel):
+    account_id: str
+    account_label: str
+    phone_id: str
+
+
+class WarmupLiveEventPageRead(BaseModel):
+    items: list[WarmupLiveEventRead]
+    total: int
+    limit: int
+    next_cursor: str | None = None
+    accounts: list[WarmupLiveEventAccountRead] = Field(
+        default_factory=list[WarmupLiveEventAccountRead]
+    )
 
 
 class WarmupStrategyRead(BaseModel):
@@ -321,7 +361,11 @@ __all__ = [
     "WarmupCyclicCreateRequest",
     "WarmupEventPageRead",
     "WarmupEventRead",
+    "WarmupEventSeverityRead",
     "WarmupExecutionModeRead",
+    "WarmupLiveEventAccountRead",
+    "WarmupLiveEventPageRead",
+    "WarmupLiveEventRead",
     "WarmupActionPresetRequest",
     "WarmupActionMetadataRead",
     "WarmupDisabledActionsRequest",

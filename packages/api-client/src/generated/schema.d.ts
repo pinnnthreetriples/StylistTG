@@ -1760,6 +1760,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Events */
+        get: operations["get_warmup_events_api_warmup_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/warmup-events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Warmup Events */
+        get: operations["stream_warmup_events_api_warmup_events_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/neuro-commenting/campaigns": {
         parameters: {
             query?: never;
@@ -7177,6 +7211,8 @@ export interface components {
             id: string;
             /** Event Type */
             event_type: string;
+            /** @default info */
+            severity: components["schemas"]["WarmupEventSeverityRead"];
             /** Payload */
             payload?: {
                 [key: string]: unknown;
@@ -7187,6 +7223,11 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * WarmupEventSeverityRead
+         * @enum {string}
+         */
+        WarmupEventSeverityRead: "info" | "success" | "warning" | "error" | "debug";
         /**
          * WarmupExecutionModeRead
          * @enum {string}
@@ -7213,6 +7254,62 @@ export interface components {
             /** Is Isolated */
             is_isolated: boolean;
             claim?: components["schemas"]["WarmupIsolationClaimRead"] | null;
+        };
+        /** WarmupLiveEventAccountRead */
+        WarmupLiveEventAccountRead: {
+            /** Account Id */
+            account_id: string;
+            /** Account Label */
+            account_label: string;
+            /** Phone Id */
+            phone_id: string;
+        };
+        /** WarmupLiveEventPageRead */
+        WarmupLiveEventPageRead: {
+            /** Items */
+            items: components["schemas"]["WarmupLiveEventRead"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Accounts */
+            accounts?: components["schemas"]["WarmupLiveEventAccountRead"][];
+        };
+        /** WarmupLiveEventRead */
+        WarmupLiveEventRead: {
+            /** Id */
+            id: string;
+            /** Event Id */
+            event_id: string;
+            /** Session Id */
+            session_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Account Label */
+            account_label: string;
+            /** Phone Id */
+            phone_id: string;
+            /** Event Type */
+            event_type: string;
+            severity: components["schemas"]["WarmupEventSeverityRead"];
+            /** Message */
+            message: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** WarmupPauseRequest */
         WarmupPauseRequest: {
@@ -14667,6 +14764,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupSelectableAccountRead"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_events_api_warmup_events_get: {
+        parameters: {
+            query?: {
+                account_id?: string;
+                severity?: components["schemas"]["WarmupEventSeverityRead"][];
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupLiveEventPageRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_warmup_events_api_warmup_events_stream_get: {
+        parameters: {
+            query?: {
+                account_id?: string;
+                severity?: components["schemas"]["WarmupEventSeverityRead"][];
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request */

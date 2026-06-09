@@ -8934,6 +8934,204 @@
         }
       }
     },
+    "/api/warmup-events": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Get Warmup Events",
+        "operationId": "get_warmup_events_api_warmup_events_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Severity",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/WarmupEventSeverityRead"
+              }
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupLiveEventPageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warmup-events/stream": {
+      "get": {
+        "tags": [
+          "warmup"
+        ],
+        "summary": "Stream Warmup Events",
+        "operationId": "stream_warmup_events_api_warmup_events_stream_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Severity",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/WarmupEventSeverityRead"
+              }
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Cursor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/neuro-commenting/campaigns": {
       "post": {
         "tags": [
@@ -29017,6 +29215,10 @@
             "type": "string",
             "title": "Event Type"
           },
+          "severity": {
+            "$ref": "#/components/schemas/WarmupEventSeverityRead",
+            "default": "info"
+          },
           "payload": {
             "additionalProperties": true,
             "type": "object",
@@ -29035,6 +29237,17 @@
           "created_at"
         ],
         "title": "WarmupEventRead"
+      },
+      "WarmupEventSeverityRead": {
+        "type": "string",
+        "enum": [
+          "info",
+          "success",
+          "warning",
+          "error",
+          "debug"
+        ],
+        "title": "WarmupEventSeverityRead"
       },
       "WarmupExecutionModeRead": {
         "type": "string",
@@ -29103,6 +29316,142 @@
           "is_isolated"
         ],
         "title": "WarmupIsolationStatusRead"
+      },
+      "WarmupLiveEventAccountRead": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "account_label": {
+            "type": "string",
+            "title": "Account Label"
+          },
+          "phone_id": {
+            "type": "string",
+            "title": "Phone Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "account_label",
+          "phone_id"
+        ],
+        "title": "WarmupLiveEventAccountRead"
+      },
+      "WarmupLiveEventPageRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupLiveEventRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupLiveEventAccountRead"
+            },
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit"
+        ],
+        "title": "WarmupLiveEventPageRead"
+      },
+      "WarmupLiveEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "account_label": {
+            "type": "string",
+            "title": "Account Label"
+          },
+          "phone_id": {
+            "type": "string",
+            "title": "Phone Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/WarmupEventSeverityRead"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "session_id",
+          "account_id",
+          "account_label",
+          "phone_id",
+          "event_type",
+          "severity",
+          "message",
+          "occurred_at",
+          "created_at"
+        ],
+        "title": "WarmupLiveEventRead"
       },
       "WarmupPauseRequest": {
         "properties": {

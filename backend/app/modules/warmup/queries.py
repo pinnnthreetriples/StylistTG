@@ -8,6 +8,7 @@ from app.config import settings
 from app.modules.warmup import read_models, repository
 from app.modules.warmup.contracts import (
     WarmupEventPageRead,
+    WarmupLiveEventPageRead,
     WarmupIsolationStatusRead,
     WarmupReadinessRead,
     WarmupSessionPageRead,
@@ -121,6 +122,41 @@ def list_warmup_session_events_page(
     return read_models.event_page_read(items, total=total, page=page, limit=limit)
 
 
+def list_warmup_event_feed_page(
+    session: Session,
+    *,
+    workspace_id: str,
+    account_id: str | None,
+    severities: list[str] | None,
+    cursor: str | None,
+    limit: int,
+    include_accounts: bool = True,
+) -> WarmupLiveEventPageRead:
+    normalized = _normalize_severities(severities)
+    items, total = repository.list_warmup_event_feed(
+        session,
+        workspace_id=workspace_id,
+        account_id=account_id,
+        severities=normalized,
+        cursor=cursor,
+        limit=limit,
+    )
+    accounts = (
+        repository.list_warmup_event_accounts(session, workspace_id=workspace_id)
+        if include_accounts
+        else []
+    )
+    return read_models.live_event_page_read(items, accounts=accounts, total=total, limit=limit)
+
+
+def _normalize_severities(severities: list[str] | None) -> list[str] | None:
+    if not severities:
+        return None
+    allowed = {"info", "success", "warning", "error", "debug"}
+    normalized = sorted({severity for severity in severities if severity in allowed})
+    return normalized or None
+
+
 def get_warmup_isolation_status(session: Session, *, account_id: str) -> WarmupIsolationStatusRead:
     return read_models.isolation_status_read(get_claim(session, account_id=account_id))
 
@@ -158,6 +194,7 @@ __all__ = [
     "get_warmup_readiness",
     "get_warmup_session_detail",
     "get_warmup_session_status",
+    "list_warmup_event_feed_page",
     "list_warmup_session_events_page",
     "list_warmup_sessions_page",
     "list_warmup_strategies",

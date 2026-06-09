@@ -15,6 +15,10 @@ export function resetApiAccessTokenProvider(): void {
   accessTokenProvider = getSupabaseAccessToken
 }
 
+export function getCurrentApiAccessToken(): string | Promise<string | null> | null {
+  return accessTokenProvider()
+}
+
 export const dashboardApiClient = createApiClient({
   baseUrl: getTypedApiBaseUrl(),
   fetch: (...args) => globalThis.fetch(...args),

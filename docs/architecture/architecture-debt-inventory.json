@@ -1559,6 +1559,8 @@
         "apps/dashboard/src/modules/warmup/components/WarmupEventLog.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupIsolationBanner.test.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupIsolationBanner.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupLiveLogs.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupLiveLogs.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupProxySnapshotPanel.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupReadinessBanner.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupSessionDetail.tsx",
@@ -1649,6 +1651,7 @@
         "backend/tests/api/test_warmup_action_presets_api.py",
         "backend/tests/api/test_warmup_bootstrap_channels_api.py",
         "backend/tests/api/test_warmup_contracts.py",
+        "backend/tests/api/test_warmup_events_api.py",
         "backend/tests/api/test_warmup_selectable_accounts_api.py",
         "backend/tests/api/test_warmup_sessions_api.py",
         "backend/tests/architecture/test_account_editing_module_boundaries.py",
@@ -2028,7 +2031,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-09T17:36:18Z",
+  "generated_at": "2026-06-09T18:42:26Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

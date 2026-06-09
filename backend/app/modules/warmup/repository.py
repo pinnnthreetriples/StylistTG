@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import (
     ACTIVE_WARMUP_STATUSES,
+    Account,
     AccountProxy,
     WarmupEvent,
     WarmupSession,
@@ -91,6 +92,72 @@ def list_warmup_events(
         ).scalars()
     )
     return items, total
+
+
+def list_warmup_event_feed(
+    session: Session,
+    *,
+    workspace_id: str,
+    account_id: str | None = None,
+    severities: list[str] | None = None,
+    cursor: str | None = None,
+    limit: int = 100,
+) -> tuple[list[WarmupEvent], int]:
+    filters = [WarmupEvent.workspace_id == workspace_id]
+    if account_id:
+        filters.append(WarmupSession.account_id == account_id)
+    if severities:
+        filters.append(WarmupEvent.severity.in_(severities))
+
+    cursor_event = session.get(WarmupEvent, cursor) if cursor else None
+    if cursor_event is not None and cursor_event.workspace_id == workspace_id:
+        filters.append(
+            or_(
+                WarmupEvent.created_at > cursor_event.created_at,
+                (WarmupEvent.created_at == cursor_event.created_at)
+                & (WarmupEvent.id > cursor_event.id),
+            )
+        )
+
+    base = select(WarmupEvent).join(WarmupEvent.session).join(WarmupSession.account).where(*filters)
+    total = int(session.scalar(select(func.count()).select_from(base.subquery())) or 0)
+
+    if cursor_event is None:
+        latest = list(
+            session.execute(
+                base.options(joinedload(WarmupEvent.session).joinedload(WarmupSession.account))
+                .order_by(WarmupEvent.created_at.desc(), WarmupEvent.id.desc())
+                .limit(limit)
+            ).scalars()
+        )
+        latest.reverse()
+        return latest, total
+
+    items = list(
+        session.execute(
+            base.options(joinedload(WarmupEvent.session).joinedload(WarmupSession.account))
+            .order_by(WarmupEvent.created_at.asc(), WarmupEvent.id.asc())
+            .limit(limit)
+        ).scalars()
+    )
+    return items, total
+
+
+def list_warmup_event_accounts(
+    session: Session,
+    *,
+    workspace_id: str,
+) -> list[Account]:
+    return list(
+        session.execute(
+            select(Account)
+            .join(WarmupSession, WarmupSession.account_id == Account.id)
+            .join(WarmupEvent, WarmupEvent.session_id == WarmupSession.id)
+            .where(WarmupEvent.workspace_id == workspace_id)
+            .distinct()
+            .order_by(Account.external_ref.asc())
+        ).scalars()
+    )
 
 
 def active_warmup_for_account(
@@ -208,6 +275,8 @@ __all__ = [
     "get_account_proxy_snapshot_source",
     "get_strategy",
     "get_warmup_session",
+    "list_warmup_event_accounts",
+    "list_warmup_event_feed",
     "list_available_strategies",
     "list_warmup_events",
     "list_warmup_sessions",

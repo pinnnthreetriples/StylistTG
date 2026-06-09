@@ -77,7 +77,14 @@ _AMBIGUOUS_DYNAMIC_METHOD_PATHS = {
 # FastAPI does not reject unexpected query params by default; document the
 # exception here for endpoints that intentionally accept open query strings.
 _LENIENT_QUERY_PATHS = {
+    "/api/warmup-events",
     "/api/warmup-selectable-accounts",
+}
+# Server-Sent Events endpoints; schemathesis cannot meaningfully fuzz a
+# long-lived streaming response. Auth + workspace scoping is covered by
+# dedicated unit tests under tests/security and tests/api.
+_STREAMING_PATHS = {
+    "/api/warmup-events/stream",
 }
 
 
@@ -140,6 +147,9 @@ def test_openapi_contract(case: schemathesis.Case, contract_app_overrides: None)
     the response, or the handler crashes on an input that the schema accepts.
     """
     assert contract_app_overrides is None
+
+    if case.path in _STREAMING_PATHS:
+        pytest.skip("Streaming endpoint — covered by dedicated SSE tests.")
 
     excluded_checks = []
     if case.path in _FILE_UPLOAD_PATHS | _BUSINESS_PRECONDITION_PATHS:

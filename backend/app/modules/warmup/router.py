@@ -6,13 +6,15 @@ Do not add behavior to the legacy app.api wrapper.
 
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.tenant_helpers import require_account_in_workspace
-from app.db import get_session
+from app.db import SessionLocal, get_session
 from app.errors import AppError
 from app.modules.account_lifecycle.contracts import (
     PreProductionStartRequest,
@@ -29,6 +31,8 @@ from app.modules.warmup.contracts import (
     WarmupCyclicCreateRequest,
     WarmupDisabledActionsRequest,
     WarmupEventPageRead,
+    WarmupEventSeverityRead,
+    WarmupLiveEventPageRead,
     WarmupIsolationStatusRead,
     WarmupPauseRequest,
     WarmupReadinessRead,
@@ -55,6 +59,7 @@ from app.modules.auth.dependencies import (
     require_mutation_permission,
     require_role,
 )
+from app.modules.auth.dependencies import resolve_auth_context
 
 
 router = APIRouter()
@@ -62,6 +67,7 @@ warmup_router = APIRouter(prefix="/api/warmup", tags=["warmup"])
 actions_router = APIRouter(prefix="/api/warmup-actions", tags=["warmup-actions"])
 session_alias_router = APIRouter(prefix="/api/warmup-sessions", tags=["warmup"])
 selectable_accounts_router = APIRouter(prefix="/api/warmup-selectable-accounts", tags=["warmup"])
+events_router = APIRouter(prefix="/api/warmup-events", tags=["warmup"])
 pre_production_router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 bootstrap_router = APIRouter(
     prefix="/api/warmup-bootstrap-channels", tags=["warmup-bootstrap-channels"]
@@ -90,6 +96,78 @@ def get_warmup_selectable_accounts(
         proxy_ok_only=proxy_ok_only,
         hide_in_work=hide_in_work,
         limit=limit,
+    )
+
+
+@events_router.get("", response_model=WarmupLiveEventPageRead)
+def get_warmup_events(
+    account_id: str | None = Query(default=None),
+    severity: list[WarmupEventSeverityRead] | None = Query(default=None),
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> WarmupLiveEventPageRead:
+    # workspace scope is always derived from auth — no cross-workspace lookup.
+    return warmup_service.list_warmup_event_feed_page(
+        session,
+        workspace_id=auth.workspace_id,
+        account_id=account_id,
+        severities=[item.value for item in severity] if severity else None,
+        cursor=cursor,
+        limit=limit,
+    )
+
+
+class _StreamAuthRequest:
+    def __init__(self, headers: dict[str, str]) -> None:
+        self._headers = headers
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return self._headers
+
+
+def _resolve_stream_auth(request: Request, session: Session) -> AuthContext:
+    if request.headers.get("Authorization"):
+        return resolve_auth_context(request, session)
+    access_token = request.query_params.get("access_token")
+    if not access_token:
+        return resolve_auth_context(request, session)
+    headers = dict(request.headers)
+    headers["Authorization"] = f"Bearer {access_token}"
+    return resolve_auth_context(_StreamAuthRequest(headers), session)
+
+
+def _stream_auth_dependency(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> AuthContext:
+    """SSE-friendly auth dependency: accepts EventSource `?access_token=...`
+    fallback when the Authorization header cannot be set (browser EventSource).
+    """
+    return _resolve_stream_auth(request, session)
+
+
+@events_router.get("/stream")
+def stream_warmup_events(
+    request: Request,
+    account_id: str | None = Query(default=None),
+    severity: list[WarmupEventSeverityRead] | None = Query(default=None),
+    cursor: str | None = Query(default=None),
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(_stream_auth_dependency),
+) -> StreamingResponse:
+    return StreamingResponse(
+        _warmup_event_stream(
+            request,
+            workspace_id=auth.workspace_id,
+            account_id=account_id,
+            severities=[item.value for item in severity] if severity else None,
+            cursor=cursor,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -501,6 +579,35 @@ def _warmup_error(exc: WarmupError) -> AppError:
     )
 
 
+async def _warmup_event_stream(
+    request: Request,
+    *,
+    workspace_id: str,
+    account_id: str | None,
+    severities: list[str] | None,
+    cursor: str | None,
+):
+    next_cursor = cursor
+    while not await request.is_disconnected():
+        with SessionLocal() as stream_session:
+            page = warmup_service.list_warmup_event_feed_page(
+                stream_session,
+                workspace_id=workspace_id,
+                account_id=account_id,
+                severities=severities,
+                cursor=next_cursor,
+                limit=100,
+                include_accounts=False,
+            )
+        if page.items:
+            for item in page.items:
+                next_cursor = item.id
+                yield f"data: {item.model_dump_json()}\n\n"
+        else:
+            yield ": keepalive\n\n"
+        await asyncio.sleep(2)
+
+
 def _set_warmup_session_disabled_actions(
     session_id: UUID,
     payload: WarmupDisabledActionsRequest,
@@ -526,3 +633,4 @@ router.include_router(session_alias_router)
 router.include_router(pre_production_router)
 router.include_router(bootstrap_router)
 router.include_router(selectable_accounts_router)
+router.include_router(events_router)

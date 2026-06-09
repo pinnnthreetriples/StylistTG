@@ -155,8 +155,15 @@ class WarmupSession(Base):
 class WarmupEvent(Base):
     __tablename__ = "warmup_event"
     __table_args__ = (
+        CheckConstraint(
+            "severity IN ('info', 'success', 'warning', 'error', 'debug')",
+            name="ck_warmup_event_severity",
+        ),
         Index("ix_warmup_event_workspace_id", "workspace_id"),
         Index("ix_warmup_event_session_created", "session_id", "created_at"),
+        Index(
+            "ix_warmup_event_workspace_severity_created", "workspace_id", "severity", "created_at"
+        ),
     )
 
     id: Mapped[str] = mapped_column(UUIDString, primary_key=True, default=new_id)
@@ -167,6 +174,7 @@ class WarmupEvent(Base):
         UUIDString, ForeignKey("warmup_session.id"), nullable=False
     )
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    severity: Mapped[str] = mapped_column(String(16), nullable=False, default="info")
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 

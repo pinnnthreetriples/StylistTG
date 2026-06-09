@@ -1,4 +1,6 @@
 import { apiRequest } from '@/lib/http'
+import { getApiBaseUrl } from '@/lib/config'
+import { getCurrentApiAccessToken } from '@/lib/apiClient'
 
 import type {
   WarmupActionMetadata,
@@ -6,6 +8,8 @@ import type {
   WarmupCyclicCreatePayload,
   WarmupCyclicCreateResponse,
   WarmupEventPage,
+  WarmupLiveEventFilters,
+  WarmupLiveEventPage,
   WarmupIsolationStatus,
   WarmupReadiness,
   WarmupSessionDetail,
@@ -98,6 +102,19 @@ export function fetchWarmupEvents(sessionId: string, params?: { page?: number; l
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}/events${qs ? `?${qs}` : ''}`)
 }
 
+export function fetchWarmupLiveEvents(filters: WarmupLiveEventFilters = {}): Promise<WarmupLiveEventPage> {
+  const query = buildWarmupLiveEventQuery(filters)
+  return apiRequest(`/api/warmup-events${query ? `?${query}` : ''}`)
+}
+
+export async function buildWarmupEventStreamUrl(filters: WarmupLiveEventFilters = {}): Promise<string> {
+  const query = new URLSearchParams(buildWarmupLiveEventQuery(filters))
+  const token = await getCurrentApiAccessToken()
+  if (token) query.set('access_token', token)
+  const qs = query.toString()
+  return `${getApiBaseUrl()}/api/warmup-events/stream${qs ? `?${qs}` : ''}`
+}
+
 export function fetchWarmupSessionDetail(sessionId: string): Promise<WarmupSessionDetail> {
   return apiRequest(`/api/warmup/sessions/${encodeURIComponent(sessionId)}`)
 }
@@ -117,4 +134,13 @@ export function fetchWarmupSelectableAccounts(
   if (filters.hideInWork) query.set('hide_in_work', 'true')
   query.set('limit', '500')
   return apiRequest(`/api/warmup-selectable-accounts?${query.toString()}`)
+}
+
+function buildWarmupLiveEventQuery(filters: WarmupLiveEventFilters): string {
+  const query = new URLSearchParams()
+  if (filters.accountId) query.set('account_id', filters.accountId)
+  if (filters.severity && filters.severity !== 'all') query.set('severity', filters.severity)
+  if (filters.cursor) query.set('cursor', filters.cursor)
+  if (filters.limit != null) query.set('limit', String(filters.limit))
+  return query.toString()
 }

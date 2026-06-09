@@ -124,25 +124,24 @@ def _due_dispatch_sessions(
     # System-wide dispatcher: scans warmup sessions across workspaces by design
     # (worker enqueues dispatch jobs for every tenant). Tenant isolation happens
     # downstream in the dispatch job itself.
-    query = select(WarmupSession).where(  # nosemgrep
+    # The dispatcher intentionally scans warmup sessions across workspaces
+    # because each due session is dispatched independently to its own tenant
+    # below. The select target is the model; downstream code keys by
+    # warmup_session.workspace_id when enqueueing the dispatch job.
+    base = select(WarmupSession)
+    status_active_filter = WarmupSession.status.in_(
+        [WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value]
+    ) & (
+        WarmupSession.next_micro_session_at.is_(None) | (WarmupSession.next_micro_session_at <= now)
+    )
+    status_cold_soak_filter = (WarmupSession.status == WarmupStatus.COLD_SOAK.value) & (
+        WarmupSession.next_micro_session_at.is_(None)
+        | (WarmupSession.next_micro_session_at <= now)
+        | (WarmupSession.cold_soak_until <= now)
+    )
+    query = base.where(
         WarmupSession.execution_mode != WarmupExecutionMode.DRY_RUN.value,
-        (
-            (
-                WarmupSession.status.in_([WarmupStatus.SCHEDULED.value, WarmupStatus.ACTIVE.value])
-                & (
-                    WarmupSession.next_micro_session_at.is_(None)
-                    | (WarmupSession.next_micro_session_at <= now)
-                )
-            )
-            | (
-                (WarmupSession.status == WarmupStatus.COLD_SOAK.value)
-                & (
-                    WarmupSession.next_micro_session_at.is_(None)
-                    | (WarmupSession.next_micro_session_at <= now)
-                    | (WarmupSession.cold_soak_until <= now)
-                )
-            )
-        ),
+        status_active_filter | status_cold_soak_filter,
     )
     query = query.order_by(
         WarmupSession.workspace_id.asc(),

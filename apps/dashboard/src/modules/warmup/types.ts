@@ -194,3 +194,26 @@ export type WarmupIsolationStatus = {
   is_isolated: boolean
   claim: WarmupIsolationClaim | null
 }
+
+export type WarmupSelectableAccount = {
+  account_id: string
+  display_name: string | null
+  username: string | null
+  phone_number: string
+  role: string
+  country: string
+  country_iso: string
+  validity_badge: 'valid' | 'needs_login' | 'blocked' | 'unknown'
+  proxy_badge: 'ok' | 'issue' | 'missing' | 'unknown'
+  phase_badge: 'new' | 'warming' | 'in_work'
+  tags: string[]
+  is_in_work: boolean
+}
+
+export type WarmupSelectableAccountFilters = {
+  search?: string
+  country?: string
+  role?: string
+  proxyOkOnly?: boolean
+  hideInWork?: boolean
+}

@@ -1743,6 +1743,23 @@ export interface paths {
         patch: operations["patch_warmup_bootstrap_channel_api_warmup_bootstrap_channels__channel_id__patch"];
         trace?: never;
     };
+    "/api/warmup-selectable-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Selectable Accounts */
+        get: operations["get_warmup_selectable_accounts_api_warmup_selectable_accounts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/neuro-commenting/campaigns": {
         parameters: {
             query?: never;
@@ -7233,6 +7250,45 @@ export interface components {
             active_sessions: number;
             /** Strategies Available */
             strategies_available: number;
+        };
+        /** WarmupSelectableAccountRead */
+        WarmupSelectableAccountRead: {
+            /** Account Id */
+            account_id: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Phone Number */
+            phone_number: string;
+            /** Role */
+            role: string;
+            /** Country */
+            country: string;
+            /** Country Iso */
+            country_iso: string;
+            /**
+             * Validity Badge
+             * @enum {string}
+             */
+            validity_badge: "valid" | "needs_login" | "blocked" | "unknown";
+            /**
+             * Proxy Badge
+             * @enum {string}
+             */
+            proxy_badge: "ok" | "issue" | "missing" | "unknown";
+            /**
+             * Phase Badge
+             * @enum {string}
+             */
+            phase_badge: "new" | "warming" | "in_work";
+            /** Tags */
+            tags?: string[];
+            /**
+             * Is In Work
+             * @default false
+             */
+            is_in_work: boolean;
         };
         /** WarmupSessionCreateRequest */
         WarmupSessionCreateRequest: {
@@ -14546,6 +14602,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupBootstrapChannelRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_selectable_accounts_api_warmup_selectable_accounts_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                country?: string;
+                role?: string;
+                proxy_ok_only?: boolean;
+                hide_in_work?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSelectableAccountRead"][];
                 };
             };
             /** @description Bad Request */

@@ -1,35 +1,31 @@
 // fallow-ignore-file complexity
 // fallow-ignore-reason: Wizard composition shell; step sections are split into dedicated components.
-import { useQuery } from '@tanstack/react-query'
-import { Alert, SectionCard } from '@stylisttg/ui'
+import { Alert, Button, SectionCard } from '@stylisttg/ui'
+import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { fetchAccounts } from '@/lib/api'
 import { isApiError } from '@/lib/http'
-import { queryKeys } from '@/lib/queries'
 
 import { useCreateWarmupSession, useWarmupActionMetadata, useWarmupStrategies, useWarmupValidate } from '../hooks'
 import type { WarmupStrategy } from '../types'
 import { ActionPresetButtons } from './ActionPresetButtons'
 import { ActionMetadataPanel } from './ActionMetadataPanel'
+import { WarmupAccountSelector } from './WarmupAccountSelector'
 import {
-  WarmupAccountSelector,
   WarmupCyclicConfig,
   WarmupCreateSummary,
   WarmupStrategySelector,
   WarmupValidationPanel,
 } from './WarmupCreateWizardSections'
 
-const EMPTY_ACCOUNTS: Awaited<ReturnType<typeof fetchAccounts>> = []
 const EMPTY_STRATEGIES: WarmupStrategy[] = []
 
 export function WarmupCreateWizard() {
-  const accountsQuery = useQuery({ queryKey: queryKeys.accounts, queryFn: fetchAccounts })
   const strategiesQuery = useWarmupStrategies()
   const actionMetadataQuery = useWarmupActionMetadata()
   const validateMutation = useWarmupValidate()
   const createMutation = useCreateWarmupSession()
-  const [accountId, setAccountId] = useState('')
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [strategyId, setStrategyId] = useState('')
   const [cyclicEnabled, setCyclicEnabled] = useState(false)
   const [cycleStartHour, setCycleStartHour] = useState(15)
@@ -37,13 +33,12 @@ export function WarmupCreateWizard() {
   const [cycleDaysTotal, setCycleDaysTotal] = useState(7)
   const [validatedFor, setValidatedFor] = useState<string | null>(null)
 
-  const accounts = accountsQuery.data ?? EMPTY_ACCOUNTS
   const strategies = strategiesQuery.data ?? EMPTY_STRATEGIES
   const defaultStrategy =
     strategies.find((strategy) => strategy.preset_kind === 'standard') ??
     strategies.find((strategy) => strategy.name.toLowerCase().includes('стандарт')) ??
     strategies[0]
-  const selectedAccountId = accountId || accounts[0]?.account_id || ''
+  const selectedAccountId = selectedAccountIds[0] ?? ''
   const selectedStrategyId = strategyId || defaultStrategy?.id || ''
   const selectedStrategy = strategies.find((strategy) => strategy.id === selectedStrategyId)
   const canValidate = Boolean(selectedAccountId && selectedStrategyId)
@@ -61,10 +56,7 @@ export function WarmupCreateWizard() {
         : createMutation.error.message
       : 'Не удалось создать сессию. Проверьте готовность аккаунта.'
 
-  const selectedAccountLabel = useMemo(() => {
-    const account = accounts.find((item) => item.account_id === selectedAccountId)
-    return account?.display_name || account?.phone_number || selectedAccountId
-  }, [selectedAccountId, accounts])
+  const selectedAccountLabel = useMemo(() => selectedAccountId, [selectedAccountId])
 
   return (
     <SectionCard
@@ -72,22 +64,29 @@ export function WarmupCreateWizard() {
       description="Сначала проверяем готовность. После создания аккаунт не выполняет live-действия: модуль только ведёт расписание и аудит."
     >
       <WarmupAccountSelector
-        accounts={accounts}
-        canValidate={canValidate}
-        isValidating={validateMutation.isPending}
-        selectedAccountId={selectedAccountId}
-        onAccountChange={(nextAccountId) => {
-          setAccountId(nextAccountId)
+        selectedAccountIds={selectedAccountIds}
+        onSelectionChange={(nextIds) => {
+          setSelectedAccountIds(nextIds)
           setValidatedFor(null)
           createMutation.reset()
         }}
-        onValidate={() =>
-          validateMutation.mutate(
-            { accountId: selectedAccountId, strategyId: selectedStrategyId },
-            { onSuccess: () => setValidatedFor(selectionKey) },
-          )
-        }
       />
+      <div className="mt-3 flex justify-end">
+        <Button
+          disabled={!canValidate || validateMutation.isPending}
+          type="button"
+          variant="outline"
+          onClick={() =>
+            validateMutation.mutate(
+              { accountId: selectedAccountId, strategyId: selectedStrategyId },
+              { onSuccess: () => setValidatedFor(selectionKey) },
+            )
+          }
+        >
+          <Search className="size-4" />
+          Проверить первый выбранный
+        </Button>
+      </div>
       <WarmupStrategySelector
         selectedStrategyId={selectedStrategyId}
         strategies={strategies}
@@ -158,7 +157,7 @@ export function WarmupCreateWizard() {
             },
             {
               onSuccess: () => {
-                setAccountId('')
+                setSelectedAccountIds([])
                 setStrategyId('')
                 setValidatedFor(null)
                 validateMutation.reset()

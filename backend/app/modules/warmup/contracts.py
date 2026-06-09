@@ -152,6 +152,21 @@ class WarmupActionMetadataRead(BaseModel):
     requires_premium: bool = False
 
 
+class WarmupSelectableAccountRead(BaseModel):
+    account_id: str
+    display_name: str | None = None
+    username: str | None = None
+    phone_number: str
+    role: str
+    country: str
+    country_iso: str
+    validity_badge: Literal["valid", "needs_login", "blocked", "unknown"]
+    proxy_badge: Literal["ok", "issue", "missing", "unknown"]
+    phase_badge: Literal["new", "warming", "in_work"]
+    tags: list[str] = Field(default_factory=list)
+    is_in_work: bool = False
+
+
 class WarmupExecutionModeRead(StrEnum):
     DRY_RUN = "dry_run"
     SHADOW = "shadow"

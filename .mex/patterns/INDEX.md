@@ -5,14 +5,17 @@ edges:
   - .mex/ROUTER.md
   - .mex/context/conventions.md
   - .mex/context/warmup-advanced-state.md
+  - .mex/patterns/architecture-change.md
+  - docs/architecture/AGENT_ARCHITECTURE_GUIDE.md
   - docs/design/warmup-advanced-file-map.md
-last_updated: 2026-06-08
+last_updated: 2026-06-09
 ---
 
 # Pattern Index
 
 | Task | Pattern |
 | --- | --- |
+| Change architecture, module ownership, source-of-truth boundaries, or add a backend module | [architecture-change.md](architecture-change.md) |
 | Audit or update project documentation/memory | [documentation-audit.md](documentation-audit.md) |
 | Change backend API/service behavior | [backend-api-change.md](backend-api-change.md) |
 | Change dashboard module/routes/UI | [frontend-module-change.md](frontend-module-change.md) |

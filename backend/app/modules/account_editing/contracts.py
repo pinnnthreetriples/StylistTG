@@ -69,6 +69,32 @@ class AccountProfileUniquenessRead(BaseModel):
     )
 
 
+class AIProfileGenerateBioRequest(BaseModel):
+    language: str = "ru"
+    persona_hints: dict[str, str] = Field(default_factory=dict)
+
+
+class AIProfileGenerateAvatarRequest(BaseModel):
+    persona_hints: dict[str, str] = Field(default_factory=dict)
+
+
+class AIProfileGenerateBioRead(BaseModel):
+    bio: str
+    provider: str
+    model: str
+    attempts: int
+    uniqueness: AccountProfileUniquenessRead
+
+
+class AIProfileGenerateAvatarRead(BaseModel):
+    asset_id: UuidString
+    provider: str
+    model: str
+    mime: str
+    attempts: int
+    uniqueness: AccountProfileUniquenessRead
+
+
 class AccountUpdateJobSummaryRead(JobSummaryRead):
     workflow_type: str
     workflow_version: int
@@ -93,6 +119,10 @@ class AccountUpdatePreviewRead(ProfilePreviewRead):
 
 
 __all__ = [
+    "AIProfileGenerateAvatarRead",
+    "AIProfileGenerateAvatarRequest",
+    "AIProfileGenerateBioRead",
+    "AIProfileGenerateBioRequest",
     "AccountProfileUniquenessMatchRead",
     "AccountProfileUniquenessRead",
     "AccountUpdateCreate",

@@ -996,6 +996,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{account_id}/generate-bio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Generate Bio */
+        post: operations["post_generate_bio_api_accounts__account_id__generate_bio_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{account_id}/generate-avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Generate Avatar */
+        post: operations["post_generate_avatar_api_accounts__account_id__generate_avatar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/accounts/{account_id}/lifecycle": {
         parameters: {
             query?: never;
@@ -3137,6 +3171,54 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIProfileGenerateAvatarRead */
+        AIProfileGenerateAvatarRead: {
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Mime */
+            mime: string;
+            /** Attempts */
+            attempts: number;
+            uniqueness: components["schemas"]["AccountProfileUniquenessRead"];
+        };
+        /** AIProfileGenerateAvatarRequest */
+        AIProfileGenerateAvatarRequest: {
+            /** Persona Hints */
+            persona_hints?: {
+                [key: string]: string;
+            };
+        };
+        /** AIProfileGenerateBioRead */
+        AIProfileGenerateBioRead: {
+            /** Bio */
+            bio: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Attempts */
+            attempts: number;
+            uniqueness: components["schemas"]["AccountProfileUniquenessRead"];
+        };
+        /** AIProfileGenerateBioRequest */
+        AIProfileGenerateBioRequest: {
+            /**
+             * Language
+             * @default ru
+             */
+            language: string;
+            /** Persona Hints */
+            persona_hints?: {
+                [key: string]: string;
+            };
+        };
         /** AccountBatchSafetyItemRead */
         AccountBatchSafetyItemRead: {
             /** Account Id */
@@ -11343,6 +11425,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountUpdateJobSummaryRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_generate_bio_api_accounts__account_id__generate_bio_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIProfileGenerateBioRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIProfileGenerateBioRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_generate_avatar_api_accounts__account_id__generate_avatar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIProfileGenerateAvatarRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIProfileGenerateAvatarRead"];
                 };
             };
             /** @description Bad Request */

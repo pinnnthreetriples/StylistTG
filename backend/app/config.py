@@ -148,6 +148,21 @@ class Settings(BaseSettings):
     neuro_comment_ai_max_retries: int = 2
     neuro_comment_ai_max_tokens: int = 120
     neuro_comment_ai_temperature: float = 0.7
+    ai_profile_provider: str = "fake"
+    ai_profile_live_enabled: bool = False
+    ai_profile_openai_base_url: str = "https://api.openai.com"
+    ai_profile_openai_api_key: SecretStr | None = None
+    ai_profile_openai_model: str = "gpt-4o-mini"
+    ai_profile_openai_image_model: str = "dall-e-3"
+    ai_profile_anthropic_base_url: str = "https://api.anthropic.com"
+    ai_profile_anthropic_api_key: SecretStr | None = None
+    ai_profile_anthropic_model: str = "claude-3-5-haiku-latest"
+    ai_profile_timeout_seconds: float = 20.0
+    ai_profile_max_retries: int = 2
+    ai_profile_max_attempts: int = 5
+    ai_profile_uniqueness_threshold: float = 0.70
+    ai_profile_workspace_daily_limit: int = 50
+    ai_profile_account_daily_limit: int = 3
     neuro_comment_tdlib_observer_enabled: bool = False
     neuro_comment_tdlib_send_enabled: bool = False
     behavior_emulator_live_send_enabled: bool = False
@@ -216,6 +231,7 @@ class Settings(BaseSettings):
         self._validate_auth_settings(cloud_or_prod)
         self._validate_storage_settings()
         self._validate_neuro_comment_settings()
+        self._validate_ai_profile_settings()
         return self
 
     def _cloud_or_prod(self) -> bool:
@@ -290,6 +306,28 @@ class Settings(BaseSettings):
             raise ValueError("NEURO_COMMENT_APPROVAL_TTL_SECONDS must be positive")
         if self.neuro_comment_approval_expirer_interval_seconds <= 0:
             raise ValueError("NEURO_COMMENT_APPROVAL_EXPIRER_INTERVAL_SECONDS must be positive")
+
+    def _validate_ai_profile_settings(self) -> None:
+        if self.ai_profile_provider not in {"fake", "openai", "anthropic"}:
+            raise ValueError("AI_PROFILE_PROVIDER must be fake, openai, or anthropic")
+        if self.ai_profile_provider != "fake" and not self.ai_profile_live_enabled:
+            raise ValueError("AI_PROFILE_LIVE_ENABLED=true is required for live providers")
+        if self.ai_profile_provider == "openai" and not self.ai_profile_openai_api_key:
+            raise ValueError("AI_PROFILE_OPENAI_API_KEY is required for provider=openai")
+        if self.ai_profile_provider == "anthropic" and not self.ai_profile_anthropic_api_key:
+            raise ValueError("AI_PROFILE_ANTHROPIC_API_KEY is required for provider=anthropic")
+        if self.ai_profile_timeout_seconds <= 0:
+            raise ValueError("AI_PROFILE_TIMEOUT_SECONDS must be positive")
+        if self.ai_profile_max_retries < 0:
+            raise ValueError("AI_PROFILE_MAX_RETRIES must be non-negative")
+        if self.ai_profile_max_attempts <= 0:
+            raise ValueError("AI_PROFILE_MAX_ATTEMPTS must be positive")
+        if not 0 < self.ai_profile_uniqueness_threshold <= 1:
+            raise ValueError("AI_PROFILE_UNIQUENESS_THRESHOLD must be in (0, 1]")
+        if self.ai_profile_workspace_daily_limit <= 0:
+            raise ValueError("AI_PROFILE_WORKSPACE_DAILY_LIMIT must be positive")
+        if self.ai_profile_account_daily_limit <= 0:
+            raise ValueError("AI_PROFILE_ACCOUNT_DAILY_LIMIT must be positive")
 
     @staticmethod
     def _validate_fernet_key(key: str) -> None:

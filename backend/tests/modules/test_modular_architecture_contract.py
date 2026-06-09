@@ -62,7 +62,8 @@ def test_module_router_paths_resolve_to_existing_public_prefixes() -> None:
     }
 
     assert "" in prefixes
-    assert "/api/account-update" in prefixes
+    # /api/account-update is mounted as a sub-router under the empty-prefix aggregator.
+    assert any(path.startswith("/api/account-update") for path in route_paths)
     assert "/api/accounts" in prefixes
     assert "/api/warmup/readiness" in route_paths
     assert "/api/warmup-actions/metadata" in route_paths

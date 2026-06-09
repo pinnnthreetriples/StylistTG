@@ -329,6 +329,7 @@
         "category": "canonical_feature_module",
         "existing_paths": [
           "backend/app/modules/account_editing/__init__.py",
+          "backend/app/modules/account_editing/ai_generation.py",
           "backend/app/modules/account_editing/contracts.py",
           "backend/app/modules/account_editing/enqueue.py",
           "backend/app/modules/account_editing/errors.py",
@@ -1294,6 +1295,12 @@
         "existing_paths": [
           "backend/app/__init__.py",
           "backend/app/adapters/__init__.py",
+          "backend/app/adapters/ai_profile_provider/__init__.py",
+          "backend/app/adapters/ai_profile_provider/anthropic.py",
+          "backend/app/adapters/ai_profile_provider/base.py",
+          "backend/app/adapters/ai_profile_provider/factory.py",
+          "backend/app/adapters/ai_profile_provider/fake.py",
+          "backend/app/adapters/ai_profile_provider/openai.py",
           "backend/app/adapters/profile_execution.py",
           "backend/app/adapters/tdlib_auth.py",
           "backend/app/adapters/tdlib_auth_states.py",
@@ -1884,12 +1891,15 @@
           "backend/tests/accounts/test_account_update_plan.py",
           "backend/tests/accounts/test_execution_policy.py",
           "backend/tests/adapters/__init__.py",
+          "backend/tests/adapters/ai_profile_provider/test_fake_provider.py",
+          "backend/tests/adapters/ai_profile_provider/test_openai_provider.py",
           "backend/tests/adapters/test_profile_execution_mock.py",
           "backend/tests/adapters/test_tdlib_profile_pure.py",
           "backend/tests/adapters/test_warmup_tdlib_adapter.py",
           "backend/tests/adapters/test_warmup_tdlib_real_cache.py",
           "backend/tests/adapters/test_warmup_text_provider_extended.py",
           "backend/tests/api/__init__.py",
+          "backend/tests/api/test_account_ai_generation_api.py",
           "backend/tests/api/test_account_contracts.py",
           "backend/tests/api/test_account_import_contracts.py",
           "backend/tests/api/test_account_onboarding_api.py",
@@ -1980,6 +1990,7 @@
           "backend/tests/modules/__init__.py",
           "backend/tests/modules/account_editing/__init__.py",
           "backend/tests/modules/account_editing/test_account_editing_errors.py",
+          "backend/tests/modules/account_editing/test_ai_generation.py",
           "backend/tests/modules/account_editing/test_architecture.py",
           "backend/tests/modules/account_editing/test_contracts.py",
           "backend/tests/modules/account_editing/test_enqueue.py",
@@ -3999,6 +4010,7 @@
       "documentation_only": false,
       "files": [
         "backend/app/modules/account_editing/__init__.py",
+        "backend/app/modules/account_editing/ai_generation.py",
         "backend/app/modules/account_editing/contracts.py",
         "backend/app/modules/account_editing/enqueue.py",
         "backend/app/modules/account_editing/errors.py",
@@ -5649,7 +5661,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 284,
+      "file_count": 288,
       "path": "backend/tests"
     },
     "docs": {

@@ -14647,7 +14647,6 @@ export interface operations {
     get_warmup_selectable_accounts_api_warmup_selectable_accounts_get: {
         parameters: {
             query?: {
-                workspace_id?: string;
                 search?: string;
                 country?: string;
                 role?: string;

@@ -8813,15 +8813,6 @@
         "operationId": "get_warmup_selectable_accounts_api_warmup_selectable_accounts_get",
         "parameters": [
           {
-            "name": "workspace_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "title": "Workspace Id",
-              "type": "string"
-            }
-          },
-          {
             "name": "search",
             "in": "query",
             "required": false,

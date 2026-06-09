@@ -71,7 +71,6 @@ settings = warmup_service.settings
 
 @selectable_accounts_router.get("", response_model=list[WarmupSelectableAccountRead])
 def get_warmup_selectable_accounts(
-    workspace_id: str | None = Query(default=None),
     search: str | None = Query(default=None, max_length=128),
     country: str | None = Query(default=None, max_length=8),
     role: str | None = Query(default=None, max_length=32),
@@ -81,13 +80,7 @@ def get_warmup_selectable_accounts(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_authenticated),
 ) -> list[WarmupSelectableAccountRead]:
-    if workspace_id is not None and workspace_id != auth.workspace_id:
-        raise AppError(
-            status_code=status.HTTP_403_FORBIDDEN,
-            error_code="WORKSPACE_FORBIDDEN",
-            error_class="authorization",
-            message="workspace_id does not match authenticated workspace",
-        )
+    # workspace scope is always derived from auth — no cross-workspace lookup.
     return list_selectable_accounts(
         session,
         workspace_id=auth.workspace_id,

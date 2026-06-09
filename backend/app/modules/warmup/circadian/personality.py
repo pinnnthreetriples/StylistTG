@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from hashlib import sha256
-from typing import Any
+from typing import Any, cast
 
 from app.adapters.warmup_tdlib_contracts import SUPPORTED_ADVANCED_ACTIONS
 
@@ -55,7 +55,8 @@ def favorite_reactions(
     raw = seed.get("favorite_emojis")
     if not isinstance(raw, list):
         return []
-    return [emoji for emoji in raw if isinstance(emoji, str) and emoji in available]
+    emojis = cast(list[object], raw)
+    return [emoji for emoji in emojis if isinstance(emoji, str) and emoji in available]
 
 
 def deterministic_reaction_rng(

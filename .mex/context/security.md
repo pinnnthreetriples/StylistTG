@@ -8,13 +8,18 @@ triggers:
   - live
   - workspace
 edges:
+  - .mex/status/current.md
   - .mex/context/backend.md
   - .mex/context/warmup.md
   - .mex/patterns/live-tdlib-safety.md
-last_updated: 2026-05-28
+last_updated: 2026-06-08
 ---
 
 # Security and Live Safety
+
+## Current status
+
+Read `.mex/status/current.md` before assuming safety policy layers, live runtime gates, rollout posture, or deploy posture are active. Temporary status overrides stable descriptions until it is superseded.
 
 ## Secrets and runtime data
 
@@ -43,6 +48,4 @@ last_updated: 2026-05-28
 
 - For security-sensitive backend changes, run targeted pytest plus `cd backend; python -m ruff check .`.
 - For frontend auth/API contract changes, run targeted vitest/typecheck as applicable.
-- Repository security baseline checks are CI, Test Quality, Semgrep, CodeQL
-  Default Setup, Secret Scan, SBOM, and Container Scan. See
-  `docs/security/security-baseline.md`.
+- Repository security baseline checks are CI, Test Quality, Semgrep, CodeQL Default Setup, Secret Scan, SBOM, and Container Scan. See `docs/security/security-baseline.md`.

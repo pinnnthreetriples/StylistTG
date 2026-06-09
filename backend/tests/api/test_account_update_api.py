@@ -95,6 +95,7 @@ def test_account_update_preview_returns_profile_uniqueness_warning(app_client, d
     assert payload["profile_uniqueness"]["similar_count"] == 1
 
 
+# test-analyzer: disable=TQA030 reason="Duplicate setup is intentional for test clarity across uniqueness scenarios" permanent="true"
 def test_account_update_create_blocks_profile_uniqueness_without_force(
     app_client, db_session
 ) -> None:

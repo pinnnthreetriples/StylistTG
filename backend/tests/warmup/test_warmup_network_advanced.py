@@ -299,6 +299,7 @@ def test_real_adapter_join_chat_uses_searchPublicChat_then_joinChat(monkeypatch)
     assert result.metadata["joined_chat_id"] == -100_42
 
 
+# test-analyzer: disable=TQA004 reason="Single integration test validates the full p2p send protocol; splitting would lose causal ordering" permanent="true"
 def test_real_adapter_p2p_send_uses_typing_before_sendMessage(monkeypatch) -> None:
     client = _ProgrammableTdlibClient(
         receive_queue=[_ready_event()],

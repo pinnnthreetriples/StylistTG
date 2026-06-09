@@ -78,6 +78,7 @@ def test_preview_returns_warning_for_similar_profile(db_session) -> None:
     assert "profile_uniqueness_warning:1" in preview["warnings"]
 
 
+# test-analyzer: disable=TQA030 reason="Duplicate setup is intentional for test clarity across uniqueness scenarios" permanent="true"
 def test_preview_blocks_exact_profile_match_without_force(db_session) -> None:
     existing = seed_account_with_profile(db_session, index=1)
     candidate = seed_account_with_profile(db_session, index=2)

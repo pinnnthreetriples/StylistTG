@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from app.modules.account_core.service import list_accounts
+from app.modules.account_shared.interfaces import list_workspace_accounts
 from app.modules.warmup.contracts import WarmupSelectableAccountRead
 from app.modules.warmup.service import batch_active_warmups_for_accounts
 
@@ -22,7 +22,7 @@ def list_selectable_accounts(
     hide_in_work: bool = False,
     limit: int = 500,
 ) -> list[WarmupSelectableAccountRead]:
-    accounts = list_accounts(session, workspace_id=workspace_id)
+    accounts = list_workspace_accounts(session, workspace_id=workspace_id)
     warmup_map = batch_active_warmups_for_accounts(
         session,
         account_ids=[account.id for account in accounts],

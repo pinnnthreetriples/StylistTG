@@ -18,21 +18,22 @@ depends_on = None
 
 
 def upgrade() -> None:
+    uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
     op.create_table(
         "warmup_pre_production_session",
-        sa.Column("id", sa.String(length=36), primary_key=True),
+        sa.Column("id", uuid_string, primary_key=True),
         sa.Column(
-            "workspace_id", sa.String(length=36), sa.ForeignKey("workspace.id"), nullable=False
+            "workspace_id", uuid_string, sa.ForeignKey("workspace.id"), nullable=False
         ),
         sa.Column(
             "account_id",
-            sa.String(length=36),
+            uuid_string,
             sa.ForeignKey("account.id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column(
             "source_warmup_session_id",
-            sa.String(length=36),
+            uuid_string,
             sa.ForeignKey("warmup_session.id", ondelete="SET NULL"),
             nullable=True,
         ),

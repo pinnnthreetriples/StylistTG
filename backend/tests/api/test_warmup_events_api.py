@@ -152,3 +152,12 @@ def _set_event_times(
     first.created_at = base
     second.created_at = base + timedelta(seconds=1)
     third.created_at = base + timedelta(seconds=2)
+
+
+def test_warmup_events_endpoint_rejects_invalid_severity(app_client) -> None:
+    """Invalid severity values must be rejected with a 422 validation error."""
+    response = app_client.get("/api/warmup-events?severity=not_a_severity")
+    assert response.status_code == 422
+    body = response.json()
+    assert body.get("error_code") == "REQUEST_VALIDATION_ERROR"
+    assert any("severity" in fe.get("field", "") for fe in body.get("field_errors", []))

@@ -101,6 +101,13 @@ Follow the conventions documented in `docs/architecture/MODULAR_BACKEND.md`.
 
 Register the module through the existing module registry pattern. Do not add a parallel registry or manual router loading mechanism.
 
+Concretely, update `backend/app/modules/registry.py`:
+
+1. Import the module object as `<module_name>_module`.
+2. Add it to the `MODULES` tuple.
+3. Keep route-safe ordering. Modules with broad wildcard routes must come after modules with more specific routes they could shadow.
+4. Preserve existing ordering comments. For example, `account_core_module` is intentionally last because its `/api/accounts/{account_id}` wildcard can shadow more specific account routes.
+
 `main.py` should continue registering module routers through `app.modules.registry.iter_routers()`.
 
 ### 4. Add contracts
@@ -232,6 +239,7 @@ Architecture impact:
 - Public API path:
 - Source-of-truth tables/models:
 - Queue/workflow/runtime role changes:
+- Registry update and route ordering:
 - Compatibility wrappers touched:
 - Frontend module changes:
 - Safety/live-runtime implications:

@@ -24,9 +24,9 @@ def detect_idle_accounts(
 ) -> list[str]:
     cutoff = now - timedelta(minutes=threshold_minutes)
     active_jobs = (
-        select(
+        select(  # nosemgrep: missing-workspace-id-filter-projection - Job.workspace_id == workspace_id is in the .where below.
             Job.id
-        )  # nosemgrep: missing-workspace-id-filter-projection - Job.workspace_id == workspace_id is in the .where below.
+        )
         .where(
             Job.workspace_id == workspace_id,
             Job.workspace_id == Account.workspace_id,
@@ -36,9 +36,9 @@ def detect_idle_accounts(
         .exists()
     )
     recent_jobs = (
-        select(
+        select(  # nosemgrep: missing-workspace-id-filter-projection - Job.workspace_id == workspace_id is in the .where below.
             Job.id
-        )  # nosemgrep: missing-workspace-id-filter-projection - Job.workspace_id == workspace_id is in the .where below.
+        )
         .where(
             Job.workspace_id == workspace_id,
             Job.workspace_id == Account.workspace_id,
@@ -52,9 +52,9 @@ def detect_idle_accounts(
         .exists()
     )
     active_warmup = (
-        select(
+        select(  # nosemgrep: missing-workspace-id-filter-projection - WarmupSession.workspace_id == workspace_id is in the .where below.
             WarmupSession.id
-        )  # nosemgrep: missing-workspace-id-filter-projection - WarmupSession.workspace_id == workspace_id is in the .where below.
+        )
         .where(
             WarmupSession.workspace_id == workspace_id,
             WarmupSession.workspace_id == Account.workspace_id,

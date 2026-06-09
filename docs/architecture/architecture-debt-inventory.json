@@ -2008,7 +2008,7 @@
       "target_owner": "governance/evidence/frontend ownership"
     }
   ],
-  "generated_at": "2026-06-09T10:51:20Z",
+  "generated_at": "2026-06-09T10:49:31Z",
   "overlapping_backend_app_python_files": {},
   "residual_boundary_guard": {
     "boundary_count": 0,

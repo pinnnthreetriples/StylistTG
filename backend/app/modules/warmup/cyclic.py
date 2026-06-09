@@ -269,7 +269,7 @@ def _aware(value: datetime) -> datetime:
 def _zone(timezone: str | None) -> ZoneInfo:
     try:
         return ZoneInfo(timezone or "UTC")
-    except (ZoneInfoNotFoundError, AttributeError):
+    except ZoneInfoNotFoundError, AttributeError:
         return ZoneInfo("UTC")
 
 

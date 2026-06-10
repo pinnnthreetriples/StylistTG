@@ -84,3 +84,13 @@ def _seed_session(db_session, *, started_at: datetime):
     )
     db_session.commit()
     return warmup_session
+
+
+def test_warmup_session_timer_invalid_session_id_returns_not_found(app_client) -> None:
+    """Unknown session IDs must surface a 404 from the timer endpoint."""
+    response = app_client.get(
+        "/api/warmup-sessions/00000000-0000-4000-8000-000000000999/timer"
+    )
+    assert response.status_code == 404
+    body = response.json()
+    assert body.get("error_code")

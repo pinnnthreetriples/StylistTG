@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from app.modules.warmup.contracts import (
     WarmupEventPageRead,
@@ -218,7 +218,7 @@ def _event_message(event: Any) -> str:
 
 
 def _timer_started_at(warmup_session: Any) -> datetime | None:
-    cycle_config = warmup_session.cycle_config_json or {}
+    cycle_config: dict[str, Any] = warmup_session.cycle_config_json or {}
     started_at = cycle_config.get("started_at")
     if isinstance(started_at, str):
         try:
@@ -229,7 +229,7 @@ def _timer_started_at(warmup_session: Any) -> datetime | None:
 
 
 def _timer_total_seconds(warmup_session: Any) -> int:
-    cycle_config = warmup_session.cycle_config_json or {}
+    cycle_config: dict[str, Any] = warmup_session.cycle_config_json or {}
     active_hours_total = cycle_config.get("active_hours_total")
     if isinstance(active_hours_total, int) and active_hours_total > 0:
         return active_hours_total * 3600
@@ -258,7 +258,7 @@ def _timer_elapsed_seconds(
     return max(0, min(total_seconds, elapsed))
 
 
-def _timer_status(status: str) -> str:
+def _timer_status(status: str) -> Literal["running", "paused", "completed", "stopped"]:
     if status in {"active", "scheduled", "cold_soak", "validating"}:
         return "running"
     if status in {"paused_risk", "paused_manual"}:

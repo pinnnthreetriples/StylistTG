@@ -53,6 +53,7 @@ schemathesis_checks.load_all_checks()
 
 _POSITIVE_DATA_ACCEPTANCE = schemathesis_checks.CHECKS.get_one("positive_data_acceptance")
 _UNSUPPORTED_METHOD = schemathesis_checks.CHECKS.get_one("unsupported_method")
+_NEGATIVE_DATA_REJECTION = schemathesis_checks.CHECKS.get_one("negative_data_rejection")
 _FILE_UPLOAD_PATHS = {
     "/api/assets/profile-audio",
     "/api/assets/profile-photo",
@@ -72,6 +73,18 @@ _BUSINESS_PRECONDITION_PATHS = {
 _AMBIGUOUS_DYNAMIC_METHOD_PATHS = {
     "/api/story-drafts/{account_id}",
     "/api/story-drafts/{draft_id}",
+}
+# FastAPI does not reject unexpected query params by default; document the
+# exception here for endpoints that intentionally accept open query strings.
+_LENIENT_QUERY_PATHS = {
+    "/api/warmup-events",
+    "/api/warmup-selectable-accounts",
+}
+# Server-Sent Events endpoints; schemathesis cannot meaningfully fuzz a
+# long-lived streaming response. Auth + workspace scoping is covered by
+# dedicated unit tests under tests/security and tests/api.
+_STREAMING_PATHS = {
+    "/api/warmup-events/stream",
 }
 
 
@@ -135,11 +148,16 @@ def test_openapi_contract(case: schemathesis.Case, contract_app_overrides: None)
     """
     assert contract_app_overrides is None
 
+    if case.path in _STREAMING_PATHS:
+        pytest.skip("Streaming endpoint — covered by dedicated SSE tests.")
+
     excluded_checks = []
     if case.path in _FILE_UPLOAD_PATHS | _BUSINESS_PRECONDITION_PATHS:
         excluded_checks.append(_POSITIVE_DATA_ACCEPTANCE)
     if case.path in _AMBIGUOUS_DYNAMIC_METHOD_PATHS:
         excluded_checks.append(_UNSUPPORTED_METHOD)
+    if case.path in _LENIENT_QUERY_PATHS:
+        excluded_checks.append(_NEGATIVE_DATA_REJECTION)
 
     response = case.call_and_validate(excluded_checks=excluded_checks or None)
     assert response.status_code < 500

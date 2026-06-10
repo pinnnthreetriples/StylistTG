@@ -205,7 +205,7 @@ def live_event_page_read(
 
 
 def _event_message(event: Any) -> str:
-    payload = event.payload_json or {}
+    payload: dict[str, Any] = event.payload_json or {}
     action = payload.get("action_type")
     reason = payload.get("reason")
     if action and reason:

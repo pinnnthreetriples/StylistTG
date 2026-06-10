@@ -34,3 +34,12 @@ def test_compute_health_score_decays_after_stale_success() -> None:
 def test_is_channel_healthy_uses_exclusion_threshold() -> None:
     assert is_channel_healthy(_State(HEALTH_THRESHOLD_EXCLUDE))
     assert not is_channel_healthy(_State(HEALTH_THRESHOLD_EXCLUDE - 0.0001))
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

@@ -52,7 +52,16 @@ def test_all_non_health_routes_require_auth_dependency() -> None:
             dependency_names.append(getattr(call, "__name__", repr(call)))
             dependency_stack.extend(dependency.dependencies)
         if not any(
-            name in {"require_authenticated", "require_mutation_permission", "dependency"}
+            name
+            in {
+                "require_authenticated",
+                "require_mutation_permission",
+                "dependency",
+                # SSE-friendly auth wrapper that calls resolve_auth_context with
+                # EventSource `?access_token=` fallback. Still requires a valid
+                # auth context — see _resolve_stream_auth in warmup/router.py.
+                "_stream_auth_dependency",
+            }
             for name in dependency_names
         ):
             methods = ",".join(sorted(route.methods or []))

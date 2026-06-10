@@ -1,3 +1,4 @@
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownParameterType=false, reportMissingTypeArgument=false, reportMissingParameterType=false, reportArgumentType=false
 from __future__ import annotations
 
 from dataclasses import dataclass

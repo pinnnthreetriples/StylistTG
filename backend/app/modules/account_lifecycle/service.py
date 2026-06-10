@@ -16,7 +16,7 @@ from app.models import (
     utc_now,
 )
 from app.modules.account_lifecycle import repository
-from app.modules.account_safety.interfaces import build_account_readiness_risk
+from app.modules.account_shared.interfaces import build_account_readiness_risk
 from app.services.sensitive_audit import record_sensitive_audit_event
 from app.services.secret_redaction import redact_metadata
 from app.storage import StorageService, build_storage_service

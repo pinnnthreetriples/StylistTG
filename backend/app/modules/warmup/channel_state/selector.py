@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from app.modules.warmup.channel_state.contracts import ChannelStateSnapshot
 from app.modules.warmup.channel_state.health import is_channel_healthy
@@ -50,7 +51,7 @@ CHANNEL_PROFILE_CHAT_ACTION_TYPES = frozenset({"simulate_typing", "drafts"})
 class SelectedAction:
     action_type: str
     channel_ref: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=lambda: {})
 
 
 def choose_actions(
@@ -109,11 +110,14 @@ def _pending_action_types(
 
 def _action_preference(action_type: str, personality_seed: dict[str, Any] | None) -> float:
     raw = (personality_seed or {}).get("action_preferences")
-    if not isinstance(raw, dict):
+    if not isinstance(raw, Mapping):
         return 1.0
+    preferences = cast(Mapping[str, Any], raw)
     try:
-        return max(0.1, min(3.0, float(raw.get(action_type, 1.0))))
-    except TypeError, ValueError:
+        return max(0.1, min(3.0, float(preferences.get(action_type, 1.0))))
+    except TypeError:
+        return 1.0
+    except ValueError:
         return 1.0
 
 

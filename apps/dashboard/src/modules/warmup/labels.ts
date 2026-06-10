@@ -1,4 +1,5 @@
 import type {
+  WarmupActionCategory,
   WarmupEvent,
   WarmupEventSeverity,
   WarmupExecutionMode,
@@ -55,6 +56,17 @@ export const WARMUP_EVENT_SEVERITY_LABELS: Record<WarmupEventSeverity | 'all', s
   debug: 'Дебаг',
 }
 
+export const ACTION_CATEGORY_LABELS: Record<WarmupActionCategory, string> = {
+  reading: 'Чтение',
+  activity: 'Активность',
+  entertainment: 'Развлечения',
+  social: 'Социальные',
+  groups: 'Группы',
+  profile: 'Профиль/настройки',
+}
+
+export const TRAFFIC_TOOLTIP =
+  'Эти действия активно используют трафик прокси. Отключайте на мобильных/резидентских прокси.'
 export const WARMUP_EVENT_LABELS: Record<string, string> = {
   session_created: 'Сессия создана',
   task_executed: 'Шаг выполнен',

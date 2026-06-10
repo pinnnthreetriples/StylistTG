@@ -18,7 +18,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    uuid_string = sa.String(length=36)
+    uuid_string = sa.String(length=36).with_variant(sa.Uuid(as_uuid=False), "postgresql")
     op.create_table(
         "warmup_p2p_friend_link",
         sa.Column("id", uuid_string, primary_key=True, nullable=False),

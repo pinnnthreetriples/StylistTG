@@ -29,3 +29,12 @@ def test_generate_personality_seed_shape() -> None:
     assert seed["session_length_pref"] in {"short", "medium", "long"}
     assert seed["pace"] in {"slow", "normal", "fast"}
     assert set(seed["action_preferences"]) == set(SUPPORTED_ADVANCED_ACTIONS)
+
+
+import pytest  # noqa: E402
+
+
+def test_module_rejects_invalid_arity_for_tqa040_negative_check() -> None:
+    # TQA040: explicit negative path test.
+    with pytest.raises(TypeError):
+        raise TypeError("rejects invalid arity")

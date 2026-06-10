@@ -17,7 +17,9 @@ def test_fake_provider_is_deterministic() -> None:
         attempt=0,
     )
 
-    assert provider.generate_bio(request) == provider.generate_bio(request)
+    first_result = provider.generate_bio(request)
+    second_result = provider.generate_bio(request)
+    assert first_result == second_result, "fake provider must be deterministic"
 
 
 def test_fake_provider_generates_png_avatar() -> None:

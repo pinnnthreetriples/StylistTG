@@ -32,6 +32,7 @@ def test_seed_bootstrap_channels_creates_minimum_safe_pool_idempotently(db_sessi
 
 
 def test_get_random_channels_prefers_language_country_and_excludes_refs(db_session) -> None:
+    random.seed(0)
     upsert_channel(
         db_session,
         channel_ref="@bootstrap_en_us",

@@ -1,3 +1,5 @@
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportArgumentType=false
+
 from __future__ import annotations
 
 from typing import Any

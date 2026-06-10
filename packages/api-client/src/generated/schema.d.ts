@@ -1657,6 +1657,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/warmup-sessions/{session_id}/timer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Warmup Session Timer */
+        get: operations["get_warmup_session_timer_api_warmup_sessions__session_id__timer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/warmup-sessions/{session_id}/disabled-actions": {
         parameters: {
             query?: never;
@@ -7527,6 +7544,22 @@ export interface components {
              */
             updated_at: string;
             cycle_config?: components["schemas"]["WarmupCycleConfigRead"] | null;
+        };
+        /** WarmupSessionTimerRead */
+        WarmupSessionTimerRead: {
+            /** Session Id */
+            session_id: string;
+            /** Started At */
+            started_at: string | null;
+            /** Total Duration Seconds */
+            total_duration_seconds: number;
+            /** Elapsed Seconds */
+            elapsed_seconds: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "paused" | "completed" | "stopped";
         };
         /**
          * WarmupStatusRead
@@ -14324,6 +14357,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupCyclicCreateRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warmup_session_timer_api_warmup_sessions__session_id__timer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupSessionTimerRead"];
                 };
             };
             /** @description Bad Request */

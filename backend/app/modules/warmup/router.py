@@ -41,6 +41,7 @@ from app.modules.warmup.contracts import (
     WarmupSessionPageRead,
     WarmupSessionRead,
     WarmupSessionStatusRead,
+    WarmupSessionTimerRead,
     WarmupStrategyRead,
     WarmupValidateRead,
     WarmupValidateRequest,
@@ -384,6 +385,20 @@ def get_warmup_session_status(
 ) -> WarmupSessionStatusRead:
     try:
         return warmup_service.get_warmup_session_status(
+            session, session_id=str(session_id), workspace_id=auth.workspace_id
+        )
+    except WarmupError as exc:
+        raise _warmup_error(exc) from exc
+
+
+@session_alias_router.get("/{session_id}/timer", response_model=WarmupSessionTimerRead)
+def get_warmup_session_timer(
+    session_id: UUID,
+    session: Session = Depends(get_session),
+    auth: AuthContext = Depends(require_authenticated),
+) -> WarmupSessionTimerRead:
+    try:
+        return warmup_service.get_warmup_session_timer(
             session, session_id=str(session_id), workspace_id=auth.workspace_id
         )
     except WarmupError as exc:

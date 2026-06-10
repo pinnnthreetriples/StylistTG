@@ -1840,8 +1840,12 @@
           "apps/dashboard/src/modules/warmup/components/WarmupProxySnapshotPanel.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupReadinessBanner.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupSessionDetail.tsx",
+          "apps/dashboard/src/modules/warmup/components/WarmupSessionTimer.test.tsx",
+          "apps/dashboard/src/modules/warmup/components/WarmupSessionTimer.tsx",
+          "apps/dashboard/src/modules/warmup/components/WarmupSessionTimerModel.ts",
           "apps/dashboard/src/modules/warmup/components/WarmupSessionsTable.tsx",
           "apps/dashboard/src/modules/warmup/components/WarmupStatusBadge.tsx",
+          "apps/dashboard/src/modules/warmup/components/__snapshots__/WarmupSessionTimer.test.tsx.snap",
           "apps/dashboard/src/modules/warmup/components/warmupDisabledActions.ts",
           "apps/dashboard/src/modules/warmup/hooks.ts",
           "apps/dashboard/src/modules/warmup/index.ts",
@@ -1929,6 +1933,7 @@
           "backend/tests/api/test_warmup_contracts.py",
           "backend/tests/api/test_warmup_events_api.py",
           "backend/tests/api/test_warmup_selectable_accounts_api.py",
+          "backend/tests/api/test_warmup_session_timer_api.py",
           "backend/tests/api/test_warmup_sessions_api.py",
           "backend/tests/architecture/test_account_editing_module_boundaries.py",
           "backend/tests/architecture/test_auth_module_boundaries.py",
@@ -2307,7 +2312,7 @@
         "target_owner": "governance/evidence/frontend ownership"
       }
     ],
-    "generated_at": "2026-06-09T18:42:26Z",
+    "generated_at": "2026-06-10T06:47:35Z",
     "overlapping_backend_app_python_files": {},
     "residual_boundary_guard": {
       "boundary_count": 0,
@@ -2615,8 +2620,12 @@
         "apps/dashboard/src/modules/warmup/components/WarmupProxySnapshotPanel.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupReadinessBanner.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupSessionDetail.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupSessionTimer.test.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupSessionTimer.tsx",
+        "apps/dashboard/src/modules/warmup/components/WarmupSessionTimerModel.ts",
         "apps/dashboard/src/modules/warmup/components/WarmupSessionsTable.tsx",
         "apps/dashboard/src/modules/warmup/components/WarmupStatusBadge.tsx",
+        "apps/dashboard/src/modules/warmup/components/__snapshots__/WarmupSessionTimer.test.tsx.snap",
         "apps/dashboard/src/modules/warmup/components/warmupDisabledActions.ts",
         "apps/dashboard/src/modules/warmup/hooks.ts",
         "apps/dashboard/src/modules/warmup/index.ts",
@@ -2645,7 +2654,7 @@
       "path": "apps/dashboard/src"
     }
   ],
-  "generated_at": "2026-06-09T18:42:26Z",
+  "generated_at": "2026-06-10T06:47:35Z",
   "legacy_wrappers": [
     {
       "canonical_owner": "app.modules.account_editing.router",
@@ -5683,7 +5692,7 @@
     },
     "backend_tests": {
       "exists": true,
-      "file_count": 290,
+      "file_count": 291,
       "path": "backend/tests"
     },
     "docs": {
@@ -5693,7 +5702,7 @@
     },
     "frontend": {
       "exists": true,
-      "file_count": 311,
+      "file_count": 315,
       "path": "apps/dashboard/src"
     },
     "mex_memory": {

@@ -14,6 +14,7 @@ from app.modules.warmup.contracts import (
     WarmupSessionPageRead,
     WarmupSessionRead,
     WarmupSessionStatusRead,
+    WarmupSessionTimerRead,
     WarmupStrategyRead,
     WarmupValidateRead,
 )
@@ -102,6 +103,17 @@ def get_warmup_session_status(
         session, session_id=session_id, workspace_id=workspace_id
     )
     return read_models.session_status_read(warmup_session)
+
+
+def get_warmup_session_timer(
+    session: Session,
+    *,
+    session_id: str,
+    workspace_id: str,
+) -> WarmupSessionTimerRead:
+    return read_models.session_timer_read(
+        repository.get_warmup_session(session, session_id=session_id, workspace_id=workspace_id)
+    )
 
 
 def list_warmup_session_events_page(
@@ -194,6 +206,7 @@ __all__ = [
     "get_warmup_readiness",
     "get_warmup_session_detail",
     "get_warmup_session_status",
+    "get_warmup_session_timer",
     "list_warmup_event_feed_page",
     "list_warmup_session_events_page",
     "list_warmup_sessions_page",

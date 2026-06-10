@@ -22,6 +22,7 @@ import { WarmupDisabledActionsToggle } from './WarmupDisabledActionsToggle'
 import { WarmupIsolationBanner } from './WarmupIsolationBanner'
 import { WarmupLiveLogs } from './WarmupLiveLogs'
 import { WarmupProxySnapshotPanel } from './WarmupProxySnapshotPanel'
+import { WarmupSessionTimer } from './WarmupSessionTimer'
 import { WarmupStatusBadge } from './WarmupStatusBadge'
 
 export function WarmupSessionDetail({
@@ -162,6 +163,7 @@ export function WarmupSessionDetail({
           </Alert>
         ) : null}
       </SectionCard>
+      <WarmupSessionTimer sessionId={session.id} />
       <WarmupDailyCountersPanel
         currentDay={detail?.current_day ?? session.current_day}
         durationDays={detail?.duration_days ?? session.duration_days}

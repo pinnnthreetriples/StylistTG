@@ -104,6 +104,16 @@ export type WarmupCyclicCreateResponse = {
   items: WarmupSessionDetail[]
 }
 
+export type WarmupTimerStatus = 'running' | 'paused' | 'completed' | 'stopped'
+
+export type WarmupSessionTimer = {
+  session_id: string
+  started_at: string | null
+  total_duration_seconds: number
+  elapsed_seconds: number
+  status: WarmupTimerStatus
+}
+
 export type WarmupCheckItem = {
   key: string
   label: string

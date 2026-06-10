@@ -415,6 +415,7 @@ def _resolve_path(path: str, ids: dict[str, str] | None = None) -> str:
         "rule_id": "00000000-0000-4000-8000-000000000107",
         "batch_id": "00000000-0000-4000-8000-000000000108",
         "item_id": "00000000-0000-4000-8000-000000000109",
+        "session_id": "00000000-0000-4000-8000-000000000110",
         "workspace_id": DEFAULT_LOCAL_WORKSPACE_ID,
     }
     if "{account_id}" in path:
